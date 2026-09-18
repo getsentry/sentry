@@ -24,29 +24,19 @@ describe('Discover > Homepage', () => {
   let mockHomepage: jest.Mock;
 
   beforeEach(() => {
-    organization = OrganizationFixture({
-      features,
-    });
+    organization = OrganizationFixture({features});
 
     ProjectsStore.loadInitialData([ProjectFixture()]);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/events/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-meta/',
-      body: {
-        count: 2,
-      },
+      body: {count: 2},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {data: [[123, []]]},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
       body: [],
@@ -67,9 +57,7 @@ describe('Discover > Homepage', () => {
         expired: false,
         dateCreated: '2021-04-08T17:53:25.195782Z',
         dateUpdated: '2021-04-09T12:13:18.567264Z',
-        createdBy: {
-          id: '2',
-        },
+        createdBy: {id: '2'},
         environment: ['alpha'],
         fields: ['environment'],
         widths: ['-1'],
@@ -153,9 +141,7 @@ describe('Discover > Homepage', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
-          query: expect.objectContaining({
-            field: 'event.type',
-          }),
+          query: expect.objectContaining({field: 'event.type'}),
         })
       );
     });
@@ -191,9 +177,7 @@ describe('Discover > Homepage', () => {
         expired: false,
         dateCreated: '2021-04-08T17:53:25.195782Z',
         dateUpdated: '2021-04-09T12:13:18.567264Z',
-        createdBy: {
-          id: '2',
-        },
+        createdBy: {id: '2'},
         environment: [],
         fields: ['environment'],
         widths: ['-1'],
@@ -418,18 +402,11 @@ describe('Discover > Homepage', () => {
   });
 
   it('shows Set as Default when dataset differs from saved homepage', async () => {
-    organization = OrganizationFixture({
-      features: ['discover-basic', 'discover-query'],
-    });
+    organization = OrganizationFixture({features: ['discover-basic', 'discover-query']});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {
-          discoverSplitDecision: 'error-events',
-        },
-        data: [],
-      },
+      body: {meta: {discoverSplitDecision: 'error-events'}, data: []},
     });
 
     MockApiClient.addMockResponse({
@@ -444,9 +421,7 @@ describe('Discover > Homepage', () => {
         expired: false,
         dateCreated: '2021-04-08T17:53:25.195782Z',
         dateUpdated: '2021-04-09T12:13:18.567264Z',
-        createdBy: {
-          id: '2',
-        },
+        createdBy: {id: '2'},
         environment: [],
         fields: ['environment'],
         widths: ['-1'],
@@ -514,12 +489,7 @@ describe('Discover > Homepage', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {
-          discoverSplitDecision: 'transaction-like',
-        },
-        data: [],
-      },
+      body: {meta: {discoverSplitDecision: 'transaction-like'}, data: []},
     });
 
     MockApiClient.addMockResponse({
@@ -534,9 +504,7 @@ describe('Discover > Homepage', () => {
         expired: false,
         dateCreated: '2021-04-08T17:53:25.195782Z',
         dateUpdated: '2021-04-09T12:13:18.567264Z',
-        createdBy: {
-          id: '2',
-        },
+        createdBy: {id: '2'},
         environment: [],
         fields: ['environment'],
         widths: ['-1'],

@@ -98,18 +98,11 @@ export function useConfigureSdk({
 
       if (
         isDisabledGamingPlatform({
-          platform: {
-            ...selectedPlatform,
-            id: selectedPlatform.key,
-          },
+          platform: {...selectedPlatform, id: selectedPlatform.key},
           enabledConsolePlatforms: organization.enabledConsolePlatforms,
         })
       ) {
-        openConsoleModal({
-          organization,
-          selectedPlatform,
-          origin: 'onboarding',
-        });
+        openConsoleModal({organization, selectedPlatform, origin: 'onboarding'});
         return;
       }
 

@@ -105,29 +105,17 @@ const ChecksSpinner = styled('span')`
 `;
 
 const CHECKS_STATUS_TAGS = {
-  failure: {
-    icon: <IconClose />,
-    label: t('Checks Failing'),
-    variant: 'danger',
-  },
+  failure: {icon: <IconClose />, label: t('Checks Failing'), variant: 'danger'},
   pending: {
     icon: <ChecksSpinner aria-hidden />,
     label: t('Checks Running'),
     variant: 'warning',
   },
-  success: {
-    icon: <IconCheckmark />,
-    label: t('Checks Passing'),
-    variant: 'success',
-  },
+  success: {icon: <IconCheckmark />, label: t('Checks Passing'), variant: 'success'},
 } satisfies Record<PullRequestChecksStatus, PullRequestStatusTagMeta>;
 
 const REVIEW_STATUS_TAGS = {
-  approved: {
-    icon: <IconThumb />,
-    label: t('Approved'),
-    variant: 'success',
-  },
+  approved: {icon: <IconThumb />, label: t('Approved'), variant: 'success'},
   changes_requested: {
     icon: <IconClose />,
     label: t('Changes Requested'),

@@ -11,10 +11,7 @@ export const crashReport: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: getCrashReportInstallDescription(),
-        },
+        {type: 'text', text: getCrashReportInstallDescription()},
         {
           type: 'code',
           language: 'kotlin',

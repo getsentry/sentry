@@ -26,10 +26,7 @@ export function CreateBroadcastModal({
 
   const {mutate: updateBroadcast} = useMutation({
     mutationFn: (data: Broadcast) => {
-      return api.requestPromise('/broadcasts/', {
-        method: 'POST',
-        data,
-      });
+      return api.requestPromise('/broadcasts/', {method: 'POST', data});
     },
     onSuccess: (data: Broadcast) => {
       navigate(`/_admin/broadcasts/${data.id}/`);

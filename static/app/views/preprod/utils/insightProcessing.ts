@@ -286,10 +286,7 @@ export function processInsights(
           path: group.name,
           savings: group.total_savings,
           percentage: (group.total_savings / totalSize) * 100,
-          data: {
-            fileType: 'duplicate_files' as const,
-            originalGroup: group,
-          },
+          data: {fileType: 'duplicate_files' as const, originalGroup: group},
         })),
       });
     }
@@ -311,10 +308,7 @@ export function processInsights(
           path: file.file_path,
           savings: file.total_savings,
           percentage: (file.total_savings / totalSize) * 100,
-          data: {
-            fileType: 'strip_binary' as const,
-            originalFile: file,
-          },
+          data: {fileType: 'strip_binary' as const, originalFile: file},
         })),
       });
     }
@@ -336,10 +330,7 @@ export function processInsights(
           path: group.name,
           savings: group.total_savings,
           percentage: (group.total_savings / totalSize) * 100,
-          data: {
-            fileType: 'duplicate_files' as const,
-            originalGroup: group,
-          },
+          data: {fileType: 'duplicate_files' as const, originalGroup: group},
         })),
       });
     }
@@ -379,10 +370,7 @@ export function processInsights(
               path: file.file_path,
               savings: file.total_savings,
               percentage: (file.total_savings / totalSize) * 100,
-              data: {
-                fileType: 'regular' as const,
-                originalFile: file,
-              },
+              data: {fileType: 'regular' as const, originalFile: file},
             })),
         });
       }

@@ -7,10 +7,7 @@ import type {ImageCandidate} from 'sentry/types/debugImage';
 
 import {Status} from '.';
 
-type Props = {
-  candidate: ImageCandidate;
-  hasReprocessWarning: boolean;
-};
+type Props = {candidate: ImageCandidate; hasReprocessWarning: boolean};
 
 export function StatusTooltip({candidate, hasReprocessWarning}: Props) {
   const {download} = candidate;

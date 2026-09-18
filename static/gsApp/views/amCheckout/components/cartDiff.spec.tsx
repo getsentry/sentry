@@ -58,19 +58,9 @@ describe('CartDiff', () => {
     const formData: CheckoutFormData = {
       ...defaultFormData,
       plan: bizPlan.id,
-      reserved: {
-        ...defaultFormData.reserved,
-        errors: 100_000,
-      },
-      onDemandBudget: {
-        budgetMode: OnDemandBudgetMode.SHARED,
-        sharedMaxBudget: 100_00,
-      },
-      addOns: {
-        [AddOnCategory.LEGACY_SEER]: {
-          enabled: true,
-        },
-      },
+      reserved: {...defaultFormData.reserved, errors: 100_000},
+      onDemandBudget: {budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 100_00},
+      addOns: {[AddOnCategory.LEGACY_SEER]: {enabled: true}},
     };
 
     renderCartDiff({formData, activePlan: bizPlan});
@@ -100,10 +90,7 @@ describe('CartDiff', () => {
   });
 
   it('does not render for new customers', () => {
-    const newSub = SubscriptionFixture({
-      organization: org,
-      plan: 'am3_f',
-    });
+    const newSub = SubscriptionFixture({organization: org, plan: 'am3_f'});
     renderCartDiff({formData: defaultFormData, subscription: newSub});
     expect(screen.queryByTestId('cart-diff')).not.toBeInTheDocument();
   });
@@ -124,9 +111,7 @@ describe('CartDiff', () => {
       ...defaultFormData,
       onDemandBudget: {
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        budgets: {
-          errors: 10_00,
-        },
+        budgets: {errors: 10_00},
       },
     };
 
@@ -148,24 +133,16 @@ describe('CartDiff', () => {
       plan: teamAnnualPlan.id,
       onDemandBudgets: {
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        budgets: {
-          errors: 10_00,
-          replays: 20_00,
-        },
+        budgets: {errors: 10_00, replays: 20_00},
         enabled: true,
-        usedSpends: {
-          errors: 0,
-        },
+        usedSpends: {errors: 0},
       },
       isFree: false,
     });
 
     const formData: CheckoutFormData = {
       ...defaultFormData,
-      onDemandBudget: {
-        budgetMode: OnDemandBudgetMode.SHARED,
-        sharedMaxBudget: 10_00,
-      },
+      onDemandBudget: {budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 10_00},
     };
 
     renderCartDiff({formData, subscription: perCategorySub});
@@ -183,12 +160,7 @@ describe('CartDiff', () => {
   it('does not render budget mode change if budgets are $0', () => {
     const formData: CheckoutFormData = {
       ...defaultFormData,
-      onDemandBudget: {
-        budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        budgets: {
-          errors: 0,
-        },
-      },
+      onDemandBudget: {budgetMode: OnDemandBudgetMode.PER_CATEGORY, budgets: {errors: 0}},
     };
 
     renderCartDiff({formData});
@@ -198,10 +170,7 @@ describe('CartDiff', () => {
   it('renders unset to set shared budget as single change', async () => {
     const formData: CheckoutFormData = {
       ...defaultFormData,
-      onDemandBudget: {
-        budgetMode: OnDemandBudgetMode.SHARED,
-        sharedMaxBudget: 10_00,
-      },
+      onDemandBudget: {budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 10_00},
     };
 
     renderCartDiff({formData});
@@ -217,10 +186,7 @@ describe('CartDiff', () => {
       ...defaultFormData,
       onDemandBudget: {
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        budgets: {
-          errors: 10_00,
-          replays: 20_00,
-        },
+        budgets: {errors: 10_00, replays: 20_00},
       },
     };
 
@@ -248,10 +214,7 @@ describe('CartDiff', () => {
     });
     const formData: CheckoutFormData = {
       ...defaultFormData,
-      onDemandBudget: {
-        budgetMode: OnDemandBudgetMode.SHARED,
-        sharedMaxBudget: 0,
-      },
+      onDemandBudget: {budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 0},
     };
     renderCartDiff({formData, subscription: subWithBudget});
     expect(await screen.findByText('Changes')).toBeInTheDocument();

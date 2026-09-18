@@ -16,8 +16,6 @@ export const docs: Docs = {
       'https://docs.sentry.io/platforms/go/guides/gin/user-feedback/configuration/#crash-report-modal',
   }),
   feedbackOnboardingJsLoader,
-  logsOnboarding: logs({
-    docsPlatform: 'gin',
-  }),
+  logsOnboarding: logs({docsPlatform: 'gin'}),
   metricsOnboarding: metrics,
 };

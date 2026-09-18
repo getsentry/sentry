@@ -77,8 +77,5 @@ export function useAccountSecurityEnrollActions({
     }
   }, [api, authenticatorName, navigate, pendingInvitation]);
 
-  return {
-    completeEnrollment,
-    deleteAuthenticator,
-  };
+  return {completeEnrollment, deleteAuthenticator};
 }

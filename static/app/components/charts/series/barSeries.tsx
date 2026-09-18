@@ -9,8 +9,5 @@ import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 export function createBarSeries(
   props: BarSeriesOption
 ): BarSeriesOption | LineSeriesOption {
-  return {
-    ...props,
-    type: props.type ?? 'bar',
-  };
+  return {...props, type: props.type ?? 'bar'};
 }

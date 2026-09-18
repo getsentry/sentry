@@ -13,16 +13,9 @@ import {
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 
-type Channel = {
-  display: string;
-  id: string;
-  name: string;
-  type: string;
-};
+type Channel = {display: string; id: string; name: string; type: string};
 
-type ChannelListResponse = {
-  results: Channel[];
-};
+type ChannelListResponse = {results: Channel[]};
 
 /**
  * A picker entry for a raw channel, carrying both identifiers so a caller can
@@ -107,10 +100,7 @@ export function useMessagingChannel({
       {
         path:
           provider && integration?.id
-            ? {
-                organizationIdOrSlug: organization.slug,
-                integrationId: integration.id,
-              }
+            ? {organizationIdOrSlug: organization.slug, integrationId: integration.id}
             : skipToken,
         staleTime: refetchOnWindowFocus ? 0 : Infinity,
       }

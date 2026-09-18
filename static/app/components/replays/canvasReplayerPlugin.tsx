@@ -148,9 +148,7 @@ export function canvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     event: CanvasEventWithTime
   ): Promise<void> {
     if (!canvasEventMap.has(event)) {
-      const status = {
-        isUnchanged: true,
-      };
+      const status = {isUnchanged: true};
       if ('commands' in data) {
         const commands = await Promise.all(
           data.commands.map(async c => {

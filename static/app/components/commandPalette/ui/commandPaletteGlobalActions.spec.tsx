@@ -413,10 +413,7 @@ describe('GlobalCommandPaletteActions - search recall', () => {
   ])(
     'resolves pasted identifiers for %s',
     async ({query, lookupUrl, body, expectedOption}) => {
-      MockApiClient.addMockResponse({
-        url: lookupUrl,
-        body,
-      });
+      MockApiClient.addMockResponse({url: lookupUrl, body});
 
       renderPalette();
 

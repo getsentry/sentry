@@ -21,9 +21,7 @@ export function ReplayConsoleFrameFixture(
 ): MockFrame<'console'> {
   return {
     category: 'console',
-    data: fields.data ?? {
-      logger: 'unknown',
-    },
+    data: fields.data ?? {logger: 'unknown'},
     level: fields.level ?? 'fatal',
     message: fields.message ?? '',
     timestamp: fields.timestamp.getTime() / 1000,
@@ -77,10 +75,7 @@ export function ReplayNavFrameFixture(
 ): MockFrame<'navigation'> {
   return {
     category: 'navigation',
-    data: fields.data ?? {
-      from: '',
-      to: '',
-    },
+    data: fields.data ?? {from: '', to: ''},
     message: fields.message ?? '',
     timestamp: fields.timestamp.getTime() / 1000,
     type: '',

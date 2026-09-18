@@ -52,10 +52,7 @@ function RedirectToProjectModal({slug, Header, Body}: Props) {
             <Text variant="muted">
               {tct(
                 'You will be redirected to the new project [project] in [timer] seconds...',
-                {
-                  project: <strong>{slug}</strong>,
-                  timer,
-                }
+                {project: <strong>{slug}</strong>, timer}
               )}
             </Text>
           </Stack>

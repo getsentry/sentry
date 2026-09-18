@@ -16,42 +16,19 @@ const MOCK_REACT_CONTEXT: ReactContext = {
   unknown_key: 123,
 };
 
-const MOCK_REDACTION = {
-  version: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
-};
+const MOCK_REDACTION = {version: {'': {rem: [['organization:0', 's', 0, 0]], len: 5}}};
 
 describe('ReactContext', () => {
   it('returns values and according to the parameters', () => {
     expect(getReactContextData({data: MOCK_REACT_CONTEXT})).toEqual([
-      {
-        key: 'version',
-        subject: 'Version',
-        value: '17.0.2',
-      },
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'version', subject: 'Version', value: '17.0.2'},
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123, meta: undefined},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {react: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {react: MOCK_REDACTION}}});
 
     render(
       <ContextCard

@@ -12,15 +12,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 type FetchDataFn = () => Promise<void>;
 
-type QueueItem = {
-  fetchDataRef: RefObject<FetchDataFn>;
-};
+type QueueItem = {fetchDataRef: RefObject<FetchDataFn>};
 
 type WidgetQueryQueue = ReactAsyncQueuer<QueueItem>;
 
-type Context = {
-  queue: WidgetQueryQueue;
-};
+type Context = {queue: WidgetQueryQueue};
 
 const WidgetQueueContext = createContext<Context | undefined>(undefined);
 
@@ -66,12 +62,7 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
             metrics.distribution(
               'dashboards.widget_query_queue.time_to_empty',
               totalTime,
-              {
-                attributes: {
-                  url: location.pathname,
-                },
-                unit: 'millisecond',
-              }
+              {attributes: {url: location.pathname}, unit: 'millisecond'}
             );
           }
         },

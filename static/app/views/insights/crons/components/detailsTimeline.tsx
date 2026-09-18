@@ -67,9 +67,7 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
     organization,
     monitor.project.slug,
     monitor.slug,
-    {
-      environment: location.query.environment,
-    }
+    {environment: location.query.environment}
   );
 
   const {data: monitorStats} = useMonitorStats({

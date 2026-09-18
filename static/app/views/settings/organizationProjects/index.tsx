@@ -71,9 +71,7 @@ function OrganizationProjects() {
       debounce(
         (searchQuery: string) =>
           navigate(
-            {
-              query: {...location.query, query: searchQuery, cursor: undefined},
-            },
+            {query: {...location.query, query: searchQuery, cursor: undefined}},
             {replace: true}
           ),
         DEFAULT_DEBOUNCE_DURATION

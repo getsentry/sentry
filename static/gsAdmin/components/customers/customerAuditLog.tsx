@@ -1,10 +1,7 @@
 import {DateTime} from 'sentry/components/dateTime';
 import {ResultGrid} from 'sentry/components/resultGrid';
 
-type Props = {
-  orgSlug: string;
-  targetId: string;
-};
+type Props = {orgSlug: string; targetId: string};
 
 export function CustomerAuditLog({orgSlug, targetId}: Props) {
   return (

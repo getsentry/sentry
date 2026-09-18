@@ -8,10 +8,7 @@ import type {Project} from 'sentry/types/project';
 
 import type {StrictStoreDefinition} from './types';
 
-type State = {
-  loading: boolean;
-  projects: Project[];
-};
+type State = {loading: boolean; projects: Project[]};
 
 /**
  * Attributes that need typing but aren't part of the external interface,
@@ -39,10 +36,7 @@ interface ProjectsStoreDefinition
 
 const storeConfig: ProjectsStoreDefinition = {
   api: new Client(),
-  state: {
-    projects: [],
-    loading: true,
-  },
+  state: {projects: [], loading: true},
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
@@ -52,10 +46,7 @@ const storeConfig: ProjectsStoreDefinition = {
   },
 
   reset() {
-    this.state = {
-      projects: [],
-      loading: true,
-    };
+    this.state = {projects: [], loading: true};
   },
 
   loadInitialData(items: Project[]) {

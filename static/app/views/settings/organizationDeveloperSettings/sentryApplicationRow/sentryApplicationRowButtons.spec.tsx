@@ -116,12 +116,7 @@ describe('Sentry App Row Buttons', () => {
             create: {
               uri: '/api/sentry/issue-link/create/',
               required_fields: [
-                {
-                  type: 'text',
-                  label: 'Task Name',
-                  name: 'title',
-                  default: 'issue.title',
-                },
+                {type: 'text', label: 'Task Name', name: 'title', default: 'issue.title'},
               ],
             },
             link: {

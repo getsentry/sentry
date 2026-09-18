@@ -54,10 +54,7 @@ function TraceMetricFixture({
     [TraceMetricKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: observedTimestampPrecise,
   };
 
-  return {
-    ...baseFields,
-    ...rest,
-  } as TraceMetricEventsResponseItem;
+  return {...baseFields, ...rest} as TraceMetricEventsResponseItem;
 }
 
 // Incomplete, only provides type of field if it's a string or number.
@@ -74,11 +71,7 @@ function TraceMetricFixtureMeta(
       return [key, valueType];
     })
   );
-  return {
-    fields: Object.fromEntries(fields),
-    units: {},
-    dataScanned: 'full',
-  };
+  return {fields: Object.fromEntries(fields), units: {}, dataScanned: 'full'};
 }
 
 interface TraceMetricsTestInitOptions {
@@ -118,10 +111,7 @@ export function initializeTraceMetricsTest({
   initialPageFilters: PageFilters;
   organization: Organization;
   project: Project;
-  routerConfig: {
-    location: LocationConfig;
-    route?: string;
-  };
+  routerConfig: {location: LocationConfig; route?: string};
   setupEventsMock: (
     metricFixtures: TraceMetricEventsResponseItem[],
     match?: Parameters<typeof MockApiClient.addMockResponse>[0]['match']
@@ -133,10 +123,7 @@ export function initializeTraceMetricsTest({
 
   const forcedProject = projectOverrides ?? {hasTraceMetrics: true};
   const {organization, project} = initializeOrg({
-    organization: {
-      features: [...baseFeatures, ...orgFeatures],
-      ...orgOverrides,
-    },
+    organization: {features: [...baseFeatures, ...orgFeatures], ...orgOverrides},
     projects: [forcedProject],
   });
 
@@ -148,10 +135,7 @@ export function initializeTraceMetricsTest({
     },
   };
 
-  const routerConfig: {
-    location: LocationConfig;
-    route?: string;
-  } = {
+  const routerConfig: {location: LocationConfig; route?: string} = {
     location: initialLocation,
     route: '/organizations/:orgId/explore/metrics/',
   };
@@ -159,22 +143,14 @@ export function initializeTraceMetricsTest({
   const initialPageFilters: PageFilters = {
     projects: [parseInt(project.id, 10)],
     environments: [],
-    datetime: {
-      period: '14d',
-      start: null,
-      end: null,
-      utc: null,
-    },
+    datetime: {period: '14d', start: null, end: null, utc: null},
   };
 
   const generateRouterConfig = (routerQueryOverrides: Record<string, string>) => {
     return {
       location: {
         ...initialLocation,
-        query: {
-          ...initialLocation.query,
-          ...routerQueryOverrides,
-        },
+        query: {...initialLocation.query, ...routerQueryOverrides},
       },
     };
   };
@@ -249,10 +225,7 @@ export function createTraceMetricFixtures(
   organization: Organization,
   project: Project,
   nowDate: Date,
-  options: {
-    baseFields?: string[];
-    intervalMs?: number;
-  } = {}
+  options: {baseFields?: string[]; intervalMs?: number} = {}
 ): {
   baseFixtures: TraceMetricEventsResponseItem[];
   detailedFixtures: TraceMetricEventsResponseItem[];
@@ -398,8 +371,5 @@ export function createTraceMetricFixtures(
     return TraceMetricFixture(completeMetricData as any);
   });
 
-  return {
-    baseFixtures,
-    detailedFixtures,
-  };
+  return {baseFixtures, detailedFixtures};
 }

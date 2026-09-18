@@ -156,10 +156,7 @@ function ManageDashboards() {
               widget => widget.displayType
             ),
             widgetPreview: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
-              widget => ({
-                displayType: widget.displayType,
-                layout: widget.layout ?? null,
-              })
+              widget => ({displayType: widget.displayType, layout: widget.layout ?? null})
             ),
             description: PREBUILT_DASHBOARDS[dashboard.prebuiltId].description,
             projects: [],
@@ -211,9 +208,7 @@ function ManageDashboards() {
   }
 
   function handleSearch(query: string) {
-    trackAnalytics('dashboards_manage.search', {
-      organization,
-    });
+    trackAnalytics('dashboards_manage.search', {organization});
 
     navigate({
       pathname: location.pathname,
@@ -222,17 +217,10 @@ function ManageDashboards() {
   }
 
   const handleSortChange = (value: string) => {
-    trackAnalytics('dashboards_manage.change_sort', {
-      organization,
-      sort: value,
-    });
+    trackAnalytics('dashboards_manage.change_sort', {organization, sort: value});
     navigate({
       pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        sort: value,
-      },
+      query: {...location.query, cursor: undefined, sort: value},
     });
   };
 
@@ -243,17 +231,13 @@ function ManageDashboards() {
   }
 
   function onCreate() {
-    trackAnalytics('dashboards_manage.create.start', {
-      organization,
-    });
+    trackAnalytics('dashboards_manage.create.start', {organization});
 
     navigate(normalizeUrl(`/organizations/${organization.slug}/dashboards/new/`));
   }
 
   function onGenerateDashboard() {
-    trackAnalytics('dashboards_manage.generate.start', {
-      organization,
-    });
+    trackAnalytics('dashboards_manage.generate.start', {organization});
     navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/new/from-seer/`,
@@ -342,9 +326,7 @@ function ManageDashboards() {
               variant="primary"
               icon={<IconAdd />}
               disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-              tooltipProps={{
-                title: limitMessage,
-              }}
+              tooltipProps={{title: limitMessage}}
             >
               {t('Create Dashboard')}
             </Button>
@@ -393,10 +375,7 @@ function ManageDashboards() {
 
         trackAnalytics('dashboards_manage.paginate', {organization});
 
-        navigate({
-          pathname: path,
-          query: newQuery,
-        });
+        navigate({pathname: path, query: newQuery});
       }}
     />
   );
@@ -437,11 +416,7 @@ function ManageDashboards() {
                   <Feature features="dashboards-import">
                     <Button
                       onClick={() => {
-                        openImportDashboardFromFileModal({
-                          organization,
-                          api,
-                          location,
-                        });
+                        openImportDashboardFromFileModal({organization, api, location});
                       }}
                       variant="primary"
                       icon={<IconAdd />}

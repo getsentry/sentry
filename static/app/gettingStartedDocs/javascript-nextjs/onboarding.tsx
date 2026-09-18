@@ -28,11 +28,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: getInstallSnippet(params),
-        },
+        {type: 'code', language: 'bash', code: getInstallSnippet(params)},
       ],
     },
   ],
@@ -65,9 +61,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Start your development server and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -79,11 +73,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: 'myUndefinedFunction();',
-            },
+            {label: 'JavaScript', language: 'javascript', code: 'myUndefinedFunction();'},
           ],
         },
         {

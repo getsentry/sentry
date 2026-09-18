@@ -46,9 +46,5 @@ export function useAssignedSearchValues(): SearchGroup[] {
 
 const convertToSearchItem = (value: string) => {
   const escapedValue = escapeTagValue(value);
-  return {
-    value: escapedValue,
-    desc: value,
-    type: ItemType.TAG_VALUE,
-  };
+  return {value: escapedValue, desc: value, type: ItemType.TAG_VALUE};
 };

@@ -15,11 +15,7 @@ const makeCommittersQueryKey = (
   eventId: string
 ): ApiQueryKey => [
   getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/owners/', {
-    path: {
-      organizationIdOrSlug: orgSlug,
-      projectIdOrSlug: projectSlug,
-      eventId,
-    },
+    path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug, eventId},
   }),
 ];
 
@@ -27,10 +23,6 @@ export function useIssueEventOwners({eventId, projectSlug}: UseIssueEventOwnersP
   const org = useOrganization();
   return useApiQuery<EventOwners>(
     makeCommittersQueryKey(org.slug, projectSlug, eventId),
-    {
-      staleTime: Infinity,
-      retry: false,
-      enabled: !!eventId,
-    }
+    {staleTime: Infinity, retry: false, enabled: !!eventId}
   );
 }

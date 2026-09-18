@@ -149,12 +149,7 @@ function FixAppliedActions({
   function handleUpdate(data: GroupStatusResolution) {
     bulkUpdate(
       api,
-      {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-        data,
-      },
+      {orgId: organization.slug, projectId: project.slug, itemIds: [group.id], data},
       {
         success: () => {
           clearIndicators();
@@ -173,21 +168,11 @@ function FixAppliedActions({
           );
           const issueUrl = getApiUrl(
             '/organizations/$organizationIdOrSlug/issues/$issueId/',
-            {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                issueId: group.id,
-              },
-            }
+            {path: {organizationIdOrSlug: organization.slug, issueId: group.id}}
           );
           const issueActivitiesUrl = getApiUrl(
             '/organizations/$organizationIdOrSlug/issues/$issueId/activities/',
-            {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                issueId: group.id,
-              },
-            }
+            {path: {organizationIdOrSlug: organization.slug, issueId: group.id}}
           );
           void queryClient.invalidateQueries({
             predicate: query => {
@@ -513,9 +498,7 @@ function NextAutofixStepButton({
         {...getAutofixActionProps({
           analyticsEventKey: 'issue_inbox.open_in_coding_agent_clicked',
           analyticsEventName: 'Issue Inbox: Open in Coding Agent Clicked',
-          analyticsParams: {
-            provider: codingAgent.provider,
-          },
+          analyticsParams: {provider: codingAgent.provider},
           group,
         })}
         external
@@ -533,10 +516,7 @@ function NextAutofixStepButton({
   if (autofix.isProcessing) {
     const {icon, label} =
       nextStep?.action === 'solution'
-        ? {
-            icon: <IconList data-test-id="autofix-plan-icon" />,
-            label: t('Make a Plan'),
-          }
+        ? {icon: <IconList data-test-id="autofix-plan-icon" />, label: t('Make a Plan')}
         : nextStep?.action === 'code_changes'
           ? {
               icon: <IconCode data-test-id="autofix-code-changes-icon" />,

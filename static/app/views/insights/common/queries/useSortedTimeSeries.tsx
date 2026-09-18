@@ -143,11 +143,7 @@ export const useSortedTimeSeries = <
     ) as SeriesMap;
   }, [result.data]);
 
-  return {
-    ...result,
-    data,
-    meta: result.data?.meta,
-  };
+  return {...result, data, meta: result.data?.meta};
 };
 
 export type SortedTimeSeries = ReturnType<typeof useSortedTimeSeries>;

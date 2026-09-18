@@ -31,10 +31,7 @@ const SentryApp = {
 
 globals.SentryApp = SentryApp;
 Object.keys(globals).forEach(name => {
-  Object.defineProperty(window, name, {
-    value: globals[name],
-    writable: true,
-  });
+  Object.defineProperty(window, name, {value: globals[name], writable: true});
 });
 
 export {globals as exportedGlobals};

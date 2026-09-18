@@ -71,10 +71,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   // oxlint-disable-next-line react/refs
   const [isSmallNav, setSmallNav] = useState(checkNavIsSmall);
 
-  useResizeObserver({
-    ref: navigationRef,
-    onResize: () => setSmallNav(checkNavIsSmall),
-  });
+  useResizeObserver({ref: navigationRef, onResize: () => setSmallNav(checkNavIsSmall)});
 
   const hideDropdownButton =
     !issueTypeConfig.pages.attachments.enabled &&
@@ -87,9 +84,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
 
-  const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
-  });
+  const {getReplayCountForIssue} = useReplayCountForIssues({statsPeriod: '90d'});
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
 
   const attachments = useGroupEventAttachments({

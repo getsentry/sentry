@@ -25,15 +25,9 @@ describe('AccountSecurityDetails', () => {
   });
   describe('Totp', () => {
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        body: AllAuthenticatorsFixture(),
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, body: AllAuthenticatorsFixture()});
 
-      MockApiClient.addMockResponse({
-        url: ORG_ENDPOINT,
-        body: OrganizationsFixture(),
-      });
+      MockApiClient.addMockResponse({url: ORG_ENDPOINT, body: OrganizationsFixture()});
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}15/`,
@@ -49,16 +43,9 @@ describe('AccountSecurityDetails', () => {
     it('has enrolled circle indicator', async () => {
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/15/',
-          },
+          location: {pathname: '/settings/account/security/mfa/15/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 
@@ -79,16 +66,9 @@ describe('AccountSecurityDetails', () => {
 
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/15/',
-          },
+          location: {pathname: '/settings/account/security/mfa/15/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 
@@ -114,16 +94,9 @@ describe('AccountSecurityDetails', () => {
 
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/15/',
-          },
+          location: {pathname: '/settings/account/security/mfa/15/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 
@@ -149,16 +122,9 @@ describe('AccountSecurityDetails', () => {
 
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/15/',
-          },
+          location: {pathname: '/settings/account/security/mfa/15/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 
@@ -168,15 +134,9 @@ describe('AccountSecurityDetails', () => {
 
   describe('Recovery', () => {
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        body: AllAuthenticatorsFixture(),
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, body: AllAuthenticatorsFixture()});
 
-      MockApiClient.addMockResponse({
-        url: ORG_ENDPOINT,
-        body: OrganizationsFixture(),
-      });
+      MockApiClient.addMockResponse({url: ORG_ENDPOINT, body: OrganizationsFixture()});
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}16/`,
@@ -192,16 +152,9 @@ describe('AccountSecurityDetails', () => {
     it('has enrolled circle indicator', async () => {
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/16/',
-          },
+          location: {pathname: '/settings/account/security/mfa/16/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 
@@ -227,16 +180,9 @@ describe('AccountSecurityDetails', () => {
 
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/16/',
-          },
+          location: {pathname: '/settings/account/security/mfa/16/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 
@@ -258,9 +204,7 @@ describe('AccountSecurityDetails', () => {
     });
 
     it('has copy, print and download buttons', async () => {
-      Object.defineProperty(document, 'queryCommandSupported', {
-        value: () => true,
-      });
+      Object.defineProperty(document, 'queryCommandSupported', {value: () => true});
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}16/`,
@@ -270,16 +214,9 @@ describe('AccountSecurityDetails', () => {
 
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/16/',
-          },
+          location: {pathname: '/settings/account/security/mfa/16/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 

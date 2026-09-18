@@ -63,12 +63,7 @@ const StyledInnerWrap = styled('div', {
     typeof prop === 'string' &&
     isPropValid(prop) &&
     !['disabled', 'isFocused', 'priority'].includes(prop),
-})<{
-  disabled: boolean;
-  isFocused: boolean;
-  priority: Priority;
-  size?: FormSize;
-}>`
+})<{disabled: boolean; isFocused: boolean; priority: Priority; size?: FormSize}>`
   display: flex;
   position: relative;
   padding: 0 ${p => p.theme.space.md} 0 ${p => p.theme.space.lg};
@@ -110,10 +105,7 @@ const StyledInnerWrap = styled('div', {
     `}
 `;
 
-const StyledContentWrap = styled('div')<{
-  isFocused: boolean;
-  size?: FormSize;
-}>`
+const StyledContentWrap = styled('div')<{isFocused: boolean; size?: FormSize}>`
   position: relative;
   width: 100%;
   min-width: 0;
@@ -124,10 +116,7 @@ const StyledContentWrap = styled('div')<{
   padding: 0;
 `;
 
-const StyledLeadingItems = styled('div')<{
-  disabled: boolean;
-  size?: FormSize;
-}>`
+const StyledLeadingItems = styled('div')<{disabled: boolean; size?: FormSize}>`
   display: flex;
   gap: ${p => p.theme.space.md};
   margin-right: ${p => p.theme.space.md};
@@ -347,14 +336,7 @@ export const MenuListItem = memo(BaseMenuListItem);
 const POPPER_OPTIONS = {
   placement: 'right-start' as const,
   strategy: 'fixed' as const,
-  modifiers: [
-    {
-      name: 'offset',
-      options: {
-        offset: [-4, 8],
-      },
-    },
-  ],
+  modifiers: [{name: 'offset', options: {offset: [-4, 8]}}],
 };
 
 function DetailsOverlay({
@@ -399,9 +381,7 @@ const StyledPositionWrapper = styled(PositionWrapper)`
   }
 `;
 
-const StyledOverlay = styled(Overlay)<{
-  size: Props['size'];
-}>`
+const StyledOverlay = styled(Overlay)<{size: Props['size']}>`
   padding: 4px;
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
   cursor: auto;

@@ -129,14 +129,8 @@ export function ReleaseCardProjectRow({
               <Tooltip title={adoptionStageLabel.tooltipTitle}>
                 <Link
                   to={{
-                    pathname: makeReleasesPathname({
-                      organization,
-                      path: '/',
-                    }),
-                    query: {
-                      ...location.query,
-                      query: `release.stage:${adoptionStage}`,
-                    },
+                    pathname: makeReleasesPathname({organization, path: '/'}),
+                    query: {...location.query, query: `release.stage:${adoptionStage}`},
                   }}
                 >
                   <Tag variant={adoptionStageLabel.variant}>

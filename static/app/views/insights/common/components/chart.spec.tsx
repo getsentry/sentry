@@ -32,14 +32,7 @@ describe('Chart', () => {
           {name: start - 30_000, value: 2},
           {name: start, value: 1},
         ],
-        markLine: markLine({
-          data: [
-            {
-              type: 'average',
-              yAxis: 3,
-            },
-          ],
-        }),
+        markLine: markLine({data: [{type: 'average', yAxis: 3}]}),
       },
     ];
     render(<Chart data={mockedSeries} loading={false} type={ChartType.LINE} />, {});

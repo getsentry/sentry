@@ -71,9 +71,7 @@ export function OrganizationApiKeysList({
           `API keys grant access to the [api:developer web API].
           If you're looking to configure a Sentry client, you'll need a
           client key which is available in your project settings.`,
-          {
-            api: <ExternalLink href="https://docs.sentry.io/api/" />,
-          }
+          {api: <ExternalLink href="https://docs.sentry.io/api/" />}
         )}
       </TextBlock>
 
@@ -81,9 +79,7 @@ export function OrganizationApiKeysList({
         <AlertLink to="/settings/account/api/auth-tokens/" variant="info">
           {tct(
             'Until Sentry supports OAuth, you might want to switch to using [tokens:Personal Tokens] instead.',
-            {
-              tokens: <u />,
-            }
+            {tokens: <u />}
           )}
         </AlertLink>
       </AlertLink.Container>

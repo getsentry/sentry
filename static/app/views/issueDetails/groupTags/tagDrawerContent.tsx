@@ -31,10 +31,7 @@ export function TagDrawerContent({
     isPending,
     isError,
     refetch,
-  } = useGroupTags({
-    groupId: group.id,
-    environment: environments,
-  });
+  } = useGroupTags({groupId: group.id, environment: environments});
 
   const {data: detailedProject, isPending: isHighlightsPending} = useDetailedProject({
     orgSlug: organization.slug,

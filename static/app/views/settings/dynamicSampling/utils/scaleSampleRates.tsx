@@ -14,9 +14,7 @@ export function scaleSampleRates<T extends ScalingItem>({
 }: {
   items: T[];
   sampleRate: number;
-}): {
-  scaledItems: T[];
-} {
+}): {scaledItems: T[]} {
   const totalSpans = items.reduce((acc, item) => acc + item.count, 0);
   const oldSampleRate = items.reduce(
     (acc, item) => acc + item.sampleRate * (item.count / totalSpans),
@@ -33,12 +31,7 @@ export function scaleSampleRates<T extends ScalingItem>({
     sampleRate === 0 ||
     sampleRate === 1
   ) {
-    return {
-      scaledItems: items.map(item => ({
-        ...item,
-        sampleRate,
-      })),
-    };
+    return {scaledItems: items.map(item => ({...item, sampleRate}))};
   }
 
   const newSampled = totalSpans * sampleRate;
@@ -66,10 +59,7 @@ export function scaleSampleRates<T extends ScalingItem>({
 
     factor = newTargetRate / remainingOldSampleRate;
 
-    scaledItems.push({
-      ...item,
-      sampleRate: newProjectRate,
-    });
+    scaledItems.push({...item, sampleRate: newProjectRate});
   }
   return {scaledItems};
 }

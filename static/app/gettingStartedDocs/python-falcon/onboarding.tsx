@@ -65,9 +65,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock({additionalPackage: 'falcon'}),
       ],
@@ -81,9 +79,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'If you have the [codeFalcon:falcon] package in your dependencies, the Falcon integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
-            {
-              codeFalcon: <code />,
-            }
+            {codeFalcon: <code />}
           ),
         },
         {
@@ -130,9 +126,7 @@ app.add_route('/', HelloWorldResource())
           text: [
             tct(
               'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
-              {
-                link: <ExternalLink href="http://localhost:8000/" />,
-              }
+              {link: <ExternalLink href="http://localhost:8000/" />}
             ),
             t(
               'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'

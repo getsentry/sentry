@@ -18,11 +18,7 @@ type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 function makeTick<Status extends string>(
   options: MakeOptional<JobTickData<Status>, 'isStarting' | 'isEnding'>
 ): JobTickData<Status> {
-  return {
-    isStarting: false,
-    isEnding: false,
-    ...options,
-  };
+  return {isStarting: false, isEnding: false, ...options};
 }
 
 export function mergeBuckets<Status extends string>(

@@ -29,9 +29,7 @@ describe('workflowEngineRedirects', () => {
 
   describe('withAutomationDetailsRedirect', () => {
     it('redirects alert rules to automation details', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const organization = OrganizationFixture({slug: 'org-slug'});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/alert-rule-workflow/`,
@@ -57,9 +55,7 @@ describe('workflowEngineRedirects', () => {
 
   describe('withDetectorEditRedirect', () => {
     it('redirects detector edit when detectorId is present', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const organization = OrganizationFixture({slug: 'org-slug'});
 
       const Wrapped = withDetectorEditRedirect(TestComponent);
       const initialRouterConfig: RouterConfig = {
@@ -77,9 +73,7 @@ describe('workflowEngineRedirects', () => {
     });
 
     it('fetches detector id and redirects to edit', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const organization = OrganizationFixture({slug: 'org-slug'});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/alert-rule-detector/`,
@@ -105,9 +99,7 @@ describe('workflowEngineRedirects', () => {
 
   describe('withMetricIssueRedirect', () => {
     it('redirects metric issue notification links to issue details', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const organization = OrganizationFixture({slug: 'org-slug'});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/incident-groupopenperiod/`,
@@ -144,9 +136,7 @@ describe('workflowEngineRedirects', () => {
 
   describe('withDetectorDetailsRedirect', () => {
     it('redirects to detector details page', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const organization = OrganizationFixture({slug: 'org-slug'});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/alert-rule-detector/`,
@@ -170,9 +160,7 @@ describe('workflowEngineRedirects', () => {
     });
 
     it('redirects to issue details page when alert and notification UUID query params are present', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const organization = OrganizationFixture({slug: 'org-slug'});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/incident-groupopenperiod/`,
@@ -194,10 +182,7 @@ describe('workflowEngineRedirects', () => {
         },
       };
 
-      const {router} = render(<Wrapped />, {
-        organization,
-        initialRouterConfig,
-      });
+      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
 
       await waitFor(() => {
         expect(router.location.pathname).toBe(
@@ -213,9 +198,7 @@ describe('workflowEngineRedirects', () => {
 
   describe('MonitorCreateRedirect', () => {
     it('redirects detector create with a detector type', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const organization = OrganizationFixture({slug: 'org-slug'});
 
       const initialRouterConfig: RouterConfig = {
         route: '/organizations/:orgId/alerts/create/:alertType/',
@@ -239,9 +222,7 @@ describe('workflowEngineRedirects', () => {
 
   describe('UptimeMonitorCreateRedirect', () => {
     it('redirects uptime existing-or-create to uptime monitor create', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const organization = OrganizationFixture({slug: 'org-slug'});
 
       const initialRouterConfig: RouterConfig = {
         route: '/organizations/:orgId/alerts/rules/uptime/existing-or-create/',
@@ -267,9 +248,7 @@ describe('workflowEngineRedirects', () => {
 
   describe('withOpenPeriodRedirect', () => {
     it('redirects open period routes to issue details', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const organization = OrganizationFixture({slug: 'org-slug'});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/incident-groupopenperiod/`,

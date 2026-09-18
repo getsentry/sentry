@@ -25,11 +25,7 @@ function envelope(
   spans: Array<Record<string, unknown>>,
   title: string | null = null
 ): Record<string, unknown> {
-  return {
-    conversationId: spans[0]?.['gen_ai.conversation.id'] ?? '',
-    title,
-    spans,
-  };
+  return {conversationId: spans[0]?.['gen_ai.conversation.id'] ?? '', title, spans};
 }
 
 describe('useConversation', () => {
@@ -602,9 +598,7 @@ describe('useConversation', () => {
 
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/agents/conversations/conv-123/'),
-      expect.objectContaining({
-        query: expect.objectContaining({project: [456]}),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [456]})})
     );
   });
 
@@ -659,11 +653,7 @@ describe('useConversation', () => {
 
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/agents/conversations/conv-123/'),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [-1],
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [-1]})})
     );
     // No statsPeriod sent — backend uses its 30d retention fallback
     const queryArg = mockRequest.mock.calls[0]![1]!.query;
@@ -674,12 +664,7 @@ describe('useConversation', () => {
 
   it('uses relative period from page filters when explicitly set', async () => {
     act(() =>
-      PageFiltersStore.updateDateTime({
-        period: '7d',
-        start: null,
-        end: null,
-        utc: null,
-      })
+      PageFiltersStore.updateDateTime({period: '7d', start: null, end: null, utc: null})
     );
 
     const mockRequest = MockApiClient.addMockResponse({
@@ -696,11 +681,7 @@ describe('useConversation', () => {
 
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/agents/conversations/conv-123/'),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          statsPeriod: '7d',
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '7d'})})
     );
     const queryArg = mockRequest.mock.calls[0]![1]!.query;
     expect(queryArg).not.toHaveProperty('start');

@@ -62,23 +62,13 @@ export function OperationSort({eventView, location, tableMeta, title: Title}: Pr
     const nextEventView = eventView.sortOnField(field, tableMeta, 'desc');
     const queryStringObject = nextEventView.generateQueryStringObject();
 
-    return {
-      ...location,
-      query: {...location.query, sort: queryStringObject.sort},
-    };
+    return {...location, query: {...location.query, sort: queryStringObject.sort}};
   }
 
   function renderMenu() {
     const modifiers = [
-      {
-        name: 'hide',
-        enabled: false,
-      },
-      {
-        name: 'preventOverflow',
-        enabled: true,
-        options: {padding: 10},
-      },
+      {name: 'hide', enabled: false},
+      {name: 'preventOverflow', enabled: true, options: {padding: 10}},
     ];
     const menuContent = (
       <DropdownContent>

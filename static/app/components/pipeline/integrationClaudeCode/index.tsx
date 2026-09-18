@@ -14,9 +14,7 @@ import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
-const apiKeySchema = z.object({
-  apiKey: z.string().min(1, t('API key is required')),
-});
+const apiKeySchema = z.object({apiKey: z.string().min(1, t('API key is required'))});
 
 function ClaudeCodeApiKeyStep({
   advance,

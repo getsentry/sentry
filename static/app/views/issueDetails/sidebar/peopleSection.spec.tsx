@@ -10,19 +10,11 @@ describe('PeopleSection', () => {
   const teams: TeamParticipant[] = [{...TeamFixture(), type: 'team'}];
   const users: UserParticipant[] = [
     {
-      ...UserFixture({
-        id: '2',
-        name: 'John Smith',
-        email: 'johnsmith@example.com',
-      }),
+      ...UserFixture({id: '2', name: 'John Smith', email: 'johnsmith@example.com'}),
       type: 'user',
     },
     {
-      ...UserFixture({
-        id: '3',
-        name: 'Sohn Jmith',
-        email: 'sohnjmith@example.com',
-      }),
+      ...UserFixture({id: '3', name: 'Sohn Jmith', email: 'sohnjmith@example.com'}),
       type: 'user',
     },
   ];

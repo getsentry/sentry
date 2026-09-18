@@ -17,9 +17,7 @@ const AVAILABLE_INTERVALS = [
 ];
 
 function makeSelection(period: string) {
-  return PageFiltersFixture({
-    datetime: {period, start: null, end: null, utc: null},
-  });
+  return PageFiltersFixture({datetime: {period, start: null, end: null, utc: null}});
 }
 
 describe('calculateHeatMapBucketDimensions()', () => {

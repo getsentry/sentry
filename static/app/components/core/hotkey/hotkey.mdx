@@ -182,13 +182,7 @@ Matching is layout-aware: an AZERTY user pressing the key labeled `K` fires `com
 Use `enabled` to gate a hotkey on state without rebuilding the array. While `enabled` is `false` the callback never fires and `preventDefault` is never called, so the key reaches other listeners unchanged.
 
 ```jsx
-useHotkeys([
-  {
-    match: 'Escape',
-    enabled: isPanelOpen,
-    callback: closePanel,
-  },
-]);
+useHotkeys([{match: 'Escape', enabled: isPanelOpen, callback: closePanel}]);
 ```
 
 ## Accessibility

@@ -182,10 +182,7 @@ function sampleAvatarColor(
     return null;
   }
 
-  return {
-    style: shouldPadImage(data),
-    chonk: dominantColor(data),
-  };
+  return {style: shouldPadImage(data), chonk: dominantColor(data)};
 }
 
 function loadImageElement(src: string): Promise<HTMLImageElement | null> {

@@ -26,10 +26,7 @@ function renderLayout(
       organization: features
         ? OrganizationFixture({features: [...organization.features, ...features]})
         : organization,
-      initialRouterConfig: {
-        route,
-        location,
-      },
+      initialRouterConfig: {route, location},
     }
   );
 }

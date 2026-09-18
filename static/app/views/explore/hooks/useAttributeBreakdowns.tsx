@@ -13,12 +13,8 @@ type AttributeDistributionData = Record<string, Array<{label: string; value: num
 type AttributeBreakdowns = {
   data: Array<{
     // Read both keys during the backend rename rollout (attribute_distributions -> attributeDistributions).
-    attributeDistributions?: {
-      data: AttributeDistributionData;
-    };
-    attribute_distributions?: {
-      data: AttributeDistributionData;
-    };
+    attributeDistributions?: {data: AttributeDistributionData};
+    attribute_distributions?: {data: AttributeDistributionData};
   }>;
 };
 

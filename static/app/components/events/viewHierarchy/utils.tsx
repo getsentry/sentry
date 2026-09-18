@@ -51,11 +51,7 @@ export function useResizeCanvasObserver(canvases: Array<HTMLCanvasElement | null
 export function getHierarchyDimensions(
   hierarchies: ViewHierarchyWindow[],
   useAbsolutePosition = false
-): {
-  maxHeight: number;
-  maxWidth: number;
-  nodes: ViewNode[];
-} {
+): {maxHeight: number; maxWidth: number; nodes: ViewNode[]} {
   const nodes: ViewNode[] = [];
   const queue: Array<[Rect | null, ViewHierarchyWindow]> = [];
   for (let i = hierarchies.length - 1; i >= 0; i--) {
@@ -157,10 +153,7 @@ export function getPlatformViewConfig(platform?: string): ViewConfig {
         showWireframe: false,
       };
     case 'unity':
-      return {
-        ...defaultViewConfig,
-        showWireframe: false,
-      };
+      return {...defaultViewConfig, showWireframe: false};
     default:
       return defaultViewConfig;
   }

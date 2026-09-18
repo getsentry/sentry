@@ -16,45 +16,32 @@ describe('Related Issues View', () => {
   const orgIssuesEndpoint = `/organizations/${orgSlug}/issues/`;
 
   const errorType = 'RuntimeError';
-  const onlySameRootData = {
-    type: 'same_root_cause',
-    data: [group1, group2],
-  };
+  const onlySameRootData = {type: 'same_root_cause', data: [group1, group2]};
   const onlyTraceConnectedData = {
     type: 'trace_connected',
     data: [group1, group2],
-    meta: {
-      event_id: 'abcd',
-      trace_id: '1234',
-    },
+    meta: {event_id: 'abcd', trace_id: '1234'},
   };
   const issuesData = [
     GroupFixture({
       id: group1,
       shortId: `EARTH-${group1}`,
       project: ProjectFixture({id: '3', name: 'Earth', slug: 'earth'}),
-      metadata: {
-        type: errorType,
-      },
+      metadata: {type: errorType},
       lastSeen: '2024-03-15T20:15:30Z',
     }),
     GroupFixture({
       id: group2,
       shortId: `EARTH-${group2}`,
       project: ProjectFixture({id: '3', name: 'Earth', slug: 'earth'}),
-      metadata: {
-        type: errorType,
-      },
+      metadata: {type: errorType},
       lastSeen: '2024-03-16T20:15:30Z',
     }),
   ];
 
   beforeEach(() => {
     // GroupList calls this but we don't need it for this test
-    MockApiClient.addMockResponse({
-      url: `/organizations/${orgSlug}/users/`,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${orgSlug}/users/`, body: []});
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: group,
@@ -69,20 +56,12 @@ describe('Related Issues View', () => {
   it('renders with same root issues', async () => {
     const sameRootIssuesMock = MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/issues/${groupId}/related-issues/`,
-      match: [
-        MockApiClient.matchQuery({
-          type: 'same_root_cause',
-        }),
-      ],
+      match: [MockApiClient.matchQuery({type: 'same_root_cause'})],
       body: onlySameRootData,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/issues/${groupId}/related-issues/`,
-      match: [
-        MockApiClient.matchQuery({
-          type: 'trace_connected',
-        }),
-      ],
+      match: [MockApiClient.matchQuery({type: 'trace_connected'})],
       body: [],
     });
     const issuesMock = MockApiClient.addMockResponse({
@@ -90,9 +69,7 @@ describe('Related Issues View', () => {
       body: issuesData,
     });
 
-    render(<GroupRelatedIssues group={group} />, {
-      organization,
-    });
+    render(<GroupRelatedIssues group={group} />, {organization});
 
     // Wait for the issues showing up on the table
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
@@ -111,29 +88,19 @@ describe('Related Issues View', () => {
   it('renders with trace connected issues', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/issues/${groupId}/related-issues/`,
-      match: [
-        MockApiClient.matchQuery({
-          type: 'same_root_cause',
-        }),
-      ],
+      match: [MockApiClient.matchQuery({type: 'same_root_cause'})],
       body: [],
     });
     const traceIssuesMock = MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/issues/${groupId}/related-issues/`,
-      match: [
-        MockApiClient.matchQuery({
-          type: 'trace_connected',
-        }),
-      ],
+      match: [MockApiClient.matchQuery({type: 'trace_connected'})],
       body: onlyTraceConnectedData,
     });
     const issuesMock = MockApiClient.addMockResponse({
       url: orgIssuesEndpoint,
       body: issuesData,
     });
-    render(<GroupRelatedIssues group={group} />, {
-      organization,
-    });
+    render(<GroupRelatedIssues group={group} />, {organization});
 
     // Wait for the issues showing up on the table
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();

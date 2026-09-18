@@ -61,9 +61,7 @@ describe('TextRenderer', () => {
 
     expect(textRenderer.textCache.test).toBeUndefined();
     expect(textRenderer.textCache).toEqual({
-      'Who knows if this changed, font-display: swap wont tell me': {
-        width: 20,
-      },
+      'Who knows if this changed, font-display: swap wont tell me': {width: 20},
     });
   });
   it('caches measure text', () => {

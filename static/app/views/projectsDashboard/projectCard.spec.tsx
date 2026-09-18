@@ -21,14 +21,7 @@ function addProjectStatsResponse({
 } = {}) {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/projects/`,
-    body: [
-      {
-        ...project,
-        latestDeploys,
-        stats,
-        transactionStats,
-      },
-    ],
+    body: [{...project, latestDeploys, stats, transactionStats}],
   });
 }
 
@@ -60,22 +53,11 @@ describe('ProjectCard', () => {
   });
 
   it('renders latest 2 deploys', async () => {
-    const project = ProjectFixture({
-      platform: 'javascript',
-    });
+    const project = ProjectFixture({platform: 'javascript'});
     const latestDeploys = {
-      beta: {
-        dateFinished: '2018-05-10T20:56:40.092Z',
-        version: '123456',
-      },
-      staging: {
-        dateFinished: '2018-05-08T20:56:40.092Z',
-        version: '789789',
-      },
-      production: {
-        dateFinished: '2018-05-09T20:56:40.092Z',
-        version: '123123',
-      },
+      beta: {dateFinished: '2018-05-10T20:56:40.092Z', version: '123456'},
+      staging: {dateFinished: '2018-05-08T20:56:40.092Z', version: '789789'},
+      production: {dateFinished: '2018-05-09T20:56:40.092Z', version: '123123'},
     };
 
     addProjectStatsResponse({
@@ -108,9 +90,7 @@ describe('ProjectCard', () => {
   });
 
   it('renders header link for errors', async () => {
-    const project = ProjectFixture({
-      platform: 'javascript',
-    });
+    const project = ProjectFixture({platform: 'javascript'});
     addProjectStatsResponse({
       project,
       stats: [
@@ -130,9 +110,7 @@ describe('ProjectCard', () => {
 
   it('renders header link for transactions', async () => {
     const organization = OrganizationFixture({features: ['performance-view']});
-    const project = ProjectFixture({
-      platform: 'javascript',
-    });
+    const project = ProjectFixture({platform: 'javascript'});
     addProjectStatsResponse({
       organization,
       project,

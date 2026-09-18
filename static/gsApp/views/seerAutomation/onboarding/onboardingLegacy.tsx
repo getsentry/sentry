@@ -575,10 +575,7 @@ function EnableIssueScansButton({
                   projectIdOrSlug: project.slug,
                 },
               }),
-              {
-                method: 'PUT',
-                data: {seerScannerAutomation: true},
-              }
+              {method: 'PUT', data: {seerScannerAutomation: true}}
             )
           )
         );

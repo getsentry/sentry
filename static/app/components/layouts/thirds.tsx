@@ -129,10 +129,7 @@ export function Main({children, width = 'twothirds', ...props}: MainProps) {
   // If we apply the max width directly the right end of the page background will be missing
   return (
     <Container
-      column={{
-        zero: '1 / -1',
-        '4xl': width === 'twothirds' ? '1/2' : '1/3',
-      }}
+      column={{zero: '1 / -1', '4xl': width === 'twothirds' ? '1/2' : '1/3'}}
       as="section"
       width="100%"
       {...props}

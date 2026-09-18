@@ -12,9 +12,7 @@ type IssuePreviewSeerState = 'configure' | 'start' | 'summary';
 
 function useIssuePreviewSeerState(group: Group, project: Project) {
   const aiConfig = useAiConfig(group, project);
-  const autofix = useExplorerAutofix(group, {
-    enabled: aiConfig.hasAutofix,
-  });
+  const autofix = useExplorerAutofix(group, {enabled: aiConfig.hasAutofix});
   let state: IssuePreviewSeerState = 'summary';
   if (
     group.derivedData?.progress === ProgressState.ASSIGNED &&

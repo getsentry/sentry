@@ -76,19 +76,14 @@ function renderModal({
     />,
     {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/mock-pathname/', query: routerQuery},
-      },
+      initialRouterConfig: {location: {pathname: '/mock-pathname/', query: routerQuery}},
     }
   );
 }
 
 describe('Modals -> TextWidgetViewerModal', () => {
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/user-teams/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/user-teams/', body: []});
 
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState({
@@ -153,9 +148,7 @@ describe('Modals -> TextWidgetViewerModal', () => {
       expect(onEdit).toHaveBeenCalled();
       expect(trackAnalytics).toHaveBeenCalledWith(
         'dashboards_views.widget_viewer.edit',
-        expect.objectContaining({
-          display_type: DisplayType.TEXT,
-        })
+        expect.objectContaining({display_type: DisplayType.TEXT})
       );
     });
 

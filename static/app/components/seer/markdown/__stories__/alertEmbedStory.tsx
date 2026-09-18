@@ -36,10 +36,7 @@ function issueAlertApiOptions(organizationSlug: string, issueAlertId?: string) {
 export function AlertEmbedStory() {
   const organization = useOrganization();
   const detectorQuery = useQuery(
-    detectorListApiOptions(organization, {
-      sortBy: '-id',
-      limit: 100,
-    })
+    detectorListApiOptions(organization, {sortBy: '-id', limit: 100})
   );
   const issueStreamDetectorQuery = useQuery(
     detectorListApiOptions(organization, {

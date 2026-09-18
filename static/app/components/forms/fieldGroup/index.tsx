@@ -23,12 +23,7 @@ export function FieldGroup({
   visible = true,
   ...rest
 }: FieldGroupProps) {
-  const props = {
-    inline,
-    disabled,
-    visible,
-    ...rest,
-  };
+  const props = {inline, disabled, visible, ...rest};
 
   const {
     alignRight,

@@ -75,14 +75,8 @@ function TransactionThresholdModal({
       .requestPromise(transactionThresholdUrl, {
         method: 'POST',
         includeAllArgs: true,
-        query: {
-          project: project.id,
-        },
-        data: {
-          transaction: transactionName,
-          threshold,
-          metric,
-        },
+        query: {project: project.id},
+        data: {transaction: transactionName, threshold, metric},
       })
       .then(() => {
         closeModal();
@@ -115,12 +109,8 @@ function TransactionThresholdModal({
       .requestPromise(transactionThresholdUrl, {
         method: 'DELETE',
         includeAllArgs: true,
-        query: {
-          project: project.id,
-        },
-        data: {
-          transaction: transactionName,
-        },
+        query: {project: project.id},
+        data: {transaction: transactionName},
       })
       .then(() => {
         const projectThresholdUrl = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
@@ -128,9 +118,7 @@ function TransactionThresholdModal({
           .requestPromise(projectThresholdUrl, {
             method: 'GET',
             includeAllArgs: true,
-            query: {
-              project: project.id,
-            },
+            query: {project: project.id},
           })
           .then(([data]) => {
             setThreshold(data.threshold);

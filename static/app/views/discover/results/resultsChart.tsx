@@ -102,12 +102,7 @@ class ResultsChart extends Component<ResultsChartProps> {
     const interval =
       display === DisplayModes.BAR
         ? getInterval(
-            {
-              start,
-              end,
-              period: globalSelection.datetime.period,
-              utc: utc === 'true',
-            },
+            {start, end, period: globalSelection.datetime.period, utc: utc === 'true'},
             'low'
           )
         : eventView.interval;
@@ -173,14 +168,10 @@ type ContainerProps = {
   yAxis: string[];
 };
 
-type ContainerState = {
-  yAxisOptions: Array<SelectValue<string>>;
-};
+type ContainerState = {yAxisOptions: Array<SelectValue<string>>};
 
 class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
-  state: ContainerState = {
-    yAxisOptions: this.props.eventView.getYAxisOptions(),
-  };
+  state: ContainerState = {yAxisOptions: this.props.eventView.getYAxisOptions()};
 
   UNSAFE_componentWillReceiveProps(nextProps: any) {
     const yAxisOptions = this.props.eventView.getYAxisOptions();

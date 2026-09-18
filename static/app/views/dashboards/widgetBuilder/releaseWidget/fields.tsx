@@ -147,14 +147,8 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
 export const SESSIONS_OPERATIONS: Readonly<
   Record<SessionsOperation, SessionAggregationColumn>
 > = {
-  anr_rate: {
-    outputType: 'percentage',
-    parameters: [],
-  },
-  foreground_anr_rate: {
-    outputType: 'percentage',
-    parameters: [],
-  },
+  anr_rate: {outputType: 'percentage', parameters: []},
+  foreground_anr_rate: {outputType: 'percentage', parameters: []},
   sum: {
     outputType: 'integer',
     parameters: [
@@ -322,10 +316,7 @@ export function generateReleaseWidgetFieldOptions(
         label: field.name,
         value: {
           kind: FieldValueKind.METRICS,
-          meta: {
-            name: field.name,
-            dataType: field.type,
-          },
+          meta: {name: field.name, dataType: field.type},
         },
       };
     });
@@ -353,10 +344,7 @@ export function generateReleaseWidgetFieldOptions(
       .forEach(tag => {
         fieldOptions[`field:${tag}`] = {
           label: tag,
-          value: {
-            kind: FieldValueKind.FIELD,
-            meta: {name: tag, dataType: 'string'},
-          },
+          value: {kind: FieldValueKind.FIELD, meta: {name: tag, dataType: 'string'}},
         };
       });
   }

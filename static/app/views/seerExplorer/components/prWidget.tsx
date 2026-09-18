@@ -155,11 +155,7 @@ export function usePRWidgetData({
       }
     }
 
-    return {
-      allInSync: inSync && !creating,
-      anyCreating: creating,
-      hasPRs: prs,
-    };
+    return {allInSync: inSync && !creating, anyCreating: creating, hasPRs: prs};
   }, [repoNames, repoPRStates, repoSyncStatus]);
 
   const hasCodeChanges = totalAdded > 0 || totalRemoved > 0;
@@ -304,11 +300,7 @@ export function PRWidget({
   ref,
 }: PRWidgetProps) {
   const {hasCodeChanges, totalAdded, totalRemoved, allInSync, anyCreating, hasPRs} =
-    usePRWidgetData({
-      blocks,
-      repoPRStates,
-      onCreatePR,
-    });
+    usePRWidgetData({blocks, repoPRStates, onCreatePR});
 
   if (!hasCodeChanges) {
     return null;

@@ -83,11 +83,7 @@ function EditPreviewHighlightSection({
             meta={meta}
             item={item}
             alias={alias}
-            config={{
-              includeAliasInSubject: true,
-              disableErrors: true,
-              disableLink: true,
-            }}
+            config={{includeAliasInSubject: true, disableErrors: true, disableLink: true}}
             data-test-id="highlights-preview-ctx"
           />
         </Fragment>
@@ -369,10 +365,7 @@ export function EditHighlightsModal({
               delete newHighlightContext[contextType];
               return newHighlightContextKeys.length === 0
                 ? newHighlightContext
-                : {
-                    ...newHighlightContext,
-                    [contextType]: newHighlightContextKeys,
-                  };
+                : {...newHighlightContext, [contextType]: newHighlightContextKeys};
             });
           }}
           project={project}

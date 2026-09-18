@@ -30,9 +30,7 @@ import {List} from './list';
 
 const RELAY_DOCS_LINK = 'https://getsentry.github.io/relay/';
 
-const relaySchema = z.object({
-  ingestThroughTrustedRelaysOnly: z.boolean(),
-});
+const relaySchema = z.object({ingestThroughTrustedRelaysOnly: z.boolean()});
 
 const relayDsnEndpointSchema = z.object({
   relayDsnEndpoint: z
@@ -234,11 +232,7 @@ function RelayUsageList({
         path: {organizationIdOrSlug: orgSlug},
       }),
     ],
-    {
-      staleTime: 0,
-      retry: false,
-      enabled: relays.length > 0,
-    }
+    {staleTime: 0, retry: false, enabled: relays.length > 0}
   );
 
   const handleOpenEditDialog = (publicKey: string) => {
@@ -273,10 +267,7 @@ function RelayUsageList({
         getApiUrl('/organizations/$organizationIdOrSlug/', {
           path: {organizationIdOrSlug: orgSlug},
         }),
-        {
-          method: 'PUT',
-          data: {trustedRelays},
-        }
+        {method: 'PUT', data: {trustedRelays}}
       );
       addSuccessMessage(t('Successfully deleted Relay public key'));
       onRelaysChange(response.trustedRelays ?? []);

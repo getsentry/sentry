@@ -239,11 +239,7 @@ describe('CanvasView', () => {
     });
     it('fromTransformedConfigView', () => {
       const canvas = makeCanvasMock({width: 1000, height: 1000});
-      const flamegraph = makeFlamegraph({
-        startValue: 0,
-        endValue: 1000,
-        events: [],
-      });
+      const flamegraph = makeFlamegraph({startValue: 0, endValue: 1000, events: []});
       const {view} = makeCanvasAndView(
         canvas,
         flamegraph,

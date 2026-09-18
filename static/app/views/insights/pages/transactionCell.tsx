@@ -34,10 +34,7 @@ export function TransactionCell({project, transaction, transactionMethod}: Props
     return NULL_DESCRIPTION;
   }
 
-  const pathname = generateTransactionSummaryRoute({
-    organization,
-    view,
-  });
+  const pathname = generateTransactionSummaryRoute({organization, view});
 
   const query = {
     project: projectId,

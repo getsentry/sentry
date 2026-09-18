@@ -1,7 +1,5 @@
 export type McpMonitoringEventParameters = {
-  'mcp-monitoring.page-view': {
-    isOnboarding: boolean;
-  };
+  'mcp-monitoring.page-view': {isOnboarding: boolean};
 };
 
 export const mcpMonitoringEventMap: Record<keyof McpMonitoringEventParameters, string> = {

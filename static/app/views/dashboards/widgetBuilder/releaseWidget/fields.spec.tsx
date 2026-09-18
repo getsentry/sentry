@@ -11,33 +11,15 @@ describe('generateReleaseWidgetFieldOptions', () => {
     expect(generateReleaseWidgetFieldOptions(fields, tagKeys)).toEqual({
       'field:session': {
         label: 'session',
-        value: {
-          kind: 'metric',
-          meta: {
-            dataType: 'integer',
-            name: 'session',
-          },
-        },
+        value: {kind: 'metric', meta: {dataType: 'integer', name: 'session'}},
       },
       'field:session.duration': {
         label: 'session.duration',
-        value: {
-          kind: 'metric',
-          meta: {
-            dataType: 'duration',
-            name: 'session.duration',
-          },
-        },
+        value: {kind: 'metric', meta: {dataType: 'duration', name: 'session.duration'}},
       },
       'field:user': {
         label: 'user',
-        value: {
-          kind: 'metric',
-          meta: {
-            dataType: 'string',
-            name: 'user',
-          },
-        },
+        value: {kind: 'metric', meta: {dataType: 'string', name: 'user'}},
       },
       'function:abnormal_rate': {
         label: 'abnormal_rate(…)',
@@ -58,13 +40,7 @@ describe('generateReleaseWidgetFieldOptions', () => {
       },
       'function:anr_rate': {
         label: 'anr_rate(…)',
-        value: {
-          kind: 'function',
-          meta: {
-            name: 'anr_rate',
-            parameters: [],
-          },
-        },
+        value: {kind: 'function', meta: {name: 'anr_rate', parameters: []}},
       },
       'function:count_abnormal': {
         label: 'count_abnormal(…)',
@@ -221,13 +197,7 @@ describe('generateReleaseWidgetFieldOptions', () => {
       },
       'function:foreground_anr_rate': {
         label: 'foreground_anr_rate(…)',
-        value: {
-          kind: 'function',
-          meta: {
-            name: 'foreground_anr_rate',
-            parameters: [],
-          },
-        },
+        value: {kind: 'function', meta: {name: 'foreground_anr_rate', parameters: []}},
       },
       'function:sum': {
         label: 'sum(…)',
@@ -282,23 +252,11 @@ describe('generateReleaseWidgetFieldOptions', () => {
       },
       'field:environment': {
         label: 'environment',
-        value: {
-          kind: 'field',
-          meta: {
-            dataType: 'string',
-            name: 'environment',
-          },
-        },
+        value: {kind: 'field', meta: {dataType: 'string', name: 'environment'}},
       },
       'field:release': {
         label: 'release',
-        value: {
-          kind: 'field',
-          meta: {
-            dataType: 'string',
-            name: 'release',
-          },
-        },
+        value: {kind: 'field', meta: {dataType: 'string', name: 'release'}},
       },
     });
   });

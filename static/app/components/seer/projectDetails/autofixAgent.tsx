@@ -86,10 +86,7 @@ export function AutofixAgent({canWrite, project}: Props) {
   );
 
   const {data, isPending, isError, error} = useQuery(
-    getSeerProjectSettingsQueryOptions({
-      organization,
-      project: {slug: project.slug},
-    })
+    getSeerProjectSettingsQueryOptions({organization, project: {slug: project.slug}})
   );
 
   // A non-GitHub repo means the stored agent can no longer hand off, so persist

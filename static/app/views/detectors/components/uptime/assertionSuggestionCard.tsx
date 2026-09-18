@@ -40,9 +40,7 @@ export function AssertionSuggestionCard({
         });
       case UptimeAssertionType.JSON_PATH:
         if (suggestion.comparison === UptimeComparisonType.ALWAYS) {
-          return tct('[path] exists', {
-            path: suggestion.json_path,
-          });
+          return tct('[path] exists', {path: suggestion.json_path});
         }
         return tct('[path] [comparison] [value]', {
           path: suggestion.json_path,
@@ -51,9 +49,7 @@ export function AssertionSuggestionCard({
         });
       case UptimeAssertionType.HEADER:
         if (suggestion.comparison === UptimeComparisonType.ALWAYS) {
-          return tct('Header [name] exists', {
-            name: suggestion.header_name,
-          });
+          return tct('Header [name] exists', {name: suggestion.header_name});
         }
         return tct('Header [name] [comparison] [value]', {
           name: suggestion.header_name,

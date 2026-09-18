@@ -118,11 +118,7 @@ const useDiscoverLandingQuery = (renderPrebuilt: boolean) => {
   return useQuery({
     ...apiOptions.as<SavedQuery[]>()(
       '/organizations/$organizationIdOrSlug/discover/saved/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: queryParams,
-        staleTime: 0,
-      }
+      {path: {organizationIdOrSlug: organization.slug}, query: queryParams, staleTime: 0}
     ),
     select: selectJsonWithHeaders,
   });
@@ -152,20 +148,13 @@ function DiscoverLanding() {
   const savedQueries = savedQueriesResponse?.json ?? [];
   const savedQueriesPageLinks = savedQueriesResponse?.headers.Link;
 
-  const to = makeDiscoverPathname({
-    path: '/homepage/',
-    organization,
-  });
+  const to = makeDiscoverPathname({path: '/homepage/', organization});
 
   const handleSortChange = (value: string) => {
     trackAnalytics('discover_v2.change_sort', {organization, sort: value});
     navigate({
       pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        sort: value,
-      },
+      query: {...location.query, cursor: undefined, sort: value},
     });
   };
 
@@ -212,10 +201,7 @@ function DiscoverLanding() {
           <Layout.Body>
             <Layout.Main width="full">
               <Grid
-                columns={{
-                  zero: 'auto',
-                  xl: 'auto max-content min-content max-content',
-                }}
+                columns={{zero: 'auto', xl: 'auto max-content min-content max-content'}}
                 gap="xl"
                 align="center"
                 marginBottom="xl"
@@ -249,9 +235,7 @@ function DiscoverLanding() {
                   to={to}
                   variant="primary"
                   onClick={() => {
-                    trackAnalytics('discover_v2.build_new_query', {
-                      organization,
-                    });
+                    trackAnalytics('discover_v2.build_new_query', {organization});
                   }}
                 >
                   {t('Build a new query')}

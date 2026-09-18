@@ -9,87 +9,39 @@ const mockSeries: UsageSeries = {
   intervals: ['2021-01-01T00:00:00Z', '2021-01-02T00:00:00Z', '2021-01-03T00:00:00Z'],
   groups: [
     {
-      by: {
-        outcome: 'accepted',
-      },
-      totals: {
-        'sum(quantity)': 6,
-      },
-      series: {
-        'sum(quantity)': [1, 2, 3],
-      },
+      by: {outcome: 'accepted'},
+      totals: {'sum(quantity)': 6},
+      series: {'sum(quantity)': [1, 2, 3]},
     },
     {
-      by: {
-        outcome: 'filtered',
-        reason: 'other',
-      },
-      totals: {
-        'sum(quantity)': 4,
-      },
-      series: {
-        'sum(quantity)': [0, 1, 3],
-      },
+      by: {outcome: 'filtered', reason: 'other'},
+      totals: {'sum(quantity)': 4},
+      series: {'sum(quantity)': [0, 1, 3]},
     },
     {
-      by: {
-        outcome: 'invalid',
-        reason: 'invalid_transaction',
-      },
-      totals: {
-        'sum(quantity)': 6,
-      },
-      series: {
-        'sum(quantity)': [2, 2, 2],
-      },
+      by: {outcome: 'invalid', reason: 'invalid_transaction'},
+      totals: {'sum(quantity)': 6},
+      series: {'sum(quantity)': [2, 2, 2]},
     },
     {
-      by: {
-        outcome: 'invalid',
-        reason: 'other_reason_a',
-      },
-      totals: {
-        'sum(quantity)': 6,
-      },
-      series: {
-        'sum(quantity)': [1, 2, 3],
-      },
+      by: {outcome: 'invalid', reason: 'other_reason_a'},
+      totals: {'sum(quantity)': 6},
+      series: {'sum(quantity)': [1, 2, 3]},
     },
     {
-      by: {
-        outcome: 'invalid',
-        reason: 'other_reason_b',
-      },
-      totals: {
-        'sum(quantity)': 3,
-      },
-      series: {
-        'sum(quantity)': [1, 1, 1],
-      },
+      by: {outcome: 'invalid', reason: 'other_reason_b'},
+      totals: {'sum(quantity)': 3},
+      series: {'sum(quantity)': [1, 1, 1]},
     },
     {
-      by: {
-        outcome: 'filtered',
-        reason: 'react-hydration-errors',
-      },
-      totals: {
-        'sum(quantity)': 6,
-      },
-      series: {
-        'sum(quantity)': [5, 0, 1],
-      },
+      by: {outcome: 'filtered', reason: 'react-hydration-errors'},
+      totals: {'sum(quantity)': 6},
+      series: {'sum(quantity)': [5, 0, 1]},
     },
     {
-      by: {
-        outcome: 'filtered',
-        reason: 'chunk-load-error',
-      },
-      totals: {
-        'sum(quantity)': 2,
-      },
-      series: {
-        'sum(quantity)': [1, 0, 1],
-      },
+      by: {outcome: 'filtered', reason: 'chunk-load-error'},
+      totals: {'sum(quantity)': 2},
+      series: {'sum(quantity)': [1, 0, 1]},
     },
   ],
 };
@@ -165,48 +117,24 @@ describe('mapSeriesToChart func', () => {
         ],
         groups: [
           {
-            by: {
-              outcome: 'accepted',
-            },
-            totals: {
-              'sum(quantity)': 99,
-            },
-            series: {
-              'sum(quantity)': [99],
-            },
+            by: {outcome: 'accepted'},
+            totals: {'sum(quantity)': 99},
+            series: {'sum(quantity)': [99]},
           },
           {
-            by: {
-              outcome: 'rate_limited',
-            },
-            totals: {
-              'sum(quantity)': 6,
-            },
-            series: {
-              'sum(quantity)': [1, 2, 3],
-            },
+            by: {outcome: 'rate_limited'},
+            totals: {'sum(quantity)': 6},
+            series: {'sum(quantity)': [1, 2, 3]},
           },
           {
-            by: {
-              outcome: 'abuse',
-            },
-            totals: {
-              'sum(quantity)': 2,
-            },
-            series: {
-              'sum(quantity)': [1, 1],
-            },
+            by: {outcome: 'abuse'},
+            totals: {'sum(quantity)': 2},
+            series: {'sum(quantity)': [1, 1]},
           },
           {
-            by: {
-              outcome: 'cardinality_limited',
-            },
-            totals: {
-              'sum(quantity)': 3,
-            },
-            series: {
-              'sum(quantity)': [1, 2],
-            },
+            by: {outcome: 'cardinality_limited'},
+            totals: {'sum(quantity)': 3},
+            series: {'sum(quantity)': [1, 2]},
           },
         ],
       },
@@ -228,30 +156,14 @@ describe('mapSeriesToChart func', () => {
         intervals: ['2021-01-01T00:00:00Z', '2021-01-02T00:00:00Z'],
         groups: [
           {
-            by: {
-              outcome: 'client_discard',
-              reason: 'queue_overflow',
-              category: 'error',
-            },
-            totals: {
-              'sum(quantity)': 1500,
-            },
-            series: {
-              'sum(quantity)': [750, 750],
-            },
+            by: {outcome: 'client_discard', reason: 'queue_overflow', category: 'error'},
+            totals: {'sum(quantity)': 1500},
+            series: {'sum(quantity)': [750, 750]},
           },
           {
-            by: {
-              outcome: 'client_discard',
-              reason: 'no_parent_span',
-              category: 'span',
-            },
-            totals: {
-              'sum(quantity)': 1000,
-            },
-            series: {
-              'sum(quantity)': [400, 600],
-            },
+            by: {outcome: 'client_discard', reason: 'no_parent_span', category: 'span'},
+            totals: {'sum(quantity)': 1000},
+            series: {'sum(quantity)': [400, 600]},
           },
         ],
       },

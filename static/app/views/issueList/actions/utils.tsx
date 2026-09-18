@@ -40,19 +40,13 @@ function getBulkConfirmMessage(action: string, queryCount: number) {
   if (queryCount > BULK_LIMIT) {
     return tct(
       'Are you sure you want to [action] the first [bulkNumber] issues that match the search?',
-      {
-        action,
-        bulkNumber: BULK_LIMIT_STR,
-      }
+      {action, bulkNumber: BULK_LIMIT_STR}
     );
   }
 
   return tct(
     'Are you sure you want to [action] all [bulkNumber] issues that match the search?',
-    {
-      action,
-      bulkNumber: queryCount,
-    }
+    {action, bulkNumber: queryCount}
   );
 }
 

@@ -11,26 +11,13 @@ const backgroundAnimateIn: Variants = {
   animate: {
     opacity: 1,
     scale: 1,
-    transition: {
-      type: 'spring',
-      damping: 8,
-      stiffness: 60,
-    },
+    transition: {type: 'spring', damping: 8, stiffness: 60},
   },
 };
 
 const wormholeAnimateIn: Variants = {
-  initial: {
-    opacity: 0,
-    scale: 0.6,
-    rotate: 50,
-  },
-  animate: {
-    opacity: 1,
-    scale: 1,
-    rotate: 0,
-    transition: {delay: 2, duration: 2.5},
-  },
+  initial: {opacity: 0, scale: 0.6, rotate: 50},
+  animate: {opacity: 1, scale: 1, rotate: 0, transition: {delay: 2, duration: 2.5}},
 };
 
 const wormholeIdleKeyframes = keyframes`
@@ -51,12 +38,7 @@ const Wormhole = styled(motion.g)`
 `;
 
 const shipAnimateIn: Variants = {
-  initial: {
-    opacity: 0,
-    scale: 1.2,
-    translateX: -150,
-    translateY: 50,
-  },
+  initial: {opacity: 0, scale: 1.2, translateX: -150, translateY: 50},
   animate: {
     opacity: 1,
     scale: 1,
@@ -81,9 +63,7 @@ const Alerts = styled('g')`
   }
 `;
 
-type Props = {
-  anchorRef: React.Ref<SVGForeignObjectElement>;
-};
+type Props = {anchorRef: React.Ref<SVGForeignObjectElement>};
 
 export function AlertsBackground({anchorRef}: Props) {
   let alertInterval: undefined | number;

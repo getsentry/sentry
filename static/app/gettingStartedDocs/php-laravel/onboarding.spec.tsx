@@ -22,9 +22,7 @@ describe('laravel onboarding docs', () => {
   });
 
   it('renders without tracing', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     // Does not render config option
     expect(

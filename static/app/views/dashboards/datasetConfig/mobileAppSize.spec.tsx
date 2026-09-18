@@ -39,10 +39,7 @@ describe('MobileAppSizeConfig', () => {
       expect(result).toHaveLength(1);
       expect(result[0]!.seriesName).toBe('max(install_size)');
       expect(result[0]!.data).toHaveLength(3);
-      expect(result[0]!.data[0]).toEqual({
-        name: 1609459200000,
-        value: 1000000,
-      });
+      expect(result[0]!.data[0]).toEqual({name: 1609459200000, value: 1000000});
     });
 
     it('filters out null, undefined, and zero values', () => {
@@ -153,10 +150,7 @@ describe('MobileAppSizeConfig', () => {
       fields: ['max(install_size)', 'max(download_size)'],
     };
 
-    const multiSeriesQuery = {
-      ...singleSeriesQuery,
-      columns: ['app_id', 'platform'],
-    };
+    const multiSeriesQuery = {...singleSeriesQuery, columns: ['app_id', 'platform']};
 
     it('returns size type for single-series aggregate', () => {
       expect(
@@ -167,10 +161,7 @@ describe('MobileAppSizeConfig', () => {
     it('returns size type for multiple aggregates', () => {
       expect(
         MobileAppSizeConfig.getSeriesResultType!(singleSeriesData, multiAggregateQuery)
-      ).toEqual({
-        'max(install_size)': 'size',
-        'max(download_size)': 'size',
-      });
+      ).toEqual({'max(install_size)': 'size', 'max(download_size)': 'size'});
     });
 
     it('returns size type for multi-series grouped data', () => {

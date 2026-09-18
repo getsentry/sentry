@@ -29,9 +29,7 @@ export type InvestigationListItem = {
   title: string;
   version: number;
   orchestration?: InvestigationOrchestrationSummary | null;
-  titleGeneration?: {
-    status: 'pending' | 'running' | 'completed' | 'failed' | null;
-  };
+  titleGeneration?: {status: 'pending' | 'running' | 'completed' | 'failed' | null};
 };
 
 // Expand this response type as the detail UI begins consuming additional fields.
@@ -87,11 +85,7 @@ type InvestigationBlockExecution = {
 };
 
 export type InvestigationTranscriptBlock = {
-  artifacts: Array<{
-    data: Record<string, unknown> | null;
-    key: string;
-    reason: string;
-  }>;
+  artifacts: Array<{data: Record<string, unknown> | null; key: string; reason: string}>;
   id: string;
   loading: boolean;
   message: {
@@ -99,17 +93,10 @@ export type InvestigationTranscriptBlock = {
     role: 'user' | 'assistant' | 'tool_use';
     metadata?: Record<string, string> | null;
     thinking_content?: string | null;
-    tool_calls?: Array<{
-      args: string;
-      function: string;
-      id?: string | null;
-    }> | null;
+    tool_calls?: Array<{args: string; function: string; id?: string | null}> | null;
   };
   timestamp: string;
-  toolLinks: Array<{
-    kind: string;
-    params: Record<string, unknown>;
-  } | null> | null;
+  toolLinks: Array<{kind: string; params: Record<string, unknown>} | null> | null;
   toolResults: Array<{
     content: string;
     tool_call_function: string;
@@ -159,10 +146,7 @@ export type InvestigationTitleGeneration = {
 };
 
 export type MetricOpenPeriodInvestigationSource = {
-  ref: {
-    groupId: string;
-    openPeriodId: string;
-  };
+  ref: {groupId: string; openPeriodId: string};
   type: 'metric_open_period';
 };
 
@@ -350,10 +334,7 @@ type InvestigationOrchestrationReport = {
   currentBlockStatus?: InvestigationOrchestrationWorkStatus | null;
   currentBlockToolActivity?: InvestigationToolActivity[];
   heartbeatAt?: string | null;
-  suggestedHypotheses?: Array<{
-    statement: string;
-    rationale?: string | null;
-  }>;
+  suggestedHypotheses?: Array<{statement: string; rationale?: string | null}>;
 };
 
 export type InvestigationOrchestration = {
@@ -380,10 +361,7 @@ export type InvestigationOrchestration = {
   status: InvestigationOrchestrationStatus;
   updatedAt: string;
   workflowVersion: number;
-  pendingInput?: {
-    missingFields: Array<'prompt' | 'time_range'>;
-    prompt: string;
-  } | null;
+  pendingInput?: {missingFields: Array<'prompt' | 'time_range'>; prompt: string} | null;
   steeringIntents?: Array<{
     createdAt: string;
     id: string;
@@ -402,16 +380,8 @@ export type InvestigationOrchestration = {
  * only case-converts the envelope keys.
  */
 export type InvestigationOrchestrationCommand =
-  | {
-      type: 'provide_input';
-      prompt?: string;
-      timeRange?: {end: string; start: string};
-    }
-  | {
-      statement: string;
-      type: 'add_hypothesis';
-      rationale?: string | null;
-    }
+  | {type: 'provide_input'; prompt?: string; timeRange?: {end: string; start: string}}
+  | {statement: string; type: 'add_hypothesis'; rationale?: string | null}
   | {
       disposition: 'accepted' | 'rejected' | null;
       hypothesisId: string;
@@ -423,15 +393,8 @@ export type InvestigationOrchestrationCommand =
       type: 'steer';
       targetId?: string | null;
     }
-  | {
-      target: 'run' | 'hypothesis' | 'report';
-      type: 'retry';
-      targetId?: string | null;
-    }
-  | {
-      type: 'cancel';
-      reason?: string | null;
-    };
+  | {target: 'run' | 'hypothesis' | 'report'; type: 'retry'; targetId?: string | null}
+  | {type: 'cancel'; reason?: string | null};
 
 export type InvestigationOrchestrationCommandVariables = {
   command: InvestigationOrchestrationCommand;

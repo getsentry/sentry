@@ -19,9 +19,7 @@ export function useCurrentBillingHistory() {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   const currentHistory = useMemo(() => {

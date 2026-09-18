@@ -59,9 +59,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
                   projectSlug,
                   frameName: evidenceData.frameName,
                   framePackage: evidenceData.framePackage,
-                  query: {
-                    referrer: 'issue',
-                  },
+                  query: {referrer: 'issue'},
                 })}
                 icon={<IconProfiling />}
               >

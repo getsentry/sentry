@@ -137,10 +137,7 @@ type LogsRowProps = {
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   blockRowExpanding?: boolean;
   embedded?: boolean;
-  embeddedOptions?: {
-    openWithExpandedIds?: string[];
-    replay?: ReplayEmbeddedTableOptions;
-  };
+  embeddedOptions?: {openWithExpandedIds?: string[]; replay?: ReplayEmbeddedTableOptions};
   errorRow?: TraceTree.TraceErrorIssue;
   expansionKey?: string;
   isExpanded?: boolean;
@@ -181,12 +178,7 @@ function getExploreSimilarSpansUrl({
     organization,
     selection: {
       ...selection,
-      datetime: {
-        period: '24h',
-        start: null,
-        end: null,
-        utc: selection.datetime.utc,
-      },
+      datetime: {period: '24h', start: null, end: null, utc: selection.datetime.utc},
     },
     mode: Mode.SAMPLES,
     referrer: EXPLORE_SIMILAR_SPANS_REFERRER,
@@ -406,11 +398,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
     sharedHoverTimeoutRef,
     timeout: prefetchTimeout,
   });
-  usePrefetchTraceItemDetailsOnMount({
-    prefetch,
-    enabled: isHighlighted,
-    isProjectReady,
-  });
+  usePrefetchTraceItemDetailsOnMount({prefetch, enabled: isHighlighted, isProjectReady});
   const [caseInsensitivity] = useCaseInsensitivity();
 
   // The table asks the API to truncate long strings for display, so the rendered
@@ -512,12 +500,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
         ? onEmbeddedRowClick
           ? {...hoverProps, onClick, isClickable: true}
           : {...hoverProps}
-        : {
-            ...hoverProps,
-            onPointerUp,
-            onTouchEnd: onPointerUp,
-            isClickable: true,
-          };
+        : {...hoverProps, onPointerUp, onTouchEnd: onPointerUp, isClickable: true};
 
   const buttonSize = 'xs';
   const chevronIcon = (
@@ -688,10 +671,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
             );
 
             const discoverColumn: TableColumn<keyof OurLogsResponseItem> = {
-              column: {
-                field,
-                kind: 'field',
-              },
+              column: {field, kind: 'field'},
               name: field,
               key: field,
               isSortable: true,
@@ -851,9 +831,7 @@ function LogRowDetails({
         it[attr.name] = attr.value;
         return it;
       },
-      {
-        [OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP],
-      }
+      {[OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP]}
     ) ?? {};
   const attributeTypes =
     data?.attributes?.reduce<Record<string, TraceItemResponseAttribute['type']>>(
@@ -983,10 +961,7 @@ function LogRowDetailsFilterActions({filter}: {filter: MessageFilter}) {
         size="sm"
         icon={<IconAdd />}
         onClick={() => {
-          addSearchFilter({
-            key: filter.key,
-            value: filter.value,
-          });
+          addSearchFilter({key: filter.key, value: filter.value});
         }}
       >
         {t('Add to filter')}
@@ -996,11 +971,7 @@ function LogRowDetailsFilterActions({filter}: {filter: MessageFilter}) {
         size="sm"
         icon={<IconSubtract />}
         onClick={() => {
-          addSearchFilter({
-            key: filter.key,
-            value: filter.value,
-            negated: true,
-          });
+          addSearchFilter({key: filter.key, value: filter.value, negated: true});
         }}
       >
         {t('Exclude from filter')}
@@ -1077,15 +1048,14 @@ function LogRowDetailsActions({
     if (!json) {
       return;
     }
-    copy(json, {
-      successMessage: t('Copied!'),
-      errorMessage: t('Failed to copy'),
-    }).then(() => {
-      trackAnalytics('logs.table.row_copied_as_json', {
-        log_id: String(tableDataRow[OurLogKnownFieldKey.ID]),
-        organization,
-      });
-    });
+    copy(json, {successMessage: t('Copied!'), errorMessage: t('Failed to copy')}).then(
+      () => {
+        trackAnalytics('logs.table.row_copied_as_json', {
+          log_id: String(tableDataRow[OurLogKnownFieldKey.ID]),
+          organization,
+        });
+      }
+    );
   };
 
   return (

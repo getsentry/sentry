@@ -3,11 +3,7 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import type {EventTag} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 
-type Props = {
-  tag: EventTag;
-  meta?: Meta;
-  withOnlyFormattedText?: boolean;
-};
+type Props = {tag: EventTag; meta?: Meta; withOnlyFormattedText?: boolean};
 
 export function EventTagsValue({
   tag: {value},

@@ -81,15 +81,9 @@ export interface FlamegraphTheme {
       colorMapFn: ColorMapFn,
       colorBucketFn: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
       theme: FlamegraphTheme
-    ) => {
-      colorBuffer: number[];
-      colorMap: Map<Frame['key'], ColorChannels>;
-    };
+    ) => {colorBuffer: number[]; colorMap: Map<Frame['key'], ColorChannels>};
   };
-  FONTS: {
-    FONT: string;
-    FRAME_FONT: string;
-  };
+  FONTS: {FONT: string; FRAME_FONT: string};
   LCH: LCH;
   SIZES: {
     AGGREGATE_FLAMEGRAPH_DEPTH_OFFSET: number;
@@ -151,35 +145,19 @@ const SIZES: FlamegraphTheme['SIZES'] = {
 };
 
 function makeFlamegraphFonts(theme: Theme): FlamegraphTheme['FONTS'] {
-  return {
-    FONT: MONOSPACE_FONT,
-    FRAME_FONT: theme.font.family.mono,
-  };
+  return {FONT: MONOSPACE_FONT, FRAME_FONT: theme.font.family.mono};
 }
 
-const LCH_LIGHT = {
-  C_0: 0.35,
-  C_d: 0.3,
-  L_0: 0.8,
-  L_d: 0.15,
-};
+const LCH_LIGHT = {C_0: 0.35, C_d: 0.3, L_0: 0.8, L_d: 0.15};
 
-const SPAN_LCH_LIGHT = {
-  C_0: 0.3,
-  C_d: 0.25,
-  L_0: 0.8,
-  L_d: 0.15,
-};
+const SPAN_LCH_LIGHT = {C_0: 0.3, C_d: 0.25, L_0: 0.8, L_d: 0.15};
 
 export const makeLightFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
   const chartColors = theme.chart.getColorPalette(12);
 
   return {
     LCH: LCH_LIGHT,
-    SIZES: {
-      ...SIZES,
-      TIMELINE_LABEL_HEIGHT: 26,
-    },
+    SIZES: {...SIZES, TIMELINE_LABEL_HEIGHT: 26},
     FONTS: makeFlamegraphFonts(theme),
     COLORS: {
       COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT),
@@ -265,28 +243,15 @@ export const makeLightFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
   };
 };
 
-const LCH_DARK = {
-  C_0: 0.35,
-  C_d: 0.25,
-  L_0: 0.25,
-  L_d: 0.15,
-};
+const LCH_DARK = {C_0: 0.35, C_d: 0.25, L_0: 0.25, L_d: 0.15};
 
-const SPANS_LCH_DARK = {
-  C_0: 0.4,
-  C_d: 0.25,
-  L_0: 0.3,
-  L_d: 0.2,
-};
+const SPANS_LCH_DARK = {C_0: 0.4, C_d: 0.25, L_0: 0.3, L_d: 0.2};
 
 export const makeDarkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
   const chartColors = theme.chart.getColorPalette(12);
   return {
     LCH: LCH_DARK,
-    SIZES: {
-      ...SIZES,
-      TIMELINE_LABEL_HEIGHT: 26,
-    },
+    SIZES: {...SIZES, TIMELINE_LABEL_HEIGHT: 26},
     FONTS: makeFlamegraphFonts(theme),
     COLORS: {
       COLOR_BUCKET: makeColorBucketTheme(LCH_DARK),

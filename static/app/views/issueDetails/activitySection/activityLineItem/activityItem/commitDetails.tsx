@@ -69,10 +69,7 @@ export function getResolvedInCommitDetails(
   const commitChip = <CommitChip commit={commit} />;
 
   if (!firstRelease) {
-    return tct('by [commit] on [provider]', {
-      commit: commitChip,
-      provider,
-    });
+    return tct('by [commit] on [provider]', {commit: commitChip, provider});
   }
 
   const releaseChip = (

@@ -17,10 +17,7 @@ const baseEvidenceData: LowValueSpanEvidenceData = {
 
 function makeEvent(overrides: Partial<LowValueSpanEvidenceData> = {}) {
   return EventFixture({
-    occurrence: {
-      evidenceData: {...baseEvidenceData, ...overrides},
-      type: 13002,
-    },
+    occurrence: {evidenceData: {...baseEvidenceData, ...overrides}, type: 13002},
   });
 }
 

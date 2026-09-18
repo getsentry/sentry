@@ -22,9 +22,7 @@ describe('ProjectDetail', () => {
   const project = projects[0]!;
 
   const initialRouterConfig: RouterConfig = {
-    location: {
-      pathname: `/organizations/${organization.slug}/projects/${project.slug}/`,
-    },
+    location: {pathname: `/organizations/${organization.slug}/projects/${project.slug}/`},
     route: '/organizations/:orgId/projects/:projectId/',
   };
 
@@ -72,10 +70,7 @@ describe('ProjectDetail', () => {
     ProjectsStore.loadInitialData([{...project, slug: 'different-slug'}]);
     setupMockResponses();
 
-    render(<ProjectDetail />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<ProjectDetail />, {organization, initialRouterConfig});
 
     expect(await screen.findByText(/project could not be found/)).toBeInTheDocument();
 
@@ -90,10 +85,7 @@ describe('ProjectDetail', () => {
   it('Render warning if user is not a member of the project', async () => {
     ProjectsStore.loadInitialData([{...project, hasAccess: false}]);
 
-    render(<ProjectDetail />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<ProjectDetail />, {organization, initialRouterConfig});
 
     expect(
       await screen.findByText(/ask an admin to add your team to this project/i)
@@ -104,10 +96,7 @@ describe('ProjectDetail', () => {
     ProjectsStore.loadInitialData([project]);
     setupMockResponses();
 
-    render(<ProjectDetail />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<ProjectDetail />, {organization, initialRouterConfig});
 
     expect(await screen.findByText(project.slug)).toBeInTheDocument();
   });

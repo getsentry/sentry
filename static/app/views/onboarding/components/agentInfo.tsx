@@ -46,9 +46,7 @@ export function AgentInfo({onboardingCode}: AgentInfoProps) {
               <Text variant="muted" size="sm" align="left">
                 {tct(
                   'Your agent uses ID [onboardingCode] to report setup progress here. Progress updates sent with this ID never include any part of your source code.',
-                  {
-                    onboardingCode: <InlineCode>{onboardingCode}</InlineCode>,
-                  }
+                  {onboardingCode: <InlineCode>{onboardingCode}</InlineCode>}
                 )}
               </Text>
             </Grid>

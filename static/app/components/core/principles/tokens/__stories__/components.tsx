@@ -255,10 +255,7 @@ export function BackgroundColors() {
         'success.vibrant': bg.success.vibrant,
       },
     },
-    {
-      label: 'transparent',
-      tokens: flattenTokens(bg.transparent),
-    },
+    {label: 'transparent', tokens: flattenTokens(bg.transparent)},
   ];
   return (
     <Storybook.ColorReference
@@ -330,13 +327,7 @@ export function BorderColors() {
   const theme = useTheme();
   const bd = theme.tokens.border;
   const groups: ColorGroup[] = [
-    {
-      label: 'base',
-      tokens: {
-        primary: bd.primary,
-        secondary: bd.secondary,
-      },
-    },
+    {label: 'base', tokens: {primary: bd.primary, secondary: bd.secondary}},
     {label: 'neutral', tokens: flattenTokens(bd.neutral)},
     {label: 'accent', tokens: flattenTokens(bd.accent)},
     {label: 'promotion', tokens: flattenTokens(bd.promotion)},
@@ -439,13 +430,7 @@ export function FocusColors() {
   const theme = useTheme();
   const fc = theme.tokens.focus;
   const groups: ColorGroup[] = [
-    {
-      label: 'states',
-      tokens: {
-        default: fc.default,
-        invalid: fc.invalid,
-      },
-    },
+    {label: 'states', tokens: {default: fc.default, invalid: fc.invalid}},
     {
       label: 'onVibrant',
       tokens: {

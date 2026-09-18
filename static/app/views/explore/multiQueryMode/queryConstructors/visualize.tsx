@@ -25,10 +25,7 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
-type Props = {
-  index: number;
-  query: ReadableExploreQueryParts;
-};
+type Props = {index: number; query: ReadableExploreQueryParts};
 
 export function VisualizeSection({query, index}: Props) {
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
@@ -49,11 +46,7 @@ export function VisualizeSection({query, index}: Props) {
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
-      return {
-        label: aggregate,
-        value: aggregate,
-        textValue: aggregate,
-      };
+      return {label: aggregate, value: aggregate, textValue: aggregate};
     });
   }, []);
 

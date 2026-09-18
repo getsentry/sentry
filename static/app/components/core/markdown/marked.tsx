@@ -188,10 +188,7 @@ const ALLOWED_TAGS = [
 const ALLOWED_ATTR = ['href', 'title', 'alt', 'class', 'align'];
 
 export function sanitizeHtml(html: string) {
-  return dompurify.sanitize(html, {
-    ALLOWED_TAGS,
-    ALLOWED_ATTR,
-  });
+  return dompurify.sanitize(html, {ALLOWED_TAGS, ALLOWED_ATTR});
 }
 
 function postprocess(html: string) {
@@ -201,9 +198,7 @@ function postprocess(html: string) {
 const noHighlightingMarked = new Marked({
   async: false,
   renderer: new SafeRenderer(),
-  hooks: {
-    postprocess,
-  },
+  hooks: {postprocess},
 });
 
 const highlightingMarked = new Marked(
@@ -246,13 +241,7 @@ const highlightingMarked = new Marked(
       });
     },
   })
-).use({
-  async: true,
-  renderer: new SafeRenderer(),
-  hooks: {
-    postprocess,
-  },
-});
+).use({async: true, renderer: new SafeRenderer(), hooks: {postprocess}});
 
 /**
  * Renders markdown and sanitizes the output.

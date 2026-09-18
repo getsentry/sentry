@@ -49,11 +49,7 @@ export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
       culprit: '/organizations/:orgId/issues/:groupId/feedback/',
       title: 'Error: user efedback',
       id: '524',
-      assignedTo: {
-        id: '1',
-        name: 'actor',
-        type: 'user',
-      },
+      assignedTo: {id: '1', name: 'actor', type: 'user'},
       issueCategory: IssueCategory.ERROR,
       issueType: IssueType.ERROR,
       participants: [],

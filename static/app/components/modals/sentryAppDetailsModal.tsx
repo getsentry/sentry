@@ -68,9 +68,7 @@ export function SentryAppDetailsModal(props: Props) {
         path: {sentryAppIdOrSlug: sentryApp.slug},
       }),
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   const installMutation = useMutation({

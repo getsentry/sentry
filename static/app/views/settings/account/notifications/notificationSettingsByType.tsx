@@ -78,9 +78,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   const queryClient = useQueryClient();
   const {data: notificationOptions = [], status: notificationOptionStatus} = useApiQuery<
     NotificationOptionsObject[]
-  >(notificationOptionsQueryKey(notificationType), {
-    staleTime: 30_000,
-  });
+  >(notificationOptionsQueryKey(notificationType), {staleTime: 30_000});
   const {data: notificationProviders = [], status: notificationProviderStatus} =
     useApiQuery<NotificationProvidersObject[]>(
       [
@@ -156,10 +154,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       })
     );
 
-    return {
-      [notificationType]: defaultValue,
-      ...childTypesDefaults,
-    };
+    return {[notificationType]: defaultValue, ...childTypesDefaults};
   };
 
   const getLinkedOrgs = (provider: SupportedProviders): OrganizationSummary[] => {
@@ -239,9 +234,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     mutationFn: (data: Omit<NotificationOptionsObject, 'id'>) =>
       fetchMutation<NotificationOptionsObject>({
         method: 'PUT',
-        url: getApiUrl('/users/$userId/notification-options/', {
-          path: {userId: 'me'},
-        }),
+        url: getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
         options: {},
         data,
       }),
@@ -261,9 +254,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     mutationFn: (data: NotificationOptionsObject) =>
       fetchMutation<NotificationOptionsObject>({
         method: 'PUT',
-        url: getApiUrl('/users/$userId/notification-options/', {
-          path: {userId: 'me'},
-        }),
+        url: getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
         options: {},
         data,
       }),
@@ -315,9 +306,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       mutationFn: (data: Record<string, string>) =>
         fetchMutation<NotificationOptionsObject>({
           method: 'PUT',
-          url: getApiUrl('/users/$userId/notification-options/', {
-            path: {userId: 'me'},
-          }),
+          url: getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
           data: {
             type: fieldName,
             scopeType: 'user',
@@ -356,9 +345,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     mutationFn: (data: {provider: string[]}) =>
       fetchMutation({
         method: 'PUT',
-        url: getApiUrl('/users/$userId/notification-providers/', {
-          path: {userId: 'me'},
-        }),
+        url: getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
         data: {
           type: notificationType,
           scopeType: 'user',

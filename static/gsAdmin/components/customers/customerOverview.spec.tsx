@@ -84,9 +84,7 @@ describe('CustomerOverview', () => {
 
   it('renders soft cap type details', () => {
     const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-    });
+    const subscription = SubscriptionFixture({organization});
     subscription.categories.errors = MetricHistoryFixture({
       ...subscription.categories.errors,
       softCapType: 'ON_DEMAND',
@@ -108,9 +106,7 @@ describe('CustomerOverview', () => {
 
   it('renders soft cap type details all categories', () => {
     const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-    });
+    const subscription = SubscriptionFixture({organization});
     subscription.categories.errors = MetricHistoryFixture({
       ...subscription.categories.errors,
       softCapType: 'TRUE_FORWARD',
@@ -250,11 +246,7 @@ describe('CustomerOverview', () => {
       partner: {
         externalId: '123',
         name: 'test',
-        partnership: {
-          id: 'XX',
-          displayName: 'XX',
-          supportNote: '',
-        },
+        partnership: {id: 'XX', displayName: 'XX', supportNote: ''},
         isActive: true,
       },
       sponsoredType: 'XX',
@@ -282,11 +274,7 @@ describe('CustomerOverview', () => {
       partner: {
         externalId: '123',
         name: 'test',
-        partnership: {
-          id: 'XX',
-          displayName: 'XX',
-          supportNote: '',
-        },
+        partnership: {id: 'XX', displayName: 'XX', supportNote: ''},
         isActive: false,
       },
     });
@@ -318,11 +306,7 @@ describe('CustomerOverview', () => {
       partner: {
         externalId: '123',
         name: 'test',
-        partnership: {
-          id: 'XX',
-          displayName: 'XX',
-          supportNote: '',
-        },
+        partnership: {id: 'XX', displayName: 'XX', supportNote: ''},
         isActive: false,
       },
     });
@@ -344,9 +328,7 @@ describe('CustomerOverview', () => {
     await userEvent.click(screen.getByText('Reset partner billing to self-serve'));
 
     expect(mockOnAction).toHaveBeenCalledWith(
-      expect.objectContaining({
-        deactivatePartnerAccount: true,
-      })
+      expect.objectContaining({deactivatePartnerAccount: true})
     );
   });
 
@@ -360,11 +342,7 @@ describe('CustomerOverview', () => {
       partner: {
         externalId: '123',
         name: 'test',
-        partnership: {
-          id: 'XX',
-          displayName: 'XX',
-          supportNote: '',
-        },
+        partnership: {id: 'XX', displayName: 'XX', supportNote: ''},
         isActive: false,
       },
     });
@@ -393,11 +371,7 @@ describe('CustomerOverview', () => {
       partner: {
         externalId: '123',
         name: 'test',
-        partnership: {
-          id: 'XX',
-          displayName: 'XX',
-          supportNote: '',
-        },
+        partnership: {id: 'XX', displayName: 'XX', supportNote: ''},
         isActive: true,
       },
       sponsoredType: 'XX',
@@ -415,9 +389,7 @@ describe('CustomerOverview', () => {
     await userEvent.click(screen.getByText('Deactivate Partner'));
 
     expect(mockOnAction).toHaveBeenCalledWith(
-      expect.objectContaining({
-        deactivatePartnerAccount: true,
-      })
+      expect.objectContaining({deactivatePartnerAccount: true})
     );
   });
 
@@ -467,10 +439,7 @@ describe('CustomerOverview', () => {
 
   it('renders no product trials for pre-performance account', () => {
     const organization = OrganizationFixture();
-    const mm2_subscription = SubscriptionFixture({
-      organization,
-      plan: 'mm2_f',
-    });
+    const mm2_subscription = SubscriptionFixture({organization, plan: 'mm2_f'});
 
     render(
       <CustomerOverview
@@ -535,9 +504,7 @@ describe('CustomerOverview', () => {
       />
     );
 
-    const productTrialsHeading = screen.getByRole('heading', {
-      name: 'Product Trials',
-    });
+    const productTrialsHeading = screen.getByRole('heading', {name: 'Product Trials'});
     const productTrialsList = productTrialsHeading.nextElementSibling;
     expect(productTrialsList).toBeInTheDocument();
     if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
@@ -556,9 +523,7 @@ describe('CustomerOverview', () => {
         allowTrialButton: within(definition).getByRole('button', {name: 'Allow Trial'}),
         startTrialButton: within(definition).getByRole('button', {name: 'Start Trial'}),
         stopTrialButton: within(definition).getByRole('button', {name: 'Stop Trial'}),
-        extendTrialButton: within(definition).getByRole('button', {
-          name: 'Extend Trial',
-        }),
+        extendTrialButton: within(definition).getByRole('button', {name: 'Extend Trial'}),
       };
     };
 
@@ -610,9 +575,7 @@ describe('CustomerOverview', () => {
       />
     );
 
-    const productTrialsHeading = screen.getByRole('heading', {
-      name: 'Product Trials',
-    });
+    const productTrialsHeading = screen.getByRole('heading', {name: 'Product Trials'});
     const productTrialsList = productTrialsHeading.nextElementSibling;
     expect(productTrialsList).toBeInTheDocument();
     if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
@@ -652,10 +615,7 @@ describe('CustomerOverview', () => {
     const organization = OrganizationFixture({
       features: [], // No feature flags needed
     });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
 
     render(
       <CustomerOverview
@@ -709,10 +669,7 @@ describe('CustomerOverview', () => {
         },
       ],
     });
-    am3Subscription.addOns!.seer = {
-      ...am3Subscription.addOns!.seer!,
-      isAvailable: false,
-    };
+    am3Subscription.addOns!.seer = {...am3Subscription.addOns!.seer!, isAvailable: false};
 
     render(
       <CustomerOverview
@@ -725,9 +682,7 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Product Trials')).toBeInTheDocument();
 
     // Find the DetailList containing product trials by finding the heading and its next sibling
-    const productTrialsHeading = screen.getByRole('heading', {
-      name: 'Product Trials',
-    });
+    const productTrialsHeading = screen.getByRole('heading', {name: 'Product Trials'});
     const productTrialsList = productTrialsHeading.nextElementSibling;
     expect(productTrialsList).toBeInTheDocument();
     // Check if productTrialsList is an HTMLElement before using within
@@ -824,9 +779,8 @@ describe('CustomerOverview', () => {
     });
     Object.values(am3Subscription.addOns || {}).forEach(addOn => {
       const formattedDisplayName =
-        toTitleCase(addOn.productName, {
-          allowInnerUpperCase: true,
-        }) + (addOn.apiName === AddOnCategory.LEGACY_SEER ? ' (Legacy)' : '');
+        toTitleCase(addOn.productName, {allowInnerUpperCase: true}) +
+        (addOn.apiName === AddOnCategory.LEGACY_SEER ? ' (Legacy)' : '');
       assertProductTrialActions(addOn.apiName, formattedDisplayName);
     });
 
@@ -851,10 +805,7 @@ describe('CustomerOverview', () => {
       features: ['dynamic-sampling'],
       desiredSampleRate: 0.75,
     });
-    const am3Subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-    });
+    const am3Subscription = SubscriptionFixture({organization, plan: 'am3_team'});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
@@ -882,9 +833,7 @@ describe('CustomerOverview', () => {
       features: ['dynamic-sampling'],
       desiredSampleRate: 1,
     });
-    const subscription = SubscriptionFixture({
-      organization,
-    });
+    const subscription = SubscriptionFixture({organization});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
@@ -912,9 +861,7 @@ describe('CustomerOverview', () => {
       features: ['dynamic-sampling'],
       desiredSampleRate: 0.6,
     });
-    const subscription = SubscriptionFixture({
-      organization,
-    });
+    const subscription = SubscriptionFixture({organization});
 
     // Simulates floating-point imprecision: 0.600001 * 100 !== 0.6 * 100
     MockApiClient.addMockResponse({
@@ -943,9 +890,7 @@ describe('CustomerOverview', () => {
       features: ['dynamic-sampling'],
       desiredSampleRate: 0.6,
     });
-    const subscription = SubscriptionFixture({
-      organization,
-    });
+    const subscription = SubscriptionFixture({organization});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
@@ -967,9 +912,7 @@ describe('CustomerOverview', () => {
       features: ['dynamic-sampling'],
       desiredSampleRate: 0.6,
     });
-    const subscription = SubscriptionFixture({
-      organization,
-    });
+    const subscription = SubscriptionFixture({organization});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
@@ -991,9 +934,7 @@ describe('CustomerOverview', () => {
       features: ['dynamic-sampling'],
       desiredSampleRate: 0.75,
     });
-    const subscription = SubscriptionFixture({
-      organization,
-    });
+    const subscription = SubscriptionFixture({organization});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
@@ -1019,9 +960,7 @@ describe('CustomerOverview', () => {
       features: ['dynamic-sampling'],
       desiredSampleRate: 0.75,
     });
-    const subscription = SubscriptionFixture({
-      organization,
-    });
+    const subscription = SubscriptionFixture({organization});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
@@ -1050,10 +989,7 @@ describe('CustomerOverview', () => {
 
   it('renders retention settings', () => {
     const organization = OrganizationFixture({});
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
 
     subscription.categories.spans = MetricHistoryFixture({
       ...subscription.categories.spans,
@@ -1115,9 +1051,7 @@ describe('CustomerOverview', () => {
       plan: 'am3_f',
       orgRetention: {standard: null, downsampled: null},
       categories: {
-        errors: MetricHistoryFixture({
-          retention: {standard: 987, downsampled: null},
-        }),
+        errors: MetricHistoryFixture({retention: {standard: 987, downsampled: null}}),
       },
     });
 

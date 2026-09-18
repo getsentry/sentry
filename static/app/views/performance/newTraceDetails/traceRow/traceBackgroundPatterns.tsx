@@ -82,10 +82,7 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
         <div
           data-test-id="trace-issue-pattern"
           className="TracePatternContainer"
-          style={{
-            left: 0,
-            width: '100%',
-          }}
+          style={{left: 0, width: '100%'}}
         >
           <div className={`TracePattern ${severity}`} />
         </div>
@@ -111,10 +108,7 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
                 key={i}
                 data-test-id="trace-issue-pattern"
                 className="TracePatternContainer"
-                style={{
-                  left: left * 100 + '%',
-                  width: (1 - left) * 100 + '%',
-                }}
+                style={{left: left * 100 + '%', width: (1 - left) * 100 + '%'}}
               >
                 <div className={`TracePattern ${severity}`} />
               </div>

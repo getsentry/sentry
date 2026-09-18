@@ -37,9 +37,7 @@ describe('updateDashboard', () => {
       body: dashboard,
     });
 
-    await updateDashboard('org-slug', dashboard, {
-      revisionSource: 'edit-with-agent',
-    });
+    await updateDashboard('org-slug', dashboard, {revisionSource: 'edit-with-agent'});
 
     expect(mockPut).toHaveBeenCalledWith(
       expect.anything(),

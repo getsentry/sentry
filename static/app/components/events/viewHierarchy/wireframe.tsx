@@ -73,10 +73,7 @@ function Wireframe({
     return calculateScale(
       {width: canvasSize.width, height: canvasSize.height},
       {width: hierarchyData.maxWidth, height: hierarchyData.maxHeight},
-      {
-        x: MIN_BORDER_SIZE,
-        y: MIN_BORDER_SIZE,
-      }
+      {x: MIN_BORDER_SIZE, y: MIN_BORDER_SIZE}
     );
   }, [
     canvasSize.height,

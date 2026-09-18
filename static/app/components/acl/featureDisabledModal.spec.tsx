@@ -32,10 +32,7 @@ describe('FeatureTourModal', () => {
     const featureName = 'Custom Feature';
     const features = ['organization:custom-feature'];
 
-    renderComponent({
-      featureName,
-      features,
-    });
+    renderComponent({featureName, features});
 
     expect(
       screen.getByText('This feature is not enabled on your Sentry installation.')

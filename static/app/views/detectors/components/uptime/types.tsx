@@ -254,15 +254,8 @@ type AssertionCompilationErrorDetail =
       pos: number;
       type: CompilationErrorType.JSON_PATH_PARSER;
     }
-  | {
-      assertPath: string[];
-      msg: string;
-      type: CompilationErrorType.INVALID_JSON_PATH;
-    }
-  | {
-      assertPath: string[];
-      type: CompilationErrorType.TOO_MANY_OPERATIONS;
-    };
+  | {assertPath: string[]; msg: string; type: CompilationErrorType.INVALID_JSON_PATH}
+  | {assertPath: string[]; type: CompilationErrorType.TOO_MANY_OPERATIONS};
 
 export enum RuntimeErrorType {
   INVALID_JSON_PATH = 'invalid_json_path',
@@ -272,24 +265,10 @@ export enum RuntimeErrorType {
 }
 
 type AssertionEvaluationErrorDetail =
-  | {
-      assertPath: string[];
-      msg: string;
-      type: RuntimeErrorType.INVALID_JSON_PATH;
-    }
-  | {
-      assertPath: string[];
-      type: RuntimeErrorType.TOOK_TOO_LONG;
-    }
-  | {
-      body: string;
-      type: RuntimeErrorType.INVALID_JSON_BODY;
-    }
-  | {
-      assertPath: string[];
-      msg: string;
-      type: RuntimeErrorType.INVALID_TYPE_COMPARISON;
-    };
+  | {assertPath: string[]; msg: string; type: RuntimeErrorType.INVALID_JSON_PATH}
+  | {assertPath: string[]; type: RuntimeErrorType.TOOK_TOO_LONG}
+  | {body: string; type: RuntimeErrorType.INVALID_JSON_BODY}
+  | {assertPath: string[]; msg: string; type: RuntimeErrorType.INVALID_TYPE_COMPARISON};
 
 type AssertionErrorDetail =
   | AssertionCompilationErrorDetail
@@ -301,10 +280,7 @@ export interface PreviewCheckError {
         compileError: AssertionCompilationErrorDetail;
         error: PreviewCheckErrorKind.COMPILATION_ERROR;
       }
-    | {
-        details: string;
-        error: PreviewCheckErrorKind.SERIALIZATION_ERROR;
-      };
+    | {details: string; error: PreviewCheckErrorKind.SERIALIZATION_ERROR};
 }
 
 export interface PreviewCheckPayload {

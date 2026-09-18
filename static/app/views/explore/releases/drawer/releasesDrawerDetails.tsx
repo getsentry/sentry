@@ -107,9 +107,7 @@ function ReleasesDrawerContent({
                   path: `/${encodeURIComponent(release)}/`,
                   organization,
                 }),
-                query: {
-                  project: projectId,
-                },
+                query: {project: projectId},
               })}
               size="xs"
               onClick={() => {
@@ -224,9 +222,7 @@ export function ReleasesDrawerDetails({
         ? String(projectsFromMeta[0]?.id)
         : undefined);
 
-  const project = useProjectFromId({
-    project_id: projectId,
-  });
+  const project = useProjectFromId({project_id: projectId});
 
   const {
     [ReleasesDrawerFields.RELEASE]: _release,

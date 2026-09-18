@@ -280,10 +280,7 @@ export default Storybook.story('Timeline', story => {
 
 const JSONPayload: Record<string, any> = {
   logger: 'info',
-  url: {
-    addr: 'example.com/checkout',
-    query: {isBetaUi: true},
-  },
+  url: {addr: 'example.com/checkout', query: {isBetaUi: true}},
   user_id: 123,
   organizations: ['acme', 'xyz'],
 };

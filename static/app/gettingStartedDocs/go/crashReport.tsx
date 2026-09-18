@@ -16,10 +16,7 @@ export const crashReport = ({docsLink}: {docsLink: string}): OnboardingConfig =>
     {
       type: StepType.CONFIGURE,
       content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({link: docsLink}),
-        },
+        {type: 'text', text: getCrashReportModalConfigDescription({link: docsLink})},
       ],
     },
   ],

@@ -25,47 +25,16 @@ const MOCK_USER_CONTEXT: UserContext = {
   unknown_key: 123,
 };
 
-const MOCK_REDACTION = {
-  name: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
-};
+const MOCK_REDACTION = {name: {'': {rem: [['organization:0', 's', 0, 0]], len: 5}}};
 
 const MOCK_SCRUBBED_REDACTION = {
-  id: {
-    '': {
-      rem: [['project:2', 'x']],
-    },
-  },
-  email: {
-    '': {
-      rem: [['project:2', 'x']],
-    },
-  },
-  username: {
-    '': {
-      rem: [['project:2', 'x']],
-    },
-  },
-  name: {
-    '': {
-      rem: [['project:2', 'x']],
-    },
-  },
+  id: {'': {rem: [['project:2', 'x']]}},
+  email: {'': {rem: [['project:2', 'x']]}},
+  username: {'': {rem: [['project:2', 'x']]}},
+  name: {'': {rem: [['project:2', 'x']]}},
   geo: {
-    city: {
-      '': {
-        rem: [['project:2', 'x']],
-      },
-    },
-    country_code: {
-      '': {
-        rem: [['project:2', 'x']],
-      },
-    },
+    city: {'': {rem: [['project:2', 'x']]}},
+    country_code: {'': {rem: [['project:2', 'x']]}},
   },
 };
 
@@ -93,19 +62,12 @@ describe('UserContext', () => {
         value: 'something',
         meta: undefined,
       },
-      {
-        key: 'unknown_key',
-        subject: 'data.unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'unknown_key', subject: 'data.unknown_key', value: 123, meta: undefined},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {user: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {user: MOCK_REDACTION}}});
 
     render(
       <ContextCard
@@ -133,12 +95,7 @@ describe('UserContext', () => {
       username: null,
       name: null,
       ip_address: null,
-      geo: {
-        country_code: null,
-        city: null,
-        subdivision: null,
-        region: null,
-      },
+      geo: {country_code: null, city: null, subdivision: null, region: null},
     };
 
     const result = getUserContextData({
@@ -151,9 +108,7 @@ describe('UserContext', () => {
   });
 
   it('renders scrubbed null fields as redacted', () => {
-    const event = EventFixture({
-      _meta: {user: MOCK_SCRUBBED_REDACTION},
-    });
+    const event = EventFixture({_meta: {user: MOCK_SCRUBBED_REDACTION}});
 
     render(
       <ContextCard
@@ -166,12 +121,7 @@ describe('UserContext', () => {
           username: null,
           name: null,
           ip_address: null,
-          geo: {
-            country_code: null,
-            city: null,
-            subdivision: null,
-            region: null,
-          },
+          geo: {country_code: null, city: null, subdivision: null, region: null},
         }}
       />
     );

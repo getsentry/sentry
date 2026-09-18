@@ -67,10 +67,7 @@ function WaitingIndicator({
     fields: ['profile.id', 'timestamp'],
     limit: 1,
     referrer: 'profiling-onboarding',
-    sort: {
-      key: 'timestamp',
-      order: 'desc',
-    },
+    sort: {key: 'timestamp', order: 'desc'},
     enabled: hasProfile,
   });
 
@@ -280,10 +277,7 @@ export function Onboarding() {
     isPerformanceSelected: true,
     isProfilingSelected: true,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     profilingOptions: {

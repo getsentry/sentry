@@ -129,10 +129,7 @@ export function useExploreSpansTable({
       query: constrainedQuery,
       queryExtras,
     },
-    queryOptions: {
-      canTriggerHighAccuracy,
-      disableExtrapolation: !extrapolate,
-    },
+    queryOptions: {canTriggerHighAccuracy, disableExtrapolation: !extrapolate},
   });
 
   const resolvedSamples = useMemo<ResolvedSpanSamples | null>(() => {
@@ -192,10 +189,7 @@ export function useExploreSpansTable({
     return {
       ...spansTableResult,
       requestIdentityKey: visibleSamples.identityKey,
-      result: {
-        ...spansTableResult.result,
-        pageLinks: visibleSamples.pageLinks,
-      },
+      result: {...spansTableResult.result, pageLinks: visibleSamples.pageLinks},
     };
   }, [identityKey, spansTableResult, visibleSamples]);
 }

@@ -257,9 +257,7 @@ export function MetricSelectRow({
   );
 }
 
-const MetricSelectorWrapper = styled('div')<{
-  isFieldSelected: boolean;
-}>`
+const MetricSelectorWrapper = styled('div')<{isFieldSelected: boolean}>`
   flex: ${p => (p.isFieldSelected ? '0 0 80px' : '1 1 auto')};
   max-width: ${p => (p.isFieldSelected ? '80px' : undefined)};
   min-width: 0;

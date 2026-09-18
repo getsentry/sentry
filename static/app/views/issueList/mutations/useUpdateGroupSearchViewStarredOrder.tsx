@@ -9,10 +9,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import {groupSearchViewsApiOptions} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 
-type UpdateGroupSearchViewStarredOrderVariables = {
-  orgSlug: string;
-  viewIds: number[];
-};
+type UpdateGroupSearchViewStarredOrderVariables = {orgSlug: string; viewIds: number[]};
 
 export const useUpdateGroupSearchViewStarredOrder = () => {
   const api = useApi();
@@ -23,14 +20,9 @@ export const useUpdateGroupSearchViewStarredOrder = () => {
       api.requestPromise(
         getApiUrl(
           '/organizations/$organizationIdOrSlug/group-search-views/starred/order/',
-          {
-            path: {organizationIdOrSlug: orgSlug},
-          }
+          {path: {organizationIdOrSlug: orgSlug}}
         ),
-        {
-          method: 'PUT',
-          data: {view_ids: viewIds},
-        }
+        {method: 'PUT', data: {view_ids: viewIds}}
       ),
     onSuccess: (_, parameters) => {
       // Reorder the existing views in the cache

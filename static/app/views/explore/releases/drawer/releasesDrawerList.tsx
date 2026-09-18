@@ -69,23 +69,13 @@ function createMarkLineUpdater(lineStyle: Partial<MarkLineOption['lineStyle']>) 
       // Update the style of the lines that is currently being hovered over so
       // that it is more visible than other lines on the chart
       if (callbackFn(d)) {
-        return {
-          ...d,
-          lineStyle,
-        };
+        return {...d, lineStyle};
       }
 
       return d;
     });
 
-    echartsInstance.setOption({
-      series: {
-        id: seriesId,
-        markLine: {
-          data: updatedData,
-        },
-      },
-    });
+    echartsInstance.setOption({series: {id: seriesId, markLine: {data: updatedData}}});
   };
 }
 
@@ -164,11 +154,7 @@ export function ReleasesDrawerList({
 
   const title = tn('%s Release', '%s Releases', releases?.length ?? 0);
 
-  const crumbs = [
-    {
-      label: t('Releases'),
-    },
-  ];
+  const crumbs = [{label: t('Releases')}];
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
     evt => {

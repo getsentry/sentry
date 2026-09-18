@@ -57,10 +57,7 @@ export function OnboardingSkipButton({stepId}: OnboardingSkipButtonProps) {
     // Skipping exits the treatment and must not leave a half-staged session for
     // the next /onboarding visit to silently resume from.
     discardOnboardingSession();
-    trackAnalytics('onboarding.scm_header_skip_clicked', {
-      organization,
-      step: stepId,
-    });
+    trackAnalytics('onboarding.scm_header_skip_clicked', {organization, step: stepId});
     activateSidebar({userClicked: false, source: config.sidebarSource});
   };
 

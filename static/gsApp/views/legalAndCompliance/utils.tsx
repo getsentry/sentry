@@ -16,9 +16,7 @@ function DataConsentHeader({subscription}: {subscription: Subscription}) {
       <p>
         {tct(
           'In accordance with our [link:Terms of Service], Sentry may use non-identifying elements of your service data for product improvement.',
-          {
-            link: <ExternalLink href="https://sentry.io/terms/" />,
-          }
+          {link: <ExternalLink href="https://sentry.io/terms/" />}
         )}
       </p>
     </PanelItem>

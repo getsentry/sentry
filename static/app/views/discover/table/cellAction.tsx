@@ -400,11 +400,7 @@ export function CellAction({
   // So, `target` contains an internal link extracted from the DOM on click and that link is added dropdown menu.
   const [target, setTarget] = useState<string>();
 
-  const cellActions = makeCellActions({
-    ...props,
-    allowActions,
-    to: target,
-  });
+  const cellActions = makeCellActions({...props, allowActions, to: target});
   const align = fieldAlignment(column.key as string, column.type);
 
   if (triggerType === ActionTriggerType.BOLD_HOVER) {

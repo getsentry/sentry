@@ -4,10 +4,7 @@ import type {Node} from '@react-types/shared';
 
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 
-type Props = {
-  item: Node<ParseResultToken>;
-  state: ListState<ParseResultToken>;
-};
+type Props = {item: Node<ParseResultToken>; state: ListState<ParseResultToken>};
 
 export function useFilterButtonProps({item, state}: Props) {
   const onFocus = useCallback(() => {
@@ -15,8 +12,5 @@ export function useFilterButtonProps({item, state}: Props) {
     state.selectionManager.setFocusedKey(item.key);
   }, [item.key, state.selectionManager]);
 
-  return {
-    onFocus,
-    tabIndex: -1,
-  };
+  return {onFocus, tabIndex: -1};
 }

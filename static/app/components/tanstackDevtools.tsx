@@ -8,10 +8,7 @@ export function SentryTanStackDevtools() {
     <TanStackDevtools
       config={{position: 'bottom-right'}}
       plugins={[
-        {
-          name: 'TanStack Query',
-          render: <ReactQueryDevtoolsPanel />,
-        },
+        {name: 'TanStack Query', render: <ReactQueryDevtoolsPanel />},
         formDevtoolsPlugin(),
         pacerDevtoolsPlugin(),
       ]}

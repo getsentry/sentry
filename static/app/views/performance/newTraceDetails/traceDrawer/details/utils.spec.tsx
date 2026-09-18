@@ -124,9 +124,7 @@ describe('getSearchInExploreTarget', () => {
 
 describe('getTraceAttributesTreeActions', () => {
   beforeEach(() => {
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
   });
 
   it('copies the attribute as a formatted filter', () => {

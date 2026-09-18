@@ -27,16 +27,10 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
     return SubscriptionFixture({
       organization,
       onDemandPeriodEnd: '2024-12-30',
-      onDemandBudgets: {
-        enabled: true,
-      } as any,
+      onDemandBudgets: {enabled: true} as any,
       categories: {
-        spans: {
-          usageExceeded: spansUsageExceeded,
-        },
-        logBytes: {
-          usageExceeded: logsUsageExceeded,
-        },
+        spans: {usageExceeded: spansUsageExceeded},
+        logBytes: {usageExceeded: logsUsageExceeded},
       } as any,
     });
   };
@@ -45,12 +39,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [2],
       environments: [],
-      datetime: {
-        period: '7d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '7d', start: null, end: null, utc: false},
     });
   });
 
@@ -65,16 +54,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
       url: `/organizations/${organization.slug}/stats_v2/`,
       method: 'GET',
       body: {
-        groups: [
-          {
-            by: {
-              reason: 'span_usage_exceeded',
-            },
-            totals: {
-              'sum(quantity)': 1000,
-            },
-          },
-        ],
+        groups: [{by: {reason: 'span_usage_exceeded'}, totals: {'sum(quantity)': 1000}}],
       },
     });
 
@@ -87,10 +67,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
         traceItemDataset="spans"
         referrer="trace-view"
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     expect(await screen.findByText(/You['\u2019]ve exceeded your/i)).toBeInTheDocument();
@@ -119,14 +96,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
       method: 'GET',
       body: {
         groups: [
-          {
-            by: {
-              reason: 'log_bytes_usage_exceeded',
-            },
-            totals: {
-              'sum(quantity)': 1000,
-            },
-          },
+          {by: {reason: 'log_bytes_usage_exceeded'}, totals: {'sum(quantity)': 1000}},
         ],
       },
     });
@@ -140,10 +110,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
         traceItemDataset="logs"
         referrer="trace-view"
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     expect(await screen.findByText(/You['\u2019]ve exceeded your/i)).toBeInTheDocument();

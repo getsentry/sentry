@@ -50,20 +50,14 @@ const AGGREGATE_OPTIONS: Readonly<Record<string, SelectValue<FieldValue>>> = {
     label: 'session',
     value: {
       kind: FieldValueKind.METRICS,
-      meta: {
-        name: SessionField.SESSION,
-        dataType: 'integer',
-      },
+      meta: {name: SessionField.SESSION, dataType: 'integer'},
     },
   },
   'field:user': {
     label: 'user',
     value: {
       kind: FieldValueKind.METRICS,
-      meta: {
-        name: SessionField.USER,
-        dataType: 'string',
-      },
+      meta: {name: SessionField.USER, dataType: 'string'},
     },
   },
 };

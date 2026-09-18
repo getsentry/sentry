@@ -17,13 +17,6 @@ export const SERVER_TREE_WIDGET_TEMPLATE: WidgetTemplate = {
   displayType: DisplayType.SERVER_TREE,
   interval: '5m',
   queries: [
-    {
-      name: '',
-      conditions: '',
-      aggregates: [],
-      columns: [],
-      fields: [],
-      orderby: '',
-    },
+    {name: '', conditions: '', aggregates: [], columns: [], fields: [], orderby: ''},
   ],
 };

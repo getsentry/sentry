@@ -24,14 +24,8 @@ import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
 
 export type ExploreQueryChangedReason = {
   columns: string[];
-  equations: Array<{
-    equation: string;
-    reason: string | string[];
-  }> | null;
-  orderby: Array<{
-    orderby: string;
-    reason: string | string[];
-  }> | null;
+  equations: Array<{equation: string; reason: string | string[]}> | null;
+  orderby: Array<{orderby: string; reason: string | string[]}> | null;
 };
 
 type ExploreSavedQueryRequest = {
@@ -58,10 +52,7 @@ type ExploreSavedQueryRequest = {
     groupby?: string[];
     orderby?: string;
     query?: string;
-    visualize?: Array<{
-      yAxes: string[];
-      chartType?: number;
-    }>;
+    visualize?: Array<{yAxes: string[]; chartType?: number}>;
   }>;
   range?: string;
   start?: DateString;
@@ -97,11 +88,7 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: {
-          ...requestData,
-          name,
-          starred,
-        },
+        data: {...requestData, name, starred},
       }),
     onSuccess: () => {
       invalidateSavedQueries();
@@ -234,10 +221,7 @@ function convertQueryParamsToRequest({
 
       if (isVisualize(aggregateField)) {
         const serialized = aggregateField.serialize();
-        return {
-          ...serialized,
-          yAxes: [...serialized.yAxes],
-        };
+        return {...serialized, yAxes: [...serialized.yAxes]};
       }
 
       throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);

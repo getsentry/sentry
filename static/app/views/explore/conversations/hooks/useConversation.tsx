@@ -349,11 +349,7 @@ export function useConversation(
   const selectedProjects = conversation.projects ?? selection.projects;
   const project = selectedProjects.length > 0 ? selectedProjects : [ALL_ACCESS_PROJECTS];
 
-  const queryParams = {
-    project,
-    per_page: 1000,
-    ...datetimeParams,
-  };
+  const queryParams = {project, per_page: 1000, ...datetimeParams};
 
   const {
     data,

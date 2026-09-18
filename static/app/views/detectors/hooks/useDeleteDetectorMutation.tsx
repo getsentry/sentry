@@ -19,14 +19,10 @@ export function useDeleteDetectorMutation() {
         getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
           path: {organizationIdOrSlug: org.slug, detectorId},
         }),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: allDetectorListsQueryKey(org),
-      });
+      queryClient.invalidateQueries({queryKey: allDetectorListsQueryKey(org)});
       addSuccessMessage(t('Monitor deleted.'));
     },
     onError: error => {

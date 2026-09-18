@@ -27,9 +27,7 @@ describe('Discover DatasetSelector', () => {
   const organization = OrganizationFixture({features: ['performance-view']});
 
   const initialRouterConfig = {
-    location: {
-      pathname: '/organizations/org-slug/discover/results/',
-    },
+    location: {pathname: '/organizations/org-slug/discover/results/'},
   };
 
   it('renders tabs', () => {
@@ -40,10 +38,7 @@ describe('Discover DatasetSelector', () => {
         savedQuery={undefined}
         eventView={eventView}
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
     expect(screen.getByRole('tab', {name: 'Errors'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Transactions'})).toBeInTheDocument();
@@ -77,10 +72,7 @@ describe('Discover DatasetSelector', () => {
         savedQuery={undefined}
         eventView={eventView}
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
     await userEvent.click(screen.getByRole('tab', {name: 'Transactions'}));
     expect(router.location).toEqual(
@@ -108,10 +100,7 @@ describe('Discover DatasetSelector', () => {
         savedQuery={undefined}
         eventView={eventView}
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
     await userEvent.click(screen.getByRole('tab', {name: 'Transactions'}));
     expect(router.location).toEqual(
@@ -142,10 +131,7 @@ describe('Discover DatasetSelector', () => {
         savedQuery={undefined}
         eventView={eventView}
       />,
-      {
-        organization: org,
-        initialRouterConfig,
-      }
+      {organization: org, initialRouterConfig}
     );
 
     await userEvent.hover(screen.getByRole('tab', {name: 'Transactions'}));

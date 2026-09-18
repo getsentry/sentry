@@ -27,10 +27,7 @@ export function DisableDetectorAction({detector}: {detector: Detector}) {
   const toggleDisabled = () => {
     const newEnabled = !detector.enabled;
     updateDetector(
-      {
-        detectorId: detector.id,
-        enabled: newEnabled,
-      },
+      {detectorId: detector.id, enabled: newEnabled},
       {
         onSuccess: data => {
           addSuccessMessage(data.enabled ? t('Monitor enabled') : t('Monitor disabled'));

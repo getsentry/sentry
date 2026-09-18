@@ -4,18 +4,9 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-type PerformanceStatsGroup = {
-  by: {
-    reason: string;
-  };
-  totals: {
-    'sum(quantity)': number;
-  };
-};
+type PerformanceStatsGroup = {by: {reason: string}; totals: {'sum(quantity)': number}};
 
-type PartialUsageStats = {
-  groups?: PerformanceStatsGroup[];
-};
+type PartialUsageStats = {groups?: PerformanceStatsGroup[]};
 
 export function usePerformanceUsageStats({
   organization,

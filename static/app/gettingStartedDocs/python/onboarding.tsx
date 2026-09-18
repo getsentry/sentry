@@ -80,12 +80,7 @@ export const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: tct('Install our Python SDK:', {
-            code: <code />,
-          }),
-        },
+        {type: 'text', text: tct('Install our Python SDK:', {code: <code />})},
         getPythonInstallCodeBlock(),
       ],
     },
@@ -100,11 +95,7 @@ export const onboarding: OnboardingConfig = {
             "Import and initialize the Sentry SDK early in your application's setup:"
           ),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getSdkSetupSnippet(params),
-        },
+        {type: 'code', language: 'python', code: getSdkSetupSnippet(params)},
         alternativeProfiling(params),
       ],
     },
@@ -119,11 +110,7 @@ export const onboarding: OnboardingConfig = {
             'You can verify your setup by intentionally causing an error that breaks your application:'
           ),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: 'division_by_zero = 1 / 0',
-        },
+        {type: 'code', language: 'python', code: 'division_by_zero = 1 / 0'},
         logsVerify(params),
         metricsVerify(params),
       ],

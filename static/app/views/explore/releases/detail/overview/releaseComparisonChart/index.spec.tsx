@@ -50,10 +50,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     expect(screen.getByLabelText('Chart Title')).toHaveTextContent(
@@ -84,10 +81,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     await userEvent.click(screen.getByLabelText(/crash free user rate/i));
@@ -115,10 +109,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     for (const toggle of screen.getAllByLabelText(/toggle chart/i)) {
@@ -173,10 +164,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData={false}
       />,
-      {
-        organization: noHealthDataOrganization,
-        initialRouterConfig,
-      }
+      {organization: noHealthDataOrganization, initialRouterConfig}
     );
 
     expect(await screen.findAllByRole('radio')).toHaveLength(1);
@@ -217,10 +205,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData
       />,
-      {
-        organization: performanceOrganization,
-        initialRouterConfig,
-      }
+      {organization: performanceOrganization, initialRouterConfig}
     );
 
     await waitFor(() => {
@@ -254,10 +239,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         diff={null}
         period="14d"
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     await waitFor(() => {

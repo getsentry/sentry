@@ -21,7 +21,5 @@ export function useFeedbackScreenshot({projectSlug, event}: Props) {
     return attachments ?? [];
   }, [attachments]);
 
-  return {
-    screenshots,
-  };
+  return {screenshots};
 }

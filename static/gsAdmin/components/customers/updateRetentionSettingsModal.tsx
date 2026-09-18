@@ -125,16 +125,10 @@ function UpdateRetentionSettingsModal({
     }
 
     if (subscription.planDetails.categories.includes(DataCategory.SPANS)) {
-      retentions.spans = {
-        standard: spansStandard,
-        downsampled: spansDownsampled,
-      };
+      retentions.spans = {standard: spansStandard, downsampled: spansDownsampled};
     }
 
-    const orgRetention = {
-      standard: orgStandard,
-      downsampled: null,
-    };
+    const orgRetention = {standard: orgStandard, downsampled: null};
 
     const data = {retentions, orgRetention};
 

@@ -37,34 +37,22 @@ describe('imageMatchesTagFilters', () => {
   });
 
   it('returns true when image tags match all filters', () => {
-    const img = makeImage({
-      image_file_name: 'a.png',
-      tags: {os: 'iOS', theme: 'dark'},
-    });
+    const img = makeImage({image_file_name: 'a.png', tags: {os: 'iOS', theme: 'dark'}});
     expect(imageMatchesTagFilters(img, {os: 'iOS', theme: 'dark'})).toBe(true);
   });
 
   it('returns false when one filter key does not match', () => {
-    const img = makeImage({
-      image_file_name: 'a.png',
-      tags: {os: 'iOS', theme: 'dark'},
-    });
+    const img = makeImage({image_file_name: 'a.png', tags: {os: 'iOS', theme: 'dark'}});
     expect(imageMatchesTagFilters(img, {os: 'iOS', theme: 'light'})).toBe(false);
   });
 
   it('returns false when filter key is absent from image tags', () => {
-    const img = makeImage({
-      image_file_name: 'a.png',
-      tags: {os: 'iOS'},
-    });
+    const img = makeImage({image_file_name: 'a.png', tags: {os: 'iOS'}});
     expect(imageMatchesTagFilters(img, {theme: 'dark'})).toBe(false);
   });
 
   it('returns true when filters are empty (vacuously true)', () => {
-    const img = makeImage({
-      image_file_name: 'a.png',
-      tags: {os: 'iOS'},
-    });
+    const img = makeImage({image_file_name: 'a.png', tags: {os: 'iOS'}});
     expect(imageMatchesTagFilters(img, {})).toBe(true);
   });
 });

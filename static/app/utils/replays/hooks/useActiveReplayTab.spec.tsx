@@ -189,9 +189,7 @@ describe('useActiveReplayTab', () => {
 
     const {result, router} = renderHookWithProviders(useActiveReplayTab, {
       initialProps: {},
-      initialRouterConfig: {
-        location: {pathname: '/mock-pathname/', query: {}},
-      },
+      initialRouterConfig: {location: {pathname: '/mock-pathname/', query: {}}},
       organization: OrganizationFixture({features: []}),
       additionalWrapper: ({children}) => (
         <SentryNuqsTestingAdapter

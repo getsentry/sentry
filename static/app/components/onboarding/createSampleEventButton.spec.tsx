@@ -23,9 +23,7 @@ describe('CreateSampleEventButton', () => {
       >
         {createSampleText}
       </CreateSampleEventButton>,
-      {
-        organization: org,
-      }
+      {organization: org}
     );
   }
 
@@ -53,10 +51,7 @@ describe('CreateSampleEventButton', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: `/organizations/${org.slug}/issues/${groupID}/`,
-          query: expect.objectContaining({
-            project: project.id,
-            referrer: 'sample-error',
-          }),
+          query: expect.objectContaining({project: project.id, referrer: 'sample-error'}),
         })
       )
     );
@@ -169,10 +164,7 @@ describe('CreateSampleEventButton', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: `/organizations/${org.slug}/issues/${groupID}/`,
-          query: expect.objectContaining({
-            project: project.id,
-            referrer: 'sample-error',
-          }),
+          query: expect.objectContaining({project: project.id, referrer: 'sample-error'}),
         })
       )
     );

@@ -85,10 +85,7 @@ describe('MetricSelectRow', () => {
           disabled={false}
         />
         <MetricSelectRow
-          field={{
-            kind: 'function',
-            function: ['sum', 'value', undefined, undefined],
-          }}
+          field={{kind: 'function', function: ['sum', 'value', undefined, undefined]}}
           index={0}
           disabled={false}
         />
@@ -136,10 +133,7 @@ describe('MetricSelectRow', () => {
           '-',
         ],
       },
-      {
-        kind: 'function',
-        function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
-      },
+      {kind: 'function', function: ['sum', 'value', 'alpha_metric', 'counter', 'none']},
     ];
     render(
       <WidgetBuilderProvider>
@@ -161,9 +155,7 @@ describe('MetricSelectRow', () => {
             },
           },
         },
-        organization: {
-          features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-        },
+        organization: {features: ['tracemetrics-multi-metric-selection-in-dashboards']},
       }
     );
 
@@ -548,10 +540,7 @@ describe('MetricSelectRow', () => {
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
-          field={{
-            kind: 'function',
-            function: ['count', 'value', undefined, undefined],
-          }}
+          field={{kind: 'function', function: ['count', 'value', undefined, undefined]}}
           index={0}
           disabled={false}
         />

@@ -32,7 +32,5 @@ export const docs: Docs = {
     docsPlatform: 'ember',
     packageName: '@sentry/ember',
   }),
-  agentMonitoringOnboarding: agentMonitoring({
-    packageName: '@sentry/ember',
-  }),
+  agentMonitoringOnboarding: agentMonitoring({packageName: '@sentry/ember'}),
 };

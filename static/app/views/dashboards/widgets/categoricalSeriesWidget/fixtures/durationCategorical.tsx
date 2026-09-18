@@ -3,10 +3,7 @@ import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/typ
 
 export const sampleDurationCategoricalData: CategoricalSeries = {
   valueAxis: 'p99(transaction.duration)',
-  meta: {
-    valueType: 'duration',
-    valueUnit: DurationUnit.MILLISECOND,
-  },
+  meta: {valueType: 'duration', valueUnit: DurationUnit.MILLISECOND},
   values: [
     {category: 'Chrome', value: 245},
     {category: 'Firefox', value: 520},

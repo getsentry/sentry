@@ -30,10 +30,7 @@ function ForceAutoAssignment() {
       getApiUrl('/organizations/$organizationIdOrSlug/issues/force-auto-assignment/', {
         path: {organizationIdOrSlug: organizationSlug},
       }),
-      {
-        method: 'PUT',
-        data: {group_ids: groupIdsArray},
-      }
+      {method: 'PUT', data: {group_ids: groupIdsArray}}
     );
 
     const updatedGroupIdsStr = response.updatedGroupIds.join();

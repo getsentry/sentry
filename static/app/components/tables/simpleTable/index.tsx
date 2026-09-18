@@ -119,10 +119,7 @@ function RowCell({
   children,
   columnKey,
   ...props
-}: ComponentProps<typeof Flex> & {
-  children: React.ReactNode;
-  columnKey?: string;
-}) {
+}: ComponentProps<typeof Flex> & {children: React.ReactNode; columnKey?: string}) {
   return (
     <Flex
       as="td"
@@ -170,9 +167,9 @@ const StyledHeaderRow = styled(Table.Row, {
     `}
 `;
 
-const StyledRow = styled(Table.Row, {
-  shouldForwardProp: prop => prop !== 'variant',
-})<{variant?: 'default' | 'faded'}>`
+const StyledRow = styled(Table.Row, {shouldForwardProp: prop => prop !== 'variant'})<{
+  variant?: 'default' | 'faded';
+}>`
   align-items: center;
 
   ${p =>

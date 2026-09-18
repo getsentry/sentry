@@ -69,10 +69,6 @@ export function sessionsApiOptions({
 
   return apiOptions.as<SessionApiResponse>()(
     '/organizations/$organizationIdOrSlug/sessions/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      query: urlQuery,
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: orgSlug}, query: urlQuery, staleTime: 0}
   );
 }

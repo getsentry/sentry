@@ -56,12 +56,7 @@ describe('withPageFilters HoC', () => {
     expect(screen.getByTestId('end')).toBeEmptyDOMElement();
 
     act(() =>
-      PageFiltersStore.updateDateTime({
-        period: '7d',
-        start: null,
-        end: null,
-        utc: true,
-      })
+      PageFiltersStore.updateDateTime({period: '7d', start: null, end: null, utc: true})
     );
 
     expect(screen.getByTestId('period')).toHaveTextContent('7d');

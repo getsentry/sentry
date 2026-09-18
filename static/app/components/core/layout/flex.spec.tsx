@@ -133,9 +133,7 @@ describe('Flex', () => {
       expectTypeOf(props.children).toEqualTypeOf<React.ReactNode | undefined>();
     });
     it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
-      const props: FlexPropsWithRenderFunction<any> = {
-        children: () => {},
-      };
+      const props: FlexPropsWithRenderFunction<any> = {children: () => {}};
       expectTypeOf(props.children).toEqualTypeOf<
         (props: {className: string}) => React.ReactNode | undefined
       >();

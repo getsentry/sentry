@@ -45,13 +45,7 @@ type CommandPaletteAction =
   | {type: 'toggle modal'}
   | {type: 'reset'}
   | {query: string; type: 'set query'}
-  | {
-      key: string;
-      label: string;
-      type: 'push action';
-      prompt?: string;
-      query?: string;
-    }
+  | {key: string; label: string; type: 'push action'; prompt?: string; query?: string}
   | {type: 'trigger action'}
   | {type: 'pop action'}
   | {type: 'reset on open'}
@@ -81,11 +75,7 @@ function commandPaletteReducer(
           list: 'active',
         };
       }
-      return {
-        ...state,
-        open: !state.open,
-        list: 'active',
-      };
+      return {...state, open: !state.open, list: 'active'};
     case 'reset':
       return {
         ...state,

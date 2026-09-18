@@ -153,10 +153,7 @@ export function axisLabelFormatterUsingAggregateOutputType(
  * @returns
  */
 export function findRangeOfMultiSeries(series: Series[]) {
-  const range: {max: number; min: number} = {
-    max: 0,
-    min: Infinity,
-  };
+  const range: {max: number; min: number} = {max: 0, min: Infinity};
 
   if (!series[0]?.data) {
     return;

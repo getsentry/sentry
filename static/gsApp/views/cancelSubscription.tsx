@@ -119,9 +119,7 @@ function CancelSubscriptionForm() {
     const msg = resp?.responseJSON?.details || t('Successfully cancelled subscription');
 
     addSuccessMessage(msg);
-    navigate({
-      pathname: normalizeUrl(`/settings/${organization.slug}/billing/`),
-    });
+    navigate({pathname: normalizeUrl(`/settings/${organization.slug}/billing/`)});
   };
 
   const handleSubmit = async (data: any) => {

@@ -294,10 +294,7 @@ function AMCheckout(props: Props) {
         newOnDemandBudget =
           onDemandBudget && onDemandSupported
             ? onDemandBudget
-            : {
-                budgetMode: OnDemandBudgetMode.SHARED,
-                sharedMaxBudget: 0,
-              };
+            : {budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 0};
 
         newOnDemandMaxSpend = getTotalBudget(newOnDemandBudget);
       }
@@ -369,10 +366,7 @@ function AMCheckout(props: Props) {
       );
 
       const data = {
-        reserved: {
-          ...config.defaultReserved,
-          ...reservedOverlapping,
-        },
+        reserved: {...config.defaultReserved, ...reservedOverlapping},
         ...(onDemandMaxSpend > 0 && {onDemandMaxSpend}),
         onDemandBudget: parseOnDemandBudgetsFromSubscription(subscription),
         addOns: Object.values(subscription.addOns ?? {})
@@ -405,11 +399,7 @@ function AMCheckout(props: Props) {
   );
 
   const getFormDataForPreview = useCallback((data: CheckoutFormData) => {
-    return {
-      ...data,
-      onDemandBudget: undefined,
-      onDemandMaxSpend: undefined,
-    };
+    return {...data, onDemandBudget: undefined, onDemandMaxSpend: undefined};
   }, []);
 
   const fetchBillingConfig = useCallback(async () => {
@@ -516,19 +506,13 @@ function AMCheckout(props: Props) {
   }, []);
 
   useEffect(() => {
-    trackGetsentryAnalytics('am_checkout.viewed', {
-      organization,
-      subscription,
-    });
+    trackGetsentryAnalytics('am_checkout.viewed', {organization, subscription});
 
     Sentry.getReplay()?.start();
   }, [organization, subscription]);
 
   useEffect(() => {
-    trackGetsentryAnalytics('intercom_link.viewed', {
-      organization,
-      source: 'checkout',
-    });
+    trackGetsentryAnalytics('intercom_link.viewed', {organization, source: 'checkout'});
   }, [organization]);
 
   useEffect(() => {
@@ -601,9 +585,7 @@ function AMCheckout(props: Props) {
             </Text>
             {tct(
               'Payments for this subscription are processed by [partnerName]. Please make sure your payment method is up to date on their platform to avoid service interruptions.',
-              {
-                partnerName: subscription.partner?.partnership.displayName,
-              }
+              {partnerName: subscription.partner?.partnership.displayName}
             )}
           </Stack>
         </Alert>
@@ -771,10 +753,7 @@ function AMCheckout(props: Props) {
             size="xs"
             variant="transparent"
             onClick={() => {
-              trackGetsentryAnalytics('checkout.exit', {
-                subscription,
-                organization,
-              });
+              trackGetsentryAnalytics('checkout.exit', {subscription, organization});
             }}
           >
             {t('Manage Subscription')}

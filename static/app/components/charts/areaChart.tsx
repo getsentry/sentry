@@ -25,15 +25,8 @@ function transformToAreaSeries({
       stack: stacked ? 'area' : undefined,
       name: seriesName,
       data: data.map(({name, value}) => [name, value]),
-      lineStyle: {
-        color: (colors as any)?.[i],
-        opacity: 1,
-        width: 0.4,
-      },
-      areaStyle: {
-        color: (colors as any)?.[i],
-        opacity: 1,
-      },
+      lineStyle: {color: (colors as any)?.[i], opacity: 1, width: 0.4},
+      areaStyle: {color: (colors as any)?.[i], opacity: 1},
       // Define the z level so that the series remain stacked in the correct order
       // even after operations like hiding / highlighting series
       z: i,

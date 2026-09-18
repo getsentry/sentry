@@ -15,15 +15,9 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {Subscription} from 'getsentry/types';
 
-type Props = {
-  onSuccess: () => void;
-  subscription: Subscription;
-};
+type Props = {onSuccess: () => void; subscription: Subscription};
 
-type RefundVercelApiRequest = {
-  guid: string;
-  reason: string;
-};
+type RefundVercelApiRequest = {guid: string; reason: string};
 
 const schema = z.object({
   guid: z.string().trim().min(1, 'Invoice GUID is required'),

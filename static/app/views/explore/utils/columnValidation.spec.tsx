@@ -30,12 +30,7 @@ describe('getValidatedColumnData', () => {
       field: [
         {attrType: 'boolean', error: null, name: 'custom.enabled', valid: true},
         {attrType: 'number', error: null, name: 'custom.duration', valid: true},
-        {
-          attrType: 'number',
-          error: null,
-          name: 'avg(custom.duration)',
-          valid: true,
-        },
+        {attrType: 'number', error: null, name: 'avg(custom.duration)', valid: true},
         {attrType: 'string', error: null, name: 'custom.user', valid: true},
         {attrType: null, error: 'unknown field', name: 'missing.field', valid: false},
       ],
@@ -141,11 +136,7 @@ describe('getValidatedColumnData', () => {
         number: {},
         string: {},
         array: {
-          'custom.tags': {
-            key: 'custom.tags',
-            name: 'custom.tags',
-            kind: FieldKind.ARRAY,
-          },
+          'custom.tags': {key: 'custom.tags', name: 'custom.tags', kind: FieldKind.ARRAY},
         },
       },
       fields: ['custom.tags'],

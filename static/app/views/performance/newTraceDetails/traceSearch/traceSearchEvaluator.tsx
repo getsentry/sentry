@@ -14,10 +14,7 @@ import {defined} from 'sentry/utils/defined';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
-export type TraceSearchResult = {
-  index: number;
-  value: BaseNode;
-};
+export type TraceSearchResult = {index: number; value: BaseNode};
 
 const {info, fmt} = Sentry.logger;
 
@@ -88,10 +85,7 @@ export function searchInTraceTreeTokens(
         resultLookup.set(node, matchCount);
 
         if (previousNode === node) {
-          previousNodeSearchResult = {
-            resultIndex: i,
-            resultIteratorIndex: matchCount,
-          };
+          previousNodeSearchResult = {resultIndex: i, resultIteratorIndex: matchCount};
         }
         matchCount++;
       }
@@ -292,10 +286,7 @@ export function searchInTraceTreeText(
         resultLookup.set(node, matchCount);
 
         if (previousNode === node) {
-          previousNodeSearchResult = {
-            resultIndex: i,
-            resultIteratorIndex: matchCount,
-          };
+          previousNodeSearchResult = {resultIndex: i, resultIteratorIndex: matchCount};
         }
 
         matchCount++;

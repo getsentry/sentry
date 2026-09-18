@@ -102,9 +102,7 @@ function useDeletePathConfig({
         getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/$configId/', {
           path: {organizationIdOrSlug: organization.slug, configId: pathConfig.id},
         }),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
     },
     onMutate: pathConfig => {
@@ -127,9 +125,7 @@ function useDeletePathConfig({
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: codeMappingsApiOptions({
-          orgSlug: organization.slug,
-        }).queryKey,
+        queryKey: codeMappingsApiOptions({orgSlug: organization.slug}).queryKey,
       });
     },
   });
@@ -163,10 +159,7 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
     data: pathConfigsResponse,
     isPending: isPendingPathConfigs,
     isError: isErrorPathConfigs,
-  } = useQuery({
-    ...pathConfigsQueryOptions,
-    select: selectJsonWithHeaders,
-  });
+  } = useQuery({...pathConfigsQueryOptions, select: selectJsonWithHeaders});
 
   const repositoriesQuery = useInfiniteQuery({
     ...organizationRepositoriesInfiniteOptions({
@@ -236,9 +229,7 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
       {
         onClose: () => {
           queryClient.invalidateQueries({
-            queryKey: codeMappingsApiOptions({
-              orgSlug: organization.slug,
-            }).queryKey,
+            queryKey: codeMappingsApiOptions({orgSlug: organization.slug}).queryKey,
           });
         },
       }

@@ -24,9 +24,7 @@ type ButtonTriggerProps = DistributedOmit<DropdownButtonProps, 'ref' | 'children
 type IconButtonTriggerProps = SetRequired<
   DistributedOmit<DropdownButtonProps, 'ref' | 'showChevron'>,
   'aria-label' | 'icon'
-> & {
-  ref?: React.Ref<TriggerEl>;
-};
+> & {ref?: React.Ref<TriggerEl>};
 
 const useContextProps = () => {
   const selectContext = React.useContext(ControlContext);

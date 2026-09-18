@@ -150,11 +150,7 @@ export const sessionReplay: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'Kotlin',
-              language: 'kotlin',
-              code: getReplayConfigurationSnippet(),
-            },
+            {label: 'Kotlin', language: 'kotlin', code: getReplayConfigurationSnippet()},
           ],
         },
       ],

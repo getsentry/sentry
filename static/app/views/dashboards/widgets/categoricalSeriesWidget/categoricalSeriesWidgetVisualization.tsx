@@ -105,17 +105,9 @@ export function CategoricalSeriesWidgetVisualization(
       formatter: (value: number) =>
         formatYAxisValue(value, dataType, dataUnit ?? undefined),
     },
-    splitLine: {
-      lineStyle: {
-        color: theme.tokens.border.secondary,
-      },
-    },
-    axisLine: {
-      show: false,
-    },
-    axisTick: {
-      show: false,
-    },
+    splitLine: {lineStyle: {color: theme.tokens.border.secondary}},
+    axisLine: {show: false},
+    axisTick: {show: false},
   };
 
   // Rotation is applied regardless of total length of all labels. It might be
@@ -166,14 +158,8 @@ export function CategoricalSeriesWidgetVisualization(
       hideOverlap: true,
       formatter: (value: string) => formattedLabels.get(value) ?? value,
     },
-    axisLine: {
-      lineStyle: {
-        color: theme.tokens.border.secondary,
-      },
-    },
-    axisTick: {
-      alignWithLabel: true,
-    },
+    axisLine: {lineStyle: {color: theme.tokens.border.secondary}},
+    axisTick: {alignWithLabel: true},
   };
 
   // Set up color palette for plottables without explicit colors
@@ -200,11 +186,7 @@ export function CategoricalSeriesWidgetVisualization(
       seriesColorIndex += 1;
     }
 
-    const seriesOfPlottable = plottable.toSeries({
-      color,
-      unit: dataUnit,
-      theme,
-    });
+    const seriesOfPlottable = plottable.toSeries({color, unit: dataUnit, theme});
 
     seriesIndexToPlottableMapRanges.push({
       min: seriesIndex,
@@ -393,9 +375,7 @@ export function CategoricalSeriesWidgetVisualization(
       tooltip={{
         appendToBody: true,
         trigger: 'axis',
-        axisPointer: {
-          type: 'shadow',
-        },
+        axisPointer: {type: 'shadow'},
         formatter: formatTooltip,
       }}
       xAxis={xAxis}

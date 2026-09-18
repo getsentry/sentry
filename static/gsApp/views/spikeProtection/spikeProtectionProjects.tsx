@@ -211,10 +211,7 @@ function SpikeProtectionProjects({subscription}: Props) {
         `${getApiUrl('/organizations/$organizationIdOrSlug/spike-protections/', {
           path: {organizationIdOrSlug: organization.slug},
         })}?projectSlug=$all`,
-        {
-          method: isEnabling ? 'POST' : 'DELETE',
-          data: {projects: []},
-        }
+        {method: isEnabling ? 'POST' : 'DELETE', data: {projects: []}}
       );
       const newProjects = projects.map(p => ({
         ...p,

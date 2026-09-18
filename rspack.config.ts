@@ -141,9 +141,7 @@ const localeCatalogPath = path.join(
   'catalogs.json'
 );
 
-type LocaleCatalog = {
-  supported_locales: string[];
-};
+type LocaleCatalog = {supported_locales: string[]};
 
 const localeCatalog: LocaleCatalog = JSON.parse(
   fs.readFileSync(localeCatalogPath, 'utf8')
@@ -229,19 +227,12 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
             },
             // We don't want to add source path attributes in production
             // as it will unnecessarily bloat the bundle size
-            IS_PRODUCTION
-              ? {}
-              : {
-                  'source-path-attr': 'data-sentry-source-path',
-                }
+            IS_PRODUCTION ? {} : {'source-path-attr': 'data-sentry-source-path'}
           ),
         ],
       ],
     },
-    parser: {
-      syntax: 'typescript',
-      tsx: true,
-    },
+    parser: {syntax: 'typescript', tsx: true},
     transform: {
       // TODO: Enable in production
       reactCompiler:
@@ -350,13 +341,7 @@ const appConfig: Configuration = {
             loader: 'builtin:swc-loader',
             options: swcReactLoaderConfig({reactCompiler: false}),
           },
-          {
-            loader: '@mdx-js/loader',
-            options: {
-              remarkPlugins,
-              rehypePlugins,
-            },
-          },
+          {loader: '@mdx-js/loader', options: {remarkPlugins, rehypePlugins}},
         ],
       },
       {
@@ -370,28 +355,17 @@ const appConfig: Configuration = {
           {loader: path.resolve(import.meta.dirname, './build-utils/peggy-loader.ts')},
         ],
       },
-      {
-        test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
-      },
+      {test: /\.css$/, use: ['style-loader', 'css-loader']},
       {
         test: /\.less$/,
         include: [staticPrefix],
         use: [
-          {
-            loader: rspack.CssExtractRspackPlugin.loader,
-            options: {
-              publicPath: 'auto',
-            },
-          },
+          {loader: rspack.CssExtractRspackPlugin.loader, options: {publicPath: 'auto'}},
           'css-loader',
           'less-loader',
         ],
       },
-      {
-        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
-        type: 'asset',
-      },
+      {test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|webp|mp4)$/, type: 'asset'},
     ],
   },
   plugins: [
@@ -399,10 +373,7 @@ const appConfig: Configuration = {
      * Without this, webpack will chunk the locales but attempt to load them all
      * eagerly.
      */
-    new rspack.IgnorePlugin({
-      contextRegExp: /moment$/,
-      resourceRegExp: /^\.\/locale$/,
-    }),
+    new rspack.IgnorePlugin({contextRegExp: /moment$/, resourceRegExp: /^\.\/locale$/}),
 
     /**
      * Restrict translation files that are pulled in through app/translations.jsx
@@ -488,11 +459,7 @@ const appConfig: Configuration = {
     }),
   ],
 
-  resolveLoader: {
-    alias: {
-      'type-loader': typeLoaderPath,
-    },
-  },
+  resolveLoader: {alias: {'type-loader': typeLoaderPath}},
 
   resolve: {
     alias: {
@@ -579,9 +546,7 @@ const workerConfig: Configuration = {
   mode: appConfig.mode,
   target: 'webworker',
   bail: appConfig.bail,
-  entry: {
-    'service-worker': 'sentry/serviceWorker/worker/worker',
-  },
+  entry: {'service-worker': 'sentry/serviceWorker/worker/worker'},
   context: staticPrefix,
   experiments: appConfig.experiments,
   lazyCompilation: appConfig.lazyCompilation,
@@ -602,16 +567,9 @@ const workerConfig: Configuration = {
             shippedProposals: true,
           },
           jsc: {
-            parser: {
-              syntax: 'typescript',
-              tsx: true,
-            },
+            parser: {syntax: 'typescript', tsx: true},
             transform: {
-              react: {
-                runtime: 'automatic',
-                development: DEV_MODE,
-                refresh: false,
-              },
+              react: {runtime: 'automatic', development: DEV_MODE, refresh: false},
             },
           },
           isModule: 'unknown',
@@ -626,10 +584,7 @@ const workerConfig: Configuration = {
      * Without this, webpack will chunk the locales but attempt to load them all
      * eagerly.
      */
-    new rspack.IgnorePlugin({
-      contextRegExp: /moment$/,
-      resourceRegExp: /^\.\/locale$/,
-    }),
+    new rspack.IgnorePlugin({contextRegExp: /moment$/, resourceRegExp: /^\.\/locale$/}),
 
     /**
      * Defines environment specific flags.
@@ -676,9 +631,7 @@ if (
   }
 
   appConfig.devServer = {
-    headers: {
-      'Document-Policy': 'js-profiling',
-    },
+    headers: {'Document-Policy': 'js-profiling'},
     // Cover the various environments we use (vercel, getsentry-dev, localhost)
     allowedHosts: [
       '.sentry.dev',
@@ -693,17 +646,12 @@ if (
       // Needed if you want to use ngrok w/ backend
       ...(SENTRY_DEVSERVER_NGROK ? [`.${SENTRY_DEVSERVER_NGROK}`] : []),
     ],
-    static: {
-      directory: './src/sentry/static/sentry',
-      watch: true,
-    },
+    static: {directory: './src/sentry/static/sentry', watch: true},
     host: SENTRY_WEBPACK_PROXY_HOST,
     hot: SHOULD_HOT_MODULE_RELOAD ? 'only' : false,
     liveReload: !SENTRY_DEVSERVER_NGROK,
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
-    devMiddleware: {
-      stats: 'errors-only',
-    },
+    devMiddleware: {stats: 'errors-only'},
     client: {
       overlay: false,
       // When behind a reverse proxy (ngrok/Coder), the WebSocket client must
@@ -823,19 +771,14 @@ if (IS_UI_DEV_ONLY) {
   appConfig.devServer = {
     ...appConfig.devServer,
     compress: true,
-    server: {
-      type: 'https',
-      options: httpsOptions,
-    },
+    server: {type: 'https', options: httpsOptions},
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
       'Service-Worker-Allowed': '/',
     },
-    static: {
-      publicPath: '/_assets/',
-    },
+    static: {publicPath: '/_assets/'},
     proxy: [
       {
         context: [
@@ -879,9 +822,7 @@ if (IS_UI_DEV_ONLY) {
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
         logger: proxyLoggerQuiet,
-        pathRewrite: {
-          '^/region/[^/]*': '',
-        },
+        pathRewrite: {'^/region/[^/]*': ''},
         router: req => {
           const regionPathPattern = /^\/region\/([^/]+)/;
           const regionname = (req.url ?? '').match(regionPathPattern);
@@ -924,9 +865,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       mobile: true,
       excludeChunks: IS_ADMIN_UI_DEV ? ['app'] : ['gsAdmin'],
       title: 'Sentry',
-      window: {
-        __SENTRY_DEV_UI: true,
-      },
+      window: {__SENTRY_DEV_UI: true},
     })
   );
 }
@@ -956,12 +895,8 @@ if (IS_PRODUCTION) {
     sentryWebpackPlugin({
       applicationKey: 'sentry-spa',
       telemetry: false,
-      sourcemaps: {
-        disable: true,
-      },
-      release: {
-        create: false,
-      },
+      sourcemaps: {disable: true},
+      release: {create: false},
       reactComponentAnnotation: {
         // Using swc-plugin-react-component-annotate instead
         enabled: false,

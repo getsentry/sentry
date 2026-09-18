@@ -22,10 +22,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 
-const CLIP_OFFSETS = {
-  durationAfterMs: 5_000,
-  durationBeforeMs: 5_000,
-};
+const CLIP_OFFSETS = {durationAfterMs: 5_000, durationBeforeMs: 5_000};
 
 const ReplayClipPreview = lazy(
   () => import('sentry/components/events/eventReplay/replayClipPreview')

@@ -185,10 +185,7 @@ function NoQuotaRemaining({organization}: {organization: Organization}) {
       <Alert variant="info">
         {tct(
           'This organization ([orgSlug]) has used all GitHub invites available. [mailto:Contact support] to increase the quota.',
-          {
-            orgSlug: organization.slug,
-            mailto: <a href="mailto:support@sentry.io" />,
-          }
+          {orgSlug: organization.slug, mailto: <a href="mailto:support@sentry.io" />}
         )}
       </Alert>
     </Alert.Container>

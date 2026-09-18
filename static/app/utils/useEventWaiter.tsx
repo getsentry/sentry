@@ -76,12 +76,7 @@ export function useEventWaiter({
 
   const issuesUrl = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: project.slug,
-      },
-    }
+    {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
   );
 
   // Poll the project endpoint to detect when the first event arrives
@@ -145,10 +140,7 @@ export function useEventWaiter({
         return;
       }
 
-      Sentry.setExtras({
-        status: err.status,
-        detail: err.responseJSON?.detail,
-      });
+      Sentry.setExtras({status: err.status, detail: err.responseJSON?.detail});
     }
 
     Sentry.captureException(

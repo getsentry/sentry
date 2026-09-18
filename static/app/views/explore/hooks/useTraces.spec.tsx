@@ -52,12 +52,7 @@ describe('useTraces', () => {
       PageFiltersStore.onInitializeUrlState({
         projects: [project].map(p => parseInt(p.id, 10)),
         environments: [],
-        datetime: {
-          period: '3d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+        datetime: {period: '3d', start: null, end: null, utc: null},
       });
     });
   });
@@ -65,10 +60,7 @@ describe('useTraces', () => {
   it('handles querying the api', async () => {
     const trace = createTraceResult();
 
-    const body = {
-      data: [trace],
-      meta: {},
-    };
+    const body = {data: [trace], meta: {}};
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/traces/`,
@@ -90,12 +82,7 @@ describe('useTraces', () => {
     const {result} = renderHookWithProviders(useTracesQuery, {
       ...context,
       initialProps: {
-        datetime: {
-          end: null,
-          period: '3d',
-          start: null,
-          utc: null,
-        },
+        datetime: {end: null, period: '3d', start: null, utc: null},
         limit: 10,
         query: 'foo:bar',
       },

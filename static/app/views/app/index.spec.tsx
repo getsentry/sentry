@@ -24,12 +24,7 @@ function PlaceholderContent() {
 
 const defaultRouterConfig = {
   location: {pathname: '/organizations/org-slug/'},
-  children: [
-    {
-      index: true,
-      element: <PlaceholderContent />,
-    },
-  ],
+  children: [{index: true, element: <PlaceholderContent />}],
   route: '/organizations/:orgSlug/',
 };
 
@@ -42,30 +37,15 @@ describe('App', () => {
     ConfigStore.init();
     ConfigStore.loadInitialData(configState);
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/',
-      body: [organization],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/', body: [organization]});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/',
-      body: organization,
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/', body: organization});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/teams/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/teams/', body: []});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
 
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/assistant/', body: []});
 
     MockApiClient.addMockResponse({
       url: '/internal/options/',
@@ -118,12 +98,7 @@ describe('App', () => {
     ConfigStore.get('user').isSuperuser = true;
     ConfigStore.set('isSelfHosted', true);
 
-    MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {
-        problems: [],
-      },
-    });
+    MockApiClient.addMockResponse({url: '/internal/health/', body: {problems: []}});
 
     render(<App />, {initialRouterConfig: defaultRouterConfig});
 
@@ -169,12 +144,7 @@ describe('App', () => {
     ConfigStore.set('needsUpgrade', true);
     ConfigStore.set('isSelfHosted', true);
 
-    MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {
-        problems: [],
-      },
-    });
+    MockApiClient.addMockResponse({url: '/internal/health/', body: {problems: []}});
 
     render(<App />, {initialRouterConfig: defaultRouterConfig});
 
@@ -207,12 +177,7 @@ describe('App', () => {
       initialRouterConfig: {
         location: {pathname: '/organizations/albertos%2fapples/'},
         route: '/organizations/:orgId/',
-        children: [
-          {
-            index: true,
-            element: <PlaceholderContent />,
-          },
-        ],
+        children: [{index: true, element: <PlaceholderContent />}],
       },
     });
 

@@ -46,12 +46,8 @@ function SamplingModeSwitchModal({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      targetSampleRate: formatPercent(initialTargetRate || 0),
-    },
-    validators: {
-      onDynamic: targetSampleRateSchema,
-    },
+    defaultValues: {targetSampleRate: formatPercent(initialTargetRate || 0)},
+    validators: {onDynamic: targetSampleRateSchema},
     onSubmit: ({value}) => {
       const changes: Parameters<typeof updateOrganization>[0] = {samplingMode};
       if (samplingMode === 'organization') {
@@ -126,9 +122,7 @@ function SamplingModeSwitchModal({
             {samplingMode === 'organization'
               ? tct(
                   'By deactivating advanced mode, [strong:you will lose your manually configured sample rates].',
-                  {
-                    strong: <strong />,
-                  }
+                  {strong: <strong />}
                 )
               : t('You can deactivate advanced mode at any time.')}
           </span>

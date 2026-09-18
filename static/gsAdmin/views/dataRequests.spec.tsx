@@ -8,15 +8,10 @@ describe('DataRequests', () => {
   });
 
   it('updates the search parameters on submit', async () => {
-    MockApiClient.addMockResponse({
-      url: '/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/users/', body: []});
 
     const {router} = render(<DataRequests />, {
-      initialRouterConfig: {
-        location: {pathname: '/_admin/data-requests/'},
-      },
+      initialRouterConfig: {location: {pathname: '/_admin/data-requests/'}},
     });
 
     await userEvent.type(
@@ -33,13 +28,7 @@ describe('DataRequests', () => {
   it('renders user results when searching globally (no orgSlug)', async () => {
     MockApiClient.addMockResponse({
       url: '/users/',
-      body: [
-        {
-          id: '42',
-          name: 'Jane Smith',
-          email: 'jane@example.com',
-        },
-      ],
+      body: [{id: '42', name: 'Jane Smith', email: 'jane@example.com'}],
     });
 
     render(<DataRequests />, {
@@ -61,13 +50,7 @@ describe('DataRequests', () => {
   it('renders event results when searching within an org', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/acme/events/',
-      body: [
-        {
-          id: 'abc123',
-          title: 'Something bad happened',
-          groupID: '1337',
-        },
-      ],
+      body: [{id: 'abc123', title: 'Something bad happened', groupID: '1337'}],
     });
 
     render(<DataRequests />, {

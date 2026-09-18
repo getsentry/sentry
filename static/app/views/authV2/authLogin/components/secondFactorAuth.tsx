@@ -175,11 +175,7 @@ export function SecondFactorAuth({
             <DropdownMenu
               size="xs"
               triggerLabel={t('Use Different Method')}
-              triggerProps={{
-                disabled: isProcessing,
-                size: 'xs',
-                variant: 'transparent',
-              }}
+              triggerProps={{disabled: isProcessing, size: 'xs', variant: 'transparent'}}
               items={otherMethods.map(method => ({
                 key: method.id,
                 label: METHOD_LABELS[method.id],

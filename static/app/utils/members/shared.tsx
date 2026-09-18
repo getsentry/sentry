@@ -65,10 +65,7 @@ export function indexMembersByProject(members: Member[]): IndexedMembersByProjec
 }
 
 function getMembersQuery({ids, search, limit}: FetchMemberOptions = {}) {
-  const query: {
-    per_page?: number;
-    query?: string;
-  } = {};
+  const query: {per_page?: number; query?: string} = {};
 
   const normalizedIds = normalizeMemberValues(ids);
   const queryTerms = [...normalizedIds.map(id => `user.id:${id}`)];

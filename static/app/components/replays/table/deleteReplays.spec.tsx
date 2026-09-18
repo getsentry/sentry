@@ -73,9 +73,7 @@ describe('DeleteReplays', () => {
 
   it('shows the returned range error when the request exceeds the 30 day limit', async () => {
     rejectWith({
-      data: {
-        non_field_errors: ['you cannot delete more than 30 days of data at a time'],
-      },
+      data: {non_field_errors: ['you cannot delete more than 30 days of data at a time']},
     });
 
     renderDeleteReplays();

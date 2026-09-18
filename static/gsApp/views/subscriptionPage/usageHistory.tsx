@@ -125,10 +125,7 @@ function UsageHistory({subscription}: Props) {
   );
 }
 
-type RowProps = {
-  history: BillingHistory;
-  subscription: Subscription;
-};
+type RowProps = {history: BillingHistory; subscription: Subscription};
 
 function UsageHistoryRow({history}: RowProps) {
   const organization = useOrganization();

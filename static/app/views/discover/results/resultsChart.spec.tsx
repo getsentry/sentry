@@ -9,10 +9,7 @@ import ResultsChart from 'sentry/views/discover/results/resultsChart';
 
 describe('Discover > ResultsChart', () => {
   const features = ['discover-basic'];
-  const location = LocationFixture({
-    query: {query: 'tag:value'},
-    pathname: '/',
-  });
+  const location = LocationFixture({query: {query: 'tag:value'}, pathname: '/'});
 
   const organization = OrganizationFixture({features});
 

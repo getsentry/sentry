@@ -14,10 +14,7 @@ describe('unresolveExpression', () => {
   it('replaces function calls with reference labels', () => {
     const result = unresolveExpression(
       'sum(value,metricA,counter,none) + avg(value,metricB,gauge,none)',
-      {
-        A: 'sum(value,metricA,counter,none)',
-        B: 'avg(value,metricB,gauge,none)',
-      }
+      {A: 'sum(value,metricA,counter,none)', B: 'avg(value,metricB,gauge,none)'}
     );
     expect(result).toBe('A + B');
   });

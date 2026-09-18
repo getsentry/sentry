@@ -31,9 +31,7 @@ export function TraceResetZoomButton(props: {
   );
 }
 
-const ResetZoomButton = styled(Button)<{
-  hide: boolean;
-}>`
+const ResetZoomButton = styled(Button)<{hide: boolean}>`
   display: ${props => (props.hide ? 'none' : 'block')};
 
   &[disabled] {

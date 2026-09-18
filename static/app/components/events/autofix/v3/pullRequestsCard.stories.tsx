@@ -48,10 +48,7 @@ function updatingPR(prNumber: number, repoName = REPO): RepoPRState {
 }
 
 function completedPR(prNumber: number, repoName = REPO): RepoPRState {
-  return {
-    ...updatingPR(prNumber, repoName),
-    pr_creation_status: 'completed',
-  };
+  return {...updatingPR(prNumber, repoName), pr_creation_status: 'completed'};
 }
 
 function failedPR(repoName = REPO): RepoPRState {

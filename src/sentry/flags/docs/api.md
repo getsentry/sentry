@@ -51,9 +51,7 @@ Retrieve a collection of flag logs.
         "createdByType": "id",
         "flag": "my-flag-name",
         "id": 1,
-        "tags": {
-          "environment": "production"
-        }
+        "tags": {"environment": "production"}
       }
     ]
   }
@@ -76,9 +74,7 @@ Retrieve a single flag log instance.
       "createdByType": "email",
       "flag": "new-flag-name",
       "id": 1,
-      "tags": {
-        "environment": "development"
-      }
+      "tags": {"environment": "development"}
     }
   }
   ```
@@ -129,10 +125,7 @@ Requests from web hook providers can be signed. We use the signing secret to ver
 - Request (application/json)
 
   ```json
-  {
-    "provider": "launchdarkly",
-    "secret": "d41d7d1adced450d9e2eb7f76dde6a04"
-  }
+  {"provider": "launchdarkly", "secret": "d41d7d1adced450d9e2eb7f76dde6a04"}
   ```
 
 - Response 201
@@ -179,16 +172,11 @@ Sentry does not currently have a concept of disambiguating flag changes by proje
       {
         "action": "created",
         "created_at": "2024-12-12T00:02:00+00:00",
-        "created_by": {
-          "id": "first.last@company.com",
-          "type": "email"
-        },
+        "created_by": {"id": "first.last@company.com", "type": "email"},
         "flag": "hello.world"
       }
     ],
-    "meta": {
-      "version": 1
-    }
+    "meta": {"version": 1}
   }
   ```
 

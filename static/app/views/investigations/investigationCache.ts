@@ -12,11 +12,6 @@ export function updateInvestigationCache(
   const options = getInvestigationDetailQueryOptions(organizationSlug, investigationId);
 
   queryClient.setQueryData(options.queryKey, previous =>
-    previous
-      ? {
-          ...previous,
-          json: update(previous.json),
-        }
-      : previous
+    previous ? {...previous, json: update(previous.json)} : previous
   );
 }

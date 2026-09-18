@@ -21,10 +21,7 @@ describe('TeamBadge', () => {
     render(<TeamBadge team={team} />);
 
     act(() => {
-      TeamStore.onUpdateSuccess(team.id, {
-        ...team,
-        slug: 'new-team-slug',
-      });
+      TeamStore.onUpdateSuccess(team.id, {...team, slug: 'new-team-slug'});
     });
 
     expect(await screen.findByText(/#new-team-slug/)).toBeInTheDocument();

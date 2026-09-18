@@ -38,9 +38,7 @@ describe('BuildYourPlan', () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
-      body: {
-        invoiceItems: [],
-      },
+      body: {invoiceItems: []},
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
@@ -51,11 +49,7 @@ describe('BuildYourPlan', () => {
   function renderCheckout(referrer?: string) {
     let location = LocationFixture();
     if (referrer) {
-      location = LocationFixture({
-        query: {
-          referrer,
-        },
-      });
+      location = LocationFixture({query: {referrer}});
     }
     render(
       <AMCheckout

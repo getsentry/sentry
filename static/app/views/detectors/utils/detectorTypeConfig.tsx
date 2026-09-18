@@ -16,16 +16,8 @@ const DETECTOR_TYPE_CONFIG: Record<DetectorType, DetectorTypeConfig> = {
     userCreateable: false,
     systemCreatedNotice: () => t('This monitor is managed by Sentry'),
   },
-  metric_issue: {
-    label: t('Metric'),
-    path: 'metrics',
-    userCreateable: true,
-  },
-  monitor_check_in_failure: {
-    label: t('Cron'),
-    path: 'crons',
-    userCreateable: true,
-  },
+  metric_issue: {label: t('Metric'), path: 'metrics', userCreateable: true},
+  monitor_check_in_failure: {label: t('Cron'), path: 'crons', userCreateable: true},
   uptime_domain_failure: {
     label: t('Uptime'),
     path: 'uptime',

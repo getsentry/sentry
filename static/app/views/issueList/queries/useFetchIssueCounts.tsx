@@ -22,9 +22,7 @@ const makeFetchIssueCounts = ({
   getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
     path: {organizationIdOrSlug: orgSlug},
   }),
-  {
-    query: requestParams,
-  },
+  {query: requestParams},
 ];
 
 export const useFetchIssueCounts = (

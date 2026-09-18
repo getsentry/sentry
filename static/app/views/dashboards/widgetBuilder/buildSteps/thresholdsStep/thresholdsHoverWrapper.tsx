@@ -14,11 +14,7 @@ import {
 
 import type {ThresholdsConfig} from './thresholds';
 
-type Props = {
-  children: React.ReactNode;
-  thresholds: ThresholdsConfig;
-  type?: string;
-};
+type Props = {children: React.ReactNode; thresholds: ThresholdsConfig; type?: string};
 
 export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
   const {unit, max_values: {max1, max2} = {}} = thresholds;

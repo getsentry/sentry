@@ -181,9 +181,7 @@ describe('SamplingModeSwitchModal', () => {
       await waitFor(() => {
         expect(putMock).toHaveBeenCalledWith(
           '/organizations/org-slug/',
-          expect.objectContaining({
-            data: {samplingMode: 'project'},
-          })
+          expect.objectContaining({data: {samplingMode: 'project'}})
         );
       });
       expect(putMock).not.toHaveBeenCalledWith(

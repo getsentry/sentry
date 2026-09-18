@@ -67,9 +67,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock({additionalPackage: 'tornado'}),
         ...getPythonAiocontextvarsCodeBlocks(),
@@ -84,9 +82,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'If you have the [codeTornado:tornado] package in your dependencies, the Tornado integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
-            {
-              codeTornado: <code />,
-            }
+            {codeTornado: <code />}
           ),
         },
         {
@@ -144,9 +140,7 @@ asyncio.run(main())
           text: [
             tct(
               'When you point your browser to [link:http://localhost:8888/] a transaction in the Performance section of Sentry will be created.',
-              {
-                link: <ExternalLink href="http://localhost:8888/" />,
-              }
+              {link: <ExternalLink href="http://localhost:8888/" />}
             ),
             t(
               'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'

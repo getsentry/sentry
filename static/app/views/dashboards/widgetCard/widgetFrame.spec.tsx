@@ -82,13 +82,7 @@ describe('WidgetFrame', () => {
         <WidgetFrame
           title="EPS"
           description="Number of events per second"
-          actions={[
-            {
-              key: 'hello',
-              label: 'Make Go',
-              onAction,
-            },
-          ]}
+          actions={[{key: 'hello', label: 'Make Go', onAction}]}
         />
       );
 
@@ -108,13 +102,7 @@ describe('WidgetFrame', () => {
           description="Number of events per second"
           actionsDisabled
           actionsMessage="Actions are not supported"
-          actions={[
-            {
-              key: 'hello',
-              label: 'Make Go',
-              onAction,
-            },
-          ]}
+          actions={[{key: 'hello', label: 'Make Go', onAction}]}
         />
       );
 
@@ -138,16 +126,8 @@ describe('WidgetFrame', () => {
           title="EPS"
           description="Number of events per second"
           actions={[
-            {
-              key: 'one',
-              label: 'One',
-              onAction: onAction1,
-            },
-            {
-              key: 'two',
-              label: 'Two',
-              onAction: onAction2,
-            },
+            {key: 'one', label: 'One', onAction: onAction1},
+            {key: 'two', label: 'Two', onAction: onAction2},
           ]}
         />
       );
@@ -173,14 +153,8 @@ describe('WidgetFrame', () => {
           actionsDisabled
           actionsMessage="Actions are not supported"
           actions={[
-            {
-              key: 'one',
-              label: 'One',
-            },
-            {
-              key: 'two',
-              label: 'Two',
-            },
+            {key: 'one', label: 'One'},
+            {key: 'two', label: 'Two'},
           ]}
         />
       );
@@ -204,13 +178,7 @@ describe('WidgetFrame', () => {
           title="EPS"
           description="Number of events per second"
           error={error}
-          actions={[
-            {
-              key: 'hello',
-              label: 'Make Go',
-              onAction,
-            },
-          ]}
+          actions={[{key: 'hello', label: 'Make Go', onAction}]}
         />
       );
 

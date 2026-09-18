@@ -15,10 +15,7 @@ const sampleDurationTimeSeries2 = {
   ...sampleDurationTimeSeries,
   field: 'p50(span.duration)',
   data: sampleDurationTimeSeries.values.map(datum => {
-    return {
-      ...datum,
-      value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null,
-    };
+    return {...datum, value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null};
   }),
 };
 

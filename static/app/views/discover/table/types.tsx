@@ -47,49 +47,15 @@ export type FieldValueColumns =
         unknown?: boolean;
       };
     }
-  | {
-      kind: FieldValueKind.MEASUREMENT;
-      meta: {
-        dataType: ColumnType;
-        name: string;
-      };
-    }
+  | {kind: FieldValueKind.MEASUREMENT; meta: {dataType: ColumnType; name: string}}
   | {
       kind: FieldValueKind.CUSTOM_MEASUREMENT;
-      meta: {
-        dataType: ColumnType;
-        functions: string[];
-        name: string;
-      };
+      meta: {dataType: ColumnType; functions: string[]; name: string};
     }
-  | {
-      kind: FieldValueKind.BREAKDOWN;
-      meta: {
-        dataType: 'duration';
-        name: string;
-      };
-    }
-  | {
-      kind: FieldValueKind.FIELD;
-      meta: {
-        dataType: ColumnType;
-        name: string;
-      };
-    }
-  | {
-      kind: FieldValueKind.METRICS;
-      meta: {
-        dataType: ColumnType;
-        name: string;
-      };
-    }
-  | {
-      kind: FieldValueKind.NUMERIC_METRICS;
-      meta: {
-        dataType: 'number';
-        name: string;
-      };
-    };
+  | {kind: FieldValueKind.BREAKDOWN; meta: {dataType: 'duration'; name: string}}
+  | {kind: FieldValueKind.FIELD; meta: {dataType: ColumnType; name: string}}
+  | {kind: FieldValueKind.METRICS; meta: {dataType: ColumnType; name: string}}
+  | {kind: FieldValueKind.NUMERIC_METRICS; meta: {dataType: 'number'; name: string}};
 
 // Payload of select options in the column editor.
 // The first column contains a union of tags, fields and functions,
@@ -98,14 +64,6 @@ export type FieldValue =
   | FieldValueColumns
   | {
       kind: FieldValueKind.FUNCTION;
-      meta: {
-        name: string;
-        parameters: AggregateParameter[];
-      };
+      meta: {name: string; parameters: AggregateParameter[]};
     }
-  | {
-      kind: FieldValueKind.EQUATION;
-      meta: {
-        name: string;
-      };
-    };
+  | {kind: FieldValueKind.EQUATION; meta: {name: string}};

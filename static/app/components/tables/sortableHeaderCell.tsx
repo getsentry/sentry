@@ -93,12 +93,7 @@ const Label = styled('div')`
 export const HeaderCellContent = styled('div', {
   shouldForwardProp: prop =>
     prop !== 'align' && (prop === 'to' || prop === 'replace' || isPropValid(prop)),
-})<{
-  align?: ColumnAlign;
-  replace?: boolean;
-  to?: LocationDescriptor;
-  type?: 'button';
-}>`
+})<{align?: ColumnAlign; replace?: boolean; to?: LocationDescriptor; type?: 'button'}>`
   align-items: center;
   background: none;
   border: 0;

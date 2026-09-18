@@ -52,13 +52,7 @@ function TransactionReplaysContent() {
   // Hard-code 90d to match the count query. There's no date selector for the replay tab.
   const {data, fetchError, isFetching} = useReplaysFromTransaction({
     replayIdsEventView,
-    location: {
-      ...location,
-      query: {
-        ...location.query,
-        statsPeriod: '90d',
-      },
-    },
+    location: {...location, query: {...location.query, statsPeriod: '90d'}},
     organization,
   });
 
@@ -120,10 +114,7 @@ function ReplaysContent({
     queryReferrer: 'transactionReplays',
   });
 
-  const replaysWithTx = useReplaysWithTxData({
-    replays,
-    events,
-  });
+  const replaysWithTx = useReplaysWithTxData({replays, events});
 
   const {allMobileProj} = useAllMobileProj({});
 

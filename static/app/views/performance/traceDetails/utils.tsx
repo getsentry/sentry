@@ -87,10 +87,7 @@ export function getTraceDetailsUrl({
   }
 
   if (shouldForceRouteToOldView(organization, timestamp)) {
-    return {
-      pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
-      query: queryParams,
-    };
+    return {pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`), query: queryParams};
   }
 
   queryParams.node = getNodePath(spanId, targetId, eventId);

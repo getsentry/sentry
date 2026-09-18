@@ -220,15 +220,7 @@ function SearchComboBox(props: SearchComboBoxProps) {
 
   const {inputProps, listBoxProps, labelProps} = useSearchTokenCombobox<
     SearchComboBoxItem<StoryTreeNode>
-  >(
-    {
-      ...props,
-      inputRef,
-      listBoxRef,
-      popoverRef,
-    },
-    state
-  );
+  >({...props, inputRef, listBoxRef, popoverRef}, state);
 
   return (
     <StorySearchContainer>

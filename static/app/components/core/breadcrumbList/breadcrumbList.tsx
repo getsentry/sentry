@@ -14,9 +14,7 @@ import {BreadcrumbItemSelectProjects} from './items/breadcrumbItemSelectProjects
 import {BreadcrumbDividerCombo} from './breadcrumbDividerCombo';
 
 type LinkBreadcrumbItem = {type: 'link'} & BreadcrumbItemLinkProps;
-type PageTitleBreadcrumbItem = {
-  type: 'page-title';
-} & BreadcrumbItemPageTitleProps;
+type PageTitleBreadcrumbItem = {type: 'page-title'} & BreadcrumbItemPageTitleProps;
 type EditableTitleBreadcrumbItem = {
   type: 'editable-title';
 } & BreadcrumbItemPageTitleEditableProps;

@@ -107,10 +107,7 @@ export function ProfilePreview({
       }
 
       if (event && profilerID) {
-        const query = {
-          eventId: event.id,
-          tid: spanThreadId,
-        };
+        const query = {eventId: event.id, tid: spanThreadId};
         return generateContinuousProfileFlamechartRouteWithQuery({
           organization,
           projectSlug: project.slug,

@@ -11,10 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type SearchSuggestion = {
-  label: string;
-  query: string;
-};
+type SearchSuggestion = {label: string; query: string};
 
 const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
   {label: t('Prioritized'), query: 'is:unresolved issue.priority:[high, medium]'},
@@ -35,13 +32,7 @@ function Query({label, query}: SearchSuggestion) {
   const navigate = useNavigate();
 
   const setQuery = () => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        query,
-      },
-    });
+    navigate({pathname: location.pathname, query: {...location.query, query}});
 
     trackAnalytics('issue_views.new_view.suggested_query_clicked', {
       query,

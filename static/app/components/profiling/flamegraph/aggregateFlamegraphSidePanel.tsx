@@ -89,11 +89,7 @@ export function AggregateFlamegraphSidePanel({
         <FrameInformation frame={frame} />
       </div>
       <div>
-        <Title>
-          {tct('Profiles ([count])', {
-            count: examples.length,
-          })}
-        </Title>
+        <Title>{tct('Profiles ([count])', {count: examples.length})}</Title>
         {examples.length <= 0 ? (
           <EmptyStateWarning withIcon={false} small>
             <div>{t('No profiles detected')}</div>

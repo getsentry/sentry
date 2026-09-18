@@ -14,11 +14,7 @@ type SentryNuqsTestingAdapterProps = {
   /**
    * Default options to pass to nuqs
    */
-  defaultOptions?: {
-    clearOnDefault?: boolean;
-    scroll?: boolean;
-    shallow?: boolean;
-  };
+  defaultOptions?: {clearOnDefault?: boolean; scroll?: boolean; shallow?: boolean};
   /**
    * A function that will be called whenever the URL is updated.
    * Connect that to a spy in your tests to assert the URL updates.

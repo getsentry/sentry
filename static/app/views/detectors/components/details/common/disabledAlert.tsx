@@ -7,10 +7,7 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
-type DisabledAlertProps = {
-  detector: Detector;
-  message: string;
-};
+type DisabledAlertProps = {detector: Detector; message: string};
 
 /**
  * Use this component on detector detail pages when you want users to quickly understand

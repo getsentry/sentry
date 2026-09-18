@@ -21,46 +21,25 @@ const MOCK_ACCESSIBILITY_CONTEXT: AccessibilityContext = {
 };
 
 const MOCK_REDACTION = {
-  reduce_motion: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
+  reduce_motion: {'': {rem: [['organization:0', 's', 0, 0]], len: 5}},
 };
 
 describe('AccessibilityContext', () => {
   it('returns values according to the parameters', () => {
     expect(getAccessibilityContextData({data: MOCK_ACCESSIBILITY_CONTEXT})).toEqual([
-      {
-        key: 'accessible_navigation',
-        subject: 'Accessible Navigation',
-        value: false,
-      },
+      {key: 'accessible_navigation', subject: 'Accessible Navigation', value: false},
       {key: 'bold_text', subject: 'Bold Text', value: false},
       {key: 'disable_animations', subject: 'Disable Animations', value: true},
       {key: 'high_contrast', subject: 'High Contrast', value: false},
       {key: 'invert_colors', subject: 'Invert Colors', value: false},
       {key: 'reduce_motion', subject: 'Reduce Motion', value: false},
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123, meta: undefined},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {accessibility: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {accessibility: MOCK_REDACTION}}});
 
     render(
       <ContextCard

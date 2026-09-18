@@ -40,10 +40,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
         type="button"
         variant="link"
         icon={<IconAttachment size="xs" />}
-        to={{
-          pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
-          query: location.query,
-        }}
+        to={{pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`, query: location.query}}
         replace
         aria-label={t("View this issue's attachments")}
       >

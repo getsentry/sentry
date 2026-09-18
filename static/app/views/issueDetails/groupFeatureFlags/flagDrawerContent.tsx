@@ -29,12 +29,7 @@ export function FlagDrawerContent({environments, group, orderBy, search}: Props)
   const organization = useOrganization();
 
   const {displayFlags, allGroupFlagCount, isPending, isError, refetch} =
-    useGroupFlagDrawerData({
-      environments,
-      group,
-      orderBy,
-      search,
-    });
+    useGroupFlagDrawerData({environments, group, orderBy, search});
 
   // CTA logic
   const {projects} = useProjects();

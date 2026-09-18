@@ -10,9 +10,7 @@ import {docs} from '.';
 describe('javascript onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs, {
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
+      selectedOptions: {installationMode: InstallationMode.MANUAL},
     });
 
     // Renders main headings
@@ -38,9 +36,7 @@ describe('javascript onboarding docs', () => {
         ProductSolution.PERFORMANCE_MONITORING,
         ProductSolution.SESSION_REPLAY,
       ],
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
+      selectedOptions: {installationMode: InstallationMode.MANUAL},
     });
 
     expect(
@@ -60,9 +56,7 @@ describe('javascript onboarding docs', () => {
         ProductSolution.ERROR_MONITORING,
         ProductSolution.PERFORMANCE_MONITORING,
       ],
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
+      selectedOptions: {installationMode: InstallationMode.MANUAL},
     });
 
     expect(
@@ -76,9 +70,7 @@ describe('javascript onboarding docs', () => {
         ProductSolution.ERROR_MONITORING,
         ProductSolution.SESSION_REPLAY,
       ],
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
+      selectedOptions: {installationMode: InstallationMode.MANUAL},
     });
 
     expect(
@@ -92,9 +84,7 @@ describe('javascript onboarding docs', () => {
   it('enables profiling by setting profiling sample rates', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
+      selectedOptions: {installationMode: InstallationMode.MANUAL},
     });
 
     expect(
@@ -117,9 +107,7 @@ describe('javascript onboarding docs', () => {
 
   it('renders package manager installation', () => {
     renderWithOnboardingLayout(docs, {
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
+      selectedOptions: {installationMode: InstallationMode.MANUAL},
     });
 
     expect(screen.getByRole('radio', {name: 'Npm/Yarn'})).toBeChecked();

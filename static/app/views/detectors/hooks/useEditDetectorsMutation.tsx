@@ -27,18 +27,12 @@ export function useUpdateDetectorsMutation() {
         {
           method: 'PUT',
           data: {enabled: params.enabled},
-          query: {
-            id: params.ids,
-            query: params.query,
-            project: params.projects,
-          },
+          query: {id: params.ids, query: params.query, project: params.projects},
         }
       );
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: allDetectorListsQueryKey(org),
-      });
+      queryClient.invalidateQueries({queryKey: allDetectorListsQueryKey(org)});
       addSuccessMessage(
         variables.enabled ? t('Monitors enabled') : t('Monitors disabled')
       );

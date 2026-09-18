@@ -13,9 +13,7 @@ describe('group', () => {
     });
 
     it('should extract query property if no itemIds', () => {
-      const invalidArgs: any = {
-        foo: 'bar',
-      };
+      const invalidArgs: any = {foo: 'bar'};
 
       expect(paramsToQueryArgs({query: 'is:unresolved', ...invalidArgs})).toEqual({
         query: 'is:unresolved',
@@ -33,43 +31,29 @@ describe('group', () => {
 
     it('should keep environment when query is provided', () => {
       expect(
-        paramsToQueryArgs({
-          query: 'is:unresolved',
-          environment: 'production',
-        })
+        paramsToQueryArgs({query: 'is:unresolved', environment: 'production'})
       ).toEqual({query: 'is:unresolved', environment: 'production'});
     });
 
     it('should exclude environment when it is null/undefined', () => {
-      expect(
-        paramsToQueryArgs({
-          query: 'is:unresolved',
-          environment: null,
-        })
-      ).toEqual({query: 'is:unresolved'});
+      expect(paramsToQueryArgs({query: 'is:unresolved', environment: null})).toEqual({
+        query: 'is:unresolved',
+      });
     });
 
     it('should handle non-empty projects', () => {
-      expect(
-        paramsToQueryArgs({
-          itemIds: ['1', '2', '3'],
-          project: [1],
-        })
-      ).toEqual({id: ['1', '2', '3'], project: [1]});
+      expect(paramsToQueryArgs({itemIds: ['1', '2', '3'], project: [1]})).toEqual({
+        id: ['1', '2', '3'],
+        project: [1],
+      });
 
-      expect(
-        paramsToQueryArgs({
-          itemIds: ['1', '2', '3'],
-          project: [],
-        })
-      ).toEqual({id: ['1', '2', '3']});
+      expect(paramsToQueryArgs({itemIds: ['1', '2', '3'], project: []})).toEqual({
+        id: ['1', '2', '3'],
+      });
 
-      expect(
-        paramsToQueryArgs({
-          itemIds: ['1', '2', '3'],
-          project: null,
-        })
-      ).toEqual({id: ['1', '2', '3']});
+      expect(paramsToQueryArgs({itemIds: ['1', '2', '3'], project: null})).toEqual({
+        id: ['1', '2', '3'],
+      });
     });
   });
 
@@ -153,10 +137,7 @@ describe('group', () => {
     });
 
     it('should normalize string assignedTo to Actor object for optimistic update', () => {
-      MockApiClient.addMockResponse({
-        url: '/projects/1337/1337/issues/',
-        method: 'PUT',
-      });
+      MockApiClient.addMockResponse({url: '/projects/1337/1337/issues/', method: 'PUT'});
 
       bulkUpdate(
         new MockApiClient(),
@@ -175,19 +156,11 @@ describe('group', () => {
     });
 
     it('should normalize empty assignedTo string to null for optimistic update', () => {
-      MockApiClient.addMockResponse({
-        url: '/projects/1337/1337/issues/',
-        method: 'PUT',
-      });
+      MockApiClient.addMockResponse({url: '/projects/1337/1337/issues/', method: 'PUT'});
 
       bulkUpdate(
         new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: ['1'],
-          data: {assignedTo: ''},
-        },
+        {orgId: '1337', projectId: '1337', itemIds: ['1'], data: {assignedTo: ''}},
         {}
       );
 
@@ -197,10 +170,7 @@ describe('group', () => {
     });
 
     it('should normalize team assignedTo string for optimistic update', () => {
-      MockApiClient.addMockResponse({
-        url: '/projects/1337/1337/issues/',
-        method: 'PUT',
-      });
+      MockApiClient.addMockResponse({url: '/projects/1337/1337/issues/', method: 'PUT'});
 
       bulkUpdate(
         new MockApiClient(),
@@ -281,12 +251,7 @@ describe('group', () => {
 
       mergeGroups(
         new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: undefined,
-          query: 'is:resolved',
-        },
+        {orgId: '1337', projectId: '1337', itemIds: undefined, query: 'is:resolved'},
         {}
       );
 

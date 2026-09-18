@@ -49,10 +49,7 @@ interface BreadcrumbTypeBase {
 
 export interface BreadcrumbTypeNavigation extends BreadcrumbTypeBase {
   type: BreadcrumbType.NAVIGATION;
-  data?: null | {
-    from?: string;
-    to?: string;
-  };
+  data?: null | {from?: string; to?: string};
 }
 
 export interface BreadcrumbTypeHTTP extends BreadcrumbTypeBase {

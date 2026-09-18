@@ -8,9 +8,7 @@ import {docs} from '.';
 
 describe('python logs onboarding docs', () => {
   it('renders logs onboarding docs correctly', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.LOGS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/enable_logs=True/))
@@ -22,9 +20,7 @@ describe('python logs onboarding docs', () => {
   });
 
   it('does not render logs configuration when logs is not enabled', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     expect(await screen.findByRole('heading', {name: /Configure/})).toBeInTheDocument();
 

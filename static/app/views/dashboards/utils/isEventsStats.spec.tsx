@@ -10,9 +10,7 @@ import {
   isMultiSeriesEventsStats,
 } from './isEventsStats';
 
-const singleSeries: EventsStats = {
-  data: [],
-};
+const singleSeries: EventsStats = {data: []};
 
 const multiSeries: MultiSeriesEventsStats = {
   'epm()': singleSeries,

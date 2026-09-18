@@ -2,9 +2,7 @@ import {Link} from '@sentry/scraps/link';
 
 import type {Subscription} from 'getsentry/types';
 
-type Props = {
-  owner?: Subscription['owner'];
-};
+type Props = {owner?: Subscription['owner']};
 
 export function CustomerContact({owner}: Props) {
   return owner ? (

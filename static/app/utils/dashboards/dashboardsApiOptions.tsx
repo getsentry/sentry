@@ -46,9 +46,6 @@ export function dashboardDetailsApiOptions(
 ) {
   return apiOptions.as<DashboardDetails>()(
     '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/',
-    {
-      path: {organizationIdOrSlug: organization.slug, dashboardId},
-      staleTime: 30_000,
-    }
+    {path: {organizationIdOrSlug: organization.slug, dashboardId}, staleTime: 30_000}
   );
 }

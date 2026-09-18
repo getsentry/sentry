@@ -28,60 +28,35 @@ type ExampleAutomation = {
 export default Storybook.story('Grid Cell Components', story => {
   const data: ExampleAutomation[] = [
     {
-      title: {
-        name: 'Slack suggested assignees',
-        link: '/issues/monitors/1',
-      },
+      title: {name: 'Slack suggested assignees', link: '/issues/monitors/1'},
       actions: [ActionType.SLACK],
       timeAgo: new Date(),
-      linkedItems: {
-        ids: ['abc123'],
-        type: 'workflow',
-      },
+      linkedItems: {ids: ['abc123'], type: 'workflow'},
       openIssues: 3,
       creator: '1',
     },
     {
-      title: {
-        name: 'Send Discord notification',
-        link: '/issues/monitors/2',
-      },
+      title: {name: 'Send Discord notification', link: '/issues/monitors/2'},
       actions: [ActionType.DISCORD],
       timeAgo: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      linkedItems: {
-        ids: ['abc123', 'def456', 'ghi789'],
-        type: 'detector',
-      },
+      linkedItems: {ids: ['abc123', 'def456', 'ghi789'], type: 'detector'},
       openIssues: 1,
       creator: '1',
     },
     {
-      title: {
-        name: 'Email suggested assignees',
-        link: '/issues/monitors/3',
-      },
+      title: {name: 'Email suggested assignees', link: '/issues/monitors/3'},
       actions: [ActionType.EMAIL],
       timeAgo: new Date(Date.now() - 25 * 60 * 60 * 1000),
-      linkedItems: {
-        ids: ['abc123', 'def456'],
-        type: 'workflow',
-      },
+      linkedItems: {ids: ['abc123', 'def456'], type: 'workflow'},
       creator: 'sentry',
       openIssues: 0,
     },
     {
-      title: {
-        name: 'Send notification',
-        link: '/issues/monitors/4',
-        disabled: true,
-      },
+      title: {name: 'Send notification', link: '/issues/monitors/4', disabled: true},
       actions: [ActionType.SLACK, ActionType.DISCORD, ActionType.EMAIL],
       creator: 'sentry',
       timeAgo: null,
-      linkedItems: {
-        ids: [],
-        type: 'detector',
-      },
+      linkedItems: {ids: [], type: 'detector'},
       openIssues: 0,
     },
   ];
@@ -139,10 +114,7 @@ export default Storybook.story('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={TitleTable}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
+        grid={{renderHeadCell, renderBodyCell}}
       />
     </Fragment>
   ));
@@ -152,10 +124,7 @@ export default Storybook.story('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={actionTable}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
+        grid={{renderHeadCell, renderBodyCell}}
       />
     </Fragment>
   ));
@@ -165,10 +134,7 @@ export default Storybook.story('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={timeAgoTable}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
+        grid={{renderHeadCell, renderBodyCell}}
       />
     </Fragment>
   ));
@@ -178,10 +144,7 @@ export default Storybook.story('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={linkedGroupsTable}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
+        grid={{renderHeadCell, renderBodyCell}}
       />
     </Fragment>
   ));
@@ -191,10 +154,7 @@ export default Storybook.story('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={openIssuesTable}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
+        grid={{renderHeadCell, renderBodyCell}}
       />
     </Fragment>
   ));
@@ -204,10 +164,7 @@ export default Storybook.story('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={userTable}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
+        grid={{renderHeadCell, renderBodyCell}}
       />
     </Fragment>
   ));

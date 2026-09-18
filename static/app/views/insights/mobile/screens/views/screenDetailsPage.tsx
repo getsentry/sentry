@@ -22,11 +22,7 @@ import {PlatformizedScreenRenderingOverview} from 'sentry/views/insights/mobile/
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
-type Query = {
-  project: string;
-  tab: string | undefined;
-  transaction: string;
-};
+type Query = {project: string; tab: string | undefined; transaction: string};
 
 export type TabKey = 'app_start' | 'screen_load' | 'screen_rendering';
 
@@ -109,13 +105,8 @@ function ScreenDetailsPage() {
               tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
               headerTitle={transactionName}
               breadcrumbs={[
-                {
-                  label: t('Mobile Vitals'),
-                  to: moduleURL,
-                },
-                {
-                  label: t('Screen Summary'),
-                },
+                {label: t('Mobile Vitals'), to: moduleURL},
+                {label: t('Screen Summary')},
               ]}
             />
             <Layout.Body>

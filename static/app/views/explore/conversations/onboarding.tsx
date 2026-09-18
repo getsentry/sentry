@@ -94,18 +94,11 @@ function useConversationSpanWaiter(project: Project) {
       fields: ['id'],
       limit: 1,
       enabled: !!project,
-      useQueryOptions: {
-        refetchInterval: shouldRefetch ? 5000 : undefined,
-      },
+      useQueryOptions: {refetchInterval: shouldRefetch ? 5000 : undefined},
       pageFilters: {
         ...selection,
         projects: [Number(project.id)],
-        datetime: {
-          period: '6h',
-          utc: true,
-          start: null,
-          end: null,
-        },
+        datetime: {period: '6h', utc: true, start: null, end: null},
       },
     },
     Referrer.ONBOARDING
@@ -261,9 +254,7 @@ function AgentSetupInstructions({
             organization,
             action: 'copy_agent_prompt',
           });
-          copy(prompt, {
-            successMessage: t('Copied setup prompt to clipboard'),
-          });
+          copy(prompt, {successMessage: t('Copied setup prompt to clipboard')});
         }}
       >
         {t('Copy prompt')}
@@ -495,10 +486,7 @@ Sentry.setConversationId("my-conversation-123");`,
       : []),
   ];
 
-  return {
-    title: t('Set Conversation ID'),
-    content,
-  };
+  return {title: t('Set Conversation ID'), content};
 }
 
 function getSetUserStep(
@@ -531,10 +519,7 @@ Sentry.setUser({ id: "user_123", email: "jane@example.com", username: "jane" });
         },
   ];
 
-  return {
-    title: t('Identify Users (optional)'),
-    content,
-  };
+  return {title: t('Identify Users (optional)'), content};
 }
 
 function getPhpConversationVerifyStep(): OnboardingStep {
@@ -701,10 +686,7 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: {...selectedPlatformOptions, deploymentTarget},
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     urlPrefix,
@@ -789,10 +771,7 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
           onStepChange={step => {
             navigate({
               pathname: location.pathname,
-              query: {
-                ...location.query,
-                guidedStep: step,
-              },
+              query: {...location.query, guidedStep: step},
             });
           }}
         >
@@ -834,17 +813,13 @@ function UnsupportedPlatformOnboarding({
         <Text as="p">
           {tct(
             "Auto instrumentation isn't available for [platform] yet, but you can still get conversations working.",
-            {
-              platform: platformName,
-            }
+            {platform: platformName}
           )}
         </Text>
         <Text as="p">
           {tct(
             '[link:Manually instrument] your agents using the Sentry SDK, or let an AI coding agent set it up for you.',
-            {
-              link: <ExternalLink href={AI_INSTRUMENTATION_DOCS_LINKS.python} />,
-            }
+            {link: <ExternalLink href={AI_INSTRUMENTATION_DOCS_LINKS.python} />}
           )}
         </Text>
         <CopyLLMPromptButton

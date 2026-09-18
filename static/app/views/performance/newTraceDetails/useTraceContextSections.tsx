@@ -68,14 +68,7 @@ export function useTraceContextSections({
       : traceEventCount > 0 || !hasOnlyNonTraceData;
 
   return useMemo(
-    () => ({
-      hasProfiles,
-      hasTraceEvents,
-      hasLogs,
-      hasVitals,
-      hasAiSpans,
-      hasMetrics,
-    }),
+    () => ({hasProfiles, hasTraceEvents, hasLogs, hasVitals, hasAiSpans, hasMetrics}),
     [hasProfiles, hasTraceEvents, hasLogs, hasVitals, hasAiSpans, hasMetrics]
   );
 }

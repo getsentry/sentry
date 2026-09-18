@@ -47,10 +47,7 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
   const overflowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setTimeout(() => {
-      overflowRef.current?.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      });
+      overflowRef.current?.scrollTo({top: 0, behavior: 'smooth'});
     }, 100);
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [feedbackItem.id, overflowRef]);

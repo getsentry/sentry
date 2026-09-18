@@ -44,10 +44,7 @@ function toOptimisticRepo(
     id: `optimistic-${index}-${Date.now()}`,
     repositoryId: String(repo.repositoryId),
     branchName: repo.branchName ?? '',
-    branchOverrides: (repo.branchOverrides ?? []).map((o, i) => ({
-      ...o,
-      id: String(i),
-    })),
+    branchOverrides: (repo.branchOverrides ?? []).map((o, i) => ({...o, id: String(i)})),
     instructions: repo.instructions ?? '',
     externalId: cachedRepo?.externalId ?? '',
     integrationId: cachedRepo?.integrationId ?? '',
@@ -216,11 +213,7 @@ export function getDeleteSeerProjectRepoOptions({
         repoId,
       }).queryKey;
 
-      return fetchMutation({
-        method: 'DELETE',
-        url: singleUrl,
-        data: {repoId},
-      });
+      return fetchMutation({method: 'DELETE', url: singleUrl, data: {repoId}});
     },
     onMutate: async ({repoId}: {repoId: string}) => {
       const singleQueryKey = getSeerProjectRepoQueryOptions({
@@ -406,11 +399,7 @@ export function getMutateSeerProjectReposOptionsAddRepo({
 
   return mutationOptions({
     mutationFn: (data: {repos: SeerProjectRepoCreateInput[]}) => {
-      return fetchMutation({
-        method: 'POST',
-        url: infiniteUrl,
-        data,
-      });
+      return fetchMutation({method: 'POST', url: infiniteUrl, data});
     },
     onMutate: async (data: {repos: SeerProjectRepoCreateInput[]}) => {
       await queryClient.cancelQueries({queryKey: [infiniteUrl], exact: false});

@@ -169,9 +169,7 @@ export function Slider({
               key={tickValue}
               aria-hidden
               data-filled={tickValue <= thumbValue || undefined}
-              style={{
-                left: `${(state.getValuePercent(tickValue) * 100).toFixed(2)}%`,
-              }}
+              style={{left: `${(state.getValuePercent(tickValue) * 100).toFixed(2)}%`}}
             />
           ))}
         </SliderTrackBar>

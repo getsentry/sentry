@@ -37,11 +37,7 @@ export function SettingsDropdown() {
 
   return (
     <DropdownMenu
-      triggerProps={{
-        size: 'xs',
-        showChevron: false,
-        icon: <IconSettings />,
-      }}
+      triggerProps={{size: 'xs', showChevron: false, icon: <IconSettings />}}
       position="bottom-end"
       items={items}
     />

@@ -61,10 +61,7 @@ function mockApis(
     url: '/organizations/org-slug/trace-items/attributes/',
     body: [],
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/projects/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
 }
 
 function renderPage(features: string[] = []) {

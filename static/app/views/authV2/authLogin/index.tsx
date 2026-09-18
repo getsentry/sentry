@@ -128,9 +128,7 @@ export default function AuthLogin() {
 
   const handleSelectOrganization = useCallback(
     (organizationSlug: string) => {
-      navigate({
-        pathname: `/auth/login/${encodeURIComponent(organizationSlug)}/`,
-      });
+      navigate({pathname: `/auth/login/${encodeURIComponent(organizationSlug)}/`});
     },
     [navigate]
   );

@@ -109,9 +109,7 @@ export function usePendingUserInput({
       if (nextIndex >= fileApprovalTotalPatches) {
         // All patches reviewed - submit to backend
         if (pendingInputId) {
-          respondToUserInput(pendingInputId, {
-            decisions: newDecisions,
-          });
+          respondToUserInput(pendingInputId, {decisions: newDecisions});
         }
       }
     },
@@ -211,9 +209,7 @@ export function usePendingUserInput({
     if (nextIndex >= totalQuestions) {
       // All questions answered - submit
       if (pendingInputId) {
-        respondToUserInput(pendingInputId, {
-          answers: newAnswers,
-        });
+        respondToUserInput(pendingInputId, {answers: newAnswers});
       }
     } else {
       // Move to next question

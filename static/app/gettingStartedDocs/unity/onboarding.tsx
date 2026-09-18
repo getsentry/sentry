@@ -34,11 +34,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'code',
-          language: 'url',
-          code: 'https://github.com/getsentry/unity.git',
-        },
+        {type: 'code', language: 'url', code: 'https://github.com/getsentry/unity.git'},
       ],
     },
   ],
@@ -53,11 +49,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'url',
-          code: params.dsn.public,
-        },
+        {type: 'code', language: 'url', code: params.dsn.public},
         {
           type: 'text',
           text: t("And that's it! Now Sentry can capture errors automatically."),
@@ -112,27 +104,15 @@ export const onboarding: OnboardingConfig = {
             'Once it is configured with the DSN you can call the SDK from anywhere:'
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'csharp', code: getVerifySnippet()},
       ],
     },
     ...(params.isLogsSelected
-      ? ([
-          {
-            title: t('Logs'),
-            content: [logsVerify(params)],
-          },
-        ] satisfies OnboardingStep[])
+      ? ([{title: t('Logs'), content: [logsVerify(params)]}] satisfies OnboardingStep[])
       : []),
     ...(params.isMetricsSelected
       ? ([
-          {
-            title: t('Application Metrics'),
-            content: [metricsVerify(params)],
-          },
+          {title: t('Application Metrics'), content: [metricsVerify(params)]},
         ] satisfies OnboardingStep[])
       : []),
     {

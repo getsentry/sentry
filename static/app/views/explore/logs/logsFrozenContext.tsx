@@ -29,11 +29,7 @@ interface LogsFrozenForTraceProviderProps {
 }
 
 interface LogsFrozenForSpanProviderProps {
-  span: {
-    spanId: string;
-    traceId: string;
-    projectIds?: number[];
-  };
+  span: {spanId: string; traceId: string; projectIds?: number[]};
 }
 
 interface LogsFrozenForReplayProviderProps {

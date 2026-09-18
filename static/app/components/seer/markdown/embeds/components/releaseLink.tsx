@@ -18,10 +18,7 @@ export function getReleaseHref(
 ): string {
   return queryString.stringifyUrl(
     {
-      url: makeReleasesPathname({
-        organization,
-        path: `/${encodeURIComponent(version)}/`,
-      }),
+      url: makeReleasesPathname({organization, path: `/${encodeURIComponent(version)}/`}),
       query: {project: projectId},
     },
     {skipNull: true}

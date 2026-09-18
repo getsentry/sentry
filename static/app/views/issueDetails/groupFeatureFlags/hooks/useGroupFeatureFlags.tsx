@@ -30,13 +30,7 @@ export function useGroupFeatureFlags(
 ): UseApiQueryResult<GroupTag[], RequestError> {
   const organization = useOrganization();
   return useApiQuery<GroupTag[]>(
-    makeGroupFlagsQueryKey({
-      orgSlug: organization.slug,
-      ...parameters,
-    }),
-    {
-      staleTime: 30000,
-      enabled: defined(parameters.groupId),
-    }
+    makeGroupFlagsQueryKey({orgSlug: organization.slug, ...parameters}),
+    {staleTime: 30000, enabled: defined(parameters.groupId)}
   );
 }

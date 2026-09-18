@@ -64,12 +64,7 @@ export type SuggestedAssignee = Actor & {
   suggestedReasonText?: React.ReactNode;
 };
 
-type AssignableTeam = {
-  display: string;
-  email: string;
-  id: string;
-  team: Team;
-};
+type AssignableTeam = {display: string; email: string; id: string; team: Team};
 
 export type AssigneeGroup = Pick<Group, 'assignedTo' | 'id' | 'owners'> & {
   project: Pick<Group['project'], 'id' | 'slug'>;
@@ -327,11 +322,7 @@ export function AssigneeSelectorDropdown({
         if (owner.type === 'user') {
           const member = currentMemberList.find(user => user.id === owner.id);
           if (member) {
-            return {
-              ...owner,
-              name: owner.name || member.name,
-              assignee: member,
-            };
+            return {...owner, name: owner.name || member.name, assignee: member};
           }
         }
         if (owner.type === 'team') {
@@ -384,23 +375,14 @@ export function AssigneeSelectorDropdown({
         assignableTeam => assignableTeam.team.id === assigneeId
       )!;
       // Convert AssingableTeam to Actor
-      assignee = {
-        id: assignedTeam.id,
-        name: assignedTeam.team.slug,
-        type: 'team',
-      };
+      assignee = {id: assignedTeam.id, name: assignedTeam.team.slug, type: 'team'};
     }
     // Assignee is guaranteed to exist here, but we check to satisfy the type-checker
     if (assignee && onAssign) {
       const suggestedAssignee = getSuggestedAssignees().find(
         actor => actor.type === type && actor.id === assignee.id
       );
-      onAssign({
-        assignee,
-        id: assigneeId,
-        type,
-        suggestedAssignee,
-      });
+      onAssign({assignee, id: assigneeId, type, suggestedAssignee});
     }
   };
 
@@ -590,11 +572,7 @@ export function AssigneeSelectorDropdown({
           aria-label={t('Modify issue assignee: %s', triggerLabel)}
           avatar={
             actor
-              ? getAvatarButtonAvatar({
-                  actor,
-                  assignee,
-                  suggested: !group.assignedTo,
-                })
+              ? getAvatarButtonAvatar({actor, assignee, suggested: !group.assignedTo})
               : undefined
           }
           busy={loading}

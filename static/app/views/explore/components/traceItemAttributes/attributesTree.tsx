@@ -48,10 +48,7 @@ interface AttributesTreeColumnData {
   startIndex: number;
 }
 
-type AttributeItem = {
-  fieldKey: string;
-  value: string | number | null;
-};
+type AttributeItem = {fieldKey: string; value: string | number | null};
 
 export type AttributesFieldRendererProps<RendererExtra extends RenderFunctionBaggage> = {
   extra: RendererExtra;
@@ -181,9 +178,7 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
   getCustomActions,
   pinnedAttribute,
 }: AttributesTreeRowProps<RendererExtra> &
-  AttributesFieldRender<RendererExtra> & {
-    uniqueKey: string;
-  }): React.ReactNode[] {
+  AttributesFieldRender<RendererExtra> & {uniqueKey: string}): React.ReactNode[] {
   const subtreeAttributes = Object.keys(content.subtree);
   const subtreeRows = subtreeAttributes.reduce(
     (rows: React.ReactNode[], attribute, i) => {

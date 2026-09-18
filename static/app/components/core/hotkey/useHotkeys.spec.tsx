@@ -26,12 +26,7 @@ describe('useHotkeys', () => {
   let events: Record<string, (evt: any) => void> = {};
 
   function makeKeyEventFixture(key: string, options: any = {}) {
-    return {
-      key,
-      code: keyToCode(key),
-      preventDefault: jest.fn(),
-      ...options,
-    };
+    return {key, code: keyToCode(key), preventDefault: jest.fn(), ...options};
   }
 
   beforeEach(() => {
@@ -49,9 +44,7 @@ describe('useHotkeys', () => {
   it('handles a simple match', () => {
     const callback = jest.fn();
 
-    renderHook(p => useHotkeys(p), {
-      initialProps: [{match: 'ctrl+s', callback}],
-    });
+    renderHook(p => useHotkeys(p), {initialProps: [{match: 'ctrl+s', callback}]});
 
     expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
@@ -160,9 +153,7 @@ describe('useHotkeys', () => {
   it('skips input and textarea', () => {
     const callback = jest.fn();
 
-    renderHook(p => useHotkeys(p), {
-      initialProps: [{match: ['/'], callback}],
-    });
+    renderHook(p => useHotkeys(p), {initialProps: [{match: ['/'], callback}]});
 
     events.keydown!(makeKeyEventFixture('/', {target: document.createElement('input')}));
 
@@ -221,16 +212,9 @@ describe('useHotkeys', () => {
     // though the physical position differs from QWERTY.
     const callback = jest.fn();
 
-    renderHook(p => useHotkeys(p), {
-      initialProps: [{match: 'command+k', callback}],
-    });
+    renderHook(p => useHotkeys(p), {initialProps: [{match: 'command+k', callback}]});
 
-    events.keydown!({
-      key: 'k',
-      code: 'KeyK',
-      metaKey: true,
-      preventDefault: jest.fn(),
-    });
+    events.keydown!({key: 'k', code: 'KeyK', metaKey: true, preventDefault: jest.fn()});
 
     expect(callback).toHaveBeenCalled();
   });
@@ -240,16 +224,9 @@ describe('useHotkeys', () => {
     // (Cyrillic ka), `event.code === 'KeyK'`. The code-arm fallback fires.
     const callback = jest.fn();
 
-    renderHook(p => useHotkeys(p), {
-      initialProps: [{match: 'command+k', callback}],
-    });
+    renderHook(p => useHotkeys(p), {initialProps: [{match: 'command+k', callback}]});
 
-    events.keydown!({
-      key: 'к',
-      code: 'KeyK',
-      metaKey: true,
-      preventDefault: jest.fn(),
-    });
+    events.keydown!({key: 'к', code: 'KeyK', metaKey: true, preventDefault: jest.fn()});
 
     expect(callback).toHaveBeenCalled();
   });
@@ -257,9 +234,7 @@ describe('useHotkeys', () => {
   it('matches Escape via event.key', () => {
     const callback = jest.fn();
 
-    renderHook(p => useHotkeys(p), {
-      initialProps: [{match: 'Escape', callback}],
-    });
+    renderHook(p => useHotkeys(p), {initialProps: [{match: 'Escape', callback}]});
 
     events.keydown!({key: 'Escape', code: 'Escape', preventDefault: jest.fn()});
 
@@ -269,9 +244,7 @@ describe('useHotkeys', () => {
   it('matches arrow keys via event.key', () => {
     const callback = jest.fn();
 
-    renderHook(p => useHotkeys(p), {
-      initialProps: [{match: 'left', callback}],
-    });
+    renderHook(p => useHotkeys(p), {initialProps: [{match: 'left', callback}]});
 
     events.keydown!({key: 'ArrowLeft', code: 'ArrowLeft', preventDefault: jest.fn()});
 
@@ -281,9 +254,7 @@ describe('useHotkeys', () => {
   it('matches vim-style alternatives alongside arrow keys', () => {
     const callback = jest.fn();
 
-    renderHook(p => useHotkeys(p), {
-      initialProps: [{match: ['left', 'h'], callback}],
-    });
+    renderHook(p => useHotkeys(p), {initialProps: [{match: ['left', 'h'], callback}]});
 
     events.keydown!({key: 'ArrowLeft', code: 'ArrowLeft', preventDefault: jest.fn()});
     expect(callback).toHaveBeenCalledTimes(1);
@@ -354,12 +325,7 @@ describe('useHotkeys', () => {
       initialProps: [{match: 'mod+/', callback, includeInputs: true}],
     });
 
-    const evt = {
-      key: '+',
-      code: 'Slash',
-      metaKey: true,
-      preventDefault: jest.fn(),
-    };
+    const evt = {key: '+', code: 'Slash', metaKey: true, preventDefault: jest.fn()};
     events.keydown!(evt);
 
     expect(callback).not.toHaveBeenCalled();
@@ -377,9 +343,7 @@ describe('useHotkeys', () => {
       isMac.mockReturnValue(true);
       const callback = jest.fn();
 
-      renderHook(p => useHotkeys(p), {
-        initialProps: [{match: 'mod+k', callback}],
-      });
+      renderHook(p => useHotkeys(p), {initialProps: [{match: 'mod+k', callback}]});
 
       events.keydown!(makeKeyEventFixture('k', {metaKey: true}));
       expect(callback).toHaveBeenCalledTimes(1);
@@ -392,9 +356,7 @@ describe('useHotkeys', () => {
       isMac.mockReturnValue(false);
       const callback = jest.fn();
 
-      renderHook(p => useHotkeys(p), {
-        initialProps: [{match: 'mod+k', callback}],
-      });
+      renderHook(p => useHotkeys(p), {initialProps: [{match: 'mod+k', callback}]});
 
       events.keydown!(makeKeyEventFixture('k', {ctrlKey: true}));
       expect(callback).toHaveBeenCalledTimes(1);
@@ -409,9 +371,7 @@ describe('useHotkeys', () => {
       isMac.mockReturnValue(true);
       const callback = jest.fn();
 
-      renderHook(p => useHotkeys(p), {
-        initialProps: [{match: 'mod+k', callback}],
-      });
+      renderHook(p => useHotkeys(p), {initialProps: [{match: 'mod+k', callback}]});
 
       events.keydown!(makeKeyEventFixture('k', {metaKey: true, ctrlKey: true}));
       expect(callback).not.toHaveBeenCalled();

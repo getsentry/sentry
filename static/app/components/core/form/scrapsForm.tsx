@@ -49,10 +49,7 @@ export const defaultFormOptions = formOptions({
 
     InvalidInput?.focus();
   },
-  validationLogic: revalidateLogic({
-    mode: 'submit',
-    modeAfterSubmission: 'change',
-  }),
+  validationLogic: revalidateLogic({mode: 'submit', modeAfterSubmission: 'change'}),
 });
 
 const fieldComponents = {
@@ -74,12 +71,7 @@ export type BoundFieldComponents = typeof fieldComponents;
 
 const {useAppForm, withFieldGroup, withForm} = createFormHook({
   fieldComponents,
-  formComponents: {
-    FieldGroup,
-    SubmitButton,
-    ResetButton,
-    AppForm,
-  },
+  formComponents: {FieldGroup, SubmitButton, ResetButton, AppForm},
   fieldContext,
   formContext,
 });
@@ -186,10 +178,6 @@ export function setFieldErrors<
     return false;
   }
 
-  formApi.setErrorMap({
-    onSubmit: {
-      fields: errors,
-    },
-  });
+  formApi.setErrorMap({onSubmit: {fields: errors}});
   return true;
 }

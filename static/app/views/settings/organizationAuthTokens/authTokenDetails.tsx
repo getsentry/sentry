@@ -37,10 +37,7 @@ import {
   tokenPreview,
 } from 'sentry/views/settings/organizationAuthTokens';
 
-type FetchOrgAuthTokenParameters = {
-  orgSlug: string;
-  tokenId: string;
-};
+type FetchOrgAuthTokenParameters = {orgSlug: string; tokenId: string};
 type FetchOrgAuthTokenResponse = OrgAuthToken;
 
 const makeFetchOrgAuthTokenKey = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>
@@ -50,9 +47,7 @@ const makeFetchOrgAuthTokenKey = ({orgSlug, tokenId}: FetchOrgAuthTokenParameter
     }),
   ] as const;
 
-const schema = z.object({
-  name: z.string().min(1, t('Name is required')),
-});
+const schema = z.object({name: z.string().min(1, t('Name is required'))});
 
 function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
   const organization = useOrganization();
@@ -185,9 +180,7 @@ function OrganizationAuthTokensDetails() {
     refetch: refetchToken,
   } = useApiQuery<FetchOrgAuthTokenResponse>(
     makeFetchOrgAuthTokenKey({orgSlug: organization.slug, tokenId}),
-    {
-      staleTime: Infinity,
-    }
+    {staleTime: Infinity}
   );
 
   return (
@@ -203,9 +196,7 @@ function OrganizationAuthTokensDetails() {
       <TextBlock>
         {tct(
           'For more information on how to use the web API, see our [link:documentation].',
-          {
-            link: <ExternalLink href="https://docs.sentry.io/api/" />,
-          }
+          {link: <ExternalLink href="https://docs.sentry.io/api/" />}
         )}
       </TextBlock>
 

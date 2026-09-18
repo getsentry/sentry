@@ -80,12 +80,7 @@ describe('GroupEventAttachments', () => {
     await userEvent.click(screen.getByRole('radio', {name: 'Screenshots'}));
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',
-      expect.objectContaining({
-        query: {
-          screenshot: '1',
-          environment: [],
-        },
-      })
+      expect.objectContaining({query: {screenshot: '1', environment: []}})
     );
   });
 

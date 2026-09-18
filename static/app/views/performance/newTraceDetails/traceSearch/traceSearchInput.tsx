@@ -109,9 +109,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   };
 
   const onSearchClear = useCallback(() => {
-    trackAnalytics('trace.trace_layout.search_clear', {
-      organization,
-    });
+    trackAnalytics('trace.trace_layout.search_clear', {organization});
     traceDispatch({type: 'clear query'});
 
     if (inputRef.current) {
@@ -127,9 +125,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
           direction: 'next',
           interaction: 'arrowKey',
         });
-        traceDispatch({
-          type: event.shiftKey ? 'go to last match' : 'go to next match',
-        });
+        traceDispatch({type: event.shiftKey ? 'go to last match' : 'go to next match'});
         break;
       case 'ArrowUp':
         trackAnalytics('trace.trace_layout.search_match_navigate', {

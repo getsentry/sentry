@@ -6,11 +6,7 @@ import {
 } from './flamegraph/flamegraphToolbar/flamegraphSearch';
 
 const f = (name: string) => {
-  return {
-    frame: {
-      name,
-    },
-  } as FlamegraphFrame;
+  return {frame: {name}} as FlamegraphFrame;
 };
 
 describe('fzf', () => {

@@ -271,11 +271,7 @@ function IssueListOverviewInner({
   }, [selection, query, sort, getGroupStatsPeriod]);
 
   const requestParams = useMemo(() => {
-    const params: any = {
-      ...getEndpointParams(),
-      limit: MAX_ITEMS,
-      shortIdLookup: 1,
-    };
+    const params: any = {...getEndpointParams(), limit: MAX_ITEMS, shortIdLookup: 1};
 
     const cursor = decodeScalar(location.query.cursor);
     if (cursor) {
@@ -348,10 +344,7 @@ function IssueListOverviewInner({
           getApiUrl('/organizations/$organizationIdOrSlug/issues-stats/', {
             path: {organizationIdOrSlug: organization.slug},
           }),
-          {
-            method: 'GET',
-            data: qs.stringify(statsRequestParams),
-          }
+          {method: 'GET', data: qs.stringify(statsRequestParams)}
         );
 
         if (data) {
@@ -381,17 +374,8 @@ function IssueListOverviewInner({
   const resetNewViewQueryParam = useCallback(() => {
     if (location.query.new) {
       navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            new: undefined,
-          },
-        },
-        {
-          replace: true,
-          preventScrollReset: true,
-        }
+        {pathname: location.pathname, query: {...location.query, new: undefined}},
+        {replace: true, preventScrollReset: true}
       );
     }
   }, [location.pathname, navigate, location.query]);
@@ -420,11 +404,7 @@ function IssueListOverviewInner({
         getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'GET',
-          data: qs.stringify(requestParams),
-          includeAllArgs: true,
-        }
+        {method: 'GET', data: qs.stringify(requestParams), includeAllArgs: true}
       );
 
       if (!resp) {
@@ -649,20 +629,14 @@ function IssueListOverviewInner({
       numPreviousIssues = 0;
     }
 
-    return {
-      numPreviousIssues,
-      numIssuesOnPage: groupIds.length,
-    };
+    return {numPreviousIssues, numIssuesOnPage: groupIds.length};
   }, [pageLinks, location, queryCount, allResultsVisible, groupIds.length]);
 
   const onRealtimeChange = useCallback(
     (realtime: boolean) => {
       Cookies.set('realtimeActive', realtime.toString());
       setRealtimeActive(realtime);
-      trackAnalytics('issues_stream.realtime_clicked', {
-        organization,
-        enabled: realtime,
-      });
+      trackAnalytics('issues_stream.realtime_clicked', {organization, enabled: realtime});
     },
     [organization]
   );
@@ -681,10 +655,7 @@ function IssueListOverviewInner({
       delete queryData.sort;
     }
 
-    navigate({
-      pathname: location.pathname,
-      query: queryData,
-    });
+    navigate({pathname: location.pathname, query: queryData});
   };
 
   const onSearch = (newQuery: string) => {
@@ -697,10 +668,7 @@ function IssueListOverviewInner({
   };
 
   const onSortChange = (newSort: string) => {
-    trackAnalytics('issues_stream.sort_changed', {
-      organization,
-      sort: newSort,
-    });
+    trackAnalytics('issues_stream.sort_changed', {organization, sort: newSort});
     if (
       hasRecommendedSortDefault &&
       !urlParams.viewId &&
@@ -753,10 +721,7 @@ function IssueListOverviewInner({
       const response = await api.requestPromise(endpoint, {
         method: 'PUT',
         data,
-        query: {
-          project: projectIds,
-          id: groupItems.map(group => group.id),
-        },
+        query: {project: projectIds, id: groupItems.map(group => group.id)},
       });
 
       if (response) {
@@ -796,10 +761,7 @@ function IssueListOverviewInner({
       });
     } else {
       const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-      addMessage(`${actionType} ${shortId}`, 'success', {
-        duration: 4000,
-        undo,
-      });
+      addMessage(`${actionType} ${shortId}`, 'success', {duration: 4000, undo});
     }
 
     if (!shouldRemove) {
@@ -901,10 +863,7 @@ function IssueListOverviewInner({
   };
 
   const paginationAnalyticsEvent = (direction: string) => {
-    trackAnalytics('issues_stream.paginate', {
-      organization,
-      direction,
-    });
+    trackAnalytics('issues_stream.paginate', {organization, direction});
   };
 
   const modifiedQueryCount = Math.max(queryCount, 0);

@@ -19,23 +19,11 @@ export function getUnityContextData({data}: {data: UnityContext}): KeyValueListD
           value: data.copy_texture_support,
         };
       case UnityContextKey.EDITOR_VERSION:
-        return {
-          key: ctxKey,
-          subject: t('Editor Version'),
-          value: data.editor_version,
-        };
+        return {key: ctxKey, subject: t('Editor Version'), value: data.editor_version};
       case UnityContextKey.INSTALL_MODE:
-        return {
-          key: ctxKey,
-          subject: t('Install Mode'),
-          value: data.install_mode,
-        };
+        return {key: ctxKey, subject: t('Install Mode'), value: data.install_mode};
       case UnityContextKey.IS_MAIN_THREAD:
-        return {
-          key: ctxKey,
-          subject: t('Is Main Thread'),
-          value: data.is_main_thread,
-        };
+        return {key: ctxKey, subject: t('Is Main Thread'), value: data.is_main_thread};
       case UnityContextKey.RENDERING_THREADING_MODE:
         return {
           key: ctxKey,

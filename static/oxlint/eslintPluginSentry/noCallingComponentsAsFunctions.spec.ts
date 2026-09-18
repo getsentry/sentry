@@ -3,11 +3,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 import {noCallingComponentsAsFunctions} from './noCallingComponentsAsFunctions';
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      ecmaFeatures: {jsx: true},
-    },
-  },
+  languageOptions: {parserOptions: {ecmaFeatures: {jsx: true}}},
 });
 
 ruleTester.run('no-calling-components-as-functions', noCallingComponentsAsFunctions, {
@@ -62,16 +58,12 @@ ruleTester.run('no-calling-components-as-functions', noCallingComponentsAsFuncti
     {
       code: 'import {DO_NOT_USE_getButtonStyles} from "./styles"; const x = DO_NOT_USE_getButtonStyles({size: "md"});',
     },
-    {
-      code: 'import {DANGEROUS_SET_FOO} from "./foo"; DANGEROUS_SET_FOO({foo: 1});',
-    },
+    {code: 'import {DANGEROUS_SET_FOO} from "./foo"; DANGEROUS_SET_FOO({foo: 1});'},
     {
       code: 'const BREAKPOINTS = (theme) => ({ mobile: 0 }); const x = BREAKPOINTS(theme);',
     },
     // Multiple arguments — not a component call pattern
-    {
-      code: 'import {Component} from "./c"; const x = Component({a: 1}, {b: 2});',
-    },
+    {code: 'import {Component} from "./c"; const x = Component({a: 1}, {b: 2});'},
     // MemberExpression callee — not a simple Identifier
     {code: 'const x = obj.Component({a: 1});'},
     // Literal argument

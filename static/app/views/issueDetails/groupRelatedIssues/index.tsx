@@ -18,10 +18,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 type RelatedIssuesResponse = {
   data: number[];
-  meta: {
-    event_id: string;
-    trace_id: string;
-  };
+  meta: {event_id: string; trace_id: string};
   type: string;
 };
 
@@ -52,15 +49,9 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
       getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/related-issues/', {
         path: {organizationIdOrSlug: organization.slug, issueId: group.id},
       }),
-      {
-        query: {
-          type: relationType,
-        },
-      },
+      {query: {type: relationType}},
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   const traceMeta = relationType === 'trace_connected' ? relatedIssues?.meta : undefined;
@@ -113,9 +104,7 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
             </Flex>
           </HeaderWrapper>
           <GroupList
-            queryParams={{
-              query,
-            }}
+            queryParams={{query}}
             source="similar-issues-tab"
             canSelectGroups={false}
             withChart={false}

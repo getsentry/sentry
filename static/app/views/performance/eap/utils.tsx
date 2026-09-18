@@ -8,10 +8,7 @@ import {TransactionFilterOptions} from 'sentry/views/performance/transactionSumm
 export function getEAPSegmentSpansListSort(
   location: Location,
   spanCategory?: string
-): {
-  options: DropdownOption[];
-  selected: DropdownOption;
-} {
+): {options: DropdownOption[]; selected: DropdownOption} {
   const sortOptions = getEAPFilterOptions(spanCategory);
   const urlParam = decodeScalar(
     location.query.showTransactions,

@@ -53,11 +53,7 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
     search: {
       ...DEFAULT_FLAMEGRAPH_STATE.search,
       highlightFrames: isValidHighlightFrame(initialState?.search?.highlightFrames)
-        ? {
-            name: undefined,
-            package: undefined,
-            ...initialState?.search?.highlightFrames,
-          }
+        ? {name: undefined, package: undefined, ...initialState?.search?.highlightFrames}
         : isValidHighlightFrame(DEFAULT_FLAMEGRAPH_STATE.search.highlightFrames)
           ? DEFAULT_FLAMEGRAPH_STATE.search.highlightFrames
           : null,

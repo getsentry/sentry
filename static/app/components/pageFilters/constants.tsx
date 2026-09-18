@@ -17,12 +17,7 @@ export const PAGE_URL_PARAM = {
   PAGE_PERIOD: 'pageStatsPeriod',
 };
 
-const DATE_TIME = {
-  START: 'start',
-  END: 'end',
-  PERIOD: 'period',
-  UTC: 'utc',
-};
+const DATE_TIME = {START: 'start', END: 'end', PERIOD: 'period', UTC: 'utc'};
 
 export const DATE_TIME_KEYS = [...Object.values(DATE_TIME), 'statsPeriod'];
 
@@ -40,11 +35,6 @@ export function getDefaultPageFilterSelection(): PageFilters {
   return {
     projects: [],
     environments: [],
-    datetime: {
-      start: null,
-      end: null,
-      period: DEFAULT_STATS_PERIOD,
-      utc: null,
-    },
+    datetime: {start: null, end: null, period: DEFAULT_STATS_PERIOD, utc: null},
   };
 }

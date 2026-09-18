@@ -18,21 +18,13 @@ import type {
 
 type Props = {api: Client; orgId: string} & AdminConfirmRenderProps;
 
-type State = {
-  deliveryEmail: string;
-  dryRun: boolean;
-  targetEmail: string;
-};
+type State = {deliveryEmail: string; dryRun: boolean; targetEmail: string};
 
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
 class SendWeeklyEmailAction extends Component<Props, State> {
-  state: State = {
-    dryRun: false,
-    targetEmail: '',
-    deliveryEmail: '',
-  };
+  state: State = {dryRun: false, targetEmail: '', deliveryEmail: ''};
 
   componentDidMount() {
     this.props.setConfirmCallback(this.handleConfirm);

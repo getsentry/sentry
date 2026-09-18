@@ -35,20 +35,11 @@ export function RetryableAutofixSection({
   step: AutofixExplorerStep;
 }) {
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
-    useResetAutofixStep({
-      autofix,
-      section,
-      step,
-    });
+    useResetAutofixStep({autofix, section, step});
 
   return (
     <RetryableAutofixSectionContext
-      value={{
-        canReset,
-        handleReset,
-        setShouldShowReset,
-        shouldShowReset,
-      }}
+      value={{canReset, handleReset, setShouldShowReset, shouldShowReset}}
     >
       {children}
     </RetryableAutofixSectionContext>

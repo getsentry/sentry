@@ -28,9 +28,7 @@ export function UserFeedbackBadge({group, project}: {group: Group; project: Proj
         type="button"
         variant="link"
         icon={<IconMegaphone size="xs" />}
-        to={{
-          pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
-        }}
+        to={{pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`}}
         replace
         aria-label={t("View this issue's feedback")}
       >

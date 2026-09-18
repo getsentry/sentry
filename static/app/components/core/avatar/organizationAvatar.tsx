@@ -31,45 +31,20 @@ function getOrganizationAvatarProps(
   const name = organization.name || organization.slug;
 
   if (!organization.avatar?.avatarType) {
-    return {
-      type: 'letter_avatar',
-      identifier,
-      name,
-      title: name,
-    };
+    return {type: 'letter_avatar', identifier, name, title: name};
   }
 
   switch (organization.avatar?.avatarType) {
     case 'letter_avatar':
-      return {
-        type: 'letter_avatar',
-        identifier,
-        name,
-        title: name,
-      };
+      return {type: 'letter_avatar', identifier, name, title: name};
     case 'upload':
       if (!organization.avatar.avatarUrl) {
-        return {
-          type: 'letter_avatar',
-          identifier,
-          name,
-          title: name,
-        };
+        return {type: 'letter_avatar', identifier, name, title: name};
       }
-      return {
-        type: 'upload',
-        uploadUrl: organization.avatar.avatarUrl,
-        identifier,
-        name,
-      };
+      return {type: 'upload', uploadUrl: organization.avatar.avatarUrl, identifier, name};
     case 'gravatar':
       if (!organization.avatar.avatarUrl) {
-        return {
-          type: 'letter_avatar',
-          identifier,
-          name,
-          title: name,
-        };
+        return {type: 'letter_avatar', identifier, name, title: name};
       }
       return {
         type: 'gravatar',
@@ -78,11 +53,6 @@ function getOrganizationAvatarProps(
         name,
       };
     default:
-      return {
-        type: 'letter_avatar',
-        identifier,
-        name,
-        title: name,
-      };
+      return {type: 'letter_avatar', identifier, name, title: name};
   }
 }

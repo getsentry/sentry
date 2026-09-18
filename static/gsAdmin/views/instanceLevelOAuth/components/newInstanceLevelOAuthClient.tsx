@@ -25,10 +25,7 @@ type ClientFormValues = {
   termsUrl: string;
 };
 
-type ClientResponse = {
-  clientID: string;
-  clientSecret: string;
-};
+type ClientResponse = {clientID: string; clientSecret: string};
 
 const urlValidation = z
   .string()

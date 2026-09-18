@@ -19,9 +19,7 @@ interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
   isPressed?: boolean;
 }
 
-const defaultProps = {
-  hasSelectedBackground: true,
-};
+const defaultProps = {hasSelectedBackground: true};
 
 /**
  * use core components with built-in interaction states

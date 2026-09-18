@@ -13,11 +13,7 @@ import {
   type SourceMapsDebuggerModalProps,
 } from './sourceMapsDebuggerModal';
 
-const defaultAnalyticsParams = {
-  event_id: '12345',
-  project_id: '1',
-  organization: null,
-};
+const defaultAnalyticsParams = {event_id: '12345', project_id: '1', organization: null};
 
 const defaultSourceResolutionResults: FrameSourceMapDebuggerData = {
   debugIdProgress: 0,

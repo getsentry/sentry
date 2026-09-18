@@ -89,15 +89,11 @@ declare const __LOADER__QUEUEABLE_APIS__: any;
 
   function onError() {
     // Use keys as "data type" to save some characters"
-    enqueue({
-      e: [].slice.call(arguments),
-    });
+    enqueue({e: [].slice.call(arguments)});
   }
 
   function onUnhandledRejection(p) {
-    enqueue({
-      p,
-    });
+    enqueue({p});
   }
 
   function onSentryCDNScriptLoaded() {

@@ -1,41 +1,20 @@
 type StarfishEventParameters = {
-  'starfish.chart.zoom': {
-    end: number;
-    start: number;
-    route?: string;
-  };
-  'starfish.page_filter.data_change': {
-    end: string;
-    relative: string;
-    start: string;
-  };
-  'starfish.pageview': {
-    route: string;
-  };
-  'starfish.request': {
-    duration: number;
-    statusCode?: string;
-  };
-  'starfish.samples.loaded': {
-    count: number;
-  };
-  'starfish.web_service_view.breakdown.display_change': {
-    display: string;
-  };
+  'starfish.chart.zoom': {end: number; start: number; route?: string};
+  'starfish.page_filter.data_change': {end: string; relative: string; start: string};
+  'starfish.pageview': {route: string};
+  'starfish.request': {duration: number; statusCode?: string};
+  'starfish.samples.loaded': {count: number};
+  'starfish.web_service_view.breakdown.display_change': {display: string};
   'starfish.web_service_view.breakdown.legend_change': {
     selected: string[];
     toggled: string;
   };
-  'starfish.web_service_view.endpoint_list.endpoint.clicked': {
-    endpoint: string;
-  };
+  'starfish.web_service_view.endpoint_list.endpoint.clicked': {endpoint: string};
   'starfish.web_service_view.endpoint_list.header.clicked': {
     direction: string;
     header: string;
   };
-  'starfish.web_service_view.endpoint_list.search': {
-    query: string;
-  };
+  'starfish.web_service_view.endpoint_list.search': {query: string};
 };
 
 export const starfishEventMap: Record<keyof StarfishEventParameters, string> = {

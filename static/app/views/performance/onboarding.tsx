@@ -145,10 +145,7 @@ export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-type OnboardingProps = {
-  organization: Organization;
-  project: Project;
-};
+type OnboardingProps = {organization: Organization; project: Project};
 
 export function LegacyOnboarding({organization, project}: OnboardingProps) {
   const {projects} = useProjects();
@@ -166,19 +163,11 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
   }, [location.hash, projectsForOnboarding, project.id]);
 
   function handleAdvance(step: number, duration: number) {
-    trackAnalytics('performance_views.tour.advance', {
-      step,
-      duration,
-      organization,
-    });
+    trackAnalytics('performance_views.tour.advance', {step, duration, organization});
   }
 
   function handleClose(step: number, duration: number) {
-    trackAnalytics('performance_views.tour.close', {
-      step,
-      duration,
-      organization,
-    });
+    trackAnalytics('performance_views.tour.close', {step, duration, organization});
   }
 
   const currentPlatform = project.platform;
@@ -425,10 +414,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const received = !!firstIssue;
 
   const tracesQuery = useQuery({
-    ...useTracesApiOptions({
-      limit: 1,
-      sort: 'timestamp',
-    }),
+    ...useTracesApiOptions({limit: 1, sort: 'timestamp'}),
     enabled: received,
     refetchInterval: query => {
       const trace = query.state.data?.json?.data?.[0]?.trace;
@@ -540,10 +526,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
     feedbackOptions: {},
     urlPrefix,
@@ -564,10 +547,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
         onStepChange={step => {
           navigate({
             pathname: location.pathname,
-            query: {
-              ...location.query,
-              guidedStep: step,
-            },
+            query: {...location.query, guidedStep: step},
           });
         }}
       >

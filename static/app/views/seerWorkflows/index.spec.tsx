@@ -52,9 +52,7 @@ describe('SeerWorkflows', () => {
       url,
       method: 'POST',
       statusCode: 202,
-      body: {
-        runId: '2',
-      },
+      body: {runId: '2'},
     });
     const {router} = render(<SeerWorkflows />, {
       organization: scanOrganization,
@@ -142,10 +140,7 @@ describe('SeerWorkflows', () => {
       {id: '3', strategy: 'future_strategy'},
       {id: '4', strategy: 'constructor'},
     ];
-    MockApiClient.addMockResponse({
-      url,
-      body: [...unsupportedRuns, runningRun],
-    });
+    MockApiClient.addMockResponse({url, body: [...unsupportedRuns, runningRun]});
     render(<SeerWorkflows />, {
       organization,
       initialRouterConfig: {

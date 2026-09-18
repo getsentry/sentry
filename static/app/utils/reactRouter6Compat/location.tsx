@@ -13,9 +13,7 @@ export function locationDescriptorToTo(path: LocationDescriptor): To {
 
   let query = path.query ? {...path.query} : undefined;
 
-  const to: To = {
-    pathname: path.pathname,
-  };
+  const to: To = {pathname: path.pathname};
 
   // XXX(epurkhiser): In react router 3 it was possible to include the search
   // query parameters in te pathname field of a LocationDescriptor. You can no

@@ -39,9 +39,7 @@ describe('SavedQueries API helpers', () => {
       const response = await handleCreateQuery(api, organization, errorsView, yAxis);
       expect(mockCall).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: expect.objectContaining({yAxis}),
-        })
+        expect.objectContaining({data: expect.objectContaining({yAxis})})
       );
       expect(response).toEqual({data: {}, fromBody: {}});
     });
@@ -60,9 +58,7 @@ describe('SavedQueries API helpers', () => {
       const response = await handleUpdateQuery(api, organization, errorsView, yAxis);
       expect(mockCall).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: expect.objectContaining({yAxis}),
-        })
+        expect.objectContaining({data: expect.objectContaining({yAxis})})
       );
       expect(response).toEqual({data: {}, fromBody: {}});
     });

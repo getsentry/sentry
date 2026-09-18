@@ -64,10 +64,7 @@ describe('Wizard utils', () => {
 
   it('extracts error count alert', () => {
     expect(
-      getAlertTypeFromAggregateDataset({
-        aggregate: 'count()',
-        dataset: Dataset.ERRORS,
-      })
+      getAlertTypeFromAggregateDataset({aggregate: 'count()', dataset: Dataset.ERRORS})
     ).toBe('num_errors');
   });
 

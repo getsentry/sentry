@@ -51,12 +51,7 @@ export function ReleasesDrawer() {
       : defaultPageFilters.selection.environments,
     datetime:
       start && end
-        ? {
-            start,
-            end,
-            period: null,
-            utc: null,
-          }
+        ? {start, end, period: null, utc: null}
         : defaultPageFilters.selection.datetime,
   };
 

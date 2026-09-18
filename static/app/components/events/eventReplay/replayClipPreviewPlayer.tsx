@@ -36,9 +36,7 @@ export function ReplayClipPreviewPlayer({
 }: Props) {
   const organization = useOrganization();
 
-  useLogEventReplayStatus({
-    readerResult: replayReaderResult,
-  });
+  useLogEventReplayStatus({readerResult: replayReaderResult});
 
   return (
     <ReplayLoadingState

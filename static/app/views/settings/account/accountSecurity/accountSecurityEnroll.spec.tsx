@@ -30,13 +30,7 @@ describe('AccountSecurityEnroll', () => {
       isEnrolled: false,
       qrcode: 'otpauth://totp/test%40sentry.io?issuer=Sentry&secret=secret',
       secret: 'secret',
-      form: [
-        {
-          type: 'string',
-          name: 'otp',
-          label: 'OTP Code',
-        },
-      ],
+      form: [{type: 'string', name: 'otp', label: 'OTP Code'}],
     });
 
     beforeEach(() => {
@@ -208,10 +202,7 @@ describe('AccountSecurityEnroll', () => {
         `${ENDPOINT}${authenticator.id}/enroll/`,
         expect.objectContaining({
           method: 'POST',
-          data: expect.objectContaining({
-            secret: 'secret',
-            otp: 'otp',
-          }),
+          data: expect.objectContaining({secret: 'secret', otp: 'otp'}),
         })
       );
       expect(fetchOrgsMock).not.toHaveBeenCalled();
@@ -259,10 +250,7 @@ describe('AccountSecurityEnroll', () => {
         `${ENDPOINT}${authenticator.id}/enroll/`,
         expect.objectContaining({
           method: 'POST',
-          data: expect.objectContaining({
-            secret: 'secret',
-            otp: 'otp',
-          }),
+          data: expect.objectContaining({secret: 'secret', otp: 'otp'}),
         })
       );
       expect(fetchOrgsMock).toHaveBeenCalledTimes(1);
@@ -300,16 +288,8 @@ describe('AccountSecurityEnroll', () => {
       isEnrolled: false,
       secret: 'sms-secret',
       form: [
-        {
-          type: 'string',
-          name: 'phone',
-          label: 'Phone number',
-        },
-        {
-          type: 'string',
-          name: 'otp',
-          label: 'Authenticator code',
-        },
+        {type: 'string', name: 'phone', label: 'Phone number'},
+        {type: 'string', name: 'otp', label: 'Authenticator code'},
       ],
     });
 
@@ -347,10 +327,7 @@ describe('AccountSecurityEnroll', () => {
           `${ENDPOINT}${authenticator.id}/enroll/`,
           expect.objectContaining({
             method: 'POST',
-            data: {
-              phone: '+15555550123',
-              secret: 'sms-secret',
-            },
+            data: {phone: '+15555550123', secret: 'sms-secret'},
           })
         );
       });
@@ -435,9 +412,7 @@ describe('AccountSecurityEnroll', () => {
       await waitFor(() => expect(verifyMock).toHaveBeenCalled());
       expect(verifyMock).toHaveBeenCalledWith(
         `${ENDPOINT}${authenticator.id}/enroll/`,
-        expect.objectContaining({
-          data: expect.objectContaining({secret: 'sms-secret'}),
-        })
+        expect.objectContaining({data: expect.objectContaining({secret: 'sms-secret'})})
       );
       expect(refetchMock).not.toHaveBeenCalled();
       expect(

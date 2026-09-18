@@ -83,14 +83,9 @@ export function UsageOverview({
           navigate(
             {
               pathname: location.pathname,
-              query: {
-                ...location.query,
-                product: selectedProduct,
-              },
+              query: {...location.query, product: selectedProduct},
             },
-            {
-              replace: true,
-            }
+            {replace: true}
           );
         }
       }
@@ -107,10 +102,7 @@ export function UsageOverview({
 
   return (
     <Grid
-      columns={{
-        zero: '1fr',
-        [SIDE_PANEL_MIN_CONTAINER_BREAKPOINT]: 'repeat(2, 1fr)',
-      }}
+      columns={{zero: '1fr', [SIDE_PANEL_MIN_CONTAINER_BREAKPOINT]: 'repeat(2, 1fr)'}}
       gap="lg"
       align="start"
     >
@@ -144,13 +136,7 @@ export function UsageOverview({
                 : {dataCategory: product as DataCategory}),
             });
             navigate(
-              {
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  product,
-                },
-              },
+              {pathname: location.pathname, query: {...location.query, product}},
               {replace: true}
             );
           }}

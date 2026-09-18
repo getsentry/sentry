@@ -3,9 +3,7 @@ import styled from '@emotion/styled';
 import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
-  className?: string;
-};
+type Props = {className?: string};
 
 export function BufferingOverlay({className}: Props) {
   return (

@@ -9,9 +9,7 @@ import {StatusCheckRules} from 'sentry/views/settings/project/preprod/statusChec
 describe('StatusCheckRules', () => {
   const {organization} = initializeOrg();
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/projects/test-project/preprod/`,
-    },
+    location: {pathname: `/settings/projects/test-project/preprod/`},
     route: '/settings/projects/:projectId/preprod/',
   };
 

@@ -21,9 +21,7 @@ export function useReorderStarredSavedQueries() {
           {path: {organizationIdOrSlug: organization.slug}}
         ),
         method: 'PUT',
-        data: {
-          query_ids: queries.map(query => query.id),
-        },
+        data: {query_ids: queries.map(query => query.id)},
       }),
     onMutate: (queries: SavedQuery[]) => {
       queryClient.setQueryData(queryKey, prevData =>

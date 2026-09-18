@@ -19,9 +19,7 @@ export function useDefaultToAllProjects() {
 
   useEffect(() => {
     if (initiallyLoaded && selection.projects.length === 0 && myProjects.length === 0) {
-      updateProjects([ALL_ACCESS_PROJECTS], undefined, undefined, {
-        save: true,
-      });
+      updateProjects([ALL_ACCESS_PROJECTS], undefined, undefined, {save: true});
     }
   }, [selection.projects.length, myProjects.length, initiallyLoaded]);
 }

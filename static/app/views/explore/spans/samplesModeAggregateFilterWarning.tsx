@@ -23,8 +23,6 @@ export function SamplesModeAggregateFilterWarning() {
 
   return tct(
     "This key won't affect the results because samples mode does not support aggregate functions. [link:View aggregates]",
-    {
-      link: <Link to={target} />,
-    }
+    {link: <Link to={target} />}
   );
 }

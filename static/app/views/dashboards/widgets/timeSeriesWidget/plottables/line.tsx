@@ -63,9 +63,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
             data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
               timeSeriesItemToEChartsDataPoint
             ),
-            lineStyle: {
-              type: 'dotted',
-            },
+            lineStyle: {type: 'dotted'},
             silent: true,
           })
         );

@@ -61,10 +61,7 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
     }
 
     Sentry.withScope(scope => {
-      scope.setContext('evidence data fields', {
-        fingerprint,
-        breakpoint,
-      });
+      scope.setContext('evidence data fields', {fingerprint, breakpoint});
 
       Sentry.captureException(
         new Error('Missing required evidence data on function regression issue.')
@@ -83,12 +80,7 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
     <Fragment>
       <FlamegraphThemeProvider>
         <FlamegraphStateProvider
-          initialState={{
-            preferences: {
-              sorting: 'alphabetical',
-              view: 'top down',
-            },
-          }}
+          initialState={{preferences: {sorting: 'alphabetical', view: 'top down'}}}
         >
           <EventDifferentialFlamegraphView
             project={project}
@@ -274,15 +266,9 @@ function paginationReducer(
       };
     }
     case 'next':
-      return {
-        ...state,
-        page: Math.min(state.page + 1, state.pageCount - 1),
-      };
+      return {...state, page: Math.min(state.page + 1, state.pageCount - 1)};
     case 'previous':
-      return {
-        ...state,
-        page: Math.max(state.page - 1, 0),
-      };
+      return {...state, page: Math.max(state.page - 1, 0)};
     default:
       return state;
   }
@@ -320,11 +306,7 @@ function DifferentialFlamegraphChangedFunctions(
     return () => dispatch({type: 'next'});
   }, [state.page, state.pageCount]);
   useEffect(() => {
-    dispatch({
-      list: props.functions,
-      pageSize: 5,
-      type: 'initialize',
-    });
+    dispatch({list: props.functions, pageSize: 5, type: 'initialize'});
   }, [props.functions]);
 
   return (
@@ -442,9 +424,7 @@ const RIGHT_ALIGN_PLACEHOLDER_STYLES: React.CSSProperties = {
   justifySelf: 'flex-end',
 };
 
-const MARGIN_BOTTOM_PLACEHOLDER_STYLES: React.CSSProperties = {
-  marginBottom: '4px',
-};
+const MARGIN_BOTTOM_PLACEHOLDER_STYLES: React.CSSProperties = {marginBottom: '4px'};
 
 const DifferentialFlamegraphChangedFunctionStats = styled('div')`
   text-align: right;

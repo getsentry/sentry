@@ -104,13 +104,7 @@ export function getRequestDataFragment({
     shouldCreateCustomRule: alertSetting === RuleAction.CUSTOMIZED_ALERTS,
     conditions:
       interval.length > 0 && threshold.length > 0
-        ? [
-            {
-              interval,
-              id: metricValueToConditionType(metric),
-              value: threshold,
-            },
-          ]
+        ? [{interval, id: metricValueToConditionType(metric), value: threshold}]
         : [],
     actions: [
       {

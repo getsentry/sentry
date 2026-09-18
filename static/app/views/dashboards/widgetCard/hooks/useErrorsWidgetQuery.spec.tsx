@@ -50,21 +50,14 @@ describe('useErrorsSeriesQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useErrorsSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useErrorsSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            dataset: DiscoverDatasets.ERRORS,
-          }),
+          query: expect.objectContaining({dataset: DiscoverDatasets.ERRORS}),
         })
       );
     });
@@ -89,12 +82,7 @@ describe('useErrorsSeriesQuery', () => {
     const endDate = new Date('2026-01-21T00:00:00.000Z');
 
     const pageFiltersWithDates = PageFiltersFixture({
-      datetime: {
-        start: startDate,
-        end: endDate,
-        period: null,
-        utc: true,
-      },
+      datetime: {start: startDate, end: endDate, period: null, utc: true},
     });
 
     PageFiltersStore.onInitializeUrlState(pageFiltersWithDates);
@@ -148,9 +136,7 @@ describe('useErrorsSeriesQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [[1, [{count: 100}]]],
-      },
+      body: {data: [[1, [{count: 100}]]]},
     });
 
     renderHookWithProviders(() =>
@@ -158,9 +144,7 @@ describe('useErrorsSeriesQuery', () => {
         widget,
         organization,
         pageFilters,
-        dashboardFilters: {
-          release: ['1.0.0'],
-        },
+        dashboardFilters: {release: ['1.0.0']},
         enabled: true,
       })
     );
@@ -202,9 +186,7 @@ describe('useErrorsSeriesQuery', () => {
 
     const mockRequest1 = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [[1, [{count: 100}]]],
-      },
+      body: {data: [[1, [{count: 100}]]]},
       match: [
         function (_url: string, options: Record<string, any>) {
           const yAxis = Array.isArray(options.query.yAxis)
@@ -217,9 +199,7 @@ describe('useErrorsSeriesQuery', () => {
 
     const mockRequest2 = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [[1, [{count: 50}]]],
-      },
+      body: {data: [[1, [{count: 50}]]]},
       match: [
         function (_url: string, options: Record<string, any>) {
           const yAxis = Array.isArray(options.query.yAxis)
@@ -231,12 +211,7 @@ describe('useErrorsSeriesQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useErrorsSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useErrorsSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -273,27 +248,18 @@ describe('useErrorsTableQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{count: 100}],
-      },
+      body: {data: [{count: 100}]},
     });
 
     renderHookWithProviders(() =>
-      useErrorsTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useErrorsTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            dataset: DiscoverDatasets.ERRORS,
-          }),
+          query: expect.objectContaining({dataset: DiscoverDatasets.ERRORS}),
         })
       );
     });
@@ -316,18 +282,11 @@ describe('useErrorsTableQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{trace: 'abc123', count: 100}],
-      },
+      body: {data: [{trace: 'abc123', count: 100}]},
     });
 
     renderHookWithProviders(() =>
-      useErrorsTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useErrorsTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -359,9 +318,7 @@ describe('useErrorsTableQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{count: 100}],
-      },
+      body: {data: [{count: 100}]},
     });
 
     renderHookWithProviders(() =>
@@ -369,9 +326,7 @@ describe('useErrorsTableQuery', () => {
         widget,
         organization,
         pageFilters,
-        dashboardFilters: {
-          release: ['1.0.0'],
-        },
+        dashboardFilters: {release: ['1.0.0']},
         enabled: true,
       })
     );
@@ -405,9 +360,7 @@ describe('useErrorsTableQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{count: 100}],
-      },
+      body: {data: [{count: 100}]},
     });
 
     renderHookWithProviders(() =>
@@ -425,10 +378,7 @@ describe('useErrorsTableQuery', () => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            cursor: '0:10:0',
-            per_page: 50,
-          }),
+          query: expect.objectContaining({cursor: '0:10:0', per_page: 50}),
         })
       );
     });

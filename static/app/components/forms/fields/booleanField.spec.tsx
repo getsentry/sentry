@@ -68,9 +68,7 @@ describe('BooleanField', () => {
   describe('with confirm prop', () => {
     it('skips confirm dialog when no message for current state', async () => {
       const onChange = jest.fn();
-      const confirm = {
-        true: 'Are you sure you want to enable this?',
-      };
+      const confirm = {true: 'Are you sure you want to enable this?'};
 
       render(
         <BooleanField name="fieldName" value onChange={onChange} confirm={confirm} />

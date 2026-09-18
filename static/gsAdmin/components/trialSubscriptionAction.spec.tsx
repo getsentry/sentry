@@ -48,11 +48,7 @@ describe('TrialSubscriptionAction', () => {
       onConfirm,
       renderModalSpecificContent: deps => (
         <TrialSubscriptionAction
-          subscription={SubscriptionFixture({
-            organization,
-            plan: 'mm2_f',
-            isFree: true,
-          })}
+          subscription={SubscriptionFixture({organization, plan: 'mm2_f', isFree: true})}
           startEnterpriseTrial
           {...deps}
         />
@@ -66,10 +62,7 @@ describe('TrialSubscriptionAction', () => {
     ).toBeInTheDocument();
     await confirmTrialDays('45');
 
-    expect(onConfirm).toHaveBeenCalledWith({
-      trialDays: 45,
-      startEnterpriseTrial: true,
-    });
+    expect(onConfirm).toHaveBeenCalledWith({trialDays: 45, startEnterpriseTrial: true});
   });
 
   it('can pass trialDays and extend enterprise plan onConfirm', async () => {
@@ -103,11 +96,7 @@ describe('TrialSubscriptionAction', () => {
       onConfirm,
       renderModalSpecificContent: deps => (
         <TrialSubscriptionAction
-          subscription={SubscriptionFixture({
-            organization,
-            plan: 'mm2_f',
-            isFree: true,
-          })}
+          subscription={SubscriptionFixture({organization, plan: 'mm2_f', isFree: true})}
           {...deps}
         />
       ),
@@ -131,11 +120,7 @@ describe('TrialSubscriptionAction', () => {
       onConfirm,
       renderModalSpecificContent: deps => (
         <TrialSubscriptionAction
-          subscription={SubscriptionFixture({
-            organization,
-            plan: 'mm2_f',
-            isFree: true,
-          })}
+          subscription={SubscriptionFixture({organization, plan: 'mm2_f', isFree: true})}
           startEnterpriseTrial
           {...deps}
         />

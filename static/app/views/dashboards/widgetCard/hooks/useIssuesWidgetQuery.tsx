@@ -67,10 +67,7 @@ export function useIssuesSeriesQuery(
         widgetInterval
       );
 
-      requestData.queryExtras = {
-        ...requestData.queryExtras,
-        category: 'issue',
-      };
+      requestData.queryExtras = {...requestData.queryExtras, category: 'issue'};
 
       const {
         organization: _org,
@@ -133,11 +130,7 @@ export function useIssuesSeriesQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: Series[] = [];
@@ -280,11 +273,7 @@ export function useIssuesTableQuery(
 
   if (!allHaveData || isFetching) {
     const loading = isFetching || !errorMessage;
-    return {
-      loading,
-      errorMessage,
-      rawData: EMPTY_ARRAY,
-    };
+    return {loading, errorMessage, rawData: EMPTY_ARRAY};
   }
 
   const tableResults: any[] = [];

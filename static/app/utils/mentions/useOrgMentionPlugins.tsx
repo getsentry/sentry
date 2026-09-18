@@ -55,10 +55,7 @@ export function useOrgMentionPlugins({
 
   return useMemo(
     () => [
-      {
-        id: 'mentions',
-        getSources: () => [memberSource, teamSource].filter(defined),
-      },
+      {id: 'mentions', getSources: () => [memberSource, teamSource].filter(defined)},
     ],
     [memberSource, teamSource]
   );

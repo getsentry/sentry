@@ -33,9 +33,7 @@ type RequestProps = DiscoverQueryProps & TrendsRequest;
 export type TrendDiscoveryChildrenProps = Omit<
   GenericChildrenProps<TrendsData>,
   'tableData'
-> & {
-  trendsData: TrendsData | null;
-};
+> & {trendsData: TrendsData | null};
 
 type Props = RequestProps & {
   children: (props: TrendDiscoveryChildrenProps) => React.ReactNode;

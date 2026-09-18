@@ -300,10 +300,7 @@ function doBoundsContainPoint(bounds: RectangularBounds, {x, y}: Point): boolean
 }
 
 function clampPointToBounds({x, y}: Point, bounds: RectangularBounds): Point {
-  return {
-    x: clamp(x, bounds.left, bounds.right),
-    y: clamp(y, bounds.top, bounds.bottom),
-  };
+  return {x: clamp(x, bounds.left, bounds.right), y: clamp(y, bounds.top, bounds.bottom)};
 }
 
 function isDragAboveThreshold(a: Point, b: Point): boolean {

@@ -166,13 +166,7 @@ describe('MonitorCleanupResults', () => {
                   ...overlap,
                   kind: 'duplicate_notifications',
                   reason: 'Both monitors connect to the same email alert.',
-                  alerts: [
-                    {
-                      id: '20',
-                      name: 'Checkout notifications',
-                      enabled: false,
-                    },
-                  ],
+                  alerts: [{id: '20', name: 'Checkout notifications', enabled: false}],
                 },
               ],
             },
@@ -267,9 +261,7 @@ describe('MonitorCleanupResults', () => {
       screen.getByRole('columnheader', {name: 'Checkout errors'})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('row', {
-        name: 'Trigger >100 errors >500 errors',
-      })
+      screen.getByRole('row', {name: 'Trigger >100 errors >500 errors'})
     ).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Window 5 min 5 min'})).toBeInTheDocument();
     expect(screen.queryByText('Differs')).not.toBeInTheDocument();

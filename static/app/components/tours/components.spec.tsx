@@ -14,9 +14,7 @@ import {
 } from 'sentry/components/tours/testUtils';
 import {useTourReducer} from 'sentry/components/tours/tourContext';
 
-jest.mock('sentry/components/tours/tourContext', () => ({
-  useTourReducer: jest.fn(),
-}));
+jest.mock('sentry/components/tours/tourContext', () => ({useTourReducer: jest.fn()}));
 
 const mockUseTourReducer = jest.mocked(useTourReducer);
 

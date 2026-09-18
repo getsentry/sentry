@@ -515,9 +515,7 @@ function IconButton({
   );
 }
 
-const CardHeaderRow = styled('div')<{
-  $showBottomBorder?: boolean;
-}>`
+const CardHeaderRow = styled('div')<{$showBottomBorder?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space['2xs']};

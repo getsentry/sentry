@@ -70,9 +70,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       url: '/organizations/org-slug/integrations/1/',
       match: [MockApiClient.matchQuery({action: 'create', ignored: ['Sprint']})],
       method: 'GET',
-      body: {
-        createIssueConfig: [...defaultIssueConfig, otherField],
-      },
+      body: {createIssueConfig: [...defaultIssueConfig, otherField]},
     });
   };
 
@@ -100,9 +98,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
         instance={{...props.data, integration: 1}}
         onSubmitAction={onSubmitAction}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
     await screen.findByRole('button', {name: 'Apply Changes'});
     return wrapper;
@@ -164,11 +160,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       const searchUrl = '/extensions/example/search';
       onSubmitAction.mockClear();
 
-      MockApiClient.addMockResponse({
-        url: searchUrl,
-        method: 'GET',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: searchUrl, method: 'GET', body: []});
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/1/',
         match: [MockApiClient.matchQuery({action: 'create', ignored: ['Sprint']})],
@@ -190,34 +182,19 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       });
       const searchQuery = MockApiClient.addMockResponse({
         url: searchUrl,
-        match: [
-          MockApiClient.matchQuery({
-            field: 'project',
-            query: 'Selected',
-          }),
-        ],
+        match: [MockApiClient.matchQuery({field: 'project', query: 'Selected'})],
         method: 'GET',
         body: [{label: 'Selected Project', value: 'project-99'}],
       });
       const laterSearchQuery = MockApiClient.addMockResponse({
         url: searchUrl,
-        match: [
-          MockApiClient.matchQuery({
-            field: 'project',
-            query: 'Other',
-          }),
-        ],
+        match: [MockApiClient.matchQuery({field: 'project', query: 'Other'})],
         method: 'GET',
         body: [{label: 'Other Project', value: 'project-100'}],
       });
       const dynamicQuery = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/1/',
-        match: [
-          MockApiClient.matchQuery({
-            action: 'create',
-            project: 'project-99',
-          }),
-        ],
+        match: [MockApiClient.matchQuery({action: 'create', project: 'project-99'})],
         method: 'GET',
         body: {
           createIssueConfig: [
@@ -474,10 +451,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
             // Saved field configs with choices from previous async search
             dynamic_form_fields: [
               ...defaultIssueConfig,
-              {
-                ...reporterField,
-                choices: [['saved-user-id', 'Joe Smith']],
-              },
+              {...reporterField, choices: [['saved-user-id', 'Joe Smith']]},
             ],
           }}
           onSubmitAction={onSubmitAction}
@@ -526,20 +500,11 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       );
 
       // Catch-all mock for async search endpoint
-      MockApiClient.addMockResponse({
-        url: 'http://example.com',
-        method: 'GET',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: 'http://example.com', method: 'GET', body: []});
       // Specific mock for the full "Joe" search (after debounce)
       const searchResponse = MockApiClient.addMockResponse({
         url: 'http://example.com',
-        match: [
-          MockApiClient.matchQuery({
-            field: 'assignee',
-            query: 'Joe',
-          }),
-        ],
+        match: [MockApiClient.matchQuery({field: 'assignee', query: 'Joe'})],
         method: 'GET',
         body: [{label: 'Joe', value: 'Joe'}],
       });
@@ -592,11 +557,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
         issueTypeLabel
       );
 
-      MockApiClient.addMockResponse({
-        url: 'http://example.com',
-        method: 'GET',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: 'http://example.com', method: 'GET', body: []});
       MockApiClient.addMockResponse({
         url: 'http://example.com',
         match: [MockApiClient.matchQuery({field: 'assignee', query: 'Joe'})],

@@ -199,9 +199,7 @@ export function DisabledImages(props: {
   } = usePageFilters();
   const {projects} = useProjects();
   const firstProjectSelected = props.projectSlug
-    ? {
-        slug: props.projectSlug,
-      }
+    ? {slug: props.projectSlug}
     : projects.find(project => project.id === selectedProjects[0]?.toString());
 
   return (
@@ -245,12 +243,7 @@ function ImageContainer(props: {
   return (
     <div style={{width: '100%', wordWrap: 'break-word'}}>
       {showImage && !isRelativeUrl && !hasError ? (
-        <div
-          style={{
-            width: imageWidth,
-            height: imageHeight,
-          }}
-        >
+        <div style={{width: imageWidth, height: imageHeight}}>
           <img
             data-test-id="sample-image"
             onError={handleError}

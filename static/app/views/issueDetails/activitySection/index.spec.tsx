@@ -67,10 +67,7 @@ describe('ActivitySection', () => {
     jest.restoreAllMocks();
     TeamStore.reset();
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     localStorage.clear();
   });
 
@@ -172,10 +169,7 @@ describe('ActivitySection', () => {
       '/organizations/org-slug/issues/1337/comments/',
       expect.objectContaining({
         method: 'POST',
-        data: {
-          text: '**@Jane Doe** ',
-          mentions: ['user:42'],
-        },
+        data: {text: '**@Jane Doe** ', mentions: ['user:42']},
       })
     );
   });
@@ -414,10 +408,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.ASSIGNED,
           id: 'team-assignment-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            assignee: team.id,
-            assigneeType: 'team',
-          },
+          data: {assignee: team.id, assigneeType: 'team'},
           user: assigningUser,
         },
       ],
@@ -463,11 +454,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.ASSIGNED,
           id: 'team-assignment-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            assignee: team.id,
-            assigneeName: team.name,
-            assigneeType: 'team',
-          },
+          data: {assignee: team.id, assigneeName: team.name, assigneeType: 'team'},
           user,
         },
       ],
@@ -491,10 +478,7 @@ describe('ActivitySection', () => {
   });
 
   it('renders the stored name for a deleted team assignment', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/teams/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/teams/', body: []});
     TeamStore.loadInitialData([]);
 
     const assignedGroup = GroupFixture({
@@ -504,11 +488,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.ASSIGNED,
           id: 'deleted-team-assignment',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            assignee: '123',
-            assigneeName: 'frontend',
-            assigneeType: 'team',
-          },
+          data: {assignee: '123', assigneeName: 'frontend', assigneeType: 'team'},
           user,
         },
       ],
@@ -578,10 +558,7 @@ describe('ActivitySection', () => {
   });
 
   it('renders the stored name for a deleted user assignment', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
 
     const assignedGroup = GroupFixture({
       id: '1347',
@@ -590,11 +567,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.ASSIGNED,
           id: 'deleted-user-assignment',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            assignee: '123',
-            assigneeName: 'David Cramer',
-            assigneeType: 'user',
-          },
+          data: {assignee: '123', assigneeName: 'David Cramer', assigneeType: 'user'},
           user,
         },
       ],
@@ -791,10 +764,7 @@ describe('ActivitySection', () => {
     const editMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1123/comments/note-1/',
       method: 'PUT',
-      body: {
-        id: 'note-1',
-        data: {text: 'Group Test Updated'},
-      },
+      body: {id: 'note-1', data: {text: 'Group Test Updated'}},
     });
 
     render(
@@ -1267,11 +1237,7 @@ describe('ActivitySection', () => {
       expectedMarker: 'Activity update',
     },
   ])('renders $name activity copy', async ({activity, expectedCopy, expectedMarker}) => {
-    const activityGroup = GroupFixture({
-      id: '1339',
-      activity: [activity],
-      project,
-    });
+    const activityGroup = GroupFixture({id: '1339', activity: [activity], project});
 
     render(
       <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
@@ -1336,11 +1302,7 @@ describe('ActivitySection', () => {
       <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
         <ActivitySection group={activityGroup} variant="standalone" />
       </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({
-          features: ['issue-activity-progress'],
-        }),
-      }
+      {organization: OrganizationFixture({features: ['issue-activity-progress']})}
     );
 
     expect(screen.getByRole('img', {name: 'Fix Applied'})).toBeInTheDocument();
@@ -1422,9 +1384,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
           id: 'resolved-in-release-2',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            version: 'frontend@1.0.0',
-          },
+          data: {version: 'frontend@1.0.0'},
           user,
         },
       ],
@@ -1537,11 +1497,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.REFERENCED_IN_COMMIT,
           id: 'referenced-in-commit-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            commit: CommitFixture({
-              id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
-            }),
-          },
+          data: {commit: CommitFixture({id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434'})},
           user,
         },
       ],
@@ -1782,10 +1738,7 @@ describe('ActivitySection', () => {
               {
                 provider: 'github',
                 repo_name: repository.name,
-                pull_request: {
-                  pr_number: 1234,
-                  pr_url: pullRequest.externalUrl,
-                },
+                pull_request: {pr_number: 1234, pr_url: pullRequest.externalUrl},
               },
             ],
           },
@@ -1915,9 +1868,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: 'resolved-commit-missing-commit',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            commit: null,
-          },
+          data: {commit: null},
           user: null,
         },
       ],
@@ -2109,11 +2060,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.SEER_ITERATION_STARTED,
           id: 'seer-iteration-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            run_id: 456,
-            iteration_index: 1,
-            referrer: 'github.check_suite',
-          },
+          data: {run_id: 456, iteration_index: 1, referrer: 'github.check_suite'},
           user,
         },
       ],
@@ -2148,9 +2095,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
           id: 'pr-missing-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            pullRequest: null,
-          },
+          data: {pullRequest: null},
           user: null,
         },
         {

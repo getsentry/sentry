@@ -20,22 +20,10 @@ interface Data {
 }
 
 const headers = [
-  {
-    key: 'name',
-    label: 'Name',
-  },
-  {
-    key: 'monitors',
-    label: 'Monitors',
-  },
-  {
-    key: 'action',
-    label: 'Action',
-  },
-  {
-    key: 'lastTriggered',
-    label: 'Last Triggered',
-  },
+  {key: 'name', label: 'Name'},
+  {key: 'monitors', label: 'Monitors'},
+  {key: 'action', label: 'Action'},
+  {key: 'lastTriggered', label: 'Last Triggered'},
 ];
 
 const data: Data[] = [

@@ -53,14 +53,9 @@ function PriorityField() {
       name={`${actionId}.data.priority`}
       aria-label={t('Priority')}
       value={action.data.priority}
-      options={OPSGENIE_PRIORITIES.map(priority => ({
-        label: priority,
-        value: priority,
-      }))}
+      options={OPSGENIE_PRIORITIES.map(priority => ({label: priority, value: priority}))}
       onChange={(option: SelectValue<string>) => {
-        onUpdate({
-          data: {priority: option.value},
-        });
+        onUpdate({data: {priority: option.value}});
       }}
     />
   );

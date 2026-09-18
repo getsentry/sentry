@@ -14,13 +14,7 @@ describe('apiOptions', () => {
   it('should encode path parameters correctly', () => {
     const options = apiOptions.as<unknown>()(
       '/organizations/$organizationIdOrSlug/releases/$version/',
-      {
-        staleTime: 0,
-        path: {
-          organizationIdOrSlug: 'my-org',
-          version: 'v 1.0.0',
-        },
-      }
+      {staleTime: 0, path: {organizationIdOrSlug: 'my-org', version: 'v 1.0.0'}}
     );
 
     const {url} = parseQueryKey(options.queryKey);
@@ -51,10 +45,7 @@ describe('apiOptions', () => {
     const options = apiOptions.as<unknown>()('/api-tokens/$tokenId/', {
       staleTime: 0,
       path: {tokenId: '123'},
-      query: {
-        foo: undefined,
-        bar: undefined,
-      },
+      query: {foo: undefined, bar: undefined},
       method: undefined,
     });
 
@@ -119,14 +110,9 @@ describe('apiOptions', () => {
   });
 
   it('should extract content data per default', async () => {
-    const options = apiOptions.as<string[]>()('/projects/', {
-      staleTime: 0,
-    });
+    const options = apiOptions.as<string[]>()('/projects/', {staleTime: 0});
 
-    MockApiClient.addMockResponse({
-      url: '/projects/',
-      body: ['Project 1', 'Project 2'],
-    });
+    MockApiClient.addMockResponse({url: '/projects/', body: ['Project 1', 'Project 2']});
 
     const {result} = renderHookWithProviders(() => useQuery(options));
     await waitFor(() => expect(result.current.isPending).toBe(false));
@@ -135,17 +121,12 @@ describe('apiOptions', () => {
   });
 
   it('should extract headers', async () => {
-    const options = apiOptions.as<string[]>()('/projects/', {
-      staleTime: 0,
-    });
+    const options = apiOptions.as<string[]>()('/projects/', {staleTime: 0});
 
     MockApiClient.addMockResponse({
       url: '/projects/',
       body: ['Project 1', 'Project 2'],
-      headers: {
-        Link: 'my-link',
-        'X-Hits': '14',
-      },
+      headers: {Link: 'my-link', 'X-Hits': '14'},
     });
 
     const {result} = renderHookWithProviders(() =>
@@ -208,9 +189,7 @@ describe('apiOptions', () => {
     });
 
     it('should not need path params for paths without parameters', () => {
-      const options = apiOptions.as<never>()('/api-tokens/', {
-        staleTime: 0,
-      });
+      const options = apiOptions.as<never>()('/api-tokens/', {staleTime: 0});
 
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
     });

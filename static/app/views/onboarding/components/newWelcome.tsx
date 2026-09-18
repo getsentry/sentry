@@ -52,14 +52,7 @@ const STAGGER_CONTAINER: MotionProps = {
     duration: 0.25,
     ease: 'easeOut',
   },
-  variants: {
-    exit: {
-      transition: {
-        staggerChildren: 0.05,
-        delayChildren: 0.0125,
-      },
-    },
-  },
+  variants: {exit: {transition: {staggerChildren: 0.05, delayChildren: 0.0125}}},
 };
 
 // Product options in display order (3x2 grid: row1: Error, Logging, Session; row2: Metrics, Tracing, Profiling)

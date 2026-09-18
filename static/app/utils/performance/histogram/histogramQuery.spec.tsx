@@ -31,10 +31,7 @@ function renderHistogram({isLoading, error, histograms}: any) {
 describe('HistogramQuery', () => {
   let eventView: any, location: any;
   beforeEach(() => {
-    location = {
-      pathname: '/',
-      query: {},
-    };
+    location = {pathname: '/', query: {}};
     eventView = EventView.fromSavedQuery({
       id: '',
       name: '',

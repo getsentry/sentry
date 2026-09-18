@@ -29,9 +29,7 @@ function TestForm({
 }: TestFormProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      volume: defaultValue,
-    },
+    defaultValues: {volume: defaultValue},
   });
 
   return (
@@ -55,9 +53,7 @@ function TestForm({
   );
 }
 
-const testSchema = z.object({
-  volume: z.number(),
-});
+const testSchema = z.object({volume: z.number()});
 
 interface AutoSaveTestFormProps {
   mutationFn: (data: {volume: number}) => Promise<{volume: number}>;

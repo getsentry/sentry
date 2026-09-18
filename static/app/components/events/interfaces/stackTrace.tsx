@@ -26,9 +26,7 @@ function StackTraceContentWrapper({
   data,
   groupingCurrentLevel,
   platform,
-}: Pick<Props, 'event' | 'data' | 'groupingCurrentLevel'> & {
-  platform: PlatformKey;
-}) {
+}: Pick<Props, 'event' | 'data' | 'groupingCurrentLevel'> & {platform: PlatformKey}) {
   const {isNewestFramesFirst, stackView} = useStacktraceContext();
 
   const entryIndex = event.entries.findIndex(

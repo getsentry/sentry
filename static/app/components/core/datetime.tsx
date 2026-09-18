@@ -21,10 +21,7 @@ export interface DateTimeContextValue {
   timezone: string;
 }
 
-const DEFAULT_DATE_TIME: DateTimeContextValue = {
-  timezone: 'UTC',
-  clockDisplay: '12',
-};
+const DEFAULT_DATE_TIME: DateTimeContextValue = {timezone: 'UTC', clockDisplay: '12'};
 
 const DateTimeContext = createContext<DateTimeContextValue>(DEFAULT_DATE_TIME);
 

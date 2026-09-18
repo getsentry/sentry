@@ -3,18 +3,9 @@ import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices'
 describe('convertFromSelect2Choices', () => {
   it('changes a flat array of strings into array of {label, value}', () => {
     expect(convertFromSelect2Choices(['a', 'b', 'c'])).toEqual([
-      {
-        label: 'a',
-        value: 'a',
-      },
-      {
-        label: 'b',
-        value: 'b',
-      },
-      {
-        label: 'c',
-        value: 'c',
-      },
+      {label: 'a', value: 'a'},
+      {label: 'b', value: 'b'},
+      {label: 'c', value: 'c'},
     ]);
   });
 
@@ -26,18 +17,9 @@ describe('convertFromSelect2Choices', () => {
         ['c', 'C'],
       ])
     ).toEqual([
-      {
-        label: 'A',
-        value: 'a',
-      },
-      {
-        label: 'B',
-        value: 'b',
-      },
-      {
-        label: 'C',
-        value: 'c',
-      },
+      {label: 'A', value: 'a'},
+      {label: 'B', value: 'b'},
+      {label: 'C', value: 'c'},
     ]);
   });
 

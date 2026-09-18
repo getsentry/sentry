@@ -57,9 +57,7 @@ function ConversationDetailPage() {
     : undefined;
 
   useEffect(() => {
-    trackAnalytics('conversations.detail.page-view', {
-      organization,
-    });
+    trackAnalytics('conversations.detail.page-view', {organization});
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, conversationId]);
 
@@ -104,9 +102,7 @@ function ConversationDetailPage() {
               size="xs"
               icon={<IconCopy />}
               onClick={() => {
-                trackAnalytics('conversations.detail.copy-conversation', {
-                  organization,
-                });
+                trackAnalytics('conversations.detail.copy-conversation', {organization});
                 copyToClipboard(messagesToMarkdown(messages));
               }}
             >

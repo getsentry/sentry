@@ -28,9 +28,7 @@ describe('ModulePageProviders', () => {
       <ModulePageProviders moduleName={ModuleName.DB}>
         <div>Module Content</div>
       </ModulePageProviders>,
-      {
-        organization: OrganizationFixture(),
-      }
+      {organization: OrganizationFixture()}
     );
 
     await screen.findByText('Module Content');

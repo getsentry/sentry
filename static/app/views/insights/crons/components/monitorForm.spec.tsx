@@ -31,13 +31,15 @@ describe('MonitorForm', () => {
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
 
-    jest.mocked(useOwners).mockReturnValue({
-      fetching: false,
-      members: [member.user!],
-      onMemberSearch: jest.fn(),
-      onTeamSearch: jest.fn(),
-      teams: [team],
-    });
+    jest
+      .mocked(useOwners)
+      .mockReturnValue({
+        fetching: false,
+        members: [member.user!],
+        onMemberSearch: jest.fn(),
+        onTeamSearch: jest.fn(),
+        teams: [team],
+      });
   });
 
   it.isKnownFlake(
@@ -74,9 +76,7 @@ describe('MonitorForm', () => {
         apiEndpoint={`/organizations/${organization.slug}/monitors/`}
         onSubmitSuccess={jest.fn()}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
@@ -97,9 +97,7 @@ describe('MonitorForm', () => {
         apiEndpoint={apiEndpont}
         onSubmitSuccess={mockHandleSubmitSuccess}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'My Monitor');
@@ -145,10 +143,7 @@ describe('MonitorForm', () => {
 
     await selectEvent.select(notifySelect, 'John Smith');
 
-    const submitMock = MockApiClient.addMockResponse({
-      url: apiEndpont,
-      method: 'POST',
-    });
+    const submitMock = MockApiClient.addMockResponse({url: apiEndpont, method: 'POST'});
 
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
@@ -199,9 +194,7 @@ describe('MonitorForm', () => {
         apiEndpoint={apiEndpont}
         onSubmitSuccess={jest.fn()}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     // Name and slug
@@ -249,10 +242,7 @@ describe('MonitorForm', () => {
     expect(memberOption).toBeChecked();
     await userEvent.keyboard('{Escape}');
 
-    const submitMock = MockApiClient.addMockResponse({
-      url: apiEndpont,
-      method: 'POST',
-    });
+    const submitMock = MockApiClient.addMockResponse({url: apiEndpont, method: 'POST'});
 
     // Monitor form is not submitable until something is changed
     const submitButton = screen.getByRole('button', {name: 'Save Changes'});

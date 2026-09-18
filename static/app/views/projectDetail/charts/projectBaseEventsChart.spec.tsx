@@ -66,9 +66,7 @@ describe('ProjectBaseEventsChart', () => {
   });
 
   it('calls fetchTotalCount on mount', async () => {
-    render(<ProjectBaseEventsChart {...defaultProps} />, {
-      organization,
-    });
+    render(<ProjectBaseEventsChart {...defaultProps} />, {organization});
 
     await waitFor(() => {
       expect(mockApi).toHaveBeenCalledTimes(1);
@@ -77,10 +75,7 @@ describe('ProjectBaseEventsChart', () => {
     expect(mockApi).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events-meta/`,
       expect.objectContaining({
-        query: expect.objectContaining({
-          project: ['1', '2'],
-          environment: ['prod'],
-        }),
+        query: expect.objectContaining({project: ['1', '2'], environment: ['prod']}),
       })
     );
   });
@@ -212,12 +207,7 @@ describe('ProjectBaseEventsChart', () => {
     const customSelection: PageFilters = {
       projects: [3],
       environments: ['dev', 'staging'],
-      datetime: {
-        period: '7d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '7d', start: null, end: null, utc: false},
     };
 
     render(

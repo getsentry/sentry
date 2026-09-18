@@ -45,10 +45,7 @@ export function DocIntegrationDetails() {
 
   const onUpdateMutation = useMutation({
     mutationFn: (params: Record<string, any>) => {
-      return api.requestPromise(ENDPOINT, {
-        method: 'PUT',
-        data: params,
-      });
+      return api.requestPromise(ENDPOINT, {method: 'PUT', data: params});
     },
     onMutate: () => {
       addLoadingMessage('Saving changes...');
@@ -66,9 +63,7 @@ export function DocIntegrationDetails() {
 
   const onDeleteMutation = useMutation({
     mutationFn: () => {
-      return api.requestPromise(ENDPOINT, {
-        method: 'DELETE',
-      });
+      return api.requestPromise(ENDPOINT, {method: 'DELETE'});
     },
     onMutate: () => {
       addLoadingMessage('Deleting doc integration...');

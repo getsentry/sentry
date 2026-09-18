@@ -59,10 +59,7 @@ export function useTraceExploreAiQuerySetup({
             {path: {organizationIdOrSlug: organization.slug}}
           ),
           method: 'POST',
-          data: {
-            org_id: organization.id,
-            project_ids: selectedProjects,
-          },
+          data: {org_id: organization.id, project_ids: selectedProjects},
         });
       } catch (err) {
         Sentry.captureException(err);

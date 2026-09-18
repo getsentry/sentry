@@ -56,24 +56,14 @@ const LOGIC_FILTER_ITEMS: FilterKeySearchItem[] = [
     type: 'logic',
     description: 'AND logical operator',
     keywords: [],
-    item: {
-      key: 'AND',
-      name: 'AND',
-      kind: FieldKind.FIELD,
-      secondaryAliases: [],
-    },
+    item: {key: 'AND', name: 'AND', kind: FieldKind.FIELD, secondaryAliases: []},
   },
   {
     key: 'OR',
     type: 'logic',
     description: 'OR logical operator',
     keywords: [],
-    item: {
-      key: 'OR',
-      name: 'OR',
-      kind: FieldKind.FIELD,
-      secondaryAliases: [],
-    },
+    item: {key: 'OR', name: 'OR', kind: FieldKind.FIELD, secondaryAliases: []},
   },
 ];
 

@@ -38,12 +38,7 @@ export function ArithmeticTokenLiteral({
   token,
 }: ArithmeticTokenLiteralProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {rowProps, gridCellProps} = useGridListItem({
-    item,
-    ref,
-    state,
-    focusable: true,
-  });
+  const {rowProps, gridCellProps} = useGridListItem({item, ref, state, focusable: true});
 
   return (
     <Row
@@ -94,11 +89,7 @@ function InternalInput({item, state, token}: InternalInputProps) {
   const onInputBlur = useCallback(() => {
     const trimmed = inputValue.trim();
     const text = validateLiteral(trimmed) ? trimmed : token.text;
-    dispatch({
-      text,
-      type: 'REPLACE_TOKEN',
-      token,
-    });
+    dispatch({text, type: 'REPLACE_TOKEN', token});
     resetInputValue();
   }, [dispatch, inputValue, token, resetInputValue]);
 
@@ -111,9 +102,7 @@ function InternalInput({item, state, token}: InternalInputProps) {
           text,
           type: 'REPLACE_TOKEN',
           token,
-          focusOverride: {
-            itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
-          },
+          focusOverride: {itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT)},
         });
         resetInputValue();
         return;
@@ -169,9 +158,7 @@ function InternalInput({item, state, token}: InternalInputProps) {
       text,
       type: 'REPLACE_TOKEN',
       token,
-      focusOverride: {
-        itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
-      },
+      focusOverride: {itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT)},
     });
     resetInputValue();
   }, [dispatch, state, token, inputValue, resetInputValue]);
@@ -179,11 +166,7 @@ function InternalInput({item, state, token}: InternalInputProps) {
   const onInputEscape = useCallback(() => {
     const text = inputValue.trim();
     if (validateLiteral(text)) {
-      dispatch({
-        type: 'REPLACE_TOKEN',
-        token,
-        text,
-      });
+      dispatch({type: 'REPLACE_TOKEN', token, text});
     }
     resetInputValue();
   }, [dispatch, inputValue, token, resetInputValue]);

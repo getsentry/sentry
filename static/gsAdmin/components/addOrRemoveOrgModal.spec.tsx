@@ -40,10 +40,7 @@ describe('AddToOrgModal', () => {
     await waitFor(() => {
       expect(request).toHaveBeenCalledWith(
         '/customers/org-slug/users/123/members/',
-        expect.objectContaining({
-          method: 'POST',
-          data: {orgRole: 'member'},
-        })
+        expect.objectContaining({method: 'POST', data: {orgRole: 'member'}})
       );
       expect(closeModal).toHaveBeenCalled();
       expect(testableWindowLocation.reload).toHaveBeenCalled();

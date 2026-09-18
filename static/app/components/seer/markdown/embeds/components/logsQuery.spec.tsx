@@ -4,9 +4,7 @@ import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
 import {getEmbedLinkHref} from './resourceEmbedTestUtils';
 
-jest.mock('sentry/components/charts/baseChart', () => ({
-  BaseChart: jest.fn(() => null),
-}));
+jest.mock('sentry/components/charts/baseChart', () => ({BaseChart: jest.fn(() => null)}));
 
 const TIME_SERIES = [
   {
@@ -112,10 +110,7 @@ describe('logs query embed', () => {
       expect(timeseries).toHaveBeenCalledWith(
         '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            groupBy: ['severity'],
-            topEvents: 5,
-          }),
+          query: expect.objectContaining({groupBy: ['severity'], topEvents: 5}),
         })
       );
     });
@@ -225,12 +220,7 @@ describe('logs query embed', () => {
       body: {data: [{timestamp: '2026-08-27T12:00:00Z', message: 'Retrying'}]},
     });
 
-    renderEmbed({
-      query: '',
-      mode: 'samples',
-      sort: '-span.duration',
-      statsPeriod: '24h',
-    });
+    renderEmbed({query: '', mode: 'samples', sort: '-span.duration', statsPeriod: '24h'});
 
     expect(await screen.findByText('Retrying')).toBeInTheDocument();
 

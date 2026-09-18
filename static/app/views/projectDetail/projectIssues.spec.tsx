@@ -9,9 +9,7 @@ import {ProjectIssues} from 'sentry/views/projectDetail/projectIssues';
 describe('ProjectDetail > ProjectIssues', () => {
   let mockFetchIssues: ReturnType<typeof MockApiClient.addMockResponse>;
 
-  const organization = OrganizationFixture({
-    features: ['discover-basic'],
-  });
+  const organization = OrganizationFixture({features: ['discover-basic']});
   const project = ProjectFixture();
 
   beforeEach(() => {
@@ -53,9 +51,7 @@ describe('ProjectDetail > ProjectIssues', () => {
         location={{query: {}} as any}
         projectId={parseInt(project.id, 10)}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(await screen.findAllByTestId('group')).toHaveLength(2);
@@ -69,9 +65,7 @@ describe('ProjectDetail > ProjectIssues', () => {
         projectId={parseInt(project.id, 10)}
         location={{query: {}} as any}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     const link = screen.getByLabelText('Open in Issues');
@@ -95,9 +89,7 @@ describe('ProjectDetail > ProjectIssues', () => {
         location={{query: {}} as any}
         projectId={parseInt(project.id, 10)}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     // "Unhandled" segment is selected
@@ -116,9 +108,7 @@ describe('ProjectDetail > ProjectIssues', () => {
     expect(mockFetchIssues).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          query: 'error.unhandled:true is:unresolved',
-        }),
+        query: expect.objectContaining({query: 'error.unhandled:true is:unresolved'}),
       })
     );
   });
@@ -131,9 +121,7 @@ describe('ProjectDetail > ProjectIssues', () => {
         location={{query: {}} as any}
         projectId={parseInt(project.id, 10)}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     const link = screen.getByLabelText('Open in Discover');
@@ -166,18 +154,14 @@ describe('ProjectDetail > ProjectIssues', () => {
         projectId={parseInt(project.id, 10)}
         location={locationWithQuery}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     await waitFor(() => {
       expect(mockFetchIssues).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          query: expect.objectContaining({
-            query: 'error.unhandled:true is:unresolved',
-          }),
+          query: expect.objectContaining({query: 'error.unhandled:true is:unresolved'}),
         })
       );
     });

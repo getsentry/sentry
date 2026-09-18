@@ -131,9 +131,7 @@ function mockProviderQueries(integrations: OrganizationIntegration[] = []) {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
       match: [MockApiClient.matchQuery({provider_key: key})],
-      body: {
-        providers: [IntegrationProviderFixture({key, slug: key, name: key})],
-      },
+      body: {providers: [IntegrationProviderFixture({key, slug: key, name: key})]},
     });
   }
 }
@@ -433,10 +431,7 @@ describe('ScmMessaging', () => {
     const integration = OrganizationIntegrationsFixture({id: '15'});
     const integrationOptions = apiOptions.as<OrganizationIntegration>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
-      {
-        path: {organizationIdOrSlug: 'org-slug', integrationId: '15'},
-        staleTime: 0,
-      }
+      {path: {organizationIdOrSlug: 'org-slug', integrationId: '15'}, staleTime: 0}
     );
     const validateOptions = apiOptions.as<{valid: boolean}>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/channel-validate/',

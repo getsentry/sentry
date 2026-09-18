@@ -16,16 +16,12 @@ interface LoadingIndicatorProps {
 export function LoadingIndicator(props: LoadingIndicatorProps) {
   return (
     <div
-      className={classNames('loading', props.className, {
-        mini: props.mini,
-      })}
+      className={classNames('loading', props.className, {mini: props.mini})}
       style={props.style}
       data-test-id={props['data-test-id'] ?? 'loading-indicator'}
     >
       <div
-        className={classNames('loading-indicator', {
-          relative: props.relative,
-        })}
+        className={classNames('loading-indicator', {relative: props.relative})}
         style={
           props.size
             ? {

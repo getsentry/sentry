@@ -6,18 +6,13 @@ import {motion} from 'framer-motion';
 // Computed using SVGGeometryElement.getTotalLength()
 const STROKE_LENGTH = 4445;
 
-type Props = {
-  anchorRef: React.Ref<SVGForeignObjectElement>;
-};
+type Props = {anchorRef: React.Ref<SVGForeignObjectElement>};
 
 const Stroke = styled(motion.path)`
   stroke-dasharray: ${STROKE_LENGTH} ${STROKE_LENGTH};
 `;
 const strokeAnimation = {
-  variants: {
-    init: {strokeDashoffset: STROKE_LENGTH},
-    animate: {strokeDashoffset: 0},
-  },
+  variants: {init: {strokeDashoffset: STROKE_LENGTH}, animate: {strokeDashoffset: 0}},
   transition: {
     type: 'tween',
     duration: 15,
@@ -28,36 +23,24 @@ const strokeAnimation = {
 
 const StrokeBackground = styled(motion.path)``;
 const strokeBackgroundAnimation = {
-  variants: {
-    init: {opacity: 0},
-    animate: {opacity: 0.5},
-  },
+  variants: {init: {opacity: 0}, animate: {opacity: 0.5}},
   transition: {duration: 1},
 };
 
 const Dot = styled(motion.g)``;
 const dotAnimation = {
-  variants: {
-    init: {scale: 0.5, opacity: 0},
-    animate: {scale: 1, opacity: 1},
-  },
+  variants: {init: {scale: 0.5, opacity: 0}, animate: {scale: 1, opacity: 1}},
 };
 
 const Guy1 = styled(motion.g)``;
 const guy1Animation = {
-  variants: {
-    init: {opacity: 0, x: 20},
-    animate: {opacity: 1, x: 0},
-  },
+  variants: {init: {opacity: 0, x: 20}, animate: {opacity: 1, x: 0}},
   transition: {bounce: 0.15},
 };
 
 const Guy2 = styled(motion.g)``;
 const guy2Animation = {
-  variants: {
-    init: {opacity: 0, x: -20},
-    animate: {opacity: 1, x: 0},
-  },
+  variants: {init: {opacity: 0, x: -20}, animate: {opacity: 1, x: 0}},
   transition: {bounce: 0.15},
 };
 
@@ -80,15 +63,8 @@ const AsteroidShake = styled('g')`
 
 const ErrorAsteroid = styled(motion.g)``;
 const errorAsteroidAnimation = {
-  variants: {
-    init: {opacity: 0, x: 150, y: -150},
-    animate: {opacity: 1, x: 0, y: 0},
-  },
-  transition: {
-    type: 'spring',
-    delay: 1.8,
-    bounce: 0.15,
-  } satisfies Transition,
+  variants: {init: {opacity: 0, x: 150, y: -150}, animate: {opacity: 1, x: 0, y: 0}},
+  transition: {type: 'spring', delay: 1.8, bounce: 0.15} satisfies Transition,
 };
 
 const ploom = keyframes`
@@ -129,10 +105,7 @@ const landBeforeTimeAnimation = {
     init: {opacity: 0, filter: 'saturation(0)'},
     animate: {opacity: 1, filter: 'saturation(1)'},
   },
-  transition: {
-    type: 'tween',
-    duration: 1.4,
-  } satisfies Transition,
+  transition: {type: 'tween', duration: 1.4} satisfies Transition,
 };
 
 export function DiscoverBackground({anchorRef}: Props) {

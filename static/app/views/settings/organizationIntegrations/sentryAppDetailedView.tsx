@@ -78,10 +78,7 @@ export default function SentryAppDetailedView() {
   } = useQuery({
     ...apiOptions.as<IntegrationFeature[]>()(
       '/sentry-apps/$sentryAppIdOrSlug/features/',
-      {
-        path: {sentryAppIdOrSlug: integrationSlug},
-        staleTime: Infinity,
-      }
+      {path: {sentryAppIdOrSlug: integrationSlug}, staleTime: Infinity}
     ),
     retry: false,
   });
@@ -92,10 +89,7 @@ export default function SentryAppDetailedView() {
     isError: isAppInstallsError,
   } = useApiQuery<SentryAppInstallation[]>(
     makeSentryAppInstallationsQueryKey({orgSlug: organization.slug}),
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
+    {staleTime: Infinity, retry: false}
   );
 
   const integrationType = 'sentry_app';

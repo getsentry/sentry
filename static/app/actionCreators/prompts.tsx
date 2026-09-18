@@ -95,13 +95,9 @@ export async function promptsCheck(
   api: Client,
   params: PromptCheckParams
 ): Promise<PromptData> {
-  const query = {
-    feature: params.feature,
-  };
+  const query = {feature: params.feature};
   const url = `/organizations/${params.organization.slug}/prompts-activity/`;
-  const response: PromptResponse = await api.requestPromise(url, {
-    query,
-  });
+  const response: PromptResponse = await api.requestPromise(url, {query});
 
   if (response?.data) {
     return {
@@ -177,20 +173,13 @@ export function usePrompts({
       if (!organization) {
         return;
       }
-      promptsUpdate(api, {
-        organization,
-        feature,
-        status: 'dismissed',
-      });
+      promptsUpdate(api, {organization, feature, status: 'dismissed'});
 
       // Update cached query data
       // Will set prompt to dismissed
       setApiQueryData<PromptResponse>(
         queryClient,
-        makePromptsCheckQueryKey({
-          organization,
-          feature: features,
-        }),
+        makePromptsCheckQueryKey({organization, feature: features}),
         existingData => {
           const dismissedTs = Date.now() / 1000;
           return {
@@ -208,20 +197,13 @@ export function usePrompts({
       if (!organization) {
         return;
       }
-      promptsUpdate(api, {
-        organization,
-        feature,
-        status: 'snoozed',
-      });
+      promptsUpdate(api, {organization, feature, status: 'snoozed'});
 
       // Update cached query data
       // Will set prompt to snoozed
       setApiQueryData<PromptResponse>(
         queryClient,
-        makePromptsCheckQueryKey({
-          organization,
-          feature: features,
-        }),
+        makePromptsCheckQueryKey({organization, feature: features}),
         existingData => {
           const snoozedTs = Date.now() / 1000;
           return {
@@ -239,25 +221,15 @@ export function usePrompts({
       if (!organization) {
         return;
       }
-      promptsUpdate(api, {
-        organization,
-        feature,
-        status: 'visible',
-      });
+      promptsUpdate(api, {organization, feature, status: 'visible'});
 
       // Update cached query data
       // Will clear the status/timestamps of a prompt that is dismissed or snoozed
       setApiQueryData<PromptResponse>(
         queryClient,
-        makePromptsCheckQueryKey({
-          organization,
-          feature: features,
-        }),
+        makePromptsCheckQueryKey({organization, feature: features}),
         existingData => {
-          return {
-            data: {},
-            features: {...existingData?.features, [feature]: {}},
-          };
+          return {data: {}, features: {...existingData?.features, [feature]: {}}};
         }
       );
     },
@@ -306,22 +278,13 @@ export function usePrompt({
       return;
     }
 
-    promptsUpdate(api, {
-      organization,
-      projectId,
-      feature,
-      status: 'dismissed',
-    });
+    promptsUpdate(api, {organization, projectId, feature, status: 'dismissed'});
 
     // Update cached query data
     // Will set prompt to dismissed
     setApiQueryData<PromptResponse>(
       queryClient,
-      makePromptsCheckQueryKey({
-        organization,
-        feature,
-        projectId,
-      }),
+      makePromptsCheckQueryKey({organization, feature, projectId}),
       () => {
         const dismissedTs = Date.now() / 1000;
         return {
@@ -336,22 +299,13 @@ export function usePrompt({
     if (!organization) {
       return;
     }
-    promptsUpdate(api, {
-      organization,
-      projectId,
-      feature,
-      status: 'snoozed',
-    });
+    promptsUpdate(api, {organization, projectId, feature, status: 'snoozed'});
 
     // Update cached query data
     // Will set prompt to snoozed
     setApiQueryData<PromptResponse>(
       queryClient,
-      makePromptsCheckQueryKey({
-        organization,
-        feature,
-        projectId,
-      }),
+      makePromptsCheckQueryKey({organization, feature, projectId}),
       () => {
         const snoozedTs = Date.now() / 1000;
         return {
@@ -366,27 +320,15 @@ export function usePrompt({
     if (!organization) {
       return;
     }
-    promptsUpdate(api, {
-      organization,
-      projectId,
-      feature,
-      status: 'visible',
-    });
+    promptsUpdate(api, {organization, projectId, feature, status: 'visible'});
 
     // Update cached query data
     // Will clear the status/timestamps of a prompt that is dismissed or snoozed
     setApiQueryData<PromptResponse>(
       queryClient,
-      makePromptsCheckQueryKey({
-        organization,
-        feature,
-        projectId,
-      }),
+      makePromptsCheckQueryKey({organization, feature, projectId}),
       () => {
-        return {
-          data: {},
-          features: {[feature]: {}},
-        };
+        return {data: {}, features: {[feature]: {}}};
       }
     );
   }, [api, feature, organization, projectId, queryClient]);
@@ -408,17 +350,11 @@ export function usePrompt({
 export async function batchedPromptsCheck<T extends readonly string[]>(
   api: Client,
   features: T,
-  params: {
-    organization: OrganizationSummary;
-  }
+  params: {organization: OrganizationSummary}
 ): Promise<Record<T[number], PromptData>> {
-  const query = {
-    feature: features,
-  };
+  const query = {feature: features};
   const url = `/organizations/${params.organization.slug}/prompts-activity/`;
-  const response: PromptResponse = await api.requestPromise(url, {
-    query,
-  });
+  const response: PromptResponse = await api.requestPromise(url, {query});
   const responseFeatures = response?.features;
 
   const result: Partial<Record<T[number], PromptData>> = {};

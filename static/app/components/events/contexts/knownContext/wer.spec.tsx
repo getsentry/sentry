@@ -17,12 +17,7 @@ describe('WERContext', () => {
   it('formats known values and preserves additional data', () => {
     expect(getWERContextData({data: MOCK_WER_CONTEXT})).toEqual([
       {key: 'report_id', subject: 'Report ID', value: REPORT_ID},
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
     ]);
   });
 

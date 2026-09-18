@@ -562,10 +562,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
             inline={false}
             flexibleControlStateSize
             stacked
-            style={{
-              padding: 0,
-              border: 'none',
-            }}
+            style={{padding: 0, border: 'none'}}
           />
           <HiddenField name="timeoutMs" defaultValue={10000} />
         </FormRow>

@@ -91,9 +91,7 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
                       projectSlug={group.project.slug}
                       groupId={group.id}
                       onToggle={() =>
-                        trackAnalytics('issue.shared_publicly', {
-                          organization,
-                        })
+                        trackAnalytics('issue.shared_publicly', {organization})
                       }
                       event={null}
                       hasIssueShare
@@ -123,9 +121,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
   const {copy} = useCopyToClipboard();
 
   const handleCopyShortId = useCallback(() => {
-    copy(group.shortId, {
-      successMessage: t('Copied Short-ID to clipboard'),
-    }).then(() => {
+    copy(group.shortId, {successMessage: t('Copied Short-ID to clipboard')}).then(() => {
       trackAnalytics('issue_details.copy_issue_short_id_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
@@ -190,11 +186,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
                 organization={organization}
                 projectSlug={group.project.slug}
                 groupId={group.id}
-                onToggle={() =>
-                  trackAnalytics('issue.shared_publicly', {
-                    organization,
-                  })
-                }
+                onToggle={() => trackAnalytics('issue.shared_publicly', {organization})}
                 event={null}
                 hasIssueShare
               />

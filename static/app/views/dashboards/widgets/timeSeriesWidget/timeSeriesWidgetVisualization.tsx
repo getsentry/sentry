@@ -199,9 +199,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     onDataZoom,
     onChartReady: onChartReadyZoom,
     ...chartZoomProps
-  } = useChartZoom({
-    saveOnZoom: true,
-  });
+  } = useChartZoom({saveOnZoom: true});
 
   const {brush, onBrushEnd, onBrushStart, toolBox, ActionMenu} = useChartXRangeSelection({
     chartRef,
@@ -396,10 +394,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const bubbleReleases = useMemo(
     () =>
       hasReleaseBubbles
-        ? props.releases?.map(({timestamp, version}) => ({
-            date: timestamp,
-            version,
-          }))
+        ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
         : [],
     [hasReleaseBubbles, props.releases]
   );
@@ -538,10 +533,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               {customValues: customTicks, showMinLabel: true, showMaxLabel: true}
             : {}),
         },
-        axisTick: {
-          show: true,
-          ...(hasCustomTicks ? {customValues: customTicks} : {}),
-        },
+        axisTick: {show: true, ...(hasCustomTicks ? {customValues: customTicks} : {})},
         // When customValues are provided, suppress auto-tick generation
         // so ECharts only renders our timezone-aligned ticks.
         splitNumber: hasCustomTicks ? 0 : X_AXIS_SPLIT_NUMBER,
@@ -636,22 +628,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       (series as {color?: unknown})?.color ??
       (series as {itemStyle?: {color?: unknown}})?.itemStyle?.color;
     const color = typeof seriesColor === 'string' ? seriesColor : theme.colors.gray300;
-    return {
-      name: plottable.name,
-      label: plottable.label,
-      color,
-    };
+    return {name: plottable.name, label: plottable.label, color};
   });
 
   if (releaseSeries) {
     const releaseName = typeof releaseSeries.name === 'string' ? releaseSeries.name : '';
     const releaseColor =
       typeof releaseSeries.color === 'string' ? releaseSeries.color : '';
-    chartLegendItems.push({
-      name: releaseName,
-      label: releaseName,
-      color: releaseColor,
-    });
+    chartLegendItems.push({name: releaseName, label: releaseName, color: releaseColor});
   }
 
   // ECharts needs every known legend item to be present in the selection state.
@@ -747,12 +731,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             ...xAxisGrid,
           }}
           legend={
-            showLegend
-              ? {
-                  show: false,
-                  selected: normalizedLegendSelection,
-                }
-              : undefined
+            showLegend ? {show: false, selected: normalizedLegendSelection} : undefined
           }
           onLegendSelectChanged={event => {
             handleLegendSelectionChange(event.selected);
@@ -760,9 +739,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           tooltip={{
             appendToBody: true,
             trigger: 'axis',
-            axisPointer: {
-              type: 'cross',
-            },
+            axisPointer: {type: 'cross'},
             formatter: formatTooltip,
           }}
           xAxis={xAxis}
@@ -802,10 +779,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
  */
 function getPlottableEventDataIndex(
   series: SeriesOption[],
-  event: {
-    dataIndex: number;
-    seriesIndex?: number;
-  },
+  event: {dataIndex: number; seriesIndex?: number},
   affectedRange: Range<Plottable>
 ): number {
   const {dataIndex, seriesIndex} = event;

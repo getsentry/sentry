@@ -28,31 +28,11 @@ import {
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
 
 const stringTags: TagCollection = {
-  id: {
-    key: 'id',
-    name: 'id',
-    kind: FieldKind.TAG,
-  },
-  project: {
-    key: 'project',
-    name: 'project',
-    kind: FieldKind.TAG,
-  },
-  'span.op': {
-    key: 'span.op',
-    name: 'span.op',
-    kind: FieldKind.TAG,
-  },
-  'geo.country': {
-    key: 'geo.country',
-    name: 'geo.country',
-    kind: FieldKind.TAG,
-  },
-  'geo.city': {
-    key: 'geo.city',
-    name: 'geo.city',
-    kind: FieldKind.TAG,
-  },
+  id: {key: 'id', name: 'id', kind: FieldKind.TAG},
+  project: {key: 'project', name: 'project', kind: FieldKind.TAG},
+  'span.op': {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
+  'geo.country': {key: 'geo.country', name: 'geo.country', kind: FieldKind.TAG},
+  'geo.city': {key: 'geo.city', name: 'geo.city', kind: FieldKind.TAG},
 };
 
 const numberTags: TagCollection = {
@@ -66,11 +46,7 @@ const numberTags: TagCollection = {
     name: 'span.self_time',
     kind: FieldKind.MEASUREMENT,
   },
-  'tags[foo,number]': {
-    key: 'tags[foo,number]',
-    name: 'foo',
-    kind: FieldKind.MEASUREMENT,
-  },
+  'tags[foo,number]': {key: 'tags[foo,number]', name: 'foo', kind: FieldKind.MEASUREMENT},
 };
 
 const booleanTags: TagCollection = {

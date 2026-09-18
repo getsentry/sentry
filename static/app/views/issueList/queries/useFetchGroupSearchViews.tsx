@@ -35,13 +35,7 @@ export function groupSearchViewsApiOptions({
     '/organizations/$organizationIdOrSlug/group-search-views/',
     {
       path: {organizationIdOrSlug: orgSlug},
-      query: {
-        per_page: limit,
-        createdBy,
-        cursor,
-        sort,
-        query,
-      },
+      query: {per_page: limit, createdBy, cursor, sort, query},
       staleTime: Infinity,
     }
   );

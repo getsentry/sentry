@@ -103,12 +103,7 @@ function getSupportedAttributes({
     }
 
     if (NO_ARGUMENT_SPAN_AGGREGATES.includes(functionName as AggregationKey)) {
-      return {
-        '': {
-          name: t('spans'),
-          key: '',
-        },
-      };
+      return {'': {name: t('spans'), key: ''}};
     }
 
     if (functionName === AggregationKey.COUNT_UNIQUE) {

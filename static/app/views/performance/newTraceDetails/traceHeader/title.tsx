@@ -25,10 +25,9 @@ interface TitleProps {
   rootEventResults: TraceRootEventQueryResults;
 }
 
-function getTitle(representativeEvent: TraceTree.RepresentativeTraceEvent | null): {
-  title: string;
-  subtitle?: string;
-} | null {
+function getTitle(
+  representativeEvent: TraceTree.RepresentativeTraceEvent | null
+): {title: string; subtitle?: string} | null {
   const event = representativeEvent?.event;
   if (!event) {
     return null;
@@ -36,10 +35,7 @@ function getTitle(representativeEvent: TraceTree.RepresentativeTraceEvent | null
 
   // Handle log events
   if (OurLogKnownFieldKey.SEVERITY in event) {
-    return {
-      title: t('Trace'),
-      subtitle: event[OurLogKnownFieldKey.MESSAGE],
-    };
+    return {title: t('Trace'), subtitle: event[OurLogKnownFieldKey.MESSAGE]};
   }
 
   return event.traceHeaderTitle ?? null;
@@ -67,12 +63,7 @@ function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>)
         type="button"
         variant="link"
         icon={<IconPlay size="xs" />}
-        to={{
-          pathname: makeReplaysPathname({
-            path: `/${replayId}/`,
-            organization,
-          }),
-        }}
+        to={{pathname: makeReplaysPathname({path: `/${replayId}/`, organization})}}
         aria-label={t("View this issue's replay")}
       >
         {t('1 Replay')}

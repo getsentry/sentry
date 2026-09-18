@@ -109,10 +109,7 @@ export function getThresholdUnitSelectOptions(
   }
 
   if (dataType === 'size') {
-    return Object.values(ABYTE_UNITS).map(unit => ({
-      label: unit,
-      value: unit,
-    }));
+    return Object.values(ABYTE_UNITS).map(unit => ({label: unit, value: unit}));
   }
 
   return [];
@@ -389,9 +386,7 @@ export function hasUnsavedFilterChanges(
     end: normalizeDateTimeString(initialDashboard.end),
     utc: initialDashboard.utc,
   };
-  let currentFilters = {
-    ...getCurrentPageFilters(location),
-  } as unknown as Filters;
+  let currentFilters = {...getCurrentPageFilters(location)} as unknown as Filters;
   currentFilters = {
     ...currentFilters,
     projects: new Set(currentFilters.projects),
@@ -446,13 +441,7 @@ export function resetPageFilters(
   location: Location,
   navigate: ReactRouter3Navigate
 ) {
-  navigate(
-    {
-      ...location,
-      query: getSavedPageFilters(dashboard),
-    },
-    {replace: true}
-  );
+  navigate({...location, query: getSavedPageFilters(dashboard)}, {replace: true});
 }
 
 export function getCurrentPageFilters(

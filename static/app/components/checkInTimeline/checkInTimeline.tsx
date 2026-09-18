@@ -109,10 +109,7 @@ export function CheckInTimeline<Status extends string>({
   );
 }
 
-const JobTick = styled('div')<{
-  roundedLeft: boolean;
-  roundedRight: boolean;
-}>`
+const JobTick = styled('div')<{roundedLeft: boolean; roundedRight: boolean}>`
   position: absolute;
   width: 4px;
   height: 14px;

@@ -30,11 +30,7 @@ export function getProfileMeta(event: EventTransaction | null) {
   if (profilerId) {
     const start = new Date(event.startTimestamp * 1000);
     const end = new Date(event.endTimestamp * 1000);
-    return {
-      profiler_id: profilerId,
-      start: start.toISOString(),
-      end: end.toISOString(),
-    };
+    return {profiler_id: profilerId, start: start.toISOString(), end: end.toISOString()};
   }
   return null;
 }
@@ -97,10 +93,7 @@ export function getSearchInExploreTarget(
   }
 
   return {
-    pathname: makeTracesPathname({
-      organization,
-      path: '/',
-    }),
+    pathname: makeTracesPathname({organization, path: '/'}),
     query: {
       start,
       end,

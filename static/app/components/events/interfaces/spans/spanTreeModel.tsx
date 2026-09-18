@@ -67,9 +67,7 @@ export class SpanTreeModel {
 
     // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.
     // For example if a span has a span_id that's identical to its parent_span_id.
-    childSpans = {
-      ...childSpans,
-    };
+    childSpans = {...childSpans};
     delete childSpans[spanID];
 
     this.children = spanChildren.map(span => {
@@ -338,10 +336,7 @@ export class SpanTreeModel {
         siblingGroupOccurrenceMap[groupKey] = 1;
       }
 
-      groupedDescendants.push({
-        group,
-        occurrence: siblingGroupOccurrenceMap[groupKey],
-      });
+      groupedDescendants.push({group, occurrence: siblingGroupOccurrenceMap[groupKey]});
     };
 
     if (descendantsSource?.length >= MIN_SIBLING_GROUP_SIZE) {
@@ -440,10 +435,7 @@ export class SpanTreeModel {
               this.isSpanFilteredOut(props, spanModel) ||
               (focusedSpanIds && !focusedSpanIds.has(spanModel.span.span_id))
             ) {
-              acc.descendants.push({
-                type: 'filtered_out',
-                span: spanModel.span,
-              });
+              acc.descendants.push({type: 'filtered_out', span: spanModel.span});
             } else {
               const enhancedSibling: EnhancedSpan = {
                 type: 'span',
@@ -492,10 +484,7 @@ export class SpanTreeModel {
               acc.descendants.push(
                 bounds.isSpanVisibleInView
                   ? enhancedSibling
-                  : {
-                      type: 'filtered_out',
-                      span: spanModel.span,
-                    }
+                  : {type: 'filtered_out', span: spanModel.span}
               );
             }
           });
@@ -511,10 +500,7 @@ export class SpanTreeModel {
           groupShouldBeHidden(group, focusedSpanIds)
         ) {
           group.forEach(spanModel => {
-            acc.descendants.push({
-              type: 'filtered_out',
-              span: spanModel.span,
-            });
+            acc.descendants.push({type: 'filtered_out', span: spanModel.span});
           });
           return acc;
         }
@@ -526,10 +512,7 @@ export class SpanTreeModel {
 
         if (!bounds.isSpanVisibleInView) {
           group.forEach(spanModel =>
-            acc.descendants.push({
-              type: 'out_of_view',
-              span: spanModel.span,
-            })
+            acc.descendants.push({type: 'out_of_view', span: spanModel.span})
           );
           return acc;
         }
@@ -590,23 +573,14 @@ export class SpanTreeModel {
         acc.descendants.push(groupedSiblingsSpan);
         return acc;
       },
-      {
-        descendants: [],
-        previousSiblingEndTimestamp: undefined,
-      }
+      {descendants: [], previousSiblingEndTimestamp: undefined}
     ).descendants;
 
     if (
       this.isSpanFilteredOut(props, this) ||
       (focusedSpanIds && !focusedSpanIds.has(this.span.span_id))
     ) {
-      return [
-        {
-          type: 'filtered_out',
-          span: this.span,
-        },
-        ...descendants,
-      ];
+      return [{type: 'filtered_out', span: this.span}, ...descendants];
     }
 
     const bounds = generateBounds({
@@ -616,13 +590,7 @@ export class SpanTreeModel {
     const isCurrentSpanOutOfView = !bounds.isSpanVisibleInView;
 
     if (isCurrentSpanOutOfView) {
-      return [
-        {
-          type: 'out_of_view',
-          span: this.span,
-        },
-        ...descendants,
-      ];
+      return [{type: 'out_of_view', span: this.span}, ...descendants];
     }
 
     if (shouldHideSpanOfGroup) {
@@ -723,11 +691,7 @@ export class SpanTreeModel {
 
       if (this.showEmbeddedChildren) {
         if (this.embeddedChildren.length === 0) {
-          return this.fetchEmbeddedTransactions({
-            orgSlug,
-            eventSlugs,
-            addTraceBounds,
-          });
+          return this.fetchEmbeddedTransactions({orgSlug, eventSlugs, addTraceBounds});
         }
         this.embeddedChildren.forEach(child => {
           addTraceBounds(child.generateTraceBounds());
@@ -754,10 +718,7 @@ export class SpanTreeModel {
 
     const promiseArray = urls.map(url =>
       this.api
-        .requestPromise(url, {
-          method: 'GET',
-          query: {},
-        })
+        .requestPromise(url, {method: 'GET', query: {}})
         .then(
           action('fetchEmbeddedTransactionsSuccess', (event: EventTransaction) => {
             if (!event) {

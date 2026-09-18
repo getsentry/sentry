@@ -424,10 +424,7 @@ export function Provider({
           if (!videoHeight || !videoWidth) {
             return;
           }
-          setDimensions({
-            height: videoHeight,
-            width: videoWidth,
-          });
+          setDimensions({height: videoHeight, width: videoWidth});
         },
         onBuffer: buffering => {
           setVideoBuffering(buffering);
@@ -485,14 +482,9 @@ export function Provider({
   const projectId = replay?.getReplay().project_id;
 
   const onLoadAllEvents = useEffectEvent(() => {
-    const attributes = {
-      projectId: String(projectId),
-      replayId,
-    };
+    const attributes = {projectId: String(projectId), replayId};
 
-    Sentry.metrics.distribution('replay.eventCount', events?.length ?? 0, {
-      attributes,
-    });
+    Sentry.metrics.distribution('replay.eventCount', events?.length ?? 0, {attributes});
 
     Sentry.metrics.distribution('replay.videoEventCount', videoEvents?.length ?? 0, {
       attributes,

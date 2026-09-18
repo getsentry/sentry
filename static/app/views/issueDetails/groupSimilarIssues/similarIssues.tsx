@@ -19,10 +19,7 @@ export function GroupSimilarIssues() {
     isError: isGroupError,
     refetch: refetchGroup,
   } = useGroup({groupId: params.groupId});
-  const project = useProjectFromSlug({
-    organization,
-    projectSlug: group?.project.slug,
-  });
+  const project = useProjectFromSlug({organization, projectSlug: group?.project.slug});
 
   if (isGroupPending || !project) {
     return <LoadingIndicator />;

@@ -78,9 +78,7 @@ export function CodeOwnerFileTable({
             },
           }
         ),
-        {
-          method: 'GET',
-        }
+        {method: 'GET'}
       );
 
       const data = await api.requestPromise(
@@ -94,10 +92,7 @@ export function CodeOwnerFileTable({
             },
           }
         ),
-        {
-          method: 'PUT',
-          data: {raw: codeownerFile.raw},
-        }
+        {method: 'PUT', data: {raw: codeownerFile.raw}}
       );
       onUpdate({...codeowner, ...data});
       addSuccessMessage(t('CODEOWNERS file sync successful.'));
@@ -119,9 +114,7 @@ export function CodeOwnerFileTable({
             },
           }
         ),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
       onDelete(codeowner);
       addSuccessMessage(t('Deletion successful'));
@@ -174,16 +167,8 @@ export function CodeOwnerFileTable({
           <SimpleTable.RowCell gap="md">
             <DropdownMenu
               items={[
-                {
-                  key: 'view',
-                  label: t('View'),
-                  onAction: handleView(codeowner),
-                },
-                {
-                  key: 'sync',
-                  label: t('Sync'),
-                  onAction: handleSync(codeowner),
-                },
+                {key: 'view', label: t('View'), onAction: handleView(codeowner)},
+                {key: 'sync', label: t('Sync'), onAction: handleSync(codeowner)},
                 {
                   key: 'delete',
                   label: t('Delete'),

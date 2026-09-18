@@ -16,12 +16,10 @@ export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<ButtonSize, SVGIconProps['size
   md: 'sm',
 };
 
-const elevation = {
-  md: '2px',
-  sm: '2px',
-  xs: '1px',
-  zero: '0px',
-} satisfies Record<ButtonSize, string>;
+const elevation = {md: '2px', sm: '2px', xs: '1px', zero: '0px'} satisfies Record<
+  ButtonSize,
+  string
+>;
 
 const hoverElevation = '1px';
 
@@ -37,12 +35,7 @@ export function DO_NOT_USE_getButtonStyles(
 
   const buttonSizes = {
     ...p.theme.form,
-    zero: {
-      height: '24px',
-      minHeight: '24px',
-      fontSize: '0.75rem',
-      lineHeight: '1rem',
-    },
+    zero: {height: '24px', minHeight: '24px', fontSize: '0.75rem', lineHeight: '1rem'},
   } as const;
 
   const buttonTheme = getButtonTheme(variant, p.theme);
@@ -62,9 +55,7 @@ export function DO_NOT_USE_getButtonStyles(
     opacity: p.disabled ? 0.6 : undefined,
 
     cursor: 'pointer',
-    '&[disabled]': {
-      cursor: 'not-allowed',
-    },
+    '&[disabled]': {cursor: 'not-allowed'},
 
     padding:
       p.shapeVariant === 'square' ? '0' : getButtonSizeTheme(p.size, p.theme).padding,
@@ -123,9 +114,7 @@ export function DO_NOT_USE_getButtonStyles(
           },
     },
 
-    '&[aria-busy="true"] > span:last-child': {
-      overflow: 'visible',
-    },
+    '&[aria-busy="true"] > span:last-child': {overflow: 'visible'},
 
     '> span:last-child': {
       zIndex: 1,
@@ -148,37 +137,23 @@ export function DO_NOT_USE_getButtonStyles(
       color: p.disabled || p.busy ? undefined : buttonTheme.color,
     },
 
-    '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
-      '--button-lift': '0px',
-    },
+    '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {'--button-lift': '0px'},
 
     '&[aria-expanded="true"], &[aria-checked="true"]': {
-      '&::after': {
-        transition: 'none',
-      },
-      '> span:last-child': {
-        transition: 'none',
-      },
+      '&::after': {transition: 'none'},
+      '> span:last-child': {transition: 'none'},
     },
 
-    '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {
-      '--button-lift': '0px',
-    },
+    '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {'--button-lift': '0px'},
 
-    '&[aria-busy="true"]': {
-      cursor: 'progress',
-    },
+    '&[aria-busy="true"]': {cursor: 'progress'},
 
     ...(variant === 'link' && {
       transform: 'translateY(0px)',
 
-      '&::before': {
-        display: 'none',
-      },
+      '&::before': {display: 'none'},
 
-      '&::after': {
-        display: 'none',
-      },
+      '&::after': {display: 'none'},
     }),
 
     // Borderless buttons are not chonky
@@ -186,33 +161,21 @@ export function DO_NOT_USE_getButtonStyles(
       border: 'none',
       transform: 'translateY(0px)',
 
-      '&::before': {
-        display: 'none',
-      },
-      '&::after': {
-        display: 'none',
-      },
+      '&::before': {display: 'none'},
+      '&::after': {display: 'none'},
 
-      '&:focus-visible': {
-        ...p.theme.focusRing(),
-      },
+      '&:focus-visible': {...p.theme.focusRing()},
 
-      '> span:last-child': {
-        transform: 'translateY(0px)',
-      },
+      '> span:last-child': {transform: 'translateY(0px)'},
 
       '&:hover': {
-        '> span:last-child': {
-          transform: 'translateY(0px)',
-        },
+        '> span:last-child': {transform: 'translateY(0px)'},
         backgroundColor:
           p.busy || p.disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray100,
       },
 
       '&:active': {
-        '> span:last-child': {
-          transform: 'translateY(0px)',
-        },
+        '> span:last-child': {transform: 'translateY(0px)'},
 
         backgroundColor:
           p.busy || p.disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray200,
@@ -227,15 +190,9 @@ export function DO_NOT_USE_getButtonStyles(
       border: 'none',
       transform: 'translateY(0px)',
 
-      '> span:last-child': {
-        color: 'inherit',
-      },
+      '> span:last-child': {color: 'inherit'},
 
-      '&:hover': {
-        '> span:last-child': {
-          transform: 'translateY(0px)',
-        },
-      },
+      '&:hover': {'> span:last-child': {transform: 'translateY(0px)'}},
     }),
   };
 }

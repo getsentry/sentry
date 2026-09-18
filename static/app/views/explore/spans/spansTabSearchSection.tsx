@@ -178,11 +178,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                     `,
                     '3xl': '"filters search actions"',
                   }}
-                  columns={{
-                    zero: '100%',
-                    xl: '1fr auto',
-                    '3xl': 'subgrid',
-                  }}
+                  columns={{zero: '100%', xl: '1fr auto', '3xl': 'subgrid'}}
                   gap="md"
                   width="100%"
                 >

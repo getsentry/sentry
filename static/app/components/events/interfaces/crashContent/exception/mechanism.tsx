@@ -14,10 +14,7 @@ import {t} from 'sentry/locale';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
-type Props = {
-  data: StackTraceMechanism;
-  meta?: Record<any, any>;
-};
+type Props = {data: StackTraceMechanism; meta?: Record<any, any>};
 
 export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
   const {type, description, help_link, handled, source, meta = {}, data = {}} = mechanism;

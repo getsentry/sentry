@@ -360,10 +360,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           token,
           op: option.value,
           focusOverride: initialOpSettingRef.current
-            ? {
-                itemKey: `${item.key}`,
-                part: 'value',
-              }
+            ? {itemKey: `${item.key}`, part: 'value'}
             : undefined,
           shouldCommitQuery: !initialOpSettingRef.current,
         });
@@ -378,9 +375,9 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
   );
 }
 
-const OpButton = styled(UnstyledButton, {
-  shouldForwardProp: isPropValid,
-})<{onlyOperator?: boolean}>`
+const OpButton = styled(UnstyledButton, {shouldForwardProp: isPropValid})<{
+  onlyOperator?: boolean;
+}>`
   padding: 0 ${p => p.theme.space['2xs']} 0 ${p => p.theme.space.xs};
   height: 100%;
   border-left: 1px solid transparent;

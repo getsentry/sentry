@@ -59,10 +59,7 @@ import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-type OnboardingProps = {
-  organization: Organization;
-  project: Project;
-};
+type OnboardingProps = {organization: Organization; project: Project};
 
 const AI_SETUP_PROMPT =
   'Please instrument Sentry logging. Include some examples following best practices.';
@@ -373,10 +370,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     isPerformanceSelected: false,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: [ProductSolution.LOGS],
     feedbackOptions: {},
     urlPrefix,
@@ -397,10 +391,7 @@ function Onboarding({organization, project}: OnboardingProps) {
         onStepChange={step => {
           navigate({
             pathname: location.pathname,
-            query: {
-              ...location.query,
-              guidedStep: step,
-            },
+            query: {...location.query, guidedStep: step},
           });
         }}
       >

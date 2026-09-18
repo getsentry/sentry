@@ -135,9 +135,7 @@ describe('OrganizationAuditLog', () => {
     await userEvent.click(screen.getByText('Last 2 weeks'));
 
     expect(router.location).toEqual(
-      expect.objectContaining({
-        query: {statsPeriod: '2w'},
-      })
+      expect.objectContaining({query: {statsPeriod: '2w'}})
     );
     expect(screen.getByTestId('page-filter-timerange-selector')).toHaveTextContent(
       'Last 2 weeks'

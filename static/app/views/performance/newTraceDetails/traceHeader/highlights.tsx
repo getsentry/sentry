@@ -67,13 +67,8 @@ function AttributesHighlights({
           icon: getContextIcon({
             alias: 'runtime',
             type: 'runtime',
-            value: {
-              name,
-              version,
-            },
-            contextIconProps: {
-              size: 'md',
-            },
+            value: {name, version},
+            contextIconProps: {size: 'md'},
             theme,
           }),
           description: (
@@ -104,14 +99,8 @@ function AttributesHighlights({
           icon: getContextIcon({
             alias: 'user',
             type: 'user',
-            value: {
-              email,
-              ip_address,
-              id,
-            },
-            contextIconProps: {
-              size: 'md',
-            },
+            value: {email, ip_address, id},
+            contextIconProps: {size: 'md'},
             theme,
           }),
           description: (
@@ -137,13 +126,8 @@ function AttributesHighlights({
           icon: getContextIcon({
             alias: 'browser',
             type: 'browser',
-            value: {
-              name,
-              version,
-            },
-            contextIconProps: {
-              size: 'md',
-            },
+            value: {name, version},
+            contextIconProps: {size: 'md'},
             theme,
           }),
           description: (
@@ -173,13 +157,8 @@ function AttributesHighlights({
           icon: getContextIcon({
             alias: 'os',
             type: 'os',
-            value: {
-              name,
-              version,
-            },
-            contextIconProps: {
-              size: 'md',
-            },
+            value: {name, version},
+            contextIconProps: {size: 'md'},
             theme,
           }),
           description: (

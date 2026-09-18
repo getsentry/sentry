@@ -5,9 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {OrganizationSampleRateInput} from './organizationSampleRateInput';
 
 describe('OrganizationSampleRateInput', () => {
-  const organization = OrganizationFixture({
-    access: ['org:write'],
-  });
+  const organization = OrganizationFixture({access: ['org:write']});
 
   const defaultProps = {
     value: '10',
@@ -23,9 +21,7 @@ describe('OrganizationSampleRateInput', () => {
   });
 
   it('renders with basic props', () => {
-    render(<OrganizationSampleRateInput {...defaultProps} />, {
-      organization,
-    });
+    render(<OrganizationSampleRateInput {...defaultProps} />, {organization});
 
     expect(screen.getByRole('spinbutton')).toHaveValue(10);
     expect(screen.getByText('Sample Rate')).toBeInTheDocument();
@@ -41,9 +37,7 @@ describe('OrganizationSampleRateInput', () => {
   });
 
   it('shows "All spans are stored" message when value is 100', () => {
-    render(<OrganizationSampleRateInput {...defaultProps} value="100" />, {
-      organization,
-    });
+    render(<OrganizationSampleRateInput {...defaultProps} value="100" />, {organization});
 
     expect(screen.getByText('All spans are stored')).toBeInTheDocument();
   });
@@ -70,9 +64,7 @@ describe('OrganizationSampleRateInput', () => {
     });
 
     it('enables input when user has access', () => {
-      render(<OrganizationSampleRateInput {...defaultProps} />, {
-        organization,
-      });
+      render(<OrganizationSampleRateInput {...defaultProps} />, {organization});
 
       expect(screen.getByRole('spinbutton')).toBeEnabled();
     });

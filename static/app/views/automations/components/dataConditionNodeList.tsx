@@ -136,11 +136,7 @@ export function DataConditionNodeList({
         label: t('Filter by Event Attributes'),
         options: eventAttributeOptions,
       },
-      {
-        key: 'other',
-        label: t('Other'),
-        options: otherOptions,
-      },
+      {key: 'other', label: t('Other'), options: otherOptions},
     ];
   }, [dataConditionHandlers, handlerGroup, state.triggers.conditions]);
 

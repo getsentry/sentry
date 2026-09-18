@@ -301,10 +301,7 @@ function ContributingIssues({
   };
 
   const discoverUrl: LocationDescriptor = {
-    pathname: makeDiscoverPathname({
-      organization,
-      path: '/results/',
-    }),
+    pathname: makeDiscoverPathname({organization, path: '/results/'}),
     query: {
       query,
       dataset: SavedQueryDatasets.ERRORS,
@@ -470,11 +467,7 @@ function TriggeredConditionDetails({
           margin
           shouldSort={false}
           data={[
-            {
-              key: 'dataset',
-              value: datasetConfig.name,
-              subject: t('Dataset'),
-            },
+            {key: 'dataset', value: datasetConfig.name, subject: t('Dataset')},
             {
               key: 'aggregate',
               value: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
@@ -516,9 +509,7 @@ function TriggeredConditionDetails({
                   {getConditionDescription({
                     aggregate: snubaQuery.aggregate,
                     condition: triggeredCondition,
-                    config: evidenceData.config ?? {
-                      detectionType: 'static',
-                    },
+                    config: evidenceData.config ?? {detectionType: 'static'},
                   })}
                 </pre>
               ),
@@ -625,10 +616,7 @@ function SeerInvestigationSection({
   const source = useMemo<MetricOpenPeriodInvestigationSource | null>(
     () =>
       openPeriod
-        ? {
-            type: 'metric_open_period',
-            ref: {groupId, openPeriodId: openPeriod.id},
-          }
+        ? {type: 'metric_open_period', ref: {groupId, openPeriodId: openPeriod.id}}
         : null,
     [groupId, openPeriod]
   );

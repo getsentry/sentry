@@ -63,10 +63,7 @@ export function Truncate({
   );
 }
 
-const FullValue = styled('span')<{
-  expandDirection: 'left' | 'right';
-  expanded: boolean;
-}>`
+const FullValue = styled('span')<{expandDirection: 'left' | 'right'; expanded: boolean}>`
   display: none;
   position: absolute;
   background: ${p => p.theme.tokens.background.primary};

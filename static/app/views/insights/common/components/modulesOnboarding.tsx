@@ -216,10 +216,7 @@ const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
     heading: t("Don't lose your user's attention before your app loads"),
     description: tct(
       'Monitor cold and warm [dataTypePlural] and track down the operations and releases contributing to regressions.',
-      {
-        dataTypePlural:
-          MODULE_DATA_TYPES_PLURAL[ModuleName.APP_START].toLocaleLowerCase(),
-      }
+      {dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.APP_START].toLocaleLowerCase()}
     ),
     valuePropDescription: tct('Mobile [dataType] insights give you visibility into:', {
       dataType: MODULE_DATA_TYPES[ModuleName.APP_START],
@@ -360,9 +357,7 @@ const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
     heading: t('Ensure your background jobs aren’t being sent to /dev/null'),
     description: tct(
       'Understand the health and performance impact that [dataTypePlural] have on your application and diagnose errors tied to jobs.',
-      {
-        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.QUEUE].toLocaleLowerCase(),
-      }
+      {dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.QUEUE].toLocaleLowerCase()}
     ),
     valuePropDescription: tct('[dataType] insights give you visibility into:', {
       dataType: MODULE_DATA_TYPES[ModuleName.QUEUE],
@@ -419,9 +414,7 @@ const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
     heading: t("Get insights about your application's session health"),
     description: tct(
       'Understand the frequency of handled errors and crashes compared to healthy sessions.',
-      {
-        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.SESSIONS].toLocaleLowerCase(),
-      }
+      {dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.SESSIONS].toLocaleLowerCase()}
     ),
     valuePropDescription: tct('[dataType] insights include:', {
       dataType: MODULE_DATA_TYPES[ModuleName.SESSIONS],

@@ -47,18 +47,13 @@ export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
       "In this quick guide you'll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:",
-      {
-        strong: <strong />,
-      }
+      {strong: <strong />}
     ),
   install: (params: DocsParams) => [
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Add the Sentry Node SDK as a dependency:'),
-        },
+        {type: 'text', text: t('Add the Sentry Node SDK as a dependency:')},
         getInstallCodeBlock(params),
       ],
     },

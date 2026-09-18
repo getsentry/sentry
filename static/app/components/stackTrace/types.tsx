@@ -46,9 +46,7 @@ export type OmittedFramesRow = {
 export type Row = FrameRow | OmittedFramesRow;
 
 export type StackTraceMeta = {
-  frames?: Array<{
-    vars?: Record<string, unknown>;
-  }>;
+  frames?: Array<{vars?: Record<string, unknown>}>;
   registers?: Record<string, unknown>;
 } & Record<string, unknown>;
 

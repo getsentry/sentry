@@ -10,15 +10,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 describe('FrameVariablesGrid', () => {
   it('renders variables sorted alphabetically', () => {
-    render(
-      <FrameVariablesGrid
-        data={{
-          zebra: null,
-          alpha: null,
-          middle: null,
-        }}
-      />
-    );
+    render(<FrameVariablesGrid data={{zebra: null, alpha: null, middle: null}} />);
 
     const keys = screen.getAllByText(/^(alpha|middle|zebra)$/);
     expect(keys[0]).toHaveTextContent('alpha');
@@ -27,14 +19,7 @@ describe('FrameVariablesGrid', () => {
   });
 
   it('strips quotes from variable keys', () => {
-    render(
-      <FrameVariablesGrid
-        data={{
-          "'quoted'": 'value',
-          unquoted: 'value',
-        }}
-      />
-    );
+    render(<FrameVariablesGrid data={{"'quoted'": 'value', unquoted: 'value'}} />);
 
     expect(screen.getByText('quoted')).toBeInTheDocument();
     expect(screen.getByText('unquoted')).toBeInTheDocument();
@@ -69,23 +54,13 @@ describe('FrameVariablesGrid', () => {
 
     render(
       <FrameVariablesGrid
-        data={{
-          "'client'": '',
-          "'data'": null,
-        }}
+        data={{"'client'": '', "'data'": null}}
         meta={{
           "'client'": {
             '': {
               rem: [['project:0', 's', 0, 0]],
               len: 41,
-              chunks: [
-                {
-                  type: 'redaction',
-                  text: '',
-                  rule_id: 'project:0',
-                  remark: 's',
-                },
-              ],
+              chunks: [{type: 'redaction', text: '', rule_id: 'project:0', remark: 's'}],
             },
           },
         }}
@@ -138,11 +113,7 @@ describe('FrameVariablesGrid', () => {
   });
 
   it('does not mutate the data prop', () => {
-    const data = {
-      zebra: 'last',
-      alpha: 'first',
-      middle: 'middle',
-    };
+    const data = {zebra: 'last', alpha: 'first', middle: 'middle'};
     const originalKeys = Object.keys(data);
 
     render(<FrameVariablesGrid data={data} />);

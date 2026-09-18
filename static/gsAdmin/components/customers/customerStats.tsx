@@ -34,10 +34,7 @@ enum SeriesName {
   DROPPED = 'Dropped (Server)',
 }
 
-type SubSeries = {
-  data: DataPoint[];
-  seriesName: string;
-};
+type SubSeries = {data: DataPoint[]; seriesName: string};
 
 type SeriesItem = {
   data: DataPoint[];
@@ -47,22 +44,14 @@ type SeriesItem = {
 };
 
 export type StatsGroup = {
-  by: {
-    outcome: string;
-    reason: string;
-  };
+  by: {outcome: string; reason: string};
   series: Record<string, number[]>;
   totals: Record<string, number>;
 };
 
-type Stats = {
-  groups: StatsGroup[];
-  intervals: Array<string | number>;
-};
+type Stats = {groups: StatsGroup[]; intervals: Array<string | number>};
 
-type LegendProps = {
-  points: Stats;
-};
+type LegendProps = {points: Stats};
 
 export const useSeries = (): Record<string, SeriesItem> => {
   const theme = useTheme();
@@ -173,13 +162,8 @@ function useAbuseMarkAreaSeries(
       data: [] as DataPoint[],
       markArea: MarkArea({
         silent: true,
-        itemStyle: {
-          color: theme.tokens.graphics.promotion.vibrant,
-          opacity: 0.1,
-        },
-        label: {
-          show: false,
-        },
+        itemStyle: {color: theme.tokens.graphics.promotion.vibrant, opacity: 0.1},
+        label: {show: false},
         data: [
           [
             {xAxis: new Date(r.start - halfInterval).toISOString()},
@@ -192,11 +176,7 @@ function useAbuseMarkAreaSeries(
 }
 
 function zeroFillDates(start: number, end: number, {color}: {color: string}) {
-  const zero: SeriesItem = {
-    seriesName: SeriesName.ACCEPTED,
-    data: [],
-    color,
-  };
+  const zero: SeriesItem = {seriesName: SeriesName.ACCEPTED, data: [], color};
 
   const numberOfIntervals = Math.ceil((end - start) / 86400);
 
@@ -234,10 +214,7 @@ export function populateChartData(
       if (point.by.outcome === 'filtered') {
         if (point.by.reason?.startsWith('Sampled:')) {
           if (filteredData['dynamic-sampling'] === undefined) {
-            filteredData['dynamic-sampling'] = {
-              seriesName: 'Dynamic Sampling',
-              data: [],
-            };
+            filteredData['dynamic-sampling'] = {seriesName: 'Dynamic Sampling', data: []};
           }
 
           if (dateIndex >= filteredData['dynamic-sampling'].data.length) {
@@ -308,10 +285,7 @@ export function populateChartData(
 
       if (isAbuseWithoutReason(point.by)) {
         if (droppedData.abuse === undefined) {
-          droppedData.abuse = {
-            seriesName: 'Abuse',
-            data: [],
-          };
+          droppedData.abuse = {seriesName: 'Abuse', data: []};
         }
 
         if (dateIndex >= droppedData.abuse.data.length) {
@@ -458,24 +432,15 @@ export const CustomerStats = memo(function CustomerStatsComponent({
     const utc = utcString === 'true';
 
     if (!start && !end && !statsPeriod && onDemandPeriodStart && onDemandPeriodEnd) {
-      return {
-        start: onDemandPeriodStart,
-        end: onDemandPeriodEnd,
-      };
+      return {start: onDemandPeriodStart, end: onDemandPeriodEnd};
     }
 
     if (start && end) {
       // URL start/end params are always UTC, regardless of the `utc` display flag
-      return {
-        start: moment.utc(start).format(),
-        end: moment.utc(end).format(),
-        utc,
-      };
+      return {start: moment.utc(start).format(), end: moment.utc(end).format(), utc};
     }
 
-    return {
-      period: statsPeriod ?? '90d',
-    };
+    return {period: statsPeriod ?? '90d'};
   }, [location.query, onDemandPeriodStart, onDemandPeriodEnd]);
 
   const statsEndpointUrl = getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
@@ -504,10 +469,7 @@ export const CustomerStats = memo(function CustomerStatsComponent({
         },
       },
     ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
+    {staleTime: Infinity, retry: false}
   );
 
   const {data: abuseStats} = useApiQuery<Stats>(
@@ -527,10 +489,7 @@ export const CustomerStats = memo(function CustomerStatsComponent({
         },
       },
     ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
+    {staleTime: Infinity, retry: false}
   );
 
   const theme = useTheme();
@@ -706,10 +665,7 @@ export const CustomerStats = memo(function CustomerStatsComponent({
 
       return acc;
     },
-    {
-      legend: [],
-      subLabels: [],
-    }
+    {legend: [], subLabels: []}
   );
 
   return (
@@ -736,12 +692,7 @@ export const CustomerStats = memo(function CustomerStatsComponent({
                       .map(serie => serie.color)
                       .filter(defined)}
                     tooltip={{subLabels}}
-                    legend={makeLegend({
-                      right: 10,
-                      top: 0,
-                      data: legend,
-                      theme,
-                    })}
+                    legend={makeLegend({right: 10, top: 0, data: legend, theme})}
                     grid={{top: 30, bottom: 0, left: 0, right: 0}}
                     {...zoomRenderProps}
                   />

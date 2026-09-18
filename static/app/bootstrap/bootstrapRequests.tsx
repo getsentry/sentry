@@ -52,10 +52,7 @@ export function useBootstrapOrganizationQuery(orgSlug: string | null) {
         organization: organization.id,
         'organization.slug': organization.slug,
       });
-      scope.setContext('organization', {
-        id: organization.id,
-        slug: organization.slug,
-      });
+      scope.setContext('organization', {id: organization.id, slug: organization.slug});
     }
     if (organizationQuery.error) {
       OrganizationStore.onFetchOrgError(organizationQuery.error as any);
@@ -114,10 +111,7 @@ export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
             getApiUrl('/organizations/$organizationIdOrSlug/', {
               path: {organizationIdOrSlug: orgSlug},
             }),
-            {
-              includeAllArgs: true,
-              query: {detailed: 0, include_feature_flags: 1},
-            }
+            {includeAllArgs: true, query: {detailed: 0, include_feature_flags: 1}}
           );
           return org;
         }
@@ -148,11 +142,7 @@ export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-teams', orgSlug],
     queryFn: orgSlug
-      ? async (): Promise<{
-          cursor: string | null;
-          hasMore: boolean;
-          teams: Team[];
-        }> => {
+      ? async (): Promise<{cursor: string | null; hasMore: boolean; teams: Team[]}> => {
           // Get the preloaded data promise
           try {
             const preloadResponse = await getPreloadedData('teams', orgSlug);
@@ -169,9 +159,7 @@ export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
             getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
               path: {organizationIdOrSlug: orgSlug},
             }),
-            {
-              includeAllArgs: true,
-            }
+            {includeAllArgs: true}
           );
           return createTeamsObject(teamsApiResponse);
         }
@@ -205,10 +193,7 @@ export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
             }),
             {
               includeAllArgs: true,
-              query: {
-                all_projects: 1,
-                collapse: ['latestDeploys', 'unusedFeatures'],
-              },
+              query: {all_projects: 1, collapse: ['latestDeploys', 'unusedFeatures']},
             }
           );
           return projects;

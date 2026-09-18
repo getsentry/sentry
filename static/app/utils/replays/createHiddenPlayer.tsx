@@ -50,8 +50,5 @@ export function createHiddenPlayer(rrwebEvents: RecordingFrame[]): {
     replayer.destroy();
   };
 
-  return {
-    replayer,
-    cleanupReplayer,
-  };
+  return {replayer, cleanupReplayer};
 }

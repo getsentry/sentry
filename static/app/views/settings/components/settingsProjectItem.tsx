@@ -5,10 +5,7 @@ import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-type Props = {
-  organization: Organization;
-  project: Project;
-};
+type Props = {organization: Organization; project: Project};
 
 export function ProjectItem({project, organization}: Props) {
   return (

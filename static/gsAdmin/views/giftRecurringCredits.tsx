@@ -167,10 +167,7 @@ export function GiftRecurringCredits() {
           GIFTABLE_CATEGORIES.has(info.name_singular)
       )
       .sort(([, a], [, b]) => a.order - b.order)
-      .map(([, info]) => ({
-        label: info.display_name,
-        value: info.name_singular,
-      }));
+      .map(([, info]) => ({label: info.display_name, value: info.name_singular}));
   }, [billingConfig]);
 
   // Orgs the backend couldn't find in the region the request was sent to. They
@@ -282,18 +279,9 @@ export function GiftRecurringCredits() {
       formData.append('billingPeriods', String(billingPeriods));
       const response: {results: ResultRow[]} = await api.requestPromise(
         `/_admin/cells/${cell?.name}/gift-recurring-credits/`,
-        {
-          method: 'POST',
-          host: cell?.locality_url,
-          data: formData,
-        }
+        {method: 'POST', host: cell?.locality_url, data: formData}
       );
-      return {
-        ...response,
-        region,
-        submittedAmount,
-        category: dataCategory,
-      };
+      return {...response, region, submittedAmount, category: dataCategory};
     },
     onSuccess: response => {
       setResults(response.results);
@@ -368,10 +356,7 @@ export function GiftRecurringCredits() {
             <OverlayTrigger.Button {...triggerProps} prefix="Region" />
           )}
           value={cell ? cell.locality_url : undefined}
-          options={cells.map(c => ({
-            label: c.name,
-            value: c.locality_url,
-          }))}
+          options={cells.map(c => ({label: c.name, value: c.locality_url}))}
           onChange={option => {
             const cellOption = cells.find(c => c.locality_url === option.value);
             if (cellOption !== undefined) {

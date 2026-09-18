@@ -13,9 +13,7 @@ import * as analytics from 'sentry/utils/analytics';
 import {StacktraceBanners} from './stacktraceBanners';
 
 describe('StacktraceBanners', () => {
-  const org = OrganizationFixture({
-    features: ['dashboards-basic'],
-  });
+  const org = OrganizationFixture({features: ['dashboards-basic']});
   const project = ProjectFixture();
 
   const eventEntryStacktrace = EventEntryStacktraceFixture();
@@ -50,9 +48,7 @@ describe('StacktraceBanners', () => {
   it('renders nothing with no in app frames', () => {
     const {container} = render(
       <StacktraceBanners stacktrace={EventEntryStacktraceFixture().data} event={event} />,
-      {
-        organization: org,
-      }
+      {organization: org}
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -64,9 +60,7 @@ describe('StacktraceBanners', () => {
     });
     const {container} = render(
       <StacktraceBanners stacktrace={stacktrace} event={event} />,
-      {
-        organization: org,
-      }
+      {organization: org}
     );
     expect(await screen.findByText('Connect with Git Providers')).toBeInTheDocument();
     expect(stacktraceLinkMock).toHaveBeenCalledTimes(1);
@@ -88,10 +82,7 @@ describe('StacktraceBanners', () => {
     expect(promptActivity).toHaveBeenCalledWith(
       `/organizations/${org.slug}/prompts-activity/`,
       expect.objectContaining({
-        query: {
-          feature: 'stacktrace_link',
-          project_id: project.id,
-        },
+        query: {feature: 'stacktrace_link', project_id: project.id},
       })
     );
 

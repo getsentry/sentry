@@ -86,9 +86,7 @@ describe('EventTagsTree', () => {
   });
 
   it('renders tag tree', async () => {
-    render(<EventTags projectSlug={project.slug} event={event} />, {
-      organization,
-    });
+    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByText(tags[0]!.value)).toBeInTheDocument();
     tags.slice(1).forEach(({value}) => {
@@ -133,12 +131,8 @@ describe('EventTagsTree', () => {
   it('renders release tag differently', async () => {
     const releaseVersion = 'v1.0';
 
-    const releaseEvent = EventFixture({
-      tags: [{key: 'release', value: releaseVersion}],
-    });
-    render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {
-      organization,
-    });
+    const releaseEvent = EventFixture({tags: [{key: 'release', value: releaseVersion}]});
+    render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {organization});
     expect(mockDetailedProject).toHaveBeenCalled();
     const versionText = await screen.findByText<
       HTMLElement & {parentElement: HTMLAnchorElement}
@@ -190,10 +184,7 @@ describe('EventTagsTree', () => {
   ])(
     "renders unique links for '$tag.key' tag",
     async ({tag, labelText, validateLink}) => {
-      const uniqueTagsEvent = EventFixture({
-        tags: [tag],
-        projectID: project.id,
-      });
+      const uniqueTagsEvent = EventFixture({tags: [tag], projectID: project.id});
       render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
         organization,
       });
@@ -209,24 +200,11 @@ describe('EventTagsTree', () => {
     const errorTagEvent = EventFixture({
       _meta: {
         tags: {
-          0: {
-            value: {
-              '': {
-                err: ['value_too_long'],
-              },
-            },
-          },
+          0: {value: {'': {err: ['value_too_long']}}},
           2: {
             value: {
               '': {
-                err: [
-                  [
-                    'invalid_data',
-                    {
-                      reason: "invalid character '\\n'",
-                    },
-                  ],
-                ],
+                err: [['invalid_data', {reason: "invalid character '\\n'"}]],
                 val: 'invalid\ncharacters\n🇨🇦🔥🤡',
               },
             },
@@ -323,9 +301,7 @@ describe('EventTagsTree', () => {
   });
 
   it("renders 'Add to event highlights' option based on permissions", async () => {
-    const readAccessOrganization = OrganizationFixture({
-      access: ['org:read'],
-    });
+    const readAccessOrganization = OrganizationFixture({access: ['org:read']});
     const highlightsEvent = EventFixture({
       tags: [{key: 'useless-tag', value: 'not so much'}],
     });

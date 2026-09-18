@@ -257,14 +257,8 @@ function useSpanAttributeRenderers({
       return (
         <Link
           to={{
-            pathname: makeReplaysPathname({
-              path: `/${item.value}/`,
-              organization,
-            }),
-            query: {
-              event_t: timestamp,
-              referrer: 'trace_explorer.span_samples',
-            },
+            pathname: makeReplaysPathname({path: `/${item.value}/`, organization}),
+            query: {event_t: timestamp, referrer: 'trace_explorer.span_samples'},
           }}
         >
           {basicRendered}

@@ -16,9 +16,7 @@ describe('Thresholds', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}',
-            },
+            query: {thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}'},
           },
         },
       }
@@ -178,9 +176,7 @@ describe('Thresholds', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}',
-            },
+            query: {thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}'},
           },
         },
       }

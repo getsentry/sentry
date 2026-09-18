@@ -24,11 +24,7 @@ function PromoCodeFixture(params: Partial<PromoCodeType>): PromoCodeType {
 
 describe('PromoCodes', () => {
   it('renders', async () => {
-    MockApiClient.addMockResponse({
-      url: '/promocodes/',
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
     render(<PromoCodes />);
     expect(await screen.findByRole('heading', {name: 'Promo Codes'})).toBeInTheDocument();
   });

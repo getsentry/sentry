@@ -3,10 +3,7 @@ import {t} from 'sentry/locale';
 import type {EventExtraData} from './types';
 import {EventExtraDataType} from './types';
 
-type Output = {
-  subject: string;
-  value?: React.ReactNode;
-};
+type Output = {subject: string; value?: React.ReactNode};
 
 export function getEventExtraDataKnownDataDetails({
   data,
@@ -17,14 +14,8 @@ export function getEventExtraDataKnownDataDetails({
 }): Output {
   switch (type) {
     case EventExtraDataType.CRASHED_PROCESS:
-      return {
-        subject: t('Crashed Process'),
-        value: data[type],
-      };
+      return {subject: t('Crashed Process'), value: data[type]};
     default:
-      return {
-        subject: type,
-        value: data[type],
-      };
+      return {subject: type, value: data[type]};
   }
 }

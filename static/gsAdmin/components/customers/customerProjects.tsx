@@ -9,9 +9,7 @@ import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconProject} from 'sentry/icons';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
-type Props = {
-  orgId: string;
-};
+type Props = {orgId: string};
 
 export function CustomerProjects({orgId}: Props) {
   return (

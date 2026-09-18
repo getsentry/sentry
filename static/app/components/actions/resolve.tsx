@@ -100,23 +100,12 @@ export function ResolveActions({
   });
 
   function handleCommitResolution(statusDetails: ResolvedStatusDetails) {
-    onUpdate({
-      status: GroupStatus.RESOLVED,
-      statusDetails,
-      substatus: null,
-    });
+    onUpdate({status: GroupStatus.RESOLVED, statusDetails, substatus: null});
   }
 
   function handleAnotherExistingReleaseResolution(statusDetails: ResolvedStatusDetails) {
-    onUpdate({
-      status: GroupStatus.RESOLVED,
-      statusDetails,
-      substatus: null,
-    });
-    trackAnalytics('resolve_issue', {
-      organization,
-      release: 'anotherExisting',
-    });
+    onUpdate({status: GroupStatus.RESOLVED, statusDetails, substatus: null});
+    trackAnalytics('resolve_issue', {organization, release: 'anotherExisting'});
   }
 
   function handleCurrentReleaseResolution({
@@ -148,17 +137,12 @@ export function ResolveActions({
     if (hasRelease) {
       onUpdate({
         status: GroupStatus.RESOLVED,
-        statusDetails: {
-          inNextRelease: true,
-        },
+        statusDetails: {inNextRelease: true},
         substatus: null,
       });
     }
 
-    trackAnalytics('resolve_issue', {
-      organization,
-      release: 'next',
-    });
+    trackAnalytics('resolve_issue', {organization, release: 'next'});
   }
 
   function renderDropdownMenu() {

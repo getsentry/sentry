@@ -188,10 +188,7 @@ export function EventEntryChainedExceptionFixture(): EntryException {
         {
           type: 'ValueError',
           value: 'test',
-          mechanism: {
-            handled: true,
-            type: '',
-          },
+          mechanism: {handled: true, type: ''},
           stacktrace: {
             framesOmitted: null,
             hasSystemFrames: false,
@@ -224,10 +221,7 @@ export function EventEntryChainedExceptionFixture(): EntryException {
         {
           type: 'TypeError',
           value: 'nested',
-          mechanism: {
-            handled: true,
-            type: '',
-          },
+          mechanism: {handled: true, type: ''},
           stacktrace: {
             framesOmitted: null,
             hasSystemFrames: false,
@@ -260,10 +254,7 @@ export function EventEntryChainedExceptionFixture(): EntryException {
         {
           type: 'RuntimeError',
           value: 'test2',
-          mechanism: {
-            handled: true,
-            type: '',
-          },
+          mechanism: {handled: true, type: ''},
           stacktrace: {
             framesOmitted: null,
             hasSystemFrames: false,
@@ -296,10 +287,7 @@ export function EventEntryChainedExceptionFixture(): EntryException {
         {
           type: 'SyntaxError',
           value: 'nested2',
-          mechanism: {
-            handled: true,
-            type: '',
-          },
+          mechanism: {handled: true, type: ''},
           stacktrace: {
             framesOmitted: null,
             hasSystemFrames: false,

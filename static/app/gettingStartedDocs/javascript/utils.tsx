@@ -34,14 +34,8 @@ export const platformOptions = {
   installationMode: {
     label: t('Installation Mode'),
     items: [
-      {
-        label: t('Loader Script'),
-        value: InstallationMode.AUTO,
-      },
-      {
-        label: t('Npm/Yarn'),
-        value: InstallationMode.MANUAL,
-      },
+      {label: t('Loader Script'), value: InstallationMode.AUTO},
+      {label: t('Npm/Yarn'), value: InstallationMode.MANUAL},
     ],
     defaultValue: InstallationMode.AUTO,
   },
@@ -136,21 +130,9 @@ Sentry.init({
 export const installSnippetBlock: ContentBlock = {
   type: 'code',
   tabs: [
-    {
-      label: 'npm',
-      language: 'bash',
-      code: 'npm install --save @sentry/browser',
-    },
-    {
-      label: 'yarn',
-      language: 'bash',
-      code: 'yarn add @sentry/browser',
-    },
-    {
-      label: 'pnpm',
-      language: 'bash',
-      code: 'pnpm add @sentry/browser',
-    },
+    {label: 'npm', language: 'bash', code: 'npm install --save @sentry/browser'},
+    {label: 'yarn', language: 'bash', code: 'yarn add @sentry/browser'},
+    {label: 'pnpm', language: 'bash', code: 'pnpm add @sentry/browser'},
   ],
 };
 
@@ -174,11 +156,7 @@ const getVerifySnippetBlock = (params: Params): ContentBlock[] => [
   {
     type: 'code',
     tabs: [
-      {
-        label: 'Javascript',
-        language: 'javascript',
-        code: getVerifyJSSnippet(params),
-      },
+      {label: 'Javascript', language: 'javascript', code: getVerifyJSSnippet(params)},
     ],
   },
 ];
@@ -187,10 +165,7 @@ export const getAiSetupConfig = (): OnboardingStep =>
   getAISetupStep({sdkName: 'JavaScript'});
 
 const getVerifyConfig = (params: Params) => [
-  {
-    type: StepType.VERIFY,
-    content: getVerifySnippetBlock(params),
-  },
+  {type: StepType.VERIFY, content: getVerifySnippetBlock(params)},
 ];
 
 export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
@@ -202,10 +177,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Add this script tag to the top of the page:'),
-        },
+        {type: 'text', text: t('Add this script tag to the top of the page:')},
         {
           type: 'code',
           tabs: [
@@ -220,10 +192,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
-        {
-          type: 'subheader',
-          text: t('Default Configuration'),
-        },
+        {type: 'subheader', text: t('Default Configuration')},
         {
           type: 'text',
           text: t(
@@ -235,15 +204,11 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
           items: [
             tct(
               'For Tracing, the SDK is initialized with [code:tracesSampleRate: 1], meaning all traces will be captured.',
-              {
-                code: <code />,
-              }
+              {code: <code />}
             ),
             tct(
               'For Session Replay, the default rates are [code:replaysSessionSampleRate: 0.1] and [code:replaysOnErrorSampleRate: 1]. This captures 10% of regular sessions and 100% of sessions with an error.',
-              {
-                code: <code />,
-              }
+              {code: <code />}
             ),
           ],
         },
@@ -402,9 +367,7 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
       "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
-      {
-        strong: <strong />,
-      }
+      {strong: <strong />}
     ),
   install: () => [
     {

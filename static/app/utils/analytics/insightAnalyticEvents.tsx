@@ -54,10 +54,7 @@ export type InsightEventParameters = {
   };
   'insights.open_in_explore': {referrer: string};
   'insights.page_loads.overview': {domain: DomainView | undefined; platforms: string[]};
-  'insights.release.select_release': {
-    filtered: boolean;
-    moduleName: ModuleName;
-  };
+  'insights.release.select_release': {filtered: boolean; moduleName: ModuleName};
   'insights.session_health_tour.dismissed': Record<string, unknown>;
 };
 

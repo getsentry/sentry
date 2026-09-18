@@ -38,9 +38,7 @@ describe('unity onboarding docs', () => {
   it('renders metrics snippet when metrics product is selected', () => {
     renderMockRequests();
 
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.METRICS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.METRICS]});
 
     expect(
       screen.getByText(textWithMarkupMatcher(/SentrySdk\.Metrics\.Increment/))

@@ -54,21 +54,14 @@ export function FeatureFlagOnboardingLayout({
       isPerformanceSelected: false,
       isProfilingSelected: false,
       isReplaySelected: false,
-      sourcePackageRegistries: {
-        isLoading: isLoadingRegistry,
-        data: registryData,
-      },
+      sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
       platformOptions: selectedOptions,
       isSelfHosted,
       urlPrefix,
-      featureFlagOptions: {
-        integration,
-      },
+      featureFlagOptions: {integration},
     };
 
-    return {
-      steps: [...doc.install(docParams), ...doc.configure(docParams)],
-    };
+    return {steps: [...doc.install(docParams), ...doc.configure(docParams)]};
   }, [
     docsConfig,
     dsn,

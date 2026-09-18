@@ -156,13 +156,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   const {isPolling, startStep} = autofix;
 
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
-    useCodingAgents({
-      autofix,
-      runId,
-      group,
-      step: 'root_cause',
-      referrer,
-    });
+    useCodingAgents({autofix, runId, group, step: 'root_cause', referrer});
 
   const handleYesClick = () => {
     startStep('solution', {runId});
@@ -224,13 +218,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   const {isPolling, startStep} = autofix;
 
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
-    useCodingAgents({
-      autofix,
-      runId,
-      group,
-      step: 'solution',
-      referrer,
-    });
+    useCodingAgents({autofix, runId, group, step: 'solution', referrer});
 
   const handleYesClick = () => {
     startStep('code_changes', {runId});

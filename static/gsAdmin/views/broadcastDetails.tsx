@@ -55,14 +55,8 @@ export function BroadcastDetails() {
   const [isEditing, setIsEditing] = useState(false);
 
   const {data, isPending, isError, refetch} = useApiQuery<any>(
-    [
-      getApiUrl('/broadcasts/$broadcastId/', {
-        path: {broadcastId},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
+    [getApiUrl('/broadcasts/$broadcastId/', {path: {broadcastId}})],
+    {staleTime: 0}
   );
 
   if (isPending) {
@@ -87,15 +81,8 @@ export function BroadcastDetails() {
       addSuccessMessage('Broadcast updated.');
       setApiQueryData<Record<string, unknown>>(
         queryClient,
-        [
-          getApiUrl('/broadcasts/$broadcastId/', {
-            path: {broadcastId},
-          }),
-        ],
-        prevData => ({
-          ...prevData,
-          ...response,
-        })
+        [getApiUrl('/broadcasts/$broadcastId/', {path: {broadcastId}})],
+        prevData => ({...prevData, ...response})
       );
     } catch {
       clearIndicators();

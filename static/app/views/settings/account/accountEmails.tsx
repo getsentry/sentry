@@ -31,20 +31,14 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 const ENDPOINT = getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}});
 
-const schema = z.object({
-  email: z.email(t('Enter a valid email address')),
-});
+const schema = z.object({email: z.email(t('Enter a valid email address'))});
 
 function AccountEmails() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
-      fetchMutation<{detail?: string}>({
-        url: ENDPOINT,
-        method: 'POST',
-        data,
-      }),
+      fetchMutation<{detail?: string}>({url: ENDPOINT, method: 'POST', data}),
     onSuccess: response => {
       queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
       if (response?.detail) {
@@ -169,24 +163,15 @@ export function EmailAddresses() {
   }
 
   const handleSetPrimary = (email: string) => {
-    doApiCall(ENDPOINT, {
-      method: 'PUT',
-      data: {email},
-    });
+    doApiCall(ENDPOINT, {method: 'PUT', data: {email}});
   };
 
   const handleRemove = (email: string) => {
-    doApiCall(ENDPOINT, {
-      method: 'DELETE',
-      data: {email},
-    });
+    doApiCall(ENDPOINT, {method: 'DELETE', data: {email}});
   };
 
   const handleVerify = (email: string) => {
-    doApiCall(`${ENDPOINT}confirm/`, {
-      method: 'POST',
-      data: {email},
-    });
+    doApiCall(`${ENDPOINT}confirm/`, {method: 'POST', data: {email}});
   };
 
   const primary = emails.find(({isPrimary}) => isPrimary);

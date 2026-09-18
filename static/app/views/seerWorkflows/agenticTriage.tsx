@@ -385,17 +385,11 @@ function getTriageErrorPresentation(
     case 'no_seer_access':
       return {status: 'skipped', resultText: t('Seer is not enabled')};
     case 'eligible_projects_failed':
-      return {
-        status: 'failed',
-        resultText: t('Could not check eligible projects'),
-      };
+      return {status: 'failed', resultText: t('Could not check eligible projects')};
     case 'invalid_shard_plan':
       return {status: 'failed', resultText: t('Could not prepare triage')};
     case 'shard_dispatch_failed':
-      return {
-        status: 'failed',
-        resultText: t('Could not start all triage batches'),
-      };
+      return {status: 'failed', resultText: t('Could not start all triage batches')};
     default:
       return {status: 'failed', resultText: t('Run failed')};
   }

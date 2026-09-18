@@ -72,9 +72,7 @@ function AccountAuthorizations() {
         title="Authorized Applications"
         subtitle={tct(
           'You can manage your own applications via the [link:API dashboard].',
-          {
-            link: <Link to="/settings/account/api/" />,
-          }
+          {link: <Link to="/settings/account/api/" />}
         )}
       />
 

@@ -149,11 +149,7 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
               isDisabled={!canWrite}
               onChange={value => {
                 mutate(
-                  {
-                    query: mutableSearch.formatString(),
-                    selectedIds,
-                    agentOption: value,
-                  },
+                  {query: mutableSearch.formatString(), selectedIds, agentOption: value},
                   {
                     onError: () =>
                       addErrorMessage(

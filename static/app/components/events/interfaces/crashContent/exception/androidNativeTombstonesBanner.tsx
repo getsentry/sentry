@@ -18,17 +18,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 const TOMBSTONES_DOCS_URL =
   'https://docs.sentry.io/platforms/android/configuration/tombstones/';
 
-type TabConfig = {
-  code: string;
-  label: string;
-  language: string;
-  value: string;
-};
+type TabConfig = {code: string; label: string; language: string; value: string};
 
-type SdkConfig = {
-  defaultTab: string;
-  tabs: TabConfig[];
-};
+type SdkConfig = {defaultTab: string; tabs: TabConfig[]};
 
 const ANDROID_SDK_CONFIG: SdkConfig = {
   defaultTab: 'manifest',
@@ -178,10 +170,7 @@ export function AndroidNativeTombstonesBanner({event, projectId}: Props) {
           size="sm"
           analyticsEventName="Clicked Android Tombstones Onboarding CTA"
           analyticsEventKey="issue-details.android-tombstones-onboarding-cta-clicked"
-          analyticsParams={{
-            organization,
-            sdk_name: event.sdk?.name ?? '',
-          }}
+          analyticsParams={{organization, sdk_name: event.sdk?.name ?? ''}}
         >
           {t('Learn More')}
         </LinkButton>

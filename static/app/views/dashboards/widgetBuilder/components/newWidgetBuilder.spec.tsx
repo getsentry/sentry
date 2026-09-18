@@ -43,30 +43,18 @@ describe('NewWidgetBuilder', () => {
     OrganizationStore.onUpdate(organization, {replace: true});
     ProjectsStore.loadInitialData(projects);
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboard/1/',
       body: [],
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/events/', body: []});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',

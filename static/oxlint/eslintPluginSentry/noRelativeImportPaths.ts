@@ -48,9 +48,7 @@ export const noRelativeImportPaths = defineRule({
         additionalProperties: false,
       },
     ],
-    messages: {
-      absoluteImport: 'Import statements should have an absolute path.',
-    },
+    messages: {absoluteImport: 'Import statements should have an absolute path.'},
   },
   create(context) {
     const options = (context.options[0] ?? {}) as Options;

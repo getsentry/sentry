@@ -106,9 +106,7 @@ describe('ScmPlatformFeaturesCore', () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     render(
       <ScmPlatformFeaturesCore {...defaultProps({analyticsFlow: 'project-creation'})} />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
@@ -250,12 +248,7 @@ describe('ScmPlatformFeaturesCore', () => {
     const onPlatformChange = jest.fn();
     const onFeaturesChange = jest.fn();
     render(
-      <ScmPlatformFeaturesCore
-        {...defaultProps({
-          onPlatformChange,
-          onFeaturesChange,
-        })}
-      />,
+      <ScmPlatformFeaturesCore {...defaultProps({onPlatformChange, onFeaturesChange})} />,
       {organization}
     );
 

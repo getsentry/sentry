@@ -41,12 +41,7 @@ describe('useSourceContext', () => {
     });
 
     const {result} = renderHookWithProviders(useSourceContext, {
-      initialProps: {
-        event,
-        frame,
-        orgSlug: 'org-slug',
-        projectSlug: project.slug,
-      },
+      initialProps: {event, frame, orgSlug: 'org-slug', projectSlug: project.slug},
     });
 
     await waitFor(() => {

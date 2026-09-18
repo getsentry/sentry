@@ -29,20 +29,14 @@ import {getNavigationConfiguration} from 'sentry/views/settings/project/navigati
 import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
 
 type ProjectSettingsCommandPaletteEntry = {
-  display: {
-    label: string;
-    icon?: ReactNode;
-  };
+  display: {label: string; icon?: ReactNode};
   keywords: string[];
   to: string;
 };
 
 type ProjectSettingsCommandPaletteGroup = {
   items: Array<{
-    display: {
-      label: string;
-      icon?: ReactNode;
-    };
+    display: {label: string; icon?: ReactNode};
     keywords: string[];
     to: string;
   }>;
@@ -137,10 +131,7 @@ export function getProjectSettingsCommandPaletteSections({
           .map(item => {
             const suffix = item.path.replace('/settings/:orgId/projects/:projectId/', '');
             return {
-              display: {
-                label: item.title,
-                icon: PROJECT_SETTINGS_ICONS[suffix],
-              },
+              display: {label: item.title, icon: PROJECT_SETTINGS_ICONS[suffix]},
               keywords: [
                 section.name,
                 'project settings',

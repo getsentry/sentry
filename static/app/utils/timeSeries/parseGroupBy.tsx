@@ -19,10 +19,7 @@ export function parseGroupBy(
 
   // `/events-stats/` converts Python's `None` into `"None"`. Here, we do the reverse
   if (groupName === 'None') {
-    return groupKeys.map(groupKey => ({
-      key: groupKey,
-      value: null,
-    }));
+    return groupKeys.map(groupKey => ({key: groupKey, value: null}));
   }
 
   const groupValues = groupName.split(DELIMITER);
@@ -37,10 +34,7 @@ export function parseGroupBy(
   }
 
   const groupBys = zipWith(groupKeys, groupValues, (key, value) => {
-    return {
-      key: key ?? '',
-      value: value ?? '',
-    };
+    return {key: key ?? '', value: value ?? ''};
   }).filter(groupBy => {
     return groupBy.key || groupBy.value;
   });

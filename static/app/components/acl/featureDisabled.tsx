@@ -76,10 +76,7 @@ export function FeatureDisabled({
             following configuration into your [configFile:sentry.conf.py].
             See [configLink:the configuration documentation] for more
             details.`,
-          {
-            configFile: <code />,
-            configLink: <ExternalLink href={CONFIG_DOCS_URL} />,
-          }
+          {configFile: <code />, configLink: <ExternalLink href={CONFIG_DOCS_URL} />}
         )}
       </HelpText>
       <CopyButton

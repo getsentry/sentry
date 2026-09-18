@@ -193,12 +193,7 @@ await userEvent.keyboard('text');
 
 ```tsx
 const {router} = render(<TestComponent />, {
-  initialRouterConfig: {
-    location: {
-      pathname: '/foo/',
-      query: {page: '1'},
-    },
-  },
+  initialRouterConfig: {location: {pathname: '/foo/', query: {page: '1'}}},
 });
 // Uses passes in config to set initial location
 expect(router.location.pathname).toBe('/foo');
@@ -220,12 +215,7 @@ function TestComponent() {
   return <div>{id}</div>;
 }
 const {router} = render(<TestComponent />, {
-  initialRouterConfig: {
-    location: {
-      pathname: '/foo/123/',
-    },
-    route: '/foo/:id/',
-  },
+  initialRouterConfig: {location: {pathname: '/foo/123/'}, route: '/foo/:id/'},
 });
 expect(screen.getByText('123')).toBeInTheDocument();
 ```
@@ -234,10 +224,7 @@ expect(screen.getByText('123')).toBeInTheDocument();
 
 ```tsx
 // Simple GET request
-MockApiClient.addMockResponse({
-  url: '/projects/',
-  body: [{id: 1, name: 'my project'}],
-});
+MockApiClient.addMockResponse({url: '/projects/', body: [{id: 1, name: 'my project'}]});
 
 // POST request
 MockApiClient.addMockResponse({
@@ -260,9 +247,7 @@ MockApiClient.addMockResponse({
 // Error responses
 MockApiClient.addMockResponse({
   url: '/projects/',
-  body: {
-    detail: 'Internal Error',
-  },
+  body: {detail: 'Internal Error'},
   statusCode: 500,
 });
 ```
@@ -286,10 +271,7 @@ When testing mutations that trigger data refetches, update mocks before the refe
 ```tsx
 it('adds item and updates list', async () => {
   // Initial empty state
-  MockApiClient.addMockResponse({
-    url: '/items/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/items/', body: []});
 
   const createRequest = MockApiClient.addMockResponse({
     url: '/items/',
@@ -302,10 +284,7 @@ it('adds item and updates list', async () => {
   await userEvent.click(screen.getByRole('button', {name: 'Add Item'}));
 
   // CRITICAL: Override mock before refetch happens
-  MockApiClient.addMockResponse({
-    url: '/items/',
-    body: [{id: 1, name: 'New Item'}],
-  });
+  MockApiClient.addMockResponse({url: '/items/', body: [{id: 1, name: 'New Item'}]});
 
   await waitFor(() => expect(createRequest).toHaveBeenCalled());
   expect(await screen.findByText('New Item')).toBeInTheDocument();

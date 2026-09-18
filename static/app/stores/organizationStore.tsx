@@ -25,13 +25,7 @@ interface OrganizationStoreDefinition extends StrictStoreDefinition<State> {
 }
 
 const storeConfig: OrganizationStoreDefinition = {
-  state: {
-    dirty: false,
-    loading: true,
-    organization: null,
-    error: null,
-    errorType: null,
-  },
+  state: {dirty: false, loading: true, organization: null, error: null, errorType: null},
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.

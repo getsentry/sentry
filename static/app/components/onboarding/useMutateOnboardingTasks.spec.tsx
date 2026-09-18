@@ -11,17 +11,10 @@ describe('useMutateOnboardingTasks', () => {
 
   it('Updates existing onboarding tasks', async () => {
     const organization = OrganizationFixture({
-      onboardingTasks: [
-        {
-          task: OnboardingTaskKey.FIRST_EVENT,
-        },
-      ],
+      onboardingTasks: [{task: OnboardingTaskKey.FIRST_EVENT}],
     });
 
-    const testTask = {
-      task: OnboardingTaskKey.FIRST_EVENT,
-      status: 'complete',
-    } as const;
+    const testTask = {task: OnboardingTaskKey.FIRST_EVENT, status: 'complete'} as const;
 
     const mockUpdate = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/onboarding-tasks/`,

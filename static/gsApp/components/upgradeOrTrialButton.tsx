@@ -14,10 +14,7 @@ import type {Subscription} from 'getsentry/types';
 import {getTrialLength, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type ChildRenderProps = {
-  action: 'upgrade' | 'trial';
-  hasBillingAccess: boolean;
-};
+type ChildRenderProps = {action: 'upgrade' | 'trial'; hasBillingAccess: boolean};
 
 type ChildRenderFunction = (options: ChildRenderProps) => React.ReactNode;
 
@@ -102,11 +99,7 @@ function UpgradeOrTrialButton({
 
   const handleRequest = async () => {
     setBusy(true);
-    const args = {
-      api,
-      organization,
-      handleSuccess,
-    };
+    const args = {api, organization, handleSuccess};
     if (action === 'trial') {
       await sendTrialRequest(args);
     } else {

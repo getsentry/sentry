@@ -43,9 +43,7 @@ export const onboarding: OnboardingConfig = {
       <p>
         {tct(
           "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
-          {
-            strong: <strong />,
-          }
+          {strong: <strong />}
         )}
       </p>
     </Fragment>
@@ -58,9 +56,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         installSnippetBlock,
@@ -113,11 +109,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: getVerifySnippet(params),
-            },
+            {label: 'JavaScript', language: 'javascript', code: getVerifySnippet(params)},
           ],
         },
       ],

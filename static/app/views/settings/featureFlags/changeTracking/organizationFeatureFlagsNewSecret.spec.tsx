@@ -20,23 +20,14 @@ describe('OrganizationFeatureFlagsNewSecret', () => {
 
   it('can create secret', async () => {
     // Mock the GET request for existing secrets
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: {data: []},
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: {data: []}});
 
     render(<OrganizationFeatureFlagsNewSecret />);
 
-    const mock = MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'POST',
-    });
+    const mock = MockApiClient.addMockResponse({url: ENDPOINT, method: 'POST'});
 
     await userEvent.type(screen.getByLabelText('Secret'), SecretFixture().secret);
-    const providerDropdown = screen.getByRole('textbox', {
-      name: 'Provider',
-    });
+    const providerDropdown = screen.getByRole('textbox', {name: 'Provider'});
     await userEvent.click(providerDropdown);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'LaunchDarkly'}));
     await userEvent.click(screen.getByRole('button', {name: 'Add Provider'}));
@@ -48,21 +39,14 @@ describe('OrganizationFeatureFlagsNewSecret', () => {
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
       expect.objectContaining({
-        data: {
-          provider: 'launchdarkly',
-          secret: SecretFixture().secret,
-        },
+        data: {provider: 'launchdarkly', secret: SecretFixture().secret},
       })
     );
   });
 
   it('handles API errors when creating secret', async () => {
     // Mock the GET request for existing secrets
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: {data: []},
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: {data: []}});
 
     render(<OrganizationFeatureFlagsNewSecret />);
 
@@ -74,9 +58,7 @@ describe('OrganizationFeatureFlagsNewSecret', () => {
     });
 
     await userEvent.type(screen.getByLabelText('Secret'), SecretFixture().secret);
-    const providerDropdown = screen.getByRole('textbox', {
-      name: 'Provider',
-    });
+    const providerDropdown = screen.getByRole('textbox', {name: 'Provider'});
     await userEvent.click(providerDropdown);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'LaunchDarkly'}));
     await userEvent.click(screen.getByRole('button', {name: 'Add Provider'}));
@@ -87,10 +69,7 @@ describe('OrganizationFeatureFlagsNewSecret', () => {
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
       expect.objectContaining({
-        data: {
-          provider: 'launchdarkly',
-          secret: SecretFixture().secret,
-        },
+        data: {provider: 'launchdarkly', secret: SecretFixture().secret},
       })
     );
   });

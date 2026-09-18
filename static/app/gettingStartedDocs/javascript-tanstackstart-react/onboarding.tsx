@@ -320,10 +320,7 @@ export default defineConfig({
           type: 'text',
           text: tct(
             'For example, when using [nitroLink:Nitro], copy the instrumentation file to [code:.output/server]:',
-            {
-              code: <code />,
-              nitroLink: <ExternalLink href="https://nitro.build/" />,
-            }
+            {code: <code />, nitroLink: <ExternalLink href="https://nitro.build/" />}
           ),
         },
         {

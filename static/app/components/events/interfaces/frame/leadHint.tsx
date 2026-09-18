@@ -2,12 +2,7 @@ import {getLeadHint} from 'sentry/components/events/interfaces/frame/utils';
 import type {Event, Frame} from 'sentry/types/event';
 import {defined} from 'sentry/utils/defined';
 
-type Props = {
-  event: Event;
-  leadsToApp: boolean;
-  isExpanded?: boolean;
-  nextFrame?: Frame;
-};
+type Props = {event: Event; leadsToApp: boolean; isExpanded?: boolean; nextFrame?: Frame};
 
 export function LeadHint({leadsToApp, isExpanded, nextFrame, event}: Props) {
   if (isExpanded || !leadsToApp) {

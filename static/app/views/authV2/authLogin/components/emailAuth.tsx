@@ -88,10 +88,7 @@ export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
           passwordReset.requestPasswordReset(submittedEmail);
         } else if (typeof submittedPassword === 'string') {
           setPassword(submittedPassword);
-          emailAuth.authenticate({
-            email: submittedEmail,
-            password: submittedPassword,
-          });
+          emailAuth.authenticate({email: submittedEmail, password: submittedPassword});
         }
       }}
     >

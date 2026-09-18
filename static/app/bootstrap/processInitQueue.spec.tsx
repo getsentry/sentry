@@ -16,11 +16,7 @@ describe('processInitQueue', () => {
   describe('renderReact', () => {
     it('renders password strength input', async () => {
       window.__onSentryInit = [
-        {
-          name: 'passwordStrength',
-          input: '#password',
-          element: '#password-strength',
-        },
+        {name: 'passwordStrength', input: '#password', element: '#password-strength'},
       ];
 
       render(
@@ -50,10 +46,7 @@ describe('processInitQueue', () => {
           component: SentryInitRenderReactComponent.SETUP_WIZARD,
           container: '#setup-wizard-container',
           name: 'renderReact',
-          props: {
-            enableProjectSelection: true,
-            hash: '1',
-          },
+          props: {enableProjectSelection: true, hash: '1'},
         },
       ];
 
@@ -83,13 +76,7 @@ describe('processInitQueue', () => {
 
       MockApiClient.addMockResponse({
         url: '/organizations/organization-1/projects/',
-        body: [
-          ProjectFixture({
-            id: '1',
-            slug: 'project-1',
-            name: 'Project 1',
-          }),
-        ],
+        body: [ProjectFixture({id: '1', slug: 'project-1', name: 'Project 1'})],
       });
 
       MockApiClient.addMockResponse({
@@ -119,9 +106,7 @@ describe('processInitQueue', () => {
           component: SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT,
           container: '#webauthn-container',
           name: 'renderReact',
-          props: {
-            mode: 'signin',
-          },
+          props: {mode: 'signin'},
         },
       ];
 
@@ -160,10 +145,7 @@ describe('processInitQueue', () => {
 
   it('processes queued up items', () => {
     const mock = jest.fn();
-    const init = {
-      name: 'onReady',
-      onReady: mock,
-    } as const;
+    const init = {name: 'onReady', onReady: mock} as const;
 
     window.__onSentryInit = [init];
 
@@ -180,10 +162,7 @@ describe('processInitQueue', () => {
   it('is called after `processInitQueue` has already run', () => {
     processInitQueue();
     const mock = jest.fn();
-    const init = {
-      name: 'onReady',
-      onReady: mock,
-    } as const;
+    const init = {name: 'onReady', onReady: mock} as const;
 
     window.__onSentryInit.push(init);
     expect(mock).toHaveBeenCalledTimes(1);

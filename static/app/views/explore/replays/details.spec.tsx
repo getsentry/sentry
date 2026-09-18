@@ -27,9 +27,7 @@ mockUseLoadReplayReader.mockReturnValue({
   projectSlug: ProjectFixture().slug,
   replay: null,
   replayId: 'test-replay-id',
-  replayRecord: ReplayRecordFixture({
-    id: 'test-replay-id',
-  }),
+  replayRecord: ReplayRecordFixture({id: 'test-replay-id'}),
   status: 'success' as const,
 });
 
@@ -48,10 +46,7 @@ describe('ReplayDetails', () => {
   const user = UserFixture({id: '1'});
 
   const initialRouterConfig = {
-    location: {
-      pathname: '/organizations/org-slug/replays/test-replay-id/',
-      query: {},
-    },
+    location: {pathname: '/organizations/org-slug/replays/test-replay-id/', query: {}},
     route: '/organizations/:orgId/replays/:replaySlug/',
   };
 
@@ -104,9 +99,7 @@ describe('ReplayDetails', () => {
   });
 
   it('should render replay details when user has access', () => {
-    const organization = OrganizationFixture({
-      features: ['session-replay'],
-    });
+    const organization = OrganizationFixture({features: ['session-replay']});
 
     render(<ReplayDetails />, {
       organization,
@@ -232,10 +225,7 @@ describe('ReplayDetails', () => {
       replayAccessMembers: [999], // User ID 1 is not in this list
     });
 
-    render(<ReplayDetails />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<ReplayDetails />, {organization, initialRouterConfig});
 
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
     // Should not fetch replay data when user doesn't have access

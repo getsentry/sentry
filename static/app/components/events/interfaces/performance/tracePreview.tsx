@@ -37,23 +37,14 @@ import {TraceLinkedIssues} from './traceLinkedIssues';
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
     minimized: true,
-    sizes: {
-      'drawer left': 0.33,
-      'drawer right': 0.33,
-      'drawer bottom': 0.4,
-    },
+    sizes: {'drawer left': 0.33, 'drawer right': 0.33, 'drawer bottom': 0.4},
     layoutOptions: [],
   },
   missing_instrumentation: true,
-  autogroup: {
-    parent: true,
-    sibling: true,
-  },
+  autogroup: {parent: true, sibling: true},
   compressed_timeline: false,
   layout: 'drawer bottom',
-  list: {
-    width: 0.5,
-  },
+  list: {width: 0.5},
 };
 
 type TracePreviewSource = 'feedback' | 'issues';
@@ -100,12 +91,7 @@ function TracePreviewWaterfall({
     tree,
   });
 
-  const rootEventResults = useTraceRootEvent({
-    tree,
-    logs: undefined,
-    timestamp,
-    traceId,
-  });
+  const rootEventResults = useTraceRootEvent({tree, logs: undefined, timestamp, traceId});
   const traceEventView = useTraceEventView(traceId, params);
 
   return (
@@ -179,13 +165,7 @@ export function TracePreviewFullTraceButton({
   const traceTarget = getTraceTargetFromEvent(
     event,
     organization,
-    {
-      ...location,
-      query: {
-        groupId: event.groupID,
-        referrer: location.query.referrer,
-      },
-    },
+    {...location, query: {groupId: event.groupID, referrer: location.query.referrer}},
     source === 'feedback'
       ? TraceViewSources.FEEDBACK_DETAILS
       : TraceViewSources.ISSUE_DETAILS

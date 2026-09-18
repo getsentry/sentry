@@ -13,10 +13,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 function makeDocsConfig(overrides: Partial<OnboardingConfig> = {}): Docs {
   const base: OnboardingConfig = {
     install: () => [
-      {
-        type: StepType.INSTALL,
-        content: [{type: 'text', text: 'Install the SDK'}],
-      },
+      {type: StepType.INSTALL, content: [{type: 'text', text: 'Install the SDK'}]},
     ],
     configure: () => [],
     verify: () => [],

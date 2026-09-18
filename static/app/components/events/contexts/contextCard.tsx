@@ -98,11 +98,7 @@ export function ContextCard({alias, event, type, project, value = {}}: ContextCa
   const contentItems = contextItems.map<KeyValueTableDataRowProps>(item => {
     const itemMeta: KeyValueTableDataRowProps['meta'] = meta?.[item?.key];
     const itemErrors: KeyValueTableDataRowProps['errors'] = itemMeta?.['']?.err ?? [];
-    return {
-      item,
-      meta: itemMeta,
-      errors: itemErrors,
-    };
+    return {item, meta: itemMeta, errors: itemErrors};
   });
 
   return (
@@ -117,9 +113,7 @@ export function ContextCard({alias, event, type, project, value = {}}: ContextCa
                 alias,
                 type,
                 value,
-                contextIconProps: {
-                  size: 'sm',
-                },
+                contextIconProps: {size: 'sm'},
                 theme,
               })}
             </ErrorBoundary>

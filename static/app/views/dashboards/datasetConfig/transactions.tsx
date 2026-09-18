@@ -103,10 +103,7 @@ function getEventsTableFieldOptions(
     measurementKeys: Object.values(measurements).map(({key}) => key),
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
     customMeasurements: Object.values(customMeasurements ?? {}).map(
-      ({key, functions}) => ({
-        key,
-        functions,
-      })
+      ({key, functions}) => ({key, functions})
     ),
     aggregations: Object.keys(aggregates)
       .filter(key => TRANSACTIONS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))

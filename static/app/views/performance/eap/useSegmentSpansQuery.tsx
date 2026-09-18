@@ -8,12 +8,7 @@ import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 import {SEGMENT_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/content';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
-type Options = {
-  p95: number;
-  query: string;
-  sort: Sort;
-  limit?: number;
-};
+type Options = {p95: number; query: string; sort: Sort; limit?: number};
 
 const DEFAULT_LIMIT = 5;
 
@@ -48,13 +43,7 @@ export function useSegmentSpansQuery({query, sort, p95, limit = DEFAULT_LIMIT}: 
     error: singleQueryError,
     pageLinks: singleQueryPageLinks,
     meta: singleQueryMeta,
-  } = useSingleQuery({
-    query,
-    sort,
-    p95,
-    enabled: isSingleQueryEnabled,
-    limit,
-  });
+  } = useSingleQuery({query, sort, p95, enabled: isSingleQueryEnabled, limit});
 
   const isMultipleQueriesEnabled = Boolean(
     spanCategoryUrlParam && selectedOption !== TransactionFilterOptions.RECENT
@@ -66,13 +55,7 @@ export function useSegmentSpansQuery({query, sort, p95, limit = DEFAULT_LIMIT}: 
     error: multipleQueriesError,
     pageLinks: multipleQueriesPageLinks,
     meta: multipleQueriesMeta,
-  } = useMultipleQueries({
-    query,
-    sort,
-    p95,
-    enabled: isMultipleQueriesEnabled,
-    limit,
-  });
+  } = useMultipleQueries({query, sort, p95, enabled: isMultipleQueriesEnabled, limit});
 
   if (isSingleQueryEnabled) {
     return {
@@ -131,13 +114,7 @@ function useSingleQuery(options: UseSingleQueryOptions) {
     'api.insights.segment-spans-table'
   );
 
-  return {
-    data,
-    isLoading,
-    pageLinks,
-    meta,
-    error,
-  };
+  return {data, isLoading, pageLinks, meta, error};
 }
 
 type UseMultipleQueriesOptions = {
@@ -172,12 +149,7 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
     {
       search: categorizedSpansQuery,
       fields: ['transaction.span_id', 'sum(span.self_time)'],
-      sorts: [
-        {
-          field: 'sum(span.self_time)',
-          kind: sort.kind,
-        },
-      ],
+      sorts: [{field: 'sum(span.self_time)', kind: sort.kind}],
       limit,
       cursor,
       pageFilters: selection,

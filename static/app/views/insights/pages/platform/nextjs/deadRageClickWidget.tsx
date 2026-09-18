@@ -51,9 +51,7 @@ export function DeadRageClicksWidget({visulizationOnly}: {visulizationOnly?: boo
           />
         }
         VisualizationType={DeadRageClickWidgetVisualization}
-        visualizationProps={{
-          items: data,
-        }}
+        visualizationProps={{items: data}}
       />
     );
   }

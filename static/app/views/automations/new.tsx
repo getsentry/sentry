@@ -104,16 +104,10 @@ function useInitialFormData() {
 
   // If URL params are passed, use them
   if (connectedIds.length > 0) {
-    return {
-      ...INITIAL_FORM_DATA_DEFAULTS,
-      detectorIds: connectedIds,
-    };
+    return {...INITIAL_FORM_DATA_DEFAULTS, detectorIds: connectedIds};
   }
   if (projectId && writableProjects.some(project => project.id === projectId)) {
-    return {
-      ...INITIAL_FORM_DATA_DEFAULTS,
-      projectIds: [projectId],
-    };
+    return {...INITIAL_FORM_DATA_DEFAULTS, projectIds: [projectId]};
   }
 
   // If any specific projects are selected, use the first one
@@ -121,10 +115,7 @@ function useInitialFormData() {
     selection.projects.includes(Number(project.id))
   );
   if (initialSelectedProject) {
-    return {
-      ...INITIAL_FORM_DATA_DEFAULTS,
-      projectIds: [initialSelectedProject.id],
-    };
+    return {...INITIAL_FORM_DATA_DEFAULTS, projectIds: [initialSelectedProject.id]};
   }
 
   // Otherwise use the first project where the user can create an alert.
@@ -166,10 +157,7 @@ export default function AutomationNewSettings() {
 
       if (Object.keys(errors).length > 0) {
         const analyticsPayload = getAutomationAnalyticsPayload(
-          getNewAutomationData({
-            data: automationFormData,
-            state,
-          })
+          getNewAutomationData({data: automationFormData, state})
         );
         Sentry.logger.warn('Create alert form validation failed', {
           errors,
@@ -196,10 +184,7 @@ export default function AutomationNewSettings() {
       if (!formData) {
         return;
       }
-      const newAutomationData = getNewAutomationData({
-        data: formData,
-        state,
-      });
+      const newAutomationData = getNewAutomationData({data: formData, state});
       const analyticsPayload = getAutomationAnalyticsPayload(newAutomationData);
 
       try {
@@ -260,11 +245,7 @@ export default function AutomationNewSettings() {
                 }}
               >
                 <AutomationBuilderContext.Provider
-                  value={{
-                    state,
-                    actions,
-                    showTriggerLogicTypeSelector: false,
-                  }}
+                  value={{state, actions, showTriggerLogicTypeSelector: false}}
                 >
                   <AutomationForm model={model} />
                 </AutomationBuilderContext.Provider>

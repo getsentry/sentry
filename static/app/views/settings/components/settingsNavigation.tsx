@@ -54,11 +54,7 @@ function SettingsSecondaryNavigation({
 }
 
 export class SettingsNavigation extends Component<Props> {
-  static defaultProps: DefaultProps = {
-    hooks: [],
-    hookConfigs: [],
-    stickyTop: '69px',
-  };
+  static defaultProps: DefaultProps = {hooks: [], hookConfigs: [], stickyTop: '69px'};
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     Sentry.withScope(scope => {

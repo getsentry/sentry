@@ -37,9 +37,7 @@ export function useMetricTimeseries({traceMetric, enabled}: UseMetricTimeseriesO
   return useProgressiveQuery<typeof useMetricTimeseriesImpl>({
     queryHookImplementation: useMetricTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {traceMetric, queryExtras: undefined, enabled},
-    queryOptions: {
-      canTriggerHighAccuracy,
-    },
+    queryOptions: {canTriggerHighAccuracy},
   });
 }
 
@@ -84,7 +82,5 @@ function useMetricTimeseriesImpl({
     DiscoverDatasets.TRACEMETRICS
   );
 
-  return {
-    result: timeseriesResult,
-  };
+  return {result: timeseriesResult};
 }

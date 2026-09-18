@@ -79,35 +79,20 @@ function ProfilingContentInner() {
 
   const dispatchDataState = useLandingAnalytics();
   const updateWidget1DataState = useCallback(
-    (dataState: DataState) =>
-      dispatchDataState({
-        dataKey: 'widget1Data',
-        dataState,
-      }),
+    (dataState: DataState) => dispatchDataState({dataKey: 'widget1Data', dataState}),
     [dispatchDataState]
   );
   const updateWidget2DataState = useCallback(
-    (dataState: DataState) =>
-      dispatchDataState({
-        dataKey: 'widget2Data',
-        dataState,
-      }),
+    (dataState: DataState) => dispatchDataState({dataKey: 'widget2Data', dataState}),
     [dispatchDataState]
   );
   const updateFlamegraphDataState = useCallback(
-    (dataState: DataState) =>
-      dispatchDataState({
-        dataKey: 'flamegraphData',
-        dataState,
-      }),
+    (dataState: DataState) => dispatchDataState({dataKey: 'flamegraphData', dataState}),
     [dispatchDataState]
   );
   const updateTransactionsTableDataState = useCallback(
     (dataState: DataState) =>
-      dispatchDataState({
-        dataKey: 'transactionsTableData',
-        dataState,
-      }),
+      dispatchDataState({dataKey: 'transactionsTableData', dataState}),
     [dispatchDataState]
   );
 
@@ -132,26 +117,11 @@ function ProfilingContentInner() {
 
   const onTabChange = (newTab: 'flamegraph' | 'transactions') => {
     // make sure to reset the state of the tabs
-    dispatchDataState({
-      dataKey: 'flamegraphData',
-      dataState: 'pending',
-    });
-    dispatchDataState({
-      dataKey: 'transactionsTableData',
-      dataState: 'pending',
-    });
+    dispatchDataState({dataKey: 'flamegraphData', dataState: 'pending'});
+    dispatchDataState({dataKey: 'transactionsTableData', dataState: 'pending'});
 
-    trackAnalytics('profiling_views.landing.tab_change', {
-      organization,
-      tab: newTab,
-    });
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        tab: newTab,
-      },
-    });
+    trackAnalytics('profiling_views.landing.tab_change', {organization, tab: newTab});
+    navigate({...location, query: {...location.query, tab: newTab}});
   };
 
   const maxPickableDays = useMaxPickableDays({
@@ -281,11 +251,7 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
     (searchQuery: string) => {
       navigate({
         ...location,
-        query: {
-          ...location.query,
-          cursor: undefined,
-          query: searchQuery || undefined,
-        },
+        query: {...location.query, cursor: undefined, query: searchQuery || undefined},
       });
     },
     [location, navigate]

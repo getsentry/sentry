@@ -88,14 +88,9 @@ const config: KnipConfig = {
     },
   },
   ignoreExportsUsedInFile: isProductionMode,
-  rules: {
-    binaries: 'off',
-    enumMembers: 'off',
-  },
+  rules: {binaries: 'off', enumMembers: 'off'},
   include: ['nsExports', 'nsTypes'],
-  mdx: {
-    config: 'tsconfig.mdx.json',
-  },
+  mdx: {config: 'tsconfig.mdx.json'},
   treatConfigHintsAsErrors: true,
   treatTagHintsAsErrors: true,
 };

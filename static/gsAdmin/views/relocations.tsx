@@ -98,10 +98,7 @@ export function Relocations() {
           return data
             .filter((rawRow: any) => !!rawRow)
             .map((rawRow: any) => {
-              return {
-                ...rawRow,
-                region: cell,
-              };
+              return {...rawRow, region: cell};
             });
         }}
       />

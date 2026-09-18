@@ -21,10 +21,7 @@ import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Props = {
-  data: Group;
-  showLifetime?: boolean;
-};
+type Props = {data: Group; showLifetime?: boolean};
 
 function Lifetime({
   firstSeen,
@@ -98,10 +95,7 @@ export function GroupMetaRow({data, showLifetime = true}: Props) {
       {subtitle ? <Location>{subtitle}</Location> : null}
       {numComments > 0 ? (
         <CommentsLink
-          to={{
-            pathname: `${issuesPath}${id}/activity/`,
-            query: {filter: 'comments'},
-          }}
+          to={{pathname: `${issuesPath}${id}/activity/`, query: {filter: 'comments'}}}
         >
           <IconChat
             size="xs"

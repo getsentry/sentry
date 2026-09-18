@@ -10,21 +10,15 @@ import type {
 } from 'admin/components/adminConfirmationModal';
 import type {Subscription} from 'getsentry/types';
 
-type Props = AdminConfirmRenderProps & {
-  subscription: Subscription;
-};
+type Props = AdminConfirmRenderProps & {subscription: Subscription};
 
-type State = {
-  sponsoredType?: string | null;
-};
+type State = {sponsoredType?: string | null};
 
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
 export class SponsorshipAction extends Component<Props, State> {
-  state: State = {
-    sponsoredType: undefined,
-  };
+  state: State = {sponsoredType: undefined};
 
   componentDidMount() {
     this.props.setConfirmCallback(this.handleConfirm);

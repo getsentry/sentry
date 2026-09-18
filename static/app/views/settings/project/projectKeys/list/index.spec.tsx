@@ -93,9 +93,7 @@ describe('ProjectKeys', () => {
     const otlpEndpoint = screen.getByRole('textbox', {name: 'OTLP Endpoint'});
     expect(otlpEndpoint).toHaveValue(`${projectKeys[0].dsn.integration}otlp`);
 
-    const otlpLogsEndpoint = screen.getByRole('textbox', {
-      name: 'OTLP Logs Endpoint',
-    });
+    const otlpLogsEndpoint = screen.getByRole('textbox', {name: 'OTLP Logs Endpoint'});
     expect(otlpLogsEndpoint).toHaveValue(projectKeys[0].dsn.otlp_logs);
 
     const otlpTracesEndpoint = screen.getByRole('textbox', {
@@ -290,9 +288,7 @@ describe('ProjectKeys', () => {
 
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        data: {isActive: false},
-      })
+      expect.objectContaining({data: {isActive: false}})
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Enable'}));
@@ -300,9 +296,7 @@ describe('ProjectKeys', () => {
 
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        data: {isActive: true},
-      })
+      expect.objectContaining({data: {isActive: true}})
     );
   });
 

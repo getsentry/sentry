@@ -17,10 +17,7 @@ import {tct} from 'sentry/locale';
  * Also allows for undo
  */
 export function addUndoableFormChangeMessage(
-  change: {
-    new: FieldValue | Record<string, any>;
-    old: FieldValue | Record<string, any>;
-  },
+  change: {new: FieldValue | Record<string, any>; old: FieldValue | Record<string, any>},
   model: FormModel,
   fieldName: string
 ) {

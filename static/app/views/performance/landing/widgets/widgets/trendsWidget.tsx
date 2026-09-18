@@ -41,9 +41,7 @@ import {Chart} from 'sentry/views/performance/trends/chart';
 import {TrendChangeType, TrendFunctionField} from 'sentry/views/performance/trends/types';
 import {getProjectID, trendsTargetRoute} from 'sentry/views/performance/utils';
 
-type DataType = {
-  chart: WidgetDataResult & ReturnType<typeof transformTrendsDiscover>;
-};
+type DataType = {chart: WidgetDataResult & ReturnType<typeof transformTrendsDiscover>};
 
 type ComponentData = React.ComponentProps<
   GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']
@@ -194,9 +192,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       );
     });
 
-  const Queries = {
-    chart,
-  };
+  const Queries = {chart};
 
   const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] = [
     {

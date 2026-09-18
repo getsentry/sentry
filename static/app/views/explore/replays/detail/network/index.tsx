@@ -168,11 +168,7 @@ export function NetworkList() {
               <VirtualTable ref={wrapperRef}>
                 <VirtualTable.BodyScrollContainer ref={scrollContainerRef}>
                   <VirtualTable.HeaderViewport style={{width: totalColumnWidth}}>
-                    <VirtualTable.HeaderRow
-                      style={{
-                        gridTemplateColumns,
-                      }}
-                    >
+                    <VirtualTable.HeaderRow style={{gridTemplateColumns}}>
                       {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
                         <NetworkHeaderCell
                           key={columnIndex}
@@ -245,10 +241,7 @@ export function NetworkList() {
                               key={virtualRow.key}
                               className={rowClassName}
                               data-index={virtualRow.index}
-                              style={{
-                                gridTemplateColumns,
-                                height: BODY_HEIGHT,
-                              }}
+                              style={{gridTemplateColumns, height: BODY_HEIGHT}}
                             >
                               {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
                                 <NetworkTableCell

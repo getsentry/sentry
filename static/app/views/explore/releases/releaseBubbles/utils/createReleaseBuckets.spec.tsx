@@ -61,58 +61,22 @@ describe('createReleaseBuckets', () => {
     const finalTime = maxTime + 9999;
 
     const releases = [
-      {
-        version: 'ui@0.1.2',
-        date: new Date(1508208080000).toISOString(),
-      },
-      {
-        version: 'ui@0.1.22',
-        date: new Date(1508208081323).toISOString(),
-      },
-      {
-        version: 'ui@0.1.3',
-        date: new Date(1508208081423).toISOString(),
-      },
-      {
-        version: 'ui@0.1.4',
-        date: new Date(1508208083000).toISOString(),
-      },
-      {
-        version: 'ui@0.1.41',
-        date: new Date(1508208084269).toISOString(),
-      },
-      {
-        version: 'ui@0.1.51',
-        date: new Date(1508208092816).toISOString(),
-      },
-      {
-        version: 'ui@0.1.52',
-        date: new Date(1508208094230).toISOString(),
-      },
-      {
-        version: 'ui@0.1.53',
-        date: new Date(1508208094235).toISOString(),
-      },
-      {
-        version: 'ui@0.1.54',
-        date: new Date(1508208094235).toISOString(),
-      },
+      {version: 'ui@0.1.2', date: new Date(1508208080000).toISOString()},
+      {version: 'ui@0.1.22', date: new Date(1508208081323).toISOString()},
+      {version: 'ui@0.1.3', date: new Date(1508208081423).toISOString()},
+      {version: 'ui@0.1.4', date: new Date(1508208083000).toISOString()},
+      {version: 'ui@0.1.41', date: new Date(1508208084269).toISOString()},
+      {version: 'ui@0.1.51', date: new Date(1508208092816).toISOString()},
+      {version: 'ui@0.1.52', date: new Date(1508208094230).toISOString()},
+      {version: 'ui@0.1.53', date: new Date(1508208094235).toISOString()},
+      {version: 'ui@0.1.54', date: new Date(1508208094235).toISOString()},
       // Note this is included even though it is > maxTime
       // because `maxTime` is actually the start time of the
       // last time series item. We don't necessarily have the
       // ending timestamp of that bucket
-      {
-        version: 'ui@0.1.6',
-        date: new Date(maxTime + 1).toISOString(),
-      },
-      {
-        version: 'ui@0.1.7',
-        date: new Date(maxTime + 10000).toISOString(),
-      },
-      {
-        version: 'ui@0.0.0',
-        date: new Date(minTime - 5000).toISOString(),
-      },
+      {version: 'ui@0.1.6', date: new Date(maxTime + 1).toISOString()},
+      {version: 'ui@0.1.7', date: new Date(maxTime + 10000).toISOString()},
+      {version: 'ui@0.0.0', date: new Date(minTime - 5000).toISOString()},
     ];
 
     const buckets = createReleaseBuckets({

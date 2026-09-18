@@ -33,15 +33,11 @@ describe('Subscription > UsageAlert', () => {
       organization,
       plan: 'am1_business',
       canSelfServe: true,
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: true}),
-      },
+      categories: {errors: MetricHistoryFixture({usageExceeded: true})},
     });
 
     SubscriptionStore.set(organization.slug, subscription);
-    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {
-      organization,
-    });
+    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {organization});
 
     expect(screen.getByLabelText('Request Additional Quota')).toBeInTheDocument();
   });
@@ -51,17 +47,13 @@ describe('Subscription > UsageAlert', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_f',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: true}),
-      },
+      categories: {errors: MetricHistoryFixture({usageExceeded: true})},
       canTrial: true,
     });
 
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {
-      organization,
-    });
+    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {organization});
 
     expect(screen.getByTestId('usage-exceeded-alert')).toBeInTheDocument();
     expect(screen.getByText('Usage Exceeded')).toBeInTheDocument();
@@ -91,9 +83,7 @@ describe('Subscription > UsageAlert', () => {
 
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {
-      organization,
-    });
+    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {organization});
 
     expect(screen.getByTestId('usage-exceeded-alert')).toBeInTheDocument();
     expect(screen.getByText('Usage Exceeded')).toBeInTheDocument();
@@ -123,9 +113,7 @@ describe('Subscription > UsageAlert', () => {
 
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {
-      organization,
-    });
+    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {organization});
 
     expect(screen.getByTestId('usage-exceeded-alert')).toBeInTheDocument();
     expect(screen.getByText('Usage Exceeded')).toBeInTheDocument();
@@ -159,9 +147,7 @@ describe('Subscription > UsageAlert', () => {
 
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {
-      organization,
-    });
+    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {organization});
 
     expect(screen.getByTestId('usage-exceeded-alert')).toBeInTheDocument();
     expect(screen.getByText('Usage Exceeded')).toBeInTheDocument();
@@ -180,10 +166,7 @@ describe('Subscription > UsageAlert', () => {
 
     planDetails.categories.forEach(category => {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      subCategories[category] = MetricHistoryFixture({
-        usageExceeded: true,
-        category,
-      });
+      subCategories[category] = MetricHistoryFixture({usageExceeded: true, category});
     });
 
     const subscription = SubscriptionFixture({
@@ -195,9 +178,7 @@ describe('Subscription > UsageAlert', () => {
 
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {
-      organization,
-    });
+    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {organization});
 
     expect(screen.getByTestId('usage-exceeded-alert')).toBeInTheDocument();
     expect(screen.getByText('Usage Exceeded')).toBeInTheDocument();
@@ -220,10 +201,7 @@ describe('Subscription > UsageAlert', () => {
 
     planDetails.categories.forEach(category => {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      subCategories[category] = MetricHistoryFixture({
-        usageExceeded: true,
-        category,
-      });
+      subCategories[category] = MetricHistoryFixture({usageExceeded: true, category});
     });
 
     const subscription = SubscriptionFixture({
@@ -235,9 +213,7 @@ describe('Subscription > UsageAlert', () => {
 
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {
-      organization,
-    });
+    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {organization});
 
     expect(screen.getByTestId('usage-exceeded-alert')).toBeInTheDocument();
     expect(screen.getByText('Usage Exceeded')).toBeInTheDocument();
@@ -260,10 +236,7 @@ describe('Subscription > UsageAlert', () => {
 
     planDetails.categories.forEach(category => {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      subCategories[category] = MetricHistoryFixture({
-        usageExceeded: true,
-        category,
-      });
+      subCategories[category] = MetricHistoryFixture({usageExceeded: true, category});
     });
 
     const subscription = SubscriptionFixture({
@@ -275,9 +248,7 @@ describe('Subscription > UsageAlert', () => {
 
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {
-      organization,
-    });
+    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {organization});
 
     expect(screen.getByTestId('usage-exceeded-alert')).toBeInTheDocument();
     expect(screen.getByText('Usage Exceeded')).toBeInTheDocument();
@@ -304,12 +275,8 @@ describe('Subscription > UsageAlert', () => {
             canSelfServe: false,
             categories: {
               errors: MetricHistoryFixture({usageExceeded: true}),
-              transactions: MetricHistoryFixture({
-                category: DataCategory.TRANSACTIONS,
-              }),
-              attachments: MetricHistoryFixture({
-                category: DataCategory.ATTACHMENTS,
-              }),
+              transactions: MetricHistoryFixture({category: DataCategory.TRANSACTIONS}),
+              attachments: MetricHistoryFixture({category: DataCategory.ATTACHMENTS}),
             },
           }}
           usage={emptyUsage}
@@ -341,9 +308,7 @@ describe('Subscription > UsageAlert', () => {
             },
           }}
           usage={CustomerUsageFixture({
-            totals: {
-              errors: UsageTotalFixture({accepted: 3_000, projected: 7_000}),
-            },
+            totals: {errors: UsageTotalFixture({accepted: 3_000, projected: 7_000})},
           })}
         />,
         {organization}
@@ -368,14 +333,10 @@ describe('Subscription > UsageAlert', () => {
           subscription={{
             ...subscription,
             plan: 'am1_f',
-            categories: {
-              errors: MetricHistoryFixture({prepaid: 5_000, reserved: 5_000}),
-            },
+            categories: {errors: MetricHistoryFixture({prepaid: 5_000, reserved: 5_000})},
           }}
           usage={CustomerUsageFixture({
-            totals: {
-              errors: UsageTotalFixture({accepted: 3_000, projected: 10_000}),
-            },
+            totals: {errors: UsageTotalFixture({accepted: 3_000, projected: 10_000})},
           })}
         />,
         {organization}
@@ -403,9 +364,7 @@ describe('Subscription > UsageAlert', () => {
             },
           }}
           usage={CustomerUsageFixture({
-            totals: {
-              errors: UsageTotalFixture({accepted: 3_000, projected: 7_000}),
-            },
+            totals: {errors: UsageTotalFixture({accepted: 3_000, projected: 7_000})},
           })}
         />,
         {organization}
@@ -433,9 +392,7 @@ describe('Subscription > UsageAlert', () => {
                 prepaid: 10_000,
                 reserved: 10_000,
               }),
-              attachments: MetricHistoryFixture({
-                category: DataCategory.ATTACHMENTS,
-              }),
+              attachments: MetricHistoryFixture({category: DataCategory.ATTACHMENTS}),
             },
           }}
           usage={CustomerUsageFixture({
@@ -481,9 +438,7 @@ describe('Subscription > UsageAlert', () => {
                 prepaid: 10_000,
                 reserved: 10_000,
               }),
-              attachments: MetricHistoryFixture({
-                category: DataCategory.ATTACHMENTS,
-              }),
+              attachments: MetricHistoryFixture({category: DataCategory.ATTACHMENTS}),
             },
           }}
           usage={CustomerUsageFixture({
@@ -515,9 +470,7 @@ describe('Subscription > UsageAlert', () => {
           subscription={{
             ...subscription,
             plan: 'am1_f',
-            categories: {
-              attachments: MetricHistoryFixture({prepaid: 1, reserved: 1}),
-            },
+            categories: {attachments: MetricHistoryFixture({prepaid: 1, reserved: 1})},
           }}
           usage={CustomerUsageFixture({
             totals: {
@@ -550,9 +503,7 @@ describe('Subscription > UsageAlert', () => {
           subscription={{
             ...subscription,
             plan: 'am1_f',
-            categories: {
-              attachments: MetricHistoryFixture({prepaid: 5, reserved: 5}),
-            },
+            categories: {attachments: MetricHistoryFixture({prepaid: 5, reserved: 5})},
           }}
           usage={CustomerUsageFixture({
             totals: {

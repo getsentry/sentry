@@ -159,10 +159,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 onClick: () => {
                   trackAnalytics(
                     'profiling_views.flamegraph.click.highlight_all_occurrences',
-                    {
-                      organization,
-                      profile_type: props.profileType,
-                    }
+                    {organization, profile_type: props.profileType}
                   );
                   props.onHighlightAllOccurrencesClick();
                 },
@@ -194,10 +191,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 onClick: () => {
                   trackAnalytics(
                     'profiling_views.flamegraph.click.copy_function_source',
-                    {
-                      organization,
-                      profile_type: props.profileType,
-                    }
+                    {organization, profile_type: props.profileType}
                   );
                   props.onCopyFunctionSource();
                   // This is a button, so close the context menu.
@@ -221,9 +215,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                       : undefined
                   : t('Open in GitHub is not supported for this platform')
               }
-              {...props.contextMenu.getMenuItemProps({
-                onClick: onOpenInGithubClick,
-              })}
+              {...props.contextMenu.getMenuItemProps({onClick: onOpenInGithubClick})}
               icon={
                 sourceCodeLink.isPending ? (
                   <StyledLoadingIndicator size={10} />
@@ -478,9 +470,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
                     ? t('Could not find source code location in GitHub')
                     : undefined
               }
-              {...props.contextMenu.getMenuItemProps({
-                onClick: onOpenInGithubClick,
-              })}
+              {...props.contextMenu.getMenuItemProps({onClick: onOpenInGithubClick})}
               icon={
                 sourceCodeLink.isPending ? (
                   <StyledLoadingIndicator size={10} />
@@ -588,14 +578,7 @@ function ProfileIdsSubMenu(props: {
   // oxlint-disable-next-line react/refs
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
     placement: 'right-start',
-    modifiers: [
-      {
-        name: 'offset',
-        options: {
-          offset: [-16, 0],
-        },
-      },
-    ],
+    modifiers: [{name: 'offset', options: {offset: [-16, 0]}}],
   });
 
   const projectLookupTable = useMemo(

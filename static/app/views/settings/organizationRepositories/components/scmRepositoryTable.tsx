@@ -445,9 +445,7 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
     <Fragment>
       {manageUrl && (
         <LinkButton
-          tooltipProps={{
-            title: t('Add or remove repository access on %s', providerName),
-          }}
+          tooltipProps={{title: t('Add or remove repository access on %s', providerName)}}
           href={manageUrl}
           external
           variant="link"
@@ -635,9 +633,7 @@ function VirtualizedRepoList({
                     variant="transparent"
                     icon={<IconOpen variant="muted" />}
                     aria-label={t('View repository on %s', providerName)}
-                    tooltipProps={{
-                      title: t('View repository on %s', providerName),
-                    }}
+                    tooltipProps={{title: t('View repository on %s', providerName)}}
                   />
                 </Flex>
                 {mappedProjectSlugsByRepoId && (

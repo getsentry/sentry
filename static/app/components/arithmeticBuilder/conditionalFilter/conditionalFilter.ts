@@ -67,10 +67,7 @@ export function formatConditionalFilterClause(
   return `${filterKey}:${formatConditionalFilterTagValue(tagValue)}`;
 }
 
-type BooleanOperatorMatch = {
-  end: number;
-  start: number;
-};
+type BooleanOperatorMatch = {end: number; start: number};
 
 function isEscaped(value: string, index: number): boolean {
   let backslashes = 0;
@@ -160,10 +157,7 @@ function findBooleanOperators(value: string): BooleanOperatorMatch[] {
       const rest = value.slice(index);
       const match = rest.match(/^(\s+)(and|or)(\s+)/i);
       if (match) {
-        matches.push({
-          start: index,
-          end: index + match[0].length,
-        });
+        matches.push({start: index, end: index + match[0].length});
         index += match[0].length;
         continue;
       }
@@ -211,12 +205,7 @@ function getConditionalFilterClauseBounds(
 function getConditionalFilterClauseAtCursor(
   value: string,
   cursorIndex: number
-): {
-  clause: string;
-  clauseCursorIndex: number;
-  clauseEnd: number;
-  clauseStart: number;
-} {
+): {clause: string; clauseCursorIndex: number; clauseEnd: number; clauseStart: number} {
   const {clauseStart, clauseEnd} = getConditionalFilterClauseBounds(value, cursorIndex);
   const clause = value.slice(clauseStart, clauseEnd);
   return {

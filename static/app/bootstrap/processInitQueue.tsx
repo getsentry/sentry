@@ -158,9 +158,7 @@ export async function processInitQueue() {
   // processed immediately (since bundle is loaded at this point and no
   // longer needs to act as a queue)
   //
-  window.__onSentryInit = {
-    push: processItem,
-  };
+  window.__onSentryInit = {push: processItem};
 
   if (Array.isArray(queued)) {
     // These are all side-effects, so no need to return a value, but allow consumer to

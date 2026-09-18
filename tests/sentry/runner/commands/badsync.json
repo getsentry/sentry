@@ -1,5 +1,1 @@
-{
-  "options": {
-    "set_on_disk_option": "hello"
-  }
-}
+{"options": {"set_on_disk_option": "hello"}}

@@ -49,9 +49,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Logs for Godot Engine are supported in Sentry SDK version [code:1.1.0] and above.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
       ],
@@ -87,9 +85,6 @@ export const logs: OnboardingConfig = {
     },
   ],
   verify: (params: DocsParams) => [
-    {
-      type: StepType.VERIFY,
-      content: [logsVerify(params)],
-    },
+    {type: StepType.VERIFY, content: [logsVerify(params)]},
   ],
 };

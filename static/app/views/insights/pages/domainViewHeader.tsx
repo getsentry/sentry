@@ -67,20 +67,14 @@ export function DomainViewHeader({
   const isSessionsInsights = selectedModule === ModuleName.SESSIONS;
 
   const crumbs: Crumb[] = [
-    {
-      label: domainTitle,
-      to: domainBaseUrl,
-      preservePageFilters: true,
-    },
+    {label: domainTitle, to: domainBaseUrl, preservePageFilters: true},
     ...additionalBreadCrumbs,
   ];
 
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
-  const globalQuery = {
-    ...extractSelectionParameters(location?.query),
-  };
+  const globalQuery = {...extractSelectionParameters(location?.query)};
 
   const tabList: TabListItemProps[] = [
     {

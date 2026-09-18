@@ -96,19 +96,9 @@ export function getBreakpointChartOptionsFromData(
   const durationUnit = getDurationUnit(series);
 
   const chartOptions = {
-    axisPointer: {
-      link: [
-        {
-          xAxisIndex: [0, 1],
-          yAxisIndex: [0, 1],
-        },
-      ],
-    },
+    axisPointer: {link: [{xAxisIndex: [0, 1], yAxisIndex: [0, 1]}]},
     colors: [theme.colors.gray800, theme.colors.gray800],
-    grid: {
-      top: '40px',
-      bottom: '0px',
-    },
+    grid: {top: '40px', bottom: '0px'},
     legend,
     toolBox: {show: false},
     tooltip: {
@@ -131,20 +121,10 @@ export function getBreakpointChartOptionsFromData(
       selectedMode: false,
       dimension: 0,
       pieces: [
-        {
-          gte: 0,
-          lt: breakpointMs,
-          color: theme.colors.gray800,
-        },
-        {
-          gte: breakpointMs,
-          color: theme.colors.red400,
-        },
+        {gte: 0, lt: breakpointMs, color: theme.colors.gray800},
+        {gte: breakpointMs, color: theme.colors.red400},
       ],
     }),
   } satisfies BaseChartProps;
-  return {
-    series,
-    chartOptions,
-  };
+  return {series, chartOptions};
 }

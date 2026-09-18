@@ -59,10 +59,7 @@ describe('ProjectSeer', () => {
       method: 'GET',
       body: {
         hasFreeAutofixAccess: false,
-        billing: {
-          hasAutofixQuota: true,
-          hasScannerQuota: true,
-        },
+        billing: {hasAutofixQuota: true, hasScannerQuota: true},
       },
     });
 
@@ -90,12 +87,7 @@ describe('ProjectSeer', () => {
 
     const seerPreferencesResponse: SeerPreferencesResponse = {
       code_mapping_repos: [
-        {
-          provider: 'github',
-          owner: 'getsentry',
-          name: 'sentry',
-          external_id: '101',
-        },
+        {provider: 'github', owner: 'getsentry', name: 'sentry', external_id: '101'},
       ],
       preference: {
         repositories: [
@@ -142,9 +134,7 @@ describe('ProjectSeer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       method: 'GET',
-      body: {
-        integrations: [],
-      },
+      body: {integrations: []},
     });
 
     mockSeerSettingsGet(organization.slug);
@@ -181,17 +171,11 @@ describe('ProjectSeer', () => {
       method: 'GET',
       body: {
         hasFreeAutofixAccess: true,
-        billing: {
-          hasAutofixQuota: false,
-          hasScannerQuota: false,
-        },
+        billing: {hasAutofixQuota: false, hasScannerQuota: false},
       },
     });
 
-    render(<ProjectSeer />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<ProjectSeer />, {organization, outletContext: {project}});
 
     expect(await screen.findByText('Scan Issues')).toBeInTheDocument();
   });
@@ -202,10 +186,7 @@ describe('ProjectSeer', () => {
       method: 'POST',
     });
 
-    render(<ProjectSeer />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<ProjectSeer />, {organization, outletContext: {project}});
     renderGlobalModal();
 
     // Wait for initial repos to load
@@ -273,11 +254,7 @@ describe('ProjectSeer', () => {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            repos: [
-              expect.objectContaining({
-                repositoryId: '2',
-              }),
-            ],
+            repos: [expect.objectContaining({repositoryId: '2'})],
           }),
         })
       );
@@ -291,10 +268,7 @@ describe('ProjectSeer', () => {
       method: 'PUT',
     });
 
-    render(<ProjectSeer />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<ProjectSeer />, {organization, outletContext: {project}});
     renderGlobalModal();
 
     const repoItem = await screen.findByText('getsentry/sentry');
@@ -310,11 +284,7 @@ describe('ProjectSeer', () => {
     await waitFor(() => {
       expect(seerRepoPutRequest).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            branchName: 'develop',
-          }),
-        })
+        expect.objectContaining({data: expect.objectContaining({branchName: 'develop'})})
       );
     });
   });
@@ -325,10 +295,7 @@ describe('ProjectSeer', () => {
       method: 'DELETE',
     });
 
-    render(<ProjectSeer />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<ProjectSeer />, {organization, outletContext: {project}});
     renderGlobalModal();
 
     const repoItem = await screen.findByText('getsentry/sentry');
@@ -365,20 +332,13 @@ describe('ProjectSeer', () => {
     const projectPutRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
-      body: {
-        autofixAutomationTuning: 'high',
-      },
+      body: {autofixAutomationTuning: 'high'},
     });
 
-    render(<ProjectSeer />, {
-      organization,
-      outletContext: {project: initialProject},
-    });
+    render(<ProjectSeer />, {organization, outletContext: {project: initialProject}});
 
     // Find the select menu
-    const select = await screen.findByRole('textbox', {
-      name: /Auto-Trigger Fixes/i,
-    });
+    const select = await screen.findByRole('textbox', {name: /Auto-Trigger Fixes/i});
 
     act(() => {
       select.focus();
@@ -417,15 +377,10 @@ describe('ProjectSeer', () => {
       body: {},
     });
 
-    render(<ProjectSeer />, {
-      organization,
-      outletContext: {project: initialProject},
-    });
+    render(<ProjectSeer />, {organization, outletContext: {project: initialProject}});
 
     // Find the toggle for Automate Issue Scans
-    const toggle = await screen.findByRole('checkbox', {
-      name: /Scan Issues/i,
-    });
+    const toggle = await screen.findByRole('checkbox', {name: /Scan Issues/i});
     expect(toggle).toBeInTheDocument();
     expect(toggle).not.toBeChecked();
 
@@ -462,15 +417,10 @@ describe('ProjectSeer', () => {
       method: 'PUT',
     });
 
-    render(<ProjectSeer />, {
-      organization,
-      outletContext: {project: initialProject},
-    });
+    render(<ProjectSeer />, {organization, outletContext: {project: initialProject}});
 
     // Find the select menu for Where should Seer stop?
-    const select = await screen.findByRole('textbox', {
-      name: /Where should Seer stop/i,
-    });
+    const select = await screen.findByRole('textbox', {name: /Where should Seer stop/i});
 
     act(() => {
       select.focus();
@@ -593,9 +543,7 @@ describe('ProjectSeer', () => {
   });
 
   it('can enable automation handoff to Cursor when Cursor integration is available', async () => {
-    const orgWithCursorFeature = OrganizationFixture({
-      features: [],
-    });
+    const orgWithCursorFeature = OrganizationFixture({features: []});
 
     const initialProject: DetailedProject = {
       ...project,
@@ -606,12 +554,7 @@ describe('ProjectSeer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
       method: 'GET',
-      body: {
-        billing: {
-          hasAutofixQuota: true,
-          hasScannerQuota: true,
-        },
-      },
+      body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
     });
 
     MockApiClient.addMockResponse({
@@ -641,15 +584,7 @@ describe('ProjectSeer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgWithCursorFeature.slug}/integrations/coding-agents/`,
       method: 'GET',
-      body: {
-        integrations: [
-          {
-            id: '123',
-            name: 'Cursor',
-            provider: 'cursor',
-          },
-        ],
-      },
+      body: {integrations: [{id: '123', name: 'Cursor', provider: 'cursor'}]},
     });
 
     const projectPutRequest = MockApiClient.addMockResponse({
@@ -669,9 +604,7 @@ describe('ProjectSeer', () => {
     });
 
     // Find the select menu for Where should Seer stop?
-    const select = await screen.findByRole('textbox', {
-      name: /Where should Seer stop/i,
-    });
+    const select = await screen.findByRole('textbox', {name: /Where should Seer stop/i});
 
     act(() => {
       select.focus();
@@ -716,12 +649,7 @@ describe('ProjectSeer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/setup-check/`,
       method: 'GET',
-      body: {
-        billing: {
-          hasAutofixQuota: true,
-          hasScannerQuota: true,
-        },
-      },
+      body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
     });
 
     MockApiClient.addMockResponse({
@@ -750,15 +678,7 @@ describe('ProjectSeer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       method: 'GET',
-      body: {
-        integrations: [
-          {
-            id: '456',
-            name: 'Claude',
-            provider: 'claude_code',
-          },
-        ],
-      },
+      body: {integrations: [{id: '456', name: 'Claude', provider: 'claude_code'}]},
     });
 
     const projectPutRequest = MockApiClient.addMockResponse({
@@ -772,14 +692,9 @@ describe('ProjectSeer', () => {
       method: 'PUT',
     });
 
-    render(<ProjectSeer />, {
-      organization,
-      outletContext: {project: initialProject},
-    });
+    render(<ProjectSeer />, {organization, outletContext: {project: initialProject}});
 
-    const select = await screen.findByRole('textbox', {
-      name: /Where should Seer stop/i,
-    });
+    const select = await screen.findByRole('textbox', {name: /Where should Seer stop/i});
 
     act(() => {
       select.focus();
@@ -820,19 +735,14 @@ describe('ProjectSeer', () => {
         seerScannerAutomation: true,
       };
 
-      render(<ProjectSeer />, {
-        organization,
-        outletContext: {project: initialProject},
-      });
+      render(<ProjectSeer />, {organization, outletContext: {project: initialProject}});
 
       // Wait for the page to load
       await screen.findByText(/Automation/i);
 
       // The toggle should NOT be visible when stopping point is not cursor_handoff
       expect(
-        screen.queryByRole('checkbox', {
-          name: /Auto-Create Pull Requests/i,
-        })
+        screen.queryByRole('checkbox', {name: /Auto-Create Pull Requests/i})
       ).not.toBeInTheDocument();
     });
 
@@ -857,9 +767,7 @@ describe('ProjectSeer', () => {
         ],
       });
 
-      const orgWithCursorFeature = OrganizationFixture({
-        features: [],
-      });
+      const orgWithCursorFeature = OrganizationFixture({features: []});
 
       const initialProject: DetailedProject = {
         ...project,
@@ -880,9 +788,7 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
         method: 'GET',
-        body: {
-          billing: {hasAutofixQuota: true, hasScannerQuota: true},
-        },
+        body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
       });
 
       MockApiClient.addMockResponse({
@@ -895,15 +801,7 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/integrations/coding-agents/`,
         method: 'GET',
-        body: {
-          integrations: [
-            {
-              id: '123',
-              name: 'Cursor',
-              provider: 'cursor',
-            },
-          ],
-        },
+        body: {integrations: [{id: '123', name: 'Cursor', provider: 'cursor'}]},
       });
 
       // Mock preferences with automation_handoff including auto_create_pr
@@ -966,9 +864,7 @@ describe('ProjectSeer', () => {
         ],
       });
 
-      const orgWithCursorFeature = OrganizationFixture({
-        features: [],
-      });
+      const orgWithCursorFeature = OrganizationFixture({features: []});
 
       const initialProject: DetailedProject = {
         ...project,
@@ -989,9 +885,7 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
         method: 'GET',
-        body: {
-          billing: {hasAutofixQuota: true, hasScannerQuota: true},
-        },
+        body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
       });
 
       MockApiClient.addMockResponse({
@@ -1004,15 +898,7 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/integrations/coding-agents/`,
         method: 'GET',
-        body: {
-          integrations: [
-            {
-              id: '123',
-              name: 'Cursor',
-              provider: 'cursor',
-            },
-          ],
-        },
+        body: {integrations: [{id: '123', name: 'Cursor', provider: 'cursor'}]},
       });
 
       // Mock preferences with automation_handoff
@@ -1041,11 +927,7 @@ describe('ProjectSeer', () => {
       });
 
       // Mock for the Form's empty apiEndpoint POST
-      MockApiClient.addMockResponse({
-        url: '',
-        method: 'POST',
-        body: {},
-      });
+      MockApiClient.addMockResponse({url: '', method: 'POST', body: {}});
 
       const seerSettingsPutRequest = MockApiClient.addMockResponse({
         url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/settings/`,
@@ -1071,11 +953,7 @@ describe('ProjectSeer', () => {
       await waitFor(() => {
         expect(seerSettingsPutRequest).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            data: expect.objectContaining({
-              autoCreatePr: true,
-            }),
-          })
+          expect.objectContaining({data: expect.objectContaining({autoCreatePr: true})})
         );
       });
     });
@@ -1238,9 +1116,7 @@ describe('ProjectSeer', () => {
         ],
       });
 
-      const orgWithCursorFeature = OrganizationFixture({
-        features: [],
-      });
+      const orgWithCursorFeature = OrganizationFixture({features: []});
 
       const initialProject: DetailedProject = {
         ...project,
@@ -1261,9 +1137,7 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
         method: 'GET',
-        body: {
-          billing: {hasAutofixQuota: true, hasScannerQuota: true},
-        },
+        body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
       });
 
       MockApiClient.addMockResponse({
@@ -1279,16 +1153,8 @@ describe('ProjectSeer', () => {
         method: 'GET',
         body: {
           integrations: [
-            {
-              id: '123',
-              name: 'Cursor - user1@example.com/api-key-1',
-              provider: 'cursor',
-            },
-            {
-              id: '456',
-              name: 'Cursor - user2@example.com/api-key-2',
-              provider: 'cursor',
-            },
+            {id: '123', name: 'Cursor - user1@example.com/api-key-1', provider: 'cursor'},
+            {id: '456', name: 'Cursor - user2@example.com/api-key-2', provider: 'cursor'},
           ],
         },
       });
@@ -1358,9 +1224,7 @@ describe('ProjectSeer', () => {
         ],
       });
 
-      const orgWithCursorFeature = OrganizationFixture({
-        features: [],
-      });
+      const orgWithCursorFeature = OrganizationFixture({features: []});
 
       const initialProject: DetailedProject = {
         ...project,
@@ -1381,9 +1245,7 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
         method: 'GET',
-        body: {
-          billing: {hasAutofixQuota: true, hasScannerQuota: true},
-        },
+        body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
       });
 
       MockApiClient.addMockResponse({
@@ -1399,16 +1261,8 @@ describe('ProjectSeer', () => {
         method: 'GET',
         body: {
           integrations: [
-            {
-              id: '123',
-              name: 'Cursor - user1@example.com/api-key-1',
-              provider: 'cursor',
-            },
-            {
-              id: '456',
-              name: 'Cursor - user2@example.com/api-key-2',
-              provider: 'cursor',
-            },
+            {id: '123', name: 'Cursor - user1@example.com/api-key-1', provider: 'cursor'},
+            {id: '456', name: 'Cursor - user2@example.com/api-key-2', provider: 'cursor'},
           ],
         },
       });
@@ -1439,11 +1293,7 @@ describe('ProjectSeer', () => {
       });
 
       // Mock for the Form's empty apiEndpoint POST
-      MockApiClient.addMockResponse({
-        url: '',
-        method: 'POST',
-        body: {},
-      });
+      MockApiClient.addMockResponse({url: '', method: 'POST', body: {}});
 
       const seerSettingsPutRequest = MockApiClient.addMockResponse({
         url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/settings/`,
@@ -1478,11 +1328,7 @@ describe('ProjectSeer', () => {
       await waitFor(() => {
         expect(seerSettingsPutRequest).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            data: expect.objectContaining({
-              integrationId: '456',
-            }),
-          })
+          expect.objectContaining({data: expect.objectContaining({integrationId: '456'})})
         );
       });
     });
@@ -1527,9 +1373,7 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/setup-check/`,
         method: 'GET',
-        body: {
-          billing: {hasAutofixQuota: true, hasScannerQuota: true},
-        },
+        body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
       });
 
       MockApiClient.addMockResponse({
@@ -1544,16 +1388,8 @@ describe('ProjectSeer', () => {
         method: 'GET',
         body: {
           integrations: [
-            {
-              id: '123',
-              name: 'Cursor',
-              provider: 'cursor',
-            },
-            {
-              id: '456',
-              name: 'Claude',
-              provider: 'claude_code',
-            },
+            {id: '123', name: 'Cursor', provider: 'cursor'},
+            {id: '456', name: 'Claude', provider: 'claude_code'},
           ],
         },
       });
@@ -1578,10 +1414,7 @@ describe('ProjectSeer', () => {
 
       mockSeerSettingsGet(organization.slug);
 
-      render(<ProjectSeer />, {
-        organization,
-        outletContext: {project: initialProject},
-      });
+      render(<ProjectSeer />, {organization, outletContext: {project: initialProject}});
 
       const autoCreateToggle = await screen.findByRole('checkbox', {
         name: /Auto-Create Pull Requests/i,
@@ -1616,9 +1449,7 @@ describe('ProjectSeer', () => {
         ],
       });
 
-      const orgWithCursorFeature = OrganizationFixture({
-        features: [],
-      });
+      const orgWithCursorFeature = OrganizationFixture({features: []});
 
       const initialProject: DetailedProject = {
         ...project,
@@ -1639,9 +1470,7 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
         method: 'GET',
-        body: {
-          billing: {hasAutofixQuota: true, hasScannerQuota: true},
-        },
+        body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
       });
 
       MockApiClient.addMockResponse({
@@ -1655,15 +1484,7 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/integrations/coding-agents/`,
         method: 'GET',
-        body: {
-          integrations: [
-            {
-              id: '123',
-              name: 'Cursor',
-              provider: 'cursor',
-            },
-          ],
-        },
+        body: {integrations: [{id: '123', name: 'Cursor', provider: 'cursor'}]},
       });
 
       // Mock preferences with automation_handoff
@@ -1754,9 +1575,7 @@ describe('ProjectSeer', () => {
       expect(gitlabRepoItem).toBeInTheDocument();
 
       // The checkbox for GitLab repo should not be disabled (since the flag is on)
-      const gitlabCheckbox = within(modal).getByRole('checkbox', {
-        checked: false,
-      });
+      const gitlabCheckbox = within(modal).getByRole('checkbox', {checked: false});
       expect(gitlabCheckbox).toBeEnabled();
     });
 
@@ -1769,10 +1588,7 @@ describe('ProjectSeer', () => {
         body: reposWithGitlab,
       });
 
-      render(<ProjectSeer />, {
-        organization,
-        outletContext: {project},
-      });
+      render(<ProjectSeer />, {organization, outletContext: {project}});
       renderGlobalModal();
 
       // Wait for repos to load (sentry is pre-selected via preference.repositories in beforeEach)

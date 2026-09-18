@@ -4,14 +4,7 @@ import {decodeColumnAliases} from 'sentry/views/dashboards/widgets/tableWidget/u
 
 describe('Table Widget Visualization Utils', () => {
   describe('decodeColumnAliases', () => {
-    const columns = TabularColumnsFixture([
-      {
-        key: 'columnOne',
-      },
-      {
-        key: 'columnTwo',
-      },
-    ]);
+    const columns = TabularColumnsFixture([{key: 'columnOne'}, {key: 'columnTwo'}]);
     const fieldAliases = ['Column One', ''];
     const fieldHeaderMap: Record<string, string> = {
       columnOne: 'Custom column ONE',

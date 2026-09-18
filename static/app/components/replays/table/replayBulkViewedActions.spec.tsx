@@ -75,10 +75,7 @@ describe('ReplayBulkViewedActions', () => {
 
   it('shows a total-success toast when all viewed-by requests succeed', async () => {
     const replay1 = createReplay({id: 'a1'});
-    const replay2 = createReplay({
-      id: 'b2',
-      project_id: '2',
-    });
+    const replay2 = createReplay({id: 'b2', project_id: '2'});
 
     renderWithOrganization({
       replays: [replay1, replay2],
@@ -101,14 +98,8 @@ describe('ReplayBulkViewedActions', () => {
   });
 
   it('sets multiProject in analytics to true when sent replays differ in project', async () => {
-    const replay1 = createReplay({
-      id: 'a1',
-      project_id: '1',
-    });
-    const replay2 = createReplay({
-      id: 'b2',
-      project_id: '2',
-    });
+    const replay1 = createReplay({id: 'a1', project_id: '1'});
+    const replay2 = createReplay({id: 'b2', project_id: '2'});
 
     renderWithOrganization({
       replays: [replay1, replay2],

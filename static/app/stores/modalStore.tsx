@@ -36,11 +36,7 @@ const storeConfig: ModalStoreDefinition = {
   },
 
   reset() {
-    this.state = {
-      renderer: null,
-      options: {},
-      focusTrap: this.state.focusTrap,
-    };
+    this.state = {renderer: null, options: {}, focusTrap: this.state.focusTrap};
   },
 
   closeModal() {
@@ -56,10 +52,7 @@ const storeConfig: ModalStoreDefinition = {
   },
 
   setFocusTrap(focusTrap: FocusTrap) {
-    this.state = {
-      ...this.state,
-      focusTrap,
-    };
+    this.state = {...this.state, focusTrap};
   },
 };
 

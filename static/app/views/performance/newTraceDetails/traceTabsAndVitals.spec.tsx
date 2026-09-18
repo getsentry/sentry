@@ -26,12 +26,7 @@ describe('TraceTabsAndVitals', () => {
       currentTab: TraceLayoutTabKeys.WATERFALL,
       isLoading: false,
       onTabChange: jest.fn(),
-      tabOptions: [
-        {
-          label: 'Waterfall',
-          slug: TraceLayoutTabKeys.WATERFALL,
-        },
-      ],
+      tabOptions: [{label: 'Waterfall', slug: TraceLayoutTabKeys.WATERFALL}],
     };
     const rootEventResults = {
       data: undefined,
@@ -74,10 +69,7 @@ describe('TraceTabsAndVitals', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/router-path/',
-            query: {existing: 'preserved'},
-          },
+          location: {pathname: '/router-path/', query: {existing: 'preserved'}},
         },
       }
     );

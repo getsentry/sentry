@@ -286,9 +286,7 @@ export function FiltersBar({
                   f => !globalFilterKeysAreEqual(f, removedFilter)
                 )
               );
-              trackAnalytics('dashboards2.global_filter.remove', {
-                organization,
-              });
+              trackAnalytics('dashboards2.global_filter.remove', {organization});
             }}
           />
         ))}
@@ -298,9 +296,7 @@ export function FiltersBar({
           onFilterKeySearch={onFilterKeySearch}
           onAddFilter={newFilter => {
             updateGlobalFilters([...activeGlobalFilters, newFilter]);
-            trackAnalytics('dashboards2.global_filter.add', {
-              organization,
-            });
+            trackAnalytics('dashboards2.global_filter.add', {organization});
           }}
         />
         {!hasTemporaryFilters &&

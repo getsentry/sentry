@@ -55,21 +55,9 @@ type Column = GridColumnHeader<
 >;
 
 const COLUMN_ORDER: Column[] = [
-  {
-    key: 'transaction',
-    name: t('Transaction'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'span.op',
-    name: t('Operation'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'project',
-    name: t('Project'),
-    width: COL_WIDTH_UNDEFINED,
-  },
+  {key: 'transaction', name: t('Transaction'), width: COL_WIDTH_UNDEFINED},
+  {key: 'span.op', name: t('Operation'), width: COL_WIDTH_UNDEFINED},
+  {key: 'project', name: t('Project'), width: COL_WIDTH_UNDEFINED},
   {
     key: 'epm()',
     name: t('TPM'),
@@ -86,11 +74,7 @@ const COLUMN_ORDER: Column[] = [
     name: t('Frozen Frame %'),
     width: COL_WIDTH_UNDEFINED,
   },
-  {
-    key: 'count_unique(user)',
-    name: t('Users'),
-    width: COL_WIDTH_UNDEFINED,
-  },
+  {key: 'count_unique(user)', name: t('Users'), width: COL_WIDTH_UNDEFINED},
   {
     key: 'sum(span.duration)',
     name: DataTitles.timeSpent,
@@ -111,9 +95,7 @@ const SORTABLE_FIELDS = [
   'sum(span.duration)',
 ] as const;
 
-export type ValidSort = Sort & {
-  field: (typeof SORTABLE_FIELDS)[number];
-};
+export type ValidSort = Sort & {field: (typeof SORTABLE_FIELDS)[number]};
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
   return (SORTABLE_FIELDS as readonly string[]).includes(sort.field);

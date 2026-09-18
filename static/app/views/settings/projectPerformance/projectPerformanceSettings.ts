@@ -13,9 +13,7 @@ export type ProjectThreshold = {
 
 export type GeneralSettings = {enable_images?: boolean};
 
-export const generalSettingsSchema = z.object({
-  enable_images: z.boolean(),
-});
+export const generalSettingsSchema = z.object({enable_images: z.boolean()});
 
 export const thresholdSettingsSchema = z.object({
   metric: z.enum(['duration', 'lcp']).nullable(),

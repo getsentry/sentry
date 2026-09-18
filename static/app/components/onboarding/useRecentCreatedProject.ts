@@ -49,10 +49,7 @@ export function useRecentCreatedProject({
   const {isPending: isProjectLoading, data: freshProject} = useApiQuery<Project>(
     [
       getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/overview/', {
-        path: {
-          organizationIdOrSlug: orgSlug,
-          projectIdOrSlug: projectSlug!,
-        },
+        path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!},
       }),
     ],
     {
@@ -73,14 +70,8 @@ export function useRecentCreatedProject({
   );
 
   if (isProjectLoading || !freshProject) {
-    return {
-      isProjectActive: project ? isProjectActive(project) : false,
-      project,
-    };
+    return {isProjectActive: project ? isProjectActive(project) : false, project};
   }
 
-  return {
-    isProjectActive: isProjectActive(freshProject),
-    project: freshProject,
-  };
+  return {isProjectActive: isProjectActive(freshProject), project: freshProject};
 }

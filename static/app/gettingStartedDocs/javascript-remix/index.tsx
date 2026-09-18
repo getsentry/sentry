@@ -33,9 +33,6 @@ export const docs: Docs = {
     clientConfigFileName: 'entry.client.tsx',
     serverConfigFileName: 'instrument.server.mjs',
   }),
-  logsOnboarding: logsFullStack({
-    docsPlatform: 'remix',
-    packageName: '@sentry/remix',
-  }),
+  logsOnboarding: logsFullStack({docsPlatform: 'remix', packageName: '@sentry/remix'}),
   mcpOnboarding: mcp,
 };

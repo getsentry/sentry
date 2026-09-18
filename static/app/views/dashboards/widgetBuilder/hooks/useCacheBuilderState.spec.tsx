@@ -21,10 +21,7 @@ describe('useCacheBuilderState', () => {
 
   beforeEach(() => {
     mockLocalStorage = {};
-    mockUseWidgetBuilderContext.mockReturnValue({
-      state: {},
-      dispatch: jest.fn(),
-    });
+    mockUseWidgetBuilderContext.mockReturnValue({state: {}, dispatch: jest.fn()});
     Storage.prototype.getItem = jest.fn(key => mockLocalStorage[key] ?? null);
     Storage.prototype.setItem = jest.fn((key, value) => {
       mockLocalStorage[key] = value;
@@ -42,12 +39,7 @@ describe('useCacheBuilderState', () => {
     const cachedWidget: WidgetBuilderState = {
       dataset: WidgetType.ERRORS,
       displayType: DisplayType.LINE,
-      yAxis: [
-        {
-          function: ['count', '', undefined, undefined],
-          kind: 'function',
-        },
-      ],
+      yAxis: [{function: ['count', '', undefined, undefined], kind: 'function'}],
       query: ['this is a test query'],
     };
     mockUseWidgetBuilderContext.mockReturnValue({
@@ -78,12 +70,7 @@ describe('useCacheBuilderState', () => {
       description: 'error widget description',
       dataset: WidgetType.ERRORS,
       displayType: DisplayType.LINE,
-      yAxis: [
-        {
-          function: ['count', '', undefined, undefined],
-          kind: 'function',
-        },
-      ],
+      yAxis: [{function: ['count', '', undefined, undefined], kind: 'function'}],
       query: ['this is a test query'],
     };
     const currentWidget: WidgetBuilderState = {
@@ -92,12 +79,7 @@ describe('useCacheBuilderState', () => {
       dataset: WidgetType.ISSUE,
       displayType: DisplayType.TABLE,
       query: ['issue.id:123'],
-      fields: [
-        {
-          field: 'issue',
-          kind: 'field',
-        },
-      ],
+      fields: [{field: 'issue', kind: 'field'}],
     };
     const mockDispatch = jest.fn();
     mockUseWidgetBuilderContext.mockReturnValue({
@@ -132,24 +114,14 @@ describe('useCacheBuilderState', () => {
     const cachedWidget: WidgetBuilderState = {
       dataset: WidgetType.ERRORS,
       displayType: DisplayType.LINE,
-      yAxis: [
-        {
-          function: ['count', '', undefined, undefined],
-          kind: 'function',
-        },
-      ],
+      yAxis: [{function: ['count', '', undefined, undefined], kind: 'function'}],
       query: ['this is a test query'],
     };
     const currentWidget: WidgetBuilderState = {
       dataset: WidgetType.ISSUE,
       displayType: DisplayType.TABLE,
       query: ['issue.id:123'],
-      fields: [
-        {
-          field: 'issue',
-          kind: 'field',
-        },
-      ],
+      fields: [{field: 'issue', kind: 'field'}],
     };
     const mockDispatch = jest.fn();
     mockUseWidgetBuilderContext.mockReturnValue({

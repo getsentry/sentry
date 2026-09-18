@@ -25,9 +25,7 @@ import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetect
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useDetectorStatsPeriods} from 'sentry/views/detectors/hooks/useDetectorStatsPeriods';
 
-type MetricDetectorDetailsProps = {
-  detector: MetricDetector;
-};
+type MetricDetectorDetailsProps = {detector: MetricDetector};
 
 export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];

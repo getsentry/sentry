@@ -63,10 +63,5 @@ export function useProfileFunctions<F extends string>({
 }: UseProfileFunctionsOptions<F>) {
   const options = useProfileFunctionsOptions(rest);
 
-  return useQuery({
-    ...options,
-    refetchOnWindowFocus: false,
-    retry: false,
-    enabled,
-  });
+  return useQuery({...options, refetchOnWindowFocus: false, retry: false, enabled});
 }

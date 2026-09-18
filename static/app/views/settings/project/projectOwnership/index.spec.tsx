@@ -49,10 +49,7 @@ describe('Project Ownership', () => {
 
   describe('without codeowners', () => {
     it('renders', async () => {
-      render(<ProjectOwnership />, {
-        organization,
-        outletContext: {project},
-      });
+      render(<ProjectOwnership />, {organization, outletContext: {project}});
       expect(await screen.findByText('No ownership rules found')).toBeInTheDocument();
       // Does not render codeowners for orgs without 'integrations-codeowners' feature
       expect(
@@ -79,10 +76,7 @@ describe('Project Ownership', () => {
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
       });
-      render(<ProjectOwnership />, {
-        organization: org,
-        outletContext: {project},
-      });
+      render(<ProjectOwnership />, {organization: org, outletContext: {project}});
 
       // Renders button
       expect(
@@ -111,10 +105,7 @@ describe('Project Ownership', () => {
 
   describe('issue owners settings', () => {
     it('renders autoAssignment select field with correct initial value', async () => {
-      render(<ProjectOwnership />, {
-        organization,
-        outletContext: {project},
-      });
+      render(<ProjectOwnership />, {organization, outletContext: {project}});
 
       expect(
         await screen.findByText('Auto-assign to suspect commits')
@@ -122,10 +113,7 @@ describe('Project Ownership', () => {
     });
 
     it('renders Sync changes from CODEOWNERS field', async () => {
-      render(<ProjectOwnership />, {
-        organization,
-        outletContext: {project},
-      });
+      render(<ProjectOwnership />, {organization, outletContext: {project}});
 
       expect(await screen.findByText('Sync changes from CODEOWNERS')).toBeInTheDocument();
     });
@@ -141,10 +129,7 @@ describe('Project Ownership', () => {
         },
       });
 
-      render(<ProjectOwnership />, {
-        organization,
-        outletContext: {project},
-      });
+      render(<ProjectOwnership />, {organization, outletContext: {project}});
 
       // Switch to Assign To Issue Owner
       await userEvent.click(await screen.findByText('Auto-assign to suspect commits'));
@@ -153,11 +138,7 @@ describe('Project Ownership', () => {
       await waitFor(() => {
         expect(updateOwnership).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            data: {
-              autoAssignment: 'Auto Assign to Issue Owner',
-            },
-          })
+          expect.objectContaining({data: {autoAssignment: 'Auto Assign to Issue Owner'}})
         );
       });
     });
@@ -180,10 +161,7 @@ describe('Project Ownership', () => {
     });
 
     it('disables codeownersAutoSync when no codeowners exist', async () => {
-      render(<ProjectOwnership />, {
-        organization,
-        outletContext: {project},
-      });
+      render(<ProjectOwnership />, {organization, outletContext: {project}});
 
       // Wait for the page to load
       expect(await screen.findByText('Sync changes from CODEOWNERS')).toBeInTheDocument();

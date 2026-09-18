@@ -37,10 +37,7 @@ interface TraceAskSeerSearchResponse {
     query: string;
     sort: string;
     stats_period: string;
-    visualization: Array<{
-      chart_type?: number;
-      y_axes?: string[];
-    }>;
+    visualization: Array<{chart_type?: number; y_axes?: string[]}>;
   }>;
   status: string;
   unsupported_reason: string | null;
@@ -186,9 +183,7 @@ export function SpansTabSeerComboBox() {
     ]
   );
 
-  useTraceExploreAiQuerySetup({
-    enableAISearch: enableAISearch && !useTranslateEndpoint,
-  });
+  useTraceExploreAiQuerySetup({enableAISearch: enableAISearch && !useTranslateEndpoint});
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>

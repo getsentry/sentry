@@ -9,23 +9,8 @@ import {Message} from 'sentry/components/events/interfaces/message';
 describe('Message entry', () => {
   it('display redacted data', async () => {
     const event = EventFixture({
-      entries: [
-        {
-          type: 'message',
-          data: {
-            formatted: null,
-          },
-        },
-      ],
-      _meta: {
-        entries: {
-          0: {
-            data: {
-              formatted: {'': {rem: [['organization:0', 'x']]}},
-            },
-          },
-        },
-      },
+      entries: [{type: 'message', data: {formatted: null}}],
+      _meta: {entries: {0: {data: {formatted: {'': {rem: [['organization:0', 'x']]}}}}}},
     });
     render(<Message data={{formatted: null}} event={event} />, {
       organization: {

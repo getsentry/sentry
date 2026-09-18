@@ -19,9 +19,7 @@ describe('metrics', () => {
   it('unity metrics onboarding docs', () => {
     renderMockRequests();
 
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.METRICS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.METRICS]});
 
     expect(
       screen.getByText(textWithMarkupMatcher(/SentrySdk\.Metrics\.Increment/))
@@ -31,9 +29,7 @@ describe('metrics', () => {
   it('does not render metrics configuration when metrics is not enabled', () => {
     renderMockRequests();
 
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     expect(
       screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Metrics\.Increment/))

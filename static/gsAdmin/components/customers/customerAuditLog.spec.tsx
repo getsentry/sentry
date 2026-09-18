@@ -9,10 +9,7 @@ describe('CustomerAuditLog', () => {
   const org = OrganizationFixture();
 
   function mockAuditLogsEndpoint(rows: Array<ReturnType<typeof AdminAuditLogFixture>>) {
-    MockApiClient.addMockResponse({
-      url: '/audit-logs/',
-      body: {rows, filters: {}},
-    });
+    MockApiClient.addMockResponse({url: '/audit-logs/', body: {rows, filters: {}}});
   }
 
   beforeEach(() => {
@@ -61,9 +58,7 @@ describe('CustomerAuditLog', () => {
   });
 
   it('falls back to email when actor name is null', async () => {
-    const entry = AdminAuditLogFixture({
-      actor: {email: 'staff@sentry.io', name: null},
-    });
+    const entry = AdminAuditLogFixture({actor: {email: 'staff@sentry.io', name: null}});
 
     mockAuditLogsEndpoint([entry]);
 

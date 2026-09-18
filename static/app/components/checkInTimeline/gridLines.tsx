@@ -78,11 +78,7 @@ function getTimeMarkersFromConfig(config: TimeWindowConfig) {
   // The first marker will always be the starting time. This always renders the
   // full date and time
   const markers: TimeMarker[] = [
-    {
-      date: periodStart,
-      position: startOffset,
-      dateTimeProps: {timeZone: true},
-    },
+    {date: periodStart, position: startOffset, dateTimeProps: {timeZone: true}},
   ];
 
   // The mark after the first mark will be aligned to a boundary to make it

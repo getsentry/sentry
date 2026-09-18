@@ -58,7 +58,4 @@ export function EnvironmentSelector() {
 }
 
 const setToOptions = (set: Set<string>): Array<SelectOption<string>> =>
-  Array.from(set).map(item => ({
-    value: item,
-    label: item,
-  }));
+  Array.from(set).map(item => ({value: item, label: item}));

@@ -17,22 +17,10 @@ export enum LandingDisplayField {
 // TODO Abdullah Khan: Remove code for Web Vitals tab in performance landing
 // page when new starfish web vitals module is mature.
 const LANDING_DISPLAYS = [
-  {
-    label: t('All Transactions'),
-    field: LandingDisplayField.ALL,
-  },
-  {
-    label: t('Frontend'),
-    field: LandingDisplayField.FRONTEND_OTHER,
-  },
-  {
-    label: t('Backend'),
-    field: LandingDisplayField.BACKEND,
-  },
-  {
-    label: t('Mobile'),
-    field: LandingDisplayField.MOBILE,
-  },
+  {label: t('All Transactions'), field: LandingDisplayField.ALL},
+  {label: t('Frontend'), field: LandingDisplayField.FRONTEND_OTHER},
+  {label: t('Backend'), field: LandingDisplayField.BACKEND},
+  {label: t('Mobile'), field: LandingDisplayField.MOBILE},
 ];
 
 export function excludeTransaction(
@@ -46,11 +34,7 @@ export function excludeTransaction(
 
   navigate({
     pathname: location.pathname,
-    query: {
-      ...location.query,
-      cursor: undefined,
-      query: searchConditions.formatString(),
-    },
+    query: {...location.query, cursor: undefined, query: searchConditions.formatString()},
   });
 }
 

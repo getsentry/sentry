@@ -56,11 +56,7 @@ function getProfileIdEntry(
     return;
   }
   const link = project?.slug
-    ? generateProfileFlamechartRoute({
-        organization,
-        projectSlug: project.slug,
-        profileId,
-      })
+    ? generateProfileFlamechartRoute({organization, projectSlug: project.slug, profileId})
     : undefined;
   return {
     key: ProfileContextKey.PROFILE_ID,
@@ -89,9 +85,7 @@ function getProfilerIdEntry(
           profilerId,
           start,
           end,
-          query: {
-            eventId: event.id,
-          },
+          query: {eventId: event.id},
         })
       : undefined;
   return {

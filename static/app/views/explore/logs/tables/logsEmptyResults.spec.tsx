@@ -21,10 +21,7 @@ describe('LogsEmptyResults', () => {
   it('renders the default empty state when no logs are found', () => {
     render(
       <LogsEmptyResults analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
-      {
-        organization,
-        additionalWrapper: TableBodyWrapper,
-      }
+      {organization, additionalWrapper: TableBodyWrapper}
     );
 
     expect(screen.getByText('No logs found')).toBeInTheDocument();

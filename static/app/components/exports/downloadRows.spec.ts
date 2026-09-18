@@ -32,12 +32,7 @@ describe('downloadRows', () => {
 
     mockDownloadRowsAsCsv.mockReturnValue(expected);
 
-    const result = downloadRows({
-      format: 'csv',
-      rows,
-      fields,
-      filename,
-    });
+    const result = downloadRows({format: 'csv', rows, fields, filename});
 
     expect(mockDownloadRowsAsCsv).toHaveBeenCalledTimes(1);
     expect(mockDownloadRowsAsCsv).toHaveBeenCalledWith(rows, fields, filename);
@@ -51,12 +46,7 @@ describe('downloadRows', () => {
 
     mockDownloadAsJsonl.mockReturnValue(expected);
 
-    const result = downloadRows({
-      format: 'jsonl',
-      rows,
-      fields,
-      filename,
-    });
+    const result = downloadRows({format: 'jsonl', rows, fields, filename});
 
     expect(mockDownloadAsJsonl).toHaveBeenCalledTimes(1);
     expect(mockDownloadAsJsonl).toHaveBeenCalledWith(rows, filename);

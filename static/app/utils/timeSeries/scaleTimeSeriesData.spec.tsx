@@ -13,11 +13,7 @@ describe('scaleTimeSeriesData', () => {
           value: 17,
         },
       ],
-      meta: {
-        valueType: 'string',
-        valueUnit: null,
-        interval: 800,
-      },
+      meta: {valueType: 'string', valueUnit: null, interval: 800},
     };
 
     it.each([RateUnit.PER_MINUTE, DurationUnit.SECOND, SizeUnit.GIBIBYTE, null] as const)(
@@ -37,11 +33,7 @@ describe('scaleTimeSeriesData', () => {
           value: 17,
         },
       ],
-      meta: {
-        valueType: 'duration',
-        valueUnit: DurationUnit.SECOND,
-        interval: 800,
-      },
+      meta: {valueType: 'duration', valueUnit: DurationUnit.SECOND, interval: 800},
     };
 
     expect(scaleTimeSeriesData(timeSeries, SizeUnit.GIGABYTE)).toEqual(timeSeries);
@@ -56,11 +48,7 @@ describe('scaleTimeSeriesData', () => {
           value: 17,
         },
       ],
-      meta: {
-        valueType: 'duration',
-        valueUnit: DurationUnit.SECOND,
-        interval: 800,
-      },
+      meta: {valueType: 'duration', valueUnit: DurationUnit.SECOND, interval: 800},
     };
 
     expect(scaleTimeSeriesData(timeSeries, DurationUnit.MILLISECOND)).toEqual({
@@ -71,11 +59,7 @@ describe('scaleTimeSeriesData', () => {
           value: 17000,
         },
       ],
-      meta: {
-        valueType: 'duration',
-        valueUnit: DurationUnit.MILLISECOND,
-        interval: 800,
-      },
+      meta: {valueType: 'duration', valueUnit: DurationUnit.MILLISECOND, interval: 800},
     });
   });
 
@@ -88,11 +72,7 @@ describe('scaleTimeSeriesData', () => {
           value: 17,
         },
       ],
-      meta: {
-        valueType: 'size',
-        valueUnit: SizeUnit.MEBIBYTE,
-        interval: 800,
-      },
+      meta: {valueType: 'size', valueUnit: SizeUnit.MEBIBYTE, interval: 800},
     };
 
     expect(scaleTimeSeriesData(timeSeries, SizeUnit.BYTE)).toEqual({
@@ -103,11 +83,7 @@ describe('scaleTimeSeriesData', () => {
           value: 17825792,
         },
       ],
-      meta: {
-        valueType: 'size',
-        valueUnit: SizeUnit.BYTE,
-        interval: 800,
-      },
+      meta: {valueType: 'size', valueUnit: SizeUnit.BYTE, interval: 800},
     });
   });
 });

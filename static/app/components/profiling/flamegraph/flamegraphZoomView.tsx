@@ -337,10 +337,7 @@ function FlamegraphZoomView({
     flamegraphState.search.highlightFrames,
   ]);
 
-  useInteractionViewCheckPoint({
-    view: flamegraphView,
-    lastInteraction,
-  });
+  useInteractionViewCheckPoint({view: flamegraphView, lastInteraction});
 
   useDrawSelectedBorderEffect({
     scheduler,
@@ -407,10 +404,7 @@ function FlamegraphZoomView({
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [flamegraphCanvas, canvasPoolManager, dispatch, scheduler, flamegraphView]);
 
-  const previousKeyPress = useRef<{at: number; key: string | null}>({
-    key: null,
-    at: 0,
-  });
+  const previousKeyPress = useRef<{at: number; key: string | null}>({key: null, at: 0});
   useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
       if (!flamegraphView) {
@@ -721,10 +715,7 @@ function FlamegraphZoomView({
 
     dispatch({
       type: 'set highlight all frames',
-      payload: {
-        name: frameName,
-        package: packageName,
-      },
+      payload: {name: frameName, package: packageName},
     });
 
     let frames = flamegraph.findAllMatchingFrames(frameName, packageName);

@@ -254,9 +254,7 @@ describe('GroupStore', () => {
         jest.spyOn(GroupStore, 'get').mockReturnValue(mockGroup);
         GroupStore.onDeleteSuccess('1337', ['1'], {});
 
-        expect(successToastSpy).toHaveBeenCalledWith('Deleted ABC-123', {
-          duration: 4000,
-        });
+        expect(successToastSpy).toHaveBeenCalledWith('Deleted ABC-123', {duration: 4000});
       });
     });
 

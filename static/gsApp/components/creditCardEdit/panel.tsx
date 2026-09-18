@@ -79,10 +79,7 @@ export function CreditCardPanel({
 
       setIsEditing(true);
 
-      trackGetsentryAnalytics('billing_failure.button_clicked', {
-        organization,
-        referrer,
-      });
+      trackGetsentryAnalytics('billing_failure.button_clicked', {organization, referrer});
     }
   }, [organization, referrer]);
 

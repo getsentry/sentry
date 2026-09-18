@@ -2,10 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {AdminSearchCombobox} from 'admin/components/adminSearchCombobox';
 
-type Result = {
-  id: string;
-  name: string;
-};
+type Result = {id: string; name: string};
 
 describe('AdminSearchCombobox', () => {
   it('queries and selects a result', async () => {

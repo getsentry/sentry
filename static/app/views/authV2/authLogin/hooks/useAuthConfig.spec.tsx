@@ -12,10 +12,7 @@ describe('useAuthConfig', () => {
       pendingMfa: null,
       serverHostname: 'sentry.example.com',
     };
-    const request = MockApiClient.addMockResponse({
-      url: '/auth/config/',
-      body: response,
-    });
+    const request = MockApiClient.addMockResponse({url: '/auth/config/', body: response});
 
     const {result} = renderHookWithProviders(useAuthConfig);
 

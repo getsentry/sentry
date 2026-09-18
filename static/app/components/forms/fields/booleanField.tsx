@@ -10,11 +10,7 @@ import {FormField} from 'sentry/components/forms/formField';
 import type {InputFieldProps, OnEvent} from './inputField';
 
 export interface BooleanFieldProps extends InputFieldProps {
-  confirm?: {
-    false?: ReactNode;
-    isDangerous?: boolean;
-    true?: ReactNode;
-  };
+  confirm?: {false?: ReactNode; isDangerous?: boolean; true?: ReactNode};
 }
 
 export function BooleanField({confirm, ...fieldProps}: BooleanFieldProps) {

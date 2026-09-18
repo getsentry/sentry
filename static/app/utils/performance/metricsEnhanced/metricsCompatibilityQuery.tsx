@@ -36,10 +36,7 @@ export function MetricsCompatibilityQuery({children, ...props}: QueryProps) {
       {...props}
     >
       {({tableData, ...rest}) => {
-        return children({
-          tableData,
-          ...rest,
-        });
+        return children({tableData, ...rest});
       }}
     </GenericDiscoverQuery>
   );

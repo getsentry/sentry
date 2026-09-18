@@ -39,10 +39,7 @@ function getSeerExploreMode(result: AskSeerSearchQuery): Mode {
 function getSeerVisualizes(
   visualizations: readonly SeerVisualization[]
 ): BaseVisualize[] {
-  return visualizations.map(({chartType, yAxes}) => ({
-    chartType,
-    yAxes,
-  }));
+  return visualizations.map(({chartType, yAxes}) => ({chartType, yAxes}));
 }
 
 /**

@@ -47,9 +47,7 @@ import {ProjectAllocationsTable} from './projectAllocationsTable';
 import {RootAllocationCard} from './rootAllocationCard';
 import {BigNumUnits} from './utils';
 
-type Props = {
-  subscription: Subscription;
-};
+type Props = {subscription: Subscription};
 
 const DEFAULT_SPEND_ALLOCATION_PERIODS = 1;
 
@@ -259,9 +257,7 @@ export function SpendAllocationsRoot({subscription}: Props) {
         getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/index/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
     } catch (err: any) {
       if (err.status === 409) {
@@ -296,9 +292,7 @@ export function SpendAllocationsRoot({subscription}: Props) {
           subscription={subscription}
         />
       ),
-      {
-        closeEvents: 'escape-key',
-      }
+      {closeEvents: 'escape-key'}
     );
   };
 

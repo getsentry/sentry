@@ -227,10 +227,7 @@ function AddToDashboardModal({
         query: {
           // Static widgets don't forward widget configuration to the widget builder, instead they open the widget library
           ...(shouldOpenWidgetLibrary && widgetTemplate
-            ? {
-                openWidgetTemplates: 'true',
-                widgetTemplateId: widgetTemplate.id,
-              }
+            ? {openWidgetTemplates: 'true', widgetTemplateId: widgetTemplate.id}
             : {
                 ...widgetAsQueryParams,
                 title: newWidgetTitle,
@@ -260,10 +257,7 @@ function AddToDashboardModal({
       if (!(usesTimeSeriesData(w.displayType) && w.queries[0]!.columns.length)) {
         newOrderBy = ''; // Clear orderby if its not a top n visualization.
       }
-      const queries = w.queries.map(query => ({
-        ...query,
-        orderby: newOrderBy,
-      }));
+      const queries = w.queries.map(query => ({...query, orderby: newOrderBy}));
 
       return {
         ...w,

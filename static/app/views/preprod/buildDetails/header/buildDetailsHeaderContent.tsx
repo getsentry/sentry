@@ -52,11 +52,7 @@ interface BuildDetailsHeaderContentProps {
   projectType: string | null;
 }
 
-const buildDetailsFeedbackOptions = {
-  tags: {
-    'feedback.source': 'preprod.buildDetails',
-  },
-};
+const buildDetailsFeedbackOptions = {tags: {'feedback.source': 'preprod.buildDetails'}};
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
@@ -70,10 +66,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     handleRerunAction,
     handleDownloadAction,
     handleRerunStatusChecksAction,
-  } = useBuildDetailsActions({
-    projectId: projectSlug,
-    artifactId,
-  });
+  } = useBuildDetailsActions({projectId: projectSlug, artifactId});
 
   const {
     data: buildDetailsData,
@@ -96,10 +89,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const project = ProjectsStore.getBySlug(projectSlug);
 
   const breadcrumbs: Crumb[] = [
-    {
-      to: makeReleasesUrl(organization.slug, projectSlug, {}),
-      label: 'Releases',
-    },
+    {to: makeReleasesUrl(organization.slug, projectSlug, {}), label: 'Releases'},
   ];
 
   const version = buildDetailsData.app_info?.version;
@@ -107,16 +97,12 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   if (version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(organization.slug, projectSlug, {
-        query: version,
-      }),
+      to: makeReleasesUrl(organization.slug, projectSlug, {query: version}),
       label: version,
     });
   }
 
-  breadcrumbs.push({
-    label: 'Build Details',
-  });
+  breadcrumbs.push({label: 'Build Details'});
 
   let versionTitle: string | undefined;
   if (version) {

@@ -38,9 +38,7 @@ export const sampleRateField = z
     {message: t('Must be between 0% and 100%')}
   );
 
-export const targetSampleRateSchema = z.object({
-  targetSampleRate: sampleRateField,
-});
+export const targetSampleRateSchema = z.object({targetSampleRate: sampleRateField});
 
 export function OrganizationSampling() {
   const organization = useOrganization();
@@ -60,12 +58,8 @@ export function OrganizationSampling() {
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      targetSampleRate: initialTargetSampleRate,
-    },
-    validators: {
-      onDynamic: targetSampleRateSchema,
-    },
+    defaultValues: {targetSampleRate: initialTargetSampleRate},
+    validators: {onDynamic: targetSampleRateSchema},
     onSubmit: async ({value, formApi}) => {
       try {
         await updateOrganization({

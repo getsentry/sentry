@@ -29,20 +29,14 @@ describe('Dashboards - DashboardTable', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
     dashboards = [
       DashboardListItemFixture({
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
         createdBy: UserFixture({id: '1'}),
-        permissions: {
-          isEditableByEveryone: false,
-          teamsWithEditAccess: [1],
-        },
+        permissions: {isEditableByEveryone: false, teamsWithEditAccess: [1]},
         isFavorited: true,
       }),
       DashboardListItemFixture({
@@ -51,14 +45,8 @@ describe('Dashboards - DashboardTable', () => {
         dateCreated: '2021-04-19T13:13:23.962105Z',
         createdBy: UserFixture({id: '1'}),
         widgetPreview: [
-          {
-            displayType: DisplayType.LINE,
-            layout: null,
-          },
-          {
-            displayType: DisplayType.TABLE,
-            layout: null,
-          },
+          {displayType: DisplayType.LINE, layout: null},
+          {displayType: DisplayType.TABLE, layout: null},
         ],
       }),
     ];
@@ -75,24 +63,9 @@ describe('Dashboards - DashboardTable', () => {
         id: '2',
         title: 'Dashboard Demo',
         widgets: [
-          {
-            id: '1',
-            title: 'Errors',
-            displayType: 'big_number',
-            interval: '5m',
-          },
-          {
-            id: '2',
-            title: 'Transactions',
-            displayType: 'big_number',
-            interval: '5m',
-          },
-          {
-            id: '3',
-            title: 'p50 of /api/cat',
-            displayType: 'big_number',
-            interval: '5m',
-          },
+          {id: '1', title: 'Errors', displayType: 'big_number', interval: '5m'},
+          {id: '2', title: 'Transactions', displayType: 'big_number', interval: '5m'},
+          {id: '3', title: 'p50 of /api/cat', displayType: 'big_number', interval: '5m'},
         ],
       },
     });
@@ -302,9 +275,7 @@ describe('Dashboards - DashboardTable', () => {
         location={location}
         isOnlyPrebuilt={false}
       />,
-      {
-        organization: organizationWithFavorite,
-      }
+      {organization: organizationWithFavorite}
     );
 
     expect(screen.getByLabelText('Star Column')).toBeInTheDocument();

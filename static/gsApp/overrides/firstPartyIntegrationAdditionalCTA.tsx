@@ -4,9 +4,7 @@ import type {Integration} from 'sentry/types/integrations';
 
 import {UpsellButton} from 'getsentry/components/upsellButton';
 
-type Props = {
-  integrations: Integration[];
-};
+type Props = {integrations: Integration[]};
 
 export function FirstPartyIntegrationAdditionalCTA({integrations}: Props) {
   // only render this upsell CTA when we have disabled integrations or one on grace perioid
@@ -28,10 +26,7 @@ export function FirstPartyIntegrationAdditionalCTA({integrations}: Props) {
         source={`integration-additional-cta-alert-hook-${alertType}-${provider}`}
         size="sm"
         variant="primary"
-        extraAnalyticsParams={{
-          integration: provider,
-          integration_type: 'first-party',
-        }}
+        extraAnalyticsParams={{integration: provider, integration_type: 'first-party'}}
       />
     </Flex>
   );

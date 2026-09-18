@@ -273,9 +273,7 @@ function AssignmentTabs({
           count_my_teams: assignmentCounts.my_teams,
           count_all: assignmentCounts.all,
         }
-      : {
-          assignment_filter: assignmentFilter,
-        }
+      : {assignment_filter: assignmentFilter}
   );
 
   return (
@@ -678,11 +676,7 @@ function useIssueSuggestedAssignees(group: Group): Actor[] {
         email: owner.email,
         type: 'user',
       })),
-      ...ownerTeams.map<Actor>(team => ({
-        id: team.id,
-        name: team.name,
-        type: 'team',
-      })),
+      ...ownerTeams.map<Actor>(team => ({id: team.id, name: team.name, type: 'team'})),
     ],
     [
       // If the current user is in the list, sort it to the top

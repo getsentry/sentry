@@ -18,26 +18,16 @@ type ParamsType = {
   query?: string;
 };
 
-type UpdateParams = ParamsType & {
-  orgId: string;
-  projectId?: string;
-};
+type UpdateParams = ParamsType & {orgId: string; projectId?: string};
 
 type QueryArgs =
-  | {
-      query: string;
-      environment?: string | string[];
-      project?: Array<number | string>;
-    }
+  | {query: string; environment?: string | string[]; project?: Array<number | string>}
   | {
       id: number[] | string[];
       environment?: string | string[];
       project?: Array<number | string>;
     }
-  | {
-      environment?: string | string[];
-      project?: Array<number | string>;
-    };
+  | {environment?: string | string[]; project?: Array<number | string>};
 
 /**
  * Converts input parameters to API-compatible query arguments
@@ -116,10 +106,7 @@ export async function bulkDelete(
   }
 }
 
-type BulkUpdateParams = UpdateParams & {
-  data?: any;
-  failSilently?: boolean;
-};
+type BulkUpdateParams = UpdateParams & {data?: any; failSilently?: boolean};
 
 export async function bulkUpdate(
   api: Client,
@@ -216,11 +203,7 @@ export function issueTagValuesApiOptions({
     ...apiOptions.as<TagValue[]>()(
       '/organizations/$organizationIdOrSlug/issues/$issueId/tags/$key/values/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          issueId: groupId,
-          key: tagKey,
-        },
+        path: {organizationIdOrSlug: organization.slug, issueId: groupId, key: tagKey},
         query: {sort, cursor},
         staleTime: 0,
       }

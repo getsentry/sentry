@@ -17,9 +17,7 @@ jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
 
 jest.mock('sentry/views/insights/common/queries/useHasFirstSpan');
 
-jest.mock('sentry/utils/useLocalStorageState', () => ({
-  useLocalStorageState: jest.fn(),
-}));
+jest.mock('sentry/utils/useLocalStorageState', () => ({useLocalStorageState: jest.fn()}));
 
 const mockUseSpans = jest.mocked(useSpans);
 const mockUseHasFirstSpan = jest.mocked(useHasFirstSpan);

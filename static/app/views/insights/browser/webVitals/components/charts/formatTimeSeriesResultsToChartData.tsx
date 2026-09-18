@@ -13,10 +13,7 @@ export function formatTimeSeriesResultsToChartData(
     const color = segmentColors[index];
     return {
       seriesName: webVital.toUpperCase(),
-      data: series.map(({name, value}) => ({
-        name,
-        value: Math.round(value),
-      })),
+      data: series.map(({name, value}) => ({name, value: Math.round(value)})),
       color,
     };
   });

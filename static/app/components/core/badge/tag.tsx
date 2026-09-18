@@ -52,9 +52,7 @@ export function Tag({ref, variant, icon, onDismiss, children, ...props}: TagProp
   );
 }
 
-const TagPill = styled('div')<{
-  variant: TagVariant;
-}>`
+const TagPill = styled('div')<{variant: TagVariant}>`
   ${p => ({...makeTagPillTheme(p.variant, p.theme)})};
 
   height: 20px;
@@ -77,10 +75,7 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
   switch (type) {
     case undefined:
     case 'muted':
-      return {
-        color: theme.tokens.content.secondary,
-        background: theme.colors.gray100,
-      };
+      return {color: theme.tokens.content.secondary, background: theme.colors.gray100};
 
     // Highlight maps to info badge for now, but the highlight variant should be removed
     case 'info':
@@ -99,10 +94,7 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
         background: theme.tokens.background.transparent.danger.muted,
       };
     case 'warning':
-      return {
-        color: theme.tokens.content.warning,
-        background: theme.colors.yellow100,
-      };
+      return {color: theme.tokens.content.warning, background: theme.colors.yellow100};
     case 'success':
       return {
         color: theme.tokens.content.success,

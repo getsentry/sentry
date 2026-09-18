@@ -88,10 +88,7 @@ describe('areWildcardOperatorsAllowed', () => {
 
 describe('getValidOpsForFilter', () => {
   it('allows wildcard operators for fields with a null valueType', () => {
-    const fieldDefinition: FieldDefinition = {
-      kind: FieldKind.FIELD,
-      valueType: null,
-    };
+    const fieldDefinition: FieldDefinition = {kind: FieldKind.FIELD, valueType: null};
 
     expect(
       getValidOpsForFilter({

@@ -102,9 +102,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock(),
       ],
@@ -120,11 +118,7 @@ export const onboarding: OnboardingConfig = {
             'Then you can use this generic WSGI middleware. It captures errors and attaches a basic amount of information for incoming requests.'
           ),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getSdkSetupSnippet(params),
-        },
+        {type: 'code', language: 'python', code: getSdkSetupSnippet(params)},
         alternativeProfiling(params),
       ],
     },
@@ -139,20 +133,14 @@ export const onboarding: OnboardingConfig = {
             'You can easily verify your Sentry installation by creating a route that triggers an error:'
           ),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'python', code: getVerifySnippet()},
         metricsVerify(params),
         {
           type: 'text',
           text: [
             tct(
               'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
-              {
-                link: <ExternalLink href="http://localhost:8000/" />,
-              }
+              {link: <ExternalLink href="http://localhost:8000/" />}
             ),
             t(
               'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'

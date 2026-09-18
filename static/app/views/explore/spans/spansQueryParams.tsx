@@ -196,21 +196,11 @@ function defaultFields(): string[] {
 
 function defaultSortBys(fields: string[]): Sort[] {
   if (fields.includes('timestamp')) {
-    return [
-      {
-        field: 'timestamp',
-        kind: 'desc' as const,
-      },
-    ];
+    return [{field: 'timestamp', kind: 'desc' as const}];
   }
 
   if (fields.length) {
-    return [
-      {
-        field: fields[0]!,
-        kind: 'desc' as const,
-      },
-    ];
+    return [{field: fields[0]!, kind: 'desc' as const}];
   }
 
   return [];
@@ -265,23 +255,13 @@ function getSpansAggregateFieldsFromLocation(location: Location): AggregateField
 function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
   for (const aggregateField of aggregateFields) {
     if (isVisualize(aggregateField)) {
-      return [
-        {
-          field: aggregateField.yAxis,
-          kind: 'desc' as const,
-        },
-      ];
+      return [{field: aggregateField.yAxis, kind: 'desc' as const}];
     }
   }
 
   for (const aggregateField of aggregateFields) {
     if (isGroupBy(aggregateField)) {
-      return [
-        {
-          field: aggregateField.groupBy,
-          kind: 'desc' as const,
-        },
-      ];
+      return [{field: aggregateField.groupBy, kind: 'desc' as const}];
     }
   }
 

@@ -51,19 +51,13 @@ export default Storybook.story('AssigneeBadge', story => {
           isMember: true,
           memberCount: 0,
           avatar: {avatarType: 'letter_avatar', avatarUuid: uuid4()},
-          flags: {
-            'idp:provisioned': false,
-          },
+          flags: {'idp:provisioned': false},
           externalTeams: [],
           hasAccess: false,
           isPending: false,
         };
 
-    const teamActor: Actor = {
-      type: 'team',
-      id: team.id,
-      name: team.name,
-    };
+    const teamActor: Actor = {type: 'team', id: team.id, name: team.name};
 
     return (
       <Fragment>

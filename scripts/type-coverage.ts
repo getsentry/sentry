@@ -228,13 +228,7 @@ function recordAny(
   const pos = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart(sourceFile));
   const relPath = path.relative(process.cwd(), sourceFile.fileName);
 
-  hits.push({
-    file: relPath,
-    line: pos.line + 1,
-    column: pos.character + 1,
-    kind,
-    name,
-  });
+  hits.push({file: relPath, line: pos.line + 1, column: pos.character + 1, kind, name});
 }
 
 function recordNonNull(
@@ -246,13 +240,7 @@ function recordNonNull(
   const pos = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart(sourceFile));
   const relPath = path.relative(process.cwd(), sourceFile.fileName);
   const code = textPreview(node.getText(sourceFile));
-  hits.push({
-    file: relPath,
-    line: pos.line + 1,
-    column: pos.character + 1,
-    kind,
-    code,
-  });
+  hits.push({file: relPath, line: pos.line + 1, column: pos.character + 1, kind, code});
 }
 
 function recordTypeAssertion(
@@ -798,10 +786,7 @@ function main() {
     console.log(`Coverage     : ${colors.green(pct.toFixed(2) + '%')}\n`);
 
     const worst = Object.entries(perFile)
-      .map(([file, c]) => ({
-        file,
-        pct: c.total ? (c.typed / c.total) * 100 : 100,
-      }))
+      .map(([file, c]) => ({file, pct: c.total ? (c.typed / c.total) * 100 : 100}))
       .sort((a, b) => a.pct - b.pct)
       .slice(0, 10);
 

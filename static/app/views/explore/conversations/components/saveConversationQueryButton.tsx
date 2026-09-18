@@ -49,13 +49,7 @@ export function SaveConversationQueryButton() {
               end: datetime.end ?? undefined,
               starred: starred ?? true,
               agent: agent?.length ? agent : undefined,
-              query: [
-                {
-                  fields: [],
-                  mode: Mode.SAMPLES,
-                  query: searchQuery ?? '',
-                },
-              ],
+              query: [{fields: [], mode: Mode.SAMPLES, query: searchQuery ?? ''}],
             },
           }
         );

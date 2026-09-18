@@ -80,9 +80,7 @@ describe('automationNameUtils', () => {
 
   describe('getAutomationName', () => {
     const createBuilderState = (actions: any[]): AutomationBuilderState =>
-      ({
-        actionFilters: [ActionFilterFixture({actions})],
-      }) as AutomationBuilderState;
+      ({actionFilters: [ActionFilterFixture({actions})]}) as AutomationBuilderState;
 
     it('should return "" for empty actions', () => {
       const builderState = createBuilderState([]);

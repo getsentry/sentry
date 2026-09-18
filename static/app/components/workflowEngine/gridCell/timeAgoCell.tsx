@@ -1,9 +1,7 @@
 import {TimeSince} from 'sentry/components/timeSince';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 
-type TimeAgoCellProps = {
-  date?: string | Date;
-};
+type TimeAgoCellProps = {date?: string | Date};
 
 export function TimeAgoCell({date}: TimeAgoCellProps) {
   return <div>{date ? <TimeSince date={date} /> : <EmptyCell />}</div>;

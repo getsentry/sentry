@@ -53,29 +53,19 @@ describe('formatReservedWithUnits', () => {
     expect(formatReservedWithUnits(BILLION, DataCategory.ERRORS)).toBe('1,000,000,000');
 
     expect(
-      formatReservedWithUnits(1234, DataCategory.ERRORS, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(1234, DataCategory.ERRORS, {isAbbreviated: true})
     ).toBe('1K');
     expect(
-      formatReservedWithUnits(MILLION, DataCategory.ERRORS, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(MILLION, DataCategory.ERRORS, {isAbbreviated: true})
     ).toBe('1M');
     expect(
-      formatReservedWithUnits(1.234 * MILLION, DataCategory.ERRORS, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(1.234 * MILLION, DataCategory.ERRORS, {isAbbreviated: true})
     ).toBe('1.2M');
     expect(
-      formatReservedWithUnits(BILLION, DataCategory.ERRORS, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(BILLION, DataCategory.ERRORS, {isAbbreviated: true})
     ).toBe('1B');
     expect(
-      formatReservedWithUnits(1.234 * BILLION, DataCategory.ERRORS, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(1.234 * BILLION, DataCategory.ERRORS, {isAbbreviated: true})
     ).toBe('1.23B');
   });
 
@@ -91,14 +81,10 @@ describe('formatReservedWithUnits', () => {
     );
 
     expect(
-      formatReservedWithUnits(1234, DataCategory.TRANSACTIONS, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(1234, DataCategory.TRANSACTIONS, {isAbbreviated: true})
     ).toBe('1K');
     expect(
-      formatReservedWithUnits(MILLION, DataCategory.TRANSACTIONS, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(MILLION, DataCategory.TRANSACTIONS, {isAbbreviated: true})
     ).toBe('1M');
     expect(
       formatReservedWithUnits(1.234 * MILLION, DataCategory.TRANSACTIONS, {
@@ -106,9 +92,7 @@ describe('formatReservedWithUnits', () => {
       })
     ).toBe('1.2M');
     expect(
-      formatReservedWithUnits(BILLION, DataCategory.TRANSACTIONS, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(BILLION, DataCategory.TRANSACTIONS, {isAbbreviated: true})
     ).toBe('1B');
     expect(
       formatReservedWithUnits(1.234 * BILLION, DataCategory.TRANSACTIONS, {
@@ -131,24 +115,16 @@ describe('formatReservedWithUnits', () => {
     );
 
     expect(
-      formatReservedWithUnits(0.1234, DataCategory.ATTACHMENTS, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(0.1234, DataCategory.ATTACHMENTS, {isAbbreviated: true})
     ).toBe('0 GB');
     expect(
-      formatReservedWithUnits(1.234, DataCategory.ATTACHMENTS, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(1.234, DataCategory.ATTACHMENTS, {isAbbreviated: true})
     ).toBe('1 GB');
     expect(
-      formatReservedWithUnits(1234, DataCategory.ATTACHMENTS, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(1234, DataCategory.ATTACHMENTS, {isAbbreviated: true})
     ).toBe('1K GB');
     expect(
-      formatReservedWithUnits(MILLION, DataCategory.ATTACHMENTS, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(MILLION, DataCategory.ATTACHMENTS, {isAbbreviated: true})
     ).toBe('1M GB');
     expect(
       formatReservedWithUnits(1.234 * MILLION, DataCategory.ATTACHMENTS, {
@@ -156,9 +132,7 @@ describe('formatReservedWithUnits', () => {
       })
     ).toBe('1.2M GB');
     expect(
-      formatReservedWithUnits(BILLION, DataCategory.ATTACHMENTS, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(BILLION, DataCategory.ATTACHMENTS, {isAbbreviated: true})
     ).toBe('1B GB');
     expect(
       formatReservedWithUnits(1.234 * BILLION, DataCategory.ATTACHMENTS, {
@@ -167,24 +141,16 @@ describe('formatReservedWithUnits', () => {
     ).toBe('1.23B GB');
 
     expect(
-      formatReservedWithUnits(0.1, DataCategory.ATTACHMENTS, {
-        useUnitScaling: true,
-      })
+      formatReservedWithUnits(0.1, DataCategory.ATTACHMENTS, {useUnitScaling: true})
     ).toBe('0.1 GB');
     expect(
-      formatReservedWithUnits(1, DataCategory.ATTACHMENTS, {
-        useUnitScaling: true,
-      })
+      formatReservedWithUnits(1, DataCategory.ATTACHMENTS, {useUnitScaling: true})
     ).toBe('1 GB');
     expect(
-      formatReservedWithUnits(1000, DataCategory.ATTACHMENTS, {
-        useUnitScaling: true,
-      })
+      formatReservedWithUnits(1000, DataCategory.ATTACHMENTS, {useUnitScaling: true})
     ).toBe('1 TB');
     expect(
-      formatReservedWithUnits(1234, DataCategory.ATTACHMENTS, {
-        useUnitScaling: true,
-      })
+      formatReservedWithUnits(1234, DataCategory.ATTACHMENTS, {useUnitScaling: true})
     ).toBe('1.23 TB');
     expect(
       formatReservedWithUnits(1234 * BILLION, DataCategory.ATTACHMENTS, {
@@ -197,9 +163,7 @@ describe('formatReservedWithUnits', () => {
       })
     ).toBe(UNLIMITED);
     expect(
-      formatReservedWithUnits(-1, DataCategory.ATTACHMENTS, {
-        useUnitScaling: true,
-      })
+      formatReservedWithUnits(-1, DataCategory.ATTACHMENTS, {useUnitScaling: true})
     ).toBe(UNLIMITED);
   });
 
@@ -209,9 +173,7 @@ describe('formatReservedWithUnits', () => {
     expect(formatReservedWithUnits(-1, DataCategory.PROFILE_DURATION)).toBe(UNLIMITED);
     expect(formatReservedWithUnits(500, DataCategory.PROFILE_DURATION)).toBe('500');
     expect(
-      formatReservedWithUnits(1000, DataCategory.PROFILE_DURATION, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(1000, DataCategory.PROFILE_DURATION, {isAbbreviated: true})
     ).toBe('1K');
   });
 
@@ -222,34 +184,22 @@ describe('formatReservedWithUnits', () => {
     expect(formatReservedWithUnits(1000, DataCategory.LOG_BYTE)).toBe('1,000 GB');
 
     expect(
-      formatReservedWithUnits(0.1234, DataCategory.LOG_BYTE, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(0.1234, DataCategory.LOG_BYTE, {isAbbreviated: true})
     ).toBe('0.1 GB');
     expect(
-      formatReservedWithUnits(1.234, DataCategory.LOG_BYTE, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(1.234, DataCategory.LOG_BYTE, {isAbbreviated: true})
     ).toBe('1.2 GB');
     expect(
-      formatReservedWithUnits(0.1, DataCategory.LOG_BYTE, {
-        useUnitScaling: true,
-      })
+      formatReservedWithUnits(0.1, DataCategory.LOG_BYTE, {useUnitScaling: true})
     ).toBe('0.1 GB');
     expect(
-      formatReservedWithUnits(1, DataCategory.LOG_BYTE, {
-        useUnitScaling: true,
-      })
+      formatReservedWithUnits(1, DataCategory.LOG_BYTE, {useUnitScaling: true})
     ).toBe('1 GB');
     expect(
-      formatReservedWithUnits(1000, DataCategory.LOG_BYTE, {
-        useUnitScaling: true,
-      })
+      formatReservedWithUnits(1000, DataCategory.LOG_BYTE, {useUnitScaling: true})
     ).toBe('1 TB');
     expect(
-      formatReservedWithUnits(1234, DataCategory.LOG_BYTE, {
-        useUnitScaling: true,
-      })
+      formatReservedWithUnits(1234, DataCategory.LOG_BYTE, {useUnitScaling: true})
     ).toBe('1.23 TB');
     expect(
       formatReservedWithUnits(1234 * BILLION, DataCategory.LOG_BYTE, {
@@ -262,20 +212,14 @@ describe('formatReservedWithUnits', () => {
       })
     ).toBe(UNLIMITED);
     expect(
-      formatReservedWithUnits(-1, DataCategory.LOG_BYTE, {
-        useUnitScaling: true,
-      })
+      formatReservedWithUnits(-1, DataCategory.LOG_BYTE, {useUnitScaling: true})
     ).toBe(UNLIMITED);
 
     expect(
-      formatReservedWithUnits(1234, DataCategory.LOG_BYTE, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(1234, DataCategory.LOG_BYTE, {isAbbreviated: true})
     ).toBe('1,234 GB');
     expect(
-      formatReservedWithUnits(MILLION, DataCategory.LOG_BYTE, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(MILLION, DataCategory.LOG_BYTE, {isAbbreviated: true})
     ).toBe('1,000,000 GB');
     expect(
       formatReservedWithUnits(1.234 * MILLION, DataCategory.LOG_BYTE, {
@@ -283,9 +227,7 @@ describe('formatReservedWithUnits', () => {
       })
     ).toBe('1,234,000 GB');
     expect(
-      formatReservedWithUnits(BILLION, DataCategory.LOG_BYTE, {
-        isAbbreviated: true,
-      })
+      formatReservedWithUnits(BILLION, DataCategory.LOG_BYTE, {isAbbreviated: true})
     ).toBe('1,000,000,000 GB');
     expect(
       formatReservedWithUnits(1.234 * BILLION, DataCategory.LOG_BYTE, {
@@ -310,14 +252,10 @@ describe('formatUsageWithUnits', () => {
       formatUsageWithUnits(MILLION, DataCategory.ERRORS, {isAbbreviated: true})
     ).toBe('1M');
     expect(
-      formatUsageWithUnits(1.234 * MILLION, DataCategory.ERRORS, {
-        isAbbreviated: true,
-      })
+      formatUsageWithUnits(1.234 * MILLION, DataCategory.ERRORS, {isAbbreviated: true})
     ).toBe('1.2M');
     expect(
-      formatUsageWithUnits(1.234 * BILLION, DataCategory.ERRORS, {
-        isAbbreviated: true,
-      })
+      formatUsageWithUnits(1.234 * BILLION, DataCategory.ERRORS, {isAbbreviated: true})
     ).toBe('1.23B');
   });
 
@@ -382,19 +320,13 @@ describe('formatUsageWithUnits', () => {
     ).toBe('1K GB');
 
     expect(
-      formatUsageWithUnits(0, DataCategory.ATTACHMENTS, {
-        useUnitScaling: true,
-      })
+      formatUsageWithUnits(0, DataCategory.ATTACHMENTS, {useUnitScaling: true})
     ).toBe('0 B');
     expect(
-      formatUsageWithUnits(1000, DataCategory.ATTACHMENTS, {
-        useUnitScaling: true,
-      })
+      formatUsageWithUnits(1000, DataCategory.ATTACHMENTS, {useUnitScaling: true})
     ).toBe('1 kB');
     expect(
-      formatUsageWithUnits(MILLION, DataCategory.ATTACHMENTS, {
-        useUnitScaling: true,
-      })
+      formatUsageWithUnits(MILLION, DataCategory.ATTACHMENTS, {useUnitScaling: true})
     ).toBe('1 MB');
     expect(
       formatUsageWithUnits(1.234 * MILLION, DataCategory.ATTACHMENTS, {
@@ -423,9 +355,7 @@ describe('formatUsageWithUnits', () => {
         expect(formatUsageWithUnits(5.23 * MILLISECONDS_IN_HOUR, cat)).toBe('5.2');
         expect(formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, cat)).toBe('1,000');
         expect(
-          formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, cat, {
-            isAbbreviated: true,
-          })
+          formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, cat, {isAbbreviated: true})
         ).toBe('1K');
       }
     );
@@ -475,14 +405,7 @@ describe('convertUsageToReservedUnit', () => {
 
 describe('getSlot', () => {
   function makeBucket(props: {events?: number; price?: number}) {
-    return {
-      events: 0,
-      min: 0,
-      onDemandPrice: 0,
-      price: 0,
-      unitPrice: 0,
-      ...props,
-    };
+    return {events: 0, min: 0, onDemandPrice: 0, price: 0, unitPrice: 0, ...props};
   }
   it('should return slot zero when no slots are passed', () => {
     const reservedEvents = 0;
@@ -1058,10 +981,7 @@ describe('getOnDemandCategories - AM2 logBytes support', () => {
 describe('getBestActionToIncreaseEventLimits', () => {
   it('returns start trial for free plan', () => {
     const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
     expect(getBestActionToIncreaseEventLimits(organization, subscription)).toBe(
       UsageAction.START_TRIAL
     );
@@ -1087,10 +1007,7 @@ describe('getBestActionToIncreaseEventLimits', () => {
 
   it('returns nothing for business plan without usage exceeded', () => {
     const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_business',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
     expect(getBestActionToIncreaseEventLimits(organization, subscription)).toBe('');
   });
 });
@@ -1108,35 +1025,19 @@ describe('getCreditApplied', () => {
     expect(
       getCreditApplied({
         creditApplied: 100,
-        invoiceItems: [
-          {
-            type: 'subscription_credit',
-            ...commonCreditProps,
-          },
-        ],
+        invoiceItems: [{type: 'subscription_credit', ...commonCreditProps}],
       })
     ).toBe(100);
     expect(
       getCreditApplied({
         creditApplied: 100,
-        invoiceItems: [
-          {
-            type: 'balance_change',
-            ...commonCreditProps,
-          },
-        ],
+        invoiceItems: [{type: 'balance_change', ...commonCreditProps}],
       })
     ).toBe(100);
     expect(
       getCreditApplied({
         creditApplied: 100,
-        invoiceItems: [
-          {
-            type: 'balance_change',
-            ...commonCreditProps,
-            amount: -50,
-          },
-        ],
+        invoiceItems: [{type: 'balance_change', ...commonCreditProps, amount: -50}],
       })
     ).toBe(0);
   });
@@ -1163,10 +1064,7 @@ describe('checkIsAddOnChildCategory', () => {
   });
 
   it('returns false when parent add-on is unavailable', () => {
-    subscription.addOns!.seer = {
-      ...subscription.addOns?.seer!,
-      isAvailable: false,
-    };
+    subscription.addOns!.seer = {...subscription.addOns?.seer!, isAvailable: false};
     expect(checkIsAddOnChildCategory(subscription, DataCategory.SEER_USER, true)).toBe(
       false
     );
@@ -1276,10 +1174,7 @@ describe('productIsEnabled', () => {
   });
 
   it('uses subscription add-on info for add-on', () => {
-    subscription.addOns!.seer = {
-      ...subscription.addOns?.seer!,
-      enabled: true,
-    };
+    subscription.addOns!.seer = {...subscription.addOns?.seer!, enabled: true};
 
     expect(productIsEnabled(subscription, AddOnCategory.SEER)).toBe(true);
     expect(productIsEnabled(subscription, AddOnCategory.LEGACY_SEER)).toBe(false);
@@ -1305,9 +1200,7 @@ describe('productIsEnabled', () => {
     subscription.onDemandBudgets = {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
       enabled: true,
-      budgets: {
-        errors: 1000,
-      },
+      budgets: {errors: 1000},
       usedSpends: {},
     };
     expect(productIsEnabled(subscription, DataCategory.PROFILE_DURATION)).toBe(false);

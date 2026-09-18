@@ -19,9 +19,7 @@ export function AskSeerSetupLoading() {
   });
 
   const isPendingSetupCheck =
-    useIsFetching({
-      queryKey: makeOrganizationSeerSetupQueryKey(organization.slug),
-    }) > 0;
+    useIsFetching({queryKey: makeOrganizationSeerSetupQueryKey(organization.slug)}) > 0;
 
   const loadingState = Boolean(isPendingSetupCheck || isMutating);
 

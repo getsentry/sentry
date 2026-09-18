@@ -27,10 +27,7 @@ describe('dashboard embed', () => {
     const {router} = renderEmbed({
       name: 'dashboard',
       level: 'inline',
-      data: {
-        id: '123',
-        title: 'Application health',
-      },
+      data: {id: '123', title: 'Application health'},
     });
 
     await userEvent.click(screen.getByRole('link', {name: 'Application health'}));
@@ -84,10 +81,7 @@ describe('dashboard embed', () => {
       body: [],
     });
 
-    const {unmount} = renderEmbed({
-      name: 'dashboard',
-      data: {id: '123'},
-    });
+    const {unmount} = renderEmbed({name: 'dashboard', data: {id: '123'}});
 
     // The block's name is the collapse toggle; the link out is a separate target.
     expect(

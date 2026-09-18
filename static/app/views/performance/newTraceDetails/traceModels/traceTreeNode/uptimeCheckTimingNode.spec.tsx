@@ -6,9 +6,7 @@ import {makeUptimeCheckTiming} from 'sentry/views/performance/newTraceDetails/tr
 import type {TraceTreeNodeExtra} from './baseNode';
 import {UptimeCheckTimingNode} from './uptimeCheckTimingNode';
 
-const createMockExtra = (): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-});
+const createMockExtra = (): TraceTreeNodeExtra => ({organization: OrganizationFixture()});
 
 describe('UptimeCheckTimingNode', () => {
   describe('constructor', () => {
@@ -66,9 +64,7 @@ describe('UptimeCheckTimingNode', () => {
 
       const node = new UptimeCheckTimingNode(null, timingValue, extra);
 
-      expect(node.traceHeaderTitle).toEqual({
-        title: 'TLS handshake phase',
-      });
+      expect(node.traceHeaderTitle).toEqual({title: 'TLS handshake phase'});
     });
 
     it('should return op as title when description is not available', () => {
@@ -80,18 +76,14 @@ describe('UptimeCheckTimingNode', () => {
 
       const node = new UptimeCheckTimingNode(null, timingValue, extra);
 
-      expect(node.traceHeaderTitle).toEqual({
-        title: 'http.request.send',
-      });
+      expect(node.traceHeaderTitle).toEqual({title: 'http.request.send'});
     });
   });
 
   describe('pathToNode', () => {
     it('should return uptime-check-timing path with event ID', () => {
       const extra = createMockExtra();
-      const timingValue = makeUptimeCheckTiming({
-        event_id: 'timing-123',
-      });
+      const timingValue = makeUptimeCheckTiming({event_id: 'timing-123'});
 
       const node = new UptimeCheckTimingNode(null, timingValue, extra);
 
@@ -102,9 +94,7 @@ describe('UptimeCheckTimingNode', () => {
   describe('analyticsName', () => {
     it('should return event ID', () => {
       const extra = createMockExtra();
-      const timingValue = makeUptimeCheckTiming({
-        event_id: 'timing-analytics-test',
-      });
+      const timingValue = makeUptimeCheckTiming({event_id: 'timing-analytics-test'});
 
       const node = new UptimeCheckTimingNode(null, timingValue, extra);
 
@@ -115,9 +105,7 @@ describe('UptimeCheckTimingNode', () => {
   describe('printNode', () => {
     it('should return event ID', () => {
       const extra = createMockExtra();
-      const timingValue = makeUptimeCheckTiming({
-        event_id: 'timing-print-test',
-      });
+      const timingValue = makeUptimeCheckTiming({event_id: 'timing-print-test'});
 
       const node = new UptimeCheckTimingNode(null, timingValue, extra);
 
@@ -128,9 +116,7 @@ describe('UptimeCheckTimingNode', () => {
   describe('matchWithFreeText', () => {
     it('should match by path', () => {
       const extra = createMockExtra();
-      const timingValue = makeUptimeCheckTiming({
-        event_id: 'timing123',
-      });
+      const timingValue = makeUptimeCheckTiming({event_id: 'timing123'});
 
       const node = new UptimeCheckTimingNode(null, timingValue, extra);
 
@@ -166,9 +152,7 @@ describe('UptimeCheckTimingNode', () => {
 
     it('should match by exact ID', () => {
       const extra = createMockExtra();
-      const timingValue = makeUptimeCheckTiming({
-        event_id: 'timing-123',
-      });
+      const timingValue = makeUptimeCheckTiming({event_id: 'timing-123'});
 
       const node = new UptimeCheckTimingNode(null, timingValue, extra);
 
@@ -191,9 +175,7 @@ describe('UptimeCheckTimingNode', () => {
   describe('makeBarColor', () => {
     it('should return color based on operation', () => {
       const extra = createMockExtra();
-      const timingValue = makeUptimeCheckTiming({
-        op: 'dns.lookup.duration',
-      });
+      const timingValue = makeUptimeCheckTiming({op: 'dns.lookup.duration'});
 
       const node = new UptimeCheckTimingNode(null, timingValue, extra);
 

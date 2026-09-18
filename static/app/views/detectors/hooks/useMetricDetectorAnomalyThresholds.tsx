@@ -88,16 +88,9 @@ export function useMetricDetectorAnomalyThresholds({
     [
       getApiUrl(
         '/organizations/$organizationIdOrSlug/detectors/$detectorId/anomaly-data/',
-        {
-          path: {organizationIdOrSlug: organization.slug, detectorId},
-        }
+        {path: {organizationIdOrSlug: organization.slug, detectorId}}
       ),
-      {
-        query: {
-          start: startTimestamp,
-          end: endTimestamp,
-        },
-      },
+      {query: {start: startTimestamp, end: endTimestamp}},
     ],
     {
       staleTime: 0,
@@ -142,17 +135,8 @@ export function useMetricDetectorAnomalyThresholds({
       createLineSeries({
         name: UPPER_THRESHOLD_SERIES_NAME,
         data: upperBoundData,
-        lineStyle: {
-          color: lineColor,
-          type: 'dashed',
-          width: 1,
-          dashOffset: 0,
-        },
-        areaStyle: {
-          color: lineColor,
-          opacity: 0.05,
-          origin: 'end',
-        },
+        lineStyle: {color: lineColor, type: 'dashed', width: 1, dashOffset: 0},
+        areaStyle: {color: lineColor, opacity: 0.05, origin: 'end'},
         itemStyle: {color: lineColor},
         animation: false,
         animationThreshold: 1,
@@ -164,17 +148,8 @@ export function useMetricDetectorAnomalyThresholds({
       createLineSeries({
         name: LOWER_THRESHOLD_SERIES_NAME,
         data: lowerBoundData,
-        lineStyle: {
-          color: lineColor,
-          type: 'dashed',
-          width: 1,
-          dashOffset: 0,
-        },
-        areaStyle: {
-          color: lineColor,
-          opacity: 0.05,
-          origin: 'start',
-        },
+        lineStyle: {color: lineColor, type: 'dashed', width: 1, dashOffset: 0},
+        areaStyle: {color: lineColor, opacity: 0.05, origin: 'start'},
         itemStyle: {color: lineColor},
         animation: false,
         animationThreshold: 1,

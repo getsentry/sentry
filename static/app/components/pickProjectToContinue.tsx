@@ -7,10 +7,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-type Project = {
-  id: string;
-  slug: string;
-};
+type Project = {id: string; slug: string};
 
 type Props = {
   /**

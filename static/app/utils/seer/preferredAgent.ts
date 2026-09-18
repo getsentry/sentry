@@ -70,10 +70,7 @@ function selectAgentIntegrations(
     ...(data.json.integrations ?? [])
       .filter(integration => integration.id)
       .map(integration => {
-        return {
-          ...integration,
-          provider: mapProvider[integration.provider],
-        };
+        return {...integration, provider: mapProvider[integration.provider]};
       }),
   ];
 }
@@ -87,12 +84,10 @@ export function knownAgentIntegrationsQueryOptions({
   organization: Organization;
 }) {
   return queryOptions({
-    ...apiOptions.as<{
-      integrations: CodingAgentIntegration[];
-    }>()('/organizations/$organizationIdOrSlug/integrations/coding-agents/', {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 5 * 60 * 1000,
-    }),
+    ...apiOptions.as<{integrations: CodingAgentIntegration[]}>()(
+      '/organizations/$organizationIdOrSlug/integrations/coding-agents/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 5 * 60 * 1000}
+    ),
     select: selectAgentIntegrations,
   });
 }
@@ -164,10 +159,7 @@ export function seerAgentIntegrationsSelectQueryOptions({
       {value: 'seer' as const, label: t('Seer')},
       ...selectAgentIntegrations(data)
         .filter(i => isPreferredAgentProvider(i.provider)) // filter out copilot, it cannot be saved.
-        .map(i => ({
-          value: `${i.provider}::${i.id}` as const,
-          label: i.name,
-        })),
+        .map(i => ({value: `${i.provider}::${i.id}` as const, label: i.name})),
     ],
   });
 }

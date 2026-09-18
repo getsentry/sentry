@@ -42,9 +42,7 @@ describe('DiscoverContainer', () => {
     render(<DiscoverContainer />, {
       organization: nonDeprecatedOrg,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/explore/discover/queries/',
-        },
+        location: {pathname: '/organizations/org-slug/explore/discover/queries/'},
         route: '/organizations/:orgId/explore/discover/:tab/',
       },
     });
@@ -78,9 +76,7 @@ describe('DiscoverContainer', () => {
     render(<DiscoverContainer />, {
       organization: deprecatedOrg,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/explore/errors/queries/',
-        },
+        location: {pathname: '/organizations/org-slug/explore/errors/queries/'},
         route: '/organizations/:orgId/explore/errors/:tab/',
       },
     });

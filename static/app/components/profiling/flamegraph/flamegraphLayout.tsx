@@ -107,41 +107,26 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
 
   const onOpenUIFrames = useCallback(
     () =>
-      dispatch({
-        type: 'toggle timeline',
-        payload: {timeline: 'ui_frames', value: true},
-      }),
+      dispatch({type: 'toggle timeline', payload: {timeline: 'ui_frames', value: true}}),
     [dispatch]
   );
 
   const onCloseUIFrames = useCallback(
     () =>
-      dispatch({
-        type: 'toggle timeline',
-        payload: {timeline: 'ui_frames', value: false},
-      }),
+      dispatch({type: 'toggle timeline', payload: {timeline: 'ui_frames', value: false}}),
     [dispatch]
   );
 
   const onOpenCpuChart = useCallback(() => {
-    dispatch({
-      type: 'toggle timeline',
-      payload: {timeline: 'cpu_chart', value: true},
-    });
+    dispatch({type: 'toggle timeline', payload: {timeline: 'cpu_chart', value: true}});
   }, [dispatch]);
 
   const onCloseCpuChart = useCallback(() => {
-    dispatch({
-      type: 'toggle timeline',
-      payload: {timeline: 'cpu_chart', value: false},
-    });
+    dispatch({type: 'toggle timeline', payload: {timeline: 'cpu_chart', value: false}});
   }, [dispatch]);
 
   const onOpenMemoryChart = useCallback(() => {
-    dispatch({
-      type: 'toggle timeline',
-      payload: {timeline: 'memory_chart', value: true},
-    });
+    dispatch({type: 'toggle timeline', payload: {timeline: 'memory_chart', value: true}});
   }, [dispatch]);
 
   const onCloseMemoryChart = useCallback(() => {
@@ -316,9 +301,7 @@ const ProfileLabel = styled(CollapsibleTimelineLabel)`
   transform: translateY(1px);
 `;
 
-const FlamegraphGrid = styled('div')<{
-  layout?: FlamegraphPreferences['layout'];
-}>`
+const FlamegraphGrid = styled('div')<{layout?: FlamegraphPreferences['layout']}>`
   background-color: ${p => p.theme.tokens.background.primary};
   display: grid;
   width: 100%;

@@ -21,10 +21,7 @@ jest.mock('sentry/components/stream/group', () => ({
   LoadingStreamGroup: jest.fn(() => <div data-test-id="loading-group" />),
 }));
 
-jest.mock('js-cookie', () => ({
-  get: jest.fn(),
-  set: jest.fn(),
-}));
+jest.mock('js-cookie', () => ({get: jest.fn(), set: jest.fn()}));
 
 const PREVIOUS_PAGE_CURSOR = '1443575731';
 const DEFAULT_LINKS_HEADER =
@@ -110,10 +107,7 @@ describe('IssueList -> Polling', () => {
     issuesRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [group],
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': '1',
-      },
+      headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '1'},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
@@ -122,10 +116,7 @@ describe('IssueList -> Polling', () => {
     pollRequest = MockApiClient.addMockResponse({
       url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': '1',
-      },
+      headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '1'},
     });
 
     jest.mocked(StreamGroup).mockClear();
@@ -170,10 +161,7 @@ describe('IssueList -> Polling', () => {
     pollRequest = MockApiClient.addMockResponse({
       url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [group2],
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': '2',
-      },
+      headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '2'},
     });
 
     await renderComponent();

@@ -61,18 +61,12 @@ const CURRENCY_LOCALE = 'en-US';
  * 100.30 => $100.30
  * -100 => -$100
  */
-type DisplayPriceTypes = {
-  cents: number;
-  formatBigNum?: boolean;
-};
+type DisplayPriceTypes = {cents: number; formatBigNum?: boolean};
 
 // Intent details returned by CustomerSubscriptionEndpoint
 // when there is an error and customer card actions are
 // required.
-export type IntentDetails = {
-  paymentIntent: string;
-  paymentSecret: string;
-};
+export type IntentDetails = {paymentIntent: string; paymentSecret: string};
 
 type APIDataProps = {
   formData: CheckoutFormData;
@@ -127,11 +121,7 @@ export function displayPriceWithCents({
   );
 }
 
-type UnitPriceProps = {
-  cents: number;
-  maxDigits?: number;
-  minDigits?: number;
-};
+type UnitPriceProps = {cents: number; maxDigits?: number; minDigits?: number};
 
 /**
  * Includes cents in the price when needed and excludes $ for separate formatting.
@@ -253,13 +243,11 @@ export function getShortInterval(billingInterval: string): string {
   return billingInterval === MONTHLY ? 'mo' : 'yr';
 }
 
-type CheckoutData = {
-  plan: string;
-} & Partial<Record<DataCategory, number>>;
+type CheckoutData = {plan: string} & Partial<Record<DataCategory, number>>;
 
-type PreviousData = {
-  previous_plan: string;
-} & Partial<Record<`previous_${DataCategory}`, number>>;
+type PreviousData = {previous_plan: string} & Partial<
+  Record<`previous_${DataCategory}`, number>
+>;
 
 /**
  * Nested structure for category reservations in checkout.upgrade event.
@@ -269,10 +257,7 @@ type PreviousData = {
 type CategoryReservations = Partial<
   Record<
     DataCategory,
-    {
-      previous_reserved: number | undefined;
-      reserved: number | undefined;
-    }
+    {previous_reserved: number | undefined; reserved: number | undefined}
   >
 >;
 
@@ -283,17 +268,13 @@ function recordAnalytics(
   isMigratingPartnerAccount: boolean
 ) {
   trackMarketingEvent('Upgrade');
-  const currentData: CheckoutData = {
-    plan: data.plan,
-  };
+  const currentData: CheckoutData = {plan: data.plan};
 
   const productSelectAnalyticsData: Partial<
     Record<AddOnCategory, {enabled: boolean; previously_enabled: boolean}>
   > = {};
 
-  const previousData: PreviousData = {
-    previous_plan: subscription.plan,
-  };
+  const previousData: PreviousData = {previous_plan: subscription.plan};
 
   // Build nested categories structure for better Amplitude analytics
   const categories: CategoryReservations = {};
@@ -450,9 +431,7 @@ export function getCheckoutAPIData({
 
   const reservedData = Object.fromEntries(
     Object.entries(formData.reserved).map(([category, value]) => [
-      `reserved${toTitleCase(category, {
-        allowInnerUpperCase: true,
-      })}`,
+      `reserved${toTitleCase(category, {allowInnerUpperCase: true})}`,
       formatReservedData(value),
     ])
   ) satisfies Partial<Reservations>;
@@ -463,9 +442,7 @@ export function getCheckoutAPIData({
 
   const addOnData = Object.fromEntries(
     Object.entries(formData.addOns ?? {}).map(([addOnName, {enabled}]) => [
-      `addOn${toTitleCase(addOnName, {
-        allowInnerUpperCase: true,
-      })}`,
+      `addOn${toTitleCase(addOnName, {allowInnerUpperCase: true})}`,
       enabled,
     ])
   ) satisfies Partial<Record<`addOn${Capitalize<AddOnCategory>}`, boolean>>;
@@ -482,10 +459,7 @@ export function getCheckoutAPIData({
   };
 
   if (formData.applyNow) {
-    data = {
-      ...data,
-      applyNow: true,
-    };
+    data = {...data, applyNow: true};
   }
   return data;
 }
@@ -503,10 +477,7 @@ export async function fetchPreviewData(
   try {
     const previewData: PreviewData = await api.requestPromise(
       `/customers/${organization.slug}/subscription/preview/`,
-      {
-        method: 'GET',
-        data,
-      }
+      {method: 'GET', data}
     );
     onSuccess?.(previewData);
   } catch (error) {
@@ -582,10 +553,7 @@ export function useSubmitCheckout({
     mutationFn: ({data}: {data: CheckoutAPIData}) => {
       return api.requestPromise(
         `/customers/${organization.slug}/subscription/?expand=invoice`,
-        {
-          method: 'PUT',
-          data,
-        }
+        {method: 'PUT', data}
       );
     },
     onSuccess: (response, _variables) => {
@@ -762,10 +730,7 @@ export function getPrepaidPriceForAddOn({
 }) {
   const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(addOnCategory);
   if (reservedBudgetCategory) {
-    return getReservedPriceForReservedBudgetCategory({
-      plan,
-      reservedBudgetCategory,
-    });
+    return getReservedPriceForReservedBudgetCategory({plan, reservedBudgetCategory});
   }
 
   // if it's not a reserved budget add on, we assume it's a PAYG only add on (costs $0)

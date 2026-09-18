@@ -76,12 +76,7 @@ export function Context({
     hasPotentialSourceContext(frame);
 
   const {data: sourceContextData, isPending: isLoadingSourceContext} = useSourceContext(
-    {
-      event,
-      frame,
-      orgSlug: organization?.slug || '',
-      projectSlug: project?.slug,
-    },
+    {event, frame, orgSlug: organization?.slug || '', projectSlug: project?.slug},
     {enabled: shouldFetchSourceContext}
   );
 

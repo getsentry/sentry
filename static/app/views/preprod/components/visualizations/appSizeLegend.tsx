@@ -165,10 +165,7 @@ export function AppSizeLegend({
   const renderLegendItem = (
     categoryType: TreemapType,
     isActive: boolean,
-    options?: {
-      onClick?: () => void;
-      ref?: (el: HTMLDivElement | null) => void;
-    }
+    options?: {onClick?: () => void; ref?: (el: HTMLDivElement | null) => void}
   ) => {
     const categoryInfo = getCategoryInfo(categoryType);
     if (!categoryInfo) {

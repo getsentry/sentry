@@ -13,9 +13,7 @@ import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory'
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
-type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
-  orgId: string;
-};
+type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {orgId: string};
 
 export function CustomerHistory({orgId, ...props}: Props) {
   return (
@@ -128,9 +126,7 @@ export function CustomerHistory({orgId, ...props}: Props) {
                 .filter(category => category.reserved !== RESERVED_BUDGET_QUOTA)
                 .map(({category, free}) => (
                   <div key={category}>
-                    {formatReservedWithUnits(free, category, {
-                      isGifted: true,
-                    })}
+                    {formatReservedWithUnits(free, category, {isGifted: true})}
                     <Container as="span" marginLeft="xs">
                       {getPlanCategoryName({
                         plan: row.planDetails,
@@ -156,9 +152,7 @@ export function CustomerHistory({orgId, ...props}: Props) {
             <Stack gap="xs">
               {sortedCategories.map(({category, usage}) => (
                 <div key={category}>
-                  {formatUsageWithUnits(usage, category, {
-                    useUnitScaling: true,
-                  })}
+                  {formatUsageWithUnits(usage, category, {useUnitScaling: true})}
                   <Container as="span" marginLeft="xs">
                     {getPlanCategoryName({
                       plan: row.planDetails,

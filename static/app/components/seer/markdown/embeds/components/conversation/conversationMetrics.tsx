@@ -69,11 +69,7 @@ export const CONVERSATION_METRIC_FIELDS: ConversationMetricField[] = [
     render: metrics => <Count value={metrics.errors} />,
     variant: metrics => (metrics.errors > 0 ? 'danger' : undefined),
   },
-  {
-    key: 'cost',
-    label: t('Cost'),
-    render: metrics => <LLMCosts cost={metrics.cost} />,
-  },
+  {key: 'cost', label: t('Cost'), render: metrics => <LLMCosts cost={metrics.cost} />},
 ];
 
 /**
@@ -103,12 +99,7 @@ export function getConversationMetricsFromNodes(
 
   // A conversation whose spans carry no cost attribute at all has no cost
   // recorded, which `LLMCosts` renders as `—` rather than as a free call.
-  return {
-    messages,
-    errors,
-    generationDuration,
-    cost: cost === 0 ? null : cost,
-  };
+  return {messages, errors, generationDuration, cost: cost === 0 ? null : cost};
 }
 
 /** Height of the `Text size="sm"` value the skeleton stands in for. */

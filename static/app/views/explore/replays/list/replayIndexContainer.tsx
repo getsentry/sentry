@@ -52,10 +52,7 @@ export function ReplayIndexContainer({
     data: response,
     isPending,
     error,
-  } = useQuery({
-    ...replayListOptions,
-    select: selectJsonWithHeaders,
-  });
+  } = useQuery({...replayListOptions, select: selectJsonWithHeaders});
   const replays = response?.json?.data?.map(mapResponseToReplayRecord) ?? [];
 
   const pageLinks = response?.headers.Link ?? null;
@@ -81,10 +78,7 @@ export function ReplayIndexContainer({
             organization,
             direction: cursor?.endsWith(':1') ? 'prev' : 'next',
           });
-          navigate({
-            pathname: path,
-            query: {...searchQuery, cursor},
-          });
+          navigate({pathname: path, query: {...searchQuery, cursor}});
         }}
       />
     </Fragment>

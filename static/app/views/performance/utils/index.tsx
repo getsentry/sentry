@@ -215,10 +215,7 @@ export function trendsTargetRoute({
   additionalQuery?: Record<string, string>;
   initialConditions?: MutableSearch;
 }) {
-  const newQuery = {
-    ...location.query,
-    ...additionalQuery,
-  };
+  const newQuery = {...location.query, ...additionalQuery};
 
   const modifiedConditions = initialConditions ?? new MutableSearch([]);
   newQuery.query = modifiedConditions.formatString();
@@ -334,18 +331,10 @@ export function usePerformanceGeneralProjectSettings(projectId?: number) {
     [
       getApiUrl(
         '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project?.slug!,
-          },
-        }
+        {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project?.slug!}}
       ),
     ],
-    {
-      staleTime: 0,
-      enabled: Boolean(project),
-    }
+    {staleTime: 0, enabled: Boolean(project)}
   );
 }
 

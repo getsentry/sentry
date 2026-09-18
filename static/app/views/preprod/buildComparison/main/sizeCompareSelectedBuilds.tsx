@@ -48,19 +48,15 @@ function BuildButton({
   const project = ProjectsStore.getById(String(projectId));
 
   const buildUrl =
-    getSizeBuildPath({
-      organizationSlug: organization.slug,
-      baseArtifactId: buildId,
-    }) ?? '';
+    getSizeBuildPath({organizationSlug: organization.slug, baseArtifactId: buildId}) ??
+    '';
   const platform = buildDetails.app_info?.platform ?? null;
 
   const dateToShow = dateBuilt || dateAdded;
   const formattedDate = getFormattedDate(
     dateToShow,
     getFormat({timeZone: true, year: true}),
-    {
-      local: true,
-    }
+    {local: true}
   );
 
   // Build metadata parts for the second line

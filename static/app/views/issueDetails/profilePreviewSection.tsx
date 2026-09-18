@@ -232,11 +232,7 @@ function getProfileMetaForEvent(event: Event) {
     return null;
   }
 
-  return {
-    profiler_id: profilerId,
-    start: timeWindow.start,
-    end: timeWindow.end,
-  };
+  return {profiler_id: profilerId, start: timeWindow.start, end: timeWindow.end};
 }
 
 function getProfileTimeWindow(event: Event): {end: string; start: string} | null {

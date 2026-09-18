@@ -16,11 +16,7 @@ describe('TrialEndingModal', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       method: 'GET',
-      body: [
-        MemberFixture({
-          email: 'admin@example.com',
-        }),
-      ],
+      body: [MemberFixture({email: 'admin@example.com'})],
     });
   });
 

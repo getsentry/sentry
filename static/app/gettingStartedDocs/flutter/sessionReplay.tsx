@@ -50,11 +50,7 @@ export const sessionReplay: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'YAML',
-              language: 'yaml',
-              code: getManualInstallSnippet(params),
-            },
+            {label: 'YAML', language: 'yaml', code: getManualInstallSnippet(params)},
           ],
         },
         {
@@ -65,13 +61,7 @@ export const sessionReplay: OnboardingConfig = {
         },
         {
           type: 'code',
-          tabs: [
-            {
-              label: 'Dart',
-              language: 'dart',
-              code: getInstallReplaySnippet(),
-            },
-          ],
+          tabs: [{label: 'Dart', language: 'dart', code: getInstallReplaySnippet()}],
         },
       ],
     },
@@ -94,13 +84,7 @@ export const sessionReplay: OnboardingConfig = {
         },
         {
           type: 'code',
-          tabs: [
-            {
-              label: 'Dart',
-              language: 'dart',
-              code: getConfigureReplaySnippet(),
-            },
-          ],
+          tabs: [{label: 'Dart', language: 'dart', code: getConfigureReplaySnippet()}],
         },
       ],
     },

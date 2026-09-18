@@ -217,10 +217,7 @@ export function useExplorerMenu({
     const anchorRef = menuMode === 'pr-widget' ? prWidgetAnchorRef : inputAnchorRef;
 
     if (!anchorRef?.current) {
-      setMenuPosition({
-        bottom: '100%',
-        left: '16px',
-      });
+      setMenuPosition({bottom: '100%', left: '16px'});
       return;
     }
 
@@ -303,12 +300,7 @@ function useSlashCommands({
 
   return useMemo(
     (): MenuItemProps[] => [
-      {
-        title: '/new',
-        key: '/new',
-        description: 'Start a new session',
-        handler: onNew,
-      },
+      {title: '/new', key: '/new', description: 'Start a new session', handler: onNew},
       ...(onMaxSize
         ? [
             {
@@ -401,9 +393,7 @@ function useSlashCommands({
   );
 }
 
-const MenuPanel = styled('div')<{
-  panelSize: 'max' | 'med';
-}>`
+const MenuPanel = styled('div')<{panelSize: 'max' | 'med'}>`
   position: absolute;
   width: 300px;
   background: ${p => p.theme.tokens.background.primary};

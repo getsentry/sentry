@@ -51,16 +51,18 @@ const CONTAINER_SIZE = {width: 1200, height: 800};
 // Drive matchMedia per-query so the wide-screen and short-landscape checks can
 // resolve independently.
 function mockMatchMedia(matches: (query: string) => boolean) {
-  window.matchMedia = jest.fn().mockImplementation((query: string) => ({
-    matches: matches(query),
-    media: query,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  }));
+  window.matchMedia = jest
+    .fn()
+    .mockImplementation((query: string) => ({
+      matches: matches(query),
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    }));
 }
 
 // Orientation is driven by media queries (the `xl` width breakpoint and a
@@ -429,14 +431,16 @@ describe('SeerExplorerSidebarLayout', () => {
 
   it('tracks picture-in-picture open analytics when selecting Windowed', async () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    const requestWindow = jest.fn().mockResolvedValue({
-      document: document.implementation.createHTMLDocument('pip'),
-      close: jest.fn(),
-      focus: jest.fn(),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      closed: false,
-    });
+    const requestWindow = jest
+      .fn()
+      .mockResolvedValue({
+        document: document.implementation.createHTMLDocument('pip'),
+        close: jest.fn(),
+        focus: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        closed: false,
+      });
     Object.defineProperty(window, 'documentPictureInPicture', {
       configurable: true,
       writable: true,

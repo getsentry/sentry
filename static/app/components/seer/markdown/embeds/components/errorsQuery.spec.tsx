@@ -3,9 +3,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
-jest.mock('sentry/components/charts/baseChart', () => ({
-  BaseChart: jest.fn(() => null),
-}));
+jest.mock('sentry/components/charts/baseChart', () => ({BaseChart: jest.fn(() => null)}));
 
 const SERIES = [
   [1_700_000_000, [{count: 5}]],
@@ -101,15 +99,7 @@ describe('errors query embed', () => {
   it('previews aggregate results using API field aliases', async () => {
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            title: 'TypeError',
-            project: 'web',
-            count_unique_user: 1234,
-          },
-        ],
-      },
+      body: {data: [{title: 'TypeError', project: 'web', count_unique_user: 1234}]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',

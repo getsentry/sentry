@@ -2,9 +2,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
-jest.mock('sentry/components/charts/baseChart', () => ({
-  BaseChart: jest.fn(() => null),
-}));
+jest.mock('sentry/components/charts/baseChart', () => ({BaseChart: jest.fn(() => null)}));
 
 const SERIES = [
   [1_700_000_000, [{count: 5}]],
@@ -109,14 +107,7 @@ describe('spans query embed', () => {
   it('previews aggregate spans using API field aliases', async () => {
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            'span.op': 'http.server',
-            p95_span_duration: 1234,
-          },
-        ],
-      },
+      body: {data: [{'span.op': 'http.server', p95_span_duration: 1234}]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -480,10 +471,7 @@ describe('spans query embed', () => {
       body: {data: SERIES},
     });
 
-    renderEmbed({
-      data: {query: 'span.op:http.client', mode: 'samples'},
-      level: 'inline',
-    });
+    renderEmbed({data: {query: 'span.op:http.client', mode: 'samples'}, level: 'inline'});
 
     expect(screen.getByRole('link', {name: 'Span search'})).toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();

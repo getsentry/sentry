@@ -18,9 +18,7 @@ export type PollingState =
   | 'not-polling'
   | 'timed-out';
 
-type ChatState = {
-  polling: PollingState;
-};
+type ChatState = {polling: PollingState};
 
 type SeerExplorerChatState = {
   chatStates: Record<SeerExplorerRunId, ChatState>;
@@ -47,10 +45,7 @@ function readRunIdFromStorage(): SeerExplorerRunId | null {
 }
 
 function initState(): SeerExplorerChatState {
-  return {
-    runId: readRunIdFromStorage(),
-    chatStates: {},
-  };
+  return {runId: readRunIdFromStorage(), chatStates: {}};
 }
 
 function chatStateReducer(

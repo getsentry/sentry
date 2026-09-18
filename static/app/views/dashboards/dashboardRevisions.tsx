@@ -42,9 +42,7 @@ function DashboardRevisionsModal({
   Footer,
   closeModal,
   dashboard,
-}: ModalRenderProps & {
-  dashboard: DashboardDetails;
-}) {
+}: ModalRenderProps & {dashboard: DashboardDetails}) {
   const dashboardId = dashboard.id;
   const [selectedRevisionId, setSelectedRevisionId] = useState(NEWEST_VERSION_ID);
   const {data: revisions, isPending, isError} = useDashboardRevisions({dashboardId});

@@ -19,10 +19,7 @@ export function useValidateWidgetQuery(_widget: Widget) {
 
   const data = useApiQuery<ValidateWidgetResponse>(
     validateWidgetRequest(organization.slug, cleanedWidget, selection),
-    {
-      staleTime: 10000,
-      enabled: hasOnDemandMetricWidgetFeature(organization),
-    }
+    {staleTime: 10000, enabled: hasOnDemandMetricWidgetFeature(organization)}
   );
 
   return data;

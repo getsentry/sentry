@@ -21,12 +21,7 @@ function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
         <KeyValueTableDataList
           margin
           data={Object.entries(data).map(([key, value]) => {
-            return {
-              key,
-              subject: key,
-              value,
-              meta: meta?.[key]?.[''],
-            };
+            return {key, subject: key, value, meta: meta?.[key]?.['']};
           })}
           isContextData
         />
@@ -40,10 +35,7 @@ function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
   }
 }
 
-type Props = {
-  data: Record<string, any>;
-  event: Event;
-};
+type Props = {data: Record<string, any>; event: Event};
 
 export function Csp({data, event}: Props) {
   const [view, setView] = useState<View>('report');

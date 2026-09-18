@@ -35,13 +35,7 @@ describe('EventSearch', () => {
     });
     mockTagKeyQuery = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/tags/${tagKey}/values/`,
-      body: [
-        {
-          key: tagKey,
-          name: tagValue,
-          value: tagValue,
-        },
-      ],
+      body: [{key: tagKey, name: tagValue, value: tagValue}],
       method: 'GET',
     });
   });

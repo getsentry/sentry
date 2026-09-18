@@ -42,17 +42,11 @@ describe('WidgetLegend functions util', () => {
       };
       location = {
         ...LocationFixture(),
-        query: {
-          unselectedSeries: [`12345${WIDGET_ID_DELIMITER}Releases`],
-        },
+        query: {unselectedSeries: [`12345${WIDGET_ID_DELIMITER}Releases`]},
       };
-      organization = {
-        ...OrganizationFixture(),
-      };
+      organization = {...OrganizationFixture()};
 
-      dashboard = {
-        ...DashboardFixture([widget, {...widget, id: '23456'}]),
-      };
+      dashboard = {...DashboardFixture([widget, {...widget, id: '23456'}])};
 
       legendFunctions = new WidgetLegendSelectionState({
         dashboard,

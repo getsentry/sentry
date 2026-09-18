@@ -45,7 +45,5 @@ export function copyToClipboard(
 }
 
 export function useCopyToClipboard(): {copy: CopyCallback} {
-  return {
-    copy: copyToClipboard,
-  };
+  return {copy: copyToClipboard};
 }

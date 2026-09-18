@@ -37,10 +37,7 @@ interface Props {
 export function RouteAnalyticsContextProvider({children}: Props) {
   const useRouteActivatedHook = getOverride('react-hook:route-activated');
 
-  const context = {
-    location: useLocation(),
-    matches: useMatches(),
-  };
+  const context = {location: useLocation(), matches: useMatches()};
 
   const {
     setDisableRouteAnalytics,

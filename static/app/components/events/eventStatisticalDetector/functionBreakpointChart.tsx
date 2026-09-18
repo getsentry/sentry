@@ -14,9 +14,7 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {RELATIVE_DAYS_WINDOW} from './consts';
 
-type EventFunctionBreakpointChartProps = {
-  event: Event;
-};
+type EventFunctionBreakpointChartProps = {event: Event};
 
 export function EventFunctionBreakpointChart({event}: EventFunctionBreakpointChartProps) {
   const evidenceData = event.occurrence?.evidenceData;
@@ -31,10 +29,7 @@ export function EventFunctionBreakpointChart({event}: EventFunctionBreakpointCha
     }
 
     Sentry.withScope(scope => {
-      scope.setContext('evidence data fields', {
-        fingerprint,
-        breakpoint,
-      });
+      scope.setContext('evidence data fields', {fingerprint, breakpoint});
 
       Sentry.captureException(
         new Error('Missing required evidence data on function regression issue.')

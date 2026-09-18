@@ -26,15 +26,10 @@ describe('api', () => {
         const abort1 = jest.fn();
         const abort2 = jest.fn();
 
-        const req1 = new Request(new Promise(() => null), {
-          abort: abort1,
-        } as any);
+        const req1 = new Request(new Promise(() => null), {abort: abort1} as any);
         const req2 = new Request(new Promise(() => null), {abort: abort2} as any);
 
-        api.activeRequests = {
-          1: req1,
-          2: req2,
-        };
+        api.activeRequests = {1: req1, 2: req2};
 
         api.clear();
 
@@ -63,13 +58,7 @@ describe('api', () => {
       successCb
     )({
       responseJSON: {
-        detail: {
-          code: PROJECT_MOVED,
-          message: '...',
-          extra: {
-            slug: 'new-slug',
-          },
-        },
+        detail: {code: PROJECT_MOVED, message: '...', extra: {slug: 'new-slug'}},
       },
     });
     expect(successCb).not.toHaveBeenCalled();
@@ -80,11 +69,7 @@ describe('api', () => {
     const errorCb = jest.fn();
     const args = ['test', true, 1] as unknown as [ResponseMeta, string, string];
     api.handleRequestError(
-      {
-        id: 'test',
-        path: 'test',
-        requestOptions: {error: errorCb},
-      },
+      {id: 'test', path: 'test', requestOptions: {error: errorCb}},
       ...args
     );
 
@@ -94,11 +79,7 @@ describe('api', () => {
   it('handles undefined error callback', () => {
     expect(() =>
       api.handleRequestError(
-        {
-          id: 'test',
-          path: 'test',
-          requestOptions: {},
-        },
+        {id: 'test', path: 'test', requestOptions: {}},
         {} as ResponseMeta,
         '',
         'test'

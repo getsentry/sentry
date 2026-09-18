@@ -39,9 +39,7 @@ function createAggregatesTableResult(
 
 describe('LogsAggregateTable', () => {
   const {organization, project} = initializeOrg({
-    organization: {
-      features: ['ourlogs-enabled'],
-    },
+    organization: {features: ['ourlogs-enabled']},
   });
   function LogsAggregateTableWithParamsProvider({
     aggregatesTableResult,
@@ -69,12 +67,7 @@ describe('LogsAggregateTable', () => {
   PageFiltersStore.onInitializeUrlState({
     projects: [parseInt(project.id, 10)],
     environments: [],
-    datetime: {
-      period: '14d',
-      start: null,
-      end: null,
-      utc: null,
-    },
+    datetime: {period: '14d', start: null, end: null, utc: null},
   });
   const initialRouterConfig = {
     location: {
@@ -101,9 +94,7 @@ describe('LogsAggregateTable', () => {
   it('renders loading state', () => {
     render(
       <LogsAggregateTableWithParamsProvider
-        aggregatesTableResult={createAggregatesTableResult({
-          isLoading: true,
-        })}
+        aggregatesTableResult={createAggregatesTableResult({isLoading: true})}
       />,
       {initialRouterConfig}
     );
@@ -214,10 +205,7 @@ describe('LogsAggregateTable', () => {
               {is_equal: true, 'count(message)': 1_000_000},
               {is_equal: '', 'count(message)': 168_000},
             ] as unknown as OurLogsAggregateResponseItem[],
-            meta: {
-              fields: {is_equal: 'boolean', 'count(message)': 'integer'},
-              units: {},
-            },
+            meta: {fields: {is_equal: 'boolean', 'count(message)': 'integer'}, units: {}},
           },
         })}
       />,
@@ -328,11 +316,7 @@ describe('LogsAggregateTable', () => {
 
   it('uses validated field types when aggregate metadata is missing', async () => {
     const eventView = EventView.fromLocation(
-      LocationFixture({
-        query: {
-          field: ['custom.duration', 'count()'],
-        },
-      })
+      LocationFixture({query: {field: ['custom.duration', 'count()']}})
     );
 
     render(
@@ -341,18 +325,8 @@ describe('LogsAggregateTable', () => {
         aggregatesTableResult={createAggregatesTableResult({
           eventView,
           data: {
-            data: [
-              {
-                'custom.duration': 123,
-                'count()': 10,
-              },
-            ],
-            meta: {
-              fields: {
-                'count()': FieldValueType.INTEGER,
-              },
-              units: {},
-            },
+            data: [{'custom.duration': 123, 'count()': 10}],
+            meta: {fields: {'count()': FieldValueType.INTEGER}, units: {}},
           },
         })}
       />,

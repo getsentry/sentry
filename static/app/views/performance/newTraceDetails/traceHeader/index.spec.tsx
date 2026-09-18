@@ -44,23 +44,14 @@ const baseProps: Partial<TraceMetadataHeaderProps> = {
     isLoading: false,
     status: 'success',
   },
-  rootEventResults: {
-    data: TransactionEventFixture(),
-  } as any,
+  rootEventResults: {data: TransactionEventFixture()} as any,
   overview: {
     isProjectsLoading: false,
     isRepresentativeLoading: false,
     isTabLoading: false,
     projectIds: [],
-    logs: {
-      availability: 'absent',
-      count: 0,
-      representative: undefined,
-    },
-    metrics: {
-      availability: 'absent',
-      count: 0,
-    },
+    logs: {availability: 'absent', count: 0, representative: undefined},
+    metrics: {availability: 'absent', count: 0},
   },
   tree: new TraceTree().build(),
   traceSlug: 'trace-slug',
@@ -98,9 +89,7 @@ describe('TraceMetaDataHeader', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/insights/backend/trace/trace-slug',
-            query: {
-              source: TraceViewSources.REQUESTS_MODULE,
-            },
+            query: {source: TraceViewSources.REQUESTS_MODULE},
           },
         },
       });
@@ -175,9 +164,7 @@ describe('TraceMetaDataHeader', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/insights/frontend/trace/123',
-            query: {
-              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-            },
+            query: {source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY},
           },
         },
       });
@@ -230,10 +217,7 @@ describe('TraceMetaDataHeader', () => {
     it('should render uptime check header with title and subtitle', () => {
       // Create uptime check using test utility
       const uptimeCheckEvent = makeUptimeCheck({
-        additional_attributes: {
-          method: 'GET',
-          request_url: 'https://example.com',
-        },
+        additional_attributes: {method: 'GET', request_url: 'https://example.com'},
       });
 
       const uptimeCheckWithContexts = {...uptimeCheckEvent, contexts: {}};
@@ -242,19 +226,12 @@ describe('TraceMetaDataHeader', () => {
       const tree = new TraceTree();
 
       // Create the tree root (this is tree.root)
-      const treeRoot = new RootNode(null, null, {
-        organization,
-      });
+      const treeRoot = new RootNode(null, null, {organization});
       tree.root = treeRoot;
 
       // Create a mock trace node as first child of root
-      const traceNodeValue = {
-        transactions: [],
-        orphan_errors: [],
-      };
-      const traceNode = new TraceNode(treeRoot, traceNodeValue, {
-        organization,
-      });
+      const traceNodeValue = {transactions: [], orphan_errors: []};
+      const traceNode = new TraceNode(treeRoot, traceNodeValue, {organization});
       treeRoot.children.push(traceNode);
 
       // Add uptime check as first child of trace node
@@ -294,15 +271,8 @@ describe('TraceMetaDataHeader', () => {
           isRepresentativeLoading: false,
           isTabLoading: true,
           projectIds: undefined,
-          logs: {
-            availability: 'loading',
-            count: undefined,
-            representative: undefined,
-          },
-          metrics: {
-            availability: 'loading',
-            count: undefined,
-          },
+          logs: {availability: 'loading', count: undefined, representative: undefined},
+          metrics: {availability: 'loading', count: undefined},
         },
       } as TraceMetadataHeaderProps;
 
@@ -335,15 +305,8 @@ describe('TraceMetaDataHeader', () => {
           isRepresentativeLoading: true,
           isTabLoading: true,
           projectIds: undefined,
-          logs: {
-            availability: 'loading',
-            count: undefined,
-            representative: undefined,
-          },
-          metrics: {
-            availability: 'loading',
-            count: undefined,
-          },
+          logs: {availability: 'loading', count: undefined, representative: undefined},
+          metrics: {availability: 'loading', count: undefined},
         },
       } as TraceMetadataHeaderProps;
 
@@ -380,9 +343,7 @@ describe('TraceMetaDataHeader', () => {
     });
 
     it('renders representative information for a log-only trace', () => {
-      const logsOrganization = OrganizationFixture({
-        features: ['ourlogs-enabled'],
-      });
+      const logsOrganization = OrganizationFixture({features: ['ourlogs-enabled']});
       const projects = [
         ProjectFixture({id: '1', slug: 'project-one'}),
         ProjectFixture({id: '2', slug: 'project-two'}),
@@ -418,15 +379,8 @@ describe('TraceMetaDataHeader', () => {
           isRepresentativeLoading: false,
           isTabLoading: false,
           projectIds: ['1', '2'],
-          logs: {
-            availability: 'present',
-            count: 4,
-            representative: representativeLogs,
-          },
-          metrics: {
-            availability: 'absent',
-            count: 0,
-          },
+          logs: {availability: 'present', count: 4, representative: representativeLogs},
+          metrics: {availability: 'absent', count: 0},
         },
       } as TraceMetadataHeaderProps;
 
@@ -448,9 +402,7 @@ describe('TraceMetaDataHeader', () => {
     });
 
     it('should render logs count from trace meta before logs have loaded', () => {
-      const logsOrganization = OrganizationFixture({
-        features: ['ourlogs-enabled'],
-      });
+      const logsOrganization = OrganizationFixture({features: ['ourlogs-enabled']});
 
       const props = {
         ...baseProps,
@@ -554,11 +506,7 @@ describe('TraceMetaDataHeader', () => {
             children: [],
           }),
         ]),
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const props = {
@@ -566,10 +514,7 @@ describe('TraceMetaDataHeader', () => {
         tree,
         metaResults: {
           ...baseProps.metaResults,
-          data: {
-            ...baseProps.metaResults?.data,
-            spansCount: 20,
-          },
+          data: {...baseProps.metaResults?.data, spansCount: 20},
         },
       } as TraceMetadataHeaderProps;
       render(<TraceMetaDataHeader {...props} organization={organization} />, {

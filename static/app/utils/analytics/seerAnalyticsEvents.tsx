@@ -42,18 +42,9 @@ export type SeerAnalyticsEventsParameters = {
     suggested_query: string;
     type: 'positive' | 'negative';
   };
-  'ai_query.interface': {
-    action: 'opened' | 'closed';
-    area: string;
-  };
-  'ai_query.regenerated': {
-    area: string;
-    natural_language_query: string;
-  };
-  'ai_query.submitted': {
-    area: string;
-    natural_language_query: string;
-  };
+  'ai_query.interface': {action: 'opened' | 'closed'; area: string};
+  'ai_query.regenerated': {area: string; natural_language_query: string};
+  'ai_query.submitted': {area: string; natural_language_query: string};
   'autofix.code_changes.re_run': {
     group_id: string;
     organization: Organization;
@@ -203,23 +194,14 @@ export type SeerAnalyticsEventsParameters = {
     run_id: SeerExplorerRunId | undefined;
     type: 'positive' | 'negative';
   };
-  'seer.explorer.global_panel.opened': {
-    referrer: string;
-    isDrawer?: boolean;
-  };
+  'seer.explorer.global_panel.opened': {referrer: string; isDrawer?: boolean};
   'seer.explorer.global_panel.tool_link_navigation': {
     referrer: string;
     tool_kind: string;
   };
-  'seer.explorer.message_sent': {
-    referrer: string;
-    surface: 'global_panel';
-  };
+  'seer.explorer.message_sent': {referrer: string; surface: 'global_panel'};
   'seer.explorer.session_copied_to_clipboard': Record<string, unknown>;
-  'seer.explorer.session_created': {
-    referrer: string;
-    surface: 'global_panel';
-  };
+  'seer.explorer.session_created': {referrer: string; surface: 'global_panel'};
   'seer.explorer.session_link_copied': Record<string, unknown>;
   'seer.explorer.sidebar.position_changed': {
     /** Browser viewport height in CSS pixels, rounded to 50px analytics buckets. */
@@ -244,12 +226,8 @@ export type SeerAnalyticsEventsParameters = {
     /** Seer pane size as a percent of the available split axis, 0–100. */
     seer_size_percent: number;
   };
-  'seer.explorer.timed_out': {
-    run_id: SeerExplorerRunId | null;
-  };
-  'seer.explorer.update_slack_clicked': {
-    num_configurations: number;
-  };
+  'seer.explorer.timed_out': {run_id: SeerExplorerRunId | null};
+  'seer.explorer.update_slack_clicked': {num_configurations: number};
 };
 
 type SeerAnalyticsEventKey = keyof SeerAnalyticsEventsParameters;

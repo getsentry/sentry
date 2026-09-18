@@ -17,12 +17,8 @@ type CommonParams = {
 };
 
 type UseOpenPeriodsParams =
-  | ({
-      detectorId: string;
-    } & CommonParams)
-  | ({
-      groupId: string;
-    } & CommonParams);
+  | ({detectorId: string} & CommonParams)
+  | ({groupId: string} & CommonParams);
 
 export function openPeriodsApiOptions({
   organization,
@@ -34,10 +30,7 @@ export function openPeriodsApiOptions({
       '/organizations/$organizationIdOrSlug/open-periods/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {
-          ...params,
-          per_page: limit,
-        },
+        query: {...params, per_page: limit},
         staleTime: 0,
       }
     ),
@@ -51,10 +44,7 @@ export function useOpenPeriods(
 ) {
   const organization = useOrganization();
 
-  return useQuery({
-    ...openPeriodsApiOptions({organization, ...params}),
-    ...options,
-  });
+  return useQuery({...openPeriodsApiOptions({organization, ...params}), ...options});
 }
 
 export function useEventOpenPeriod(params: {

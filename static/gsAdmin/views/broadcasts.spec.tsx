@@ -13,10 +13,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {Broadcasts} from 'admin/views/broadcasts';
 
 function renderMockRequests() {
-  MockApiClient.addMockResponse({
-    url: '/broadcasts/?show=all',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/broadcasts/?show=all', body: []});
 }
 
 describe('Broadcasts', () => {
@@ -27,11 +24,7 @@ describe('Broadcasts', () => {
   });
 
   it('renders', async () => {
-    ConfigStore.loadInitialData(
-      ConfigFixture({
-        user: mockUser,
-      })
-    );
+    ConfigStore.loadInitialData(ConfigFixture({user: mockUser}));
 
     renderMockRequests();
 

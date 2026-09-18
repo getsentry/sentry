@@ -96,52 +96,20 @@ describe('Discover -> ColumnEditModal', () => {
       {name: 'user', key: 'user'},
     ]);
   });
-  const initialData = initializeOrg({
-    organization: {
-      features: ['performance-view'],
-    },
-  });
+  const initialData = initializeOrg({organization: {features: ['performance-view']}});
   const columns: QueryFieldValue[] = [
-    {
-      kind: 'field',
-      field: 'event.type',
-    },
-    {
-      kind: 'field',
-      field: 'browser.name',
-    },
-    {
-      kind: 'function',
-      function: ['count', 'id', '', ''],
-    },
-    {
-      kind: 'function',
-      function: ['count_unique', 'title', '', ''],
-    },
-    {
-      kind: 'function',
-      function: ['p95', '', '', ''],
-    },
-    {
-      kind: 'field',
-      field: 'issue.id',
-    },
-    {
-      kind: 'function',
-      function: ['count_unique', 'issue.id', '', ''],
-    },
+    {kind: 'field', field: 'event.type'},
+    {kind: 'field', field: 'browser.name'},
+    {kind: 'function', function: ['count', 'id', '', '']},
+    {kind: 'function', function: ['count_unique', 'title', '', '']},
+    {kind: 'function', function: ['p95', '', '', '']},
+    {kind: 'field', field: 'issue.id'},
+    {kind: 'function', function: ['count_unique', 'issue.id', '', '']},
   ];
 
   describe('basic rendering', () => {
     it('renders fields and basic controls, async delete and grab buttons', async () => {
-      mountModal(
-        {
-          columns,
-          onApply: jest.fn(),
-          customMeasurements: {},
-        },
-        initialData
-      );
+      mountModal({columns, onApply: jest.fn(), customMeasurements: {}}, initialData);
       // Should have fields equal to the columns.
       expect((await findAllQueryFieldNthCell(0)).map(el => el!.textContent)).toEqual([
         'event.type',
@@ -286,17 +254,8 @@ describe('Discover -> ColumnEditModal', () => {
     });
 
     it('restricts column choices', async () => {
-      mountModal(
-        {
-          columns: [columns[0]!],
-          onApply,
-          customMeasurements: {},
-        },
-        initialData
-      );
-      await selectByLabel('avg(…)', {
-        at: 0,
-      });
+      mountModal({columns: [columns[0]!], onApply, customMeasurements: {}}, initialData);
+      await selectByLabel('avg(…)', {at: 0});
 
       await openMenu(0, 1);
 
@@ -307,32 +266,15 @@ describe('Discover -> ColumnEditModal', () => {
     });
 
     it('shows no options for parameterless functions', async () => {
-      mountModal(
-        {
-          columns: [columns[0]!],
-          onApply,
-          customMeasurements: {},
-        },
-        initialData
-      );
+      mountModal({columns: [columns[0]!], onApply, customMeasurements: {}}, initialData);
       await selectByLabel('last_seen()', {name: 'field', at: 0, control: true});
 
       expect(screen.getByTestId('blankSpace')).toBeInTheDocument();
     });
 
     it('shows additional inputs for multi-parameter functions', async () => {
-      mountModal(
-        {
-          columns: [columns[0]!],
-          onApply,
-          customMeasurements: {},
-        },
-        initialData
-      );
-      await selectByLabel('percentile(\u2026)', {
-        name: 'field',
-        at: 0,
-      });
+      mountModal({columns: [columns[0]!], onApply, customMeasurements: {}}, initialData);
+      await selectByLabel('percentile(\u2026)', {name: 'field', at: 0});
 
       expect(screen.getAllByTestId('label')[0]).toHaveTextContent('percentile(…)');
       expect(
@@ -341,18 +283,8 @@ describe('Discover -> ColumnEditModal', () => {
     });
 
     it('handles scalar field parameters', async () => {
-      mountModal(
-        {
-          columns: [columns[0]!],
-          onApply,
-          customMeasurements: {},
-        },
-        initialData
-      );
-      await selectByLabel('apdex(\u2026)', {
-        name: 'field',
-        at: 0,
-      });
+      mountModal({columns: [columns[0]!], onApply, customMeasurements: {}}, initialData);
+      await selectByLabel('apdex(\u2026)', {name: 'field', at: 0});
 
       expect(screen.getAllByRole('textbox')[1]).toHaveValue('300');
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -365,40 +297,17 @@ describe('Discover -> ColumnEditModal', () => {
     });
 
     it('handles parameter overrides', async () => {
-      mountModal(
-        {
-          columns: [columns[0]!],
-          onApply,
-          customMeasurements: {},
-        },
-        initialData
-      );
-      await selectByLabel('apdex(…)', {
-        name: 'field',
-        at: 0,
-      });
+      mountModal({columns: [columns[0]!], onApply, customMeasurements: {}}, initialData);
+      await selectByLabel('apdex(…)', {name: 'field', at: 0});
 
       expect(screen.getAllByRole('textbox')[1]).toHaveValue('300');
     });
 
     it('clears unused parameters', async () => {
-      mountModal(
-        {
-          columns: [columns[0]!],
-          onApply,
-          customMeasurements: {},
-        },
-        initialData
-      );
+      mountModal({columns: [columns[0]!], onApply, customMeasurements: {}}, initialData);
       // Choose percentile, then apdex which has fewer parameters and different types.
-      await selectByLabel('percentile(\u2026)', {
-        name: 'field',
-        at: 0,
-      });
-      await selectByLabel('apdex(\u2026)', {
-        name: 'field',
-        at: 0,
-      });
+      await selectByLabel('percentile(\u2026)', {name: 'field', at: 0});
+      await selectByLabel('apdex(\u2026)', {name: 'field', at: 0});
 
       // Apply the changes so we can see the new columns.
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -409,23 +318,10 @@ describe('Discover -> ColumnEditModal', () => {
     });
 
     it('clears all unused parameters', async () => {
-      mountModal(
-        {
-          columns: [columns[0]!],
-          onApply,
-          customMeasurements: {},
-        },
-        initialData
-      );
+      mountModal({columns: [columns[0]!], onApply, customMeasurements: {}}, initialData);
       // Choose percentile, then failure_rate which has no parameters.
-      await selectByLabel('percentile(\u2026)', {
-        name: 'field',
-        at: 0,
-      });
-      await selectByLabel('failure_rate()', {
-        name: 'field',
-        at: 0,
-      });
+      await selectByLabel('percentile(\u2026)', {name: 'field', at: 0});
+      await selectByLabel('failure_rate()', {name: 'field', at: 0});
 
       // Apply the changes so we can see the new columns.
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -436,24 +332,11 @@ describe('Discover -> ColumnEditModal', () => {
     });
 
     it('clears all unused parameters with count_if to two parameter function', async () => {
-      mountModal(
-        {
-          columns: [columns[0]!],
-          onApply,
-          customMeasurements: {},
-        },
-        initialData
-      );
+      mountModal({columns: [columns[0]!], onApply, customMeasurements: {}}, initialData);
       // Choose percentile, then failure_rate which has no parameters.
-      await selectByLabel('count_if(\u2026)', {
-        name: 'field',
-        at: 0,
-      });
+      await selectByLabel('count_if(\u2026)', {name: 'field', at: 0});
       await selectByLabel('user', {name: 'parameter', at: 0});
-      await selectByLabel('count_miserable(\u2026)', {
-        name: 'field',
-        at: 0,
-      });
+      await selectByLabel('count_miserable(\u2026)', {name: 'field', at: 0});
 
       // Apply the changes so we can see the new columns.
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -463,24 +346,11 @@ describe('Discover -> ColumnEditModal', () => {
     });
 
     it('clears all unused parameters with count_if to one parameter function', async () => {
-      mountModal(
-        {
-          columns: [columns[0]!],
-          onApply,
-          customMeasurements: {},
-        },
-        initialData
-      );
+      mountModal({columns: [columns[0]!], onApply, customMeasurements: {}}, initialData);
       // Choose percentile, then failure_rate which has no parameters.
-      await selectByLabel('count_if(\u2026)', {
-        name: 'field',
-        at: 0,
-      });
+      await selectByLabel('count_if(\u2026)', {name: 'field', at: 0});
       await selectByLabel('user', {name: 'parameter', at: 0});
-      await selectByLabel('count_unique(\u2026)', {
-        name: 'field',
-        at: 0,
-      });
+      await selectByLabel('count_unique(\u2026)', {name: 'field', at: 0});
 
       // Apply the changes so we can see the new columns.
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -490,23 +360,10 @@ describe('Discover -> ColumnEditModal', () => {
     });
 
     it('clears all unused parameters with count_if to parameterless function', async () => {
-      mountModal(
-        {
-          columns: [columns[0]!],
-          onApply,
-          customMeasurements: {},
-        },
-        initialData
-      );
+      mountModal({columns: [columns[0]!], onApply, customMeasurements: {}}, initialData);
       // Choose percentile, then failure_rate which has no parameters.
-      await selectByLabel('count_if(\u2026)', {
-        name: 'field',
-        at: 0,
-      });
-      await selectByLabel('count()', {
-        name: 'field',
-        at: 0,
-      });
+      await selectByLabel('count_if(\u2026)', {name: 'field', at: 0});
+      await selectByLabel('count()', {name: 'field', at: 0});
 
       // Apply the changes so we can see the new columns.
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -517,16 +374,7 @@ describe('Discover -> ColumnEditModal', () => {
 
     it('updates equation errors when they change', async () => {
       mountModal(
-        {
-          columns: [
-            {
-              kind: 'equation',
-              field: '1 / 0',
-            },
-          ],
-          onApply,
-          customMeasurements: {},
-        },
+        {columns: [{kind: 'equation', field: '1 / 0'}], onApply, customMeasurements: {}},
         initialData
       );
 
@@ -586,12 +434,7 @@ describe('Discover -> ColumnEditModal', () => {
     it('chooses the correct default parameters for the errors dataset', async () => {
       mountModal(
         {
-          columns: [
-            {
-              kind: 'function',
-              function: ['count', '', undefined, undefined],
-            },
-          ],
+          columns: [{kind: 'function', function: ['count', '', undefined, undefined]}],
           onApply,
           customMeasurements: {},
           dataset: DiscoverDatasets.ERRORS,
@@ -611,12 +454,7 @@ describe('Discover -> ColumnEditModal', () => {
     it('chooses the correct default count_if parameters for the transactions dataset', async () => {
       mountModal(
         {
-          columns: [
-            {
-              kind: 'function',
-              function: ['count', '', undefined, undefined],
-            },
-          ],
+          columns: [{kind: 'function', function: ['count', '', undefined, undefined]}],
           onApply,
           customMeasurements: {},
           dataset: DiscoverDatasets.TRANSACTIONS,
@@ -643,28 +481,16 @@ describe('Discover -> ColumnEditModal', () => {
       mountModal(
         {
           columns: [
-            {
-              kind: 'function',
-              function: ['count_unique', 'user', undefined, undefined],
-            },
-            {
-              kind: 'function',
-              function: ['p95', '', undefined, undefined],
-            },
-            {
-              kind: 'equation',
-              field: '(p95() / count_unique(user)  ) *   100',
-            },
+            {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
+            {kind: 'function', function: ['p95', '', undefined, undefined]},
+            {kind: 'equation', field: '(p95() / count_unique(user)  ) *   100'},
           ],
           onApply,
           customMeasurements: {},
         },
         initialData
       );
-      await selectByLabel('count_if(\u2026)', {
-        name: 'field',
-        at: 0,
-      });
+      await selectByLabel('count_if(\u2026)', {name: 'field', at: 0});
 
       // Apply the changes so we can see the new columns.
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -682,10 +508,7 @@ describe('Discover -> ColumnEditModal', () => {
               kind: 'function',
               function: ['count_if', 'transaction.duration', 'equals', 'foo bar'],
             },
-            {
-              kind: 'function',
-              function: ['count', '', undefined, undefined],
-            },
+            {kind: 'function', function: ['count', '', undefined, undefined]},
             {
               kind: 'equation',
               field: 'count_if(transaction.duration,equals,"foo bar") / count()',
@@ -721,10 +544,7 @@ describe('Discover -> ColumnEditModal', () => {
       mountModal(
         {
           columns: [
-            {
-              kind: 'function',
-              function: ['count_unique', 'user', undefined, undefined],
-            },
+            {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
             {
               kind: 'equation',
               field:
@@ -736,10 +556,7 @@ describe('Discover -> ColumnEditModal', () => {
         },
         initialData
       );
-      await selectByLabel('count()', {
-        name: 'field',
-        at: 0,
-      });
+      await selectByLabel('count()', {name: 'field', at: 0});
 
       // Apply the changes so we can see the new columns.
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -752,28 +569,16 @@ describe('Discover -> ColumnEditModal', () => {
       mountModal(
         {
           columns: [
-            {
-              kind: 'field',
-              field: 'spans.db',
-            },
-            {
-              kind: 'field',
-              field: 'spans.db',
-            },
-            {
-              kind: 'equation',
-              field: 'spans.db - spans.db',
-            },
+            {kind: 'field', field: 'spans.db'},
+            {kind: 'field', field: 'spans.db'},
+            {kind: 'equation', field: 'spans.db - spans.db'},
           ],
           onApply,
           customMeasurements: {},
         },
         initialData
       );
-      await selectByLabel('count()', {
-        name: 'field',
-        at: 0,
-      });
+      await selectByLabel('count()', {name: 'field', at: 0});
 
       // Apply the changes so we can see the new columns.
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -788,28 +593,16 @@ describe('Discover -> ColumnEditModal', () => {
       mountModal(
         {
           columns: [
-            {
-              kind: 'function',
-              function: ['count', '', undefined, undefined],
-            },
-            {
-              kind: 'function',
-              function: ['count', '', undefined, undefined],
-            },
-            {
-              kind: 'equation',
-              field: 'count() - count()',
-            },
+            {kind: 'function', function: ['count', '', undefined, undefined]},
+            {kind: 'function', function: ['count', '', undefined, undefined]},
+            {kind: 'equation', field: 'count() - count()'},
           ],
           onApply,
           customMeasurements: {},
         },
         initialData
       );
-      await selectByLabel('count_unique(\u2026)', {
-        name: 'field',
-        at: 0,
-      });
+      await selectByLabel('count_unique(\u2026)', {name: 'field', at: 0});
 
       // Apply the changes so we can see the new columns.
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -823,14 +616,8 @@ describe('Discover -> ColumnEditModal', () => {
       mountModal(
         {
           columns: [
-            {
-              kind: 'function',
-              function: ['count', '', undefined, undefined],
-            },
-            {
-              kind: 'equation',
-              field: 'count() - count() arst count() ',
-            },
+            {kind: 'function', function: ['count', '', undefined, undefined]},
+            {kind: 'equation', field: 'count() - count() arst count() '},
           ],
           onApply,
           customMeasurements: {},
@@ -838,10 +625,7 @@ describe('Discover -> ColumnEditModal', () => {
         initialData
       );
       expect(await screen.findByTestId('arithmeticErrorWarning')).toBeInTheDocument();
-      await selectByLabel('count_unique(\u2026)', {
-        name: 'field',
-        at: 0,
-      });
+      await selectByLabel('count_unique(\u2026)', {name: 'field', at: 0});
 
       // Apply the changes so we can see the new columns.
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -859,11 +643,7 @@ describe('Discover -> ColumnEditModal', () => {
   describe('adding rows', () => {
     it('allows rows to be added, async but only up to 20', async () => {
       mountModal(
-        {
-          columns: [columns[0]!],
-          onApply: jest.fn(),
-          customMeasurements: {},
-        },
+        {columns: [columns[0]!], onApply: jest.fn(), customMeasurements: {}},
         initialData
       );
       expect(await screen.findByTestId('queryField')).toBeInTheDocument();
@@ -880,11 +660,7 @@ describe('Discover -> ColumnEditModal', () => {
   describe('removing rows', () => {
     it('allows rows to be removed, async but not the last one', async () => {
       mountModal(
-        {
-          columns: [columns[0]!, columns[1]!],
-          onApply: jest.fn(),
-          customMeasurements: {},
-        },
+        {columns: [columns[0]!, columns[1]!], onApply: jest.fn(), customMeasurements: {}},
         initialData
       );
 
@@ -903,14 +679,7 @@ describe('Discover -> ColumnEditModal', () => {
     it('does not count equations towards the count of rows', async () => {
       mountModal(
         {
-          columns: [
-            columns[0]!,
-            columns[1]!,
-            {
-              kind: 'equation',
-              field: '5 + 5',
-            },
-          ],
+          columns: [columns[0]!, columns[1]!, {kind: 'equation', field: '5 + 5'}],
           onApply: jest.fn(),
           customMeasurements: {},
         },
@@ -927,14 +696,7 @@ describe('Discover -> ColumnEditModal', () => {
     it('handles equations being deleted', async () => {
       mountModal(
         {
-          columns: [
-            {
-              kind: 'equation',
-              field: '1 / 0',
-            },
-            columns[0]!,
-            columns[1]!,
-          ],
+          columns: [{kind: 'equation', field: '1 / 0'}, columns[0]!, columns[1]!],
           onApply: jest.fn(),
           customMeasurements: {},
         },
@@ -955,11 +717,7 @@ describe('Discover -> ColumnEditModal', () => {
     const onApply = jest.fn();
     it('reflects added and removed columns', async () => {
       mountModal(
-        {
-          columns: [columns[0]!, columns[1]!],
-          onApply,
-          customMeasurements: {},
-        },
+        {columns: [columns[0]!, columns[1]!], onApply, customMeasurements: {}},
         initialData
       );
       expect(await screen.findAllByTestId('queryField')).toHaveLength(2);

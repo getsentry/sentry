@@ -30,14 +30,9 @@ type AuthPayload = {
   superuserReason?: string;
 };
 
-type Props = {
-  hasStaff: boolean;
-};
+type Props = {hasStaff: boolean};
 
-type AccessDetails = {
-  superuserAccessCategory: string;
-  superuserReason: string;
-};
+type AccessDetails = {superuserAccessCategory: string; superuserReason: string};
 
 type FormState =
   | {step: 'access'; errorType?: ErrorCodes}
@@ -111,10 +106,7 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      superuserAccessCategory: '',
-      superuserReason: '',
-    },
+    defaultValues: {superuserAccessCategory: '', superuserReason: ''},
     validators: {onDynamic: accessSchema},
     onSubmit: async ({value}) => {
       const access = accessSchema.parse(value);

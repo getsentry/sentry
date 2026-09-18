@@ -45,11 +45,7 @@ export function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) 
             {currentStepIndex === i && (
               <StepperTransitionIndicator
                 layout
-                transition={{
-                  type: 'spring',
-                  stiffness: 175,
-                  damping: 18,
-                }}
+                transition={{type: 'spring', stiffness: 175, damping: 18}}
                 initial={false}
                 layoutId="animation"
               />

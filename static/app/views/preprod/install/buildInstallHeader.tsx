@@ -46,10 +46,7 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
     isError: isBuildDetailsError,
   } = buildDetailsQuery;
 
-  const datetimeFormat = getFormat({
-    seconds: true,
-    timeZone: true,
-  });
+  const datetimeFormat = getFormat({seconds: true, timeZone: true});
 
   const releasesCrumb: Crumb = {
     to: makeReleasesUrl(organization.slug, projectId, {

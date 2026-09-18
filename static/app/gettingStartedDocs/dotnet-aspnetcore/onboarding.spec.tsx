@@ -9,11 +9,7 @@ import {docs} from './index';
 describe('aspnetcore onboarding docs', () => {
   it('renders errors onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dotnet.aspnetcore': {
-          version: '1.99.9',
-        },
-      },
+      releaseRegistry: {'sentry.dotnet.aspnetcore': {version: '1.99.9'}},
       selectedProducts: [
         ProductSolution.PERFORMANCE_MONITORING,
         ProductSolution.LOGS,
@@ -47,9 +43,7 @@ describe('aspnetcore onboarding docs', () => {
   });
 
   it('renders logs onboarding docs correctly', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.LOGS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/o.EnableLogs/))

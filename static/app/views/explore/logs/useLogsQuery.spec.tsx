@@ -78,11 +78,7 @@ describe('useInfiniteLogsQuery', () => {
 
     const {result} = renderHookWithProviders(
       ({disabled}) => useInfiniteLogsQuery({disabled}),
-      {
-        additionalWrapper: createWrapper(),
-        initialProps: {disabled: true},
-        organization,
-      }
+      {additionalWrapper: createWrapper(), initialProps: {disabled: true}, organization}
     );
 
     expect(result.current.isPending).toBe(true);
@@ -419,13 +415,7 @@ describe('useInfiniteLogsQuery', () => {
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     const mockNormalRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-        meta: {
-          dataScanned: 'partial',
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {dataScanned: 'partial', fields: {}}},
       method: 'GET',
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -436,13 +426,7 @@ describe('useInfiniteLogsQuery', () => {
 
     const mockHighAccuracyRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-        meta: {
-          dataScanned: 'full',
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {dataScanned: 'full', fields: {}}},
       method: 'GET',
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -634,16 +618,8 @@ describe('useInfiniteLogsQuery', () => {
     }) {
       return {
         url: '/organizations/org-slug/events/',
-        headers: {
-          Link: makeLinkHeader(nextCursor, hasNext),
-        },
-        body: {
-          data,
-          meta: {
-            dataScanned: 'full',
-            fields: {},
-          },
-        },
+        headers: {Link: makeLinkHeader(nextCursor, hasNext)},
+        body: {data, meta: {dataScanned: 'full', fields: {}}},
         match: [
           function (_url: string, options: Record<string, any>) {
             return (
@@ -665,9 +641,7 @@ describe('useInfiniteLogsQuery', () => {
 
       const {result} = renderHookWithProviders(
         () => useInfiniteLogsQuery({highFidelity: true}),
-        {
-          additionalWrapper: createWrapper(),
-        }
+        {additionalWrapper: createWrapper()}
       );
 
       // Within the default 15s budget the loop drains through all pages that
@@ -719,9 +693,7 @@ describe('useInfiniteLogsQuery', () => {
 
       const {result} = renderHookWithProviders(
         () => useInfiniteLogsQuery({highFidelity: true}),
-        {
-          additionalWrapper: createWrapper(),
-        }
+        {additionalWrapper: createWrapper()}
       );
 
       await waitForRequestToSettle(result);
@@ -738,9 +710,7 @@ describe('useInfiniteLogsQuery', () => {
 
       const {result} = renderHookWithProviders(
         () => useInfiniteLogsQuery({highFidelity: true}),
-        {
-          additionalWrapper: createWrapper(),
-        }
+        {additionalWrapper: createWrapper()}
       );
 
       await waitForRequestToSettle(result);
@@ -759,9 +729,7 @@ describe('useInfiniteLogsQuery', () => {
 
       const {result} = renderHookWithProviders(
         () => useInfiniteLogsQuery({highFidelity: true}),
-        {
-          additionalWrapper: createWrapper(),
-        }
+        {additionalWrapper: createWrapper()}
       );
 
       await waitForRequestToSettle(result);
@@ -785,9 +753,7 @@ describe('useInfiniteLogsQuery', () => {
 
       const {result} = renderHookWithProviders(
         () => useInfiniteLogsQuery({highFidelity: true}),
-        {
-          additionalWrapper: createWrapper(),
-        }
+        {additionalWrapper: createWrapper()}
       );
 
       await waitForRequestToSettle(result);
@@ -844,9 +810,7 @@ describe('useInfiniteLogsQuery', () => {
 
       const {result} = renderHookWithProviders(
         () => useInfiniteLogsQuery({highFidelity: true}),
-        {
-          additionalWrapper: createWrapper(),
-        }
+        {additionalWrapper: createWrapper()}
       );
 
       // the first 2 requests should have been called and stop because it totals 1000 results
@@ -864,11 +828,7 @@ describe('useInfiniteLogsQuery', () => {
 });
 
 function createMockLogsData(
-  rows: Array<{
-    id: string;
-    timestamp: string;
-    timestamp_precise: string;
-  }>
+  rows: Array<{id: string; timestamp: string; timestamp_precise: string}>
 ): EventsLogsResult {
   return {
     data: rows.map(row => ({
@@ -953,11 +913,7 @@ function createDescendingMocks(organization: Organization) {
     headers: linkHeaders,
   });
 
-  return {
-    initialMock,
-    previousPageMock,
-    nextPageMock,
-  };
+  return {initialMock, previousPageMock, nextPageMock};
 }
 
 function createAscendingMocks(organization: Organization) {
@@ -1026,11 +982,7 @@ function createAscendingMocks(organization: Organization) {
     headers: linkHeaders,
   });
 
-  return {
-    initialMock,
-    previousPageMock,
-    nextPageMock,
-  };
+  return {initialMock, previousPageMock, nextPageMock};
 }
 
 // Virtual Streaming Tests

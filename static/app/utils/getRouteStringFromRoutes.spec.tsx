@@ -4,20 +4,8 @@ import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
 describe('getRouteStringFromRoutes', () => {
   const matches: UIMatch[] = [
-    {
-      handle: {path: '/'},
-      id: '1',
-      pathname: '/',
-      params: {},
-      data: {},
-    },
-    {
-      handle: {path: '/:orgId/'},
-      id: '2',
-      pathname: '/:orgId/',
-      params: {},
-      data: {},
-    },
+    {handle: {path: '/'}, id: '1', pathname: '/', params: {}, data: {}},
+    {handle: {path: '/:orgId/'}, id: '2', pathname: '/:orgId/', params: {}, data: {}},
     {
       handle: undefined,
       id: '3',
@@ -32,13 +20,7 @@ describe('getRouteStringFromRoutes', () => {
       params: {},
       data: {},
     },
-    {
-      id: '6',
-      handle: undefined,
-      pathname: 'also skipped',
-      params: {},
-      data: {},
-    },
+    {id: '6', handle: undefined, pathname: 'also skipped', params: {}, data: {}},
     {
       handle: {path: 'api-keys/', name: 'API Key'},
       id: '5',

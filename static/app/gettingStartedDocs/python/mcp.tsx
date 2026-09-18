@@ -23,15 +23,11 @@ export const mcp: OnboardingConfig = {
               params.platformOptions?.integration === 'mcp_sdk'
                 ? tct(
                     'To enable MCP monitoring for the [code:fastmcp] and [code:mcp] packages, you need to install the Sentry SDK with a minimum version of [code:2.43.0] or higher.',
-                    {
-                      code: <code />,
-                    }
+                    {code: <code />}
                   )
                 : tct(
                     'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:2.43.0] or higher.',
-                    {
-                      code: <code />,
-                    }
+                    {code: <code />}
                   ),
           },
           getPythonInstallCodeBlock({packageName}),
@@ -47,9 +43,7 @@ export const mcp: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Add the [code:MCPIntegration] to your [code:sentry_sdk.init] call:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

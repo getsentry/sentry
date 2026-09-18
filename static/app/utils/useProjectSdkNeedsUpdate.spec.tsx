@@ -8,12 +8,7 @@ import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 const MOCK_ORG = OrganizationFixture();
 const MOCK_PROJECT = ProjectFixture();
 
-function mockCurrentVersion(
-  mockUpdates: Array<{
-    projectId: string;
-    sdkVersion: string;
-  }>
-) {
+function mockCurrentVersion(mockUpdates: Array<{projectId: string; sdkVersion: string}>) {
   MockApiClient.addMockResponse({
     url: `/organizations/${MOCK_ORG.slug}/sdk-updates/`,
     method: 'GET',
@@ -27,19 +22,11 @@ function mockCurrentVersion(
 }
 describe('useProjectSdkNeedsUpdate', () => {
   it('should not need an update if the sdk version is above the min version', async () => {
-    mockCurrentVersion([
-      {
-        projectId: MOCK_PROJECT.id,
-        sdkVersion: '3.0.0',
-      },
-    ]);
+    mockCurrentVersion([{projectId: MOCK_PROJECT.id, sdkVersion: '3.0.0'}]);
 
     const {result} = renderHookWithProviders(useProjectSdkNeedsUpdate, {
       organization: MOCK_ORG,
-      initialProps: {
-        minVersion: '1.0.0',
-        projectId: [MOCK_PROJECT.id],
-      },
+      initialProps: {minVersion: '1.0.0', projectId: [MOCK_PROJECT.id]},
     });
 
     await waitFor(() => {
@@ -50,19 +37,11 @@ describe('useProjectSdkNeedsUpdate', () => {
   });
 
   it('should be updated it the sdk version is too low', async () => {
-    mockCurrentVersion([
-      {
-        projectId: MOCK_PROJECT.id,
-        sdkVersion: '3.0.0',
-      },
-    ]);
+    mockCurrentVersion([{projectId: MOCK_PROJECT.id, sdkVersion: '3.0.0'}]);
 
     const {result} = renderHookWithProviders(useProjectSdkNeedsUpdate, {
       organization: MOCK_ORG,
-      initialProps: {
-        minVersion: '8.0.0',
-        projectId: [MOCK_PROJECT.id],
-      },
+      initialProps: {minVersion: '8.0.0', projectId: [MOCK_PROJECT.id]},
     });
     await waitFor(() => {
       expect(result.current.isFetching).toBeFalsy();
@@ -73,22 +52,13 @@ describe('useProjectSdkNeedsUpdate', () => {
 
   it('should return needsUpdate if all projects are below minSdk', async () => {
     mockCurrentVersion([
-      {
-        projectId: '1',
-        sdkVersion: '3.0.0',
-      },
-      {
-        projectId: '2',
-        sdkVersion: '3.0.0',
-      },
+      {projectId: '1', sdkVersion: '3.0.0'},
+      {projectId: '2', sdkVersion: '3.0.0'},
     ]);
 
     const {result} = renderHookWithProviders(useProjectSdkNeedsUpdate, {
       organization: MOCK_ORG,
-      initialProps: {
-        minVersion: '8.0.0',
-        projectId: ['1', '2'],
-      },
+      initialProps: {minVersion: '8.0.0', projectId: ['1', '2']},
     });
 
     await waitFor(() => {
@@ -100,22 +70,13 @@ describe('useProjectSdkNeedsUpdate', () => {
 
   it('should not return needsUpdate if some projects meet minSdk', async () => {
     mockCurrentVersion([
-      {
-        projectId: '1',
-        sdkVersion: '8.0.0',
-      },
-      {
-        projectId: '2',
-        sdkVersion: '3.0.0',
-      },
+      {projectId: '1', sdkVersion: '8.0.0'},
+      {projectId: '2', sdkVersion: '3.0.0'},
     ]);
 
     const {result} = renderHookWithProviders(useProjectSdkNeedsUpdate, {
       organization: MOCK_ORG,
-      initialProps: {
-        minVersion: '8.0.0',
-        projectId: ['1', '2'],
-      },
+      initialProps: {minVersion: '8.0.0', projectId: ['1', '2']},
     });
 
     await waitFor(() => {

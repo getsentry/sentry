@@ -8,9 +8,7 @@ describe('seerEmbedsToJsonSchemas', () => {
       description: expect.stringContaining('timezone offset'),
       body: {
         properties: {
-          eventTimestamp: {
-            description: expect.stringContaining('timezone offset'),
-          },
+          eventTimestamp: {description: expect.stringContaining('timezone offset')},
         },
       },
     });
@@ -37,13 +35,7 @@ describe('SEER_EMBED_SCHEMAS page filters', () => {
     );
 
     expect(spansQuery?.body).toMatchObject({
-      properties: {
-        projects: {
-          items: {
-            anyOf: [{type: 'string'}, {type: 'number'}],
-          },
-        },
-      },
+      properties: {projects: {items: {anyOf: [{type: 'string'}, {type: 'number'}]}}},
     });
   });
 });

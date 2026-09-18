@@ -68,10 +68,7 @@ function ProjectsNavigationItemsImpl({
               {projectsToDisplay.map(project => (
                 <SecondaryNavigation.ListItem key={project.id}>
                   <SecondaryNavigation.Link
-                    to={makeProjectsPathname({
-                      path: `/${project.slug}/`,
-                      organization,
-                    })}
+                    to={makeProjectsPathname({path: `/${project.slug}/`, organization})}
                     leadingItems={
                       <SecondaryNavigation.ProjectIcon
                         projectPlatforms={

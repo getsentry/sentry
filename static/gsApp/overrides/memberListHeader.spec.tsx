@@ -23,11 +23,7 @@ describe('MemberListHeader', () => {
     },
   });
   const enabledMember = MemberFixture({});
-  const sub = SubscriptionFixture({
-    organization,
-    canTrial: false,
-    plan: 'am1_f',
-  });
+  const sub = SubscriptionFixture({organization, canTrial: false, plan: 'am1_f'});
 
   beforeEach(() => {
     SubscriptionStore.set(organization.slug, sub);
@@ -40,10 +36,7 @@ describe('MemberListHeader', () => {
 
   it('does not render a loading indicator while waiting for the subscription', async () => {
     SubscriptionStore.init();
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/`,
-      body: sub,
-    });
+    MockApiClient.addMockResponse({url: `/customers/${organization.slug}/`, body: sub});
 
     render(<MemberListHeader organization={organization} members={[enabledMember]} />);
 

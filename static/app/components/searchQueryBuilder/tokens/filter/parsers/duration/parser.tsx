@@ -1,9 +1,6 @@
 import {parse} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/grammar.pegjs';
 
-type DurationTokenValue = {
-  value: string;
-  unit?: string;
-};
+type DurationTokenValue = {value: string; unit?: string};
 
 /**
  * This parser is specifically meant for parsing the value of a duration filter.

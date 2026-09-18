@@ -80,8 +80,5 @@ export function PreprodBuildDetailsWithSizeInfoFixture(
   sizeInfo: BuildDetailsSizeInfo,
   params: Partial<BuildDetailsApiResponse> = {}
 ): BuildDetailsApiResponse {
-  return {
-    ...PreprodBuildDetailsFixture(params),
-    size_info: sizeInfo,
-  };
+  return {...PreprodBuildDetailsFixture(params), size_info: sizeInfo};
 }

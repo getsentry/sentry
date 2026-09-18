@@ -11,11 +11,7 @@ describe('useCaseSensitivity', () => {
 
     const {result: caseSensitivityFalse} = renderHookWithProviders(
       () => useCaseInsensitivity(),
-      {
-        initialRouterConfig: {
-          location: {pathname: '/', query: {}},
-        },
-      }
+      {initialRouterConfig: {location: {pathname: '/', query: {}}}}
     );
     expect(caseSensitivityFalse.current[0]).toBeNull();
 

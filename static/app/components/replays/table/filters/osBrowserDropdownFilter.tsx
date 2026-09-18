@@ -26,10 +26,7 @@ export function OSBrowserDropdownFilter({
       items={[
         {
           key: 'name',
-          label: tct('[type] name: [name]', {
-            type,
-            name: name ? name : t('undefined'),
-          }),
+          label: tct('[type] name: [name]', {type, name: name ? name : t('undefined')}),
           children: [
             {
               key: 'name_add',

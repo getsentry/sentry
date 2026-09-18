@@ -266,13 +266,7 @@ const TRANSACTIONS_TABLE: PrebuiltWidget = {
     },
   ],
   widgetType: WidgetType.SPANS,
-  layout: {
-    x: 0,
-    w: 6,
-    h: 6,
-    minH: TABLE_MIN_HEIGHT,
-    y: 7,
-  },
+  layout: {x: 0, w: 6, h: 6, minH: TABLE_MIN_HEIGHT, y: 7},
 };
 
 export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {

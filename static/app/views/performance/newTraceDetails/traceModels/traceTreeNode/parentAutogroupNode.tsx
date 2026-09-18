@@ -98,14 +98,8 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     return this.op?.includes(query);
   }
 
-  get traceHeaderTitle(): {
-    title: string;
-    subtitle?: string;
-  } {
-    return {
-      title: this.op || t('Trace'),
-      subtitle: this.description,
-    };
+  get traceHeaderTitle(): {title: string; subtitle?: string} {
+    return {title: this.op || t('Trace'), subtitle: this.description};
   }
 
   get directVisibleChildren(): BaseNode[] {

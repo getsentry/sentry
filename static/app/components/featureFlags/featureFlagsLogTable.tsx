@@ -52,10 +52,7 @@ export function FeatureFlagsLogTable({
         organization,
         surface: analyticsArea,
       });
-      navigate({
-        pathname: path,
-        query: {...searchQuery, [cursorKeyName]: cursor},
-      });
+      navigate({pathname: path, query: {...searchQuery, [cursorKeyName]: cursor}});
     },
     [analyticsArea, cursorKeyName, navigate, organization]
   );
@@ -68,10 +65,7 @@ export function FeatureFlagsLogTable({
         data={flags ?? []}
         columnOrder={columns}
         fit="max-content"
-        grid={{
-          renderBodyCell,
-          onResizeColumn,
-        }}
+        grid={{renderBodyCell, onResizeColumn}}
         onRowMouseOver={onRowMouseOver}
         onRowMouseOut={onRowMouseOut}
         highlightedRowKey={highlightedRowKey}

@@ -8,10 +8,7 @@ interface ReplayClipPreviewProps extends Omit<
   React.ComponentProps<typeof ReplayClipPreviewPlayer>,
   'replayReaderResult'
 > {
-  clipOffsets: {
-    durationAfterMs: number;
-    durationBeforeMs: number;
-  };
+  clipOffsets: {durationAfterMs: number; durationBeforeMs: number};
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;

@@ -64,10 +64,7 @@ describe('NoGroupsHandler', () => {
   });
 
   it('displays waiting for events state when no projects exist yet', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sent-first-event/',
       body: {sentFirstEvent: false},

@@ -21,10 +21,7 @@ export function getTraceHref(
   }: Pick<EmbedOutput<'trace'>, 'traceId' | 'timestamp' | 'spanId'>,
   organization: Organization
 ): string {
-  const pathname = makeTracesPathname({
-    organization,
-    path: `/trace/${traceId}/`,
-  });
+  const pathname = makeTracesPathname({organization, path: `/trace/${traceId}/`});
 
   // Seer reports ISO timestamps but the waterfall reads unix seconds. Without
   // one it falls back to scanning a default window, so pass it through whenever

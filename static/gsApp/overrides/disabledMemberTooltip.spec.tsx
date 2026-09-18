@@ -9,11 +9,7 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 describe('MemberListHeader', () => {
   const organization = OrganizationFixture();
 
-  const sub = SubscriptionFixture({
-    organization,
-    canTrial: false,
-    plan: 'am1_f',
-  });
+  const sub = SubscriptionFixture({organization, canTrial: false, plan: 'am1_f'});
   SubscriptionStore.set(organization.slug, sub);
 
   it('render basic', async () => {

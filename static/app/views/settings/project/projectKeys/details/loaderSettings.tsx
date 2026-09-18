@@ -34,13 +34,7 @@ type Props = {
 export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Props) {
   const endpoint = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
-    {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        projectIdOrSlug: project.slug,
-        keyId,
-      },
-    }
+    {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: project.slug, keyId}}
   );
 
   // Every form on this page shares one mutation key, so any in-flight save
@@ -146,10 +140,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 <field.Select
                   value={field.state.value}
                   onChange={field.handleChange}
-                  options={sdkVersionChoices.map(([value, label]) => ({
-                    value,
-                    label,
-                  }))}
+                  options={sdkVersionChoices.map(([value, label]) => ({value, label}))}
                   disabled={!hasAccess || sdkVersionChoices.length === 1 || isMutating}
                 />
               </field.Layout.Row>

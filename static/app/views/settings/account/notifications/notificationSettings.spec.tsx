@@ -8,10 +8,7 @@ function renderMockRequests() {
   MockApiClient.addMockResponse({
     url: '/users/me/notifications/',
     method: 'GET',
-    body: {
-      personalActivityNotifications: true,
-      selfAssignOnResolve: true,
-    },
+    body: {personalActivityNotifications: true, selfAssignOnResolve: true},
   });
 }
 

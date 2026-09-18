@@ -173,12 +173,7 @@ export function StacktraceLinkModal({
     });
     const parsingEndpoint = getApiUrl(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo-path-parsing/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: project.slug,
-        },
-      }
+      {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
     );
     try {
       const configData = await api.requestPromise(parsingEndpoint, {
@@ -194,9 +189,7 @@ export function StacktraceLinkModal({
 
       const configEndpoint = getApiUrl(
         '/organizations/$organizationIdOrSlug/code-mappings/',
-        {
-          path: {organizationIdOrSlug: organization.slug},
-        }
+        {path: {organizationIdOrSlug: organization.slug}}
       );
       await api.requestPromise(configEndpoint, {
         method: 'POST',
@@ -261,9 +254,7 @@ export function StacktraceLinkModal({
             {hasOneSourceCodeIntegration
               ? tct(
                   'We couldn’t find the source file automatically. Paste its [provider] URL so we can link to the source and identify suspect commits.',
-                  {
-                    provider: providerDisplayName,
-                  }
+                  {provider: providerDisplayName}
                 )
               : t(
                   'We couldn’t find the source file automatically. Paste its URL so we can link to the source and identify suspect commits.'

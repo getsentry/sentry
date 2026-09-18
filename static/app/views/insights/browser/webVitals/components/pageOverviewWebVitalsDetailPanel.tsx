@@ -71,11 +71,7 @@ const SPANS_SAMPLES_SUBJECT_COLUMNS: Partial<Record<WebVitals, GridColumnOrder>>
     width: COL_WIDTH_UNDEFINED,
     name: t('CLS Source'),
   },
-  inp: {
-    key: SpanFields.NAME,
-    width: COL_WIDTH_UNDEFINED,
-    name: t('Interaction Target'),
-  },
+  inp: {key: SpanFields.NAME, width: COL_WIDTH_UNDEFINED, name: t('Interaction Target')},
 };
 
 const DEFAULT_SPANS_SAMPLES_SUBJECT_COLUMN: GridColumnOrder = {

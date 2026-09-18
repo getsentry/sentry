@@ -280,11 +280,7 @@ function NumberToken({token}: {token: TokenResult<Token.VALUE_NUMBER>}) {
   );
 }
 
-type TokenGroupProps = {
-  active: boolean;
-  invalid: boolean;
-  warning?: boolean;
-};
+type TokenGroupProps = {active: boolean; invalid: boolean; warning?: boolean};
 
 const colorType = (p: TokenGroupProps) =>
   `${p.invalid ? 'invalid' : p.warning ? 'warning' : 'valid'}${

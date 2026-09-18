@@ -38,10 +38,7 @@ export function ContextDataValue({
   meta,
   raw,
   subjectIcon,
-}: Pick<ValueProps, 'value' | 'meta'> & {
-  raw?: boolean;
-  subjectIcon?: React.ReactNode;
-}) {
+}: Pick<ValueProps, 'value' | 'meta'> & {raw?: boolean; subjectIcon?: React.ReactNode}) {
   return (
     <StructuredEventData
       data={raw ? JSON.stringify(value) : value}

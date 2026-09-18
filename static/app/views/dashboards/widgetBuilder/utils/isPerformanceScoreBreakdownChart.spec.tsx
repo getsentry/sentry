@@ -41,10 +41,7 @@ describe('isPerformanceScoreBreakdownChart', () => {
   });
 
   it('returns false', () => {
-    const widgetQuery: WidgetQuery = {
-      ...baseWidgetQuery,
-      aggregates: ['count()'],
-    };
+    const widgetQuery: WidgetQuery = {...baseWidgetQuery, aggregates: ['count()']};
 
     expect(isPerformanceScoreBreakdownChart(widgetQuery)).toBe(false);
   });

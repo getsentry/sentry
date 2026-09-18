@@ -16,20 +16,10 @@ export function useIntegrationInstallation(provider_key: string) {
       getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          includeConfig: 0,
-          provider_key,
-        },
-      },
+      {query: {includeConfig: 0, provider_key}},
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
-  return {
-    data,
-    isPending,
-  };
+  return {data, isPending};
 }

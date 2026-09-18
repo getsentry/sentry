@@ -13,10 +13,7 @@ import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 type TabCrumbProps = {
   location: Location;
   organization: Organization;
-  transaction?: {
-    name: string;
-    project: string;
-  };
+  transaction?: {name: string; project: string};
   view?: DomainView;
 };
 

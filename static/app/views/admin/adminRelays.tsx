@@ -28,9 +28,7 @@ export default function AdminRelays() {
   const onDelete = async (key: string) => {
     setLoading(true);
     try {
-      await api.requestPromise(`/relays/${key}/`, {
-        method: 'DELETE',
-      });
+      await api.requestPromise(`/relays/${key}/`, {method: 'DELETE'});
     } catch {
       addErrorMessage(t('Unable to delete relay'));
     } finally {

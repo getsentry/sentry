@@ -260,9 +260,7 @@ describe('InvoiceDetails', () => {
 
     expect(mockpost).toHaveBeenCalledWith(
       `/customers/${organization.slug}/invoices/${basicInvoice.id}/`,
-      expect.objectContaining({
-        data: {op: 'send_receipt', email: 'user@example.com'},
-      })
+      expect.objectContaining({data: {op: 'send_receipt', email: 'user@example.com'}})
     );
     // Form should be reset.
     expect(screen.queryByText('user@example.com')).not.toBeInTheDocument();
@@ -374,11 +372,7 @@ describe('InvoiceDetails', () => {
           sentryTaxIds: {
             taxId: '1234',
             taxIdName: 'Country Id',
-            region: {
-              code: 'AA',
-              taxId: '5678',
-              taxIdName: 'Regional Tax Id',
-            },
+            region: {code: 'AA', taxId: '5678', taxIdName: 'Regional Tax Id'},
           },
         },
         organization
@@ -405,10 +399,7 @@ describe('InvoiceDetails', () => {
 
     it('renders reverse charge row', async () => {
       const basicInvoiceReverseCharge = InvoiceFixture(
-        {
-          isReverseCharge: true,
-          defaultTaxName: 'VAT',
-        },
+        {isReverseCharge: true, defaultTaxName: 'VAT'},
         organization
       );
 

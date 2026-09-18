@@ -53,19 +53,14 @@ export function ProjectSessionsAnrRequest({
   function getParams(): Record<string, any> {
     const baseParams = {
       field: [yAxis, 'count_unique(user)'],
-      interval: getSessionsInterval(datetime, {
-        dailyInterval: true,
-      }),
+      interval: getSessionsInterval(datetime, {dailyInterval: true}),
       project: projects[0],
       environment,
       query,
     };
 
     if (!shouldFetchWithPrevious) {
-      return {
-        ...baseParams,
-        ...normalizeDateTimeParams(datetime),
-      };
+      return {...baseParams, ...normalizeDateTimeParams(datetime)};
     }
 
     const {period} = selection.datetime;
@@ -74,10 +69,7 @@ export function ProjectSessionsAnrRequest({
       {shouldDoublePeriod: true}
     ).statsPeriod;
 
-    return {
-      ...baseParams,
-      statsPeriod: doubledPeriod,
-    };
+    return {...baseParams, statsPeriod: doubledPeriod};
   }
 
   const queryParams = getParams();
@@ -89,9 +81,7 @@ export function ProjectSessionsAnrRequest({
       }),
       {query: queryParams},
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   useEffect(() => {

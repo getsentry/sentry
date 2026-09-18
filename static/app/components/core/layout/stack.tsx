@@ -82,6 +82,4 @@ const StackSeparator = styled((props: StackSeparatorProps) => {
   );
 })<StackSeparatorProps>``;
 
-export const Stack = Object.assign(StackComponent, {
-  Separator: StackSeparator,
-});
+export const Stack = Object.assign(StackComponent, {Separator: StackSeparator});

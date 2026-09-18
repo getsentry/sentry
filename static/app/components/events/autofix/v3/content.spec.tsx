@@ -60,9 +60,7 @@ describe('SeerDrawerContent', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
 
-    expect(startStep).toHaveBeenCalledWith('root_cause', {
-      enableBashTools: undefined,
-    });
+    expect(startStep).toHaveBeenCalledWith('root_cause', {enableBashTools: undefined});
   });
 
   it('starts Autofix with bash tools when force bash mode is set', async () => {

@@ -7,13 +7,9 @@ import type {EventsRequestProps} from 'sentry/components/charts/eventsRequest';
 import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 
-const COUNT_OBJ = {
-  count: 123,
-};
+const COUNT_OBJ = {count: 123};
 
-jest.mock('sentry/actionCreators/events', () => ({
-  doEventsRequest: jest.fn(),
-}));
+jest.mock('sentry/actionCreators/events', () => ({doEventsRequest: jest.fn()}));
 
 describe('EventsRequest', () => {
   const organization = OrganizationFixture();
@@ -35,21 +31,16 @@ describe('EventsRequest', () => {
 
   describe('with props changes', () => {
     beforeAll(() => {
-      jest.mocked(doEventsRequest).mockImplementation(() =>
-        Promise.resolve({
-          data: [[0, [COUNT_OBJ]]],
-        } as EventsStats)
-      );
+      jest
+        .mocked(doEventsRequest)
+        .mockImplementation(() =>
+          Promise.resolve({data: [[0, [COUNT_OBJ]]]} as EventsStats)
+        );
     });
 
     it.isKnownFlake('makes requests', async () => {
       render(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
-      expect(mock).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({
-          loading: true,
-        })
-      );
+      expect(mock).toHaveBeenNthCalledWith(1, expect.objectContaining({loading: true}));
 
       await waitFor(() =>
         expect(mock).toHaveBeenLastCalledWith(
@@ -58,12 +49,7 @@ describe('EventsRequest', () => {
             timeseriesData: [
               {
                 seriesName: expect.anything(),
-                data: [
-                  expect.objectContaining({
-                    name: expect.any(Number),
-                    value: 123,
-                  }),
-                ],
+                data: [expect.objectContaining({name: expect.any(Number), value: 123})],
               },
             ],
             originalTimeseriesData: [[expect.anything(), expect.anything()]],
@@ -86,9 +72,7 @@ describe('EventsRequest', () => {
       await waitFor(() => expect(doEventsRequest).toHaveBeenCalledTimes(1));
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          project: [123],
-        })
+        expect.objectContaining({project: [123]})
       );
     });
 
@@ -104,9 +88,7 @@ describe('EventsRequest', () => {
       await waitFor(() => expect(doEventsRequest).toHaveBeenCalledTimes(1));
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          environment: ['dev'],
-        })
+        expect.objectContaining({environment: ['dev']})
       );
     });
 
@@ -123,9 +105,7 @@ describe('EventsRequest', () => {
       await waitFor(() => expect(doEventsRequest).toHaveBeenCalledTimes(1));
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          period: '7d',
-        })
+        expect.objectContaining({period: '7d'})
       );
     });
   });
@@ -159,9 +139,7 @@ describe('EventsRequest', () => {
       // actionCreator handles expanding the period when calling the API
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          period: '24h',
-        })
+        expect.objectContaining({period: '24h'})
       );
 
       await waitFor(() =>
@@ -181,23 +159,13 @@ describe('EventsRequest', () => {
             timeseriesData: [
               {
                 seriesName: expect.anything(),
-                data: [
-                  expect.objectContaining({
-                    name: expect.anything(),
-                    value: 123,
-                  }),
-                ],
+                data: [expect.objectContaining({name: expect.anything(), value: 123})],
               },
             ],
             previousTimeseriesData: [
               expect.objectContaining({
                 seriesName: 'Previous',
-                data: [
-                  expect.objectContaining({
-                    name: expect.anything(),
-                    value: 400,
-                  }),
-                ],
+                data: [expect.objectContaining({name: expect.anything(), value: 400})],
               }),
             ],
 
@@ -261,9 +229,7 @@ describe('EventsRequest', () => {
       // actionCreator handles expanding the period when calling the API
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          period: '24h',
-        })
+        expect.objectContaining({period: '24h'})
       );
 
       await waitFor(() =>
@@ -300,19 +266,19 @@ describe('EventsRequest', () => {
     });
 
     it('aggregates counts per timestamp only when `includeTimeAggregation` prop is true', async () => {
-      jest.mocked(doEventsRequest).mockImplementation(() =>
-        Promise.resolve({
-          data: [[0, [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
-        } as EventsStats)
-      );
+      jest
+        .mocked(doEventsRequest)
+        .mockImplementation(() =>
+          Promise.resolve({
+            data: [[0, [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
+          } as EventsStats)
+        );
 
       const {rerender} = render(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
 
       await waitFor(() =>
         expect(mock).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            timeAggregatedData: {},
-          })
+          expect.objectContaining({timeAggregatedData: {}})
         )
       );
 
@@ -339,19 +305,19 @@ describe('EventsRequest', () => {
     });
 
     it('aggregates all counts per timestamp when category name identical', async () => {
-      jest.mocked(doEventsRequest).mockImplementation(() =>
-        Promise.resolve({
-          data: [[0, [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
-        } as EventsStats)
-      );
+      jest
+        .mocked(doEventsRequest)
+        .mockImplementation(() =>
+          Promise.resolve({
+            data: [[0, [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
+          } as EventsStats)
+        );
 
       const {rerender} = render(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
 
       await waitFor(() =>
         expect(mock).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            timeAggregatedData: {},
-          })
+          expect.objectContaining({timeAggregatedData: {}})
         )
       );
 
@@ -422,23 +388,13 @@ describe('EventsRequest', () => {
             timeseriesData: [
               {
                 seriesName: expect.anything(),
-                data: [
-                  expect.objectContaining({
-                    name: expect.anything(),
-                    value: 123,
-                  }),
-                ],
+                data: [expect.objectContaining({name: expect.anything(), value: 123})],
               },
             ],
             previousTimeseriesData: [
               expect.objectContaining({
                 seriesName: 'Previous',
-                data: [
-                  expect.objectContaining({
-                    name: expect.anything(),
-                    value: 400,
-                  }),
-                ],
+                data: [expect.objectContaining({name: expect.anything(), value: 400})],
               }),
             ],
 
@@ -605,10 +561,7 @@ describe('EventsRequest', () => {
         </EventsRequest>
       );
       expect(mock).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          expired: true,
-          errored: true,
-        })
+        expect.objectContaining({expired: true, errored: true})
       );
     });
   });
@@ -619,25 +572,18 @@ describe('EventsRequest', () => {
     });
 
     it('passes query timeframe start and end to the child if supplied by timeseriesData', async () => {
-      jest.mocked(doEventsRequest).mockImplementation(() =>
-        Promise.resolve({
-          p95: {
-            data: [[0, [COUNT_OBJ]]],
-            start: 1627402280,
-            end: 1627402398,
-          },
-        } as MultiSeriesEventsStats)
-      );
+      jest
+        .mocked(doEventsRequest)
+        .mockImplementation(() =>
+          Promise.resolve({
+            p95: {data: [[0, [COUNT_OBJ]]], start: 1627402280, end: 1627402398},
+          } as MultiSeriesEventsStats)
+        );
       render(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
 
       await waitFor(() =>
         expect(mock).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            timeframe: {
-              start: 1627402280000,
-              end: 1627402398000,
-            },
-          })
+          expect.objectContaining({timeframe: {start: 1627402280000, end: 1627402398000}})
         )
       );
     });
@@ -649,21 +595,19 @@ describe('EventsRequest', () => {
     });
 
     it('passes timeseriesResultTypes to child', async () => {
-      jest.mocked(doEventsRequest).mockImplementation(() =>
-        Promise.resolve({
-          data: [[0, [COUNT_OBJ]]],
-          start: 1627402280,
-          end: 1627402398,
-          meta: {
-            fields: {
-              p95_measurements_custom: 'size',
+      jest
+        .mocked(doEventsRequest)
+        .mockImplementation(() =>
+          Promise.resolve({
+            data: [[0, [COUNT_OBJ]]],
+            start: 1627402280,
+            end: 1627402398,
+            meta: {
+              fields: {p95_measurements_custom: 'size'},
+              units: {p95_measurements_custom: 'kibibyte'},
             },
-            units: {
-              p95_measurements_custom: 'kibibyte',
-            },
-          },
-        } as unknown as EventsStats)
-      );
+          } as unknown as EventsStats)
+        );
       render(
         <EventsRequest {...DEFAULTS} yAxis="p95(measurements.custom)">
           {mock}
@@ -680,21 +624,19 @@ describe('EventsRequest', () => {
     });
 
     it('passes timeseriesResultsUnits to child for single yAxis', async () => {
-      jest.mocked(doEventsRequest).mockImplementation(() =>
-        Promise.resolve({
-          data: [[0, [COUNT_OBJ]]],
-          start: 1627402280,
-          end: 1627402398,
-          meta: {
-            fields: {
-              p95_measurements_custom: 'size',
+      jest
+        .mocked(doEventsRequest)
+        .mockImplementation(() =>
+          Promise.resolve({
+            data: [[0, [COUNT_OBJ]]],
+            start: 1627402280,
+            end: 1627402398,
+            meta: {
+              fields: {p95_measurements_custom: 'size'},
+              units: {p95_measurements_custom: 'kibibyte'},
             },
-            units: {
-              p95_measurements_custom: 'kibibyte',
-            },
-          },
-        } as unknown as EventsStats)
-      );
+          } as unknown as EventsStats)
+        );
       render(
         <EventsRequest {...DEFAULTS} yAxis="p95(measurements.custom)">
           {mock}
@@ -712,36 +654,30 @@ describe('EventsRequest', () => {
     });
 
     it('passes timeseriesResultsUnits to child for multiple yAxis', async () => {
-      jest.mocked(doEventsRequest).mockImplementation(() =>
-        Promise.resolve({
-          'p95(measurements.custom)': {
-            data: [[0, [COUNT_OBJ]]],
-            start: 1627402280,
-            end: 1627402398,
-            meta: {
-              fields: {
-                p95_measurements_custom: 'size',
-              },
-              units: {
-                p95_measurements_custom: 'kibibyte',
-              },
-            },
-          },
-          'p50(measurements.lcp)': {
-            data: [[0, [COUNT_OBJ]]],
-            start: 1627402280,
-            end: 1627402398,
-            meta: {
-              fields: {
-                p50_measurements_lcp: 'duration',
-              },
-              units: {
-                p50_measurements_lcp: 'millisecond',
+      jest
+        .mocked(doEventsRequest)
+        .mockImplementation(() =>
+          Promise.resolve({
+            'p95(measurements.custom)': {
+              data: [[0, [COUNT_OBJ]]],
+              start: 1627402280,
+              end: 1627402398,
+              meta: {
+                fields: {p95_measurements_custom: 'size'},
+                units: {p95_measurements_custom: 'kibibyte'},
               },
             },
-          },
-        } as unknown as MultiSeriesEventsStats)
-      );
+            'p50(measurements.lcp)': {
+              data: [[0, [COUNT_OBJ]]],
+              start: 1627402280,
+              end: 1627402398,
+              meta: {
+                fields: {p50_measurements_lcp: 'duration'},
+                units: {p50_measurements_lcp: 'millisecond'},
+              },
+            },
+          } as unknown as MultiSeriesEventsStats)
+        );
       render(
         <EventsRequest
           {...DEFAULTS}
@@ -768,18 +704,16 @@ describe('EventsRequest', () => {
     });
 
     it('does not include timeseriesResultsUnits when meta has no units', async () => {
-      jest.mocked(doEventsRequest).mockImplementation(() =>
-        Promise.resolve({
-          data: [[0, [COUNT_OBJ]]],
-          start: 1627402280,
-          end: 1627402398,
-          meta: {
-            fields: {
-              'count()': 'integer',
-            },
-          },
-        } as unknown as EventsStats)
-      );
+      jest
+        .mocked(doEventsRequest)
+        .mockImplementation(() =>
+          Promise.resolve({
+            data: [[0, [COUNT_OBJ]]],
+            start: 1627402280,
+            end: 1627402398,
+            meta: {fields: {'count()': 'integer'}},
+          } as unknown as EventsStats)
+        );
       render(
         <EventsRequest {...DEFAULTS} yAxis="count()">
           {mock}
@@ -797,21 +731,19 @@ describe('EventsRequest', () => {
     });
 
     it('scales timeseries values according to unit meta', async () => {
-      jest.mocked(doEventsRequest).mockImplementation(() =>
-        Promise.resolve({
-          data: [[1508208080000, [COUNT_OBJ]]],
-          start: 1627402280,
-          end: 1627402398,
-          meta: {
-            fields: {
-              p95_measurements_custom: 'size',
+      jest
+        .mocked(doEventsRequest)
+        .mockImplementation(() =>
+          Promise.resolve({
+            data: [[1508208080000, [COUNT_OBJ]]],
+            start: 1627402280,
+            end: 1627402398,
+            meta: {
+              fields: {p95_measurements_custom: 'size'},
+              units: {p95_measurements_custom: 'mebibyte'},
             },
-            units: {
-              p95_measurements_custom: 'mebibyte',
-            },
-          },
-        } as unknown as EventsStats)
-      );
+          } as unknown as EventsStats)
+        );
       render(
         <EventsRequest
           {...DEFAULTS}

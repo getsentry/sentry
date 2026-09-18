@@ -180,10 +180,7 @@ const BUS_CASES: BusCase[] = [
       kind: 'telemetry_live_search',
       params: {dataset: 'issues', query: '', project_slugs: ['javascript', 'nope']},
     },
-    {
-      pathname: '/organizations/org-slug/issues/',
-      query: {query: '', project: ['2']},
-    },
+    {pathname: '/organizations/org-slug/issues/', query: {query: '', project: ['2']}},
   ],
   [
     'search: issues over an absolute range',

@@ -34,14 +34,7 @@ describe('GroupHeaderRow', () => {
   });
 
   it('renders with `type = csp`', () => {
-    render(
-      <GroupHeaderRow
-        data={{
-          ...group,
-          type: EventOrGroupType.CSP,
-        }}
-      />
-    );
+    render(<GroupHeaderRow data={{...group, type: EventOrGroupType.CSP}} />);
 
     expect(screen.getByText('metadata directive')).toBeInTheDocument();
   });
@@ -52,10 +45,7 @@ describe('GroupHeaderRow', () => {
         data={{
           ...group,
           type: EventOrGroupType.DEFAULT,
-          metadata: {
-            ...group.metadata,
-            title: 'metadata title',
-          },
+          metadata: {...group.metadata, title: 'metadata title'},
         }}
       />
     );
@@ -64,14 +54,7 @@ describe('GroupHeaderRow', () => {
   });
 
   it('renders metadata values in message for error events', () => {
-    render(
-      <GroupHeaderRow
-        data={{
-          ...group,
-          type: EventOrGroupType.ERROR,
-        }}
-      />
-    );
+    render(<GroupHeaderRow data={{...group, type: EventOrGroupType.ERROR}} />);
 
     expect(screen.getByText('metadata value')).toBeInTheDocument();
   });
@@ -97,18 +80,10 @@ describe('GroupHeaderRow', () => {
   });
 
   it('keeps sort in link when query has sort', () => {
-    const groupDefault = GroupFixture({
-      ...group,
-      type: EventOrGroupType.DEFAULT,
-    });
+    const groupDefault = GroupFixture({...group, type: EventOrGroupType.DEFAULT});
 
     render(<GroupHeaderRow data={groupDefault} />, {
-      initialRouterConfig: {
-        location: {
-          pathname: baseIssuesPath,
-          query: {sort: 'freq'},
-        },
-      },
+      initialRouterConfig: {location: {pathname: baseIssuesPath, query: {sort: 'freq'}}},
     });
 
     expect(screen.getByRole('link')).toHaveAttribute(
@@ -118,10 +93,7 @@ describe('GroupHeaderRow', () => {
   });
 
   it('lack of project adds all parameter', () => {
-    const groupDefault = GroupFixture({
-      ...group,
-      type: EventOrGroupType.DEFAULT,
-    });
+    const groupDefault = GroupFixture({...group, type: EventOrGroupType.DEFAULT});
 
     render(<GroupHeaderRow data={groupDefault} />);
 

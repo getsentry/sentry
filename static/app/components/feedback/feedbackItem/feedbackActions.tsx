@@ -65,9 +65,7 @@ export function FeedbackActions({
         : []),
     ].join('\n');
 
-    trackAnalytics('feedback.feedback-item-copy-as-markdown', {
-      organization,
-    });
+    trackAnalytics('feedback.feedback-item-copy-as-markdown', {organization});
 
     copy(markdown, {
       successMessage: t('Copied feedback'),

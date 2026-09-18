@@ -46,10 +46,7 @@ type SpecialFieldRenderFunc = (
   meta: MetaType
 ) => React.ReactNode;
 
-type SpecialField = {
-  renderFunc: SpecialFieldRenderFunc;
-  sortField: string | null;
-};
+type SpecialField = {renderFunc: SpecialFieldRenderFunc; sortField: string | null};
 
 type SpecialFields = {
   assignee: SpecialField;

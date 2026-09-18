@@ -135,9 +135,7 @@ describe('ResolveActions', () => {
     await userEvent.click(within(modal).getByRole('button', {name: 'Resolve'}));
     expect(onUpdate).toHaveBeenCalledWith({
       status: 'resolved',
-      statusDetails: {
-        inRelease: 'sentry-android-shop@1.2.0',
-      },
+      statusDetails: {inRelease: 'sentry-android-shop@1.2.0'},
       substatus: null,
     });
   });
@@ -181,10 +179,7 @@ describe('ResolveActions', () => {
   });
 
   it('shows resolve in latest release option when the current release version does not use semver and flag is enabled', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
 
     render(
       <ResolveActions

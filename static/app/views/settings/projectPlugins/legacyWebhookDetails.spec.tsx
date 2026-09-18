@@ -15,10 +15,7 @@ describe('LegacyWebhookDetails', () => {
   });
 
   function renderComponent() {
-    return render(<LegacyWebhookDetails />, {
-      organization,
-      outletContext: {project},
-    });
+    return render(<LegacyWebhookDetails />, {organization, outletContext: {project}});
   }
 
   it('renders the full page with header and warning banner', async () => {

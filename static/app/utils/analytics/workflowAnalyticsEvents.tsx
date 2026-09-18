@@ -3,10 +3,7 @@ import type {ProjectCreationVariant} from 'sentry/utils/analytics/projectCreatio
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 import type {Tab} from 'sentry/views/issueDetails/types';
 
-type RuleViewed = {
-  alert_type: 'issue' | 'metric';
-  project_id: string;
-};
+type RuleViewed = {alert_type: 'issue' | 'metric'; project_id: string};
 
 interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
   project_id: number;
@@ -58,10 +55,7 @@ export type BaseEventAnalyticsParams = {
   sdk_version?: string | null;
 };
 
-type BaseTour = {
-  duration: number;
-  step: number;
-};
+type BaseTour = {duration: number; step: number};
 
 type ReleasesTour = BaseTour & {project_id: string};
 
@@ -95,13 +89,8 @@ export type TeamInsightsEventParameters = {
   'issue_details.issue_tab.screenshot_modal_deleted': Record<string, unknown>;
   'issue_details.issue_tab.screenshot_modal_download': Record<string, unknown>;
   'issue_details.issue_tab.screenshot_modal_opened': Record<string, unknown>;
-  'issue_details.issue_tab.trace_timeline_clicked': {
-    event_id: string;
-    group_id: string;
-  };
-  'issue_details.issue_tab.trace_timeline_more_events_clicked': {
-    num_hidden: number;
-  };
+  'issue_details.issue_tab.trace_timeline_clicked': {event_id: string; group_id: string};
+  'issue_details.issue_tab.trace_timeline_more_events_clicked': {num_hidden: number};
   'issue_details.merged_tab.unmerge_clicked': {
     /**
      * comma separated list of event ids that were unmerged
@@ -135,9 +124,7 @@ export type TeamInsightsEventParameters = {
     suspect_commit_calculation: string;
     suspect_commit_index: number;
   };
-  'issue_details.tab_changed': IssueDetailsWithAlert & {
-    tab: Tab;
-  };
+  'issue_details.tab_changed': IssueDetailsWithAlert & {tab: Tab};
   'issue_inbox.resolve_clicked': IssueDetailsWithAlert & {
     action_type: GroupStatus;
     org_streamline_only: boolean | undefined;
@@ -164,23 +151,14 @@ export type TeamInsightsEventParameters = {
   'project_detail.releases_tour.advance': ReleasesTour;
   'project_detail.releases_tour.close': ReleasesTour;
   'release_detail.pagination': {direction: string};
-  'releases_list.click_add_release_health': {
-    project_id: number;
-  };
+  'releases_list.click_add_release_health': {project_id: number};
   'suspect_commit.feedback_submitted': {
     choice_selected: boolean;
     group_owner_id: number;
     user_id: string;
   };
-  trace_timeline_clicked: {
-    area: string;
-    event_id: string;
-    group_id: string;
-  };
-  trace_timeline_more_events_clicked: {
-    area: string;
-    num_hidden: number;
-  };
+  trace_timeline_clicked: {area: string; event_id: string; group_id: string};
+  trace_timeline_more_events_clicked: {area: string; num_hidden: number};
 };
 
 type TeamInsightsEventKey = keyof TeamInsightsEventParameters;

@@ -33,12 +33,7 @@ export async function sendReplayOnboardRequest({
       getApiUrl('/organizations/$organizationIdOrSlug/replay-onboard-request/', {
         path: {organizationIdOrSlug: String(orgSlug)},
       }),
-      {
-        method: 'POST',
-        data: {
-          name: currentPlan,
-        },
-      }
+      {method: 'POST', data: {name: currentPlan}}
     );
 
     addSuccessMessage(
@@ -65,11 +60,7 @@ export function sendUpgradeRequest({
 }) {
   const endpoint = `/organizations/${organization.slug}/plan-upgrade-request/`;
   const data = {type};
-  return sendBasicRequest({
-    endpoint,
-    data,
-    ...rest,
-  });
+  return sendBasicRequest({endpoint, data, ...rest});
 }
 
 export function sendTrialRequest({
@@ -107,11 +98,7 @@ export function sendAddEventsRequest({
 }) {
   const endpoint = `/organizations/${organization.slug}/event-limit-increase-request/`;
   const data = {types: eventTypes, notificationType};
-  return sendBasicRequest({
-    endpoint,
-    data,
-    ...rest,
-  });
+  return sendBasicRequest({endpoint, data, ...rest});
 }
 
 async function sendBasicRequest({
@@ -127,10 +114,7 @@ async function sendBasicRequest({
 }) {
   try {
     addLoadingMessage(t('Requesting\u2026'));
-    await api.requestPromise(endpoint, {
-      method: 'POST',
-      data,
-    });
+    await api.requestPromise(endpoint, {method: 'POST', data});
     addSuccessMessage(t('Request Sent'));
     handleSuccess?.();
   } catch (err) {

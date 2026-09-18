@@ -119,10 +119,7 @@ export function EventList({group}: EventListProps) {
                     icon={<IconChevron direction="left" />}
                     to={{
                       ...location,
-                      query: {
-                        ...location.query,
-                        cursor: links.previous?.cursor,
-                      },
+                      query: {...location.query, cursor: links.previous?.cursor},
                     }}
                     disabled={isPending || previousDisabled}
                   />
@@ -133,10 +130,7 @@ export function EventList({group}: EventListProps) {
                     icon={<IconChevron direction="right" />}
                     to={{
                       ...location,
-                      query: {
-                        ...location.query,
-                        cursor: links.next?.cursor,
-                      },
+                      query: {...location.query, cursor: links.next?.cursor},
                     }}
                     disabled={isPending || nextDisabled}
                   />

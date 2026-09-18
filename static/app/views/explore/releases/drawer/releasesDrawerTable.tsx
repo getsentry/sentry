@@ -104,11 +104,7 @@ export function ReleasesDrawerTable({
   const renderBodyCell = useCallback(
     (column: Column, dataRow: ReleaseHealthItem) => {
       const meta: EventsMetaType = {
-        fields: {
-          release: 'string',
-          date: 'date',
-          error_count: 'integer',
-        },
+        fields: {release: 'string', date: 'date', error_count: 'integer'},
         units: {},
       };
 
@@ -210,10 +206,7 @@ export function ReleasesDrawerTable({
         fit="max-content"
         stickyHeader
         scrollable
-        grid={{
-          renderHeadCell: column => <span>{column.name}</span>,
-          renderBodyCell,
-        }}
+        grid={{renderHeadCell: column => <span>{column.name}</span>, renderBodyCell}}
       />
       <PaginationNoMargin
         pageLinks={pageLinks}

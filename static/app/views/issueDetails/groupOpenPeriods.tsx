@@ -132,13 +132,7 @@ function IssueOpenPeriodsList() {
     {key: 'start', width: COL_WIDTH_UNDEFINED, name: t('Start')},
     {key: 'end', width: COL_WIDTH_UNDEFINED, name: t('End')},
     ...(investigationsEnabled
-      ? [
-          {
-            key: 'investigation',
-            width: COL_WIDTH_UNDEFINED,
-            name: t('Investigation'),
-          },
-        ]
+      ? [{key: 'investigation', width: COL_WIDTH_UNDEFINED, name: t('Investigation')}]
       : []),
   ];
 
@@ -179,10 +173,7 @@ function IssueOpenPeriodsList() {
         data={data}
         error={error}
         columnOrder={columnOrder}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
+        grid={{renderHeadCell, renderBodyCell}}
       />
     </EventListTable>
   );

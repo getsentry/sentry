@@ -456,10 +456,7 @@ export function FormField(props: FormFieldProps) {
   const resolveObservedProps = (
     resolvedProps: ResolvedObservableProps,
     [propName, resolve]: ObservedPropResolver
-  ) => ({
-    ...resolvedProps,
-    [propName]: resolve(),
-  });
+  ) => ({...resolvedProps, [propName]: resolve()});
 
   return (
     <Observer>{() => makeField(observedProps.reduce(resolveObservedProps, {}))}</Observer>

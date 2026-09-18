@@ -31,9 +31,7 @@ export const docs: Docs = {
         type: 'text',
         text: tct(
           'In Next.js you can configure document response headers via the headers option in [code:next.config.js]:',
-          {
-            code: <code />,
-          }
+          {code: <code />}
         ),
       },
       {
@@ -79,10 +77,7 @@ export const docs: Docs = {
       },
     ],
   }),
-  logsOnboarding: logsFullStack({
-    docsPlatform: 'nextjs',
-    packageName: '@sentry/nextjs',
-  }),
+  logsOnboarding: logsFullStack({docsPlatform: 'nextjs', packageName: '@sentry/nextjs'}),
   metricsOnboarding: metricsFullStack({
     docsPlatform: 'nextjs',
     packageName: '@sentry/nextjs',

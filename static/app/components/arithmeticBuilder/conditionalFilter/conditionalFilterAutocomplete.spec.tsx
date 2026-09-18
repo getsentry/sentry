@@ -36,9 +36,7 @@ describe('useConditionalFilterAutocomplete', () => {
       });
     });
     expect(getFilterTagValues).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        tag: expect.objectContaining({key: ''}),
-      })
+      expect.objectContaining({tag: expect.objectContaining({key: ''})})
     );
   });
 
@@ -118,11 +116,7 @@ describe('useConditionalFilterAutocomplete', () => {
             filterValue,
             functionArguments: [
               {name: 'span.op', kind: FieldKind.TAG, label: 'span.op'},
-              {
-                name: 'span.description',
-                kind: FieldKind.TAG,
-                label: 'span.description',
-              },
+              {name: 'span.description', kind: FieldKind.TAG, label: 'span.description'},
             ],
             getFilterTagValues,
             selectionIndex,

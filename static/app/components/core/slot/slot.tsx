@@ -57,32 +57,12 @@ type SlotValue = {
 
 type SlotReducerState<T extends Slot> = Partial<Record<T, SlotValue>>;
 type SlotReducerAction<T extends Slot> =
-  | {
-      name: T;
-      type: 'increment counter';
-    }
-  | {
-      name: T;
-      type: 'decrement counter';
-    }
-  | {
-      element: HTMLElement | null;
-      name: T;
-      type: 'register';
-    }
-  | {
-      name: T;
-      type: 'unregister';
-    }
-  | {
-      contextBridges: ContextBridge[];
-      name: T;
-      type: 'set context bridges';
-    }
-  | {
-      name: T;
-      type: 'remove context bridges';
-    };
+  | {name: T; type: 'increment counter'}
+  | {name: T; type: 'decrement counter'}
+  | {element: HTMLElement | null; name: T; type: 'register'}
+  | {name: T; type: 'unregister'}
+  | {contextBridges: ContextBridge[]; name: T; type: 'set context bridges'}
+  | {name: T; type: 'remove context bridges'};
 
 type SlotReducer<T extends Slot> = React.Reducer<
   SlotReducerState<T>,
@@ -118,10 +98,7 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
         }
         return {
           ...state,
-          [action.name]: {
-            ...currentSlot,
-            counter: currentSlot.counter - 1,
-          },
+          [action.name]: {...currentSlot, counter: currentSlot.counter - 1},
         };
       }
       case 'register':

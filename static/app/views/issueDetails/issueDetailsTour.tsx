@@ -47,9 +47,7 @@ function useIssueDetailsTourModal() {
   const {isRegistered, currentStepId, startTour, endTour} = useContext(
     IssueDetailsTourContext
   )!;
-  const {data: assistantData} = useAssistant({
-    notifyOnChangeProps: ['data'],
-  });
+  const {data: assistantData} = useAssistant({notifyOnChangeProps: ['data']});
   const {mutate: mutateAssistant} = useMutateAssistant();
   const forceShowTourModal = window.location.hash === ISSUE_DETAILS_TOUR_FORCE_HASH;
   const hasUnseenIssueDetailsTour =
@@ -68,10 +66,7 @@ function useIssueDetailsTourModal() {
 
     let cancelled = false;
     const dismissTour = () => {
-      mutateAssistant({
-        guide: ISSUE_DETAILS_TOUR_GUIDE_KEY,
-        status: 'dismissed',
-      });
+      mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'dismissed'});
       endTour();
       trackAnalytics('issue_details.tour.skipped', {organization});
     };

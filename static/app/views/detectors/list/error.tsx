@@ -14,9 +14,7 @@ const DOCS_URL =
   'https://docs.sentry.io/product/new-monitors-and-alerts/monitors/#default-monitors';
 
 export default function ErrorDetectorsList() {
-  const detectorListQuery = useDetectorListQuery({
-    detectorFilter: 'error',
-  });
+  const detectorListQuery = useDetectorListQuery({detectorFilter: 'error'});
 
   return (
     <SentryDocumentTitle title={TITLE}>

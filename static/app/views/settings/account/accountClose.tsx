@@ -55,10 +55,7 @@ function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
   );
 }
 
-type OwnedOrg = {
-  organization: Organization;
-  singleOwner: boolean;
-};
+type OwnedOrg = {organization: Organization; singleOwner: boolean};
 
 function AccountClose() {
   const {openModal} = useModal();
@@ -124,9 +121,7 @@ function AccountClose() {
     },
     onSuccess: () => {
       requestAnimationFrame(() => {
-        openModal(GoodbyeModalContent, {
-          onClose: leaveRedirect,
-        });
+        openModal(GoodbyeModalContent, {onClose: leaveRedirect});
       });
       // Redirect after 10 seconds
       window.clearTimeout(leaveRedirectTimeout.current);

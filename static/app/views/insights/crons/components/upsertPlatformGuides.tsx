@@ -22,133 +22,65 @@ export const platformGuides = [
   {
     platform: 'python-celery',
     label: 'Celery',
-    guides: [
-      {
-        Guide: CeleryBeatAutoDiscovery,
-        title: 'Auto-Instrument',
-        key: 'upsert',
-      },
-    ],
+    guides: [{Guide: CeleryBeatAutoDiscovery, title: 'Auto-Instrument', key: 'upsert'}],
   },
   {
     platform: 'php',
     label: 'PHP',
-    guides: [
-      {
-        Guide: PHPUpsertPlatformGuide,
-        title: 'Upsert',
-        key: 'upsert',
-      },
-    ],
+    guides: [{Guide: PHPUpsertPlatformGuide, title: 'Upsert', key: 'upsert'}],
   },
   {
     platform: 'php-laravel',
     label: 'Laravel',
-    guides: [
-      {
-        Guide: LaravelUpsertPlatformGuide,
-        title: 'Upsert',
-        key: 'upsert',
-      },
-    ],
+    guides: [{Guide: LaravelUpsertPlatformGuide, title: 'Upsert', key: 'upsert'}],
   },
   {
     platform: 'python',
     label: 'Python',
-    guides: [
-      {
-        Guide: PythonUpsertPlatformGuide,
-        title: 'Upsert',
-        key: 'upsert',
-      },
-    ],
+    guides: [{Guide: PythonUpsertPlatformGuide, title: 'Upsert', key: 'upsert'}],
   },
   {
     platform: 'node',
     label: 'NodeJS',
-    guides: [
-      {
-        Guide: NodeJsUpsertPlatformGuide,
-        title: 'Upsert',
-        key: 'upsert',
-      },
-    ],
+    guides: [{Guide: NodeJsUpsertPlatformGuide, title: 'Upsert', key: 'upsert'}],
   },
   {
     platform: 'deno',
     label: 'Deno',
-    guides: [
-      {
-        Guide: DenoUpsertPlatformGuide,
-        title: 'Auto-Instrument',
-        key: 'upsert',
-      },
-    ],
+    guides: [{Guide: DenoUpsertPlatformGuide, title: 'Auto-Instrument', key: 'upsert'}],
   },
   {
     platform: 'node-nestjs',
     label: 'NestJS',
-    guides: [
-      {
-        Guide: NestJSUpsertPlatformGuide,
-        title: 'Upsert',
-        key: 'upsert',
-      },
-    ],
+    guides: [{Guide: NestJSUpsertPlatformGuide, title: 'Upsert', key: 'upsert'}],
   },
   {
     platform: 'javascript-nextjs',
     label: 'Next.js',
-    guides: [
-      {
-        Guide: NextJSUpsertPlatformGuide,
-        title: 'Auto-Instrument',
-        key: 'upsert',
-      },
-    ],
+    guides: [{Guide: NextJSUpsertPlatformGuide, title: 'Auto-Instrument', key: 'upsert'}],
   },
   {
     platform: 'go',
     label: 'Go',
-    guides: [
-      {
-        Guide: GoUpsertPlatformGuide,
-        title: 'Upsert',
-        key: 'upsert',
-      },
-    ],
+    guides: [{Guide: GoUpsertPlatformGuide, title: 'Upsert', key: 'upsert'}],
   },
   {
     platform: 'java',
     label: 'Java',
-    guides: [
-      {
-        Guide: JavaUpsertPlatformGuide,
-        title: 'Upsert',
-        key: 'upsert',
-      },
-    ],
+    guides: [{Guide: JavaUpsertPlatformGuide, title: 'Upsert', key: 'upsert'}],
   },
   {
     platform: 'java-spring-boot',
     label: 'Spring Boot',
     guides: [
-      {
-        Guide: JavaSpringBootUpsertPlatformGuide,
-        title: 'Auto-Instrument',
-        key: 'upsert',
-      },
+      {Guide: JavaSpringBootUpsertPlatformGuide, title: 'Auto-Instrument', key: 'upsert'},
     ],
   },
   {
     platform: 'ruby',
     label: 'Ruby',
     guides: [
-      {
-        Guide: RubyUpsertPlatformGuide,
-        title: 'Upsert',
-        key: 'upsert',
-      },
+      {Guide: RubyUpsertPlatformGuide, title: 'Upsert', key: 'upsert'},
       {
         Guide: RubySidekiqMixinPlatformGuide,
         title: 'Sidekiq Mixin',
@@ -165,71 +97,33 @@ export const platformGuides = [
         title: 'Sidekiq Auto Discovery',
         key: 'rails-sidekiq',
       },
-      {
-        Guide: RubyActiveJobPlatformGuide,
-        title: 'ActiveJob',
-        key: 'rails-activejob',
-      },
-      {
-        Guide: RubyRailsMixinPlatformGuide,
-        title: 'Mixin',
-        key: 'rails-mixin',
-      },
+      {Guide: RubyActiveJobPlatformGuide, title: 'ActiveJob', key: 'rails-activejob'},
+      {Guide: RubyRailsMixinPlatformGuide, title: 'Mixin', key: 'rails-mixin'},
     ],
   },
   {
     platform: 'elixir',
     label: 'Elixir',
     guides: [
-      {
-        Guide: ElixirUpsertPlatformGuide,
-        title: 'Upsert',
-        key: 'upsert',
-      },
-      {
-        Guide: ElixirObanPlatformGuide,
-        title: 'Oban',
-        key: 'elixir-oban',
-      },
-      {
-        Guide: ElixirQuantumPlatformGuide,
-        title: 'Quantum',
-        key: 'elixir-quantum',
-      },
+      {Guide: ElixirUpsertPlatformGuide, title: 'Upsert', key: 'upsert'},
+      {Guide: ElixirObanPlatformGuide, title: 'Oban', key: 'elixir-oban'},
+      {Guide: ElixirQuantumPlatformGuide, title: 'Quantum', key: 'elixir-quantum'},
     ],
   },
   {
     platform: 'dotnet',
     label: '.NET',
-    guides: [
-      {
-        Guide: DotNetUpsertPlatformGuide,
-        title: 'Upsert',
-        key: 'upsert',
-      },
-    ],
+    guides: [{Guide: DotNetUpsertPlatformGuide, title: 'Upsert', key: 'upsert'}],
   },
   {
     platform: 'cli',
     label: 'Sentry CLI',
-    guides: [
-      {
-        Guide: CLIUpsertPlatformGuide,
-        title: 'Upsert',
-        key: 'upsert',
-      },
-    ],
+    guides: [{Guide: CLIUpsertPlatformGuide, title: 'Upsert', key: 'upsert'}],
   },
   {
     platform: 'http',
     label: 'HTTP',
-    guides: [
-      {
-        Guide: CurlUpsertPlatformGuide,
-        title: 'Upsert',
-        key: 'upsert',
-      },
-    ],
+    guides: [{Guide: CurlUpsertPlatformGuide, title: 'Upsert', key: 'upsert'}],
   },
 ] as const satisfies CronsPlatform[];
 
@@ -358,10 +252,7 @@ function LaravelUpsertPlatformGuide() {
       <div>
         {tct(
           'To set up, add the [sentryMonitor:sentryMonitor()] macro to your scheduled tasks defined in your [consoleFile:routes/console.php] file (Laravel 11+):',
-          {
-            sentryMonitor: <code />,
-            consoleFile: <code />,
-          }
+          {sentryMonitor: <code />, consoleFile: <code />}
         )}
       </div>
       <CodeBlock language="php">{basicConfigCode}</CodeBlock>
@@ -378,9 +269,7 @@ function LaravelUpsertPlatformGuide() {
       <div>
         {tct(
           'By default, the Laravel SDK will infer various parameters of your scheduled task. For greater control, we expose some optional parameters on the [sentryMonitor:sentryMonitor()] macro:',
-          {
-            sentryMonitor: <code />,
-          }
+          {sentryMonitor: <code />}
         )}
       </div>
       <CodeBlock language="php">{advancedConfigCode}</CodeBlock>
@@ -1346,9 +1235,7 @@ curl -X POST "\${SENTRY_CRONS}" \\
       <div>
         {tct(
           'Send a POST request with [monitorConfig:monitor_config] in the JSON payload:',
-          {
-            monitorConfig: <code />,
-          }
+          {monitorConfig: <code />}
         )}
       </div>
       <CodeBlock language="bash">{upsertCode}</CodeBlock>

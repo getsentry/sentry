@@ -7,18 +7,9 @@ describe('Breadcrumbs', () => {
     return render(
       <Breadcrumbs
         crumbs={[
-          {
-            label: 'Test 1',
-            to: '/test1',
-          },
-          {
-            label: 'Test 2',
-            to: '/test2',
-          },
-          {
-            label: 'Test 3',
-            to: null,
-          },
+          {label: 'Test 1', to: '/test1'},
+          {label: 'Test 2', to: '/test2'},
+          {label: 'Test 3', to: null},
         ]}
       />
     );

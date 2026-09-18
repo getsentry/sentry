@@ -200,10 +200,7 @@ export function AggregateFlamegraphTreeTable({
     // fall back case, when we finally load the active profile index from the profile,
     // make sure we update the thread id so that it is show first
     if (defined(threadID)) {
-      dispatch({
-        type: 'set thread id',
-        payload: threadID,
-      });
+      dispatch({type: 'set thread id', payload: threadID});
     }
   }, [profileGroup, profiles.threadId, dispatch]);
 

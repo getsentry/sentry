@@ -658,10 +658,7 @@ export function ProductSelection({
 
     const selectedProducts = Array.from(newProduct);
 
-    onChange?.({
-      previousProducts: urlProducts,
-      products: selectedProducts,
-    });
+    onChange?.({previousProducts: urlProducts, products: selectedProducts});
     setParams({product: selectedProducts});
   };
 
@@ -730,9 +727,7 @@ export function ProductSelection({
           label={t('Profiling')}
           description={tct(
             '[strong:Requires Tracing]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
-            {
-              strong: <strong />,
-            }
+            {strong: <strong />}
           )}
           docLink="https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling"
           onClick={() => handleClickProduct(ProductSolution.PROFILING)}

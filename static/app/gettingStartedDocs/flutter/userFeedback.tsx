@@ -42,9 +42,7 @@ export const userFeedback: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Use the [code:SentryFeedbackWidget] to let users send feedback data to Sentry.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -62,20 +60,12 @@ export const userFeedback: OnboardingConfig = {
           type: 'text',
           text: tct(
             'One possible use for the [code:SentryFeedbackWidget] is to listen for specific Sentry events in the [code:beforeSend] callback and show the widget to users.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
           type: 'code',
-          tabs: [
-            {
-              label: 'Dart',
-              language: 'dart',
-              code: getFeedbackConfigureSnippet(),
-            },
-          ],
+          tabs: [{label: 'Dart', language: 'dart', code: getFeedbackConfigureSnippet()}],
         },
       ],
     },

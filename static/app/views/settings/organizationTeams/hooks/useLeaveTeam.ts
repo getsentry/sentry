@@ -20,16 +20,11 @@ export function useLeaveTeam({organization, team}: UseLeaveTeamOptions) {
 
   return useMutation({
     mutationFn: () => {
-      return leaveTeamPromise(api, {
-        orgId: organization.slug,
-        teamId: team.slug,
-      });
+      return leaveTeamPromise(api, {orgId: organization.slug, teamId: team.slug});
     },
     onSuccess: () => {
       addSuccessMessage(t('You have left %s', `#${team.slug}`));
-      fetchOrganizationDetails(api, organization.slug, {
-        loadProjects: true,
-      });
+      fetchOrganizationDetails(api, organization.slug, {loadProjects: true});
     },
     onError: () => {
       addErrorMessage(t('Unable to leave %s', `#${team.slug}`));

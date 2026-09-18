@@ -22,14 +22,7 @@ const MOCK_CLOUD_RESOURCE: CloudResourceContext = {
 const MOCK_REDACTION = {
   'host.id': {
     '': {
-      chunks: [
-        {
-          remark: 'x',
-          rule_id: 'project:0',
-          text: '',
-          type: 'redaction',
-        },
-      ],
+      chunks: [{remark: 'x', rule_id: 'project:0', text: '', type: 'redaction'}],
       len: 19,
       rem: [['project:0', 'x', 0, 0]],
     },
@@ -39,42 +32,20 @@ const MOCK_REDACTION = {
 describe('CloudResourceContext', () => {
   it('returns formatted data correctly', () => {
     expect(getCloudResourceContextData({data: MOCK_CLOUD_RESOURCE})).toEqual([
-      {
-        key: 'cloud.provider',
-        subject: 'Provider',
-        value: 'Amazon Web Services',
-      },
+      {key: 'cloud.provider', subject: 'Provider', value: 'Amazon Web Services'},
       {key: 'cloud.platform', subject: 'Platform', value: 'aws_ec2'},
-      {
-        key: 'cloud.account.id',
-        subject: 'Account ID',
-        value: '499517922981',
-      },
+      {key: 'cloud.account.id', subject: 'Account ID', value: '499517922981'},
       {key: 'cloud.region', subject: 'Region', value: 'us-east-1'},
-      {
-        key: 'cloud.availability_zone',
-        subject: 'Availability Zone',
-        value: 'us-east-1e',
-      },
+      {key: 'cloud.availability_zone', subject: 'Availability Zone', value: 'us-east-1e'},
       {key: 'host.id', subject: 'Host ID', value: 'i-07d3301208fe0a55a'},
       {key: 'host.type', subject: 'Host Type', value: 't2.large'},
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something'},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {cloud_resource: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {cloud_resource: MOCK_REDACTION}}});
 
     render(
       <ContextCard

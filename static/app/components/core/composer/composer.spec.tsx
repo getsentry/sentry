@@ -142,10 +142,7 @@ describe('Composer', () => {
 
     act(() => {
       textbox.dispatchEvent(
-        new CompositionEvent('compositionend', {
-          bubbles: true,
-          data: '日本語',
-        })
+        new CompositionEvent('compositionend', {bubbles: true, data: '日本語'})
       );
     });
     expect(onChange).toHaveBeenCalledWith({text: '日本語', mentions: []});
@@ -157,9 +154,7 @@ describe('Composer', () => {
     const textbox = getEditor();
     await userEvent.type(textbox, '@al');
 
-    const aliceOption = await screen.findByRole('option', {
-      name: 'Alice Example',
-    });
+    const aliceOption = await screen.findByRole('option', {name: 'Alice Example'});
     const alexOption = screen.getByRole('option', {name: 'Alex Engineer'});
     expect(textbox).toHaveAttribute('aria-activedescendant', aliceOption.id);
     await userEvent.keyboard('{ArrowDown}');

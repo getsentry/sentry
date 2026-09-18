@@ -373,11 +373,7 @@ metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}
 const spanDataStore = new Map<string, Span | undefined>();
 
 metric.startSpan = ({name, op}) => {
-  const span = Sentry.startInactiveSpan({
-    name,
-    op,
-    forceTransaction: true,
-  });
+  const span = Sentry.startInactiveSpan({name, op, forceTransaction: true});
   spanDataStore.set(name, span);
   return span;
 };

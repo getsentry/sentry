@@ -36,9 +36,7 @@ function OrganizationAuth() {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   const shouldRedirectToProvider = provider && organization.access.includes('org:write');

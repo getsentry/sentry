@@ -160,10 +160,7 @@ function getReprocessingNewRoute({
     reprocessingStatus === ReprocessingStatus.REPROCESSING &&
     currentTab !== Tab.DETAILS
   ) {
-    return {
-      pathname: baseUrl,
-      query: location.query,
-    };
+    return {pathname: baseUrl, query: location.query};
   }
 
   if (
@@ -171,10 +168,7 @@ function getReprocessingNewRoute({
     currentTab !== Tab.ACTIVITY &&
     currentTab !== Tab.USER_FEEDBACK
   ) {
-    return {
-      pathname: `${baseUrl}${Tab.ACTIVITY}/`,
-      query: location.query,
-    };
+    return {pathname: `${baseUrl}${Tab.ACTIVITY}/`, query: location.query};
   }
 
   return;
@@ -246,10 +240,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     data: event,
     isPending: loadingEvent,
     refetch: refetchEvent,
-  } = useGroupEvent({
-    groupId,
-    eventId: params.eventId,
-  });
+  } = useGroupEvent({groupId, eventId: params.eventId});
 
   const {
     data: groupData,
@@ -660,14 +651,7 @@ function GroupDetailsContentInner({
     openSeerDrawer,
   ]);
 
-  useTrackView({
-    group,
-    event,
-    project,
-    tab: currentTab,
-    organization,
-    hasAutofixQuota,
-  });
+  useTrackView({group, event, project, tab: currentTab, organization, hasAutofixQuota});
 
   useEngagedViewTracking({group, project});
 
@@ -745,10 +729,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
 
   // Preload detailed project data for highlighted data section
   useDetailedProject(
-    {
-      orgSlug: organization.slug,
-      projectSlug: projectSlug ?? '',
-    },
+    {orgSlug: organization.slug, projectSlug: projectSlug ?? ''},
     {enabled: !!projectSlug}
   );
 

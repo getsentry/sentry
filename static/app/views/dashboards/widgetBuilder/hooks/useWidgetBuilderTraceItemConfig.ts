@@ -26,10 +26,7 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
   }
 
   if (state.dataset === WidgetType.LOGS) {
-    return {
-      traceItemType: TraceItemDataset.LOGS,
-      enabled: isLogsEnabled(organization),
-    };
+    return {traceItemType: TraceItemDataset.LOGS, enabled: isLogsEnabled(organization)};
   }
 
   if (state.dataset === WidgetType.TRACEMETRICS) {
@@ -56,14 +53,8 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
   }
 
   if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
-    return {
-      traceItemType: TraceItemDataset.PREPROD,
-      enabled: true,
-    };
+    return {traceItemType: TraceItemDataset.PREPROD, enabled: true};
   }
 
-  return {
-    traceItemType: TraceItemDataset.SPANS,
-    enabled: false,
-  };
+  return {traceItemType: TraceItemDataset.SPANS, enabled: false};
 }

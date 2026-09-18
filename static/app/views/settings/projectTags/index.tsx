@@ -66,9 +66,7 @@ export default function ProjectTags() {
             key,
           },
         }),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       ),
     onSuccess: (_, {key}) => {
       setApiQueryData<TagWithTopValues[]>(
@@ -115,9 +113,7 @@ export default function ProjectTags() {
         {tct(
           `Each event in Sentry may be annotated with various tags (key and value pairs).
                  Learn how to [link:add custom tags].`,
-          {
-            link: <ExternalLink href={TAGS_DOCS_LINK} />,
-          }
+          {link: <ExternalLink href={TAGS_DOCS_LINK} />}
         )}
       </TextBlock>
       <Panel>

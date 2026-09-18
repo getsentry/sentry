@@ -83,16 +83,7 @@ export function PlatformOptionDropdown({
 
   const handleChange = (key: string, value: string) => {
     onChange?.(key, value);
-    navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          [key]: value,
-        },
-      },
-      {replace: true}
-    );
+    navigate({...location, query: {...location.query, [key]: value}}, {replace: true});
   };
 
   if (Object.keys(platformOptions).length === 0) {

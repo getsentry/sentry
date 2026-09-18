@@ -33,9 +33,7 @@ function TestForm({
 }: TestFormProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      fruit: defaultValue,
-    },
+    defaultValues: {fruit: defaultValue},
     validators: validator ? {onBlur: validator} : undefined,
   });
 
@@ -58,9 +56,7 @@ function TestForm({
   );
 }
 
-const testSchema = z.object({
-  fruit: z.string(),
-});
+const testSchema = z.object({fruit: z.string()});
 
 interface AutoSaveTestFormProps {
   mutationFn: (data: {fruit: string}) => Promise<{fruit: string}>;
@@ -97,10 +93,7 @@ describe('SelectField', () => {
   describe('types', () => {
     it('should enforce correct types for single select', () => {
       function TypeTestSingleSelect() {
-        const form = useScrapsForm({
-          ...defaultFormOptions,
-          defaultValues: {fruit: ''},
-        });
+        const form = useScrapsForm({...defaultFormOptions, defaultValues: {fruit: ''}});
 
         return (
           <form.AppForm form={form}>
@@ -184,10 +177,7 @@ describe('SelectField', () => {
 
     it('should not allow array value with multiple=false', () => {
       function TypeTestInvalidSingle() {
-        const form = useScrapsForm({
-          ...defaultFormOptions,
-          defaultValues: {fruit: ''},
-        });
+        const form = useScrapsForm({...defaultFormOptions, defaultValues: {fruit: ''}});
 
         return (
           <form.AppForm form={form}>
@@ -237,10 +227,7 @@ describe('SelectField', () => {
 
     it('should not allow null in onChange when clearable is false', () => {
       function TypeTestNotClearable() {
-        const form = useScrapsForm({
-          ...defaultFormOptions,
-          defaultValues: {fruit: ''},
-        });
+        const form = useScrapsForm({...defaultFormOptions, defaultValues: {fruit: ''}});
 
         return (
           <form.AppForm form={form}>
@@ -264,9 +251,7 @@ describe('SelectField', () => {
 
     it('should allow number values', () => {
       function TypeTestNumberValues() {
-        const form = useScrapsForm({
-          defaultValues: {number: 0},
-        });
+        const form = useScrapsForm({defaultValues: {number: 0}});
 
         return (
           <form.AppForm form={form}>
@@ -295,9 +280,7 @@ describe('SelectField', () => {
 
     it('should allow objects as values', () => {
       function TypeTestNumberValues() {
-        const form = useScrapsForm({
-          defaultValues: {number: {id: 0}},
-        });
+        const form = useScrapsForm({defaultValues: {number: {id: 0}}});
 
         return (
           <form.AppForm form={form}>
@@ -634,9 +617,7 @@ describe('SelectField a11y', () => {
   });
 
   it('has aria-invalid true when validation fails', async () => {
-    const validationSchema = z.object({
-      fruit: z.string().min(1, 'Selection required'),
-    });
+    const validationSchema = z.object({fruit: z.string().min(1, 'Selection required')});
 
     render(<TestForm label="Favorite Fruit" validator={validationSchema} />);
 
@@ -665,9 +646,7 @@ interface MultiTestFormProps {
 function MultiTestForm({label, defaultValue = [], disabled}: MultiTestFormProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      tags: defaultValue,
-    },
+    defaultValues: {tags: defaultValue},
   });
 
   return (
@@ -755,9 +734,7 @@ describe('SelectField multiple', () => {
   });
 });
 
-const multiTestSchema = z.object({
-  tags: z.array(z.string()),
-});
+const multiTestSchema = z.object({tags: z.array(z.string())});
 
 interface MultiAutoSaveTestFormProps {
   mutationFn: (data: {tags: string[]}) => Promise<{tags: string[]}>;

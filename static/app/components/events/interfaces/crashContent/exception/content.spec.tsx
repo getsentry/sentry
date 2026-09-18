@@ -49,9 +49,7 @@ describe('Exception Content', () => {
       body: projectDetails,
     });
 
-    const {organization: org} = initializeOrg({
-      projects: [project],
-    });
+    const {organization: org} = initializeOrg({projects: [project]});
 
     const event = EventFixture({
       _meta: {
@@ -62,20 +60,10 @@ describe('Exception Content', () => {
                 '0': {
                   mechanism: {
                     data: {
-                      relevant_address: {
-                        '': {
-                          rem: [['project:0', 's', 0, 0]],
-                          len: 43,
-                        },
-                      },
+                      relevant_address: {'': {rem: [['project:0', 's', 0, 0]], len: 43}},
                     },
                   },
-                  value: {
-                    '': {
-                      rem: [['project:0', 's', 0, 0]],
-                      len: 43,
-                    },
-                  },
+                  value: {'': {rem: [['project:0', 's', 0, 0]], len: 43}},
                 },
               },
             },
@@ -188,16 +176,8 @@ describe('Exception Content', () => {
           type: EntryType.EXCEPTION,
           data: {
             values: [
-              {
-                stacktrace: {
-                  frames: [EventStacktraceFrameFixture({platform: null})],
-                },
-              },
-              {
-                stacktrace: {
-                  frames: [EventStacktraceFrameFixture({platform: 'cocoa'})],
-                },
-              },
+              {stacktrace: {frames: [EventStacktraceFrameFixture({platform: null})]}},
+              {stacktrace: {frames: [EventStacktraceFrameFixture({platform: 'cocoa'})]}},
             ],
           },
         },
@@ -215,10 +195,7 @@ describe('Exception Content', () => {
       />,
       {
         initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
-          },
+          location: {pathname: `/organizations/${organization.slug}/issues/`, query: {}},
           route: '/organizations/:orgId/issues/',
         },
       }
@@ -244,10 +221,7 @@ describe('Exception Content', () => {
               {
                 type: 'ValueError',
                 value: 'test',
-                mechanism: {
-                  handled: true,
-                  type: '',
-                },
+                mechanism: {handled: true, type: ''},
                 stacktrace: {
                   framesOmitted: null,
                   hasSystemFrames: false,
@@ -293,10 +267,7 @@ describe('Exception Content', () => {
       />,
       {
         initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
-          },
+          location: {pathname: `/organizations/${organization.slug}/issues/`, query: {}},
           route: '/organizations/:orgId/issues/',
         },
       }
@@ -318,10 +289,7 @@ describe('Exception Content', () => {
     beforeEach(() => {
       MockApiClient.clearMockResponses();
 
-      const promptResponse = {
-        dismissed_ts: undefined,
-        snoozed_ts: undefined,
-      };
+      const promptResponse = {dismissed_ts: undefined, snoozed_ts: undefined};
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
         body: promptResponse,
@@ -346,10 +314,7 @@ describe('Exception Content', () => {
     it('displays exception group tree under first exception', () => {
       render(<Content {...defaultProps} />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
-          },
+          location: {pathname: `/organizations/${organization.slug}/issues/`, query: {}},
           route: '/organizations/:orgId/issues/',
         },
       });
@@ -370,10 +335,7 @@ describe('Exception Content', () => {
     it('displays exception group tree in first frame when there is no other context', () => {
       render(<Content {...defaultProps} />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
-          },
+          location: {pathname: `/organizations/${organization.slug}/issues/`, query: {}},
           route: '/organizations/:orgId/issues/',
         },
       });
@@ -389,10 +351,7 @@ describe('Exception Content', () => {
     it('hides sub-groups by default', async () => {
       render(<Content {...defaultProps} />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
-          },
+          location: {pathname: `/organizations/${organization.slug}/issues/`, query: {}},
           route: '/organizations/:orgId/issues/',
         },
       });
@@ -421,10 +380,7 @@ describe('Exception Content', () => {
     it('auto-opens sub-groups when clicking link in tree', async () => {
       render(<Content {...defaultProps} />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
-          },
+          location: {pathname: `/organizations/${organization.slug}/issues/`, query: {}},
           route: '/organizations/:orgId/issues/',
         },
       });
@@ -450,10 +406,7 @@ describe('Exception Content', () => {
     beforeEach(() => {
       MockApiClient.clearMockResponses();
 
-      const promptResponse = {
-        dismissed_ts: undefined,
-        snoozed_ts: undefined,
-      };
+      const promptResponse = {dismissed_ts: undefined, snoozed_ts: undefined};
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
         body: promptResponse,
@@ -478,10 +431,7 @@ describe('Exception Content', () => {
     it('only expands the first 3 exceptions by default', () => {
       render(<Content {...defaultProps} />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
-          },
+          location: {pathname: `/organizations/${organization.slug}/issues/`, query: {}},
           route: '/organizations/:orgId/issues/',
         },
       });
@@ -503,10 +453,7 @@ describe('Exception Content', () => {
     it('can expand and collapse all exceptions', async () => {
       render(<Content {...defaultProps} />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {},
-          },
+          location: {pathname: `/organizations/${organization.slug}/issues/`, query: {}},
           route: '/organizations/:orgId/issues/',
         },
       });

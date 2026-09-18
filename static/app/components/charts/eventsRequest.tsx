@@ -323,10 +323,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
       );
       addErrorMessage(errorMessage, {append: true});
 
-      this.setState({
-        errored: true,
-        errorMessage,
-      });
+      this.setState({errored: true, errorMessage});
     } else {
       try {
         api.clear();
@@ -343,10 +340,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
         if (onError) {
           onError(errorMessage);
         }
-        this.setState({
-          errored: true,
-          errorMessage,
-        });
+        this.setState({errored: true, errorMessage});
       }
     }
 
@@ -431,10 +425,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
    * Aggregate all counts for each time stamp
    */
   transformAggregatedTimeseries(data: EventsStatsData, seriesName = ''): Series {
-    return {
-      seriesName,
-      data: this.calculateTotalsPerTimestamp(data),
-    };
+    return {seriesName, data: this.calculateTotalsPerTimestamp(data)};
   }
 
   processData(response: EventsStats, seriesIndex = 0, seriesName?: string) {
@@ -478,10 +469,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
               start: (response.start + response.end) * 500,
               end: response.end * 1000,
             }
-          : {
-              start: response.start * 1000,
-              end: response.end * 1000,
-            }
+          : {start: response.start * 1000, end: response.end * 1000}
         : undefined;
 
     const processedData = {
@@ -649,13 +637,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
         ...props,
       });
     }
-    return children({
-      loading,
-      reloading,
-      errored,
-      errorMessage,
-      ...props,
-    });
+    return children({loading, reloading, errored, errorMessage, ...props});
   }
 }
 

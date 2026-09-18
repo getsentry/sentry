@@ -160,10 +160,7 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
         flamegraphCanvasRef,
         props.differentialFlamegraph,
         flamegraphTheme,
-        {
-          colorCoding,
-          draw_border: true,
-        },
+        {colorCoding, draw_border: true},
       ]
     );
 

@@ -68,31 +68,20 @@ const MOCKED_PROCESSING_SESSION = {
 };
 
 describe('CreateFromSeer', () => {
-  const organization = OrganizationFixture({
-    features: ['dashboards-edit'],
-  });
+  const organization = OrganizationFixture({features: ['dashboards-edit']});
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([ProjectFixture()]);
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/measurements-meta/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
@@ -115,10 +104,7 @@ describe('CreateFromSeer', () => {
   });
 
   it('shows loading state while session is processing', () => {
-    MockApiClient.addMockResponse({
-      url: SEER_API_URL,
-      body: MOCKED_PROCESSING_SESSION,
-    });
+    MockApiClient.addMockResponse({url: SEER_API_URL, body: MOCKED_PROCESSING_SESSION});
 
     render(<CreateFromSeer />, {
       organization,
@@ -136,10 +122,7 @@ describe('CreateFromSeer', () => {
   });
 
   it('renders dashboard and chat panel when session is completed', async () => {
-    MockApiClient.addMockResponse({
-      url: SEER_API_URL,
-      body: MOCKED_COMPLETED_SESSION,
-    });
+    MockApiClient.addMockResponse({url: SEER_API_URL, body: MOCKED_COMPLETED_SESSION});
 
     render(<CreateFromSeer />, {
       organization,
@@ -158,10 +141,7 @@ describe('CreateFromSeer', () => {
   });
 
   it('sends user input message to seer through the chat panel', async () => {
-    MockApiClient.addMockResponse({
-      url: SEER_API_URL,
-      body: MOCKED_COMPLETED_SESSION,
-    });
+    MockApiClient.addMockResponse({url: SEER_API_URL, body: MOCKED_COMPLETED_SESSION});
 
     const postMock = MockApiClient.addMockResponse({
       url: SEER_API_URL,

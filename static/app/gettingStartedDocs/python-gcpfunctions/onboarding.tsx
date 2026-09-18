@@ -72,9 +72,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock(),
       ],
@@ -90,11 +88,7 @@ export const onboarding: OnboardingConfig = {
             'You can use the Google Cloud Functions integration for the Python SDK like this:'
           ),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getSdkSetupSnippet(params),
-        },
+        {type: 'code', language: 'python', code: getSdkSetupSnippet(params)},
         alternativeProfiling(params),
         {
           type: 'text',
@@ -127,11 +121,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getTimeoutWarningSnippet(params),
-        },
+        {type: 'code', language: 'python', code: getTimeoutWarningSnippet(params)},
         {
           type: 'text',
           text: t(

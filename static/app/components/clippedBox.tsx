@@ -251,11 +251,7 @@ export function ClippedBox(props: ClippedBoxProps) {
 
       hasMeasuredRef.current = true;
 
-      const _clipped = isClipped({
-        clipFlex,
-        clipHeight,
-        height,
-      });
+      const _clipped = isClipped({clipFlex, clipHeight, height});
 
       if (!_clipped) {
         clearMaxHeight(wrapper);

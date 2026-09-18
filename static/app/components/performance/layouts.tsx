@@ -4,9 +4,7 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
  * Common performance layouts
  */
 
-type PerformanceLayoutBodyRowProps = Omit<GridProps, 'columns'> & {
-  minSize: number;
-};
+type PerformanceLayoutBodyRowProps = Omit<GridProps, 'columns'> & {minSize: number};
 
 export function PerformanceLayoutBodyRow({
   minSize,

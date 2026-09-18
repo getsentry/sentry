@@ -164,10 +164,7 @@ export function InvestigationsPage() {
   });
 
   function handleSearch(nextQuery: string) {
-    setQueryParams({
-      query: nextQuery || null,
-      cursor: null,
-    });
+    setQueryParams({query: nextQuery || null, cursor: null});
   }
 
   function renderActions(investigation: InvestigationListItem) {

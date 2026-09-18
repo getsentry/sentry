@@ -24,11 +24,7 @@ import {EditConnectedMonitors} from './editConnectedMonitors';
 
 describe('EditConnectedMonitors', () => {
   const project = ProjectFixture({id: '1', slug: 'test-project'});
-  const otherProject = ProjectFixture({
-    id: '2',
-    slug: 'other-project',
-    isMember: false,
-  });
+  const otherProject = ProjectFixture({id: '2', slug: 'other-project', isMember: false});
   const detector1 = MetricDetectorFixture({
     id: '1',
     name: 'Metric Monitor 1',
@@ -46,10 +42,7 @@ describe('EditConnectedMonitors', () => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project, otherProject]);
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       method: 'GET',
@@ -142,9 +135,7 @@ describe('EditConnectedMonitors', () => {
 
     await userEvent.click(screen.getByText('Connect Monitors'));
 
-    const drawer = await screen.findByRole('complementary', {
-      name: 'Connect Monitors',
-    });
+    const drawer = await screen.findByRole('complementary', {name: 'Connect Monitors'});
 
     await within(drawer).findByText(detector1.name);
 
@@ -190,9 +181,7 @@ describe('EditConnectedMonitors', () => {
     expect(await screen.findByText(detector1.name)).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Edit Monitors'));
-    const drawer = await screen.findByRole('complementary', {
-      name: 'Connect Monitors',
-    });
+    const drawer = await screen.findByRole('complementary', {name: 'Connect Monitors'});
 
     const connectedMonitorsList = await screen.findByTestId(
       'drawer-connected-monitors-list'
@@ -218,11 +207,7 @@ describe('EditConnectedMonitors', () => {
       url: '/organizations/org-slug/detectors/',
       method: 'GET',
       body: [issueStreamDetector],
-      match: [
-        MockApiClient.matchQuery({
-          id: [issueStreamDetector.id],
-        }),
-      ],
+      match: [MockApiClient.matchQuery({id: [issueStreamDetector.id]})],
     });
 
     const setConnectedIds = jest.fn();
@@ -337,9 +322,7 @@ describe('EditConnectedMonitors', () => {
       <Form model={new FormModel()}>
         <EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />
       </Form>,
-      {
-        organization: OrganizationFixture({access: ['org:read', 'alerts:read']}),
-      }
+      {organization: OrganizationFixture({access: ['org:read', 'alerts:read']})}
     );
 
     await userEvent.click(await screen.findByText('Select projects'));
@@ -376,14 +359,9 @@ describe('EditConnectedMonitors', () => {
     const {router} = render(
       <EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />,
       {
-        organization: OrganizationFixture({
-          access: ['org:read', 'alerts:read'],
-        }),
+        organization: OrganizationFixture({access: ['org:read', 'alerts:read']}),
         initialRouterConfig: {
-          location: {
-            pathname: '/',
-            query: {project: selectedProjects.map(String)},
-          },
+          location: {pathname: '/', query: {project: selectedProjects.map(String)}},
         },
       }
     );
@@ -392,9 +370,7 @@ describe('EditConnectedMonitors', () => {
       await screen.findByRole('radio', {name: 'Alert on specific monitors'})
     );
     await userEvent.click(screen.getByRole('button', {name: 'Connect Monitors'}));
-    const drawer = await screen.findByRole('complementary', {
-      name: 'Connect Monitors',
-    });
+    const drawer = await screen.findByRole('complementary', {name: 'Connect Monitors'});
 
     expect(await within(drawer).findByText(detector1.name)).toBeInTheDocument();
     expect(within(drawer).queryByRole('alert')).not.toBeInTheDocument();
@@ -446,10 +422,7 @@ describe('EditConnectedMonitors', () => {
       ...project,
       access: ['project:read', 'alerts:write'],
     });
-    const readOnlyProject = ProjectFixture({
-      ...otherProject,
-      isMember: true,
-    });
+    const readOnlyProject = ProjectFixture({...otherProject, isMember: true});
     const otherWritableProject = ProjectFixture({
       id: '3',
       slug: 'other-writable-project',
@@ -472,26 +445,20 @@ describe('EditConnectedMonitors', () => {
         access: ['org:read', 'alerts:write'],
         features: ['open-membership'],
       }),
-      initialRouterConfig: {
-        location: {pathname: '/', query: {project: ['1', '2']}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {project: ['1', '2']}}},
     });
 
     await userEvent.click(
       await screen.findByRole('radio', {name: 'Alert on specific monitors'})
     );
     await userEvent.click(screen.getByRole('button', {name: 'Connect Monitors'}));
-    const drawer = await screen.findByRole('complementary', {
-      name: 'Connect Monitors',
-    });
+    const drawer = await screen.findByRole('complementary', {name: 'Connect Monitors'});
 
     expect(await within(drawer).findByText(detector1.name)).toBeInTheDocument();
     expect(detectorsRequest).toHaveBeenCalledTimes(1);
     expect(detectorsRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({project: [1, 2]}),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [1, 2]})})
     );
 
     await userEvent.click(within(drawer).getByTestId('page-filter-project-selector'));

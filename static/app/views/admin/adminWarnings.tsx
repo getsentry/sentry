@@ -13,9 +13,7 @@ type Data = {
 function AdminWarnings() {
   const {data, isPending, isError} = useApiQuery<Data>(
     [getApiUrl('/internal/warnings/')],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   if (isPending) {

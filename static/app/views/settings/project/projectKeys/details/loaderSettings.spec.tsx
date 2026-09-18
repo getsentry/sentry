@@ -42,10 +42,7 @@ function renderMockRequests(
 
 describe('Loader Script Settings', () => {
   it('renders Loader Script Settings', () => {
-    const params = {
-      projectId: '1',
-      keyId: '1',
-    };
+    const params = {projectId: '1', keyId: '1'};
 
     const {organization, project} = initializeOrg();
 
@@ -53,10 +50,7 @@ describe('Loader Script Settings', () => {
 
     render(
       <KeySettings
-        data={{
-          ...ProjectKeysFixture()[0],
-          dynamicSdkLoaderOptions,
-        }}
+        data={{...ProjectKeysFixture()[0], dynamicSdkLoaderOptions}}
         updateData={updateData}
         onRemove={jest.fn()}
         organization={organization}
@@ -73,37 +67,26 @@ describe('Loader Script Settings', () => {
     expect(screen.getByText('Enable User Feedback')).toBeInTheDocument();
     expect(screen.getByText('Enable SDK debugging')).toBeInTheDocument();
 
-    const performanceCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Tracing',
-    });
+    const performanceCheckbox = screen.getByRole('checkbox', {name: 'Enable Tracing'});
     expect(performanceCheckbox).toBeEnabled();
     expect(performanceCheckbox).not.toBeChecked();
 
-    const replayCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Session Replay',
-    });
+    const replayCheckbox = screen.getByRole('checkbox', {name: 'Enable Session Replay'});
     expect(replayCheckbox).toBeEnabled();
     expect(replayCheckbox).toBeChecked();
 
-    const feedbackCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable User Feedback',
-    });
+    const feedbackCheckbox = screen.getByRole('checkbox', {name: 'Enable User Feedback'});
     expect(feedbackCheckbox).toBeEnabled();
     expect(feedbackCheckbox).not.toBeChecked();
 
-    const debugCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable SDK debugging',
-    });
+    const debugCheckbox = screen.getByRole('checkbox', {name: 'Enable SDK debugging'});
     expect(debugCheckbox).toBeEnabled();
     expect(debugCheckbox).not.toBeChecked();
   });
 
   it('allows to toggle options', async () => {
     const {organization, project} = initializeOrg();
-    const params = {
-      projectSlug: project.slug,
-      keyId: '1',
-    };
+    const params = {projectSlug: project.slug, keyId: '1'};
 
     const mockRequests = renderMockRequests(
       organization.slug,
@@ -118,27 +101,18 @@ describe('Loader Script Settings', () => {
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={{
-          ...ProjectKeysFixture()[0],
-          dynamicSdkLoaderOptions,
-        }}
+        data={{...ProjectKeysFixture()[0], dynamicSdkLoaderOptions}}
         updateData={updateData}
       />
     );
 
     // Toggle performance option
-    await userEvent.click(
-      screen.getByRole('checkbox', {
-        name: 'Enable Tracing',
-      })
-    );
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Enable Tracing'}));
 
     await waitFor(() => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
-        expect.objectContaining({
-          data: {dynamicSdkLoaderOptions: {hasPerformance: true}},
-        })
+        expect.objectContaining({data: {dynamicSdkLoaderOptions: {hasPerformance: true}}})
       );
     });
 
@@ -149,9 +123,7 @@ describe('Loader Script Settings', () => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
-          data: expect.objectContaining({
-            browserSdkVersion: '6.x',
-          }),
+          data: expect.objectContaining({browserSdkVersion: '6.x'}),
         })
       );
     });
@@ -159,10 +131,7 @@ describe('Loader Script Settings', () => {
 
   it('resets performance & replay when selecting SDK version <7', async () => {
     const {organization, project} = initializeOrg();
-    const params = {
-      projectSlug: project.slug,
-      keyId: '1',
-    };
+    const params = {projectSlug: project.slug, keyId: '1'};
 
     const mockRequests = renderMockRequests(
       organization.slug,
@@ -207,10 +176,7 @@ describe('Loader Script Settings', () => {
 
   it('disabled performance, replay & feedback when SDK version <7 is selected', () => {
     const {organization, project} = initializeOrg();
-    const params = {
-      projectSlug: project.slug,
-      keyId: '1',
-    };
+    const params = {projectSlug: project.slug, keyId: '1'};
 
     render(
       <LoaderSettings
@@ -232,24 +198,16 @@ describe('Loader Script Settings', () => {
       />
     );
 
-    const performanceCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Tracing',
-    });
+    const performanceCheckbox = screen.getByRole('checkbox', {name: 'Enable Tracing'});
     expect(performanceCheckbox).not.toBeChecked();
 
-    const replayCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Session Replay',
-    });
+    const replayCheckbox = screen.getByRole('checkbox', {name: 'Enable Session Replay'});
     expect(replayCheckbox).not.toBeChecked();
 
-    const feedbackCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable User Feedback',
-    });
+    const feedbackCheckbox = screen.getByRole('checkbox', {name: 'Enable User Feedback'});
     expect(feedbackCheckbox).not.toBeChecked();
 
-    const debugCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable SDK debugging',
-    });
+    const debugCheckbox = screen.getByRole('checkbox', {name: 'Enable SDK debugging'});
     expect(debugCheckbox).toBeChecked();
 
     expect(
@@ -259,10 +217,7 @@ describe('Loader Script Settings', () => {
 
   it('shows replay message when it is enabled', () => {
     const {organization, project} = initializeOrg();
-    const params = {
-      projectSlug: project.slug,
-      keyId: '1',
-    };
+    const params = {projectSlug: project.slug, keyId: '1'};
 
     const data: ProjectKey = {
       ...ProjectKeysFixture()[0],
@@ -308,15 +263,9 @@ describe('Loader Script Settings', () => {
 
   it('calls updateData on successful toggle', async () => {
     const {organization, project} = initializeOrg();
-    const params = {
-      projectSlug: project.slug,
-      keyId: '1',
-    };
+    const params = {projectSlug: project.slug, keyId: '1'};
 
-    const data: ProjectKey = {
-      ...ProjectKeysFixture()[0],
-      dynamicSdkLoaderOptions,
-    };
+    const data: ProjectKey = {...ProjectKeysFixture()[0], dynamicSdkLoaderOptions};
 
     const responseBody = {
       ...data,
@@ -354,10 +303,7 @@ describe('Loader Script Settings', () => {
 
   it('sends correct payload when toggling debug', async () => {
     const {organization, project} = initializeOrg();
-    const params = {
-      projectSlug: project.slug,
-      keyId: '1',
-    };
+    const params = {projectSlug: project.slug, keyId: '1'};
 
     const mockRequest = renderMockRequests(
       organization.slug,
@@ -370,10 +316,7 @@ describe('Loader Script Settings', () => {
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={{
-          ...ProjectKeysFixture()[0],
-          dynamicSdkLoaderOptions,
-        }}
+        data={{...ProjectKeysFixture()[0], dynamicSdkLoaderOptions}}
         updateData={jest.fn()}
       />
     );
@@ -383,19 +326,14 @@ describe('Loader Script Settings', () => {
     await waitFor(() => {
       expect(mockRequest.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
-        expect.objectContaining({
-          data: {dynamicSdkLoaderOptions: {hasDebug: true}},
-        })
+        expect.objectContaining({data: {dynamicSdkLoaderOptions: {hasDebug: true}}})
       );
     });
   });
 
   it('sends correct payload when toggling replay', async () => {
     const {organization, project} = initializeOrg();
-    const params = {
-      projectSlug: project.slug,
-      keyId: '1',
-    };
+    const params = {projectSlug: project.slug, keyId: '1'};
 
     const mockRequest = renderMockRequests(
       organization.slug,
@@ -408,10 +346,7 @@ describe('Loader Script Settings', () => {
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={{
-          ...ProjectKeysFixture()[0],
-          dynamicSdkLoaderOptions,
-        }}
+        data={{...ProjectKeysFixture()[0], dynamicSdkLoaderOptions}}
         updateData={jest.fn()}
       />
     );
@@ -422,19 +357,14 @@ describe('Loader Script Settings', () => {
     await waitFor(() => {
       expect(mockRequest.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
-        expect.objectContaining({
-          data: {dynamicSdkLoaderOptions: {hasReplay: false}},
-        })
+        expect.objectContaining({data: {dynamicSdkLoaderOptions: {hasReplay: false}}})
       );
     });
   });
 
   it('only sends the changed field so concurrent toggles do not clobber each other', async () => {
     const {organization, project} = initializeOrg();
-    const params = {
-      projectSlug: project.slug,
-      keyId: '1',
-    };
+    const params = {projectSlug: project.slug, keyId: '1'};
 
     const mockRequest = renderMockRequests(
       organization.slug,
@@ -447,10 +377,7 @@ describe('Loader Script Settings', () => {
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={{
-          ...ProjectKeysFixture()[0],
-          dynamicSdkLoaderOptions,
-        }}
+        data={{...ProjectKeysFixture()[0], dynamicSdkLoaderOptions}}
         updateData={jest.fn()}
       />
     );
@@ -467,26 +394,19 @@ describe('Loader Script Settings', () => {
     await waitFor(() => {
       expect(mockRequest.projectKeys).toHaveBeenCalledWith(
         url,
-        expect.objectContaining({
-          data: {dynamicSdkLoaderOptions: {hasPerformance: true}},
-        })
+        expect.objectContaining({data: {dynamicSdkLoaderOptions: {hasPerformance: true}}})
       );
     });
 
     expect(mockRequest.projectKeys).toHaveBeenCalledWith(
       url,
-      expect.objectContaining({
-        data: {dynamicSdkLoaderOptions: {hasDebug: true}},
-      })
+      expect.objectContaining({data: {dynamicSdkLoaderOptions: {hasDebug: true}}})
     );
   });
 
   it('disables logs and metrics for SDK versions below 10.x', () => {
     const {organization, project} = initializeOrg();
-    const params = {
-      projectSlug: project.slug,
-      keyId: '1',
-    };
+    const params = {projectSlug: project.slug, keyId: '1'};
 
     render(
       <LoaderSettings
@@ -502,9 +422,7 @@ describe('Loader Script Settings', () => {
       />
     );
 
-    const logsCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Logs and Metrics',
-    });
+    const logsCheckbox = screen.getByRole('checkbox', {name: 'Enable Logs and Metrics'});
     expect(logsCheckbox).toBeDisabled();
     expect(logsCheckbox).not.toBeChecked();
 
@@ -515,10 +433,7 @@ describe('Loader Script Settings', () => {
 
   it('enables logs and metrics for SDK version 10.x', () => {
     const {organization, project} = initializeOrg();
-    const params = {
-      projectSlug: project.slug,
-      keyId: '1',
-    };
+    const params = {projectSlug: project.slug, keyId: '1'};
 
     render(
       <LoaderSettings
@@ -537,24 +452,16 @@ describe('Loader Script Settings', () => {
       />
     );
 
-    const logsCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Logs and Metrics',
-    });
+    const logsCheckbox = screen.getByRole('checkbox', {name: 'Enable Logs and Metrics'});
     expect(logsCheckbox).toBeEnabled();
     expect(logsCheckbox).toBeChecked();
   });
 
   it('renders the loader script tag', () => {
     const {organization, project} = initializeOrg();
-    const params = {
-      projectSlug: project.slug,
-      keyId: '1',
-    };
+    const params = {projectSlug: project.slug, keyId: '1'};
 
-    const data: ProjectKey = {
-      ...ProjectKeysFixture()[0],
-      dynamicSdkLoaderOptions,
-    };
+    const data: ProjectKey = {...ProjectKeysFixture()[0], dynamicSdkLoaderOptions};
 
     render(
       <LoaderSettings
@@ -573,10 +480,7 @@ describe('Loader Script Settings', () => {
 
   it('shows performance message when it is enabled', () => {
     const {organization, project} = initializeOrg();
-    const params = {
-      projectSlug: project.slug,
-      keyId: '1',
-    };
+    const params = {projectSlug: project.slug, keyId: '1'};
 
     const data: ProjectKey = {
       ...ProjectKeysFixture()[0],
@@ -593,16 +497,10 @@ describe('Loader Script Settings', () => {
       />
     );
 
-    expect(
-      screen.getByText('tracesSampleRate: 1.0', {
-        exact: false,
-      })
-    ).toBeInTheDocument();
+    expect(screen.getByText('tracesSampleRate: 1.0', {exact: false})).toBeInTheDocument();
 
     expect(
-      screen.getByText('distributed tracing to same-origin requests', {
-        exact: false,
-      })
+      screen.getByText('distributed tracing to same-origin requests', {exact: false})
     ).toBeInTheDocument();
 
     data.dynamicSdkLoaderOptions.hasPerformance = false;
@@ -618,15 +516,11 @@ describe('Loader Script Settings', () => {
     );
 
     expect(
-      screen.queryByText('tracesSampleRate: 1.0', {
-        exact: false,
-      })
+      screen.queryByText('tracesSampleRate: 1.0', {exact: false})
     ).not.toBeInTheDocument();
 
     expect(
-      screen.queryByText('distributed tracing to same-origin requests', {
-        exact: false,
-      })
+      screen.queryByText('distributed tracing to same-origin requests', {exact: false})
     ).not.toBeInTheDocument();
   });
 });

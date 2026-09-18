@@ -24,19 +24,13 @@ describe('getSpanHash', () => {
   it('handles both transaction-derived and segment-derived spans', () => {
     // Segment-derived spans
     expect(
-      getSpanHash({
-        span_id: '1121201212312012',
-        data: {hash: 'dogs_are_great'},
-      })
+      getSpanHash({span_id: '1121201212312012', data: {hash: 'dogs_are_great'}})
     ).toBe('dogs_are_great');
 
     // Transaction-derived spans
-    expect(
-      getSpanHash({
-        span_id: '1121201212312012',
-        hash: 'dogs_are_great',
-      })
-    ).toBe('dogs_are_great');
+    expect(getSpanHash({span_id: '1121201212312012', hash: 'dogs_are_great'})).toBe(
+      'dogs_are_great'
+    );
   });
 });
 
@@ -52,10 +46,7 @@ describe('getSpanCategory', () => {
 
     // Transaction-derived spans
     expect(
-      getSpanCategory({
-        span_id: '1121201212312012',
-        sentry_tags: {category: 'good_dogs'},
-      })
+      getSpanCategory({span_id: '1121201212312012', sentry_tags: {category: 'good_dogs'}})
     ).toBe('good_dogs');
   });
 });

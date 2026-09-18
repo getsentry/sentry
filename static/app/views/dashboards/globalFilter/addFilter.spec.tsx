@@ -9,16 +9,8 @@ import {WidgetType} from 'sentry/views/dashboards/types';
 describe('AddFilter', () => {
   // Mock filter keys returned by the search bar data provider
   const mockFilterKeys: TagCollection = {
-    'browser.name': {
-      key: 'browser.name',
-      name: 'Browser Name',
-      kind: FieldKind.FIELD,
-    },
-    environment: {
-      key: 'environment',
-      name: 'Environment',
-      kind: FieldKind.FIELD,
-    },
+    'browser.name': {key: 'browser.name', name: 'Browser Name', kind: FieldKind.FIELD},
+    environment: {key: 'environment', name: 'Environment', kind: FieldKind.FIELD},
     'unsupported.function': {
       key: 'unsupported.function',
       name: 'Unsupported Function',

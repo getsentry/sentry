@@ -38,9 +38,7 @@ export default function TempestSettings() {
   const location = useLocation();
   const navigate = useNavigate();
   const {dismiss: dismissPS5Warning, isDismissed: isPS5WarningDismissed} =
-    useDismissAlert({
-      key: PS5_WARNING_DISMISS_KEY,
-    });
+    useDismissAlert({key: PS5_WARNING_DISMISS_KEY});
 
   const getCurrentTab = (): Tab => {
     const queryTab = decodeScalar(location?.query?.tab);
@@ -52,17 +50,12 @@ export default function TempestSettings() {
   const tab = getCurrentTab();
 
   const handleTabChange = (newTab: Tab) => {
-    const newQuery: any = {
-      ...location.query,
-      tab: newTab,
-    };
+    const newQuery: any = {...location.query, tab: newTab};
     // Reset guided step when switching tabs to avoid cross-tab bleed
     delete newQuery.guidedStep;
     // setupInstructions is only available on the retail tab
     delete newQuery.setupInstructions;
-    navigate({
-      query: newQuery,
-    });
+    navigate({query: newQuery});
   };
 
   if (!hasTempestAccess(organization)) {

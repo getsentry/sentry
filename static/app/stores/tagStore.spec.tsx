@@ -12,36 +12,20 @@ describe('TagStore', () => {
       jest.spyOn(TagStore, 'trigger');
 
       TagStore.loadTagsSuccess([
-        {
-          key: 'mytag',
-          name: 'My Custom Tag',
-        },
+        {key: 'mytag', name: 'My Custom Tag'},
         {key: 'other', name: 'Other'},
       ]);
 
       const tags = TagStore.getState();
-      expect(tags.mytag).toEqual({
-        key: 'mytag',
-        name: 'My Custom Tag',
-        values: [],
-      });
-      expect(tags.other).toEqual({
-        key: 'other',
-        name: 'Other',
-        values: [],
-      });
+      expect(tags.mytag).toEqual({key: 'mytag', name: 'My Custom Tag', values: []});
+      expect(tags.other).toEqual({key: 'other', name: 'Other', values: []});
 
       expect(TagStore.trigger).toHaveBeenCalledTimes(1);
     });
   });
 
   it('returns a stable reference from getState', () => {
-    TagStore.loadTagsSuccess([
-      {
-        key: 'mytag',
-        name: 'My Custom Tag',
-      },
-    ]);
+    TagStore.loadTagsSuccess([{key: 'mytag', name: 'My Custom Tag'}]);
     const state = TagStore.getState();
     expect(Object.is(state, TagStore.getState())).toBe(true);
   });

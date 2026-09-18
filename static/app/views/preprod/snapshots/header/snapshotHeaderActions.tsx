@@ -62,10 +62,7 @@ export function SnapshotHeaderActions({
   useEffect(() => () => clientRef.current.clear(), []);
   const navigate = useNavigate();
   const organization = useOrganization();
-  const approveButtonSize = useResponsivePropValue<'xs' | 'sm'>({
-    zero: 'xs',
-    sm: 'sm',
-  });
+  const approveButtonSize = useResponsivePropValue<'xs' | 'sm'>({zero: 'xs', sm: 'sm'});
   const isSentryEmployee = useIsSentryEmployee();
   const project = ProjectsStore.getById(data.project_id);
   const [isApproving, setIsApproving] = useState(false);
@@ -85,11 +82,7 @@ export function SnapshotHeaderActions({
     username: a.username ?? '',
     ip_address: '',
     avatar: a.avatar_url
-      ? {
-          avatarType: 'upload' as const,
-          avatarUuid: '',
-          avatarUrl: a.avatar_url,
-        }
+      ? {avatarType: 'upload' as const, avatarUuid: '', avatarUrl: a.avatar_url}
       : undefined,
   }));
 

@@ -26,11 +26,7 @@ export function TraceLinkNavigationButton({
       size="xs"
       icon={icon}
       aria-label={ariaLabel}
-      tooltipProps={{
-        position: 'top',
-        delay: 400,
-        title: tooltip,
-      }}
+      tooltipProps={{position: 'top', delay: 400, title: tooltip}}
       onClick={onClick}
       disabled={disabled}
       to={to}

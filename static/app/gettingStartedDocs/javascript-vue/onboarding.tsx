@@ -24,9 +24,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
       "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
-      {
-        strong: <strong />,
-      }
+      {strong: <strong />}
     ),
   install: () => [
     {
@@ -75,11 +73,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: getVerifySnippet(params),
-            },
+            {label: 'JavaScript', language: 'javascript', code: getVerifySnippet(params)},
           ],
         },
       ],

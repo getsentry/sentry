@@ -34,10 +34,7 @@ export function getReqRespContentTypes(frame: SpanFrame) {
       resp: frame.data.response?.headers?.['content-type'],
     };
   }
-  return {
-    req: undefined,
-    resp: undefined,
-  };
+  return {req: undefined, resp: undefined};
 }
 
 export function getResponseBodySize(frame: SpanFrame) {

@@ -362,10 +362,7 @@ export const ProfilingDetailsFrameTabs = styled('ul')`
   grid-area: tabs;
 `;
 
-export const ProfilingDetailsListItem = styled('li')<{
-  margin?: 'none';
-  size?: 'sm';
-}>`
+export const ProfilingDetailsListItem = styled('li')<{margin?: 'none'; size?: 'sm'}>`
   height: 100%;
   display: flex;
   align-items: center;

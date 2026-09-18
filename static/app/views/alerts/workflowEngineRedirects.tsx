@@ -89,11 +89,7 @@ function withRuleRedirect<P extends Record<string, any>>(
         }),
         {query: {rule_id: ruleId}},
       ],
-      {
-        staleTime: 0,
-        enabled: !!ruleId,
-        retry: false,
-      }
+      {staleTime: 0, enabled: !!ruleId, retry: false}
     );
 
     if (isPending) {
@@ -131,11 +127,7 @@ function withAlertRuleRedirect<P extends Record<string, any>>(
         }),
         {query: {alert_rule_id: ruleId}},
       ],
-      {
-        staleTime: 0,
-        enabled: !!ruleId && !detectorId,
-        retry: false,
-      }
+      {staleTime: 0, enabled: !!ruleId && !detectorId, retry: false}
     );
 
     if (detectorId) {
@@ -244,11 +236,7 @@ function RedirectToIssue({
         }),
         {query: {incident_identifier: alertId}},
       ],
-      {
-        staleTime: 0,
-        enabled: !!alertId,
-        retry: false,
-      }
+      {staleTime: 0, enabled: !!alertId, retry: false}
     );
 
   if (isOpenPeriodPending) {
@@ -287,10 +275,7 @@ function RedirectToDetector({
         }),
         {query: {alert_rule_id: ruleId}},
       ],
-      {
-        staleTime: 0,
-        retry: false,
-      }
+      {staleTime: 0, retry: false}
     );
 
   if (isDetectorPending) {
@@ -361,11 +346,7 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
           }),
           {query: {incident_identifier: alertId}},
         ],
-        {
-          staleTime: 0,
-          enabled: !!alertId,
-          retry: false,
-        }
+        {staleTime: 0, enabled: !!alertId, retry: false}
       );
 
     if (isPending) {

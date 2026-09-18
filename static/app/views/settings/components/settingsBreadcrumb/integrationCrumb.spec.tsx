@@ -16,12 +16,7 @@ import {IntegrationCrumb} from './integrationCrumb';
 describe('IntegrationCrumb', () => {
   const organization = OrganizationFixture();
   const githubProvider = GitHubIntegrationProviderFixture();
-  const slackProvider = {
-    ...githubProvider,
-    key: 'slack',
-    name: 'Slack',
-    slug: 'slack',
-  };
+  const slackProvider = {...githubProvider, key: 'slack', name: 'Slack', slug: 'slack'};
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -67,10 +62,7 @@ describe('IntegrationCrumb', () => {
 
   it('returns to overview when switching from a configured item', async () => {
     const parentRoute = {path: 'integrations/', name: 'Integrations'};
-    const route = {
-      path: ':providerKey/:integrationId/',
-      name: 'Configure Integration',
-    };
+    const route = {path: ':providerKey/:integrationId/', name: 'Configure Integration'};
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/1/`,
       body: OrganizationIntegrationsFixture({
@@ -83,9 +75,7 @@ describe('IntegrationCrumb', () => {
         organization,
         initialRouterConfig: {
           route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
-          location: {
-            pathname: `/settings/${organization.slug}/integrations/github/1/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/integrations/github/1/`},
         },
       }
     );
@@ -142,9 +132,7 @@ describe('IntegrationCrumb', () => {
       organization,
       initialRouterConfig: {
         route: '/settings/:orgId/sentry-apps/:integrationSlug/',
-        location: {
-          pathname: `/settings/${organization.slug}/sentry-apps/shortcut/`,
-        },
+        location: {pathname: `/settings/${organization.slug}/sentry-apps/shortcut/`},
       },
     });
 

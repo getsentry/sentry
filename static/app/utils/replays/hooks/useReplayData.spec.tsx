@@ -20,10 +20,7 @@ const organization = OrganizationFixture();
 const project = ProjectFixture();
 
 function getMockReplayRecord(replayRecord?: Partial<HydratedReplayRecord>) {
-  const HYDRATED_REPLAY = ReplayRecordFixture({
-    ...replayRecord,
-    project_id: project.id,
-  });
+  const HYDRATED_REPLAY = ReplayRecordFixture({...replayRecord, project_id: project.id});
   const RAW_REPLAY = {
     ...HYDRATED_REPLAY,
     duration: HYDRATED_REPLAY.duration.asSeconds(),
@@ -31,10 +28,7 @@ function getMockReplayRecord(replayRecord?: Partial<HydratedReplayRecord>) {
     finished_at: HYDRATED_REPLAY.finished_at.toString(),
   };
 
-  return {
-    mockReplayResponse: RAW_REPLAY,
-    expectedReplay: HYDRATED_REPLAY,
-  };
+  return {mockReplayResponse: RAW_REPLAY, expectedReplay: HYDRATED_REPLAY};
 }
 
 describe('useReplayData', () => {
@@ -67,9 +61,7 @@ describe('useReplayData', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
       headers: {
         Link: [
           '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
@@ -84,10 +76,7 @@ describe('useReplayData', () => {
     });
 
     const {result} = renderHookWithProviders(useReplayData, {
-      initialProps: {
-        replayId: mockReplayResponse.id,
-        orgSlug: organization.slug,
-      },
+      initialProps: {replayId: mockReplayResponse.id, orgSlug: organization.slug},
     });
 
     await waitFor(() =>
@@ -125,10 +114,7 @@ describe('useReplayData', () => {
     });
 
     const {result, rerender} = renderHookWithProviders(useReplayData, {
-      initialProps: {
-        replayId: mockReplayResponse.id,
-        orgSlug: organization.slug,
-      },
+      initialProps: {replayId: mockReplayResponse.id, orgSlug: organization.slug},
     });
 
     await waitFor(() => expect(result.current.replayRecord).toBeDefined());
@@ -164,10 +150,7 @@ describe('useReplayData', () => {
     ProjectsStore.reset();
 
     const {result} = renderHookWithProviders(useReplayData, {
-      initialProps: {
-        replayId: mockReplayResponse.id,
-        orgSlug: organization.slug,
-      },
+      initialProps: {replayId: mockReplayResponse.id, orgSlug: organization.slug},
     });
 
     await waitFor(() => expect(result.current.replayRecord).toEqual(expectedReplay));
@@ -207,10 +190,7 @@ describe('useReplayData', () => {
     ProjectsStore.reset();
 
     const {result} = renderHookWithProviders(useReplayData, {
-      initialProps: {
-        replayId: mockReplayResponse.id,
-        orgSlug: organization.slug,
-      },
+      initialProps: {replayId: mockReplayResponse.id, orgSlug: organization.slug},
     });
 
     await waitFor(() => expect(result.current.replayRecord).toEqual(expectedReplay));
@@ -234,9 +214,7 @@ describe('useReplayData', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
       headers: {
         Link: [
           '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
@@ -245,15 +223,10 @@ describe('useReplayData', () => {
       },
     });
 
-    const mockSegmentResponse1 = RRWebInitFrameEventsFixture({
-      timestamp: startedAt,
-    });
+    const mockSegmentResponse1 = RRWebInitFrameEventsFixture({timestamp: startedAt});
     const mockSegmentResponse2 = [
       ReplayConsoleEventFixture({timestamp: startedAt}),
-      ReplayNavigateEventFixture({
-        startTimestamp: startedAt,
-        endTimestamp: finishedAt,
-      }),
+      ReplayNavigateEventFixture({startTimestamp: startedAt, endTimestamp: finishedAt}),
     ];
 
     MockApiClient.addMockResponse({
@@ -267,10 +240,7 @@ describe('useReplayData', () => {
     });
 
     const {result} = renderHookWithProviders(useReplayData, {
-      initialProps: {
-        replayId: mockReplayResponse.id,
-        orgSlug: organization.slug,
-      },
+      initialProps: {replayId: mockReplayResponse.id, orgSlug: organization.slug},
     });
 
     await act(() => jest.advanceTimersByTimeAsync(0));
@@ -338,10 +308,7 @@ describe('useReplayData', () => {
     });
 
     const {result} = renderHookWithProviders(useReplayData, {
-      initialProps: {
-        replayId: mockReplayResponse.id,
-        orgSlug: organization.slug,
-      },
+      initialProps: {replayId: mockReplayResponse.id, orgSlug: organization.slug},
     });
 
     await act(() => jest.advanceTimersByTimeAsync(0));
@@ -472,10 +439,7 @@ describe('useReplayData', () => {
     });
 
     const {result} = renderHookWithProviders(useReplayData, {
-      initialProps: {
-        replayId: mockReplayResponse.id,
-        orgSlug: organization.slug,
-      },
+      initialProps: {replayId: mockReplayResponse.id, orgSlug: organization.slug},
     });
 
     await act(() => jest.advanceTimersByTimeAsync(0));
@@ -516,9 +480,7 @@ describe('useReplayData', () => {
       count_segments: 1,
       error_ids: ERROR_IDS,
     });
-    const mockSegmentResponse = RRWebInitFrameEventsFixture({
-      timestamp: startedAt,
-    });
+    const mockSegmentResponse = RRWebInitFrameEventsFixture({timestamp: startedAt});
     const mockErrorResponse = [
       RawReplayErrorFixture({
         id: ERROR_IDS[0]!,
@@ -553,10 +515,7 @@ describe('useReplayData', () => {
     });
 
     const {result} = renderHookWithProviders(useReplayData, {
-      initialProps: {
-        replayId: mockReplayResponse.id,
-        orgSlug: organization.slug,
-      },
+      initialProps: {replayId: mockReplayResponse.id, orgSlug: organization.slug},
     });
 
     const expectedReplayData = {
@@ -648,9 +607,7 @@ describe('useReplayData', () => {
 
     const mockedErrorEventsMetaCall = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
       headers: {
         Link: [
           '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
@@ -660,10 +617,7 @@ describe('useReplayData', () => {
     });
 
     const {result} = renderHookWithProviders(useReplayData, {
-      initialProps: {
-        replayId,
-        orgSlug: organization.slug,
-      },
+      initialProps: {replayId, orgSlug: organization.slug},
     });
 
     await act(() => jest.advanceTimersByTimeAsync(0));

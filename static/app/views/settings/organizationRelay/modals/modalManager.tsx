@@ -95,9 +95,7 @@ export class ModalManager<
   }
 
   clearError(field: keyof Values) {
-    this.setState(prevState => ({
-      errors: omit(prevState.errors, field),
-    }));
+    this.setState(prevState => ({errors: omit(prevState.errors, field)}));
   }
 
   handleErrorResponse(error: ReturnType<typeof createTrustedRelaysResponseError>) {
@@ -121,10 +119,7 @@ export class ModalManager<
 
   handleChange = <F extends keyof Values>(field: F, value: Values[F]) => {
     this.setState(prevState => ({
-      values: {
-        ...prevState.values,
-        [field]: value,
-      },
+      values: {...prevState.values, [field]: value},
       errors: omit(prevState.errors, field),
     }));
   };
@@ -141,10 +136,7 @@ export class ModalManager<
         getApiUrl('/organizations/$organizationIdOrSlug/', {
           path: {organizationIdOrSlug: orgSlug},
         }),
-        {
-          method: 'PUT',
-          data: {trustedRelays},
-        }
+        {method: 'PUT', data: {trustedRelays}}
       );
       onSubmitSuccess(response);
       closeModal();
@@ -164,10 +156,7 @@ export class ModalManager<
 
     if (isFieldValueEmpty && !fieldErrorAlreadyExist) {
       this.setState(prevState => ({
-        errors: {
-          ...prevState.errors,
-          [field]: t('Field Required'),
-        },
+        errors: {...prevState.errors, [field]: t('Field Required')},
       }));
       return;
     }
@@ -185,19 +174,12 @@ export class ModalManager<
     );
 
     if (isKeyAlreadyTaken && !errors.publicKey) {
-      this.setState({
-        errors: {
-          ...errors,
-          publicKey: t('Relay key already taken'),
-        },
-      });
+      this.setState({errors: {...errors, publicKey: t('Relay key already taken')}});
       return;
     }
 
     if (errors.publicKey) {
-      this.setState({
-        errors: omit(errors, 'publicKey'),
-      });
+      this.setState({errors: omit(errors, 'publicKey')});
     }
 
     this.handleValidate('publicKey')();

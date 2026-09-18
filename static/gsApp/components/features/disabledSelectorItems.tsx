@@ -15,9 +15,7 @@ import type {Subscription} from 'getsentry/types';
 
 const PREMIUM_PERIODS = ['90d'];
 
-type Props = React.ComponentProps<typeof SelectorItems> & {
-  subscription: Subscription;
-};
+type Props = React.ComponentProps<typeof SelectorItems> & {subscription: Subscription};
 
 function DisabledSelectorItems({
   subscription,

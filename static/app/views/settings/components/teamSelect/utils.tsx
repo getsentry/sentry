@@ -105,10 +105,7 @@ export function DropdownAddTeam({
             }}
             disabled={!canCreateTeam}
             onClick={() => {
-              openCreateTeamModal({
-                organization,
-                onClose: onCreateTeam,
-              });
+              openCreateTeamModal({organization, onClose: onCreateTeam});
               closeOverlay();
             }}
           >

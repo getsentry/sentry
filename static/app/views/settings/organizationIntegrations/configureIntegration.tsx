@@ -67,10 +67,7 @@ function organizationIntegrationApiOptions({
 }) {
   return apiOptions.as<OrganizationIntegration>()(
     '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, integrationId},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, integrationId}, staleTime: 0}
   );
 }
 
@@ -114,13 +111,7 @@ function withJiraStatusMappingRemovals(
       .map(key => [key, null])
   );
 
-  return {
-    ...data,
-    sync_status_forward: {
-      ...submittedMappings,
-      ...removedMappings,
-    },
-  };
+  return {...data, sync_status_forward: {...submittedMappings, ...removedMappings}};
 }
 
 function ConfigureIntegration() {
@@ -137,9 +128,7 @@ function ConfigureIntegration() {
     isPending: isLoadingConfig,
     isError: isErrorConfig,
     refetch: refetchConfig,
-  } = useApiQuery<{
-    providers: IntegrationProvider[];
-  }>(
+  } = useApiQuery<{providers: IntegrationProvider[]}>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
@@ -194,12 +183,7 @@ function ConfigureIntegration() {
     'Integrations: Details Viewed'
   );
   useRouteAnalyticsParams(
-    provider
-      ? {
-          integration: provider.key,
-          integration_type: 'first_party',
-        }
-      : {}
+    provider ? {integration: provider.key, integration_type: 'first_party'} : {}
   );
 
   useEffect(() => {
@@ -300,9 +284,7 @@ function ConfigureIntegration() {
   const onTabChange = (value: Tab) => {
     // XXX: Omit the cursor to prevent paginating the next tab's queries.
     const {cursor: _, ...query} = location.query;
-    navigate({
-      query: {...query, tab: value},
-    });
+    navigate({query: {...query, tab: value}});
   };
 
   /**

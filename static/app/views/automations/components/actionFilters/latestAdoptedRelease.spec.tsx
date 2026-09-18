@@ -14,11 +14,7 @@ describe('LatestAdoptedReleaseNode', () => {
   const condition = DataConditionFixture({
     id: 'latest-adopted-release',
     type: DataConditionType.LATEST_ADOPTED_RELEASE,
-    comparison: {
-      releaseAgeType: 'oldest',
-      ageComparison: 'newer',
-      environment: '',
-    },
+    comparison: {releaseAgeType: 'oldest', ageComparison: 'newer', environment: ''},
   });
   const onUpdate = jest.fn();
   const removeError = jest.fn();
@@ -34,19 +30,10 @@ describe('LatestAdoptedReleaseNode', () => {
   it('stores the environment name when selected', async () => {
     render(
       <AutomationBuilderErrorContext.Provider
-        value={{
-          errors: {},
-          mutationErrors: undefined,
-          setErrors: jest.fn(),
-          removeError,
-        }}
+        value={{errors: {}, mutationErrors: undefined, setErrors: jest.fn(), removeError}}
       >
         <DataConditionNodeContext.Provider
-          value={{
-            condition,
-            condition_id: condition.id,
-            onUpdate,
-          }}
+          value={{condition, condition_id: condition.id, onUpdate}}
         >
           <LatestAdoptedReleaseNode />
         </DataConditionNodeContext.Provider>
@@ -54,22 +41,13 @@ describe('LatestAdoptedReleaseNode', () => {
       {organization}
     );
 
-    const environmentSelect = await screen.findByRole('textbox', {
-      name: 'Environment',
-    });
+    const environmentSelect = await screen.findByRole('textbox', {name: 'Environment'});
     await userEvent.click(environmentSelect);
-    await userEvent.click(
-      screen.getByRole('menuitemradio', {
-        name: 'production',
-      })
-    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'production'}));
 
     await waitFor(() => {
       expect(onUpdate).toHaveBeenCalledWith({
-        comparison: {
-          ...condition.comparison,
-          environment: 'production',
-        },
+        comparison: {...condition.comparison, environment: 'production'},
       });
     });
     expect(removeError).toHaveBeenCalledWith(condition.id);

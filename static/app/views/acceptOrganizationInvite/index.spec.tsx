@@ -28,9 +28,7 @@ describe('AcceptOrganizationInvite', () => {
   const configState = ConfigStore.getState();
 
   const defaultRouterConfig = {
-    location: {
-      pathname: '/accept-invite/org-slug/1/abc/',
-    },
+    location: {pathname: '/accept-invite/org-slug/1/abc/'},
     route: '/accept-invite/:orgId/:memberId/:token/',
   };
 
@@ -48,9 +46,7 @@ describe('AcceptOrganizationInvite', () => {
       existingMember: false,
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     const acceptMock = MockApiClient.addMockResponse({
       url: '/accept-invite/org-slug/1/abc/',
@@ -72,10 +68,7 @@ describe('AcceptOrganizationInvite', () => {
       organizationUrl: 'https://org-slug.sentry.io',
       sentryUrl: 'https://sentry.io',
     });
-    ConfigStore.set('links', {
-      ...configState.links,
-      sentryUrl: 'https://sentry.io',
-    });
+    ConfigStore.set('links', {...configState.links, sentryUrl: 'https://sentry.io'});
 
     addMock({
       orgSlug: organization.slug,
@@ -86,9 +79,7 @@ describe('AcceptOrganizationInvite', () => {
       existingMember: false,
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     const acceptMock = MockApiClient.addMockResponse({
       url: '/accept-invite/org-slug/1/abc/',
@@ -114,9 +105,7 @@ describe('AcceptOrganizationInvite', () => {
 
     render(<AcceptOrganizationInvite />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/accept-invite/org-slug/1/abc/',
-        },
+        location: {pathname: '/accept-invite/org-slug/1/abc/'},
         route: '/accept-invite/:orgId/:memberId/:token/',
       },
     });
@@ -136,9 +125,7 @@ describe('AcceptOrganizationInvite', () => {
       existingMember: false,
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     expect(await screen.findByTestId('action-info-general')).toBeInTheDocument();
     expect(screen.queryByTestId('action-info-sso')).not.toBeInTheDocument();
@@ -162,9 +149,7 @@ describe('AcceptOrganizationInvite', () => {
       ssoProvider: 'SSO',
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     expect(await screen.findByTestId('action-info-general')).toBeInTheDocument();
     expect(screen.getByTestId('action-info-sso')).toBeInTheDocument();
@@ -189,9 +174,7 @@ describe('AcceptOrganizationInvite', () => {
       ssoProvider: 'SSO',
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     expect(await screen.findByTestId('action-info-sso')).toBeInTheDocument();
     expect(screen.queryByTestId('action-info-general')).not.toBeInTheDocument();
@@ -216,9 +199,7 @@ describe('AcceptOrganizationInvite', () => {
       ssoProvider: 'SSO',
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     expect(await screen.findByTestId('action-info-sso')).toBeInTheDocument();
     expect(screen.queryByTestId('action-info-general')).not.toBeInTheDocument();
@@ -243,9 +224,7 @@ describe('AcceptOrganizationInvite', () => {
       ssoProvider: 'SSO',
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     await screen.findByTestId('existing-member');
     await userEvent.click(screen.getByTestId('existing-member-link'));
@@ -263,9 +242,7 @@ describe('AcceptOrganizationInvite', () => {
       ssoProvider: 'SSO',
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     await screen.findByTestId('action-info-sso');
     expect(getJoinButton()).toBeInTheDocument();
@@ -281,9 +258,7 @@ describe('AcceptOrganizationInvite', () => {
       existingMember: true,
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     await screen.findByTestId('existing-member');
     await userEvent.click(screen.getByTestId('existing-member-link'));
@@ -300,9 +275,7 @@ describe('AcceptOrganizationInvite', () => {
       existingMember: false,
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     await screen.findByRole('button', {name: 'Configure Two-Factor Auth'});
   });

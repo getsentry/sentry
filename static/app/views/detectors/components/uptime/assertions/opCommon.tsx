@@ -73,10 +73,7 @@ export function OpContainer({
   erroredOp,
 }: OpContainerProps) {
   const {attributes, setNodeRef, setActivatorNodeRef, listeners, isDragging} =
-    useDraggable({
-      id: op.id,
-      data: op,
-    });
+    useDraggable({id: op.id, data: op});
 
   return (
     <Stack gap="sm">

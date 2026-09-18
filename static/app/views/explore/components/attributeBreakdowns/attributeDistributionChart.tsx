@@ -100,9 +100,7 @@ export function Chart({
               showUnderline
               title={tct(
                 '[percent] of spans in your query have this attribute populated',
-                {
-                  percent: percentageFormatter(populationPercentage),
-                }
+                {percent: percentageFormatter(populationPercentage)}
               )}
             >
               {percentageFormatter(populationPercentage)}
@@ -134,9 +132,7 @@ export function Chart({
           {
             type: 'bar',
             data: seriesData.map(value => value.value),
-            itemStyle: {
-              color,
-            },
+            itemStyle: {color},
             barMaxWidth: CHART_MAX_BAR_WIDTH,
             animation: false,
           },

@@ -177,12 +177,7 @@ describe('useTraceItemDetails', () => {
   });
 
   it('uses timestamp instead of page filter datetime when timestamp is passed', async () => {
-    initializePageFilters({
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    });
+    initializePageFilters({period: '14d', start: null, end: null, utc: false});
     const traceItemDetailsMock = addTraceItemDetailsMock();
 
     renderHookWithProviders(useTraceItemDetails, {
@@ -198,9 +193,7 @@ describe('useTraceItemDetails', () => {
     });
 
     await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
-    expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({
-      timestamp: 123,
-    });
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({timestamp: 123});
     expect(traceItemDetailsMock.mock.calls[0]![1].query).not.toHaveProperty(
       'statsPeriod'
     );
@@ -210,12 +203,7 @@ describe('useTraceItemDetails', () => {
   });
 
   it('uses page filter relative datetime when timestamp is not passed', async () => {
-    initializePageFilters({
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    });
+    initializePageFilters({period: '14d', start: null, end: null, utc: false});
     const traceItemDetailsMock = addTraceItemDetailsMock();
 
     renderHookWithProviders(useTraceItemDetails, {
@@ -237,12 +225,7 @@ describe('useTraceItemDetails', () => {
   });
 
   it('uses page filter stats period as fallback when timestamp is null', async () => {
-    initializePageFilters({
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    });
+    initializePageFilters({period: '14d', start: null, end: null, utc: false});
     const traceItemDetailsMock = addTraceItemDetailsMock();
 
     renderHookWithProviders(useTraceItemDetails, {
@@ -297,12 +280,7 @@ describe('useTraceItemDetails', () => {
   });
 
   it('passes zero as a valid timestamp', async () => {
-    initializePageFilters({
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    });
+    initializePageFilters({period: '14d', start: null, end: null, utc: false});
     const traceItemDetailsMock = addTraceItemDetailsMock();
 
     renderHookWithProviders(useTraceItemDetails, {
@@ -318,21 +296,14 @@ describe('useTraceItemDetails', () => {
     });
 
     await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
-    expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({
-      timestamp: 0,
-    });
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({timestamp: 0});
     expect(traceItemDetailsMock.mock.calls[0]![1].query).not.toHaveProperty(
       'statsPeriod'
     );
   });
 
   it('fetches details when the hover prefetch is invoked', async () => {
-    initializePageFilters({
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    });
+    initializePageFilters({period: '14d', start: null, end: null, utc: false});
     const traceItemDetailsMock = addTraceItemDetailsMock();
 
     const {result} = renderHookWithProviders(usePrefetchTraceItemDetailsOnHover, {
@@ -356,12 +327,7 @@ describe('useTraceItemDetails', () => {
   });
 
   it('reports pending only while the prefetched details request is in flight', async () => {
-    initializePageFilters({
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    });
+    initializePageFilters({period: '14d', start: null, end: null, utc: false});
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/trace-items/item-id/`,
@@ -399,12 +365,7 @@ describe('useTraceItemDetails', () => {
 
   it('does not fetch details when the hovered element unmounts before the hover timeout elapses', async () => {
     jest.useFakeTimers();
-    initializePageFilters({
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    });
+    initializePageFilters({period: '14d', start: null, end: null, utc: false});
     const traceItemDetailsMock = addTraceItemDetailsMock();
     const sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null> = {
       current: null,
@@ -428,12 +389,7 @@ describe('useTraceItemDetails', () => {
 
   it('fetches details when the hovered element stays mounted past the hover timeout', async () => {
     jest.useFakeTimers();
-    initializePageFilters({
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    });
+    initializePageFilters({period: '14d', start: null, end: null, utc: false});
     const traceItemDetailsMock = addTraceItemDetailsMock();
 
     render(<HoverPrefetchTarget sharedHoverTimeoutRef={{current: null}} />, {

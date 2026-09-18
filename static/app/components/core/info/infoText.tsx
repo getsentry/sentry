@@ -13,9 +13,7 @@ type InfoTextBaseProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
 
 export type InfoTextProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
   | (InfoTextBaseProps<T> & {mode?: undefined})
-  | (DistributedOmit<InfoTextBaseProps<T>, 'display' | 'wrap'> & {
-      mode: 'overflowOnly';
-    });
+  | (DistributedOmit<InfoTextBaseProps<T>, 'display' | 'wrap'> & {mode: 'overflowOnly'});
 
 export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'span'>({
   title,

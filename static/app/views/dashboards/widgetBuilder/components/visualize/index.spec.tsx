@@ -33,9 +33,7 @@ describe('Visualize', () => {
   let organizationWithConditionalAggregates!: ReturnType<typeof OrganizationFixture>;
 
   beforeEach(() => {
-    organization = OrganizationFixture({
-      features: ['performance-view'],
-    });
+    organization = OrganizationFixture({features: ['performance-view']});
     organizationWithConditionalAggregates = OrganizationFixture({
       features: ['performance-view', 'explore-conditional-aggregates'],
     });
@@ -73,11 +71,7 @@ describe('Visualize', () => {
       }
 
       const tags: TagCollection = {
-        'span.op': {
-          key: 'span.op',
-          name: 'span.op',
-          kind: FieldKind.TAG,
-        },
+        'span.op': {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
         'span.description': {
           key: 'span.description',
           name: 'span.description',
@@ -85,11 +79,7 @@ describe('Visualize', () => {
         },
       };
 
-      return {
-        attributes: tags,
-        secondaryAliases: {},
-        isLoading: false,
-      };
+      return {attributes: tags, secondaryAliases: {}, isLoading: false};
     };
 
     jest
@@ -101,11 +91,9 @@ describe('Visualize', () => {
       .mocked(useSpanItemAttributes)
       .mockImplementation((_options, type?) => mockAttributes(_options, type));
 
-    jest.mocked(useTraceMetricItemAttributes).mockReturnValue({
-      attributes: {},
-      isLoading: false,
-      secondaryAliases: {},
-    });
+    jest
+      .mocked(useTraceMetricItemAttributes)
+      .mockReturnValue({attributes: {}, isLoading: false, secondaryAliases: {}});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -1749,18 +1737,14 @@ describe('Visualize', () => {
 
       expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
       await userEvent.type(input, 'avg(');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -1799,18 +1783,14 @@ describe('Visualize', () => {
 
       expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
       await userEvent.type(input, 'avg(');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -2423,9 +2403,7 @@ describe('Visualize', () => {
     // Click "Add Series"
     await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
 
-    const metricSelectors = await screen.findAllByRole('button', {
-      name: 'alpha_metric',
-    });
+    const metricSelectors = await screen.findAllByRole('button', {name: 'alpha_metric'});
     expect(metricSelectors).toHaveLength(2);
     expect(metricSelectors[0]).toHaveTextContent('alpha_metric');
     expect(metricSelectors[1]).toHaveTextContent('alpha_metric');

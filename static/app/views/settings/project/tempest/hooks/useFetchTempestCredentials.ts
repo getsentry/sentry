@@ -39,8 +39,5 @@ export function useFetchTempestCredentials(organization: Organization, project: 
     });
   };
 
-  return {
-    ...tempestCredentialsQuery,
-    invalidateCredentialsCache,
-  };
+  return {...tempestCredentialsQuery, invalidateCredentialsCache};
 }

@@ -76,10 +76,9 @@ export function callRecordFailure(record: CallRecord): string | null {
  * was requested. Returns null for a lib call, which has no route of its own — its children carry
  * the requests.
  */
-export function callRecordDetail(record: CallRecord): {
-  body: string | null;
-  request: string;
-} | null {
+export function callRecordDetail(
+  record: CallRecord
+): {body: string | null; request: string} | null {
   // Built before any fallback: the literal URL beats a generated sentence as the account of
   // what ran, which is what a described row needs to stay checkable.
   if (record.kind === 'api' && record.method) {

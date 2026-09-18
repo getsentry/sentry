@@ -73,10 +73,7 @@ export class TraceColumnLayout {
     try {
       localStorageWrapper.setItem(
         STORAGE_KEY,
-        JSON.stringify({
-          attributeWidth: this.attributeWidth,
-          treeRatio: this.treeRatio,
-        })
+        JSON.stringify({attributeWidth: this.attributeWidth, treeRatio: this.treeRatio})
       );
     } catch {
       // Resizing still works when storage is unavailable.

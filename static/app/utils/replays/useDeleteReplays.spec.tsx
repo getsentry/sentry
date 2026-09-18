@@ -22,10 +22,7 @@ describe('useDeleteReplays', () => {
         ...configstate,
         user: {
           ...configstate.user,
-          options: {
-            ...configstate.user?.options,
-            timezone: 'America/New_York',
-          },
+          options: {...configstate.user?.options, timezone: 'America/New_York'},
         },
       });
 
@@ -55,9 +52,7 @@ describe('useDeleteReplays', () => {
       });
 
       expect(
-        result.current.queryOptionsToPayload(['1', '2'], {
-          query: {statsPeriod: '1d'},
-        })
+        result.current.queryOptionsToPayload(['1', '2'], {query: {statsPeriod: '1d'}})
       ).toEqual({
         rangeStart: '2017-10-16T02:41:20.000Z',
         rangeEnd: '2017-10-17T02:41:20.000Z',
@@ -74,10 +69,7 @@ describe('useDeleteReplays', () => {
       // Users timezone: 2:41 becomes 6:41 UTC
       expect(
         result.current.queryOptionsToPayload(['1', '2'], {
-          query: {
-            start: '2017-10-16T02:41:20',
-            end: '2017-10-17T02:41:20',
-          },
+          query: {start: '2017-10-16T02:41:20', end: '2017-10-17T02:41:20'},
         })
       ).toEqual({
         rangeStart: '2017-10-16T06:41:20.000Z',
@@ -89,11 +81,7 @@ describe('useDeleteReplays', () => {
       // UTC: 2:41 stays 2:41 UTC
       expect(
         result.current.queryOptionsToPayload(['1', '2'], {
-          query: {
-            start: '2017-10-16T02:41:20',
-            end: '2017-10-17T02:41:20',
-            utc: 'true',
-          },
+          query: {start: '2017-10-16T02:41:20', end: '2017-10-17T02:41:20', utc: 'true'},
         })
       ).toEqual({
         rangeStart: '2017-10-16T02:41:20.000Z',
@@ -114,10 +102,7 @@ describe('useDeleteReplays', () => {
         ...configstate,
         user: {
           ...configstate.user,
-          options: {
-            ...configstate.user?.options,
-            timezone: 'America/New_York',
-          },
+          options: {...configstate.user?.options, timezone: 'America/New_York'},
         },
       });
 
@@ -207,9 +192,7 @@ describe('useDeleteReplays', () => {
     });
 
     it('should name the field when a single field fails validation', () => {
-      const error = makeRequestError({
-        data: {environments: ['This field is required.']},
-      });
+      const error = makeRequestError({data: {environments: ['This field is required.']}});
 
       expect(getBulkDeleteErrorReason(error)).toBe(
         'environments — This field is required.'

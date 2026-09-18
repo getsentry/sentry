@@ -47,15 +47,9 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
   const location = useLocation();
 
   const snoozePrompt = useCallback(async () => {
-    trackAnalytics('github_invite_banner.snoozed', {
-      organization,
-    });
+    trackAnalytics('github_invite_banner.snoozed', {organization});
     setShowBanner(false);
-    await promptsUpdate(api, {
-      organization,
-      feature: promptsFeature,
-      status: 'snoozed',
-    });
+    await promptsUpdate(api, {organization, feature: promptsFeature, status: 'snoozed'});
   }, [api, organization, promptsFeature]);
 
   const openInviteModal = useCallback(() => {
@@ -73,9 +67,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
         getApiUrl('/organizations/$organizationIdOrSlug/missing-members/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'GET',
-        }
+        {method: 'GET'}
       );
       const githubEntry = data?.find(
         (integrationMissingMembers: any) =>
@@ -98,10 +90,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
     }
     // oxlint-disable-next-line react/set-state-in-effect
     fetchMissingMembers();
-    promptsCheck(api, {
-      organization,
-      feature: promptsFeature,
-    }).then(prompt => {
+    promptsCheck(api, {organization, feature: promptsFeature}).then(prompt => {
       setShowBanner(!promptIsDismissed(prompt));
     });
   }, [api, organization, promptsFeature, isEligibleForBanner, fetchMissingMembers]);
@@ -149,10 +138,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
         `${getApiUrl('/organizations/$organizationIdOrSlug/members/', {
           path: {organizationIdOrSlug: organization.slug},
         })}?referrer=github_nudge_invite`,
-        {
-          method: 'POST',
-          data: {email},
-        }
+        {method: 'POST', data: {email}}
       );
       addSuccessMessage(tct('Sent invite to [email]', {email}));
       onSendInvite();

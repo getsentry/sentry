@@ -124,10 +124,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   });
 
   it('should render for single category', async () => {
-    const newSub = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-    });
+    const newSub = SubscriptionFixture({organization, plan: 'am3_team'});
     newSub.categories.errors!.usageExceeded = true;
     newSub.categories.monitorSeats!.usageExceeded = true;
     SubscriptionStore.set(organization.slug, newSub);
@@ -154,10 +151,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   });
 
   it('should not render for zero categories', () => {
-    const newSub = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-    });
+    const newSub = SubscriptionFixture({organization, plan: 'am3_team'});
     // these categories are PAYG categories and there is no PAYG, so they should not trigger the alert
     newSub.categories.monitorSeats!.usageExceeded = true;
     newSub.categories.profileDuration!.usageExceeded = true;
@@ -207,9 +201,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     );
     subscription.onDemandBudgets = {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      budgets: {
-        monitorSeats: 100,
-      },
+      budgets: {monitorSeats: 100},
       usedSpends: {},
       enabled: true,
     };
@@ -283,10 +275,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
 
   it('should update prompts when billing user on free plan takes action', async () => {
     organization.access = ['org:billing'];
-    const freeSub = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-    });
+    const freeSub = SubscriptionFixture({organization, plan: 'am3_f'});
     freeSub.categories.errors!.usageExceeded = true;
     freeSub.categories.replays!.usageExceeded = true;
     SubscriptionStore.set(organization.slug, freeSub);
@@ -335,18 +324,10 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {
         features: {
-          errors_overage_alert: {
-            snoozed_ts: MOCK_PERIOD_START,
-          },
-          replays_overage_alert: {
-            snoozed_ts: MOCK_PERIOD_START,
-          },
-          spans_overage_alert: {
-            snoozed_ts: MOCK_PERIOD_START,
-          },
-          profile_duration_overage_alert: {
-            snoozed_ts: MOCK_PERIOD_START,
-          },
+          errors_overage_alert: {snoozed_ts: MOCK_PERIOD_START},
+          replays_overage_alert: {snoozed_ts: MOCK_PERIOD_START},
+          spans_overage_alert: {snoozed_ts: MOCK_PERIOD_START},
+          profile_duration_overage_alert: {snoozed_ts: MOCK_PERIOD_START},
         },
       }, // dismissed at beginning of billing cycle
     });
@@ -372,15 +353,9 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {
         features: {
-          errors_overage_alert: {
-            snoozed_ts: MOCK_BEFORE_PERIOD_START,
-          },
-          replays_overage_alert: {
-            snoozed_ts: MOCK_BEFORE_PERIOD_START,
-          },
-          spans_overage_alert: {
-            snoozed_ts: MOCK_BEFORE_PERIOD_START,
-          },
+          errors_overage_alert: {snoozed_ts: MOCK_BEFORE_PERIOD_START},
+          replays_overage_alert: {snoozed_ts: MOCK_BEFORE_PERIOD_START},
+          spans_overage_alert: {snoozed_ts: MOCK_BEFORE_PERIOD_START},
         },
       }, // dismissed on last day before current billing cycle
     });
@@ -444,10 +419,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
 
   describe('PAYG ineligible categories', () => {
     it('should render Size Analysis quota exceeded with Contact Sales CTA', async () => {
-      const newSub = SubscriptionFixture({
-        organization,
-        plan: 'am3_business',
-      });
+      const newSub = SubscriptionFixture({organization, plan: 'am3_business'});
       // Add SIZE_ANALYSIS category with usageExceeded
       newSub.categories.sizeAnalyses = MetricHistoryFixture({
         category: DataCategory.SIZE_ANALYSIS,
@@ -499,10 +471,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     });
 
     it('should render Build Distribution quota exceeded with Contact Sales CTA', async () => {
-      const newSub = SubscriptionFixture({
-        organization,
-        plan: 'am3_business',
-      });
+      const newSub = SubscriptionFixture({organization, plan: 'am3_business'});
       // Add INSTALLABLE_BUILD category with usageExceeded
       newSub.categories.installableBuilds = MetricHistoryFixture({
         category: DataCategory.INSTALLABLE_BUILD,
@@ -544,10 +513,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     });
 
     it('should render both PAYG ineligible categories exceeded', async () => {
-      const newSub = SubscriptionFixture({
-        organization,
-        plan: 'am3_business',
-      });
+      const newSub = SubscriptionFixture({organization, plan: 'am3_business'});
       // Add both PAYG ineligible categories with usageExceeded
       newSub.categories.sizeAnalyses = MetricHistoryFixture({
         category: DataCategory.SIZE_ANALYSIS,
@@ -602,10 +568,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     });
 
     it('should render mixed PAYG ineligible and other categories exceeded', async () => {
-      const newSub = SubscriptionFixture({
-        organization,
-        plan: 'am3_business',
-      });
+      const newSub = SubscriptionFixture({organization, plan: 'am3_business'});
       // Add SIZE_ANALYSIS with usageExceeded
       newSub.categories.sizeAnalyses = MetricHistoryFixture({
         category: DataCategory.SIZE_ANALYSIS,

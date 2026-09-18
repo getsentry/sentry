@@ -137,10 +137,7 @@ export default function UsageLog() {
   };
 
   const eventNameOptions =
-    eventNames?.map(type => ({
-      label: formatEntryTitle(type),
-      value: type,
-    })) ?? [];
+    eventNames?.map(type => ({label: formatEntryTitle(type), value: type})) ?? [];
   const selectedEventName = decodeScalar(location.query.event);
 
   const usageLogContent = (

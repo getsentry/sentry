@@ -17,10 +17,7 @@ export function JsonViewer(props: ViewerProps) {
       getAttachmentUrl(props),
       {headers: {Accept: '*/*; charset=utf-8'}, query: {download: true}},
     ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
+    {staleTime: Infinity, retry: false}
   );
 
   if (query.isPending) {

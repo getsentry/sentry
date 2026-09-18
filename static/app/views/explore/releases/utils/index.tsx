@@ -170,10 +170,7 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
   };
 }
 
-type GetReleaseParams = {
-  location: Location;
-  releaseBounds: ReleaseBounds;
-};
+type GetReleaseParams = {location: Location; releaseBounds: ReleaseBounds};
 
 export function getReleaseParams({location, releaseBounds}: GetReleaseParams) {
   const params = normalizeDateTimeParams(
@@ -182,10 +179,7 @@ export function getReleaseParams({location, releaseBounds}: GetReleaseParams) {
       ...Object.values(PAGE_URL_PARAM),
       'cursor',
     ]),
-    {
-      allowAbsolutePageDatetime: true,
-      allowEmptyPeriod: true,
-    }
+    {allowAbsolutePageDatetime: true, allowEmptyPeriod: true}
   );
   if (
     !Object.keys(params).some(param =>

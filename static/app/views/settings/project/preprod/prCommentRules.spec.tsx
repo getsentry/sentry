@@ -9,9 +9,7 @@ import {PrCommentRules} from 'sentry/views/settings/project/preprod/prCommentRul
 describe('PrCommentRules', () => {
   const {organization} = initializeOrg();
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/projects/test-project/preprod/`,
-    },
+    location: {pathname: `/settings/projects/test-project/preprod/`},
     route: '/settings/projects/:projectId/preprod/',
   };
 
@@ -131,10 +129,7 @@ describe('PrCommentRules', () => {
     mockRepositories();
     const project = DetailedProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-    MockApiClient.addMockResponse({
-      url: projectEndpoint,
-      body: project,
-    });
+    MockApiClient.addMockResponse({url: projectEndpoint, body: project});
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -169,10 +164,7 @@ describe('PrCommentRules', () => {
       preprodSizePrCommentsEnabled: true,
     });
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-    MockApiClient.addMockResponse({
-      url: projectEndpoint,
-      body: project,
-    });
+    MockApiClient.addMockResponse({url: projectEndpoint, body: project});
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',

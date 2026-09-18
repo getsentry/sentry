@@ -40,16 +40,8 @@ describe('IntegrationExternalMappingForm', () => {
     closeModal,
   };
 
-  const MOCK_USER_MAPPING = {
-    id: '1',
-    userId: '1',
-    externalName: '@gwen',
-  };
-  const MOCK_TEAM_MAPPING = {
-    id: '1',
-    teamId: '1',
-    externalName: '@getsentry/animals',
-  };
+  const MOCK_USER_MAPPING = {id: '1', userId: '1', externalName: '@gwen'};
+  const MOCK_TEAM_MAPPING = {id: '1', teamId: '1', externalName: '@getsentry/animals'};
 
   // Member data with email === name so labels are just 'option1', 'option2', etc.
   const MOCK_MEMBERS = [
@@ -74,11 +66,7 @@ describe('IntegrationExternalMappingForm', () => {
       method: 'GET',
       body: MOCK_MEMBERS,
     });
-    MockApiClient.addMockResponse({
-      url: teamsEndpoint,
-      method: 'GET',
-      body: MOCK_TEAMS,
-    });
+    MockApiClient.addMockResponse({url: teamsEndpoint, method: 'GET', body: MOCK_TEAMS});
     postResponse = MockApiClient.addMockResponse({
       url: membersEndpoint,
       method: 'POST',

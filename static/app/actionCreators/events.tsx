@@ -143,11 +143,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
 
   const queryObject = {
     includeAllArgs,
-    query: {
-      ...urlQuery,
-      ...periodObj,
-      ...queryExtras,
-    },
+    query: {...urlQuery, ...periodObj, ...queryExtras},
   };
 
   return api.requestPromise<IncludeAllArgsType>(pathname, queryObject);
@@ -179,10 +175,7 @@ export type TagSegment = {
   key?: string;
 };
 
-export type Tag = {
-  key: string;
-  topValues: TagSegment[];
-};
+export type Tag = {key: string; topValues: TagSegment[]};
 
 /**
  * Fetches tag facets for a query
@@ -200,10 +193,7 @@ export function fetchTagFacets(
     getApiUrl('/organizations/$organizationIdOrSlug/events-facets/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
-    {
-      query: queryOption,
-      includeAllArgs: true,
-    }
+    {query: queryOption, includeAllArgs: true}
   );
 }
 
@@ -219,18 +209,14 @@ export function fetchTotalCount(
 
   const queryOption = {...urlParams, query: query.query};
 
-  type Response = {
-    count: number;
-  };
+  type Response = {count: number};
 
   return api
     .requestPromise(
       getApiUrl('/organizations/$organizationIdOrSlug/events-meta/', {
         path: {organizationIdOrSlug: orgSlug},
       }),
-      {
-        query: queryOption,
-      }
+      {query: queryOption}
     )
     .then((res: Response) => res.count);
 }
@@ -250,13 +236,7 @@ const makeFetchEventAttachmentsQueryKey = ({
 }: FetchEventAttachmentParameters): ApiQueryKey => [
   getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/',
-    {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        projectIdOrSlug: projectSlug!,
-        eventId,
-      },
-    }
+    {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!, eventId}}
   ),
 ];
 
@@ -287,9 +267,7 @@ type DeleteEventAttachmentVariables = {
 
 type DeleteEventAttachmentResponse = unknown;
 
-type DeleteEventAttachmentContext = {
-  previous?: IssueAttachment[];
-};
+type DeleteEventAttachmentContext = {previous?: IssueAttachment[]};
 
 type DeleteEventAttachmentOptions = UseMutationOptions<
   DeleteEventAttachmentResponse,

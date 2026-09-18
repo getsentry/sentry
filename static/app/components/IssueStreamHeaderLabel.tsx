@@ -2,10 +2,7 @@ import {css, useTheme} from '@emotion/react';
 
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
 
-type Props = ContainerProps & {
-  align?: 'left' | 'right';
-  hideDivider?: boolean;
-};
+type Props = ContainerProps & {align?: 'left' | 'right'; hideDivider?: boolean};
 
 export function IssueStreamHeaderLabel({align, hideDivider, ...props}: Props) {
   const theme = useTheme();

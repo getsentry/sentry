@@ -124,11 +124,7 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
     const utc = utcString === 'true';
     if (start && end) {
       return utc
-        ? {
-            start: moment.utc(start).format(),
-            end: moment.utc(end).format(),
-            utc,
-          }
+        ? {start: moment.utc(start).format(), end: moment.utc(end).format(), utc}
         : {
             // Treat start/end URL params as UTC (consistent with DatePageFilter)
             start: moment.utc(start).format(),
@@ -175,34 +171,23 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
     const {location, organization} = this.props;
     const nextLocation: LocationDescriptorObject = {
       ...location,
-      query: {
-        ...location.query,
-        project: project.id,
-      },
+      query: {...location.query, project: project.id},
     };
 
     // Do not leak out page-specific keys
     nextLocation.query = omit(nextLocation.query, PAGE_QUERY_PARAMS);
 
     return {
-      performance: {
-        ...nextLocation,
-        pathname: getPerformanceBaseUrl(organization.slug),
-      },
+      performance: {...nextLocation, pathname: getPerformanceBaseUrl(organization.slug)},
       projectDetail: {
         ...nextLocation,
-        pathname: makeProjectsPathname({
-          path: `/${project.slug}/`,
-          organization,
-        }),
+        pathname: makeProjectsPathname({path: `/${project.slug}/`, organization}),
       },
       issueList: {
         ...nextLocation,
         pathname: `/organizations/${organization.slug}/issues/`,
       },
-      settings: {
-        pathname: `/settings/${organization.slug}/projects/${project.slug}/`,
-      },
+      settings: {pathname: `/settings/${organization.slug}/projects/${project.slug}/`},
     };
   };
 
@@ -218,22 +203,12 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
       sort?: string;
       transform?: ChartDataTransform;
     },
-    options: {
-      willUpdateRouter?: boolean;
-    } = {
-      willUpdateRouter: true,
-    }
+    options: {willUpdateRouter?: boolean} = {willUpdateRouter: true}
   ): LocationDescriptorObject => {
     const {location, navigate} = this.props;
     const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
 
-    const nextLocation = {
-      ...location,
-      query: {
-        ...location?.query,
-        ...nextQueryParams,
-      },
-    };
+    const nextLocation = {...location, query: {...location?.query, ...nextQueryParams}};
 
     if (options.willUpdateRouter) {
       navigate(nextLocation);

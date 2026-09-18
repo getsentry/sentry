@@ -20,12 +20,7 @@ export function useStarQuery() {
         getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/starred/', {
           path: {organizationIdOrSlug: organization.slug, id},
         }),
-        {
-          method: 'POST',
-          data: {
-            starred,
-          },
-        }
+        {method: 'POST', data: {starred}}
       );
       invalidateSavedQueries();
       invalidateSavedQuery();

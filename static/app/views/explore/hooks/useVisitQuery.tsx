@@ -15,9 +15,7 @@ export function useVisitQuery() {
           getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/visit/', {
             path: {organizationIdOrSlug: organization.slug, id},
           }),
-          {
-            method: 'POST',
-          }
+          {method: 'POST'}
         );
       } catch (_err) {
         // Don't do anything

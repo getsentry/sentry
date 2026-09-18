@@ -31,10 +31,7 @@ describe('Cart', () => {
   const {organization, routerProps} = initializeOrg();
   let subscription: Subscription;
   const billingConfig = BillingConfigFixture(PlanTier.AM3);
-  const props = {
-    ...routerProps,
-    navigate: jest.fn(),
-  };
+  const props = {...routerProps, navigate: jest.fn()};
   const businessPlan = PlanDetailsLookupFixture('am3_business');
   const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf');
   const legacyTeamPlan = PlanDetailsLookupFixture('am2_team');
@@ -71,9 +68,7 @@ describe('Cart', () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
-      body: {
-        invoiceItems: [],
-      },
+      body: {invoiceItems: []},
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
@@ -87,11 +82,7 @@ describe('Cart', () => {
   });
 
   function getFormDataForPreview(formData: CheckoutFormData) {
-    return {
-      ...formData,
-      onDemandMaxSpend: undefined,
-      onDemandBudget: undefined,
-    };
+    return {...formData, onDemandMaxSpend: undefined, onDemandBudget: undefined};
   }
 
   it('renders with default selections', async () => {
@@ -107,29 +98,17 @@ describe('Cart', () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
-      body: InvoicePreviewFixture({
-        billedAmount: 312_00,
-      }),
+      body: InvoicePreviewFixture({billedAmount: 312_00}),
     });
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
-      reserved: {
-        ...defaultFormData.reserved,
-        attachments: 25,
-      },
-      onDemandBudget: {
-        budgetMode: OnDemandBudgetMode.SHARED,
-        sharedMaxBudget: 50_00,
-      },
+      reserved: {...defaultFormData.reserved, attachments: 25},
+      onDemandBudget: {budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 50_00},
       onDemandMaxSpend: 50_00,
       // this would not happen IRL, but for testing purposes we can add both add-ons
       addOns: {
-        [AddOnCategory.LEGACY_SEER]: {
-          enabled: true,
-        },
-        [AddOnCategory.SEER]: {
-          enabled: true,
-        },
+        [AddOnCategory.LEGACY_SEER]: {enabled: true},
+        [AddOnCategory.SEER]: {enabled: true},
       },
     };
 
@@ -230,9 +209,7 @@ describe('Cart', () => {
     const mockResponse = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
-      body: {
-        invoiceItems: [],
-      },
+      body: {invoiceItems: []},
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
@@ -261,9 +238,7 @@ describe('Cart', () => {
     const mockResponse = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
-      body: {
-        invoiceItems: [],
-      },
+      body: {invoiceItems: []},
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
@@ -296,11 +271,7 @@ describe('Cart', () => {
         proratedAmount: 91_00,
         creditApplied: 11_00,
         invoiceItems: [
-          {
-            amount: 2_00,
-            description: 'Tax',
-            type: 'sales_tax',
-          },
+          {amount: 2_00, description: 'Tax', type: 'sales_tax'},
           {
             amount: 89_00,
             description: 'Business Plan',
@@ -391,10 +362,7 @@ describe('Cart', () => {
 
     const formData: CheckoutFormData = {
       ...defaultFormData,
-      onDemandBudget: {
-        budgetMode: OnDemandBudgetMode.SHARED,
-        sharedMaxBudget: 10_00,
-      },
+      onDemandBudget: {budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 10_00},
       onDemandMaxSpend: 10_00,
     };
 
@@ -429,11 +397,7 @@ describe('Cart', () => {
       partner: {
         externalId: 'whateva',
         isActive: true,
-        partnership: {
-          displayName: 'Partner',
-          id: '123',
-          supportNote: 'Support note',
-        },
+        partnership: {displayName: 'Partner', id: '123', supportNote: 'Support note'},
         name: 'partner',
       },
       billingPeriodEnd: moment(MOCK_TODAY).add(7, 'days').toISOString(),
@@ -474,11 +438,7 @@ describe('Cart', () => {
       partner: {
         externalId: 'whateva',
         isActive: true,
-        partnership: {
-          displayName: 'Partner',
-          id: '123',
-          supportNote: 'Support note',
-        },
+        partnership: {displayName: 'Partner', id: '123', supportNote: 'Support note'},
         name: 'partner',
       },
       paymentSource: null,
@@ -512,21 +472,10 @@ describe('Cart', () => {
 
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
-      reserved: {
-        ...defaultFormData.reserved,
-        attachments: 25,
-        spans: 20_000_000,
-      },
+      reserved: {...defaultFormData.reserved, attachments: 25, spans: 20_000_000},
       onDemandMaxSpend: 1_00,
-      onDemandBudget: {
-        budgetMode: OnDemandBudgetMode.SHARED,
-        sharedMaxBudget: 1_00,
-      },
-      addOns: {
-        [AddOnCategory.LEGACY_SEER]: {
-          enabled: true,
-        },
-      },
+      onDemandBudget: {budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 1_00},
+      addOns: {[AddOnCategory.LEGACY_SEER]: {enabled: true}},
     };
 
     render(

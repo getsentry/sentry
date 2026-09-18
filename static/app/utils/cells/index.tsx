@@ -11,11 +11,7 @@ const LocalityDisplayName: Record<string, string> = {
   DE: t('European Union (EU)'),
 };
 
-const LocalityFlagIndicator: Record<string, string> = {
-  US: '🇺🇸',
-  US2: '🇺🇸',
-  DE: '🇪🇺',
-};
+const LocalityFlagIndicator: Record<string, string> = {US: '🇺🇸', US2: '🇺🇸', DE: '🇪🇺'};
 
 interface LocalityData {
   displayName: string;

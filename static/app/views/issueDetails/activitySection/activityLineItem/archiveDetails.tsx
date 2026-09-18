@@ -45,9 +45,7 @@ export function getArchiveDetails(
   }
 
   if (data.ignoreUntil) {
-    return tct('until [date]', {
-      date: <DateTime date={data.ignoreUntil} />,
-    });
+    return tct('until [date]', {date: <DateTime date={data.ignoreUntil} />});
   }
 
   if (data.ignoreUntilEscalating) {

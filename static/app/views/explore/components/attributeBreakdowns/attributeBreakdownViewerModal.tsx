@@ -103,11 +103,7 @@ function distributionToTableData(
         [t('Count')]: 'integer',
         [t('Percentage')]: 'percentage',
       },
-      units: {
-        [t('Value')]: null,
-        [t('Count')]: null,
-        [t('Percentage')]: null,
-      },
+      units: {[t('Value')]: null, [t('Count')]: null, [t('Percentage')]: null},
     },
   };
 }
@@ -227,11 +223,7 @@ function computeComparisonModeData(
 }
 
 // Extract population indicator component
-type PopulationIndicatorProps = {
-  color: string;
-  percentage: number;
-  tooltipTitle: string;
-};
+type PopulationIndicatorProps = {color: string; percentage: number; tooltipTitle: string};
 
 function PopulationIndicatorComponent({
   color,
@@ -365,11 +357,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
                 case Actions.OPEN_ROW_IN_EXPLORE:
                   search.addFilterValue(computedData.attributeName, `${value}`);
                   navigate(
-                    getExploreUrl({
-                      organization,
-                      selection,
-                      query: search.formatString(),
-                    })
+                    getExploreUrl({organization, selection, query: search.formatString()})
                   );
                   closeModal();
                   return;

@@ -97,11 +97,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
       name = <Text variant="muted">{t('(empty)')}</Text>;
     }
 
-    return {
-      name,
-      percentage: percent(value.count, tag.totalValues),
-      count: value.count,
-    };
+    return {name, percentage: percent(value.count, tag.totalValues), count: value.count};
   });
 
   const topSegment = segments[0];
@@ -186,10 +182,7 @@ function DistributionsDrawerButton({
       <VerticalDistributionsDrawerButton
         aria-label={t('View issue tag distributions')}
         size="xs"
-        to={{
-          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-          query: location.query,
-        }}
+        to={{pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`, query: location.query}}
         replace
         disabled={tags.length === 0}
       >
@@ -207,10 +200,7 @@ function DistributionsDrawerButton({
   return (
     <DistributionsDrawerLink
       replace
-      to={{
-        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-        query: location.query,
-      }}
+      to={{pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`, query: location.query}}
       onClick={() => {
         trackAnalytics('issue_details.issue_tags_click', {organization});
       }}
@@ -247,10 +237,7 @@ export function IssueTagsPreview({
     isError,
     isPending,
     data: tags,
-  } = useGroupTags({
-    groupId,
-    environment: environments,
-  });
+  } = useGroupTags({groupId, environment: environments});
 
   const tagsToPreview = useMemo(() => {
     if (!tags) {

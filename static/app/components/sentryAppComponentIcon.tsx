@@ -5,10 +5,7 @@ import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {SentryAppComponent} from 'sentry/types/integrations';
 
-type Props = {
-  sentryAppComponent: SentryAppComponent;
-  size?: number;
-};
+type Props = {sentryAppComponent: SentryAppComponent; size?: number};
 
 /**
  * Icon Renderer for SentryAppComponents with UI

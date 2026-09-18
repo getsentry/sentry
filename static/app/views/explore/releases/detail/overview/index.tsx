@@ -73,10 +73,7 @@ enum TransactionsListOption {
   IMPROVEMENT = 'improved',
 }
 
-type RouteParams = {
-  orgId: string;
-  release: string;
-};
+type RouteParams = {orgId: string; release: string};
 
 function ReleaseOverview() {
   const {
@@ -119,10 +116,7 @@ function ReleaseOverview() {
     isLoading: thisReleaseReloading,
     isError: thisReleaseErrored,
     data: thisRelease,
-  } = useSessionsRequest({
-    ...sessionsRequestProps,
-    query: searchReleaseVersion(version),
-  });
+  } = useSessionsRequest({...sessionsRequestProps, query: searchReleaseVersion(version)});
 
   const getPageDateTime = (): DateTimeObject => {
     const query = location.query;
@@ -138,10 +132,7 @@ function ReleaseOverview() {
     }
 
     if (start && end) {
-      return {
-        start: moment.utc(start).format(),
-        end: moment.utc(end).format(),
-      };
+      return {start: moment.utc(start).format(), end: moment.utc(end).format()};
     }
 
     return {};
@@ -166,10 +157,7 @@ function ReleaseOverview() {
   ): EventView => {
     const {environments} = selection;
 
-    const {start, end, statsPeriod} = getReleaseParams({
-      location,
-      releaseBounds,
-    });
+    const {start, end, statsPeriod} = getReleaseParams({location, releaseBounds});
 
     const baseQuery: NewQuery = {
       id: undefined,
@@ -205,10 +193,7 @@ function ReleaseOverview() {
   const getReleaseTrendView = (projectId: number, versionDate: string): EventView => {
     const {environments} = selection;
 
-    const {start, end, statsPeriod} = getReleaseParams({
-      location,
-      releaseBounds,
-    });
+    const {start, end, statsPeriod} = getReleaseParams({location, releaseBounds});
 
     const trendView = EventView.fromSavedQuery({
       id: undefined,

@@ -87,12 +87,7 @@ export function WidgetSyncContextProvider({
   );
 
   return (
-    <WidgetSyncCtx
-      value={{
-        register,
-        groupName: stableGroupName,
-      }}
-    >
+    <WidgetSyncCtx value={{register, groupName: stableGroupName}}>
       {children}
     </WidgetSyncCtx>
   );
@@ -103,10 +98,7 @@ export function useWidgetSyncContext(): WidgetSyncContext {
 
   if (!context) {
     // The provider was not registered, return a dummy function
-    return {
-      register: (_p: any) => () => {},
-      groupName: '',
-    };
+    return {register: (_p: any) => () => {}, groupName: ''};
   }
 
   return context;

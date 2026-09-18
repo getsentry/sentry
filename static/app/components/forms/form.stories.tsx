@@ -5,16 +5,7 @@ import * as Storybook from 'sentry/stories';
 export default Storybook.story('Form', story => {
   story('JsonForm - fields', () => (
     <Form>
-      <JsonForm
-        title="Form"
-        fields={[
-          {
-            name: 'name',
-            type: 'text',
-            label: 'Name',
-          },
-        ]}
-      />
+      <JsonForm title="Form" fields={[{name: 'name', type: 'text', label: 'Name'}]} />
     </Form>
   ));
 
@@ -22,26 +13,8 @@ export default Storybook.story('Form', story => {
     <Form>
       <JsonForm
         forms={[
-          {
-            fields: [
-              {
-                name: 'name1',
-                type: 'text',
-                label: 'Name 1',
-              },
-            ],
-            title: 'Form 1',
-          },
-          {
-            fields: [
-              {
-                name: 'name2',
-                type: 'text',
-                label: 'Name 2',
-              },
-            ],
-            title: 'Form 2',
-          },
+          {fields: [{name: 'name1', type: 'text', label: 'Name 1'}], title: 'Form 1'},
+          {fields: [{name: 'name2', type: 'text', label: 'Name 2'}], title: 'Form 2'},
         ]}
       />
     </Form>

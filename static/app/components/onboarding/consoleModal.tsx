@@ -133,11 +133,7 @@ export function ConsoleModal({
           onClick={() => {
             trackAnalytics(
               'gaming.partner_request_access_guidance_modal_button_got_it_clicked',
-              {
-                platform: selectedPlatform.key,
-                organization,
-                origin,
-              }
+              {platform: selectedPlatform.key, organization, origin}
             );
             closeModal();
           }}

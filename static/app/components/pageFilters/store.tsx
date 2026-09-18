@@ -201,10 +201,7 @@ const storeConfig: PageFiltersStoreDefinition = {
 
     this.state = {
       ...this.state,
-      selection: {
-        ...this.state.selection,
-        datetime: newDateTime,
-      },
+      selection: {...this.state.selection, datetime: newDateTime},
       adjustments: clearAdjustments(this.state.adjustments, ['datetime']),
     };
     this.trigger(this.getState());
@@ -217,10 +214,7 @@ const storeConfig: PageFiltersStoreDefinition = {
 
     this.state = {
       ...this.state,
-      selection: {
-        ...this.state.selection,
-        environments: environments ?? [],
-      },
+      selection: {...this.state.selection, environments: environments ?? []},
       adjustments: clearAdjustments(this.state.adjustments, ['environments']),
     };
 

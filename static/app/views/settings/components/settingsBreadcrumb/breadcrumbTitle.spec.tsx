@@ -16,11 +16,7 @@ const routeChildren = [
         handle: {name: 'Two', path: '/two/'},
         element: <div />,
         children: [
-          {
-            path: 'three',
-            handle: {name: 'Three', path: '/three/'},
-            element: <div />,
-          },
+          {path: 'three', handle: {name: 'Three', path: '/three/'}, element: <div />},
         ],
       },
     ],

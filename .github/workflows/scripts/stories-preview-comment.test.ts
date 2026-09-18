@@ -216,10 +216,7 @@ describe('syncStoriesPreviewComment', () => {
       files,
       dirContents: {
         'static/app/components/core/button': [
-          {
-            name: 'button.mdx',
-            path: 'static/app/components/core/button/button.mdx',
-          },
+          {name: 'button.mdx', path: 'static/app/components/core/button/button.mdx'},
         ],
       },
     });
@@ -229,10 +226,7 @@ describe('syncStoriesPreviewComment', () => {
   it('links a directory-named story when index.tsx changed', async () => {
     const calls = await run({
       files: [
-        {
-          filename: 'static/app/components/core/disclosure/index.tsx',
-          status: 'modified',
-        },
+        {filename: 'static/app/components/core/disclosure/index.tsx', status: 'modified'},
       ],
       dirContents: {
         'static/app/components/core/disclosure': [

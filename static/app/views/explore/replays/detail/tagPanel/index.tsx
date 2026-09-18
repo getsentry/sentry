@@ -53,10 +53,7 @@ export function TagPanel() {
 
   const generateUrl = useCallback(
     (name: string, value: string): LocationDescriptor => ({
-      pathname: makeReplaysPathname({
-        path: '/',
-        organization,
-      }),
+      pathname: makeReplaysPathname({path: '/', organization}),
       query: {
         // The replay index endpoint treats unknown filters as tags, by default. Therefore we don't need the tags[] syntax, whether `name` is a tag or not.
         query: `${name}:"${value}"`,

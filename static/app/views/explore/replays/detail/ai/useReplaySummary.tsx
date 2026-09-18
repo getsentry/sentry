@@ -79,9 +79,7 @@ function createAISummaryQueryKey(
   return [
     getApiUrl(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/summarize/',
-      {
-        path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!, replayId},
-      }
+      {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!, replayId}}
     ),
   ];
 }
@@ -169,13 +167,8 @@ export function useReplaySummary(
         ),
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          data: {
-            num_segments: segmentCount,
-            temperature: ReplaySummaryTemp.MED,
-          },
+          headers: {'Content-Type': 'application/json'},
+          data: {num_segments: segmentCount, temperature: ReplaySummaryTemp.MED},
         }
       );
     },

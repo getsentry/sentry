@@ -84,10 +84,7 @@ export function ReplayPreferenceDropdown({
             };
           }
 
-          return {
-            label: baseLabel,
-            value: option,
-          };
+          return {label: baseLabel, value: option};
         })}
       />
       <CompositeSelect.Region
@@ -105,12 +102,7 @@ export function ReplayPreferenceDropdown({
           multiple
           value={prefs.isSkippingInactive ? [SKIP_OPTION_VALUE] : []}
           onChange={opts => setPrefs({isSkippingInactive: opts.length > 0})}
-          options={[
-            {
-              label: t('Fast-forward inactivity'),
-              value: SKIP_OPTION_VALUE,
-            },
-          ]}
+          options={[{label: t('Fast-forward inactivity'), value: SKIP_OPTION_VALUE}]}
         />
       )}
     </CompositeSelect>

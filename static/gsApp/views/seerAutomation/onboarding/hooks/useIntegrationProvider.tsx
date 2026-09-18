@@ -12,21 +12,12 @@ export function useIntegrationProvider(provider_key: string) {
       getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          provider_key,
-        },
-      },
+      {query: {provider_key}},
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   return useMemo(() => {
-    return {
-      provider: data?.providers?.at(0),
-      isPending,
-    };
+    return {provider: data?.providers?.at(0), isPending};
   }, [data, isPending]);
 }

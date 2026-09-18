@@ -29,11 +29,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 const getDate = (date: MomentInput) =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
-type Period = {
-  end: DateString;
-  period: string | null;
-  start: DateString;
-};
+type Period = {end: DateString; period: string | null; start: DateString};
 
 type ZoomPropKeys =
   | 'period'
@@ -156,11 +152,7 @@ class ChartZoom extends Component<Props> {
     //
     // Parent container can use this to change into a loading state before
     // URL parameters are changed
-    onZoom?.({
-      period,
-      start: startFormatted,
-      end: endFormatted,
-    });
+    onZoom?.({period, start: startFormatted, end: endFormatted});
 
     if (usePageDate) {
       const newQuery = {
@@ -215,9 +207,7 @@ class ChartZoom extends Component<Props> {
       this.isCancellingZoom = true;
 
       // "restore" removes the current chart zoom selection
-      this.chart.dispatchAction({
-        type: 'restore',
-      });
+      this.chart.dispatchAction({type: 'restore'});
     }
   };
 
@@ -322,13 +312,7 @@ class ChartZoom extends Component<Props> {
     const end = _end ? getUtcToLocalDateObject(_end) : undefined;
 
     if (disabled) {
-      return children({
-        utc,
-        start,
-        end,
-        ...CHART_ZOOM_MERGE_OPTIONS,
-        ...props,
-      });
+      return children({utc, start, end, ...CHART_ZOOM_MERGE_OPTIONS, ...props});
     }
     const renderProps = {
       ...props,
@@ -337,23 +321,14 @@ class ChartZoom extends Component<Props> {
       utc,
       start,
       end,
-      dataZoom: dataZoomInside({
-        xAxisIndex,
-      }),
+      dataZoom: dataZoomInside({xAxisIndex}),
       showTimeInTooltip: true,
       toolBox: getToolBox(
         {},
         {
           dataZoom: {
-            title: {
-              zoom: '',
-              back: '',
-            },
-            iconStyle: {
-              borderWidth: 0,
-              color: 'transparent',
-              opacity: 0,
-            },
+            title: {zoom: '', back: ''},
+            iconStyle: {borderWidth: 0, color: 'transparent', opacity: 0},
           },
         }
       ),

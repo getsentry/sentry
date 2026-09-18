@@ -9,12 +9,7 @@ function AlertsMemberWriteSettingsLink({children}: {children?: ReactNode}) {
   const organization = useOrganization();
 
   return (
-    <Link
-      to={{
-        hash: 'alertsMemberWrite',
-        pathname: `/settings/${organization.slug}/`,
-      }}
-    >
+    <Link to={{hash: 'alertsMemberWrite', pathname: `/settings/${organization.slug}/`}}>
       {children}
     </Link>
   );

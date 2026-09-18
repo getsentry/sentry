@@ -31,10 +31,7 @@ describe('SaveReplayQueryButton', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/replays/',
-            query: query ? {query} : {},
-          },
+          location: {pathname: '/replays/', query: query ? {query} : {}},
         },
       }
     );

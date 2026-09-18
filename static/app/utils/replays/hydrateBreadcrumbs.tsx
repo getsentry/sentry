@@ -21,9 +21,7 @@ export function hydrateBreadcrumbs(
         invariant(isValidDate(time), 'breadcrumbFrame.timestamp is invalid');
 
         if (frame.category === 'replay.hydrate-error') {
-          frame.data = {
-            description: t('Encountered an error while hydrating'),
-          };
+          frame.data = {description: t('Encountered an error while hydrating')};
         }
         return {
           ...frame,

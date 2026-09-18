@@ -424,12 +424,7 @@ describe('computeHighlightedBounds', () => {
       text: '-[UIScrollView _smoothScrollDisplayLink:]',
       args: {
         bounds: [28, 35],
-        trim: {
-          text: '-[UIScrollView…playLink:]',
-          start: 14,
-          end: 31,
-          length: 17,
-        },
+        trim: {text: '-[UIScrollView…playLink:]', start: 14, end: 31, length: 17},
       },
       expected: [14, 19], // ...play
     },

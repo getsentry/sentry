@@ -77,10 +77,7 @@ export function AssertionOpStatusCode({
             size="xs"
             value={value.operator.cmp}
             onChange={option => {
-              onChange({
-                ...value,
-                operator: {cmp: option.value},
-              });
+              onChange({...value, operator: {cmp: option.value}});
             }}
             options={statusCodeOptions}
             trigger={triggerProps => (

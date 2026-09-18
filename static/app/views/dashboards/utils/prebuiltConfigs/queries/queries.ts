@@ -22,29 +22,17 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: [
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'span.system',
-          name: 'span.system',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'span.system', name: 'span.system', kind: FieldKind.TAG},
         value: '',
       },
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'span.action',
-          name: 'span.action',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'span.action', name: 'span.action', kind: FieldKind.TAG},
         value: '',
       },
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'span.domain',
-          name: 'span.domain',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'span.domain', name: 'span.domain', kind: FieldKind.TAG},
         value: '',
       },
     ],
@@ -66,13 +54,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: 'epm()',
         },
       ],
-      layout: {
-        y: 0,
-        w: 3,
-        h: 2,
-        x: 0,
-        minH: 2,
-      },
+      layout: {y: 0, w: 3, h: 2, x: 0, minH: 2},
     },
     {
       id: 'duration',
@@ -90,13 +72,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
-      layout: {
-        y: 0,
-        w: 3,
-        h: 2,
-        x: 3,
-        minH: 2,
-      },
+      layout: {y: 0, w: 3, h: 2, x: 3, minH: 2},
     },
     {
       id: 'queries-table',
@@ -137,13 +113,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
           ],
         },
       ],
-      layout: {
-        y: 2,
-        w: 6,
-        h: 6,
-        x: 0,
-        minH: 2,
-      },
+      layout: {y: 2, w: 6, h: 6, x: 0, minH: 2},
     },
   ],
   onboarding: {type: 'module', moduleName: ModuleName.DB},

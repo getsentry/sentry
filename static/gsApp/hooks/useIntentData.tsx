@@ -49,12 +49,7 @@ export function useSetupIntentData({queryKey}: {queryKey: ApiQueryKey}): HookRes
     loadSetupIntentData();
   }, [loadSetupIntentData]);
 
-  return {
-    intentData: setupIntentData,
-    isLoading,
-    isError: !!error,
-    error,
-  };
+  return {intentData: setupIntentData, isLoading, isError: !!error, error};
 }
 
 /**
@@ -67,9 +62,7 @@ export function usePaymentIntentData({queryKey}: {queryKey: ApiQueryKey}): HookR
     data: paymentIntentData,
     error,
     isError,
-  } = useApiQuery<PaymentCreateResponse>(queryKey, {
-    staleTime: Infinity,
-  });
+  } = useApiQuery<PaymentCreateResponse>(queryKey, {staleTime: Infinity});
 
   const errorMessage =
     typeof error?.responseJSON?.detail === 'string'

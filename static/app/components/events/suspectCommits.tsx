@@ -29,11 +29,7 @@ interface Props {
 export function SuspectCommits({group, eventId, projectSlug}: Props) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug});
-  const {data} = useCommitters({
-    eventId,
-    projectSlug,
-    group,
-  });
+  const {data} = useCommitters({eventId, projectSlug, group});
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const committers = useMemo(

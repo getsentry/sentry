@@ -19,31 +19,16 @@ describe('UIFramesRenderer', () => {
       frozen: {
         unit: 'nanoseconds',
         values: [
-          {
-            elapsed: 1,
-            value: 1,
-          },
-          {
-            elapsed: 3,
-            value: 1,
-          },
-          {
-            elapsed: 5.5,
-            value: 1,
-          },
+          {elapsed: 1, value: 1},
+          {elapsed: 3, value: 1},
+          {elapsed: 5.5, value: 1},
         ],
       },
       slow: {
         unit: 'nanoseconds',
         values: [
-          {
-            elapsed: 3,
-            value: 1,
-          },
-          {
-            elapsed: 5,
-            value: 1,
-          },
+          {elapsed: 3, value: 1},
+          {elapsed: 5, value: 1},
         ],
       },
     },

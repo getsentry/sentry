@@ -502,10 +502,7 @@ export function SearchQueryBuilderProvider({
   ]);
 
   const interactionValue = useMemo((): SearchQueryBuilderInteractionContextData => {
-    return {
-      consumeReopenDropdownOnQueryClear,
-      reopenDropdownOnQueryClear,
-    };
+    return {consumeReopenDropdownOnQueryClear, reopenDropdownOnQueryClear};
   }, [consumeReopenDropdownOnQueryClear, reopenDropdownOnQueryClear]);
 
   return (

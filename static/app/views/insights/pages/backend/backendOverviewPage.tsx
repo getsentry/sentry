@@ -40,9 +40,7 @@ function BackendOverviewPage({datePageFilterProps}: BackendOverviewPageProps) {
 }
 
 function BackendOverviewPageWithProviders() {
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.SPANS]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (

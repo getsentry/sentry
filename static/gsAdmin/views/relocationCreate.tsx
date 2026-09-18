@@ -26,9 +26,7 @@ function RelocationForm() {
   const api = useApi({
     api: new Client({headers: {Accept: 'application/json; charset=utf-8'}}),
   });
-  const promoCodeApi = useApi({
-    api: new Client({baseUrl: ''}),
-  });
+  const promoCodeApi = useApi({api: new Client({baseUrl: ''})});
   const cells = getCells();
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File>();
@@ -119,10 +117,7 @@ function RelocationForm() {
             <OverlayTrigger.Button {...triggerProps} prefix="Region" />
           )}
           value={cell.locality_url}
-          options={cells.map((r: any) => ({
-            label: r.name,
-            value: r.locality_url,
-          }))}
+          options={cells.map((r: any) => ({label: r.name, value: r.locality_url}))}
           onChange={opt => {
             const newCell = cells.find(c => c.locality_url === opt.value);
             if (newCell === undefined) {

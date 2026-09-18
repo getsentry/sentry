@@ -48,10 +48,7 @@ export function FirstEventFooter({
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
     ],
-    {
-      staleTime: Infinity,
-      enabled: !!project.firstEvent,
-    }
+    {staleTime: Infinity, enabled: !!project.firstEvent}
   );
 
   const firstIssue =
@@ -68,10 +65,7 @@ export function FirstEventFooter({
       ) : (
         <SkipOnboardingLink
           onClick={() => {
-            trackAnalytics('growth.onboarding_clicked_skip', {
-              organization,
-              source,
-            });
+            trackAnalytics('growth.onboarding_clicked_skip', {organization, source});
             activateSidebar({
               userClicked: false,
               source: 'targeted_onboarding_first_event_footer_skip',
@@ -94,10 +88,7 @@ export function FirstEventFooter({
               animate: {
                 opacity: 1,
                 y: 0,
-                transition: {
-                  when: 'beforeChildren',
-                  staggerChildren: 0.35,
-                },
+                transition: {when: 'beforeChildren', staggerChildren: 0.35},
               },
               exit: {opacity: 0, y: 10},
             }}

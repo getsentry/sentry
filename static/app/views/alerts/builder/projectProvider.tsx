@@ -18,10 +18,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useScrollToTop} from 'sentry/utils/useScrollToTop';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
-type AlertBuilderOutletContext = {
-  members: Member[] | undefined;
-  project: Project;
-};
+type AlertBuilderOutletContext = {members: Member[] | undefined; project: Project};
 
 function AlertBuilderOutlet(props: AlertBuilderOutletContext) {
   return <Outlet context={props} />;
@@ -58,10 +55,8 @@ export default function AlertBuilderProjectProvider() {
   // If there's no project show the project selector modal
   if (!project && !fetchError) {
     navigateTo(
-      makeAlertsPathname({
-        path: '/wizard/',
-        organization,
-      }) + `?referrer=${location.query.referrer}&project=:projectId`,
+      makeAlertsPathname({path: '/wizard/', organization}) +
+        `?referrer=${location.query.referrer}&project=:projectId`,
       navigate,
       location
     );

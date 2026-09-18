@@ -56,22 +56,14 @@ export function SavedQueryEditMenu() {
                       normalizeUrl(`/organizations/${organization.slug}/explore/traces/`)
                     );
                   }
-                  trackAnalytics('trace_explorer.delete_query', {
-                    organization,
-                  });
+                  trackAnalytics('trace_explorer.delete_query', {organization});
                 } else if (
                   getSavedQueryTraceItemDataset(savedQuery.dataset) ===
                   TraceItemDataset.LOGS
                 ) {
-                  trackAnalytics('logs.delete_query', {
-                    organization,
-                  });
+                  trackAnalytics('logs.delete_query', {organization});
                 } else {
-                  navigate(
-                    getLogsUrl({
-                      organization,
-                    })
-                  );
+                  navigate(getLogsUrl({organization}));
                 }
               },
               savedQuery,

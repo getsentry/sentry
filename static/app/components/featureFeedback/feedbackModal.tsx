@@ -166,10 +166,7 @@ function FeedbackModalFooter({
   );
 }
 
-type BodyProps = {
-  children: React.ReactNode;
-  showSelfHostedMessage?: boolean;
-};
+type BodyProps = {children: React.ReactNode; showSelfHostedMessage?: boolean};
 
 function FeedbackModalBody({
   children: bodyChildren,
@@ -184,9 +181,7 @@ function FeedbackModalBody({
           <Alert variant="info" showIcon={false}>
             {tct(
               "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
-              {
-                privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />,
-              }
+              {privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />}
             )}
           </Alert>
         </Alert.Container>
@@ -242,9 +237,7 @@ export function FeedbackModal<T extends Data>({
           orgAccess: organization?.access ?? [],
           projectFeatures: project?.features ?? [],
         },
-        tags: {
-          featureName: props.featureName,
-        },
+        tags: {featureName: props.featureName},
         user,
         level: 'info',
       };
@@ -258,9 +251,7 @@ export function FeedbackModal<T extends Data>({
           captureFeedback({
             message: fullMessage,
             source: props.featureName,
-            tags: {
-              feature: props.featureName,
-            },
+            tags: {feature: props.featureName},
           });
         } else {
           feedbackClient.captureEvent({
@@ -280,15 +271,10 @@ export function FeedbackModal<T extends Data>({
           captureFeedback({
             message,
             source: props.featureName,
-            tags: {
-              feature: props.featureName,
-            },
+            tags: {feature: props.featureName},
           });
         } else {
-          feedbackClient.captureEvent({
-            ...commonEventProps,
-            ...submitEventData,
-          });
+          feedbackClient.captureEvent({...commonEventProps, ...submitEventData});
         }
       }
 
@@ -374,10 +360,7 @@ export function FeedbackModal<T extends Data>({
                 autosize
                 placeholder={t('What did you expect?')}
                 onChange={event =>
-                  setState({
-                    ...state,
-                    additionalInfo: event.target.value,
-                  })
+                  setState({...state, additionalInfo: event.target.value})
                 }
               />
             </FieldGroup>

@@ -27,12 +27,7 @@ const sourceContextQueryKey = (
 ): ApiQueryKey => [
   getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-source-context/',
-    {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        projectIdOrSlug: projectSlug!,
-      },
-    }
+    {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!}}
   ),
   {query},
 ];
@@ -47,10 +42,6 @@ export function useSourceContext(
   };
   return useApiQuery<SourceContextResponse>(
     sourceContextQueryKey(orgSlug, projectSlug, query),
-    {
-      staleTime: Infinity,
-      retry: false,
-      ...options,
-    }
+    {staleTime: Infinity, retry: false, ...options}
   );
 }

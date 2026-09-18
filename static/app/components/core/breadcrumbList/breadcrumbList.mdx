@@ -75,11 +75,7 @@ in renders the page name twice.
     items={[
       {type: 'link', label: 'Organization', to: '/organizations/org-slug/'},
       {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
-      {
-        type: 'link',
-        label: 'javascript',
-        to: '/settings/org-slug/projects/javascript/',
-      },
+      {type: 'link', label: 'javascript', to: '/settings/org-slug/projects/javascript/'},
     ]}
     title={
       <BreadcrumbList.Title item={{type: 'page-title', label: 'General Settings'}} />
@@ -92,11 +88,7 @@ in renders the page name twice.
     items={[
       {type: 'link', label: 'Organization', to: '/organizations/org-slug/'},
       {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
-      {
-        type: 'link',
-        label: 'javascript',
-        to: '/settings/org-slug/projects/javascript/',
-      },
+      {type: 'link', label: 'javascript', to: '/settings/org-slug/projects/javascript/'},
     ]}
   />
 </TopBar.Slot>
@@ -170,11 +162,7 @@ Page filters are not carried automatically — see [Page filters](#page-filters)
         label: 'A very long project name that will be truncated',
         to: '/organizations/org-slug/projects/',
       },
-      {
-        type: 'link',
-        label: 'Issues',
-        to: '/organizations/org-slug/issues/',
-      },
+      {type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'},
     ]}
   />
 </Storybook.Demo>
@@ -201,26 +189,14 @@ demo below mirrors that heading and flex layout.
 <Storybook.Demo>
   <BreadcrumbListDemo
     items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
-    title={
-      <BreadcrumbList.Title
-        item={{
-          type: 'page-title',
-          label: 'Issue details',
-        }}
-      />
-    }
+    title={<BreadcrumbList.Title item={{type: 'page-title', label: 'Issue details'}} />}
   />
 </Storybook.Demo>
 ```tsx
 <BreadcrumbList
   items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
 />
-<BreadcrumbList.Title
-  item={{
-    type: 'page-title',
-    label: 'Issue details',
-  }}
-/>
+<BreadcrumbList.Title item={{type: 'page-title', label: 'Issue details'}} />
 ```
 
 ### `'editable-title'` — rename in place
@@ -234,11 +210,7 @@ edit affordance.
 <Storybook.Demo>
   <BreadcrumbListDemo
     items={[
-      {
-        type: 'link',
-        label: 'Dashboards',
-        to: '/organizations/org-slug/dashboards/',
-      },
+      {type: 'link', label: 'Dashboards', to: '/organizations/org-slug/dashboards/'},
     ]}
     title={
       <BreadcrumbList.Title
@@ -581,11 +553,7 @@ Drag the resize handle to see the transition:
         to: '/settings/',
         leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
       },
-      {
-        type: 'link',
-        label: 'javascript',
-        to: '/settings/org-slug/projects/javascript/',
-      },
+      {type: 'link', label: 'javascript', to: '/settings/org-slug/projects/javascript/'},
       {
         type: 'link',
         label: 'Client Keys (DSN)',
@@ -599,11 +567,7 @@ Drag the resize handle to see the transition:
   <BreadcrumbList
     items={[
       {type: 'link', label: 'Settings', to: '/settings/'},
-      {
-        type: 'link',
-        label: 'javascript',
-        to: '/settings/org-slug/projects/javascript/',
-      },
+      {type: 'link', label: 'javascript', to: '/settings/org-slug/projects/javascript/'},
       {
         type: 'link',
         label: 'Client Keys (DSN)',

@@ -289,15 +289,10 @@ export const MY_TOUR_KEY = 'tour.my_tour';
                 }}
                 header="Start Tour Modal"
                 description="Take the tour to learn more about this page (if you dare)."
-                img={{
-                  src: compassImage,
-                  alt: 'Onboarding Compass',
-                }}
+                img={{src: compassImage, alt: 'Onboarding Compass'}}
               />
             ),
-            {
-              modalCss: startTourModalCss,
-            }
+            {modalCss: startTourModalCss}
           );
         }}
       >

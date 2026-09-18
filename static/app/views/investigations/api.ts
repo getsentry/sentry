@@ -21,11 +21,7 @@ import type {
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
 
-type ListOptions = {
-  organizationSlug: string;
-  cursor?: string;
-  query?: string;
-};
+type ListOptions = {organizationSlug: string; cursor?: string; query?: string};
 
 export function investigationListQueryOptions({
   organizationSlug,
@@ -48,13 +44,7 @@ export function getInvestigationDetailQueryOptions(
 ) {
   return apiOptions.as<InvestigationDetail>()(
     '/organizations/$organizationIdOrSlug/investigations/$investigationId/',
-    {
-      path: {
-        organizationIdOrSlug: organizationSlug,
-        investigationId,
-      },
-      staleTime: 30_000,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, investigationId}, staleTime: 30_000}
   );
 }
 
@@ -89,13 +79,7 @@ export function investigationTitleGenerationQueryOptions(
 ) {
   return apiOptions.as<InvestigationTitleGeneration>()(
     '/organizations/$organizationIdOrSlug/investigations/$investigationId/title-generation/',
-    {
-      path: {
-        organizationIdOrSlug: organizationSlug,
-        investigationId,
-      },
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, investigationId}, staleTime: 0}
   );
 }
 
@@ -114,13 +98,7 @@ export function investigationOrchestrationQueryOptions(
 ) {
   return apiOptions.as<InvestigationOrchestration>()(
     '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/',
-    {
-      path: {
-        organizationIdOrSlug: organizationSlug,
-        investigationId,
-      },
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, investigationId}, staleTime: 0}
   );
 }
 
@@ -151,12 +129,7 @@ export function useInvestigationOrchestrationCommandMutation(
       fetchMutation<InvestigationOrchestrationCommandResponse>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/commands/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId,
-            },
-          }
+          {path: {organizationIdOrSlug: organizationSlug, investigationId}}
         ),
         method: 'POST',
         data: {requestId, expectedWorkflowVersion, command},
@@ -187,11 +160,7 @@ export function investigationCandidatesQueryOptions({
     {
       path: {organizationIdOrSlug: organizationSlug},
       method: 'POST',
-      data: {
-        templateKey: 'breached_metric',
-        templateVersion: 1,
-        sources,
-      },
+      data: {templateKey: 'breached_metric', templateVersion: 1, sources},
       staleTime: 30_000,
     }
   );
@@ -205,15 +174,9 @@ function investigationCandidatesUrl(organizationSlug: string) {
   return url;
 }
 
-type FavoriteVariables = {
-  investigation: InvestigationListItem;
-  shouldFavorite: boolean;
-};
+type FavoriteVariables = {investigation: InvestigationListItem; shouldFavorite: boolean};
 
-type RunBlockVariables = {
-  block: InvestigationBlock;
-  investigationVersion: number;
-};
+type RunBlockVariables = {block: InvestigationBlock; investigationVersion: number};
 
 type UpdateBlockPromptVariables = {
   block: InvestigationBlock;
@@ -221,15 +184,9 @@ type UpdateBlockPromptVariables = {
   prompt: string;
 };
 
-type DeleteBlockVariables = {
-  block: InvestigationBlock;
-  investigationVersion: number;
-};
+type DeleteBlockVariables = {block: InvestigationBlock; investigationVersion: number};
 
-type StopExecutionVariables = {
-  blockId: string;
-  executionId: string;
-};
+type StopExecutionVariables = {blockId: string; executionId: string};
 
 type ResumeExecutionVariables = StopExecutionVariables & {
   inputId: string;
@@ -341,12 +298,7 @@ export function useRenameInvestigationMutation(
       return fetchMutation<InvestigationDetail>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/investigations/$investigationId/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId,
-            },
-          }
+          {path: {organizationIdOrSlug: organizationSlug, investigationId}}
         ),
         method: 'PUT',
         data: {title, investigationVersion: current.version},
@@ -405,10 +357,7 @@ export function useDeleteInvestigationBlockMutation(
           }
         ),
         method: 'DELETE',
-        data: {
-          investigationVersion,
-          version: block.version,
-        },
+        data: {investigationVersion, version: block.version},
       });
     },
     onSuccess: async (_data, variables, onMutateResult, context) => {
@@ -465,10 +414,7 @@ export function useRunInvestigationBlockMutation(
           }
         ),
         method: 'POST',
-        data: {
-          investigationVersion,
-          version: block.version,
-        },
+        data: {investigationVersion, version: block.version},
       }),
     onSuccess: async (execution, variables, onMutateResult, context) => {
       queryClient.setQueryData(detailOptions.queryKey, current =>
@@ -530,11 +476,7 @@ export function useUpdateInvestigationBlockPromptMutation(
           }
         ),
         method: 'PUT',
-        data: {
-          investigationVersion,
-          version: block.version,
-          generationPrompt: prompt,
-        },
+        data: {investigationVersion, version: block.version, generationPrompt: prompt},
       }),
     onSuccess: (updatedBlock, variables) => {
       queryClient.setQueryData(detailOptions.queryKey, current =>

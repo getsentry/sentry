@@ -141,10 +141,7 @@ describe('useMetricAttributesTreeActions', () => {
       additionalWrapper: Wrapper,
     });
 
-    const content: AttributesTreeContent = {
-      subtree: {},
-      value: '',
-    };
+    const content: AttributesTreeContent = {subtree: {}, value: ''};
 
     expect(result.current(content)).toEqual([]);
   });

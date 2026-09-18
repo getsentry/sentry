@@ -57,9 +57,7 @@ export function ErrorTableCell({
           pathname: normalizeUrl(
             `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
           ),
-          query: {
-            referrer: 'replay-errors',
-          },
+          query: {referrer: 'replay-errors'},
         }
       : null;
 
@@ -90,10 +88,7 @@ export function ErrorTableCell({
               <ClassNames>
                 {({css}) => (
                   <QuickContextHovercard
-                    dataRow={{
-                      id: eventId,
-                      'project.name': projectSlug,
-                    }}
+                    dataRow={{id: eventId, 'project.name': projectSlug}}
                     contextType={ContextType.EVENT}
                     organization={organization}
                     containerClassName={css`
@@ -109,10 +104,7 @@ export function ErrorTableCell({
             <ClassNames>
               {({css}) => (
                 <QuickContextHovercard
-                  dataRow={{
-                    id: eventId,
-                    'project.name': projectSlug,
-                  }}
+                  dataRow={{id: eventId, 'project.name': projectSlug}}
                   contextType={ContextType.EVENT}
                   organization={organization}
                   containerClassName={css`
@@ -136,10 +128,7 @@ export function ErrorTableCell({
           {eventUrl ? (
             <Link to={eventUrl}>
               <QuickContextHovercard
-                dataRow={{
-                  'issue.id': groupId,
-                  issue: groupShortId,
-                }}
+                dataRow={{'issue.id': groupId, issue: groupShortId}}
                 contextType={ContextType.ISSUE}
                 organization={organization}
               >
@@ -148,10 +137,7 @@ export function ErrorTableCell({
             </Link>
           ) : (
             <QuickContextHovercard
-              dataRow={{
-                'issue.id': groupId,
-                issue: groupShortId,
-              }}
+              dataRow={{'issue.id': groupId, issue: groupShortId}}
               contextType={ContextType.ISSUE}
               organization={organization}
             >

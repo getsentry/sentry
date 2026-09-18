@@ -179,12 +179,7 @@ export function SampledEventsTable({
   }
 
   const {data: numEvents, error: numEventsError} = useSpans(
-    {
-      search,
-      fields: ['count()'],
-      pageFilters: selection,
-      enabled: !isMaxDurationLoading,
-    },
+    {search, fields: ['count()'], pageFilters: selection, enabled: !isMaxDurationLoading},
     'api.insights.segment-spans-table-count'
   );
 
@@ -220,10 +215,7 @@ export function SampledEventsTable({
   const consolidatedData = tableData?.map(row => {
     const user =
       row['user.username'] || row['user.email'] || row['user.ip'] || row['user.id'];
-    return {
-      ...row,
-      'user.display': user,
-    };
+    return {...row, 'user.display': user};
   });
 
   return (
@@ -355,13 +347,8 @@ function renderBodyCell(
           size="xs"
           icon={<IconPlay size="xs" />}
           to={{
-            pathname: makeReplaysPathname({
-              path: `/${row.replayId}/`,
-              organization,
-            }),
-            query: {
-              referrer: 'performance',
-            },
+            pathname: makeReplaysPathname({path: `/${row.replayId}/`, organization}),
+            query: {referrer: 'performance'},
           }}
           disabled={!row.replayId}
           aria-label={t('View Replay')}
@@ -447,9 +434,7 @@ function renderOperationDurationCell(row: Record<string, any>, theme: Theme) {
               containerDisplayMode="block"
             >
               <RectangleRelativeOpsBreakdown
-                style={{
-                  backgroundColor: pickBarColor(operationName, theme),
-                }}
+                style={{backgroundColor: pickBarColor(operationName, theme)}}
               />
             </Tooltip>
           </div>

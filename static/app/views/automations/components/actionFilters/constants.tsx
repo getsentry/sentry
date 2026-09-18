@@ -137,25 +137,13 @@ export const PRIORITY_CHOICES = [
 ];
 
 export const AGE_COMPARISON_CHOICES = [
-  {
-    value: AgeComparison.OLDER,
-    label: t('older than'),
-  },
-  {
-    value: AgeComparison.NEWER,
-    label: t('newer than'),
-  },
+  {value: AgeComparison.OLDER, label: t('older than')},
+  {value: AgeComparison.NEWER, label: t('newer than')},
 ];
 
 export const MODEL_AGE_CHOICES = [
-  {
-    value: ModelAge.OLDEST,
-    label: t('oldest'),
-  },
-  {
-    value: ModelAge.NEWEST,
-    label: t('newest'),
-  },
+  {value: ModelAge.OLDEST, label: t('oldest')},
+  {value: ModelAge.NEWEST, label: t('newest')},
 ];
 
 export const LEVEL_MATCH_CHOICES = [

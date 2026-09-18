@@ -14,9 +14,7 @@ import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/findFreshEmptyPrefixSearchCacheMatch';
 
 type AttributeType = {
-  attributeSource: {
-    source_type: 'sentry' | 'user';
-  };
+  attributeSource: {source_type: 'sentry' | 'user'};
   attributeType: TraceItemAttributeType;
   key: string;
   name: string;
@@ -84,11 +82,7 @@ export function traceItemAttributeKeysOptions({
 
   const baseOptions = apiOptions.as<AttributeType[]>()(
     '/organizations/$organizationIdOrSlug/trace-items/attributes/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime,
-      query: options,
-    }
+    {path: {organizationIdOrSlug: organization.slug}, staleTime, query: options}
   );
 
   const originalQueryFn = baseOptions.queryFn;
@@ -249,12 +243,7 @@ export function getTraceItemTagCollection(
     return arrayAttributes;
   }
 
-  return {
-    stringAttributes,
-    numberAttributes,
-    booleanAttributes,
-    arrayAttributes,
-  };
+  return {stringAttributes, numberAttributes, booleanAttributes, arrayAttributes};
 }
 
 function isKnownAttribute(attribute: {key: string}) {

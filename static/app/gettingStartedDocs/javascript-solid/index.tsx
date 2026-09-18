@@ -32,7 +32,5 @@ export const docs: Docs = {
     docsPlatform: 'solid',
     packageName: '@sentry/solid',
   }),
-  agentMonitoringOnboarding: agentMonitoring({
-    packageName: '@sentry/solid',
-  }),
+  agentMonitoringOnboarding: agentMonitoring({packageName: '@sentry/solid'}),
 };

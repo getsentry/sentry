@@ -83,10 +83,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
     return search.formatString();
   }, [props.query]);
 
-  const {data, error, status} = useAggregateFlamegraphQuery({
-    query,
-    dataSource: 'spans',
-  });
+  const {data, error, status} = useAggregateFlamegraphQuery({query, dataSource: 'spans'});
 
   const [frameFilter, setFrameFilter] = useLocalStorageState<
     'system' | 'application' | 'all'

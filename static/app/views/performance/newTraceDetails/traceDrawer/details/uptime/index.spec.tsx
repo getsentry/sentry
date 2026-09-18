@@ -14,10 +14,7 @@ import {UptimeNodeDetails} from './index';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 describe('UptimeNodeDetails', () => {
   beforeEach(() => {

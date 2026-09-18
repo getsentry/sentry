@@ -36,10 +36,7 @@ import {
 import {SpanFields} from 'sentry/views/insights/types';
 import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
-type HighlightedAttribute = {
-  name: string;
-  value: React.ReactNode;
-};
+type HighlightedAttribute = {name: string; value: React.ReactNode};
 
 /**
  * Gets AI tool definitions, checking attributes in priority order.
@@ -124,10 +121,7 @@ function getAISpanAttributes({
 
   const agentName = resolveAgentName(attributes);
   if (agentName) {
-    highlightedAttributes.push({
-      name: t('Agent Name'),
-      value: agentName,
-    });
+    highlightedAttributes.push({name: t('Agent Name'), value: agentName});
   }
 
   const model = attributes['gen_ai.response.model'] || attributes['gen_ai.request.model'];
@@ -208,10 +202,7 @@ function getAISpanAttributes({
 
   const toolName = attributes['gen_ai.tool.name'];
   if (toolName) {
-    highlightedAttributes.push({
-      name: t('Tool Name'),
-      value: toolName,
-    });
+    highlightedAttributes.push({name: t('Tool Name'), value: toolName});
   }
 
   const toolsArray = getAIToolDefinitions(attributes);
@@ -267,34 +258,22 @@ function getMCPAttributes(attributes: Record<string, string | number | boolean>)
 
   const toolName = attributes['gen_ai.tool.name'];
   if (toolName) {
-    highlightedAttributes.push({
-      name: t('Tool Name'),
-      value: toolName,
-    });
+    highlightedAttributes.push({name: t('Tool Name'), value: toolName});
   }
 
   const resourceUri = attributes['mcp.resource.uri'];
   if (resourceUri) {
-    highlightedAttributes.push({
-      name: t('Resource URI'),
-      value: resourceUri,
-    });
+    highlightedAttributes.push({name: t('Resource URI'), value: resourceUri});
   }
 
   const promptName = attributes['gen_ai.prompt.name'];
   if (promptName) {
-    highlightedAttributes.push({
-      name: t('Prompt Name'),
-      value: promptName,
-    });
+    highlightedAttributes.push({name: t('Prompt Name'), value: promptName});
   }
 
   const transport = attributes['network.transport'];
   if (transport) {
-    highlightedAttributes.push({
-      name: t('Transport'),
-      value: transport,
-    });
+    highlightedAttributes.push({name: t('Transport'), value: transport});
   }
 
   return highlightedAttributes;

@@ -23,9 +23,7 @@ type Data = {
 export default function AdminMail() {
   const {data, isPending, isError, refetch} = useApiQuery<Data>(
     [getApiUrl('/internal/mail/')],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
   const api = useApi({persistInFlight: true});
 

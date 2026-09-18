@@ -11,9 +11,7 @@ import {
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 type Attribute = {
-  attributeSource: {
-    source_type: 'sentry' | 'user';
-  };
+  attributeSource: {source_type: 'sentry' | 'user'};
   attributeType: 'boolean' | 'number' | 'string' | 'array';
   key: string;
   name: string;
@@ -30,12 +28,7 @@ function makeAttribute(
   attributeType: Attribute['attributeType'] = 'string',
   name: string = key
 ): Attribute {
-  return {
-    attributeSource: {source_type: 'user'},
-    attributeType,
-    key,
-    name,
-  };
+  return {attributeSource: {source_type: 'user'}, attributeType, key, name};
 }
 
 describe('traceItemAttributeKeysOptions', () => {
@@ -43,12 +36,7 @@ describe('traceItemAttributeKeysOptions', () => {
   const queryClient = makeTestQueryClient();
   const endpoint = `/organizations/${organization.slug}/trace-items/attributes/`;
   const selection = PageFiltersFixture({
-    datetime: {
-      end: null,
-      period: '7d',
-      start: null,
-      utc: null,
-    },
+    datetime: {end: null, period: '7d', start: null, utc: null},
     projects: [1],
   });
 
@@ -118,14 +106,8 @@ describe('traceItemAttributeKeysOptions', () => {
   it('does not reuse non-empty cached prefix results', async () => {
     const prefixBody = [makeAttribute('foo')];
     const longerBody = [makeAttribute('foo.bar')];
-    const prefixRequest = addAttributeKeysMock({
-      substringMatch: 'fo',
-      body: prefixBody,
-    });
-    const longerRequest = addAttributeKeysMock({
-      substringMatch: 'foo',
-      body: longerBody,
-    });
+    const prefixRequest = addAttributeKeysMock({substringMatch: 'fo', body: prefixBody});
+    const longerRequest = addAttributeKeysMock({substringMatch: 'foo', body: longerBody});
 
     const prefixResult = await fetchAttributeKeys({search: 'fo'});
     const longerResult = await fetchAttributeKeys({search: 'foo'});
@@ -146,33 +128,20 @@ describe('traceItemAttributeKeysOptions', () => {
         query: {query: 'severity:error'},
         fetchOverrides: {query: 'severity:error'},
       },
-      {
-        name: 'type',
-        query: {attributeType: 'string'},
-        fetchOverrides: {type: 'string'},
-      },
+      {name: 'type', query: {attributeType: 'string'}, fetchOverrides: {type: 'string'}},
       {
         name: 'trace item type',
         query: {itemType: TraceItemDataset.SPANS},
         fetchOverrides: {traceItemType: TraceItemDataset.SPANS},
       },
-      {
-        name: 'project ids',
-        query: {project: ['2']},
-        fetchOverrides: {projectIds: [2]},
-      },
+      {name: 'project ids', query: {project: ['2']}, fetchOverrides: {projectIds: [2]}},
       {
         name: 'normalized datetime params',
         query: {statsPeriod: '14d'},
         fetchOverrides: {
           selection: PageFiltersFixture({
             ...selection,
-            datetime: {
-              end: null,
-              period: '14d',
-              start: null,
-              utc: null,
-            },
+            datetime: {end: null, period: '14d', start: null, utc: null},
           }),
         },
       },
@@ -210,10 +179,7 @@ describe('traceItemAttributeKeysOptions', () => {
     await queryClient.invalidateQueries({queryKey: prefixOptions.queryKey});
 
     const longerBody = [makeAttribute('foo.bar')];
-    const longerRequest = addAttributeKeysMock({
-      substringMatch: 'foo',
-      body: longerBody,
-    });
+    const longerRequest = addAttributeKeysMock({substringMatch: 'foo', body: longerBody});
 
     const longerResult = await fetchAttributeKeys({search: 'foo'});
 
@@ -261,10 +227,7 @@ describe('traceItemAttributeKeysOptions', () => {
     expect(request).toHaveBeenCalledWith(
       '/organizations/org-slug/trace-items/attributes/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          project: ['2'],
-          environment: ['production'],
-        }),
+        query: expect.objectContaining({project: ['2'], environment: ['production']}),
       })
     );
   });

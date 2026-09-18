@@ -8,9 +8,7 @@ import type {DetailedProject} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 
-const schema = z.object({
-  tempestFetchScreenshots: z.boolean(),
-});
+const schema = z.object({tempestFetchScreenshots: z.boolean()});
 
 interface ConfigFormProps {
   organization: Organization;

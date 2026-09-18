@@ -26,9 +26,7 @@ describe('SlackOAuthLoginStep', () => {
   it('renders the OAuth login step for Slack', () => {
     render(
       <SlackOAuthLoginStep
-        {...makeStepProps({
-          stepData: {oauthUrl: 'https://slack.com/oauth/authorize'},
-        })}
+        {...makeStepProps({stepData: {oauthUrl: 'https://slack.com/oauth/authorize'}})}
       />
     );
 
@@ -57,10 +55,7 @@ describe('SlackOAuthLoginStep', () => {
       },
     });
 
-    expect(advance).toHaveBeenCalledWith({
-      code: 'auth-code-123',
-      state: 'state-xyz',
-    });
+    expect(advance).toHaveBeenCalledWith({code: 'auth-code-123', state: 'state-xyz'});
   });
 
   it('shows busy state when isAdvancing is true', () => {

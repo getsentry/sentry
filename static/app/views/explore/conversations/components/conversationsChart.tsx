@@ -138,12 +138,7 @@ export function ConversationsChart() {
   const chartDisabled = conversationAliasFilters.length > 0;
 
   const {data, isPending, error} = useFetchSpanTimeSeries(
-    {
-      yAxis: [yAxis],
-      query,
-      interval,
-      enabled: chartDisabled ? false : undefined,
-    },
+    {yAxis: [yAxis], query, interval, enabled: chartDisabled ? false : undefined},
     Referrer.CHART
   );
 
@@ -349,10 +344,7 @@ function ContextMenu({
           interval,
         }),
         onAction: () => {
-          trackAnalytics('conversations.save_as', {
-            save_type: 'alert',
-            organization,
-          });
+          trackAnalytics('conversations.save_as', {save_type: 'alert', organization});
         },
       },
       {
@@ -372,10 +364,7 @@ function ContextMenu({
           if (disableAddToDashboard) {
             return;
           }
-          trackAnalytics('conversations.save_as', {
-            save_type: 'dashboard',
-            organization,
-          });
+          trackAnalytics('conversations.save_as', {save_type: 'dashboard', organization});
 
           const discoverQuery: NewQuery = {
             name: DEFAULT_WIDGET_NAME,

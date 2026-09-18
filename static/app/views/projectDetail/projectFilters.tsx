@@ -18,13 +18,7 @@ type Props = {
   tagValueLoader: TagValueLoader;
 };
 
-const SUPPORTED_TAGS = {
-  ...SEMVER_TAGS,
-  release: {
-    key: 'release',
-    name: 'release',
-  },
-};
+const SUPPORTED_TAGS = {...SEMVER_TAGS, release: {key: 'release', name: 'release'}};
 
 export function ProjectFilters({
   query,

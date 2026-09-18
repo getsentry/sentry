@@ -21,9 +21,7 @@ function TestForm({
 }: TestFormProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      priority: defaultValue,
-    },
+    defaultValues: {priority: defaultValue},
   });
 
   return (
@@ -49,9 +47,7 @@ function TestForm({
   );
 }
 
-const testSchema = z.object({
-  priority: z.string(),
-});
+const testSchema = z.object({priority: z.string()});
 
 interface AutoSaveTestFormProps {
   mutationFn: (data: {priority: string}) => Promise<{priority: string}>;

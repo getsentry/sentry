@@ -388,16 +388,10 @@ function ColumnEditCollection({
     const left = Number(dragState.left) - dragOffsetX;
     const col = columns[index]!;
 
-    const style = {
-      top: `${top}px`,
-      left: `${left}px`,
-    };
+    const style = {top: `${top}px`, left: `${left}px`};
     const ghost = (
       <Ghost ref={dragGhostRef} style={style}>
-        {renderItem(col, index, {
-          isGhost: true,
-          gridColumns,
-        })}
+        {renderItem(col, index, {isGhost: true, gridColumns})}
       </Ghost>
     );
 
@@ -412,12 +406,7 @@ function ColumnEditCollection({
       canDrag = true,
       isGhost = false,
       gridColumns,
-    }: {
-      gridColumns: number;
-      canDelete?: boolean;
-      canDrag?: boolean;
-      isGhost?: boolean;
-    }
+    }: {gridColumns: number; canDelete?: boolean; canDrag?: boolean; isGhost?: boolean}
   ) => {
     const {isDragging, draggingTargetIndex, draggingIndex} = dragState;
 
@@ -522,11 +511,7 @@ function ColumnEditCollection({
         </Heading>
       </RowContainer>
       {columns.map((col: Column, i: number) => {
-        return renderItem(col, i, {
-          canDelete,
-          canDrag,
-          gridColumns,
-        });
+        return renderItem(col, i, {canDelete, canDrag, gridColumns});
       })}
       <RowContainer>
         <Actions>

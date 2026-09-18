@@ -7,11 +7,7 @@ import {docs} from '.';
 describe('dart onboarding docs', () => {
   it('renders docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dart': {
-          version: '1.99.9',
-        },
-      },
+      releaseRegistry: {'sentry.dart': {version: '1.99.9'}},
     });
 
     // Renders main headings

@@ -31,22 +31,10 @@ describe('AutomationDetail', () => {
     name: 'Test Automation',
     detectorIds: ['1', '2'],
   });
-  const user = UserFixture({
-    id: '1',
-    name: 'John Doe',
-    email: 'john@example.com',
-  });
+  const user = UserFixture({id: '1', name: 'John Doe', email: 'john@example.com'});
   const detectors = [
-    MetricDetectorFixture({
-      id: '1',
-      name: 'CPU Usage Monitor',
-      projectId: '1',
-    }),
-    MetricDetectorFixture({
-      id: '2',
-      name: 'Memory Usage Monitor',
-      projectId: '2',
-    }),
+    MetricDetectorFixture({id: '1', name: 'CPU Usage Monitor', projectId: '1'}),
+    MetricDetectorFixture({id: '2', name: 'Memory Usage Monitor', projectId: '2'}),
   ];
 
   beforeEach(() => {
@@ -59,10 +47,7 @@ describe('AutomationDetail', () => {
       datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/1/',
-      body: user,
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/1/', body: user});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/123/',
@@ -163,10 +148,7 @@ describe('AutomationDetail', () => {
   });
 
   it('can disable an enabled automation', async () => {
-    const disabledAutomation = AutomationFixture({
-      ...automation,
-      enabled: false,
-    });
+    const disabledAutomation = AutomationFixture({...automation, enabled: false});
 
     const updateRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/123/',
@@ -189,11 +171,7 @@ describe('AutomationDetail', () => {
       expect(updateRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/workflows/123/',
         expect.objectContaining({
-          data: {
-            id: '123',
-            name: 'Test Automation',
-            enabled: false,
-          },
+          data: {id: '123', name: 'Test Automation', enabled: false},
         })
       );
     });
@@ -232,9 +210,7 @@ describe('AutomationDetail', () => {
       const automationWithWarning = AutomationFixture({
         ...automation,
         actionFilters: [
-          ActionFilterFixture({
-            actions: [ActionFixture({status: 'disabled'})],
-          }),
+          ActionFilterFixture({actions: [ActionFixture({status: 'disabled'})]}),
         ],
       });
 
@@ -338,9 +314,7 @@ describe('AutomationDetail', () => {
   });
 
   it('disables action buttons without alerts:write permission', async () => {
-    const noWriteOrg = OrganizationFixture({
-      access: ['org:read', 'alerts:read'],
-    });
+    const noWriteOrg = OrganizationFixture({access: ['org:read', 'alerts:read']});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/123/project-scope/',
       body: {projectIds: ['10'], includesAllProjects: false},
@@ -364,13 +338,8 @@ describe('AutomationDetail', () => {
   });
 
   it('enables action buttons for a team admin of every connected project', async () => {
-    const teamAdminOrg = OrganizationFixture({
-      access: ['org:read', 'alerts:read'],
-    });
-    const project = ProjectFixture({
-      id: '10',
-      access: ['project:read', 'alerts:write'],
-    });
+    const teamAdminOrg = OrganizationFixture({access: ['org:read', 'alerts:read']});
+    const project = ProjectFixture({id: '10', access: ['project:read', 'alerts:write']});
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/123/project-scope/',
@@ -395,11 +364,7 @@ describe('AutomationDetail', () => {
   });
 
   it('displays connected projects and monitors', async () => {
-    const project = ProjectFixture({
-      id: '10',
-      slug: 'my-project',
-      name: 'My Project',
-    });
+    const project = ProjectFixture({id: '10', slug: 'my-project', name: 'My Project'});
     ProjectsStore.loadInitialData([project]);
 
     const monitor = MetricDetectorFixture({
@@ -407,10 +372,7 @@ describe('AutomationDetail', () => {
       name: 'CPU Usage Monitor',
       projectId: '10',
     });
-    const issueStreamDetector = IssueStreamDetectorFixture({
-      id: '60',
-      projectId: '10',
-    });
+    const issueStreamDetector = IssueStreamDetectorFixture({id: '60', projectId: '10'});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',

@@ -18,9 +18,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-const toolbarSchema = z.object({
-  'sentry:toolbar_allowed_origins': z.string(),
-});
+const toolbarSchema = z.object({'sentry:toolbar_allowed_origins': z.string()});
 
 export default function ProjectToolbarSettings() {
   const organization = useOrganization();

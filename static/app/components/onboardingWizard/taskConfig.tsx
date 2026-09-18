@@ -46,10 +46,7 @@ function getIssueAlertUrl({projects, organization}: Options) {
   // pick the first project with events if we have that, otherwise just pick the first project
   const firstProjectWithEvents = projects.find(project => !!project.firstEvent);
   const project = firstProjectWithEvents ?? projects[0]!;
-  return makeAlertsPathname({
-    path: `/${project.slug}/wizard/`,
-    organization,
-  });
+  return makeAlertsPathname({path: `/${project.slug}/wizard/`, organization});
 }
 
 function getOnboardingInstructionsUrl({projects, organization}: Options) {
@@ -57,20 +54,14 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // but if the user falls into this case for some reason,
   // he needs to select the platform again since it is not available as a parameter here
   if (!projects?.length) {
-    return makeProjectsPathname({
-      path: '/:projectId/getting-started/',
-      organization,
-    });
+    return makeProjectsPathname({path: '/:projectId/getting-started/', organization});
   }
 
   const allProjectsWithoutErrors = projects.every(project => !project.firstEvent);
   // If all created projects don't have any errors,
   // we ask the user to pick a project before navigating to the instructions
   if (allProjectsWithoutErrors) {
-    return makeProjectsPathname({
-      path: '/:projectId/getting-started/',
-      organization,
-    });
+    return makeProjectsPathname({path: '/:projectId/getting-started/', organization});
   }
 
   // Pick the first project without an error
@@ -79,10 +70,7 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // but if the user falls into this case for some reason, we pick the first project
   const project = firstProjectWithoutError ?? projects[0]!;
 
-  return makeProjectsPathname({
-    path: `/${project.slug}/getting-started/`,
-    organization,
-  });
+  return makeProjectsPathname({path: `/${project.slug}/getting-started/`, organization});
 }
 
 function getOnboardingTasks({
@@ -135,10 +123,7 @@ function getOnboardingTasks({
         ),
         skippable: false,
         actionType: 'app',
-        location: makeReleasesPathname({
-          organization,
-          path: '/',
-        }),
+        location: makeReleasesPathname({organization, path: '/'}),
         display: true,
         group: OnboardingTaskGroup.GETTING_STARTED,
       },
@@ -270,10 +255,7 @@ function getOnboardingTasks({
       actionType: 'action',
       action: ({navigate}) => {
         navigate({
-          pathname: makeReplaysPathname({
-            path: '/',
-            organization,
-          }),
+          pathname: makeReplaysPathname({path: '/', organization}),
           query: {referrer: 'onboarding_task'},
         });
         // Since the quick start panel is already open and closes on route change
@@ -292,10 +274,7 @@ function getOnboardingTasks({
       ),
       skippable: true,
       actionType: 'app',
-      location: makeReleasesPathname({
-        organization,
-        path: '/',
-      }),
+      location: makeReleasesPathname({organization, path: '/'}),
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
     },

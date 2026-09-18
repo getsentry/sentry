@@ -100,15 +100,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     enabled: props.showReleaseAs !== 'none',
   });
   const releases =
-    releasesWithDate?.map(({date, version}) => ({
-      timestamp: date,
-      version,
-    })) ?? [];
+    releasesWithDate?.map(({date, version}) => ({timestamp: date, version})) ?? [];
 
-  const aliases: Record<string, string> = {
-    ...BASE_FIELD_ALIASES,
-    ...props?.aliases,
-  };
+  const aliases: Record<string, string> = {...BASE_FIELD_ALIASES, ...props?.aliases};
 
   const PlottableDataConstructor =
     props.visualizationType === 'line'

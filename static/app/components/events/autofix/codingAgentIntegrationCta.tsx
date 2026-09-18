@@ -233,10 +233,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
           <Text>
             {tct(
               '[name] handoff is active. During automation runs, Seer will automatically trigger [name] Agents. [docsLink:Read the docs] to learn more.',
-              {
-                name: config.displayName,
-                docsLink: <ExternalLink href={config.docsUrl} />,
-              }
+              {name: config.displayName, docsLink: <ExternalLink href={config.docsUrl} />}
             )}
           </Text>
         </Stack>

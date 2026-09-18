@@ -86,10 +86,7 @@ export function ActionNodeList({
       }
       const label =
         actionNodesMap.get(action.type)?.label || action.sentryApp?.name || action.type;
-      const newAction = {
-        value: action,
-        label,
-      };
+      const newAction = {value: action, label};
 
       if (action.handlerGroup === ActionGroup.NOTIFICATION) {
         notificationActions.push(newAction);
@@ -111,11 +108,7 @@ export function ActionNodeList({
         label: t('Ticket Creation'),
         options: ticketCreationActions,
       },
-      {
-        key: ActionGroup.OTHER,
-        label: t('Other Integrations'),
-        options: otherActions,
-      },
+      {key: ActionGroup.OTHER, label: t('Other Integrations'), options: otherActions},
     ];
   }, [availableActions]);
 

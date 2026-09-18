@@ -30,14 +30,8 @@ export function SelectorList({frame}: {frame: ClickFrame}) {
       <Tooltip title={t('Search by this component')} containerDisplayMode="inline">
         <Link
           to={{
-            pathname: makeReplaysPathname({
-              path: '/',
-              organization,
-            }),
-            query: {
-              ...location.query,
-              query: `click.component_name:${componentName}`,
-            },
+            pathname: makeReplaysPathname({path: '/', organization}),
+            query: {...location.query, query: `click.component_name:${componentName}`},
           }}
         >
           {componentName}

@@ -31,9 +31,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 const userFeedbackFeedbackOptions = {
   messagePlaceholder: t('How can we improve the User Feedback experience?'),
-  tags: {
-    'feedback.source': 'feedback-list',
-  },
+  tags: {'feedback.source': 'feedback-list'},
 };
 
 function PageContent({
@@ -51,10 +49,7 @@ function PageContent({
   const createAlertAction = {
     icon: <IconSiren />,
     to: {
-      pathname: makeAlertsPathname({
-        path: '/new/issue/',
-        organization,
-      }),
+      pathname: makeAlertsPathname({path: '/new/issue/', organization}),
       query: {
         alert_option: 'issues',
         referrer: 'feedback-list-page',
@@ -188,10 +183,7 @@ export default function FeedbackListPage() {
     const estimatedItemHeight = 80;
     const scrollPosition = selectedItemIndex * estimatedItemHeight;
 
-    scrollContainer.scrollTo({
-      top: scrollPosition,
-      behavior: 'auto',
-    });
+    scrollContainer.scrollTo({top: scrollPosition, behavior: 'auto'});
   };
 
   const handleBackToList = () => {

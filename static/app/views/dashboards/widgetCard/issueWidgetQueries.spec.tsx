@@ -13,12 +13,7 @@ describe('IssueWidgetQueries', () => {
   const selection = {
     projects: [1],
     environments: ['prod'],
-    datetime: {
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    },
+    datetime: {period: '14d', start: null, end: null, utc: false},
   };
 
   beforeEach(() => {
@@ -57,16 +52,9 @@ describe('IssueWidgetQueries', () => {
           {
             id: '1',
             title: 'Error: Failed',
-            project: {
-              id: '3',
-            },
+            project: {id: '3'},
             status: 'unresolved',
-            owners: [
-              {
-                type: 'ownershipRule',
-                owner: 'user:2',
-              },
-            ],
+            owners: [{type: 'ownershipRule', owner: 'user:2'}],
             lifetime: {count: 10, userCount: 5},
             count: 6,
             userCount: 3,
@@ -158,11 +146,7 @@ describe('IssueWidgetQueries', () => {
               values: [{timestamp: '1763495560000', value: 10}],
             },
           ],
-          meta: {
-            interval: 10800000,
-            valueType: 'integer',
-            valueUnit: null,
-          },
+          meta: {interval: 10800000, valueType: 'integer', valueUnit: null},
         },
       });
     });

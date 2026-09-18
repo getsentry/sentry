@@ -167,9 +167,7 @@ export function VisuallyCompleteWithData({
   const recordVCDMetric = useEffectEvent((vcdTime: number) => {
     try {
       Sentry.metrics.count('visually_complete_with_data', vcdTime, {
-        attributes: {
-          url: location.pathname,
-        },
+        attributes: {url: location.pathname},
         unit: 'millisecond', // DOMHighResTimeStamp
       });
     } catch (_) {

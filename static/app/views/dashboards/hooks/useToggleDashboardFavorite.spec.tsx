@@ -20,10 +20,7 @@ const tableQueryKey = dashboardsApiOptions(organization, {
 
 function renderToggleHook(org = organization) {
   return renderHookWithProviders(
-    () => ({
-      queryClient: useQueryClient(),
-      toggleFavorite: useToggleDashboardFavorite(),
-    }),
+    () => ({queryClient: useQueryClient(), toggleFavorite: useToggleDashboardFavorite()}),
     {organization: org}
   );
 }

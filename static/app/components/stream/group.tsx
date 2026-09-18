@@ -517,11 +517,7 @@ export function StreamGroup({
 
     return {
       pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-      query: {
-        referrer,
-        ...commonQuery,
-        query: filteredQuery,
-      },
+      query: {referrer, ...commonQuery, query: filteredQuery},
     };
   };
 
@@ -704,13 +700,7 @@ export function StreamGroup({
 
     navigate(
       normalizeUrl(
-        createIssueLink({
-          data: group,
-          organization,
-          referrer,
-          location,
-          query,
-        })
+        createIssueLink({data: group, organization, referrer, location, query})
       )
     );
   };
@@ -912,10 +902,7 @@ const UnreadIndicator = styled('div')`
 `;
 
 // Position for wrapper is relative for overlay actions
-const Wrapper = styled(PanelItem)<{
-  reviewed: boolean;
-  useTintRow: boolean;
-}>`
+const Wrapper = styled(PanelItem)<{reviewed: boolean; useTintRow: boolean}>`
   position: relative;
   line-height: 1.1;
   padding: ${p => p.theme.space.md} 0;

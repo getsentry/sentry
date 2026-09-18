@@ -18,11 +18,7 @@ describe('useCustomMeasurements', () => {
   it('returns an empty collection without fetching measurements-meta', () => {
     const measurementsMetaMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/measurements-meta/',
-      body: {
-        'measurements.custom.measurement': {
-          functions: ['p99'],
-        },
-      },
+      body: {'measurements.custom.measurement': {functions: ['p99']}},
     });
 
     render(<TestComponent other="value" />);

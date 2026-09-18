@@ -26,9 +26,7 @@ import {
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
-type PageDataProviderProps = {
-  children: React.ReactNode;
-};
+type PageDataProviderProps = {children: React.ReactNode};
 
 export function TraceViewLogsQueryParamsProvider({
   traceSlug,

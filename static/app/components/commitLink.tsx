@@ -7,10 +7,7 @@ import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 
-type CommitFormatterParameters = {
-  baseUrl: string;
-  commitId: string;
-};
+type CommitFormatterParameters = {baseUrl: string; commitId: string};
 
 type CommitProvider = {
   commitUrl: (opts: CommitFormatterParameters) => string;
@@ -84,11 +81,7 @@ export function CommitLink({
   }
 
   const commitUrl =
-    repository.url &&
-    providerData.commitUrl({
-      commitId,
-      baseUrl: repository.url,
-    });
+    repository.url && providerData.commitUrl({commitId, baseUrl: repository.url});
 
   const Icon = providerData.icon;
 

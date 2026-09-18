@@ -15,22 +15,13 @@ export function computeBuckets(data: HistogramData) {
 
   return data.map(item => {
     const bucket = item.bin;
-    return {
-      start: bucket,
-      end: bucket + width,
-    };
+    return {start: bucket, end: bucket + width};
   });
 }
 
 export function formatHistogramData(
   data: HistogramData,
-  {
-    type,
-    additionalFieldsFn,
-  }: {
-    additionalFieldsFn?: any;
-    type?: ColumnType;
-  } = {}
+  {type, additionalFieldsFn}: {additionalFieldsFn?: any; type?: ColumnType} = {}
 ) {
   const formatter = (value: number): string => {
     switch (type) {

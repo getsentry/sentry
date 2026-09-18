@@ -1,7 +1,5 @@
 export type FeedbackEventParameters = {
-  'feedback.details-integration-issue-clicked': {
-    integration_key: string;
-  };
+  'feedback.details-integration-issue-clicked': {integration_key: string};
   'feedback.feedback-item-copy-as-markdown': Record<string, unknown>;
   'feedback.feedback-item-not-found': {feedbackId: string};
   'feedback.feedback-item-rendered': Record<string, unknown>;

@@ -9,12 +9,8 @@ import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 describe('Feature', () => {
-  const organization = OrganizationFixture({
-    features: ['org-foo', 'org-bar', 'bar'],
-  });
-  const project = ProjectFixture({
-    features: ['project-foo', 'project-bar'],
-  });
+  const organization = OrganizationFixture({features: ['org-foo', 'org-bar', 'bar']});
+  const project = ProjectFixture({features: ['project-foo', 'project-bar']});
 
   function WrappedFeature(props: React.ComponentProps<typeof Feature>) {
     return <Feature project={project} {...props} />;
@@ -150,9 +146,7 @@ describe('Feature', () => {
     it('handles features prefixed with org/project', () => {
       render(
         <WrappedFeature features="organizations:org-bar">{childrenMock}</WrappedFeature>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -178,16 +172,12 @@ describe('Feature', () => {
 
     it('checks ConfigStore.config.features (e.g. `organizations:create`)', () => {
       ConfigStore.loadInitialData(
-        ConfigFixture({
-          features: new Set(['organizations:create']),
-        })
+        ConfigFixture({features: new Set(['organizations:create'])})
       );
 
       render(
         <WrappedFeature features="organizations:create">{childrenMock}</WrappedFeature>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(childrenMock).toHaveBeenCalledWith({

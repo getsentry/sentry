@@ -10,9 +10,7 @@ export function useIssueViewUnsavedChanges() {
   const location = useLocation();
 
   if (!view) {
-    return {
-      hasUnsavedChanges: false,
-    };
+    return {hasUnsavedChanges: false};
   }
 
   const queryParams = getIssueViewQueryParams({view});

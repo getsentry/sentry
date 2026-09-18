@@ -58,11 +58,7 @@ function mockIntegrationConfig(integrationId: string, fieldNames: string[] = [])
   return MockApiClient.addMockResponse({
     url: `/organizations/org-slug/integrations/${integrationId}/`,
     body: {
-      createIssueConfig: fieldNames.map(name => ({
-        name,
-        label: name,
-        type: 'string',
-      })),
+      createIssueConfig: fieldNames.map(name => ({name, label: name, type: 'string'})),
     },
   });
 }
@@ -165,10 +161,7 @@ describe('TicketActionSettingsButton', () => {
       id: '42',
       type: ActionType.JIRA,
       integrationId: 'int-1',
-      data: {
-        additional_fields: {project: 'DIRECT'},
-        dynamic_form_fields: [],
-      },
+      data: {additional_fields: {project: 'DIRECT'}, dynamic_form_fields: []},
     });
 
     const automation = AutomationFixture({

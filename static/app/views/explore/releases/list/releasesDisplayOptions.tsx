@@ -14,10 +14,7 @@ const displayOptions = {
   [ReleasesDisplayOption.USERS]: {label: t('Users')},
 };
 
-type Props = {
-  onSelect: (key: string) => void;
-  selected: ReleasesDisplayOption;
-};
+type Props = {onSelect: (key: string) => void; selected: ReleasesDisplayOption};
 
 export function ReleasesDisplayOptions({selected, onSelect}: Props) {
   return (

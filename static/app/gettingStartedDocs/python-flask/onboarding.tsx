@@ -64,9 +64,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock({additionalPackage: 'flask'}),
       ],
@@ -80,9 +78,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'If you have the [codeFlask:flask] package in your dependencies, the Flask integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
-            {
-              codeFlask: <code />,
-            }
+            {codeFlask: <code />}
           ),
         },
         {
@@ -132,9 +128,7 @@ def hello_world():
           text: [
             tct(
               'When you point your browser to [link:http://localhost:5000/] a transaction in the Performance section of Sentry will be created.',
-              {
-                link: <ExternalLink href="http://localhost:5000/" />,
-              }
+              {link: <ExternalLink href="http://localhost:5000/" />}
             ),
             t(
               'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'

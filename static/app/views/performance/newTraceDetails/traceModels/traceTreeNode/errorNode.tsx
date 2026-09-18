@@ -49,14 +49,8 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
       : this.value.description;
   }
 
-  get traceHeaderTitle(): {
-    title: string;
-    subtitle?: string;
-  } {
-    return {
-      title: t('Trace'),
-      subtitle: this.description,
-    };
+  get traceHeaderTitle(): {title: string; subtitle?: string} {
+    return {title: t('Trace'), subtitle: this.description};
   }
 
   get drawerTabsTitle(): string {

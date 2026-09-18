@@ -123,11 +123,7 @@ function AccountDetails() {
 
   const userMutationOptions = mutationOptions({
     mutationFn: (data: Partial<User>) => {
-      return fetchMutation<User>({
-        method: 'PUT',
-        url: USER_ENDPOINT,
-        data,
-      });
+      return fetchMutation<User>({method: 'PUT', url: USER_ENDPOINT, data});
     },
     onSuccess: data => {
       handleSubmitSuccess(data);

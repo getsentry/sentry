@@ -34,10 +34,7 @@ function eventDetailsRoute({
   eventSlug: string;
   organization: Organization;
 }): string {
-  return makeDiscoverPathname({
-    path: `/${eventSlug}/`,
-    organization,
-  });
+  return makeDiscoverPathname({path: `/${eventSlug}/`, organization});
 }
 
 /**
@@ -112,15 +109,9 @@ export function eventDetailsRouteWithEventView({
   eventView: EventView;
   organization: Organization;
 }) {
-  const pathname = eventDetailsRoute({
-    organization,
-    eventSlug,
-  });
+  const pathname = eventDetailsRoute({organization, eventSlug});
 
-  return {
-    pathname,
-    query: eventView.generateQueryStringObject(),
-  };
+  return {pathname, query: eventView.generateQueryStringObject()};
 }
 
 /**
@@ -130,25 +121,13 @@ export function eventDetailsRouteWithEventView({
 export function getDiscoverLandingUrl(organization: Organization): string {
   if (organization.features.includes('discover-query')) {
     if (getDiscoverDeprecation(organization)) {
-      return makeDiscoverPathname({
-        path: '/',
-        organization,
-      });
+      return makeDiscoverPathname({path: '/', organization});
     }
-    return makeDiscoverPathname({
-      path: '/homepage/',
-      organization,
-    });
+    return makeDiscoverPathname({path: '/homepage/', organization});
   }
-  return makeDiscoverPathname({
-    path: '/results/',
-    organization,
-  });
+  return makeDiscoverPathname({path: '/results/', organization});
 }
 
 export function getDiscoverQueriesUrl(organization: Organization): string {
-  return makeDiscoverPathname({
-    path: '/queries/',
-    organization,
-  });
+  return makeDiscoverPathname({path: '/queries/', organization});
 }

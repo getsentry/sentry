@@ -13,10 +13,7 @@ import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {DashboardBackground} from './illustrations/dashboardsBackground';
 import PageUpsellOverlay from './pageUpsellOverlay';
 
-type Props = React.PropsWithChildren<{
-  features: string[];
-  organization: Organization;
-}>;
+type Props = React.PropsWithChildren<{features: string[]; organization: Organization}>;
 
 const TextWrapper = styled('div')`
   width: 500px;
@@ -60,9 +57,7 @@ function DisabledDashboardPage({
 
   // emit the event when the page is loaded
   useEffect(() => {
-    trackGetsentryAnalytics('growth.disabled_dashboard.viewed', {
-      organization,
-    });
+    trackGetsentryAnalytics('growth.disabled_dashboard.viewed', {organization});
   }, [organization]);
 
   return (

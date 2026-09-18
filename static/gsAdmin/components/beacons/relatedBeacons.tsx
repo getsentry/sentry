@@ -7,9 +7,7 @@ import {Truncate} from 'sentry/components/truncate';
 
 import type {BeaconData} from 'admin/components/beacons/beaconOverview';
 
-type Props = {
-  data: BeaconData;
-};
+type Props = {data: BeaconData};
 
 const getRow = (row: any) => [
   <td key="id">

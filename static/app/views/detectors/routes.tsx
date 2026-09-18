@@ -11,10 +11,7 @@ export const detectorRoutes: SentryRouteObject = {
     {
       path: 'new',
       children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/detectors/new')),
-        },
+        {index: true, component: make(() => import('sentry/views/detectors/new'))},
         {
           path: 'settings/',
           component: make(() => import('sentry/views/detectors/detectorNewSettings')),
@@ -24,14 +21,8 @@ export const detectorRoutes: SentryRouteObject = {
     {
       path: ':detectorId/',
       children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/detectors/detail')),
-        },
-        {
-          path: 'edit/',
-          component: make(() => import('sentry/views/detectors/edit')),
-        },
+        {index: true, component: make(() => import('sentry/views/detectors/detail'))},
+        {path: 'edit/', component: make(() => import('sentry/views/detectors/edit'))},
       ],
     },
   ],

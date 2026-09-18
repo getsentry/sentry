@@ -109,9 +109,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     closeSeerExplorerDrawer,
     toggleSeerExplorerDrawer,
     isOpen: isDrawerOpen,
-  } = useSeerExplorerDrawer({
-    onClose: () => setLastViewedAt(Date.now()),
-  });
+  } = useSeerExplorerDrawer({onClose: () => setLastViewedAt(Date.now())});
 
   // Sidebar (split-panel) state. Open state is ephemeral — resets on reload,
   // like the drawer; only the dock preference persists.
@@ -429,10 +427,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     [openSeerExplorer]
   );
 
-  useSeerExplorerDeepLink({
-    callback: deepLinkCallback,
-    enabled: !isOpen && !isPoppedOut,
-  });
+  useSeerExplorerDeepLink({callback: deepLinkCallback, enabled: !isOpen && !isPoppedOut});
 
   useHotkeys(
     isModalOpen

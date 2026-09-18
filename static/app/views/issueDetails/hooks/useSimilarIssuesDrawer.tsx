@@ -38,13 +38,7 @@ export function useSimilarIssuesDrawer({
       onClose: () => {
         // Remove drawer state from URL
         navigate(
-          {
-            pathname: baseUrl,
-            query: {
-              ...location.query,
-              cursor: undefined,
-            },
-          },
+          {pathname: baseUrl, query: {...location.query, cursor: undefined}},
           {replace: true, preventScrollReset: true}
         );
       },

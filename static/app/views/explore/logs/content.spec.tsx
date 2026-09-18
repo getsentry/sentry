@@ -57,9 +57,7 @@ describe('LogsPage', () => {
     eventsTimeSeriesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
+      body: {timeSeries: [TimeSeriesFixture()]},
     });
 
     MockApiClient.addMockResponse({
@@ -138,12 +136,7 @@ describe('LogsPage', () => {
       organization: onboardingOrganization,
       project: onboardingProject,
       setupPageFilters: onboardingSetupPageFilters,
-    } = initializeLogsTest({
-      project: {
-        hasLogs: false,
-        platform: 'javascript-react',
-      },
-    });
+    } = initializeLogsTest({project: {hasLogs: false, platform: 'javascript-react'}});
     TeamStore.loadInitialData([TeamFixture()]);
     MockApiClient.addMockResponse({
       url: `/projects/${onboardingOrganization.slug}/${onboardingProject.slug}/`,
@@ -164,10 +157,7 @@ describe('LogsPage', () => {
     jest
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {
-        return {
-          project: onboardingProject,
-          isProjectActive: true,
-        };
+        return {project: onboardingProject, isProjectActive: true};
       });
 
     onboardingSetupPageFilters();
@@ -286,10 +276,7 @@ describe('LogsPage', () => {
     });
 
     it('enables autorefresh when Switch is clicked', async () => {
-      render(<LogsPage />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<LogsPage />, {organization, initialRouterConfig});
 
       await waitFor(() => {
         expect(screen.getByTestId('logs-table')).toBeInTheDocument();

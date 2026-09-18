@@ -169,11 +169,7 @@ describe('EventGraph', () => {
     await waitFor(() => {
       expect(mockEventStats).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            environment: [],
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({environment: []})})
       );
     });
 
@@ -184,9 +180,7 @@ describe('EventGraph', () => {
       expect(mockEventStats).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            environment: ['production'],
-          }),
+          query: expect.objectContaining({environment: ['production']}),
         })
       );
     });
@@ -218,19 +212,13 @@ describe('EventGraph', () => {
     expect(mockEventStats).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          query: [persistantQuery, query].join(' '),
-        }),
+        query: expect.objectContaining({query: [persistantQuery, query].join(' ')}),
       })
     );
     // Also makes request without tag filter
     expect(mockEventStats).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: persistantQuery,
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({query: persistantQuery})})
     );
   });
 
@@ -257,11 +245,7 @@ describe('EventGraph', () => {
 
     expect(mockEventStats).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          statsPeriod: '7d',
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '7d'})})
     );
   });
 

@@ -3,10 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {Thresholds, type ThresholdsConfig} from './thresholds';
 
 const exampleThresholdsConfig: ThresholdsConfig = {
-  max_values: {
-    max1: 100,
-    max2: 200,
-  },
+  max_values: {max1: 100, max2: 200},
   unit: null,
 };
 

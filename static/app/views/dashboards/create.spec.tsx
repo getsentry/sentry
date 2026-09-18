@@ -21,22 +21,10 @@ describe('Dashboards > CreateDashboard', () => {
     ProjectsStore.loadInitialData([ProjectFixture()]);
     PageFiltersStore.reset();
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {data: []},
@@ -49,18 +37,12 @@ describe('Dashboards > CreateDashboard', () => {
       url: '/organizations/org-slug/eventsv2/',
       body: {data: []},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/measurements-meta/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
@@ -77,9 +59,7 @@ describe('Dashboards > CreateDashboard', () => {
     render(<CreateDashboard />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/dashboards/new/',
-        },
+        location: {pathname: '/organizations/org-slug/dashboards/new/'},
       },
     });
 
@@ -184,9 +164,7 @@ describe('Dashboards > CreateDashboard', () => {
     expect(mockPOST).toHaveBeenCalledWith(
       '/organizations/org-slug/dashboards/',
       expect.objectContaining({
-        data: expect.objectContaining({
-          widgets: [expect.objectContaining(widget)],
-        }),
+        data: expect.objectContaining({widgets: [expect.objectContaining(widget)]}),
       })
     );
   });

@@ -170,11 +170,7 @@ function mapMonitorFormErrors(responseJson?: any) {
 export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: Props) {
   const theme = useTheme();
   const organization = useOrganization();
-  const form = useRef(
-    new FormModel({
-      transformData: transformMonitorFormData,
-    })
-  );
+  const form = useRef(new FormModel({transformData: transformMonitorFormData}));
   // oxlint-disable-next-line react/refs
   const {onFieldChange} = useFormEagerValidation(form.current);
 
@@ -217,13 +213,7 @@ export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: 
   const owner = monitor?.owner ? `${monitor.owner.type}:${monitor.owner.id}` : null;
 
   const envOptions = selectedProject?.environments.map(e => ({value: e, label: e})) ?? [];
-  const alertRuleEnvs = [
-    {
-      label: 'All Environments',
-      value: '',
-    },
-    ...envOptions,
-  ];
+  const alertRuleEnvs = [{label: 'All Environments', value: ''}, ...envOptions];
 
   return (
     <Form
@@ -245,9 +235,7 @@ export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: 
               'alertRule.environment': monitor.alertRule?.environment,
               ...formDataFromConfig(monitor.config),
             }
-          : {
-              project: selectedProject ? selectedProject.slug : null,
-            }
+          : {project: selectedProject ? selectedProject.slug : null}
       }
       onSubmitSuccess={onSubmitSuccess}
       mapFormErrors={mapMonitorFormErrors}

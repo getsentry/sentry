@@ -11,13 +11,9 @@ import {onboarding} from './onboarding';
 export const docs: Docs = {
   onboarding,
   crashReportOnboarding: crashReport,
-  featureFlagOnboarding: featureFlag({
-    packageName: '@sentry/cloudflare',
-  }),
+  featureFlagOnboarding: featureFlag({packageName: '@sentry/cloudflare'}),
   logsOnboarding: logs,
-  agentMonitoringOnboarding: agentMonitoring({
-    packageName: '@sentry/cloudflare',
-  }),
+  agentMonitoringOnboarding: agentMonitoring({packageName: '@sentry/cloudflare'}),
   mcpOnboarding: mcp,
   metricsOnboarding: metrics,
 };

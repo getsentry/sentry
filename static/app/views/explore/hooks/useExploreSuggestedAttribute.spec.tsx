@@ -12,11 +12,7 @@ const arrayAttributes: TagCollection = {
     kind: FieldKind.ARRAY,
   },
   // Non-tag array: stored under its plain name.
-  'some.array': {
-    key: 'some.array',
-    name: 'some.array',
-    kind: FieldKind.ARRAY,
-  },
+  'some.array': {key: 'some.array', name: 'some.array', kind: FieldKind.ARRAY},
 };
 
 function setup() {

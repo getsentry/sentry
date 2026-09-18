@@ -27,9 +27,7 @@ export const profiling: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Android UI Profiling is available starting in SDK version [code:8.7.0].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

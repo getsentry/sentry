@@ -15,9 +15,7 @@ export function useInboxIssueCount() {
       '/organizations/$organizationIdOrSlug/issues-count/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {
-          query: [INBOX_COUNT_QUERY],
-        },
+        query: {query: [INBOX_COUNT_QUERY]},
         staleTime: 180_000,
       }
     ),

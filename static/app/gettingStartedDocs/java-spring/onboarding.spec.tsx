@@ -11,11 +11,7 @@ import {docs} from '.';
 describe('GettingStartedWithSpring', () => {
   it('renders gradle docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.java.android.gradle-plugin': {
-          version: '1.99.9',
-        },
-      },
+      releaseRegistry: {'sentry.java.android.gradle-plugin': {version: '1.99.9'}},
     });
 
     // Renders main headings
@@ -33,14 +29,8 @@ describe('GettingStartedWithSpring', () => {
 
   it('renders maven docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.java.maven-plugin': {
-          version: '3.99.9',
-        },
-      },
-      selectedOptions: {
-        packageManager: PackageManager.MAVEN,
-      },
+      releaseRegistry: {'sentry.java.maven-plugin': {version: '3.99.9'}},
+      selectedOptions: {packageManager: PackageManager.MAVEN},
     });
 
     // Renders main headings
@@ -60,14 +50,8 @@ describe('GettingStartedWithSpring', () => {
 
   it('renders spring 5 doc correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.java.android.gradle-plugin': {
-          version: '1.99.9',
-        },
-      },
-      selectedOptions: {
-        springVersion: SpringVersion.V5,
-      },
+      releaseRegistry: {'sentry.java.android.gradle-plugin': {version: '1.99.9'}},
+      selectedOptions: {springVersion: SpringVersion.V5},
     });
     // Uses Sentry Spring import
     expect(
@@ -79,14 +63,8 @@ describe('GettingStartedWithSpring', () => {
 
   it('renders spring 6 doc correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.java.android.gradle-plugin': {
-          version: '1.99.9',
-        },
-      },
-      selectedOptions: {
-        springVersion: SpringVersion.V6,
-      },
+      releaseRegistry: {'sentry.java.android.gradle-plugin': {version: '1.99.9'}},
+      selectedOptions: {springVersion: SpringVersion.V6},
     });
     // Uses Sentry Spring import
     expect(

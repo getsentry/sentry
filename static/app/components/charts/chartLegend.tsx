@@ -140,10 +140,7 @@ export function ChartLegend({
   const overflowSet = new Set(overflowItems.map(item => item.name));
 
   const toggleItem = (name: string) => {
-    onSelectionChange({
-      ...selected,
-      [name]: selected[name] === false ? true : false,
-    });
+    onSelectionChange({...selected, [name]: selected[name] === false ? true : false});
   };
 
   const overflowOptions: Array<SelectOption<string>> = overflowItems.map(item => ({
@@ -211,9 +208,7 @@ export function ChartLegend({
             align="center"
             gap="xs"
             flexShrink={0}
-            style={{
-              visibility: overflowSet.has(item.name) ? 'hidden' : 'visible',
-            }}
+            style={{visibility: overflowSet.has(item.name) ? 'hidden' : 'visible'}}
             onClick={() => toggleItem(item.name)}
             role="button"
             aria-label={t('Toggle %s', item.label)}

@@ -102,10 +102,7 @@ type EventsTotals = {
   releaseTransactionCount: number;
 } | null;
 
-type IssuesTotals = {
-  handled: number;
-  unhandled: number;
-} | null;
+type IssuesTotals = {handled: number; unhandled: number} | null;
 
 export function ReleaseComparisonChart({
   release,
@@ -141,10 +138,7 @@ export function ReleaseComparisonChart({
   } = useMemo(
     () =>
       // Memoizing this so that it does not calculate different `end` for releases without events+sessions each rerender
-      getReleaseParams({
-        location,
-        releaseBounds: getReleaseBounds(release),
-      }),
+      getReleaseParams({location, releaseBounds: getReleaseBounds(release)}),
     [release, location]
   );
 
@@ -963,17 +957,8 @@ export function ReleaseComparisonChart({
   }
 
   function handleChartChange(chartType: ReleaseComparisonChartType) {
-    trackAnalytics('releases.change_chart_type', {
-      organization,
-      chartType,
-    });
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        chart: chartType,
-      },
-    });
+    trackAnalytics('releases.change_chart_type', {organization, chartType});
+    navigate({...location, query: {...location.query, chart: chartType}});
   }
 
   function handleExpanderToggle(chartType: ReleaseComparisonChartType) {
@@ -1129,10 +1114,7 @@ export function ReleaseComparisonChart({
         columns={[
           {
             key: 'description',
-            width: {
-              zero: 'minmax(min-content, 1fr)',
-              '4xl': 'minmax(400px, auto)',
-            },
+            width: {zero: 'minmax(min-content, 1fr)', '4xl': 'minmax(400px, auto)'},
           },
           {key: 'releases', width: 'minmax(min-content, 1fr)'},
           {key: 'release', width: 'minmax(min-content, 1fr)'},

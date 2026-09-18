@@ -30,14 +30,7 @@ const getReplayFieldDefinition = (key: string) => getFieldDefinition(key, 'repla
 
 function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
   return Object.fromEntries(
-    fieldKeys.map(key => [
-      key,
-      {
-        key,
-        name: key,
-        ...getReplayFieldDefinition(key),
-      },
-    ])
+    fieldKeys.map(key => [key, {key, name: key, ...getReplayFieldDefinition(key)}])
   );
 }
 
@@ -104,11 +97,7 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
       label: t('Tap Fields'),
       children: Object.keys(REPLAY_TAP_FIELDS_AS_TAGS),
     },
-    {
-      value: FieldKind.TAG,
-      label: t('Tags'),
-      children: orderedTagKeys,
-    },
+    {value: FieldKind.TAG, label: t('Tags'), children: orderedTagKeys},
   ];
 };
 
@@ -169,11 +158,7 @@ export function ReplaySearchBar(props: Props) {
         return Promise.resolve([]);
       }
 
-      const endpointParams = {
-        start,
-        end,
-        statsPeriod,
-      };
+      const endpointParams = {start, end, statsPeriod};
 
       const searchName =
         tag.key in REPLAY_TAG_ALIASES

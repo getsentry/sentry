@@ -158,17 +158,11 @@ export function getTrend(diff: number): {
   icon?: React.ReactNode;
 } {
   if (diff > 0) {
-    return {
-      variant: 'danger',
-      icon: <IconArrow size="xs" />,
-    };
+    return {variant: 'danger', icon: <IconArrow size="xs" />};
   }
 
   if (diff < 0) {
-    return {
-      variant: 'success',
-      icon: <IconArrow direction="down" size="xs" />,
-    };
+    return {variant: 'success', icon: <IconArrow direction="down" size="xs" />};
   }
 
   return {variant: 'muted'};

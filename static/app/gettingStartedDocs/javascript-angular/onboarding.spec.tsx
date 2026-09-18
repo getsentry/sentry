@@ -59,9 +59,7 @@ describe('javascript-angular onboarding docs', () => {
 
   it('displays sample rates by default', () => {
     renderWithOnboardingLayout(docs, {
-      selectedOptions: {
-        configType: AngularConfigType.APP,
-      },
+      selectedOptions: {configType: AngularConfigType.APP},
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
         ProductSolution.PERFORMANCE_MONITORING,
@@ -82,9 +80,7 @@ describe('javascript-angular onboarding docs', () => {
 
   it('enables performance setting the tracesSampleRate to 1', () => {
     renderWithOnboardingLayout(docs, {
-      selectedOptions: {
-        configType: AngularConfigType.APP,
-      },
+      selectedOptions: {configType: AngularConfigType.APP},
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
         ProductSolution.PERFORMANCE_MONITORING,
@@ -98,9 +94,7 @@ describe('javascript-angular onboarding docs', () => {
 
   it('enables replay by setting replay samplerates', () => {
     renderWithOnboardingLayout(docs, {
-      selectedOptions: {
-        configType: AngularConfigType.APP,
-      },
+      selectedOptions: {configType: AngularConfigType.APP},
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
         ProductSolution.SESSION_REPLAY,
@@ -117,9 +111,7 @@ describe('javascript-angular onboarding docs', () => {
 
   it('enables profiling by setting profiling sample rates', () => {
     renderWithOnboardingLayout(docs, {
-      selectedOptions: {
-        configType: AngularConfigType.APP,
-      },
+      selectedOptions: {configType: AngularConfigType.APP},
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
     });
 
@@ -133,9 +125,7 @@ describe('javascript-angular onboarding docs', () => {
 
   it('shows Logging Integrations in next steps when logs is selected', () => {
     renderWithOnboardingLayout(docs, {
-      selectedOptions: {
-        configType: AngularConfigType.APP,
-      },
+      selectedOptions: {configType: AngularConfigType.APP},
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
         ProductSolution.PERFORMANCE_MONITORING,
@@ -148,9 +138,7 @@ describe('javascript-angular onboarding docs', () => {
 
   it('does not show Logging Integrations in next steps when logs is not selected', () => {
     renderWithOnboardingLayout(docs, {
-      selectedOptions: {
-        configType: AngularConfigType.APP,
-      },
+      selectedOptions: {configType: AngularConfigType.APP},
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
         ProductSolution.PERFORMANCE_MONITORING,

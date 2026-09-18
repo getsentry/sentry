@@ -138,9 +138,7 @@ const ALL_FEATURE_LIST: Feature[] = [
     image: userMiseryImg,
     desc: tct(
       "Identify how user misery each transaction is causing in your app and where. Prefer to gauge it by Apdex instead? We've got that too.",
-      {
-        strong: <strong />,
-      }
+      {strong: <strong />}
     ),
   },
   {
@@ -434,19 +432,7 @@ const FeatureContent = styled(motion.div)`
 `;
 
 const featureContentAnimation = {
-  initial: {
-    opacity: 0,
-    x: -20,
-  },
-  exit: {
-    opacity: 0,
-    x: 20,
-  },
-  animate: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      delay: 0.02,
-    },
-  },
+  initial: {opacity: 0, x: -20},
+  exit: {opacity: 0, x: 20},
+  animate: {opacity: 1, x: 0, transition: {delay: 0.02}},
 };

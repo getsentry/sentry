@@ -29,10 +29,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
         getApiUrl('/organizations/$organizationIdOrSlug/data-consent/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'PUT',
-          data: {aggregatedDataConsent: true},
-        }
+        {method: 'PUT', data: {aggregatedDataConsent: true}}
       ),
     onSuccess: () => {
       closeModal();

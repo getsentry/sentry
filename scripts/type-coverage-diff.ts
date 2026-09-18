@@ -24,18 +24,8 @@ const colors = {
 };
 
 type TypeCoverageResult = {
-  files: Array<{
-    coverage: number;
-    file: string;
-    total: number;
-    typed: number;
-  }>;
-  summary: {
-    coverage: number;
-    filesScanned: number;
-    total: number;
-    typed: number;
-  };
+  files: Array<{coverage: number; file: string; total: number; typed: number}>;
+  summary: {coverage: number; filesScanned: number; total: number; typed: number};
   anySymbols?: Array<{
     column: number;
     file: string;
@@ -244,10 +234,7 @@ async function parseGitDiff(
           newLineNumber = newStart;
 
           const change = changes.get(currentFile)!;
-          change.modifiedRanges.push({
-            start: newStart,
-            end: newStart + newCount - 1,
-          });
+          change.modifiedRanges.push({start: newStart, end: newStart + newCount - 1});
         }
       } else if (line.startsWith('+') && !line.startsWith('+++') && currentFile) {
         // Added line - exists only in new file

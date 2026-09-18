@@ -16,10 +16,7 @@ describe('AcceptProjectTransfer', () => {
     getMock = MockApiClient.addMockResponse({
       url: '/accept-transfer/',
       method: 'GET',
-      body: {
-        project: ProjectFixture(),
-        organizations: [OrganizationFixture()],
-      },
+      body: {project: ProjectFixture(), organizations: [OrganizationFixture()]},
     });
 
     postMock = MockApiClient.addMockResponse({
@@ -47,10 +44,7 @@ describe('AcceptProjectTransfer', () => {
     getMock = MockApiClient.addMockResponse({
       url: '/accept-transfer/',
       method: 'GET',
-      body: {
-        project: ProjectFixture(),
-        organizations: [OrganizationFixture()],
-      },
+      body: {project: ProjectFixture(), organizations: [OrganizationFixture()]},
       match: [(_url, options) => options.host === 'http://us.sentry.io'],
     });
     render(<AcceptProjectTransfer />);
@@ -65,10 +59,7 @@ describe('AcceptProjectTransfer', () => {
 
     expect(postMock).toHaveBeenCalledWith(
       endpoint,
-      expect.objectContaining({
-        method: 'POST',
-        host: 'http://us.sentry.io',
-      })
+      expect.objectContaining({method: 'POST', host: 'http://us.sentry.io'})
     );
   });
 });

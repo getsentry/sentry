@@ -82,14 +82,16 @@ export function setWindowLocation(url: string) {
  * Mocks window.matchMedia to always return the provided `matches`.
  */
 export function mockMatchMedia(matches: boolean) {
-  jest.spyOn(window, 'matchMedia').mockImplementation(() => ({
-    matches,
-    media: '',
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  }));
+  jest
+    .spyOn(window, 'matchMedia')
+    .mockImplementation(() => ({
+      matches,
+      media: '',
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    }));
 }

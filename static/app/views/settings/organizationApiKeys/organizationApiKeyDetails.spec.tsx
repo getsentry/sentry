@@ -18,9 +18,7 @@ describe('OrganizationApiKeyDetails', () => {
   it('renders', async () => {
     render(<OrganizationApiKeyDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/org-slug/api-keys/${apiKey.id}/`,
-        },
+        location: {pathname: `/settings/org-slug/api-keys/${apiKey.id}/`},
         route: '/settings/:orgId/api-keys/:apiKey/',
       },
     });
@@ -38,9 +36,7 @@ describe('OrganizationApiKeyDetails', () => {
 
     render(<OrganizationApiKeyDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/org-slug/api-keys/${apiKey.id}/`,
-        },
+        location: {pathname: `/settings/org-slug/api-keys/${apiKey.id}/`},
         route: '/settings/:orgId/api-keys/:apiKey/',
       },
     });
@@ -79,9 +75,7 @@ describe('OrganizationApiKeyDetails', () => {
 
     render(<OrganizationApiKeyDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/org-slug/api-keys/${apiKey.id}/`,
-        },
+        location: {pathname: `/settings/org-slug/api-keys/${apiKey.id}/`},
         route: '/settings/:orgId/api-keys/:apiKey/',
       },
     });
@@ -110,9 +104,7 @@ describe('OrganizationApiKeyDetails', () => {
 
     render(<OrganizationApiKeyDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/org-slug/api-keys/${apiKey.id}/`,
-        },
+        location: {pathname: `/settings/org-slug/api-keys/${apiKey.id}/`},
         route: '/settings/:orgId/api-keys/:apiKey/',
       },
     });

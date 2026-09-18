@@ -8,11 +8,7 @@ import {Text} from '@sentry/scraps/text';
 // interface + type union because `extends` doesn't play nicely with generics
 interface QuoteBaseProps {
   children: ReactNode;
-  source?: {
-    author?: string;
-    href?: string;
-    label?: string;
-  };
+  source?: {author?: string; href?: string; label?: string};
 }
 export type QuoteProps = QuoteBaseProps & Omit<StackProps<'blockquote'>, 'children'>;
 

@@ -8,9 +8,7 @@ import {RootNode} from './rootNode';
 import {UptimeCheckNode} from './uptimeCheckNode';
 import {UptimeCheckTimingNode} from './uptimeCheckTimingNode';
 
-const createMockExtra = (): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-});
+const createMockExtra = (): TraceTreeNodeExtra => ({organization: OrganizationFixture()});
 
 describe('UptimeCheckNode', () => {
   describe('constructor', () => {
@@ -120,10 +118,7 @@ describe('UptimeCheckNode', () => {
       const extra = createMockExtra();
       const uptimeValue = makeUptimeCheck({
         event_id: 'uptime-check-1',
-        additional_attributes: {
-          dns_lookup_duration_us: 5000,
-          dns_lookup_start_us: 1000,
-        },
+        additional_attributes: {dns_lookup_duration_us: 5000, dns_lookup_start_us: 1000},
       });
 
       const parentNode = new RootNode(null, null, extra);
@@ -171,10 +166,7 @@ describe('UptimeCheckNode', () => {
 
     it('should return op only when description is missing', () => {
       const extra = createMockExtra();
-      const uptimeValue = makeUptimeCheck({
-        op: 'uptime_check',
-        description: undefined,
-      });
+      const uptimeValue = makeUptimeCheck({op: 'uptime_check', description: undefined});
 
       const parentNode = new RootNode(null, null, extra);
       const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
@@ -206,9 +198,7 @@ describe('UptimeCheckNode', () => {
   describe('pathToNode', () => {
     it('should return uptime-check path with event ID', () => {
       const extra = createMockExtra();
-      const uptimeValue = makeUptimeCheck({
-        event_id: 'check123',
-      });
+      const uptimeValue = makeUptimeCheck({event_id: 'check123'});
 
       const parentNode = new RootNode(null, null, extra);
       const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
@@ -232,9 +222,7 @@ describe('UptimeCheckNode', () => {
   describe('printNode', () => {
     it('should format with event ID', () => {
       const extra = createMockExtra();
-      const uptimeValue = makeUptimeCheck({
-        event_id: 'uptime-check-456',
-      });
+      const uptimeValue = makeUptimeCheck({event_id: 'uptime-check-456'});
 
       const parentNode = new RootNode(null, null, extra);
       const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
@@ -246,9 +234,7 @@ describe('UptimeCheckNode', () => {
   describe('matchWithFreeText', () => {
     it('should match by path', () => {
       const extra = createMockExtra();
-      const uptimeValue = makeUptimeCheck({
-        event_id: 'check123',
-      });
+      const uptimeValue = makeUptimeCheck({event_id: 'check123'});
 
       const parentNode = new RootNode(null, null, extra);
       const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
@@ -259,9 +245,7 @@ describe('UptimeCheckNode', () => {
 
     it('should match by operation', () => {
       const extra = createMockExtra();
-      const uptimeValue = makeUptimeCheck({
-        op: 'uptime_check',
-      });
+      const uptimeValue = makeUptimeCheck({op: 'uptime_check'});
 
       const parentNode = new RootNode(null, null, extra);
       const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
@@ -272,9 +256,7 @@ describe('UptimeCheckNode', () => {
 
     it('should match by name', () => {
       const extra = createMockExtra();
-      const uptimeValue = makeUptimeCheck({
-        name: 'API Health Monitor',
-      });
+      const uptimeValue = makeUptimeCheck({name: 'API Health Monitor'});
 
       const parentNode = new RootNode(null, null, extra);
       const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
@@ -285,9 +267,7 @@ describe('UptimeCheckNode', () => {
 
     it('should match by event ID', () => {
       const extra = createMockExtra();
-      const uptimeValue = makeUptimeCheck({
-        event_id: 'uptime-check-789',
-      });
+      const uptimeValue = makeUptimeCheck({event_id: 'uptime-check-789'});
 
       const parentNode = new RootNode(null, null, extra);
       const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
@@ -312,9 +292,7 @@ describe('UptimeCheckNode', () => {
   describe('makeBarColor', () => {
     it('should return color based on operation', () => {
       const extra = createMockExtra();
-      const uptimeValue = makeUptimeCheck({
-        op: 'uptime_check',
-      });
+      const uptimeValue = makeUptimeCheck({op: 'uptime_check'});
 
       const parentNode = new RootNode(null, null, extra);
       const node = new UptimeCheckNode(parentNode, uptimeValue, extra);

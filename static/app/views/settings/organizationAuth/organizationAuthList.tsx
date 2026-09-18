@@ -27,10 +27,7 @@ const PROVIDER_POPULARITY: Record<string, number> = {
   jumpcloud: 8,
 };
 
-type Props = {
-  providerList: AuthProvider[];
-  activeProvider?: AuthProvider;
-};
+type Props = {providerList: AuthProvider[]; activeProvider?: AuthProvider};
 
 export function OrganizationAuthList({providerList, activeProvider}: Props) {
   const organization = useOrganization();

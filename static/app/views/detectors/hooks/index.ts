@@ -106,9 +106,8 @@ export function detectorListApiOptions<
  * regardless of filters. Use with `invalidateQueries` after mutations.
  */
 export function allDetectorListsQueryKey(organization: Organization) {
-  return detectorListApiOptions(organization, {
-    includeIssueStreamDetectors: true,
-  }).queryKey;
+  return detectorListApiOptions(organization, {includeIssueStreamDetectors: true})
+    .queryKey;
 }
 
 export function useCreateDetector<T extends Detector = Detector>() {
@@ -121,19 +120,12 @@ export function useCreateDetector<T extends Detector = Detector>() {
       api.requestPromise(
         getApiUrl(
           '/organizations/$organizationIdOrSlug/projects/$projectIdOrSlug/detectors/',
-          {
-            path: {organizationIdOrSlug: org.slug, projectIdOrSlug: data.projectId},
-          }
+          {path: {organizationIdOrSlug: org.slug, projectIdOrSlug: data.projectId}}
         ),
-        {
-          method: 'POST',
-          data,
-        }
+        {method: 'POST', data}
       ),
     onSuccess: _ => {
-      queryClient.invalidateQueries({
-        queryKey: allDetectorListsQueryKey(org),
-      });
+      queryClient.invalidateQueries({queryKey: allDetectorListsQueryKey(org)});
     },
     onError: _ => {
       addErrorMessage(t('Unable to create monitor'));
@@ -154,15 +146,10 @@ export function useUpdateDetector<T extends Detector = Detector>() {
         getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
           path: {organizationIdOrSlug: org.slug, detectorId: data.detectorId},
         }),
-        {
-          method: 'PUT',
-          data,
-        }
+        {method: 'PUT', data}
       ),
     onSuccess: (_, data) => {
-      queryClient.invalidateQueries({
-        queryKey: allDetectorListsQueryKey(org),
-      });
+      queryClient.invalidateQueries({queryKey: allDetectorListsQueryKey(org)});
       queryClient.invalidateQueries({
         queryKey: [
           getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {

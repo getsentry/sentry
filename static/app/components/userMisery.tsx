@@ -32,28 +32,17 @@ export function UserMisery(props: Props) {
   if (defined(miserableUsers) && defined(totalUsers) && defined(miseryLimit)) {
     title = tct(
       '[miserableUsers] out of [totalUsers] unique users waited more than [duration]ms (4x the response time threshold)',
-      {
-        miserableUsers,
-        totalUsers,
-        duration: 4 * miseryLimit,
-      }
+      {miserableUsers, totalUsers, duration: 4 * miseryLimit}
     );
   } else if (defined(miseryLimit)) {
     title = tct(
       'User Misery score is [userMisery], representing users who waited more than [duration]ms (4x the response time threshold)',
-      {
-        duration: 4 * miseryLimit,
-        userMisery: userMisery.toFixed(3),
-      }
+      {duration: 4 * miseryLimit, userMisery: userMisery.toFixed(3)}
     );
   } else if (defined(miserableUsers) && defined(totalUsers)) {
     title = tct(
       'User Misery score is [userMisery], meaning [miserableUsers] out of [totalUsers] unique users had a miserable experience.',
-      {
-        miserableUsers,
-        totalUsers,
-        userMisery: userMisery.toFixed(3),
-      }
+      {miserableUsers, totalUsers, userMisery: userMisery.toFixed(3)}
     );
   } else {
     title = tct('User Misery score is [userMisery].', {

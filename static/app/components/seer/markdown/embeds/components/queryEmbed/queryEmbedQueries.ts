@@ -53,11 +53,7 @@ export function useQueryEmbedEventsStats(query: Query) {
   return useQuery({
     ...apiOptions.as<EventsStats | MultiSeriesEventsStats>()(
       '/organizations/$organizationIdOrSlug/events-stats/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query,
-        staleTime: STALE_TIME,
-      }
+      {path: {organizationIdOrSlug: organization.slug}, query, staleTime: STALE_TIME}
     ),
     retry: false,
   });

@@ -75,10 +75,7 @@ export function normalizeToMessages(
   );
   const messages = normalizeRawMessages(rawMessages, defaultRole);
 
-  return {
-    fixedInvalidJson,
-    messages: messages.length > 0 ? messages : null,
-  };
+  return {fixedInvalidJson, messages: messages.length > 0 ? messages : null};
 }
 
 /**
@@ -165,10 +162,7 @@ function rawMessagesFromAttribute(
     return {fixedInvalidJson, messages: []};
   }
 
-  return {
-    fixedInvalidJson,
-    messages: rawMessagesFromValue(parsed, defaultRole),
-  };
+  return {fixedInvalidJson, messages: rawMessagesFromValue(parsed, defaultRole)};
 }
 
 function parseAttribute(raw: string): {fixedInvalidJson: boolean; parsed: unknown} {

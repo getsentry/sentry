@@ -40,16 +40,9 @@ describe('MetricIssueChart', () => {
     });
   });
 
-  const detector = MetricDetectorFixture({
-    projectId: project.id,
-  });
+  const detector = MetricDetectorFixture({projectId: project.id});
   const event = EventFixture({
-    occurrence: {
-      evidenceData: {
-        detectorId: detector.id,
-      },
-      type: 8001,
-    },
+    occurrence: {evidenceData: {detectorId: detector.id}, type: 8001},
   });
 
   it('renders the metric issue chart', async () => {
@@ -113,11 +106,7 @@ describe('MetricIssueChart', () => {
     // Expect it to be called with 7d instead of 30d
     expect(mockStats).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          statsPeriod: '168h',
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '168h'})})
     );
   });
 

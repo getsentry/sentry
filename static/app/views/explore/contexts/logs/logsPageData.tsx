@@ -49,10 +49,7 @@ export function LogsPageDataProvider({
     enabled: !!(allowHighFidelity && highFidelity && feature && !disabled),
   });
   const value = useMemo(() => {
-    return {
-      infiniteLogsQueryResult,
-      totalPayloadBytes,
-    };
+    return {infiniteLogsQueryResult, totalPayloadBytes};
   }, [infiniteLogsQueryResult, totalPayloadBytes]);
   return <LogsPageDataContext value={value}>{children}</LogsPageDataContext>;
 }

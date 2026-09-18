@@ -23,10 +23,7 @@ import {Status} from './candidate/status';
 import {Candidate} from './candidate';
 import {INTERNAL_SOURCE} from './utils';
 
-const filterOptionCategories = {
-  status: t('Status'),
-  source: t('Source'),
-};
+const filterOptionCategories = {status: t('Status'), source: t('Source')};
 
 type ImageCandidates = NonNullable<Image['candidates']>;
 
@@ -84,10 +81,7 @@ export class Candidates extends Component<Props, State> {
         filterSelections
       );
 
-      this.setState({
-        filteredCandidatesBySearch: candidates,
-        filteredCandidatesByFilter,
-      });
+      this.setState({filteredCandidatesBySearch: candidates, filteredCandidatesByFilter});
       return;
     }
 
@@ -124,10 +118,7 @@ export class Candidates extends Component<Props, State> {
       filterSelections
     );
 
-    this.setState({
-      filteredCandidatesBySearch,
-      filteredCandidatesByFilter,
-    });
+    this.setState({filteredCandidatesBySearch, filteredCandidatesByFilter});
   }
 
   doSearch = debounce(this.filterCandidatesBySearch, 300);
@@ -256,9 +247,7 @@ export class Candidates extends Component<Props, State> {
       };
     }
 
-    return {
-      emptyMessage: t('There are no debug files to be displayed'),
-    };
+    return {emptyMessage: t('There are no debug files to be displayed')};
   }
 
   handleChangeSearchTerm = (searchTerm = '') => {

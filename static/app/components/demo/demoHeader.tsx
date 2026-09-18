@@ -78,9 +78,7 @@ export function DemoHeader() {
             extraQueryParameterWithEmail()
           );
 
-          trackAnalytics('growth.demo_click_sign_up', {
-            organization: null,
-          });
+          trackAnalytics('growth.demo_click_sign_up', {organization: null});
 
           // Using window.open instead of href={} because we need to read `email`
           // from localStorage when the user clicks the button.

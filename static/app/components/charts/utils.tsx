@@ -371,9 +371,7 @@ export function computeEchartsAriaLabels(
   const dateFormat = isShortInterval ? getFormat({timeZone: true}) : 'MMMM Do';
 
   function formatDate(date: any) {
-    return getFormattedDate(date, dateFormat, {
-      local: !useUTC,
-    });
+    return getFormattedDate(date, dateFormat, {local: !useUTC});
   }
 
   // Generate title (first sentence)

@@ -8,11 +8,7 @@ import {CONNECTED_MONITORS_ERROR_ID} from 'sentry/views/automations/components/e
 
 describe('validateAutomationBuilderState', () => {
   const state: AutomationBuilderState = {
-    triggers: {
-      id: 'when',
-      logicType: DataConditionGroupLogicType.ANY,
-      conditions: [],
-    },
+    triggers: {id: 'when', logicType: DataConditionGroupLogicType.ANY, conditions: []},
     actionFilters: [],
   };
 

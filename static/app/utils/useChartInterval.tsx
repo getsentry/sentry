@@ -49,12 +49,7 @@ export function useChartInterval({
   const navigate = useNavigate();
   const pagefilters = usePageFilters();
 
-  return useChartIntervalImpl({
-    location,
-    navigate,
-    pagefilters,
-    unspecifiedStrategy,
-  });
+  return useChartIntervalImpl({location, navigate, pagefilters, unspecifiedStrategy});
 }
 
 function useChartIntervalImpl({
@@ -149,13 +144,7 @@ function useChartIntervalImpl({
 
   const setInterval = useCallback(
     (newInterval: string) => {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          interval: newInterval,
-        },
-      });
+      navigate({...location, query: {...location.query, interval: newInterval}});
     },
     [location, navigate]
   );

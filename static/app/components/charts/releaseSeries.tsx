@@ -26,10 +26,7 @@ import {withApi} from 'sentry/utils/withApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
-type ReleaseMetaBasic = {
-  date: string;
-  version: string;
-};
+type ReleaseMetaBasic = {date: string; version: string};
 
 type ReleaseConditions = {
   end: DateString;
@@ -63,11 +60,7 @@ function getOrganizationReleases(
     getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
       path: {organizationIdOrSlug: organization.slug},
     }),
-    {
-      includeAllArgs: true,
-      method: 'GET',
-      query,
-    }
+    {includeAllArgs: true, method: 'GET', query}
   ) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
 }
 
@@ -102,19 +95,13 @@ export interface ReleaseSeriesProps {
   utc?: boolean | null;
 }
 
-type State = {
-  releaseSeries: Series[];
-  releases: ReleaseMetaBasic[] | null;
-};
+type State = {releaseSeries: Series[]; releases: ReleaseMetaBasic[] | null};
 
 /**
  * @deprecated use useReleaseBubbles instead
  */
 class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
-  state: State = {
-    releases: null,
-    releaseSeries: [],
-  };
+  state: State = {releases: null, releaseSeries: []};
 
   componentDidMount() {
     this._isMounted = true;
@@ -218,20 +205,13 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
         releaseSeries.push(this.getReleaseSeries(unemphasizedReleases, {type: 'dotted'}));
       }
       if (emphasizedReleases.length) {
-        releaseSeries.push(
-          this.getReleaseSeries(emphasizedReleases, {
-            opacity: 0.8,
-          })
-        );
+        releaseSeries.push(this.getReleaseSeries(emphasizedReleases, {opacity: 0.8}));
       }
     } else {
       releaseSeries.push(this.getReleaseSeries(releases));
     }
 
-    this.setState({
-      releases,
-      releaseSeries,
-    });
+    this.setState({releases, releaseSeries});
   }
 
   getReleaseSeries = (releases: any, lineStyle = {}) => {
@@ -266,9 +246,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
         type: 'solid',
         ...lineStyle,
       },
-      label: {
-        show: false,
-      },
+      label: {show: false},
       data: releases.map((release: any) => ({
         xAxis: +new Date(release.date),
         name: formatVersion(release.version, true),
@@ -284,9 +262,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
           });
         },
 
-        label: {
-          formatter: () => formatVersion(release.version, true),
-        },
+        label: {formatter: () => formatVersion(release.version, true)},
       })),
       tooltip: tooltip || {
         trigger: 'item',
@@ -301,9 +277,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
           const time = getFormattedDate(
             data.value,
             getFormat({timeZone: true, year: true}),
-            {
-              local: !this.props.utc,
-            }
+            {local: !this.props.utc}
           );
           const version = escape(formatVersion(data.name, true));
           return [

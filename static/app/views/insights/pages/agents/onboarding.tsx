@@ -85,18 +85,11 @@ function useAiSpanWaiter(project: Project) {
       fields: ['id'],
       limit: 1,
       enabled: !!project,
-      useQueryOptions: {
-        refetchInterval: shouldRefetch ? 5000 : undefined,
-      },
+      useQueryOptions: {refetchInterval: shouldRefetch ? 5000 : undefined},
       pageFilters: {
         ...selection,
         projects: [Number(project.id)],
-        datetime: {
-          period: '6h',
-          utc: true,
-          start: null,
-          end: null,
-        },
+        datetime: {period: '6h', utc: true, start: null, end: null},
       },
     },
     Referrer.ONBOARDING
@@ -368,10 +361,7 @@ export function Onboarding() {
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: {...selectedPlatformOptions, deploymentTarget},
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     urlPrefix,
@@ -426,10 +416,7 @@ export function Onboarding() {
         onStepChange={step => {
           navigate({
             pathname: location.pathname,
-            query: {
-              ...location.query,
-              guidedStep: step,
-            },
+            query: {...location.query, guidedStep: step},
           });
         }}
       >
@@ -471,9 +458,7 @@ function CopyInstructionsButton() {
       source="agent_monitoring_onboarding"
       getMarkdown={() => LLM_ONBOARDING_COPY_MARKDOWN}
       onCopy={() => {
-        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
-          organization,
-        });
+        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {organization});
       }}
     />
   );
@@ -492,9 +477,7 @@ export function UnsupportedPlatformOnboarding({
         <p>
           {tct(
             'Fiddlesticks. Auto instrumentation of AI Agents is not available for your [platform] project.',
-            {
-              platform: platformName,
-            }
+            {platform: platformName}
           )}
         </p>
         <p>

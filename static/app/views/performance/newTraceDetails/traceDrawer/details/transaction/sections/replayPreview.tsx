@@ -7,10 +7,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-const REPLAY_CLIP_OFFSETS = {
-  durationAfterMs: 5_000,
-  durationBeforeMs: 5_000,
-};
+const REPLAY_CLIP_OFFSETS = {durationAfterMs: 5_000, durationBeforeMs: 5_000};
 
 export function getEventTimestampMs(event: EventTransaction): number {
   const startTimestampMS =

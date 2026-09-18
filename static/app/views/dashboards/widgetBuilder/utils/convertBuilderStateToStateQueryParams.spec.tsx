@@ -70,13 +70,7 @@ describe('convertBuilderStateToStateQueryParams', () => {
   it('applies the thresholds to the query params', () => {
     const mockState: WidgetBuilderState = {
       query: ['transaction.duration:>100'],
-      thresholds: {
-        max_values: {
-          max1: 200,
-          max2: 300,
-        },
-        unit: 'milliseconds',
-      },
+      thresholds: {max_values: {max1: 200, max2: 300}, unit: 'milliseconds'},
     };
 
     const queryParams = convertBuilderStateToStateQueryParams(mockState);

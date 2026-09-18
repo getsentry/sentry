@@ -40,16 +40,8 @@ function Label(props: {
   );
 
   const labelProps = isGroup
-    ? {
-        as: 'span' as const,
-        cursor: 'default' as const,
-        id: labelId,
-      }
-    : {
-        as: 'label' as const,
-        htmlFor: fieldId,
-        id: labelId,
-      };
+    ? {as: 'span' as const, cursor: 'default' as const, id: labelId}
+    : {as: 'label' as const, htmlFor: fieldId, id: labelId};
 
   return (
     <Container width="fit-content">

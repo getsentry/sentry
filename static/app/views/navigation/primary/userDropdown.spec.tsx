@@ -25,10 +25,7 @@ describe('UserDropdown', () => {
   });
 
   it('can sign out', async () => {
-    const mockLogout = MockApiClient.addMockResponse({
-      url: '/auth/',
-      method: 'DELETE',
-    });
+    const mockLogout = MockApiClient.addMockResponse({url: '/auth/', method: 'DELETE'});
 
     render(<UserDropdown />);
 

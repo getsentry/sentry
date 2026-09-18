@@ -30,9 +30,7 @@ function variableListFor(ctx: CanvasContexts, ctor: string) {
 export function deserializeCanvasArg(
   imageMap: Replayer['imageMap'],
   ctx: CanvasContexts | null,
-  preload?: {
-    isUnchanged: boolean;
-  }
+  preload?: {isUnchanged: boolean}
 ): (arg: CanvasArg) => Promise<any> {
   return async (arg: CanvasArg): Promise<any> => {
     if (arg && typeof arg === 'object' && 'rr_type' in arg) {
@@ -81,9 +79,7 @@ export function deserializeCanvasArg(
         const blobContents = await Promise.all(
           arg.data.map(deserializeCanvasArg(imageMap, ctx, preload))
         );
-        const blob = new Blob(blobContents, {
-          type: arg.type,
-        });
+        const blob = new Blob(blobContents, {type: arg.type});
         return blob;
       }
     } else if (Array.isArray(arg)) {

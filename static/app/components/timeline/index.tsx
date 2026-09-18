@@ -8,11 +8,7 @@ export interface TimelineItemProps {
   title: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
-  colorConfig?: {
-    icon: string;
-    iconBorder: string;
-    title: string;
-  };
+  colorConfig?: {icon: string; iconBorder: string; title: string};
   /**
    * Used by tanstack virtualizer to track the index of the item.
    */
@@ -163,11 +159,4 @@ const TimelineContainer = styled('div')`
   }
 `;
 
-export const Timeline = {
-  Data,
-  Text,
-  Title,
-  TitleRow,
-  Item,
-  Container: TimelineContainer,
-};
+export const Timeline = {Data, Text, Title, TitleRow, Item, Container: TimelineContainer};

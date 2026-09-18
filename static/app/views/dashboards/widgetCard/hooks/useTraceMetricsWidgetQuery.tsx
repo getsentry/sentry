@@ -164,11 +164,7 @@ export function useTraceMetricsSeriesQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: Series[] = [];
@@ -346,11 +342,7 @@ export function useTraceMetricsTableQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const tableResults: any[] = [];
@@ -472,9 +464,5 @@ export function useTraceMetricsHeatmapQuery(
     return {loading: true, rawData: EMPTY_ARRAY};
   }
 
-  return {
-    loading: false,
-    heatmapResults: series,
-    rawData,
-  };
+  return {loading: false, heatmapResults: series, rawData};
 }

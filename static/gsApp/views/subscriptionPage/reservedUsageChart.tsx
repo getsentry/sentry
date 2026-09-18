@@ -23,11 +23,7 @@ import {type BillingStats, type CustomerUsage, type Subscription} from 'getsentr
 import {formatReservedWithUnits, isUnlimitedReserved} from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 
-type DroppedBreakdown = {
-  other: number;
-  overQuota: number;
-  spikeProtection: number;
-};
+type DroppedBreakdown = {other: number; overQuota: number; spikeProtection: number};
 
 export function selectedTransform(location: Location) {
   const transform = decodeScalar(location.query.transform) as
@@ -105,13 +101,7 @@ export function mapReservedToChart(reserved: number | null, category: DataCatego
 }
 
 function defaultChartData(): ChartStats {
-  return {
-    accepted: [],
-    dropped: [],
-    projected: [],
-    reserved: [],
-    onDemand: [],
-  };
+  return {accepted: [], dropped: [], projected: [], reserved: [], onDemand: []};
 }
 
 export function mapStatsToChart({
@@ -156,13 +146,9 @@ export function mapStatsToChart({
     sumOther = Math.max(sumDropped - sumOverQuota - sumSpikeProtection, 0);
 
     if (isProjected) {
-      chartData.projected.push({
-        value: [date, sumAccepted],
-      });
+      chartData.projected.push({value: [date, sumAccepted]});
     } else {
-      chartData.accepted.push({
-        value: [date, sumAccepted],
-      });
+      chartData.accepted.push({value: [date, sumAccepted]});
       // TODO(ts)
       (chartData.dropped as any[]).push({
         value: [date, sumDropped],
@@ -209,22 +195,13 @@ export function ProductUsageChart({
       yAxisQuotaLineLabel: string;
     } = {
       isUnlimitedQuota: false,
-      chartData: {
-        accepted: [],
-        dropped: [],
-        projected: [],
-        reserved: [],
-        onDemand: [],
-      },
+      chartData: {accepted: [], dropped: [], projected: [], reserved: [], onDemand: []},
       yAxisQuotaLine: 0,
       yAxisQuotaLineLabel: '',
     };
 
     if (categoryStats) {
-      dataCategoryMetadata.chartData = mapStatsToChart({
-        stats: categoryStats,
-        transform,
-      });
+      dataCategoryMetadata.chartData = mapStatsToChart({stats: categoryStats, transform});
     }
 
     if (currentHistory) {

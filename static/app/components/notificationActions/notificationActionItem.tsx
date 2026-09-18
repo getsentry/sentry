@@ -154,9 +154,7 @@ export function NotificationActionItem({
   const handleDelete = async () => {
     const endpoint = `/organizations/${organization.slug}/notifications/actions/${action.id}/`;
     try {
-      await api.requestPromise(endpoint, {
-        method: 'DELETE',
-      });
+      await api.requestPromise(endpoint, {method: 'DELETE'});
       addSuccessMessage(t('Successfully deleted notification action'));
       onDelete(index);
     } catch (err) {

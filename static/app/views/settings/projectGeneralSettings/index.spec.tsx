@@ -40,9 +40,7 @@ describe('projectGeneralSettings', () => {
   const mockOnChangeSlug = jest.fn();
 
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/${organization.slug}/projects/${project.slug}/`,
-    },
+    location: {pathname: `/settings/${organization.slug}/projects/${project.slug}/`},
     route: '/settings/:orgId/projects/:projectId/',
   };
 
@@ -75,10 +73,7 @@ describe('projectGeneralSettings', () => {
     render(
       <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />,
 
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     expect(await screen.findByRole('textbox', {name: 'Slug'})).toHaveValue(
@@ -123,10 +118,7 @@ describe('projectGeneralSettings', () => {
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/`,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {allowedDomains: ['changed.com']},
-      })
+      expect.objectContaining({method: 'PUT', data: {allowedDomains: ['changed.com']}})
     );
   });
 
@@ -172,18 +164,13 @@ describe('projectGeneralSettings', () => {
     await waitFor(() =>
       expect(putMock).toHaveBeenCalledWith(
         `/projects/${orgWithFeature.slug}/${project.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {enableAutoReleaseCreation: false},
-        })
+        expect.objectContaining({method: 'PUT', data: {enableAutoReleaseCreation: false}})
       )
     );
   });
 
   it('disables scrapeJavaScript when equivalent org setting is false', async () => {
-    const orgWithoutScrapeJavaScript = OrganizationFixture({
-      scrapeJavaScript: false,
-    });
+    const orgWithoutScrapeJavaScript = OrganizationFixture({scrapeJavaScript: false});
 
     render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization: orgWithoutScrapeJavaScript,
@@ -209,9 +196,7 @@ describe('projectGeneralSettings', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/${project.slug}/`,
-          },
+          location: {pathname: `/${project.slug}/`},
           route: '/:projectId/',
         },
       }
@@ -249,12 +234,7 @@ describe('projectGeneralSettings', () => {
     await waitFor(() =>
       expect(deleteMock).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/transfer/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            email: 'billy@sentry.io',
-          },
-        })
+        expect.objectContaining({method: 'POST', data: {email: 'billy@sentry.io'}})
       )
     );
 
@@ -298,9 +278,7 @@ describe('projectGeneralSettings', () => {
   });
 
   it('displays transfer/remove message for non-admins', async () => {
-    const nonAdminOrg = OrganizationFixture({
-      access: ['org:read'],
-    });
+    const nonAdminOrg = OrganizationFixture({access: ['org:read']});
 
     render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization: nonAdminOrg,
@@ -339,20 +317,14 @@ describe('projectGeneralSettings', () => {
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
-      body: {
-        ...project,
-        platform: 'javascript',
-      },
+      body: {...project, platform: 'javascript'},
     });
 
     render(
       <ProjectRouteProvider projectSlug={project.slug}>
         <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
       </ProjectRouteProvider>,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
@@ -369,20 +341,14 @@ describe('projectGeneralSettings', () => {
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
-      body: {
-        ...project,
-        slug: 'new-project',
-      },
+      body: {...project, slug: 'new-project'},
     });
 
     render(
       <ProjectRouteProvider projectSlug={project.slug}>
         <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
       </ProjectRouteProvider>,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     await userEvent.type(
@@ -410,10 +376,7 @@ describe('projectGeneralSettings', () => {
       putMock = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/`,
         method: 'PUT',
-        body: {
-          ...project,
-          slug: 'new-project',
-        },
+        body: {...project, slug: 'new-project'},
       });
     });
 
@@ -422,10 +385,7 @@ describe('projectGeneralSettings', () => {
         <ProjectRouteProvider projectSlug={project.slug}>
           <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
         </ProjectRouteProvider>,
-        {
-          organization,
-          initialRouterConfig,
-        }
+        {organization, initialRouterConfig}
       );
     }
 
@@ -474,11 +434,7 @@ describe('projectGeneralSettings', () => {
       await waitFor(() => {
         expect(putMock).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            data: {
-              resolveAge: 12,
-            },
-          })
+          expect.objectContaining({data: {resolveAge: 12}})
         );
       });
 
@@ -528,10 +484,7 @@ describe('projectGeneralSettings', () => {
           project={projectWithPlatform}
           onChangeSlug={mockOnChangeSlug}
         />,
-        {
-          organization: orgWithGamingAccess,
-          initialRouterConfig: routerConfig,
-        }
+        {organization: orgWithGamingAccess, initialRouterConfig: routerConfig}
       );
 
       const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
@@ -567,10 +520,7 @@ describe('projectGeneralSettings', () => {
 
       render(
         <ProjectGeneralSettings project={baseProject} onChangeSlug={mockOnChangeSlug} />,
-        {
-          organization: orgWithoutGamingFeature,
-          initialRouterConfig: routerConfig,
-        }
+        {organization: orgWithoutGamingFeature, initialRouterConfig: routerConfig}
       );
 
       const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});

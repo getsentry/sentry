@@ -533,10 +533,7 @@ function ConfigPickerContent({
     const newPath =
       typeof nextPath === 'string'
         ? `${nextPath}${value}/`
-        : {
-            ...nextPath,
-            pathname: `${nextPath.pathname}${value}/`,
-          };
+        : {...nextPath, pathname: `${nextPath.pathname}${value}/`};
     onFinish(newPath);
   }
 

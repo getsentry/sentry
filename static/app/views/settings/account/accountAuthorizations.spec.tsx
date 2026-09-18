@@ -10,11 +10,7 @@ describe('AccountAuthorizations', () => {
   });
 
   it('renders empty', async () => {
-    MockApiClient.addMockResponse({
-      url: '/api-authorizations/',
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/api-authorizations/', method: 'GET', body: []});
 
     render(<AccountAuthorizations />);
     expect(
@@ -55,10 +51,7 @@ describe('AccountAuthorizations', () => {
 
     expect(deleteMock).toHaveBeenCalledWith(
       '/api-authorizations/',
-      expect.objectContaining({
-        method: 'DELETE',
-        data: {authorization: 'delete_shrimp'},
-      })
+      expect.objectContaining({method: 'DELETE', data: {authorization: 'delete_shrimp'}})
     );
 
     await waitFor(() =>

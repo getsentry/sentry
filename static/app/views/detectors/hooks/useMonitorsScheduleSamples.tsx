@@ -8,15 +8,8 @@ import {useMonitorsScheduleSampleBuckets} from './useMonitorsScheduleSampleBucke
 import {useMonitorsScheduleSampleWindow} from './useMonitorsScheduleSampleWindow';
 
 export type Schedule =
-  | {
-      type: ScheduleType.CRONTAB;
-      value: string;
-    }
-  | {
-      type: ScheduleType.INTERVAL;
-      unit: MonitorIntervalUnit;
-      value: number;
-    };
+  | {type: ScheduleType.CRONTAB; value: string}
+  | {type: ScheduleType.INTERVAL; unit: MonitorIntervalUnit; value: number};
 
 export interface UseMonitorsScheduleSamplesOptions {
   failureIssueThreshold: number;
@@ -29,9 +22,7 @@ export function useMonitorsScheduleSamples({
   ...detectorFields
 }: UseMonitorsScheduleSamplesOptions) {
   const timeLineWidthTrackerRef = useRef<HTMLDivElement>(null);
-  const {width: timelineWidth} = useDimensions({
-    elementRef: timeLineWidthTrackerRef,
-  });
+  const {width: timelineWidth} = useDimensions({elementRef: timeLineWidthTrackerRef});
 
   const {
     data: sampleWindowData,

@@ -4,14 +4,9 @@ import {Button} from '@sentry/scraps/button';
 
 import {t, tn} from 'sentry/locale';
 
-type CollapseButtonRenderProps = {
-  onCollapse: () => void;
-};
+type CollapseButtonRenderProps = {onCollapse: () => void};
 
-type ExpandButtonRenderProps = {
-  numberOfHiddenItems: number;
-  onExpand: () => void;
-};
+type ExpandButtonRenderProps = {numberOfHiddenItems: number; onExpand: () => void};
 
 type Props = {
   children: React.ReactNode;

@@ -50,10 +50,7 @@ export function ProjectCard({
 }: ProjectCardProps) {
   const organization = useOrganization();
   const hasPerformance = organization.features.includes('performance-view');
-  const {getOne: getProjectStats} = useProjectStats({
-    organization,
-    hasPerformance,
-  });
+  const {getOne: getProjectStats} = useProjectStats({organization, hasPerformance});
 
   const {stats, transactionStats, sessionStats, latestDeploys} =
     getProjectStats(simpleProject);

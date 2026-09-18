@@ -27,11 +27,7 @@ export type CollapsedSeerActivity = {
 }[CollapsedSeerActivityType];
 
 export type ActivityFeedItem =
-  | {
-      activity: GroupActivity;
-      type: 'activity';
-      actorActivity?: GroupActivity;
-    }
+  | {activity: GroupActivity; type: 'activity'; actorActivity?: GroupActivity}
   | CollapsedSeerActivity;
 
 interface CollapsedStatusActivity {
@@ -118,35 +114,19 @@ function collapseSeerActivityPair(
   switch (completedActivity.type) {
     case GroupActivityType.SEER_RCA_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_RCA_STARTED
-        ? {
-            activity: completedActivity,
-            startedActivity,
-            type: completedActivity.type,
-          }
+        ? {activity: completedActivity, startedActivity, type: completedActivity.type}
         : null;
     case GroupActivityType.SEER_SOLUTION_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_SOLUTION_STARTED
-        ? {
-            activity: completedActivity,
-            startedActivity,
-            type: completedActivity.type,
-          }
+        ? {activity: completedActivity, startedActivity, type: completedActivity.type}
         : null;
     case GroupActivityType.SEER_CODING_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_CODING_STARTED
-        ? {
-            activity: completedActivity,
-            startedActivity,
-            type: completedActivity.type,
-          }
+        ? {activity: completedActivity, startedActivity, type: completedActivity.type}
         : null;
     case GroupActivityType.SEER_ITERATION_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_ITERATION_STARTED
-        ? {
-            activity: completedActivity,
-            startedActivity,
-            type: completedActivity.type,
-          }
+        ? {activity: completedActivity, startedActivity, type: completedActivity.type}
         : null;
   }
 

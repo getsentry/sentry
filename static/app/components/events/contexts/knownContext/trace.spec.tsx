@@ -27,49 +27,26 @@ const MOCK_TRACE_CONTEXT: TraceContext = {
     public_key: '93D0D1125146288EAEE2A9B3AF4F96CCBE3CB316',
   },
   origin: 'auto.http.http_client_5',
-  data: {
-    route: {
-      name: 'HomeRoute',
-    },
-  },
+  data: {route: {name: 'HomeRoute'}},
   // Extra data is still valid and preserved
   extra_data: 'something',
   unknown_key: 123,
 };
 
-const MOCK_REDACTION = {
-  origin: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
-};
+const MOCK_REDACTION = {origin: {'': {rem: [['organization:0', 's', 0, 0]], len: 5}}};
 
 describe('TraceContext', () => {
   const location = LocationFixture();
   const organization = OrganizationFixture({
     features: ['performance-view'],
-    extraOptions: {
-      traces: {
-        checkSpanExtractionDate: false,
-        spansExtractionDate: 1,
-      },
-    },
+    extraOptions: {traces: {checkSpanExtractionDate: false, spansExtractionDate: 1}},
   });
 
   it('returns values and according to the parameters', () => {
     expect(
       getTraceContextData({
         data: MOCK_TRACE_CONTEXT,
-        event: EventFixture({
-          timestamp: 2,
-          contexts: {
-            trace: {
-              trace_id: TRACE_ID,
-            },
-          },
-        }),
+        event: EventFixture({timestamp: 2, contexts: {trace: {trace_id: TRACE_ID}}}),
         organization,
         location,
       })
@@ -94,16 +71,8 @@ describe('TraceContext', () => {
       },
       {key: 'op', subject: 'Operation Name', value: 'http.server'},
       {key: 'status', subject: 'Status', value: 'not_found'},
-      {
-        key: 'exclusive_time',
-        subject: 'Exclusive Time (ms)',
-        value: 1.035,
-      },
-      {
-        key: 'client_sample_rate',
-        subject: 'Client Sample Rate',
-        value: 0.1,
-      },
+      {key: 'exclusive_time', subject: 'Exclusive Time (ms)', value: 1.035},
+      {key: 'client_sample_rate', subject: 'Client Sample Rate', value: 0.1},
       {
         key: 'dynamic_sampling_context',
         subject: 'Dynamic Sampling Context',
@@ -113,39 +82,15 @@ describe('TraceContext', () => {
           public_key: '93D0D1125146288EAEE2A9B3AF4F96CCBE3CB316',
         },
       },
-      {
-        key: 'origin',
-        subject: 'Origin',
-        value: 'auto.http.http_client_5',
-      },
-      {
-        key: 'data',
-        subject: 'Data',
-        value: {
-          route: {
-            name: 'HomeRoute',
-          },
-        },
-      },
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'origin', subject: 'Origin', value: 'auto.http.http_client_5'},
+      {key: 'data', subject: 'Data', value: {route: {name: 'HomeRoute'}}},
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123, meta: undefined},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {trace: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {trace: MOCK_REDACTION}}});
 
     render(
       <ContextCard
@@ -173,10 +118,7 @@ describe('TraceContext', () => {
     });
 
     const traceItem = result.find(item => item.key === 'trace_id');
-    expect(traceItem).toMatchObject({
-      key: 'trace_id',
-      subject: 'Trace ID',
-    });
+    expect(traceItem).toMatchObject({key: 'trace_id', subject: 'Trace ID'});
     // When not sampled, value is a React element (Tooltip) not a string
     expect(traceItem?.action).toBeUndefined();
   });

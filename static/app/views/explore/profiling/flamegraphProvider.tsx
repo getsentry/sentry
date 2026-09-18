@@ -47,10 +47,7 @@ export function FlamegraphProvider(props: FlamegraphProviderProps) {
         view: view.split(' ').join('_'),
       });
 
-      return Sentry.startInactiveSpan({
-        op: 'import',
-        name: 'flamegraph.constructor',
-      });
+      return Sentry.startInactiveSpan({op: 'import', name: 'flamegraph.constructor'});
     });
 
     const newFlamegraph = new Flamegraph(activeProfile, {

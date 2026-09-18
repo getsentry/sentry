@@ -20,11 +20,7 @@ type GroupedAuthorCommits = Record<
   {author: User | undefined; commitCount: number}
 >;
 
-type Props = {
-  orgId: string;
-  projectSlug: string;
-  version: string;
-};
+type Props = {orgId: string; projectSlug: string; version: string};
 
 export function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
   const {
@@ -66,10 +62,7 @@ export function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
       if (Object.hasOwn(authorCommitsAccumulator, email)) {
         authorCommitsAccumulator[email]!.commitCount += 1;
       } else {
-        authorCommitsAccumulator[email] = {
-          commitCount: 1,
-          author: commit.author,
-        };
+        authorCommitsAccumulator[email] = {commitCount: 1, author: commit.author};
       }
 
       return authorCommitsAccumulator;

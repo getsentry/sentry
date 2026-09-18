@@ -71,11 +71,7 @@ describe('rawTrackAnalyticsEvent', () => {
   it('does not consume the custom referrer without an event', () => {
     sessionStorageWrapper.setItem(CUSTOM_REFERRER_KEY, JSON.stringify('batman'));
 
-    rawTrackAnalyticsEvent({
-      eventName: null,
-      eventKey: undefined,
-      organization,
-    });
+    rawTrackAnalyticsEvent({eventName: null, eventKey: undefined, organization});
 
     expect(sessionStorageWrapper.getItem(CUSTOM_REFERRER_KEY)).toBe(
       JSON.stringify('batman')
@@ -179,10 +175,7 @@ describe('rawTrackAnalyticsEvent', () => {
 
     expect(trackReloadEvent).toHaveBeenCalledWith(
       'test_event',
-      expect.objectContaining({
-        someProp: 'value',
-        org_id,
-      })
+      expect.objectContaining({someProp: 'value', org_id})
     );
 
     expect(trackAmplitudeEvent).toHaveBeenCalledWith(
@@ -203,10 +196,7 @@ describe('rawTrackAnalyticsEvent', () => {
 
     expect(trackReloadEvent).toHaveBeenCalledWith(
       'test_event',
-      expect.objectContaining({
-        someProp: 'value',
-        org_id: undefined,
-      })
+      expect.objectContaining({someProp: 'value', org_id: undefined})
     );
 
     expect(trackAmplitudeEvent).not.toHaveBeenCalled();
@@ -260,11 +250,7 @@ describe('rawTrackAnalyticsEvent', () => {
 
   it('start analytics session', () => {
     rawTrackAnalyticsEvent(
-      {
-        eventKey: 'test_event',
-        eventName: 'Test Event',
-        organization: null,
-      },
+      {eventKey: 'test_event', eventName: 'Test Event', organization: null},
       {startSession: true}
     );
 
@@ -323,14 +309,8 @@ describe('rawTrackAnalyticsEvent', () => {
   });
   it('applys mapValuesFn', () => {
     rawTrackAnalyticsEvent(
-      {
-        eventKey: 'test_event',
-        eventName: 'Test Event',
-        organization,
-      },
-      {
-        mapValuesFn: data => ({...data, new_field: 'test'}),
-      }
+      {eventKey: 'test_event', eventName: 'Test Event', organization},
+      {mapValuesFn: data => ({...data, new_field: 'test'})}
     );
 
     expect(trackReloadEvent).toHaveBeenCalledWith(

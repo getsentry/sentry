@@ -79,9 +79,7 @@ import {useAutofixOverview} from './useAutofixOverview';
 import {useOverviewAnalytics} from './useOverviewAnalytics';
 import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
 
-const SeerTrialCTA = OverrideOrDefault({
-  overrideName: 'component:seer-trial-cta',
-});
+const SeerTrialCTA = OverrideOrDefault({overrideName: 'component:seer-trial-cta'});
 
 const FilterBar = styled(Flex)`
   @container (width < ${p => p.theme.container.sm}) {
@@ -144,9 +142,7 @@ export default function AutofixOverview() {
       renderDisabled={() => <NoAccess />}
     >
       <PageFiltersContainer
-        defaultSelection={{
-          datetime: {period: '7d', start: null, end: null, utc: null},
-        }}
+        defaultSelection={{datetime: {period: '7d', start: null, end: null, utc: null}}}
       >
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
           <Layout.Title>{t('Autofix Overview')}</Layout.Title>
@@ -186,10 +182,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
 
   const setQueryParam = (key: string, value: string | undefined) =>
     navigate(
-      {
-        pathname: location.pathname,
-        query: {...location.query, [key]: value},
-      },
+      {pathname: location.pathname, query: {...location.query, [key]: value}},
       {replace: true}
     );
 

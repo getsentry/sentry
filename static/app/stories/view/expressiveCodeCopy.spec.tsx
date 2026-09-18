@@ -34,10 +34,7 @@ describe('handleExpressiveCodeCopyClick', () => {
   });
 
   it('does nothing when the Clipboard API is unavailable', () => {
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: undefined,
-    });
+    Object.defineProperty(navigator, 'clipboard', {configurable: true, value: undefined});
 
     render(<StoryCodeBlock />);
 

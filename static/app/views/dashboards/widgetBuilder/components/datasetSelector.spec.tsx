@@ -65,9 +65,7 @@ describe('DatasetSelector', () => {
       <WidgetBuilderProvider>
         <DatasetSelector />
       </WidgetBuilderProvider>,
-      {
-        organization: organizationWithDeprecation,
-      }
+      {organization: organizationWithDeprecation}
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
@@ -90,9 +88,7 @@ describe('DatasetSelector', () => {
       <WidgetBuilderProvider>
         <DatasetSelector />
       </WidgetBuilderProvider>,
-      {
-        organization: organizationWithDeprecation,
-      }
+      {organization: organizationWithDeprecation}
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
@@ -108,9 +104,7 @@ describe('DatasetSelector', () => {
       <WidgetBuilderProvider>
         <DatasetSelector />
       </WidgetBuilderProvider>,
-      {
-        organization: organizationWithoutDeprecation,
-      }
+      {organization: organizationWithoutDeprecation}
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));

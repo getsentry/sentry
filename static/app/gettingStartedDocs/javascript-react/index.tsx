@@ -34,7 +34,5 @@ export const docs: Docs = {
     docsPlatform: 'react',
     packageName: '@sentry/react',
   }),
-  agentMonitoringOnboarding: agentMonitoring({
-    packageName: '@sentry/react',
-  }),
+  agentMonitoringOnboarding: agentMonitoring({packageName: '@sentry/react'}),
 };

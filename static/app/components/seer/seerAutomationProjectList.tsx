@@ -42,10 +42,7 @@ import {SEER_THRESHOLD_MAP} from 'sentry/views/settings/projectSeer';
 const PROJECTS_PER_PAGE = 20;
 
 function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Project}) {
-  const detailedProject = useDetailedProject({
-    orgSlug,
-    projectSlug: project.slug,
-  });
+  const detailedProject = useDetailedProject({orgSlug, projectSlug: project.slug});
 
   const {data, isPending: isLoadingPreferences} = useProjectSeerPreferences(project);
   const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
@@ -246,10 +243,7 @@ export function SeerAutomationProjectList() {
                   projectIdOrSlug: project.slug,
                 },
               }),
-              {
-                method: 'PUT',
-                data: updateData,
-              }
+              {method: 'PUT', data: updateData}
             );
           })
         );
@@ -294,10 +288,7 @@ export function SeerAutomationProjectList() {
                   projectIdOrSlug: project.slug,
                 },
               }),
-              {
-                method: 'PUT',
-                data: {seerScannerAutomation: value},
-              }
+              {method: 'PUT', data: {seerScannerAutomation: value}}
             );
           })
         );
@@ -328,16 +319,8 @@ export function SeerAutomationProjectList() {
   }));
 
   const scanMenuItems = [
-    {
-      key: 'on',
-      label: t('On'),
-      onAction: () => updateProjectsSeerScanner(true),
-    },
-    {
-      key: 'off',
-      label: t('Off'),
-      onAction: () => updateProjectsSeerScanner(false),
-    },
+    {key: 'on', label: t('On'), onAction: () => updateProjectsSeerScanner(true)},
+    {key: 'off', label: t('Off'), onAction: () => updateProjectsSeerScanner(false)},
   ];
 
   return (

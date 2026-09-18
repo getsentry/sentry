@@ -22,10 +22,7 @@ export const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Add the Sentry Electron SDK package as a dependency:'),
-        },
+        {type: 'text', text: t('Add the Sentry Electron SDK package as a dependency:')},
         installCodeBlock,
       ],
     },
@@ -46,11 +43,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'javascript', code: getConfigureSnippet(params)},
       ],
     },
     getUploadSourceMapsStep({
@@ -73,22 +66,14 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('Calling an undefined function will throw a JavaScript exception:'),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: 'myUndefinedFunction();',
-        },
+        {type: 'code', language: 'javascript', code: 'myUndefinedFunction();'},
         {
           type: 'text',
           text: t(
             'With Electron you can test native crash reporting by triggering a crash:'
           ),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: 'process.crash();',
-        },
+        {type: 'code', language: 'javascript', code: 'process.crash();'},
         {
           type: 'text',
           text: t(

@@ -5,10 +5,7 @@ import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 describe('EquationBuilder', () => {
   it('takes an equation and represents the equation using the provided reference map', async () => {
     const expression = 'count(metricA) + sum(metricB)';
-    const referenceMap = {
-      A: 'count(metricA)',
-      F: 'sum(metricB)',
-    };
+    const referenceMap = {A: 'count(metricA)', F: 'sum(metricB)'};
 
     render(
       <EquationBuilder
@@ -53,9 +50,7 @@ describe('EquationBuilder', () => {
     );
 
     expect(handleExpressionChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        text: 'count(value,metricA,distribution,none) * 2',
-      }),
+      expect.objectContaining({text: 'count(value,metricA,distribution,none) * 2'}),
       'A * 2'
     );
   });
@@ -75,9 +70,7 @@ describe('EquationBuilder', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Remove reference A'}));
 
     expect(handleExpressionChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        text: '',
-      }),
+      expect.objectContaining({text: ''}),
       ''
     );
   });
@@ -100,9 +93,7 @@ describe('EquationBuilder', () => {
     );
 
     expect(handleExpressionChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        text: '',
-      }),
+      expect.objectContaining({text: ''}),
       ''
     );
   });

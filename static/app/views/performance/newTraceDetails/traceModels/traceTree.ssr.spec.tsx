@@ -73,11 +73,7 @@ const ssrEAPTrace = makeEAPTrace([
 ]);
 
 const ssrSpans = [
-  makeSpan({
-    op: 'tls.connect',
-    start_timestamp: start,
-    timestamp: start + 2,
-  }),
+  makeSpan({op: 'tls.connect', start_timestamp: start, timestamp: start + 2}),
   makeSpan({
     op: 'browser.request',
     description: 'browser',
@@ -120,14 +116,8 @@ describe('server side rendering', () => {
             transaction: 'SSR',
             'transaction.op': 'http.server',
             children: [
-              makeTransaction({
-                transaction: 'pageload',
-                'transaction.op': 'pageload',
-              }),
-              makeTransaction({
-                transaction: 'pageload',
-                'transaction.op': 'pageload',
-              }),
+              makeTransaction({transaction: 'pageload', 'transaction.op': 'pageload'}),
+              makeTransaction({transaction: 'pageload', 'transaction.op': 'pageload'}),
             ],
           }),
         ],

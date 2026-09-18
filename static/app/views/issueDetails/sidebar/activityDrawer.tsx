@@ -51,10 +51,7 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
     group.numComments > 0 &&
     group.activity.length >= GROUP_ACTIVITY_LIMIT;
   const commentsQuery = useQuery({
-    ...issueCommentsQueryOptions({
-      organizationSlug: organization.slug,
-      groupId,
-    }),
+    ...issueCommentsQueryOptions({organizationSlug: organization.slug, groupId}),
     enabled: shouldFetchComments,
   });
 

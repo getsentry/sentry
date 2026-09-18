@@ -20,10 +20,7 @@ import {
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-type DetectorDetailsHeaderProps = {
-  detector: Detector;
-  useLocalDetailActions?: boolean;
-};
+type DetectorDetailsHeaderProps = {detector: Detector; useLocalDetailActions?: boolean};
 
 function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
   const organization = useOrganization();

@@ -25,11 +25,7 @@ function EditableDetectorName() {
             allowEmpty: true,
             value: value || '',
             onChange: newValue => {
-              onChange(newValue, {
-                target: {
-                  value: newValue,
-                },
-              });
+              onChange(newValue, {target: {value: newValue}});
               setHasSetDetectorName(true);
             },
             placeholder: t('New Monitor'),

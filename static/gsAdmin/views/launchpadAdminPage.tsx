@@ -71,12 +71,8 @@ export function LaunchpadAdminPage() {
       return fetchMutation({
         url: getApiUrl('/internal/preprod-artifact/batch-delete/'),
         method: 'DELETE',
-        data: {
-          preprod_artifact_ids: [deleteArtifactId],
-        },
-        options: {
-          host: locality?.url,
-        },
+        data: {preprod_artifact_ids: [deleteArtifactId]},
+        options: {host: locality?.url},
       });
     },
     onSuccess: () => {
@@ -127,9 +123,7 @@ export function LaunchpadAdminPage() {
             .map(id => id.trim())
             .filter(Boolean),
         },
-        options: {
-          host: locality?.url,
-        },
+        options: {host: locality?.url},
       });
     },
     onSuccess: () => {
@@ -157,10 +151,7 @@ export function LaunchpadAdminPage() {
     try {
       const artifactInfo = await api.requestPromise(
         `/internal/preprod-artifact/${downloadArtifactId}/info/`,
-        {
-          method: 'GET',
-          host: locality?.url,
-        }
+        {method: 'GET', host: locality?.url}
       );
 
       const orgSlug = artifactInfo.artifact_info?.project?.organization_slug;
@@ -294,10 +285,7 @@ export function LaunchpadAdminPage() {
             <OverlayTrigger.Button {...triggerProps} prefix="Region" />
           )}
           value={locality ? locality.url : undefined}
-          options={localities.map((r: any) => ({
-            label: r.name,
-            value: r.url,
-          }))}
+          options={localities.map((r: any) => ({label: r.name, value: r.url}))}
           onChange={opt => {
             const localityOption = localities.find(l => l.url === opt.value);
             if (localityOption === undefined) {

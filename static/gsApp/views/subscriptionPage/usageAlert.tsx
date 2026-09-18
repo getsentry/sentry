@@ -33,10 +33,7 @@ import {ButtonWrapper, SubscriptionBody} from './styles';
 
 type ProjectedOverages = string[];
 
-type Props = {
-  subscription: Subscription;
-  usage: CustomerUsage;
-};
+type Props = {subscription: Subscription; usage: CustomerUsage};
 
 type ExceededInfoProps = {
   getActionSentence: () => string;
@@ -137,9 +134,7 @@ export function UsageAlert({subscription, usage}: Props) {
     const categoryInfo = getCategoryInfoFromPlural(category);
     const isAbbreviated = categoryInfo?.formatting.projectedAbbreviated ?? true;
 
-    const formattedAmount = formatReservedWithUnits(projected, category, {
-      isAbbreviated,
-    });
+    const formattedAmount = formatReservedWithUnits(projected, category, {isAbbreviated});
 
     return isAbbreviated
       ? `${formattedAmount} ${displayName}`
@@ -248,9 +243,7 @@ export function UsageAlert({subscription, usage}: Props) {
             subscription,
             source: `subscription-usage-alert-${alertType}`,
             referrer: `subscription-usage-alert-${alertType}`,
-            buttonProps: {
-              size: 'sm',
-            },
+            buttonProps: {size: 'sm'},
           }}
         />
       </ButtonWrapper>

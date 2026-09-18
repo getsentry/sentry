@@ -23,18 +23,10 @@ export default function InstallPage() {
     [
       getApiUrl(
         '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            headArtifactId: artifactId,
-          },
-        }
+        {path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId}}
       ),
     ],
-    {
-      staleTime: 0,
-      enabled: !!artifactId,
-    }
+    {staleTime: 0, enabled: !!artifactId}
   );
   return (
     <SentryDocumentTitle title="Install">

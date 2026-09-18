@@ -23,11 +23,7 @@ const RESET_PARAMS_ON_CHANGE = ['page', 'cursor'];
 export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   return (
     <Grid
-      columns={{
-        zero: '100%',
-        xl: '1fr auto',
-        '4xl': 'auto 1fr auto',
-      }}
+      columns={{zero: '100%', xl: '1fr auto', '4xl': 'auto 1fr auto'}}
       areas={{
         zero: `
           "page-filters"

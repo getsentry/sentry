@@ -24,12 +24,7 @@ type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
 const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{
   group: NavigationGroup;
   pattern: RegExp;
-}> = [
-  {
-    group: 'explore',
-    pattern: /(?:^|\/)seer\/investigation\/[^/]+\/?$/,
-  },
-];
+}> = [{group: 'explore', pattern: /(?:^|\/)seer\/investigation\/[^/]+\/?$/}];
 
 interface PrimaryNavigationFeatures {
   /** Whether the device supports hover interactions (false on touch-only devices) */

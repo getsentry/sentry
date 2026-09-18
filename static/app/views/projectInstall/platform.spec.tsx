@@ -13,9 +13,7 @@ import * as analytics from 'sentry/utils/analytics';
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
-type ProjectWithBadPlatform = Omit<Project, 'platform'> & {
-  platform: string;
-};
+type ProjectWithBadPlatform = Omit<Project, 'platform'> & {platform: string};
 
 function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatform>) {
   MockApiClient.addMockResponse({
@@ -54,18 +52,12 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
     body: {},
   });
 
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/sdks/',
-    body: {},
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/sdks/', body: {}});
 }
 
 function renderAnalyticsScenario(
   projectCreationVariant?: string,
-  options: {
-    isProjectActive?: boolean;
-    mockRecentCreatedProject?: boolean;
-  } = {}
+  options: {isProjectActive?: boolean; mockRecentCreatedProject?: boolean} = {}
 ) {
   const {organization, project} = initializeOrg({
     router: {params: {projectId: ProjectFixture().slug}},
@@ -90,10 +82,12 @@ function renderAnalyticsScenario(
   mockProjectApiResponses([projectWithPlatform]);
 
   if (options.mockRecentCreatedProject) {
-    jest.spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject').mockReturnValue({
-      project: projectWithPlatform,
-      isProjectActive: options.isProjectActive ?? false,
-    });
+    jest
+      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+      .mockReturnValue({
+        project: projectWithPlatform,
+        isProjectActive: options.isProjectActive ?? false,
+      });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${projectWithPlatform.slug}/`,
       method: 'DELETE',
@@ -135,20 +129,14 @@ describe('ProjectInstallPlatform', () => {
 
   it('should render NotFound if no matching integration/platform', async () => {
     const {organization, routerProps, project} = initializeOrg({
-      router: {
-        params: {
-          projectId: ProjectFixture().slug,
-        },
-      },
+      router: {params: {projectId: ProjectFixture().slug}},
     });
 
     mockProjectApiResponses([{...project, platform: 'lua'}]);
 
     render(
       <ProjectInstallPlatform {...routerProps} platform={undefined} project={project} />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
@@ -156,11 +144,7 @@ describe('ProjectInstallPlatform', () => {
 
   it('should display info for a non-supported platform', async () => {
     const {organization, routerProps, project} = initializeOrg({
-      router: {
-        params: {
-          projectId: ProjectFixture().slug,
-        },
-      },
+      router: {params: {projectId: ProjectFixture().slug}},
     });
 
     const platform: PlatformIntegration = {
@@ -178,9 +162,7 @@ describe('ProjectInstallPlatform', () => {
 
     render(
       <ProjectInstallPlatform {...routerProps} platform={platform} project={project} />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(
@@ -191,13 +173,7 @@ describe('ProjectInstallPlatform', () => {
   it('should not render performance/session replay buttons for errors only self-hosted', async () => {
     const project = ProjectFixture({platform: 'javascript'});
 
-    const {routerProps} = initializeOrg({
-      router: {
-        params: {
-          projectId: project.slug,
-        },
-      },
-    });
+    const {routerProps} = initializeOrg({router: {params: {projectId: project.slug}}});
 
     ProjectsStore.loadInitialData([project]);
 
@@ -217,9 +193,7 @@ describe('ProjectInstallPlatform', () => {
     );
 
     expect(
-      await screen.findByRole('heading', {
-        name: 'Configure Browser JavaScript SDK',
-      })
+      await screen.findByRole('heading', {name: 'Configure Browser JavaScript SDK'})
     ).toBeInTheDocument();
 
     expect(screen.getByText('Take me to Issues')).toBeInTheDocument();
@@ -349,11 +323,7 @@ describe('ProjectInstallPlatform', () => {
     );
     expect(trackAnalyticsSpy).toHaveBeenCalledWith(
       'project_creation.data_removal_modal_confirm_button_clicked',
-      expect.objectContaining({
-        organization,
-        platform: 'other',
-        project_id: project.id,
-      })
+      expect.objectContaining({organization, platform: 'other', project_id: project.id})
     );
     expect(trackAnalyticsSpy).toHaveBeenCalledWith(
       'project_creation.data_removal_modal_confirm_button_clicked',

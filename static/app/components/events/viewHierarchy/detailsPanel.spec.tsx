@@ -16,14 +16,7 @@ const MOCK_DATA = {
       ...DEFAULT_VALUES,
       identifier: 'intermediate',
       type: 'Nested Container',
-      children: [
-        {
-          ...DEFAULT_VALUES,
-          identifier: 'leaf',
-          type: 'Text',
-          children: [],
-        },
-      ],
+      children: [{...DEFAULT_VALUES, identifier: 'leaf', type: 'Text', children: []}],
     },
   ],
 };

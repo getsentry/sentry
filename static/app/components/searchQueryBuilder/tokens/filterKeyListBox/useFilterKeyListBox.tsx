@@ -112,11 +112,7 @@ function useFilterKeyItems() {
     if (uncategorizedFilterKeys.length) {
       sections.push(
         createSection(
-          {
-            value: 'uncategorized',
-            label: '',
-            children: uncategorizedFilterKeys,
-          },
+          {value: 'uncategorized', label: '', children: uncategorizedFilterKeys},
           filterKeys,
           getFieldDefinition
         )
@@ -207,11 +203,7 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
     if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
       return [
         ...recentFilterItems,
-        ...makeRecentSearchQueryItems({
-          recentSearches,
-          filterKeys,
-          getFieldDefinition,
-        }),
+        ...makeRecentSearchQueryItems({recentSearches, filterKeys, getFieldDefinition}),
       ];
     }
 

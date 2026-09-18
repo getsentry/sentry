@@ -21,9 +21,7 @@ export const DEFAULT_VISUALIZATION_AGGREGATE = ALLOWED_EXPLORE_VISUALIZE_AGGREGA
 export const DEFAULT_VISUALIZATION_FIELD = ALLOWED_EXPLORE_VISUALIZE_FIELDS[0]!;
 export const DEFAULT_VISUALIZATION = `${DEFAULT_VISUALIZATION_AGGREGATE}(${DEFAULT_VISUALIZATION_FIELD})`;
 
-type VisualizeOptions = {
-  chartType?: ChartType;
-};
+type VisualizeOptions = {chartType?: ChartType};
 
 export interface BaseVisualize {
   yAxes: readonly string[];
@@ -54,9 +52,7 @@ export class Visualize {
   }
 
   clone(): Visualize {
-    return new Visualize(this.yAxis, {
-      chartType: this.selectedChartType,
-    });
+    return new Visualize(this.yAxis, {chartType: this.selectedChartType});
   }
 
   replace({chartType, yAxis}: {chartType?: ChartType; yAxis?: string}): Visualize {
@@ -66,9 +62,7 @@ export class Visualize {
   }
 
   toJSON(): BaseVisualize {
-    const json: BaseVisualize = {
-      yAxes: [this.yAxis],
-    };
+    const json: BaseVisualize = {yAxes: [this.yAxis]};
 
     if (defined(this.selectedChartType)) {
       json.chartType = this.selectedChartType;

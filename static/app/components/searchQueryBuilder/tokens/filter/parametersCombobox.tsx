@@ -38,11 +38,7 @@ type ParametersComboboxProps = {
   ) => void;
 };
 
-type SuggestionItem = {
-  value: string;
-  description?: ReactNode;
-  label?: ReactNode;
-};
+type SuggestionItem = {value: string; description?: ReactNode; label?: ReactNode};
 
 function getInitialInputValue(token: AggregateFilter) {
   if ('args' in token.key) {
@@ -152,10 +148,7 @@ function useSelectionIndex({
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputValue, updateSelectionIndex]);
 
-  return {
-    selectionIndex,
-    updateSelectionIndex,
-  };
+  return {selectionIndex, updateSelectionIndex};
 }
 
 function useParameterSuggestions({
@@ -335,12 +328,7 @@ export function SearchQueryBuilderParametersCombobox({
         parameterIndex
       );
 
-      dispatch({
-        type: 'UPDATE_AGGREGATE_ARGS',
-        token,
-        value: newValue,
-        focusOverride,
-      });
+      dispatch({type: 'UPDATE_AGGREGATE_ARGS', token, value: newValue, focusOverride});
       updateInputValue(newValue);
       if (!defined(focusOverride)) {
         const newCursorPosition = getCursorPositionAtEndOfParameter(

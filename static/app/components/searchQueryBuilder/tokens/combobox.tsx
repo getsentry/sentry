@@ -153,14 +153,7 @@ export type CustomComboboxMenu<T> = (
 const DESCRIPTION_POPPER_OPTIONS = {
   placement: 'top-start' as const,
   strategy: 'fixed' as const,
-  modifiers: [
-    {
-      name: 'offset',
-      options: {
-        offset: [-12, 8],
-      },
-    },
-  ],
+  modifiers: [{name: 'offset', options: {offset: [-12, 8]}}],
 };
 
 const MENU_OFFSET: [number, number] = [-12, 12];
@@ -226,10 +219,7 @@ function useHiddenItems({
     [hiddenOptions, items]
   );
 
-  return {
-    hiddenOptions,
-    disabledKeys,
-  };
+  return {hiddenOptions, disabledKeys};
 }
 
 // The menu size can change from things like loading states, long options,

@@ -76,9 +76,7 @@ describe('GroupOpenPeriods', () => {
     expect(within(statusRow).getByText('Priority updated to high')).toBeInTheDocument();
     expect(within(statusRow).queryByText('#open-period-1')).not.toBeInTheDocument();
     expect(
-      within(statusRow).getByRole('link', {
-        name: getShortEventId(statusChangeEventId),
-      })
+      within(statusRow).getByRole('link', {name: getShortEventId(statusChangeEventId)})
     ).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/issues/${groupId}/events/${statusChangeEventId}/`
@@ -87,9 +85,7 @@ describe('GroupOpenPeriods', () => {
     expect(within(openedRow).getByText('#open-period-1')).toBeInTheDocument();
     expect(within(openedRow).getByText('Issue regressed')).toBeInTheDocument();
     expect(
-      within(openedRow).getByRole('link', {
-        name: getShortEventId(openedEventId),
-      })
+      within(openedRow).getByRole('link', {name: getShortEventId(openedEventId)})
     ).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/issues/${groupId}/events/${openedEventId}/`
@@ -143,10 +139,7 @@ describe('GroupOpenPeriods', () => {
           templateKey: 'breached_metric',
           templateVersion: 1,
           sources: [
-            {
-              type: 'metric_open_period',
-              ref: {groupId, openPeriodId: 'open-period-1'},
-            },
+            {type: 'metric_open_period', ref: {groupId, openPeriodId: 'open-period-1'}},
           ],
         },
       })

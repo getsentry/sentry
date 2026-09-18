@@ -16,8 +16,6 @@ export const docs: Docs = {
       'https://docs.sentry.io/platforms/go/guides/negroni/user-feedback/configuration/#crash-report-modal',
   }),
   feedbackOnboardingJsLoader,
-  logsOnboarding: logs({
-    docsPlatform: 'negroni',
-  }),
+  logsOnboarding: logs({docsPlatform: 'negroni'}),
   metricsOnboarding: metrics,
 };

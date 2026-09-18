@@ -84,10 +84,7 @@ export function useDeleteDataForwarder({
   return useMutation<void, RequestError, {dataForwarderId: string; orgSlug: string}>({
     mutationFn: ({dataForwarderId: dfId, orgSlug: os}) =>
       api.requestPromise(
-        makeDataForwarderMutationQueryKey({
-          dataForwarderId: dfId,
-          orgSlug: os,
-        })[0],
+        makeDataForwarderMutationQueryKey({dataForwarderId: dfId, orgSlug: os})[0],
         {method: 'DELETE'}
       ),
     onSuccess: () => {
@@ -122,9 +119,7 @@ export function useMutateDataForwarderProject({
     mutationFn: data => api.requestPromise(endpoint, {method: 'PUT', data}),
     onSuccess: () => {
       addSuccessMessage(
-        tct('Updated project override for [project]', {
-          project: project.slug,
-        })
+        tct('Updated project override for [project]', {project: project.slug})
       );
       queryClient.invalidateQueries({queryKey: [endpoint]});
       queryClient.invalidateQueries({queryKey: listQueryKey});

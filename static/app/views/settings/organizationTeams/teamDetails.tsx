@@ -20,9 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-type TeamDetailsOutletContext = {
-  team: Team;
-};
+type TeamDetailsOutletContext = {team: Team};
 
 function TeamDetailsOutlet(props: TeamDetailsOutletContext) {
   return <Outlet context={props} />;
@@ -45,21 +43,12 @@ export default function TeamDetails() {
     setRequesting(true);
 
     try {
-      await joinTeamPromise(api, {
-        orgId: orgSlug,
-        teamId: teamSlug,
-      });
+      await joinTeamPromise(api, {orgId: orgSlug, teamId: teamSlug});
       addSuccessMessage(
-        tct('You have requested access to [team]', {
-          team: `#${teamSlug}`,
-        })
+        tct('You have requested access to [team]', {team: `#${teamSlug}`})
       );
     } catch {
-      addErrorMessage(
-        tct('Unable to request access to [team]', {
-          team: `#${teamSlug}`,
-        })
-      );
+      addErrorMessage(tct('Unable to request access to [team]', {team: `#${teamSlug}`}));
     } finally {
       setRequesting(false);
     }

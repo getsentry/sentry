@@ -157,27 +157,18 @@ describe('conversation embed', () => {
       PageFiltersStore.updateProjects([99], null);
     });
 
-    renderEmbed({
-      name: 'conversation',
-      data: {id: CONVERSATION_ID, projects: ['7']},
-    });
+    renderEmbed({name: 'conversation', data: {id: CONVERSATION_ID, projects: ['7']}});
 
     await waitFor(() => {
       expect(request).toHaveBeenCalledWith(
         DETAIL_URL,
-        expect.objectContaining({
-          query: expect.objectContaining({project: [7]}),
-        })
+        expect.objectContaining({query: expect.objectContaining({project: [7]})})
       );
     });
   });
 
   it('shows an error when the conversation cannot be loaded', async () => {
-    MockApiClient.addMockResponse({
-      url: DETAIL_URL,
-      statusCode: 500,
-      body: {},
-    });
+    MockApiClient.addMockResponse({url: DETAIL_URL, statusCode: 500, body: {}});
 
     renderEmbed({name: 'conversation', data: {id: CONVERSATION_ID}});
 

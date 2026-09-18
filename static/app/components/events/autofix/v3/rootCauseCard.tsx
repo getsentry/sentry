@@ -43,11 +43,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
   );
 
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
-    useResetAutofixStep({
-      autofix,
-      section,
-      step: 'root_cause',
-    });
+    useResetAutofixStep({autofix, section, step: 'root_cause'});
 
   const evidence = useAutofixSectionEvidence({section});
 

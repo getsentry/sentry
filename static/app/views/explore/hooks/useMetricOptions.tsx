@@ -69,11 +69,7 @@ function metricOptionsQueryKey({
 
   return apiOptions.as<TraceMetricEventsResult>()(
     '/organizations/$organizationIdOrSlug/events/',
-    {
-      path: {organizationIdOrSlug: orgSlug!},
-      query,
-      staleTime: 5 * 60 * 1000,
-    }
+    {path: {organizationIdOrSlug: orgSlug!}, query, staleTime: 5 * 60 * 1000}
   );
 }
 

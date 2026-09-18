@@ -96,9 +96,7 @@ export function AgentSetupCard({
         </Flex>
         <FeedbackButton
           size="xs"
-          feedbackOptions={{
-            tags: {'feedback.source': 'onboarding-agent-setup'},
-          }}
+          feedbackOptions={{tags: {'feedback.source': 'onboarding-agent-setup'}}}
         />
       </Flex>
 

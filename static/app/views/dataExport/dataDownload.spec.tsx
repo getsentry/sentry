@@ -21,10 +21,7 @@ describe('DataDownload', () => {
   const getDataExportDetails = (body: any, statusCode = 200) =>
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-export/${dataExportId}/`,
-      body: {
-        query: {type: ExportQueryType.ISSUES_BY_TAG},
-        ...body,
-      },
+      body: {query: {type: ExportQueryType.ISSUES_BY_TAG}, ...body},
       statusCode,
     });
 
@@ -40,9 +37,7 @@ describe('DataDownload', () => {
       download: {
         status: 403,
         statusText: 'Forbidden',
-        responseJSON: {
-          detail: 'You are not allowed',
-        },
+        responseJSON: {detail: 'You are not allowed'},
       },
     };
     getDataExportDetails({errors}, 403);
@@ -125,10 +120,7 @@ describe('DataDownload', () => {
     getDataExportDetails({
       dateExpired,
       status,
-      query: {
-        type: ExportQueryType.DISCOVER,
-        info: {},
-      },
+      query: {type: ExportQueryType.DISCOVER, info: {}},
     });
 
     render(<DataDownload />, {initialRouterConfig});
@@ -141,10 +133,7 @@ describe('DataDownload', () => {
     getDataExportDetails({
       dateExpired,
       status,
-      query: {
-        type: ExportQueryType.ISSUES_BY_TAG,
-        info: {},
-      },
+      query: {type: ExportQueryType.ISSUES_BY_TAG, info: {}},
     });
 
     render(<DataDownload />, {initialRouterConfig});

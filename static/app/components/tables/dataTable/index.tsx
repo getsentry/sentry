@@ -48,11 +48,7 @@ const Frame = styled(
  */
 const Grid = styled(Table, {
   shouldForwardProp: prop => prop !== 'fit' && prop !== 'height' && prop !== 'scrollable',
-})<{
-  fit?: 'max-content';
-  height?: CSS['height'];
-  scrollable?: boolean;
-}>`
+})<{fit?: 'max-content'; height?: CSS['height']; scrollable?: boolean}>`
   ${p =>
     p.scrollable &&
     css`
@@ -106,9 +102,9 @@ const Head = styled(Table.Head)`
   border-top-right-radius: ${p => p.theme.radius.md};
 `;
 
-const HeadCell = styled(Table.HeadCell, {
-  shouldForwardProp: prop => prop !== 'isFirst',
-})<{isFirst?: boolean}>`
+const HeadCell = styled(Table.HeadCell, {shouldForwardProp: prop => prop !== 'isFirst'})<{
+  isFirst?: boolean;
+}>`
   height: ${TABLE_HEAD_ROW_HEIGHT}px;
   display: flex;
   align-items: center;
@@ -152,9 +148,9 @@ const HeadCell = styled(Table.HeadCell, {
   }
 `;
 
-const Row = styled(Table.Row, {
-  shouldForwardProp: prop => prop !== 'isClickable',
-})<{isClickable?: boolean}>`
+const Row = styled(Table.Row, {shouldForwardProp: prop => prop !== 'isClickable'})<{
+  isClickable?: boolean;
+}>`
   &:not(thead > &) {
     background-color: ${p => p.theme.tokens.background.primary};
 
@@ -233,12 +229,7 @@ function useDataTableProps({
     [prefixColumnWidth]
   );
 
-  return {
-    columns,
-    flexibleLastColumn: false,
-    minimumColumnWidth,
-    prependColumnWidths,
-  };
+  return {columns, flexibleLastColumn: false, minimumColumnWidth, prependColumnWidths};
 }
 
 interface DataTableProps

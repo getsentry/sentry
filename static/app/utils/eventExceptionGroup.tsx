@@ -1,10 +1,7 @@
 import type {EntryException, ExceptionValue} from 'sentry/types/event';
 import {defined} from 'sentry/utils/defined';
 
-type ExceptionGroupTreeItem = {
-  children: ExceptionGroupTreeItem[];
-  value: ExceptionValue;
-};
+type ExceptionGroupTreeItem = {children: ExceptionGroupTreeItem[]; value: ExceptionValue};
 
 function buildExceptionGroupTreeRecursive(
   values: ExceptionValue[],

@@ -23,9 +23,7 @@ const COLORS = {
   [LEARN_MORE]: 'primary',
 } as const satisfies Record<string, keyof Theme['tokens']['content']>;
 
-type StatusProps = {
-  status: IntegrationInstallationStatus;
-};
+type StatusProps = {status: IntegrationInstallationStatus};
 
 export const IntegrationStatus = styled(({status, ...p}: StatusProps) => {
   const theme = useTheme();

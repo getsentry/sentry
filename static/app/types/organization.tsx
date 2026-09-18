@@ -27,18 +27,12 @@ export interface OrganizationSummary {
   id: string;
   isEarlyAdopter: boolean;
   issueAlertsThreadFlag: boolean;
-  links: {
-    organizationUrl: string;
-    regionUrl: string;
-  };
+  links: {organizationUrl: string; regionUrl: string};
   metricAlertsThreadFlag: boolean;
   name: string;
   require2FA: boolean;
   slug: string;
-  status: {
-    id: ObjectStatus;
-    name: string;
-  };
+  status: {id: ObjectStatus; name: string};
 }
 
 /**
@@ -114,10 +108,7 @@ export interface Organization extends OrganizationSummary {
   enabledConsolePlatforms?: string[];
   experiments?: Record<string, string>;
   extraOptions?: {
-    traces: {
-      checkSpanExtractionDate: boolean;
-      spansExtractionDate: number;
-    };
+    traces: {checkSpanExtractionDate: boolean; spansExtractionDate: number};
   };
   ingestThroughTrustedRelaysOnly?: 'enabled' | 'disabled';
   orgRole?: string;
@@ -130,9 +121,7 @@ export interface Team {
   access: Scope[];
   avatar: Avatar;
   externalTeams: ExternalTeam[];
-  flags: {
-    'idp:provisioned': boolean;
-  };
+  flags: {'idp:provisioned': boolean};
   hasAccess: boolean;
   id: string;
   isMember: boolean;
@@ -186,10 +175,7 @@ export interface Member {
   teamRoleList: TeamRole[];
 
   // TODO: Move to global store
-  teamRoles: Array<{
-    role: string | null;
-    teamSlug: string;
-  }>;
+  teamRoles: Array<{role: string | null; teamSlug: string}>;
   /**
    * @deprecated use teamRoles
    */
@@ -225,11 +211,7 @@ export interface MissingMember {
  * Backend provides {slug, name}. Features is added client-side
  * for compatibility with OrganizationContext.
  */
-export type SharedViewOrganization = {
-  slug: string;
-  features?: string[];
-  name?: string;
-};
+export type SharedViewOrganization = {slug: string; features?: string[]; name?: string};
 
 export type AuditLog = {
   actor: User;
@@ -247,11 +229,7 @@ export type AccessRequest = {
   id: string;
   member: Member;
   team: Team;
-  requester?: Partial<{
-    email: string;
-    name: string;
-    username: string;
-  }>;
+  requester?: Partial<{email: string; name: string; username: string}>;
 };
 
 /**
@@ -301,10 +279,7 @@ export type EventsStatsData = Array<
 
 type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
 
-type AccuracyStatsItem<T> = {
-  timestamp: number;
-  value: T;
-};
+type AccuracyStatsItem<T> = {timestamp: number; value: T};
 
 type AccuracyStats<T> = Array<AccuracyStatsItem<T>>;
 
@@ -344,23 +319,12 @@ export type MultiSeriesEventsStats = Record<string, EventsStats>;
 // API response for a grouped top N Discover series
 export type GroupedMultiSeriesEventsStats = Record<
   string,
-  {
-    [seriesName: string]: EventsStats | number;
-    order: number;
-  }
+  {[seriesName: string]: EventsStats | number; order: number}
 >;
 
 export type EventsStatsSeries<F extends string> = {
-  data: Array<{
-    axis: F;
-    values: number[];
-    label?: string;
-  }>;
-  meta: {
-    dataset: string;
-    end: number;
-    start: number;
-  };
+  data: Array<{axis: F; values: number[]; label?: string}>;
+  meta: {dataset: string; end: number; start: number};
   timestamps: number[];
 };
 

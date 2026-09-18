@@ -56,12 +56,7 @@ export function TeamUnresolvedIssues({
       getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/all-unresolved-issues/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
       }),
-      {
-        query: {
-          ...normalizeDateTimeParams({start, end, period, utc}),
-          environment,
-        },
-      },
+      {query: {...normalizeDateTimeParams({start, end, period, utc}), environment}},
     ],
     {staleTime: 0}
   );

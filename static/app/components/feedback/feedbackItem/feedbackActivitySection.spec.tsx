@@ -79,11 +79,7 @@ describe('FeedbackActivitySection', () => {
 
   it('posts comments through the feedback activity mutation', async () => {
     const comment = 'feedback follow up';
-    const feedbackItem = GroupFixture({
-      id: '1337',
-      activity: [],
-      project,
-    });
+    const feedbackItem = GroupFixture({id: '1337', activity: [], project});
     const postMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/',
       method: 'POST',
@@ -110,13 +106,7 @@ describe('FeedbackActivitySection', () => {
 
     expect(postMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/1337/comments/',
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          text: comment,
-          mentions: [],
-        },
-      })
+      expect.objectContaining({method: 'POST', data: {text: comment, mentions: []}})
     );
   });
 

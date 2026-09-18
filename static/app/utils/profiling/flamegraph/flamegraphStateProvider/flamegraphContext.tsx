@@ -14,13 +14,8 @@ import {flamegraphSearchReducer} from './reducers/flamegraphSearch';
 import {flamegraphZoomPositionReducer} from './reducers/flamegraphZoomPosition';
 
 export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
-  profiles: {
-    selectedRoot: null,
-    threadId: null,
-  },
-  position: {
-    view: Rect.empty(),
-  },
+  profiles: {selectedRoot: null, threadId: null},
+  position: {view: Rect.empty()},
   preferences: {
     timelines: {
       battery_chart: false,
@@ -38,10 +33,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   search: {
     index: null,
     highlightFrames: null,
-    results: {
-      frames: new Map(),
-      spans: new Map(),
-    },
+    results: {frames: new Map(), spans: new Map()},
     query: '',
   },
 };
@@ -58,10 +50,7 @@ type FlamegraphReducer = UndoableReducer<typeof flamegraphStateReducer>;
 export type FlamegraphState = React.ReducerState<FlamegraphReducer>['current'];
 export type FlamegraphStateValue = readonly [
   FlamegraphState,
-  {
-    nextState: FlamegraphState | undefined;
-    previousState: FlamegraphState | undefined;
-  },
+  {nextState: FlamegraphState | undefined; previousState: FlamegraphState | undefined},
 ];
 
 export type FlamegraphStateDispatch = React.Dispatch<

@@ -14,11 +14,7 @@ function openSentryAppUpdateModal() {
   openModal(deps => (
     <SentryAppUpdateModal
       {...deps}
-      sentryAppData={{
-        slug: 'example-app',
-        popularity: 10,
-        featureData: [{featureId: 1}],
-      }}
+      sentryAppData={{slug: 'example-app', popularity: 10, featureData: [{featureId: 1}]}}
     />
   ));
   return renderGlobalModal();
@@ -31,10 +27,7 @@ describe('SentryAppUpdateModal', () => {
   });
 
   it('updates popularity and features', async () => {
-    MockApiClient.addMockResponse({
-      url: '/integration-features/',
-      body: featureData,
-    });
+    MockApiClient.addMockResponse({url: '/integration-features/', body: featureData});
     const updateMock = MockApiClient.addMockResponse({
       url: '/sentry-apps/example-app/',
       method: 'PUT',
@@ -43,9 +36,7 @@ describe('SentryAppUpdateModal', () => {
 
     const {waitForModalToHide} = openSentryAppUpdateModal();
 
-    const popularity = await screen.findByRole('spinbutton', {
-      name: 'New popularity',
-    });
+    const popularity = await screen.findByRole('spinbutton', {name: 'New popularity'});
     await userEvent.clear(popularity);
     await userEvent.type(popularity, '20');
     await userEvent.click(screen.getByRole('textbox', {name: 'Features'}));
@@ -76,9 +67,7 @@ describe('SentryAppUpdateModal', () => {
     });
     openSentryAppUpdateModal();
 
-    const popularity = await screen.findByRole('spinbutton', {
-      name: 'New popularity',
-    });
+    const popularity = await screen.findByRole('spinbutton', {name: 'New popularity'});
     await userEvent.clear(popularity);
     if (value) {
       await userEvent.type(popularity, value);
@@ -106,10 +95,7 @@ describe('SentryAppUpdateModal', () => {
   });
 
   it('retries loading feature options', async () => {
-    MockApiClient.addMockResponse({
-      url: '/integration-features/',
-      statusCode: 500,
-    });
+    MockApiClient.addMockResponse({url: '/integration-features/', statusCode: 500});
     openSentryAppUpdateModal();
 
     const retryButton = await screen.findByRole('button', {name: 'Retry'});

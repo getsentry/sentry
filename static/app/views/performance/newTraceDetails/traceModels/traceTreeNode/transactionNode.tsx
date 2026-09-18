@@ -98,10 +98,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     return this.op + (this.value.transaction ? ' - ' + this.value.transaction : '');
   }
 
-  get traceHeaderTitle(): {
-    title: string;
-    subtitle?: string;
-  } {
+  get traceHeaderTitle(): {title: string; subtitle?: string} {
     return {title: this.op || t('Trace'), subtitle: this.value.transaction};
   }
 
@@ -386,9 +383,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   fetchChildren(
     fetching: boolean,
     tree: TraceTree,
-    options: {
-      api: Client;
-    }
+    options: {api: Client}
   ): Promise<[number, number] | null> {
     if (fetching === this.hasFetchedChildren || !this.canFetchChildren) {
       return Promise.resolve(null);

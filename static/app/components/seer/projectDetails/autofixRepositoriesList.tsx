@@ -46,9 +46,7 @@ const getTableHeaders = (organization: Organization): React.ReactNode[] => [
       size="xs"
       title={tct(
         'Seer will only be able to see code from, and make PRs to, the repos connected here. The [link:GitHub integration] is required for Seer to access these repos.',
-        {
-          link: <Link to={`/settings/${organization.slug}/integrations/github/`} />,
-        }
+        {link: <Link to={`/settings/${organization.slug}/integrations/github/`} />}
       )}
     />
   </Flex>,
@@ -71,20 +69,12 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
 
   // Add some repos to the list for this project.
   const {mutateAsync: handleAddRepo} = useMutation(
-    getMutateSeerProjectReposOptionsAddRepo({
-      organization,
-      project,
-      queryClient,
-    })
+    getMutateSeerProjectReposOptionsAddRepo({organization, project, queryClient})
   );
 
   // Remove a single repo from the list for this project
   const {mutateAsync: handleRemoveRepo} = useMutation(
-    getDeleteSeerProjectRepoOptions({
-      organization,
-      project,
-      queryClient,
-    })
+    getDeleteSeerProjectRepoOptions({organization, project, queryClient})
   );
 
   const handleAddRepoClick = () => {

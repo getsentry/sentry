@@ -44,12 +44,7 @@ describe('useGetTraceItemAttributeTagKeys', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [1],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: false},
     });
   });
 
@@ -82,9 +77,7 @@ describe('useGetTraceItemAttributeTagKeys', () => {
     });
 
     const {result} = renderHookWithProviders(useGetTraceItemAttributeTagKeys, {
-      initialProps: {
-        itemType: TraceItemDataset.LOGS,
-      },
+      initialProps: {itemType: TraceItemDataset.LOGS},
     });
 
     const tags = await result.current('search-query');
@@ -146,9 +139,7 @@ describe('useGetTraceItemAttributeTagKeys', () => {
     });
 
     const {result} = renderHookWithProviders(useGetTraceItemAttributeTagKeys, {
-      initialProps: {
-        itemType: TraceItemDataset.LOGS,
-      },
+      initialProps: {itemType: TraceItemDataset.LOGS},
     });
 
     const firstTags = await result.current('met');
@@ -174,9 +165,7 @@ describe('useGetTraceItemAttributeTagKeys', () => {
     });
 
     const {result} = renderHookWithProviders(useGetTraceItemAttributeTagKeys, {
-      initialProps: {
-        itemType: TraceItemDataset.LOGS,
-      },
+      initialProps: {itemType: TraceItemDataset.LOGS},
     });
 
     await result.current('met');
@@ -239,10 +228,7 @@ describe('useGetTraceItemAttributeTagKeys', () => {
     });
 
     const {result} = renderHookWithProviders(useGetTraceItemAttributeTagKeys, {
-      initialProps: {
-        itemType: TraceItemDataset.LOGS,
-        hiddenKeys: ['organization.id'],
-      },
+      initialProps: {itemType: TraceItemDataset.LOGS, hiddenKeys: ['organization.id']},
     });
 
     const tags = await result.current('search-query');
@@ -280,11 +266,7 @@ describe('useGetTraceItemAttributeTagKeys', () => {
     expect(tags).toHaveLength(2);
     expect(tags).toMatchObject([
       {key: 'log.field', name: 'log.field', kind: FieldKind.TAG},
-      {
-        key: 'function.count()',
-        name: 'function.count()',
-        kind: FieldKind.FUNCTION,
-      },
+      {key: 'function.count()', name: 'function.count()', kind: FieldKind.FUNCTION},
     ]);
   });
 });

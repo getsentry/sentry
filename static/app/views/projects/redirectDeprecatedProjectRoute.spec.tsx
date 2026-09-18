@@ -16,10 +16,7 @@ describe('redirectDeprecatedProjectRoute', () => {
     organization: {id: '456', slug: organization.slug},
   });
   const pathname = `/${organization.slug}/${project.slug}/`;
-  const initialRouterConfig = {
-    location: {pathname},
-    route: '/:orgId/:projectId/',
-  };
+  const initialRouterConfig = {location: {pathname}, route: '/:orgId/:projectId/'};
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -36,9 +33,7 @@ describe('redirectDeprecatedProjectRoute', () => {
       ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
     );
 
-    const {router} = render(<RedirectDeprecatedProjectRoute />, {
-      initialRouterConfig,
-    });
+    const {router} = render(<RedirectDeprecatedProjectRoute />, {initialRouterConfig});
 
     await waitFor(() => {
       expect(router.location).toEqual(
@@ -66,9 +61,7 @@ describe('redirectDeprecatedProjectRoute', () => {
       ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
     );
 
-    render(<RedirectDeprecatedProjectRoute />, {
-      initialRouterConfig,
-    });
+    render(<RedirectDeprecatedProjectRoute />, {initialRouterConfig});
 
     expect(
       await screen.findByText('The project you were looking for was not found.')

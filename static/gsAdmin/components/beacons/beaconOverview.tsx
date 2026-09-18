@@ -17,9 +17,7 @@ export type BeaconData = {
   version: string;
 };
 
-type Props = {
-  data: BeaconData;
-};
+type Props = {data: BeaconData};
 
 export function BeaconOverview({data}: Props) {
   return (

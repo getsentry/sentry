@@ -70,11 +70,7 @@ type UnmatchedRow = {
   side: UnmatchedSide;
 };
 
-type ComparisonResponse = {
-  rows: Row[];
-  summary: Summary;
-  unmatched: UnmatchedRow[];
-};
+type ComparisonResponse = {rows: Row[]; summary: Summary; unmatched: UnmatchedRow[]};
 
 const STATUS_VARIANT: Record<RowStatus, TagProps['variant']> = {
   match: 'success',

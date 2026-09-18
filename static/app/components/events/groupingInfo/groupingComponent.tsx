@@ -11,10 +11,7 @@ import {GroupingComponentChildren} from './groupingComponentChildren';
 import {GroupingComponentStacktrace} from './groupingComponentStacktrace';
 import {shouldInlineComponentValue} from './utils';
 
-type Props = {
-  component: EventGroupComponent;
-  showNonContributing: boolean;
-};
+type Props = {component: EventGroupComponent; showNonContributing: boolean};
 
 export function GroupingComponent({component, showNonContributing}: Props) {
   const contentId = useId();

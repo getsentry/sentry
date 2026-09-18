@@ -19,10 +19,7 @@ describe('CursorIntegrationCta', () => {
   // The CTA reads handoff state from the project's seer setting. Only fires
   // once an integration exists, so the install-stage tests don't need it.
   const mockSeerSettings = (
-    overrides: Partial<{
-      agent: string;
-      integrationId: string | null;
-    }> = {}
+    overrides: Partial<{agent: string; integrationId: string | null}> = {}
   ) =>
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
@@ -53,25 +50,19 @@ describe('CursorIntegrationCta', () => {
     // Default mock for coding agent integrations
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-      body: {
-        integrations: [],
-      },
+      body: {integrations: []},
     });
   });
 
   describe('Loading State', () => {
     it('shows loading placeholder while fetching preferences', () => {
-      render(<CursorIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={project} />, {organization});
 
       expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
     });
 
     it('shows loading placeholder while fetching integrations', () => {
-      render(<CursorIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={project} />, {organization});
 
       expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
     });
@@ -79,9 +70,7 @@ describe('CursorIntegrationCta', () => {
 
   describe('Stage 1: Integration Not Installed', () => {
     it('shows install stage when cursor integration is not installed', async () => {
-      render(<CursorIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={project} />, {organization});
 
       expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
       expect(
@@ -93,9 +82,7 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('links to cursor integration settings', async () => {
-      render(<CursorIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={project} />, {organization});
 
       const installLink = await screen.findByRole('button', {
         name: 'Install Cursor Integration',
@@ -107,9 +94,7 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('includes documentation link', async () => {
-      render(<CursorIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={project} />, {organization});
 
       await screen.findByText('Cursor Agent Integration');
       const docsLink = screen.getByRole('link', {name: 'Read the docs'});
@@ -124,15 +109,7 @@ describe('CursorIntegrationCta', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-        body: {
-          integrations: [
-            {
-              id: '123',
-              provider: 'cursor',
-              name: 'Cursor',
-            },
-          ],
-        },
+        body: {integrations: [{id: '123', provider: 'cursor', name: 'Cursor'}]},
       });
 
       // Setting still points at Seer — handoff not configured for this agent.
@@ -140,9 +117,7 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('shows configure stage when integration installed but not configured', async () => {
-      render(<CursorIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={project} />, {organization});
 
       expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
       expect(
@@ -160,9 +135,7 @@ describe('CursorIntegrationCta', () => {
         body: {},
       });
 
-      render(<CursorIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={project} />, {organization});
 
       const setupButton = await screen.findByRole('button', {
         name: 'Set Seer to hand off to Cursor',
@@ -187,9 +160,7 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('includes link to project seer settings', async () => {
-      render(<CursorIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={project} />, {organization});
 
       await screen.findByText('Cursor Agent Integration');
       const settingsLink = screen.getByRole('link', {
@@ -231,9 +202,7 @@ describe('CursorIntegrationCta', () => {
 
       const onUpdateSuccessSpy = jest.spyOn(ProjectsStore, 'onUpdateSuccess');
 
-      render(<CursorIntegrationCta project={projectWithoutAutomation} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={projectWithoutAutomation} />, {organization});
 
       const setupButton = await screen.findByRole('button', {
         name: 'Set Seer to hand off to Cursor',
@@ -246,10 +215,7 @@ describe('CursorIntegrationCta', () => {
           `/projects/${organization.slug}/${projectWithoutAutomation.slug}/`,
           expect.objectContaining({
             method: 'PUT',
-            data: {
-              autofixAutomationTuning: 'low',
-              seerScannerAutomation: true,
-            },
+            data: {autofixAutomationTuning: 'low', seerScannerAutomation: true},
           })
         );
       });
@@ -301,9 +267,7 @@ describe('CursorIntegrationCta', () => {
         body: {},
       });
 
-      render(<CursorIntegrationCta project={projectWithAutomation} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={projectWithAutomation} />, {organization});
 
       const setupButton = await screen.findByRole('button', {
         name: 'Set Seer to hand off to Cursor',
@@ -317,9 +281,7 @@ describe('CursorIntegrationCta', () => {
       await waitFor(() => {
         expect(settingsUpdateMock).toHaveBeenCalledWith(
           `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/settings/`,
-          expect.objectContaining({
-            method: 'PUT',
-          })
+          expect.objectContaining({method: 'PUT'})
         );
       });
     });
@@ -329,15 +291,7 @@ describe('CursorIntegrationCta', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-        body: {
-          integrations: [
-            {
-              id: '123',
-              provider: 'cursor',
-              name: 'Cursor',
-            },
-          ],
-        },
+        body: {integrations: [{id: '123', provider: 'cursor', name: 'Cursor'}]},
       });
 
       // Handoff is set to Cursor, but the project's automation is disabled.
@@ -357,9 +311,7 @@ describe('CursorIntegrationCta', () => {
         body: projectWithoutAutomation,
       });
 
-      render(<CursorIntegrationCta project={projectWithoutAutomation} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={projectWithoutAutomation} />, {organization});
 
       // Should show configure stage, not configured stage
       expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
@@ -379,15 +331,7 @@ describe('CursorIntegrationCta', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-        body: {
-          integrations: [
-            {
-              id: '123',
-              provider: 'cursor',
-              name: 'Cursor',
-            },
-          ],
-        },
+        body: {integrations: [{id: '123', provider: 'cursor', name: 'Cursor'}]},
       });
 
       // Handoff is configured to Cursor.
@@ -407,9 +351,7 @@ describe('CursorIntegrationCta', () => {
         body: projectWithAutomation,
       });
 
-      render(<CursorIntegrationCta project={projectWithAutomation} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={projectWithAutomation} />, {organization});
 
       expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
       expect(screen.getByText(/Cursor handoff is active/)).toBeInTheDocument();
@@ -428,9 +370,7 @@ describe('CursorIntegrationCta', () => {
         body: projectWithAutomation,
       });
 
-      render(<CursorIntegrationCta project={projectWithAutomation} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={projectWithAutomation} />, {organization});
 
       expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
       expect(screen.getByText(/Cursor handoff is active/)).toBeInTheDocument();
@@ -449,9 +389,7 @@ describe('CursorIntegrationCta', () => {
         body: projectWithAutomation,
       });
 
-      render(<CursorIntegrationCta project={projectWithAutomation} />, {
-        organization,
-      });
+      render(<CursorIntegrationCta project={projectWithAutomation} />, {organization});
 
       await screen.findByText('Cursor Agent Integration');
       expect(

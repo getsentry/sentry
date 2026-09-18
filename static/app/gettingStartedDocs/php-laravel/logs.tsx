@@ -13,16 +13,10 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To start using logs, install the latest version of the Sentry Laravel SDK. Logs are supported in version [code:4.15.0] and above of the SDK.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'composer require sentry/sentry-laravel',
-        },
+        {type: 'code', language: 'bash', code: 'composer require sentry/sentry-laravel'},
       ],
     },
   ],
@@ -34,9 +28,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To configure Sentry as a log channel, add the following config to the [code:channels] section in [code:config/logging.php]. If this file does not exist, run [code:php artisan config:publish logging] to publish it.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -82,9 +74,7 @@ LOG_STACK=single,sentry_logs
           type: 'text',
           text: tct(
             'You will also need to configure the Sentry Laravel SDK to enable the logging integration. You can do this by updating your [code:.env] file to include the following:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

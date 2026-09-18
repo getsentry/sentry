@@ -10,13 +10,7 @@ export async function deleteExternalIssue(
   return await api.requestPromise(
     getApiUrl(
       '/organizations/$organizationIdOrSlug/issues/$issueId/external-issues/$externalIssueId/',
-      {
-        path: {
-          organizationIdOrSlug: orgSlug,
-          issueId: groupId,
-          externalIssueId,
-        },
-      }
+      {path: {organizationIdOrSlug: orgSlug, issueId: groupId, externalIssueId}}
     ),
     {method: 'DELETE'}
   );

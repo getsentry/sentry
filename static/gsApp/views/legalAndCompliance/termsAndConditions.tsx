@@ -88,10 +88,7 @@ export function TermsAndConditions({subscription}: TermsProps) {
     addLoadingMessage();
     const data = await api.requestPromise(`/customers/${subscription.slug}/policies/`, {
       method: 'POST',
-      data: {
-        policy: policy.slug,
-        version: policy.version,
-      },
+      data: {policy: policy.slug, version: policy.version},
     });
 
     setApiQueryData<Record<string, Policy>>(

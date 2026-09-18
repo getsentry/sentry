@@ -159,13 +159,7 @@ function EmptyConfigurations({action}: {action: React.ReactElement}) {
 }
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
-  <div
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-    }}
-    {...p}
-  >
+  <div style={{display: 'flex', alignItems: 'center'}} {...p}>
     <IconCloseCircle />
     <span>{reason}</span>
   </div>

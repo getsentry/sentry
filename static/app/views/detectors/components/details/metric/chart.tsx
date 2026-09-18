@@ -63,10 +63,7 @@ function shiftSeriesToBucketEnd(seriesList: Series[], intervalSeconds: number): 
   const offsetMs = intervalSeconds * 1000;
   return seriesList.map(s => ({
     ...s,
-    data: s.data.map(point => ({
-      ...point,
-      name: (point.name as number) + offsetMs,
-    })),
+    data: s.data.map(point => ({...point, name: (point.name as number) + offsetMs})),
   }));
 }
 
@@ -189,12 +186,7 @@ type UseMetricDetectorChartResult =
       isLoading: false;
     }
   | {chartProps: null; error: null; isAnomalyThresholdCutOff: false; isLoading: true}
-  | {
-      chartProps: null;
-      error: Error;
-      isAnomalyThresholdCutOff: false;
-      isLoading: false;
-    };
+  | {chartProps: null; error: Error; isAnomalyThresholdCutOff: false; isLoading: false};
 
 export function useMetricDetectorChart({
   statsPeriod,
@@ -274,10 +266,7 @@ export function useMetricDetectorChart({
 
   const incidentPeriods = useMemo(() => {
     return openPeriods.flatMap<IncidentPeriod>(period => [
-      createTriggerIntervalMarkerData({
-        period,
-        intervalMs: snubaQuery.timeWindow * 1000,
-      }),
+      createTriggerIntervalMarkerData({period, intervalMs: snubaQuery.timeWindow * 1000}),
       ...createOpenPeriodMarkerData({period}),
     ]);
   }, [openPeriods, snubaQuery.timeWindow]);
@@ -294,11 +283,7 @@ export function useMetricDetectorChart({
       const startMs = context.period.start;
       const endMs = context.period.end ?? Date.now();
       const intervalSeconds = Number(snubaQuery.timeWindow) || 60;
-      const zoomRange = computeZoomRangeMs({
-        startMs,
-        endMs,
-        intervalSeconds,
-      });
+      const zoomRange = computeZoomRangeMs({startMs, endMs, intervalSeconds});
       navigate({
         pathname: location.pathname,
         query: buildDetectorZoomQuery(location.query, zoomRange),
@@ -306,9 +291,7 @@ export function useMetricDetectorChart({
     },
   });
 
-  const chartZoomProps = useChartZoom({
-    usePageDate: true,
-  });
+  const chartZoomProps = useChartZoom({usePageDate: true});
 
   const {maxValue, minValue} = useDetectorChartAxisBounds({
     series,
@@ -515,21 +498,11 @@ export function useMetricDetectorChart({
   ]);
 
   if (chartProps) {
-    return {
-      chartProps,
-      error: null,
-      isAnomalyThresholdCutOff,
-      isLoading: false,
-    };
+    return {chartProps, error: null, isAnomalyThresholdCutOff, isLoading: false};
   }
 
   if (error) {
-    return {
-      chartProps: null,
-      error,
-      isAnomalyThresholdCutOff: false,
-      isLoading: false,
-    };
+    return {chartProps: null, error, isAnomalyThresholdCutOff: false, isLoading: false};
   }
 
   return {
@@ -658,12 +631,7 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
   });
 
   const {chartProps, isLoading, error, isAnomalyThresholdCutOff} = useMetricDetectorChart(
-    {
-      detector,
-      openPeriods,
-      height: CHART_HEIGHT,
-      ...dateParams,
-    }
+    {detector, openPeriods, height: CHART_HEIGHT, ...dateParams}
   );
 
   if (isLoading) {

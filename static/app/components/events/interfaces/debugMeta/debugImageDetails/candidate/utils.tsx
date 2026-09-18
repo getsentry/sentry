@@ -63,27 +63,17 @@ export function getStatusTooltipDescription(
     case CandidateDownloadStatus.ERROR:
     case CandidateDownloadStatus.MALFORMED: {
       const {details} = download;
-      return {
-        label: t('Download Details'),
-        description: details,
-        disabled: !details,
-      };
+      return {label: t('Download Details'), description: details, disabled: !details};
     }
     case CandidateDownloadStatus.NOT_FOUND: {
       return {};
     }
     case CandidateDownloadStatus.NO_PERMISSION: {
       const {details} = download;
-      return {
-        label: t('Permission Error'),
-        description: details,
-        disabled: !details,
-      };
+      return {label: t('Permission Error'), description: details, disabled: !details};
     }
     case CandidateDownloadStatus.DELETED: {
-      return {
-        label: t('This file was deleted after the issue was processed.'),
-      };
+      return {label: t('This file was deleted after the issue was processed.')};
     }
     case CandidateDownloadStatus.UNAPPLIED: {
       return {

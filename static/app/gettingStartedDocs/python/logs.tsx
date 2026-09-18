@@ -14,10 +14,7 @@ export const logsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
   condition: params.isLogsSelected,
   content: [
-    {
-      type: 'text',
-      text: t('You can send logs to Sentry using the Sentry logging APIs:'),
-    },
+    {type: 'text', text: t('You can send logs to Sentry using the Sentry logging APIs:')},
     {
       type: 'code',
       language: 'python',
@@ -59,14 +56,10 @@ export const logs = (): OnboardingConfig => ({
           type: 'text',
           text: tct(
             'Install our Python SDK with a minimum version that supports logs ([code:2.35.0] or higher).',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        getPythonInstallCodeBlock({
-          minimumVersion: '2.35.0',
-        }),
+        getPythonInstallCodeBlock({minimumVersion: '2.35.0'}),
       ],
     },
   ],
@@ -78,9 +71,7 @@ export const logs = (): OnboardingConfig => ({
           type: 'text',
           text: tct(
             'Configure the Sentry SDK to capture logs by setting [code:enable_logs=True] in your [code:sentry_sdk.init()] call:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -98,9 +89,7 @@ sentry_sdk.init(
           type: 'text',
           text: tct(
             'For more detailed information on logging configuration, see the [link:logs documentation].',
-            {
-              link: <ExternalLink href="https://docs.sentry.io/platforms/python/logs/" />,
-            }
+            {link: <ExternalLink href="https://docs.sentry.io/platforms/python/logs/" />}
           ),
         },
       ],

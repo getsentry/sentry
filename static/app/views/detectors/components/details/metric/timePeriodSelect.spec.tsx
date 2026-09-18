@@ -46,9 +46,7 @@ describe('MetricTimePeriodSelect', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/issues/',
-            query: {
-              statsPeriod: '4h',
-            },
+            query: {statsPeriod: '4h'},
           },
         },
       }

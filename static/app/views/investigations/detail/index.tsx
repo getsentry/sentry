@@ -180,9 +180,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       titleGenerationSettledFor.current = investigation.id;
       void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
       void queryClient.invalidateQueries({
-        queryKey: investigationListQueryOptions({
-          organizationSlug: organization.slug,
-        }).queryKey,
+        queryKey: investigationListQueryOptions({organizationSlug: organization.slug})
+          .queryKey,
       });
     }
   }, [
@@ -228,10 +227,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const deleteMutation = useDeleteInvestigationMutation(organization.slug, {
     onMutate: () => renameDebouncer.cancel(),
     onSuccess: () => {
-      queryClient.removeQueries({
-        queryKey: detailOptions.queryKey,
-        exact: true,
-      });
+      queryClient.removeQueries({queryKey: detailOptions.queryKey, exact: true});
       addSuccessMessage(t('Investigation deleted.'));
       navigate(`/organizations/${organization.slug}/explore/investigations/`);
     },

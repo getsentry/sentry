@@ -13,10 +13,7 @@ import {EapSpanNode} from './eapSpanNode';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 describe('EapSpanNode', () => {
   describe('constructor', () => {
@@ -44,14 +41,8 @@ describe('EapSpanNode', () => {
 
     it('should initialize search priority for span', () => {
       const extra = createMockExtra();
-      const value1 = makeEAPSpan({
-        event_id: 'test-span-1',
-        is_transaction: false,
-      });
-      const value2 = makeEAPSpan({
-        event_id: 'test-span-2',
-        is_transaction: true,
-      });
+      const value1 = makeEAPSpan({event_id: 'test-span-1', is_transaction: false});
+      const value2 = makeEAPSpan({event_id: 'test-span-2', is_transaction: true});
 
       const node1 = new EapSpanNode(null, value1, extra);
       const node2 = new EapSpanNode(null, value2, extra);
@@ -297,13 +288,8 @@ describe('EapSpanNode', () => {
 
   describe('description getter', () => {
     it('should return description when OTEL-friendly UI is disabled', () => {
-      const extra = createMockExtra({
-        organization: OrganizationFixture({features: []}),
-      });
-      const value = makeEAPSpan({
-        description: 'GET /api/users',
-        name: 'request-span',
-      });
+      const extra = createMockExtra({organization: OrganizationFixture({features: []})});
+      const value = makeEAPSpan({description: 'GET /api/users', name: 'request-span'});
 
       const node = new EapSpanNode(null, value, extra);
 
@@ -336,10 +322,7 @@ describe('EapSpanNode', () => {
 
     it('should return correct traceHeaderTitle', () => {
       const extra = createMockExtra();
-      const value = makeEAPSpan({
-        op: 'http.server',
-        transaction: 'GET /api/users',
-      });
+      const value = makeEAPSpan({op: 'http.server', transaction: 'GET /api/users'});
 
       const node = new EapSpanNode(null, value, extra);
 
@@ -351,29 +334,17 @@ describe('EapSpanNode', () => {
 
     it('should return correct traceHeaderTitle with fallback', () => {
       const extra = createMockExtra();
-      const value = makeEAPSpan({
-        op: undefined,
-        transaction: 'GET /api/users',
-      });
+      const value = makeEAPSpan({op: undefined, transaction: 'GET /api/users'});
 
       const node = new EapSpanNode(null, value, extra);
 
-      expect(node.traceHeaderTitle).toEqual({
-        title: 'Trace',
-        subtitle: 'GET /api/users',
-      });
+      expect(node.traceHeaderTitle).toEqual({title: 'Trace', subtitle: 'GET /api/users'});
     });
 
     it('should return directChildren for non-transaction spans', () => {
       const extra = createMockExtra();
-      const parentValue = makeEAPSpan({
-        event_id: 'parent',
-        is_transaction: false,
-      });
-      const childValue = makeEAPSpan({
-        event_id: 'child',
-        is_transaction: false,
-      });
+      const parentValue = makeEAPSpan({event_id: 'parent', is_transaction: false});
+      const childValue = makeEAPSpan({event_id: 'child', is_transaction: false});
 
       const parent = new EapSpanNode(null, parentValue, extra);
       const child = new EapSpanNode(parent, childValue, extra);
@@ -392,10 +363,7 @@ describe('EapSpanNode', () => {
         event_id: 'child-transaction',
         is_transaction: true,
       });
-      const childSpanValue = makeEAPSpan({
-        event_id: 'child-span',
-        is_transaction: false,
-      });
+      const childSpanValue = makeEAPSpan({event_id: 'child-span', is_transaction: false});
 
       const transaction = new EapSpanNode(null, transactionValue, extra);
       const childTransaction = new EapSpanNode(transaction, childTransactionValue, extra);
@@ -414,10 +382,7 @@ describe('EapSpanNode', () => {
         event_id: 'transaction',
         is_transaction: true,
       });
-      const childSpanValue = makeEAPSpan({
-        event_id: 'child-span',
-        is_transaction: false,
-      });
+      const childSpanValue = makeEAPSpan({event_id: 'child-span', is_transaction: false});
       const nestedTransactionValue = makeEAPSpan({
         event_id: 'nested-transaction',
         is_transaction: true,
@@ -486,10 +451,7 @@ describe('EapSpanNode', () => {
         event_id: 'child-transaction',
         is_transaction: true,
       });
-      const childSpanValue = makeEAPSpan({
-        event_id: 'child-span',
-        is_transaction: false,
-      });
+      const childSpanValue = makeEAPSpan({event_id: 'child-span', is_transaction: false});
 
       const transaction = new EapSpanNode(null, transactionValue, extra);
       const childTransaction = new EapSpanNode(transaction, childTransactionValue, extra);
@@ -505,14 +467,8 @@ describe('EapSpanNode', () => {
   describe('visibleChildren override', () => {
     it('should show children for expanded spans', () => {
       const extra = createMockExtra();
-      const parentValue = makeEAPSpan({
-        event_id: 'parent',
-        is_transaction: false,
-      });
-      const childValue = makeEAPSpan({
-        event_id: 'child',
-        is_transaction: false,
-      });
+      const parentValue = makeEAPSpan({event_id: 'parent', is_transaction: false});
+      const childValue = makeEAPSpan({event_id: 'child', is_transaction: false});
 
       const parent = new EapSpanNode(null, parentValue, extra);
       const child = new EapSpanNode(parent, childValue, extra);
@@ -528,10 +484,7 @@ describe('EapSpanNode', () => {
         event_id: 'transaction',
         is_transaction: true,
       });
-      const childValue = makeEAPSpan({
-        event_id: 'child',
-        is_transaction: true,
-      });
+      const childValue = makeEAPSpan({event_id: 'child', is_transaction: true});
 
       const transaction = new EapSpanNode(null, transactionValue, extra);
       const child = new EapSpanNode(transaction, childValue, extra);
@@ -544,18 +497,9 @@ describe('EapSpanNode', () => {
 
     it('should handle nested visible children correctly', () => {
       const extra = createMockExtra();
-      const rootValue = makeEAPSpan({
-        event_id: 'root',
-        is_transaction: true,
-      });
-      const level1Value = makeEAPSpan({
-        event_id: 'level1',
-        is_transaction: true,
-      });
-      const level2Value = makeEAPSpan({
-        event_id: 'level2',
-        is_transaction: false,
-      });
+      const rootValue = makeEAPSpan({event_id: 'root', is_transaction: true});
+      const level1Value = makeEAPSpan({event_id: 'level1', is_transaction: true});
+      const level2Value = makeEAPSpan({event_id: 'level2', is_transaction: false});
 
       const root = new EapSpanNode(null, rootValue, extra);
       const level1 = new EapSpanNode(root, level1Value, extra);
@@ -573,9 +517,7 @@ describe('EapSpanNode', () => {
   });
 
   describe('expand method', () => {
-    const createMockTraceTree = () => ({
-      list: [] as BaseNode[],
-    });
+    const createMockTraceTree = () => ({list: [] as BaseNode[]});
 
     it('should handle expanding transaction with reparenting', () => {
       const extra = createMockExtra();
@@ -735,9 +677,7 @@ describe('EapSpanNode', () => {
   describe('makeBarColor', () => {
     it('should return operation-specific color', () => {
       const extra = createMockExtra();
-      const value = makeEAPSpan({
-        op: 'http.request',
-      });
+      const value = makeEAPSpan({op: 'http.request'});
 
       const node = new EapSpanNode(null, value, extra);
       const mockTheme = ThemeFixture();
@@ -749,9 +689,7 @@ describe('EapSpanNode', () => {
 
     it('should handle undefined operation', () => {
       const extra = createMockExtra();
-      const value = makeEAPSpan({
-        op: undefined,
-      });
+      const value = makeEAPSpan({op: undefined});
 
       const node = new EapSpanNode(null, value, extra);
       const mockTheme = ThemeFixture();
@@ -790,10 +728,7 @@ describe('EapSpanNode', () => {
 
     it('should return correct printNode with description', () => {
       const extra = createMockExtra();
-      const value = makeEAPSpan({
-        op: 'http.request',
-        description: 'GET /api/users',
-      });
+      const value = makeEAPSpan({op: 'http.request', description: 'GET /api/users'});
       const node = new EapSpanNode(null, value, extra);
 
       expect(node.printNode()).toBe('http.request - GET /api/users');
@@ -801,10 +736,7 @@ describe('EapSpanNode', () => {
 
     it('should return correct printNode without description', () => {
       const extra = createMockExtra();
-      const value = makeEAPSpan({
-        op: 'http.request',
-        description: undefined,
-      });
+      const value = makeEAPSpan({op: 'http.request', description: undefined});
       const node = new EapSpanNode(null, value, extra);
 
       expect(node.printNode()).toBe('http.request - unknown description');
@@ -824,10 +756,7 @@ describe('EapSpanNode', () => {
 
     it('should return correct printNode with undefined op', () => {
       const extra = createMockExtra();
-      const value = makeEAPSpan({
-        op: undefined,
-        description: 'Some description',
-      });
+      const value = makeEAPSpan({op: undefined, description: 'Some description'});
       const node = new EapSpanNode(null, value, extra);
 
       expect(node.printNode()).toBe('unknown span - Some description');
@@ -880,10 +809,7 @@ describe('EapSpanNode', () => {
 
     it('should match by event ID', () => {
       const extra = createMockExtra();
-      const value = makeEAPSpan({
-        event_id: 'test-event-id-123',
-        op: 'http.request',
-      });
+      const value = makeEAPSpan({event_id: 'test-event-id-123', op: 'http.request'});
       const node = new EapSpanNode(null, value, extra);
 
       expect(node.matchWithFreeText('test-event-id-123')).toBe(true);
@@ -892,10 +818,7 @@ describe('EapSpanNode', () => {
 
     it('should be case sensitive', () => {
       const extra = createMockExtra();
-      const value = makeEAPSpan({
-        op: 'HTTP.REQUEST',
-        description: 'GET /API/USERS',
-      });
+      const value = makeEAPSpan({op: 'HTTP.REQUEST', description: 'GET /API/USERS'});
       const node = new EapSpanNode(null, value, extra);
 
       expect(node.matchWithFreeText('HTTP')).toBe(true);
@@ -955,10 +878,7 @@ describe('EapSpanNode', () => {
   describe('edge cases', () => {
     it('should handle empty ops breakdown', () => {
       const extra = createMockExtra();
-      const value = makeEAPSpan({
-        event_id: 'test-span',
-        is_transaction: true,
-      });
+      const value = makeEAPSpan({event_id: 'test-span', is_transaction: true});
       const node = new EapSpanNode(null, value, extra);
 
       expect(node.opsBreakdown).toEqual([]);
@@ -1013,10 +933,7 @@ describe('EapSpanNode', () => {
 
     it('should return null for unrecognized keys', () => {
       const extra = createMockExtra();
-      const value = makeEAPSpan({
-        event_id: 'test-span',
-        is_transaction: false,
-      });
+      const value = makeEAPSpan({event_id: 'test-span', is_transaction: false});
       const node = new EapSpanNode(null, value, extra);
 
       expect(node.resolveValueFromSearchKey('unknown.key')).toBeNull();

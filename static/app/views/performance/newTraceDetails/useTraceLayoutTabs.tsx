@@ -39,10 +39,7 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
     slug: TraceLayoutTabKeys.PROFILES,
     label: t('Profiles'),
   },
-  [TraceLayoutTabKeys.LOGS]: {
-    slug: TraceLayoutTabKeys.LOGS,
-    label: t('Logs'),
-  },
+  [TraceLayoutTabKeys.LOGS]: {slug: TraceLayoutTabKeys.LOGS, label: t('Logs')},
   [TraceLayoutTabKeys.METRICS]: {
     slug: TraceLayoutTabKeys.METRICS,
     label: t('Application Metrics'),
@@ -212,13 +209,7 @@ export function useTraceLayoutTabs({
         traceAnalytics.trackAITabClicked(organization);
       }
       navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...queryParams,
-            tab: slug,
-          },
-        },
+        {pathname: location.pathname, query: {...queryParams, tab: slug}},
         {replace: true}
       );
       setSelectedTab(slug);

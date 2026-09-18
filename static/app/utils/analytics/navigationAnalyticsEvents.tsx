@@ -1,6 +1,4 @@
-type NavigationItemClicked = {
-  item: string;
-};
+type NavigationItemClicked = {item: string};
 
 type NavigationEventParameters = {
   'navigation.help_menu_opt_in_stacked_navigation_clicked': Record<string, unknown>;

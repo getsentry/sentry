@@ -122,10 +122,7 @@ export function GridEditable<
   );
 
   const onColumnResize = (columnIndex: number, width: number) => {
-    props.grid.onResizeColumn?.(columnIndex, {
-      ...props.columnOrder[columnIndex]!,
-      width,
-    });
+    props.grid.onResizeColumn?.(columnIndex, {...props.columnOrder[columnIndex]!, width});
   };
 
   function renderGridHead() {

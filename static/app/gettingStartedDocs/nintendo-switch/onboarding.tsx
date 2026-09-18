@@ -36,9 +36,7 @@ export const onboarding: OnboardingConfig = {
           icon: <IconLock size="sm" locked />,
           text: tct(
             '[strong:Access Restricted]. The Switch SDK is distributed through a private repository under NDA.',
-            {
-              strong: <strong />,
-            }
+            {strong: <strong />}
           ),
           showIcon: true,
           trailingItems: (
@@ -67,9 +65,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'After building the SDK, you can integrate it as a static library into your game. The SDK handles crash reporting automatically, with crash context forwarded to Sentry via CRPORTAL.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

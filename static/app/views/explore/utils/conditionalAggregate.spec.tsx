@@ -67,11 +67,7 @@ describe('parseConditionalAggregate', () => {
 describe('buildConditionalAggregate', () => {
   it('builds a plain aggregate when there is no filter', () => {
     expect(
-      buildConditionalAggregate({
-        name: 'avg',
-        arguments: ['span.duration'],
-        filter: '',
-      })
+      buildConditionalAggregate({name: 'avg', arguments: ['span.duration'], filter: ''})
     ).toBe('avg(span.duration)');
   });
 

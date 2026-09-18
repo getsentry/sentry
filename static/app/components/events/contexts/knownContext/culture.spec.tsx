@@ -22,14 +22,7 @@ const MOCK_CULTURE_CONTEXT: CultureContext = {
 const MOCK_REDACTION = {
   timezone: {
     '': {
-      chunks: [
-        {
-          remark: 'x',
-          rule_id: 'project:0',
-          text: '',
-          type: 'redaction',
-        },
-      ],
+      chunks: [{remark: 'x', rule_id: 'project:0', text: '', type: 'redaction'}],
       len: 13,
       rem: [['project:0', 'x', 0, 0]],
     },
@@ -40,31 +33,17 @@ describe('CultureContext', () => {
   it('returns formatted data correctly', () => {
     expect(getCultureContextData({data: MOCK_CULTURE_CONTEXT})).toEqual([
       {key: 'calendar', subject: 'Calendar', value: 'GregorianCalendar'},
-      {
-        key: 'display_name',
-        subject: 'Display Name',
-        value: 'English (United States)',
-      },
+      {key: 'display_name', subject: 'Display Name', value: 'English (United States)'},
       {key: 'locale', subject: 'Locale', value: 'en-US'},
       {key: 'is_24_hour_format', subject: 'Uses 24h Format', value: true},
       {key: 'timezone', subject: 'Timezone', value: 'Europe/Vienna'},
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something'},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {culture: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {culture: MOCK_REDACTION}}});
 
     render(
       <ContextCard

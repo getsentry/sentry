@@ -69,11 +69,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         // getInitialFilterText adds — so don't swap the key in place.
         newFieldDef?.kind !== FieldKind.ARRAY
       ) {
-        dispatch({
-          type: 'UPDATE_FILTER_KEY',
-          token,
-          key: keyName,
-        });
+        dispatch({type: 'UPDATE_FILTER_KEY', token, key: keyName});
         onCommit();
         return;
       }
@@ -82,10 +78,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         type: 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT',
         tokens: [token],
         text: getInitialFilterText(keyName, newFieldDef),
-        focusOverride: {
-          itemKey: item.key.toString(),
-          part: 'value',
-        },
+        focusOverride: {itemKey: item.key.toString(), part: 'value'},
       });
 
       onCommit();

@@ -23,9 +23,7 @@ describe('CreateNewIntegrationModal', () => {
 
   it('offers starting from scratch', () => {
     renderGlobalModal({
-      organization: OrganizationFixture({
-        features: ['sentry-apps-creation-templates'],
-      }),
+      organization: OrganizationFixture({features: ['sentry-apps-creation-templates']}),
     });
 
     act(() => openModal(modalProps => <CreateNewIntegrationModal {...modalProps} />));
@@ -46,9 +44,7 @@ describe('CreateNewIntegrationModal', () => {
 
   it('offers visible creation templates', () => {
     renderGlobalModal({
-      organization: OrganizationFixture({
-        features: ['sentry-apps-creation-templates'],
-      }),
+      organization: OrganizationFixture({features: ['sentry-apps-creation-templates']}),
     });
 
     act(() => openModal(modalProps => <CreateNewIntegrationModal {...modalProps} />));

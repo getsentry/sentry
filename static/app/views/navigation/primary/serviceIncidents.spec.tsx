@@ -8,10 +8,7 @@ import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary
 
 describe('PrimaryNavigationServiceIncidents', () => {
   beforeEach(() => {
-    ConfigStore.set('statuspage', {
-      id: 'sentry',
-      api_host: 'status.sentry.io',
-    });
+    ConfigStore.set('statuspage', {id: 'sentry', api_host: 'status.sentry.io'});
   });
 
   afterEach(() => {

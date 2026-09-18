@@ -13,10 +13,7 @@ describe('ErrorsFilterSection', () => {
       environments: [],
       datetime: {period: '14d', start: null, end: null, utc: false},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],

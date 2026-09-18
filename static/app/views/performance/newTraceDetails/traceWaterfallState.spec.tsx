@@ -31,10 +31,7 @@ function createTraceQuery(overrides: Partial<{timestamp: number | undefined}>) {
 }
 
 function createTraceResult(partial: Partial<TraceQueryResult>) {
-  return {
-    failureCount: 0,
-    ...partial,
-  } as TraceQueryResult;
+  return {failureCount: 0, ...partial} as TraceQueryResult;
 }
 
 describe('TraceWaterfallState', () => {

@@ -65,8 +65,5 @@ export function useDifferentialFlamegraphQuery(
   const before = useAggregateFlamegraphQuery(beforeAggregateQueryParams);
   const after = useAggregateFlamegraphQuery(afterAggregateQueryParams);
 
-  return {
-    before,
-    after,
-  };
+  return {before, after};
 }

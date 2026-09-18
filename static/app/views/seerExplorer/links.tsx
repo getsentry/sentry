@@ -270,9 +270,7 @@ export const LINK_RULES: LinkRule[] = [
 
       return {
         label: title ?? t('View replay'),
-        url: {
-          pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
-        },
+        url: {pathname: makeReplaysPathname({path: `/${replayId}/`, organization})},
       };
     },
   },
@@ -931,10 +929,7 @@ function getTraceMetricFromParams(params: Record<string, any>): TraceMetric | nu
     return null;
   }
 
-  const traceMetric: TraceMetric = {
-    name: rawTraceMetric.name,
-    type: rawTraceMetric.type,
-  };
+  const traceMetric: TraceMetric = {name: rawTraceMetric.name, type: rawTraceMetric.type};
   if (typeof rawTraceMetric.unit === 'string') {
     traceMetric.unit = rawTraceMetric.unit;
   }

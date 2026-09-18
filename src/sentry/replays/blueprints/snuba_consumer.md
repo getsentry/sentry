@@ -31,32 +31,17 @@
       "email": "sentaur@sentry.io",
       "ip_address": "127.0.0.1"
     },
-    "sdk": {
-      "name": "sentry.javascript",
-      "version": "7.41.0"
-    },
-    "tags": {
-      "customtag": "is_set",
-      "transaction": "/organizations/:orgId/issues/"
-    },
+    "sdk": {"name": "sentry.javascript", "version": "7.41.0"},
+    "tags": {"customtag": "is_set", "transaction": "/organizations/:orgId/issues/"},
     "contexts": {
       "trace": {
         "op": "pageload",
         "span_id": "affa5649681a1eeb",
         "trace_id": "23eda6cd4b174ef8a51f0096df3bfdd1"
       },
-      "replay": {
-        "error_sample_rate": 0.5,
-        "session_sample_rate": 0.5
-      },
-      "os": {
-        "name": "iOS",
-        "version": "16.2"
-      },
-      "browser": {
-        "name": "Firefox",
-        "version": "110.0"
-      },
+      "replay": {"error_sample_rate": 0.5, "session_sample_rate": 0.5},
+      "os": {"name": "iOS", "version": "16.2"},
+      "browser": {"name": "Firefox", "version": "110.0"},
       "device": {
         "name": "iPhone 11",
         "brand": "Apple",

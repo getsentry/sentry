@@ -139,10 +139,7 @@ export const featureFlag: OnboardingConfig = {
       {
         type: StepType.INSTALL,
         content: [
-          {
-            type: 'text',
-            text: t('Install Sentry and the selected feature flag SDK.'),
-          },
+          {type: 'text', text: t('Install Sentry and the selected feature flag SDK.')},
           {
             type: 'code',
             tabs: [
@@ -172,9 +169,7 @@ export const featureFlag: OnboardingConfig = {
             type: 'text',
             text: tct(
               'Add [name] to your integrations list, and initialize your feature flag SDK.',
-              {
-                name: <code>{integrationName}</code>,
-              }
+              {name: <code>{integrationName}</code>}
             ),
           },
           {
@@ -200,13 +195,7 @@ export const featureFlag: OnboardingConfig = {
           },
           {
             type: 'code',
-            tabs: [
-              {
-                label: 'JavaScript',
-                language: 'javascript',
-                code: makeVerifyCode(),
-              },
-            ],
+            tabs: [{label: 'JavaScript', language: 'javascript', code: makeVerifyCode()}],
           },
         ],
       },

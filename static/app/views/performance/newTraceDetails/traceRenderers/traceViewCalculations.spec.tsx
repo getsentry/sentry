@@ -13,9 +13,7 @@ import {
 
 function makeCalculationContext({
   timeCompression = TraceTimeCompression.Disabled([0, 1000]),
-}: {
-  timeCompression?: TraceTimeCompression;
-} = {}): TraceViewCalculationContext {
+}: {timeCompression?: TraceTimeCompression} = {}): TraceViewCalculationContext {
   const view = new TraceView();
   const spanToPx = mat3.create();
 
@@ -29,11 +27,7 @@ function makeCalculationContext({
       const left = timeCompression.toCompressedOffset(start);
       const right = timeCompression.toCompressedOffset(end);
 
-      return {
-        left,
-        right,
-        width: Math.max(right - left, Number.EPSILON),
-      };
+      return {left, right, width: Math.max(right - left, Number.EPSILON)};
     },
     getConfigSpacePerPx: (): number => {
       if (view.trace_physical_space.width === 0) {

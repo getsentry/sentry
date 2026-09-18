@@ -87,13 +87,7 @@ function getFeedbackFilterKeys(
     ...Object.fromEntries(
       Object.keys(supportedTags)
         .filter(key => !EXCLUDED_TAGS.includes(key))
-        .map(key => [
-          key,
-          {
-            ...supportedTags[key]!,
-            kind: FieldKind.TAG,
-          },
-        ])
+        .map(key => [key, {...supportedTags[key]!, kind: FieldKind.TAG}])
     ),
     ...Object.fromEntries(
       FEEDBACK_FIELDS.map(key => {
@@ -151,14 +145,7 @@ function getFeedbackFilterKeys(
           ];
         }
 
-        return [
-          key,
-          {
-            key,
-            name: key,
-            ...fieldDefinition,
-          },
-        ];
+        return [key, {key, name: key, ...fieldDefinition}];
       })
     ),
   };
@@ -185,16 +172,8 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   ).map(tag => tag.key);
 
   return [
-    {
-      value: 'feedback_field',
-      label: t('Suggested'),
-      children: FEEDBACK_FIELDS,
-    },
-    {
-      value: FieldKind.TAG,
-      label: t('Tags'),
-      children: orderedTagKeys,
-    },
+    {value: 'feedback_field', label: t('Suggested'), children: FEEDBACK_FIELDS},
+    {value: FieldKind.TAG, label: t('Tags'), children: orderedTagKeys},
   ];
 };
 
@@ -252,11 +231,7 @@ export function FeedbackSearch() {
         return Promise.resolve([]);
       }
 
-      const endpointParams = {
-        start,
-        end,
-        statsPeriod,
-      };
+      const endpointParams = {start, end, statsPeriod};
 
       return fetchTagValues({
         api,
@@ -282,11 +257,7 @@ export function FeedbackSearch() {
     (searchQuery: any) => {
       navigate({
         pathname,
-        query: {
-          ...locationQuery,
-          cursor: undefined,
-          query: searchQuery.trim(),
-        },
+        query: {...locationQuery, cursor: undefined, query: searchQuery.trim()},
       });
     },
     [navigate, pathname, locationQuery]

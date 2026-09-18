@@ -6,10 +6,7 @@ describe('replay embed', () => {
   it('links a replay to the relevant event timestamp (inline)', async () => {
     const {router} = renderEmbed({
       name: 'replay',
-      data: {
-        id: '4c1f2e3d1234567890',
-        eventTimestamp: '2026-08-25T16:37:12Z',
-      },
+      data: {id: '4c1f2e3d1234567890', eventTimestamp: '2026-08-25T16:37:12Z'},
       level: 'inline',
     });
 
@@ -22,11 +19,7 @@ describe('replay embed', () => {
   });
 
   it('links a replay without a timestamp to the beginning (inline)', () => {
-    renderEmbed({
-      name: 'replay',
-      data: {id: 'abcdef1234567890'},
-      level: 'inline',
-    });
+    renderEmbed({name: 'replay', data: {id: 'abcdef1234567890'}, level: 'inline'});
 
     expect(screen.getByRole('link', {name: 'Replay abcdef12'})).toHaveAttribute(
       'href',
@@ -37,10 +30,7 @@ describe('replay embed', () => {
   it('renders a replay player preview at block level with a timestamp', async () => {
     renderEmbed({
       name: 'replay',
-      data: {
-        id: '4c1f2e3d1234567890',
-        eventTimestamp: '2026-08-25T16:37:12Z',
-      },
+      data: {id: '4c1f2e3d1234567890', eventTimestamp: '2026-08-25T16:37:12Z'},
     });
 
     await waitFor(() => {
@@ -49,10 +39,7 @@ describe('replay embed', () => {
   });
 
   it('falls back to a link at block level without a timestamp', () => {
-    renderEmbed({
-      name: 'replay',
-      data: {id: 'abcdef1234567890'},
-    });
+    renderEmbed({name: 'replay', data: {id: 'abcdef1234567890'}});
 
     expect(screen.getByRole('link', {name: 'Replay abcdef12'})).toHaveAttribute(
       'href',

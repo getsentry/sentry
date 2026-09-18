@@ -63,13 +63,7 @@ const DESTINATION_TABLE: PrebuiltWidget = {
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 3,
-    w: 6,
-    h: 6,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {x: 0, y: 3, w: 6, h: 6, minH: TABLE_MIN_HEIGHT},
 };
 
 export const QUEUES_PREBUILT_CONFIG: PrebuiltDashboard = {

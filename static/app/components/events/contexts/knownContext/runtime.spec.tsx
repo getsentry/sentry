@@ -20,12 +20,7 @@ const MOCK_RUNTIME_CONTEXT: RuntimeContext = {
 };
 
 const MOCK_REDACTION = {
-  raw_description: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
+  raw_description: {'': {rem: [['organization:0', 's', 0, 0]], len: 5}},
 };
 
 describe('RuntimeContext', () => {
@@ -39,25 +34,13 @@ describe('RuntimeContext', () => {
         value: '2.7.18 (default, Apr 20 2020, 19:34:11) \n[GCC 8.3.0]',
       },
       {key: 'name', subject: 'Name', value: ''},
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123, meta: undefined},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {runtime: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {runtime: MOCK_REDACTION}}});
 
     render(
       <ContextCard

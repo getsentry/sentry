@@ -22,9 +22,7 @@ interface SmsChallengeResponse {
 }
 
 interface WebAuthnChallengeResponse {
-  challenge: {
-    webAuthnAuthenticationData: string;
-  };
+  challenge: {webAuthnAuthenticationData: string};
   method: 'u2f';
 }
 
@@ -55,10 +53,7 @@ export const secondFactorMethodsQueryOptions = apiOptions.as<MfaMethodsResponse>
 );
 
 export function useSecondFactorMethods(enabled: boolean) {
-  return useQuery({
-    ...secondFactorMethodsQueryOptions,
-    enabled,
-  });
+  return useQuery({...secondFactorMethodsQueryOptions, enabled});
 }
 
 export function useSecondFactorChallenge() {
@@ -120,10 +115,7 @@ export function useCancelSecondFactorAuth() {
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: () =>
-      fetchMutation<void>({
-        url: getApiUrl('/auth/2fa/'),
-        method: 'DELETE',
-      }),
+      fetchMutation<void>({url: getApiUrl('/auth/2fa/'), method: 'DELETE'}),
     onSuccess: () => {
       // Remove rather than invalidate because these methods belong to the cancelled
       // MFA session. A later session must not render them while refetching or if the
@@ -134,10 +126,7 @@ export function useCancelSecondFactorAuth() {
           return cachedResponse;
         }
 
-        return {
-          ...cachedResponse,
-          json: {...cachedResponse.json, pendingMfa: null},
-        };
+        return {...cachedResponse, json: {...cachedResponse.json, pendingMfa: null}};
       });
       void queryClient.invalidateQueries({queryKey: authConfigQueryOptions.queryKey});
     },

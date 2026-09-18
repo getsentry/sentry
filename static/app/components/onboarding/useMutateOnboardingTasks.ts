@@ -20,10 +20,7 @@ export function useMutateOnboardingTasks() {
             getApiUrl('/organizations/$organizationIdOrSlug/onboarding-tasks/', {
               path: {organizationIdOrSlug: organization.slug},
             }),
-            {
-              method: 'POST',
-              data: task,
-            }
+            {method: 'POST', data: task}
           )
         )
       );
@@ -35,9 +32,7 @@ export function useMutateOnboardingTasks() {
         return updatedTask ? {...task, ...updatedTask} : task;
       });
 
-      OrganizationStore.onUpdate({
-        onboardingTasks: updatedOnboardingTasks,
-      });
+      OrganizationStore.onUpdate({onboardingTasks: updatedOnboardingTasks});
     },
   });
 }

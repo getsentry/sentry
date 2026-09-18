@@ -4,9 +4,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-type UpdateGroupSearchViewLastVisitedVariables = {
-  viewId: string;
-};
+type UpdateGroupSearchViewLastVisitedVariables = {viewId: string};
 
 export function useUpdateGroupSearchViewLastVisited() {
   const api = useApi();
@@ -17,13 +15,9 @@ export function useUpdateGroupSearchViewLastVisited() {
       return api.requestPromise(
         getApiUrl(
           '/organizations/$organizationIdOrSlug/group-search-views/$viewId/visit/',
-          {
-            path: {organizationIdOrSlug: organization.slug, viewId},
-          }
+          {path: {organizationIdOrSlug: organization.slug, viewId}}
         ),
-        {
-          method: 'POST',
-        }
+        {method: 'POST'}
       );
     },
   });

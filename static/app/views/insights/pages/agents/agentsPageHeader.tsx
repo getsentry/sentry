@@ -11,9 +11,7 @@ import {
 } from 'sentry/views/insights/pages/domainViewHeader';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
-type Props = {
-  module?: HeaderProps['selectedModule'];
-};
+type Props = {module?: HeaderProps['selectedModule']};
 
 export function AgentsPageHeader({module}: Props) {
   const organization = useOrganization();

@@ -84,10 +84,7 @@ function addToTagTree({
     tree.set(trunk, trunkNode);
   }
   // Recurse with a pseudo tag, e.g. 'model', to create nesting structure
-  const pseudoTag = {
-    key: branch,
-    value: tag.value,
-  };
+  const pseudoTag = {key: branch, value: tag.value};
   trunkNode.subtree = addToTagTree({
     tree: trunkNode.subtree,
     tag: pseudoTag,

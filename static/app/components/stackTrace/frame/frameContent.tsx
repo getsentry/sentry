@@ -162,9 +162,7 @@ const FrameSourceRow = styled('div')<{isActive: boolean}>`
   background: ${p => (p.isActive ? p.theme.tokens.background.secondary : 'transparent')};
 `;
 
-const FrameSourceLineNumber = styled('div')<{
-  isActive: boolean;
-}>`
+const FrameSourceLineNumber = styled('div')<{isActive: boolean}>`
   display: flex;
   align-items: center;
   justify-content: flex-end;

@@ -133,22 +133,14 @@ describe('MetricsTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.explore.metric-timeseries',
-        }),
-      ],
+      body: {timeSeries: [TimeSeriesFixture()]},
+      match: [MockApiClient.matchQuery({referrer: 'api.explore.metric-timeseries'})],
     });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
+      body: {timeSeries: [TimeSeriesFixture()]},
     });
 
     MockApiClient.addMockResponse({
@@ -187,10 +179,7 @@ describe('MetricsTabContent', () => {
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
+      {initialRouterConfig, organization}
     );
 
     let toolbars = screen.getAllByTestId('metric-toolbar');
@@ -280,10 +269,7 @@ describe('MetricsTabContent', () => {
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
+      {initialRouterConfig, organization}
     );
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
@@ -441,10 +427,7 @@ describe('MetricsTabContent', () => {
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
-      {
-        initialRouterConfig: initialRouterConfigWithGroupBy,
-        organization,
-      }
+      {initialRouterConfig: initialRouterConfigWithGroupBy, organization}
     );
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
@@ -482,10 +465,7 @@ describe('MetricsTabContent', () => {
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
+      {initialRouterConfig, organization}
     );
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
@@ -581,10 +561,7 @@ describe('MetricsTabContent', () => {
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
-      {
-        initialRouterConfig: noMetricRouterConfig,
-        organization,
-      }
+      {initialRouterConfig: noMetricRouterConfig, organization}
     );
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
@@ -626,16 +603,8 @@ describe('MetricsTabContent', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
-        {
-          attributeType: 'string',
-          key: 'test.region',
-          name: 'test.region',
-        },
-        {
-          attributeType: 'string',
-          key: 'test.service',
-          name: 'test.service',
-        },
+        {attributeType: 'string', key: 'test.region', name: 'test.region'},
+        {attributeType: 'string', key: 'test.service', name: 'test.service'},
       ],
       match: [MockApiClient.matchQuery({attributeType: ['string', 'number', 'boolean']})],
     });
@@ -644,10 +613,7 @@ describe('MetricsTabContent', () => {
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
+      {initialRouterConfig, organization}
     );
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
@@ -688,18 +654,14 @@ describe('MetricsTabContent', () => {
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
-      {
-        organization,
-      }
+      {organization}
     );
     expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
     expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
   });
 
   it('renders aggregate and equation panels in separate sections', async () => {
-    const orgWithFeatures = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const orgWithFeatures = OrganizationFixture({features: ['tracemetrics-enabled']});
     MockApiClient.addMockResponse({
       url: `/organizations/${orgWithFeatures.slug}/events/`,
       method: 'GET',
@@ -762,9 +724,7 @@ describe('MetricsTabContent', () => {
       aggregateSortBys: [],
       mode: 'aggregate',
     });
-    const orgWithFeature = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const orgWithFeature = OrganizationFixture({features: ['tracemetrics-enabled']});
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -789,9 +749,7 @@ describe('MetricsTabContent', () => {
     expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
 
     // Only 2 entries (cap is 3) -> both buttons are enabled
-    for (const button of screen.getAllByRole('button', {
-      name: 'Add Metric',
-    })) {
+    for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
       expect(button).toBeEnabled();
     }
     for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
@@ -800,9 +758,7 @@ describe('MetricsTabContent', () => {
 
     // Add an entry, 3 entries (at cap) -> both buttons are disabled
     await userEvent.click(screen.getAllByRole('button', {name: 'Add Metric'})[0]!);
-    for (const button of screen.getAllByRole('button', {
-      name: 'Add Metric',
-    })) {
+    for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
       expect(button).toBeDisabled();
     }
     for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
@@ -811,9 +767,7 @@ describe('MetricsTabContent', () => {
   });
 
   it('disables delete button for metrics referenced by an equation', async () => {
-    const orgWithEquations = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const orgWithEquations = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const metricA = JSON.stringify({
       metric: {name: 'metricA', type: 'distribution', unit: 'none'},

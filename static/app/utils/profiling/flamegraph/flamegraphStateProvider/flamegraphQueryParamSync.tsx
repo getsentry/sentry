@@ -92,10 +92,7 @@ export function decodeFlamegraphStateFromQueryParams(
   }
 
   if (typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))) {
-    decoded.profiles = {
-      ...decoded.profiles,
-      threadId: parseInt(query.tid, 10),
-    };
+    decoded.profiles = {...decoded.profiles, threadId: parseInt(query.tid, 10)};
   }
 
   const fov = Rect.decode(query.fov);

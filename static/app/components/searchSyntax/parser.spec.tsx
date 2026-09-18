@@ -69,10 +69,7 @@ function treeTransformer({tree, transform}: TreeTransformerOpts) {
           value: nodeVisitor(token.value),
         });
       case Token.KEY_EXPLICIT_TAG:
-        return transform({
-          ...token,
-          key: nodeVisitor(token.key),
-        });
+        return transform({...token, key: nodeVisitor(token.key)});
       case Token.KEY_AGGREGATE:
         return transform({
           ...token,
@@ -82,35 +79,17 @@ function treeTransformer({tree, transform}: TreeTransformerOpts) {
           argsSpaceAfter: nodeVisitor(token.argsSpaceAfter),
         });
       case Token.KEY_EXPLICIT_BOOLEAN_TAG:
-        return transform({
-          ...token,
-          key: nodeVisitor(token.key),
-        });
+        return transform({...token, key: nodeVisitor(token.key)});
       case Token.KEY_EXPLICIT_NUMBER_TAG:
-        return transform({
-          ...token,
-          key: nodeVisitor(token.key),
-        });
+        return transform({...token, key: nodeVisitor(token.key)});
       case Token.KEY_EXPLICIT_STRING_TAG:
-        return transform({
-          ...token,
-          key: nodeVisitor(token.key),
-        });
+        return transform({...token, key: nodeVisitor(token.key)});
       case Token.KEY_EXPLICIT_ARRAY_TAG:
-        return transform({
-          ...token,
-          key: nodeVisitor(token.key),
-        });
+        return transform({...token, key: nodeVisitor(token.key)});
       case Token.KEY_ARRAY_INCLUDES:
-        return transform({
-          ...token,
-          key: nodeVisitor(token.key),
-        });
+        return transform({...token, key: nodeVisitor(token.key)});
       case Token.LOGIC_GROUP:
-        return transform({
-          ...token,
-          inner: token.inner.map(nodeVisitor),
-        });
+        return transform({...token, inner: token.inner.map(nodeVisitor)});
       case Token.KEY_AGGREGATE_ARGS:
         return transform({
           ...token,
@@ -223,10 +202,7 @@ describe('searchSyntax/parser', () => {
       Token.SPACES,
     ]);
 
-    expect(result[1]).toMatchObject({
-      type: Token.FREE_TEXT,
-      value: 'TypeError ',
-    });
+    expect(result[1]).toMatchObject({type: Token.FREE_TEXT, value: 'TypeError '});
 
     const filter = result[3] as TokenResult<Token.FILTER>;
     expect(filter).toMatchObject({
@@ -238,10 +214,7 @@ describe('searchSyntax/parser', () => {
         name: {type: Token.KEY_SIMPLE, value: 'count'},
         args: null,
       },
-      value: {
-        type: Token.VALUE_NUMBER,
-        value: '10',
-      },
+      value: {type: Token.VALUE_NUMBER, value: '10'},
     });
   });
 
@@ -270,9 +243,7 @@ describe('searchSyntax/parser', () => {
   it('applies disallowFreeText', () => {
     const result = parseSearch('foo:bar test', {
       disallowFreeText: true,
-      invalidMessages: {
-        [InvalidReason.FREE_TEXT_NOT_ALLOWED]: 'Custom message',
-      },
+      invalidMessages: {[InvalidReason.FREE_TEXT_NOT_ALLOWED]: 'Custom message'},
     });
 
     // check with error to satisfy type checker
@@ -294,9 +265,7 @@ describe('searchSyntax/parser', () => {
   it('applies disallowLogicalOperators (OR)', () => {
     const result = parseSearch('foo:bar OR AND', {
       disallowedLogicalOperators: new Set([BooleanOperator.OR]),
-      invalidMessages: {
-        [InvalidReason.LOGICAL_OR_NOT_ALLOWED]: 'Custom message',
-      },
+      invalidMessages: {[InvalidReason.LOGICAL_OR_NOT_ALLOWED]: 'Custom message'},
     });
 
     // check with error to satisfy type checker
@@ -320,9 +289,7 @@ describe('searchSyntax/parser', () => {
   it('applies disallowLogicalOperators (AND)', () => {
     const result = parseSearch('foo:bar OR AND', {
       disallowedLogicalOperators: new Set([BooleanOperator.AND]),
-      invalidMessages: {
-        [InvalidReason.LOGICAL_AND_NOT_ALLOWED]: 'Custom message',
-      },
+      invalidMessages: {[InvalidReason.LOGICAL_AND_NOT_ALLOWED]: 'Custom message'},
     });
 
     // check with error to satisfy type checker
@@ -346,9 +313,7 @@ describe('searchSyntax/parser', () => {
   it('applies disallowNegation', () => {
     const result = parseSearch('!foo:bar', {
       disallowNegation: true,
-      invalidMessages: {
-        [InvalidReason.NEGATION_NOT_ALLOWED]: 'Custom message',
-      },
+      invalidMessages: {[InvalidReason.NEGATION_NOT_ALLOWED]: 'Custom message'},
     });
 
     // check with error to satisfy type checker
@@ -368,9 +333,7 @@ describe('searchSyntax/parser', () => {
 
   describe('flattenParenGroups', () => {
     it('tokenizes mismatched parens with flattenParenGroups=true', () => {
-      const result = parseSearch('foo(', {
-        flattenParenGroups: true,
-      });
+      const result = parseSearch('foo(', {flattenParenGroups: true});
 
       if (result === null) {
         throw new Error('Parsed result as null');
@@ -381,18 +344,13 @@ describe('searchSyntax/parser', () => {
         expect.objectContaining({type: Token.SPACES}),
         expect.objectContaining({type: Token.FREE_TEXT}),
         expect.objectContaining({type: Token.SPACES}),
-        expect.objectContaining({
-          type: Token.L_PAREN,
-          value: '(',
-        }),
+        expect.objectContaining({type: Token.L_PAREN, value: '('}),
         expect.objectContaining({type: Token.SPACES}),
       ]);
     });
 
     it('tokenizes matching parens with flattenParenGroups=true', () => {
-      const result = parseSearch('(foo)', {
-        flattenParenGroups: true,
-      });
+      const result = parseSearch('(foo)', {flattenParenGroups: true});
 
       if (result === null) {
         throw new Error('Parsed result as null');
@@ -401,25 +359,17 @@ describe('searchSyntax/parser', () => {
       // (foo) is parsed as free text and two parens
       expect(result).toEqual([
         expect.objectContaining({type: Token.SPACES}),
-        expect.objectContaining({
-          type: Token.L_PAREN,
-          value: '(',
-        }),
+        expect.objectContaining({type: Token.L_PAREN, value: '('}),
         expect.objectContaining({type: Token.SPACES}),
         expect.objectContaining({type: Token.FREE_TEXT}),
         expect.objectContaining({type: Token.SPACES}),
-        expect.objectContaining({
-          type: Token.R_PAREN,
-          value: ')',
-        }),
+        expect.objectContaining({type: Token.R_PAREN, value: ')'}),
         expect.objectContaining({type: Token.SPACES}),
       ]);
     });
 
     it('tokenizes mismatched left paren with flattenParenGroups=false', () => {
-      const result = parseSearch('foo(', {
-        flattenParenGroups: false,
-      });
+      const result = parseSearch('foo(', {flattenParenGroups: false});
 
       if (result === null) {
         throw new Error('Parsed result as null');
@@ -430,18 +380,13 @@ describe('searchSyntax/parser', () => {
         expect.objectContaining({type: Token.SPACES}),
         expect.objectContaining({type: Token.FREE_TEXT}),
         expect.objectContaining({type: Token.SPACES}),
-        expect.objectContaining({
-          type: Token.L_PAREN,
-          value: '(',
-        }),
+        expect.objectContaining({type: Token.L_PAREN, value: '('}),
         expect.objectContaining({type: Token.SPACES}),
       ]);
     });
 
     it('tokenizes mismatched right paren with flattenParenGroups=false', () => {
-      const result = parseSearch('foo)', {
-        flattenParenGroups: false,
-      });
+      const result = parseSearch('foo)', {flattenParenGroups: false});
 
       if (result === null) {
         throw new Error('Parsed result as null');
@@ -452,18 +397,13 @@ describe('searchSyntax/parser', () => {
         expect.objectContaining({type: Token.SPACES}),
         expect.objectContaining({type: Token.FREE_TEXT}),
         expect.objectContaining({type: Token.SPACES}),
-        expect.objectContaining({
-          type: Token.R_PAREN,
-          value: ')',
-        }),
+        expect.objectContaining({type: Token.R_PAREN, value: ')'}),
         expect.objectContaining({type: Token.SPACES}),
       ]);
     });
 
     it('parses matching parens as logic group with flattenParenGroups=false', () => {
-      const result = parseSearch('(foo)', {
-        flattenParenGroups: false,
-      });
+      const result = parseSearch('(foo)', {flattenParenGroups: false});
 
       if (result === null) {
         throw new Error('Parsed result as null');
@@ -478,9 +418,7 @@ describe('searchSyntax/parser', () => {
     });
 
     it('tokenizes empty matched parens and flattenParenGroups=false', () => {
-      const result = parseSearch('()', {
-        flattenParenGroups: false,
-      });
+      const result = parseSearch('()', {flattenParenGroups: false});
 
       if (result === null) {
         throw new Error('Parsed result as null');

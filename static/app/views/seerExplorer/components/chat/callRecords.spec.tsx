@@ -614,11 +614,7 @@ describe('live call rendering', () => {
         ],
       },
       tool_results: [
-        {
-          tool_call_id: 'call-1',
-          tool_call_function: 'sentry_api_execute',
-          content: 'ok',
-        },
+        {tool_call_id: 'call-1', tool_call_function: 'sentry_api_execute', content: 'ok'},
       ],
       live_calls: [apiRecord({title: 'In-flight row'})],
     });

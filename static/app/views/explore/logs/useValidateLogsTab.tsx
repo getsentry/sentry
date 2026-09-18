@@ -13,9 +13,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getColumnFieldsForValidation} from 'sentry/views/explore/utils/columnValidation';
 import {validateEventParamsOptions} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
-type UseValidateLogsTabArgs = {
-  enabled?: boolean;
-};
+type UseValidateLogsTabArgs = {enabled?: boolean};
 
 export function useValidateLogsTab({enabled = true}: UseValidateLogsTabArgs = {}) {
   const {selection} = usePageFilters();
@@ -44,10 +42,5 @@ export function useValidateLogsTab({enabled = true}: UseValidateLogsTabArgs = {}
     ...(enabled ? {} : {queryFn: skipToken}),
   });
 
-  return {
-    data,
-    isFetching,
-    isPlaceholderData,
-    isLoading,
-  };
+  return {data, isFetching, isPlaceholderData, isLoading};
 }

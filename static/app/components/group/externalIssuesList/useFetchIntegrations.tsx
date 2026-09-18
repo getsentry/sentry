@@ -11,10 +11,7 @@ function makeIntegrationsQueryKey(
 ): ApiQueryKey {
   return [
     getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/integrations/', {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        issueId: group.id,
-      },
+      path: {organizationIdOrSlug: organization.slug, issueId: group.id},
     }),
   ];
 }

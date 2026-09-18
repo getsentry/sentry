@@ -16,8 +16,6 @@ export const docs: Docs = {
       'https://docs.sentry.io/platforms/go/guides/iris/user-feedback/configuration/#crash-report-modal',
   }),
   feedbackOnboardingJsLoader,
-  logsOnboarding: logs({
-    docsPlatform: 'iris',
-  }),
+  logsOnboarding: logs({docsPlatform: 'iris'}),
   metricsOnboarding: metrics,
 };

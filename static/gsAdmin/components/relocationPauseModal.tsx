@@ -18,9 +18,7 @@ type Props = ModalRenderProps & {
   onSuccess?: (relocation: Relocation) => void;
 };
 
-const schema = z.object({
-  atStep: z.string().min(1, 'Please select a step'),
-});
+const schema = z.object({atStep: z.string().min(1, 'Please select a step')});
 
 export function RelocationPauseModal({
   Body,

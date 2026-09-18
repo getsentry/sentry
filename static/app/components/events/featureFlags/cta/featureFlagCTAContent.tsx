@@ -20,10 +20,7 @@ export function FeatureFlagCTAContent({
   const analyticsArea = useAnalyticsArea();
 
   useEffect(() => {
-    trackAnalytics('flags.cta_rendered', {
-      organization,
-      surface: analyticsArea,
-    });
+    trackAnalytics('flags.cta_rendered', {organization, surface: analyticsArea});
   }, [organization, analyticsArea]);
 
   return (

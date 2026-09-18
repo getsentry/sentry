@@ -12,21 +12,14 @@ jest.mock('sentry/views/dashboards/prebuiltDashboardRenderer', () => ({
 }));
 
 describe('ScreenDetailsPage', () => {
-  const organization = OrganizationFixture({
-    features: ['insight-modules'],
-  });
+  const organization = OrganizationFixture({features: ['insight-modules']});
   const project = ProjectFixture();
 
   beforeEach(() => {
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],
       environments: [],
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '10d', start: null, end: null, utc: false},
     });
   });
 
@@ -34,18 +27,10 @@ describe('ScreenDetailsPage', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-timeseries/`,
-        body: {
-          timeSeries: [
-            TimeSeriesFixture({
-              yAxis: 'epm()',
-            }),
-          ],
-        },
+        body: {timeSeries: [TimeSeriesFixture({yAxis: 'epm()'})]},
       });
 
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events/`,
-      });
+      MockApiClient.addMockResponse({url: `/organizations/${organization.slug}/events/`});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/releases/`,

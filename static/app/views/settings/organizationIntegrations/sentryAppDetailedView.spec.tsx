@@ -108,12 +108,7 @@ describe('SentryAppDetailedView', () => {
 
       expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
         '/sentry-apps/clickup/interaction/',
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            tsdbField: 'sentry_app_viewed',
-          },
-        })
+        expect.objectContaining({method: 'POST', data: {tsdbField: 'sentry_app_viewed'}})
       );
 
       // Shows the Integration name and install status

@@ -24,18 +24,7 @@ describe('StructuredEventData', () => {
     it('should not render urls if meta is present', () => {
       const URL = 'https://example.org/foo/bar/super/long...';
       renderGlobalModal();
-      const meta = {
-        '': {
-          err: [
-            [
-              'invalid_data',
-              {
-                reason: 'value too long',
-              },
-            ],
-          ],
-        },
-      };
+      const meta = {'': {err: [['invalid_data', {reason: 'value too long'}]]}};
       render(<StructuredEventData data={URL} meta={meta} />);
       expect(screen.getByText(URL)).toBeInTheDocument();
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
@@ -99,11 +88,7 @@ describe('StructuredEventData', () => {
     });
 
     it('renders scrubbed null values as redacted instead of "null"', () => {
-      const meta = {
-        '': {
-          rem: [['project:0', 'x']],
-        },
-      };
+      const meta = {'': {rem: [['project:0', 'x']]}};
       render(<StructuredEventData meta={meta} withAnnotatedText />);
       expect(screen.getByText(/redacted/)).toBeInTheDocument();
       expect(screen.queryByText('null')).not.toBeInTheDocument();
@@ -153,13 +138,7 @@ describe('StructuredEventData', () => {
   describe('initial expanded state', () => {
     const data = {
       foo: 'bar',
-      'the_real_world?': {
-        the_city: {
-          the_hotel: {
-            the_fortress: 'a pinwheel',
-          },
-        },
-      },
+      'the_real_world?': {the_city: {the_hotel: {the_fortress: 'a pinwheel'}}},
       arr_en: ['one', 'two', 'three', 'four', 'five'],
       arr_de: ['eins', 'zwei', 'drei', 'vier', 'funf', 'sechs'],
     };

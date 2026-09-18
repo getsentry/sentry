@@ -149,9 +149,7 @@ function getOrgMutationOptions(organization: Organization) {
   });
 }
 
-export type IntegrationInformation = {
-  providers: IntegrationProvider[];
-};
+export type IntegrationInformation = {providers: IntegrationProvider[]};
 
 function makeIntegrationQueryKey({
   orgSlug,
@@ -164,12 +162,7 @@ function makeIntegrationQueryKey({
     getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
-    {
-      query: {
-        provider_key: integrationSlug,
-        includeConfig: 0,
-      },
-    },
+    {query: {provider_key: integrationSlug, includeConfig: 0}},
   ];
 }
 
@@ -201,16 +194,9 @@ export default function IntegrationDetailedView() {
       getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          provider_key: integrationSlug,
-        },
-      },
+      {query: {provider_key: integrationSlug}},
     ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
+    {staleTime: Infinity, retry: false}
   );
 
   const {
@@ -220,10 +206,7 @@ export default function IntegrationDetailedView() {
     isError: isConfigurationsError,
   } = useApiQuery<OrganizationIntegration[]>(
     makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
-    {
-      staleTime: 0,
-      retry: false,
-    }
+    {staleTime: 0, retry: false}
   );
 
   const integrationType = 'first_party';
@@ -245,11 +228,7 @@ export default function IntegrationDetailedView() {
     // We map those to the currently in use values to their react equivalents
     // and fallback to IconFlag just in case.
     const alertList: AlertType[] = (provider?.metadata.aspects.alerts || []).map(
-      alert => ({
-        variant: alert.variant ?? 'muted',
-        text: alert.text,
-        icon: alert.icon,
-      })
+      alert => ({variant: alert.variant ?? 'muted', text: alert.text, icon: alert.icon})
     );
 
     if (!provider?.canAdd && provider?.metadata.aspects.externalInstall) {
@@ -373,10 +352,7 @@ export default function IntegrationDetailedView() {
       setApiQueryData<OrganizationIntegration[]>(queryClient, queryKey, current =>
         (current ?? []).map(config =>
           config.id === integration.id
-            ? {
-                ...config,
-                organizationIntegrationStatus: 'pending_deletion',
-              }
+            ? {...config, organizationIntegrationStatus: 'pending_deletion'}
             : config
         )
       );

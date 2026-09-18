@@ -21,10 +21,7 @@ import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useS
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
 
-type Props = {
-  children: React.ReactNode;
-  title?: string;
-};
+type Props = {children: React.ReactNode; title?: string};
 
 function useUpdateViewLastVisited({view}: {view: GroupSearchView | undefined}) {
   const {mutate: updateViewLastVisited} = useUpdateGroupSearchViewLastVisited();
@@ -57,10 +54,7 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/issues/views/${view.id}/`,
-          query: {
-            ...getIssueViewQueryParams({view}),
-            ...query,
-          },
+          query: {...getIssueViewQueryParams({view}), ...query},
         }),
         {replace: true}
       );

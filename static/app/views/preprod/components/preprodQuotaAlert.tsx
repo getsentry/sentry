@@ -47,10 +47,7 @@ export function PreprodQuotaAlert({system}: {system?: boolean}) {
       <Alert variant="warning" system={system}>
         {tct(
           "You've exceeded your [quotaType] quota. See details on getting more quota in the [link:pricing docs].",
-          {
-            quotaType,
-            link: <ExternalLink href={link} />,
-          }
+          {quotaType, link: <ExternalLink href={link} />}
         )}
       </Alert>
     </Alert.Container>

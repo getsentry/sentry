@@ -10,16 +10,8 @@ interface Props {
 
 export function createBaselineMarkLine({theme, value, label}: Props) {
   return markLine({
-    data: [
-      {
-        valueDim: 'y',
-        type: 'average',
-        yAxis: value,
-      },
-    ],
-    lineStyle: {
-      color: theme.colors.gray500,
-    },
+    data: [{valueDim: 'y', type: 'average', yAxis: value}],
+    lineStyle: {color: theme.colors.gray500},
     emphasis: {disabled: true},
     label: {
       position: 'insideEndBottom',

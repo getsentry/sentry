@@ -72,16 +72,8 @@ function Banner(props: BannerProps) {
         }}
         size="xs"
         items={[
-          {
-            key: 'dismiss',
-            label: t('Dismiss'),
-            onAction: dismiss,
-          },
-          {
-            key: 'snooze',
-            label: t('Snooze'),
-            onAction: snooze,
-          },
+          {key: 'dismiss', label: t('Dismiss'), onAction: dismiss},
+          {key: 'snooze', label: t('Snooze'), onAction: snooze},
         ]}
       />
     </BannerWrapper>
@@ -144,9 +136,6 @@ const BannerBackground = styled('div')<{image: any}>`
   }
 `;
 
-const TraceWarningComponents = {
-  Banner,
-  BannerBackground,
-};
+const TraceWarningComponents = {Banner, BannerBackground};
 
 export {TraceWarningComponents};

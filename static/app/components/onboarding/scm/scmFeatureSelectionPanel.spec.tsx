@@ -46,9 +46,7 @@ describe('ScmFeatureSelectionPanel', () => {
   it('shows the trial banner and per-feature volumes during onboarding', async () => {
     render(
       <ScmFeatureSelectionPanel {...defaultProps({analyticsFlow: 'onboarding'})} />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(

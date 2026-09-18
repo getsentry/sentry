@@ -16,10 +16,7 @@ const run = (seerRunId: string, status: RunStatus | null = null) =>
 function response(
   partial: Partial<AutofixOverviewResponse['runsByMilestone']>
 ): AutofixOverviewResponse {
-  return {
-    runsByMilestone: {...emptyMilestones, ...partial},
-    truncatedMilestones: [],
-  };
+  return {runsByMilestone: {...emptyMilestones, ...partial}, truncatedMilestones: []};
 }
 
 describe('detectMilestoneAdvances', () => {

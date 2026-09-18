@@ -27,9 +27,7 @@ function makeConfig(
 }
 
 const org = OrganizationFixture();
-const mutationOptions = {
-  mutationFn: jest.fn().mockResolvedValue({}),
-};
+const mutationOptions = {mutationFn: jest.fn().mockResolvedValue({})};
 
 describe('TableAdapter', () => {
   it('renders empty state with only Add button visible', () => {
@@ -179,9 +177,7 @@ describe('TableAdapter', () => {
 
     await waitFor(() => {
       expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
-        {
-          service_table: [{id: '2', service: 'Other Service', integration_key: 'def456'}],
-        },
+        {service_table: [{id: '2', service: 'Other Service', integration_key: 'def456'}]},
         expect.anything()
       );
     });

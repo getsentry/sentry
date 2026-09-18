@@ -31,49 +31,25 @@ describe('replaceFreeTextTokens', () => {
   describe('when there are free text tokens', () => {
     type TestCase = {
       description: string;
-      expected: {
-        focusOverride: FocusOverride | undefined;
-        query: string | undefined;
-      };
-      input: {
-        currentQuery: string;
-        rawSearchReplacement: string[];
-      };
+      expected: {focusOverride: FocusOverride | undefined; query: string | undefined};
+      input: {currentQuery: string; rawSearchReplacement: string[]};
     };
 
     const testCases: TestCase[] = [
       {
         description: 'when there are no tokens',
-        input: {
-          rawSearchReplacement: ['span.description'],
-          currentQuery: '',
-        },
-        expected: {
-          query: undefined,
-          focusOverride: undefined,
-        },
+        input: {rawSearchReplacement: ['span.description'], currentQuery: ''},
+        expected: {query: undefined, focusOverride: undefined},
       },
       {
         description: 'when the replace raw search keys is empty',
-        input: {
-          rawSearchReplacement: [],
-          currentQuery: '',
-        },
-        expected: {
-          query: undefined,
-          focusOverride: undefined,
-        },
+        input: {rawSearchReplacement: [], currentQuery: ''},
+        expected: {query: undefined, focusOverride: undefined},
       },
       {
         description: 'when the replace raw search keys is an empty string',
-        input: {
-          rawSearchReplacement: [''],
-          currentQuery: '',
-        },
-        expected: {
-          query: undefined,
-          focusOverride: undefined,
-        },
+        input: {rawSearchReplacement: [''], currentQuery: ''},
+        expected: {query: undefined, focusOverride: undefined},
       },
       {
         description: 'when there is no raw search replacement',
@@ -81,10 +57,7 @@ describe('replaceFreeTextTokens', () => {
           rawSearchReplacement: [],
           currentQuery: `browser.name:${WildcardOperators.CONTAINS}"firefox"`,
         },
-        expected: {
-          query: undefined,
-          focusOverride: undefined,
-        },
+        expected: {query: undefined, focusOverride: undefined},
       },
       {
         description: 'when there are no free text tokens',
@@ -92,21 +65,12 @@ describe('replaceFreeTextTokens', () => {
           rawSearchReplacement: ['span.description'],
           currentQuery: `browser.name:${WildcardOperators.CONTAINS}"firefox"`,
         },
-        expected: {
-          query: undefined,
-          focusOverride: undefined,
-        },
+        expected: {query: undefined, focusOverride: undefined},
       },
       {
         description: 'when there only valid action tokens',
-        input: {
-          rawSearchReplacement: ['span.description'],
-          currentQuery: 'span.op:eq',
-        },
-        expected: {
-          query: undefined,
-          focusOverride: undefined,
-        },
+        input: {rawSearchReplacement: ['span.description'], currentQuery: 'span.op:eq'},
+        expected: {query: undefined, focusOverride: undefined},
       },
       {
         description: 'when there only space free text tokens in the action',
@@ -114,17 +78,11 @@ describe('replaceFreeTextTokens', () => {
           rawSearchReplacement: ['span.description'],
           currentQuery: 'span.op:eq    ',
         },
-        expected: {
-          query: undefined,
-          focusOverride: undefined,
-        },
+        expected: {query: undefined, focusOverride: undefined},
       },
       {
         description: 'when there is one free text token',
-        input: {
-          rawSearchReplacement: ['span.description'],
-          currentQuery: 'test',
-        },
+        input: {rawSearchReplacement: ['span.description'], currentQuery: 'test'},
         expected: {
           query: `span.description:${WildcardOperators.CONTAINS}test`,
           focusOverride: {itemKey: 'freeText:1'},
@@ -132,10 +90,7 @@ describe('replaceFreeTextTokens', () => {
       },
       {
         description: 'when there is one free text token that has a space',
-        input: {
-          rawSearchReplacement: ['span.description'],
-          currentQuery: 'test test',
-        },
+        input: {rawSearchReplacement: ['span.description'], currentQuery: 'test test'},
         expected: {
           query: 'span.description:"*test*test*"',
           focusOverride: {itemKey: 'freeText:1'},
@@ -199,10 +154,7 @@ describe('replaceFreeTextTokens', () => {
       },
       {
         description: 'when the value contains a space and asterisks, it sets to is',
-        input: {
-          rawSearchReplacement: ['span.description'],
-          currentQuery: 'te*st test',
-        },
+        input: {rawSearchReplacement: ['span.description'], currentQuery: 'te*st test'},
         expected: {
           query: 'span.description:"te*st test"',
           focusOverride: {itemKey: 'freeText:1'},
@@ -211,10 +163,7 @@ describe('replaceFreeTextTokens', () => {
       {
         description:
           'when the value contains multiple spaces, it removes them and will replace them with a single space, and apply fuzzy matching',
-        input: {
-          rawSearchReplacement: ['span.description'],
-          currentQuery: 'test  test',
-        },
+        input: {rawSearchReplacement: ['span.description'], currentQuery: 'test  test'},
         expected: {
           query: 'span.description:"*test*test*"',
           focusOverride: {itemKey: 'freeText:1'},
@@ -272,16 +221,8 @@ describe('replaceFreeTextTokens', () => {
 
 describe('multiSelectTokenValue', () => {
   const filterKeys = {
-    'browser.name': {
-      key: 'browser.name',
-      name: 'browser.name',
-      kind: FieldKind.FIELD,
-    },
-    release: {
-      key: 'release',
-      name: 'release',
-      kind: FieldKind.FIELD,
-    },
+    'browser.name': {key: 'browser.name', name: 'browser.name', kind: FieldKind.FIELD},
+    release: {key: 'release', name: 'release', kind: FieldKind.FIELD},
   };
 
   function runToggle(query: string, value: string) {
@@ -358,11 +299,7 @@ describe('typed filter keys containing colons', () => {
     valueType: FieldValueType.STRING,
   };
   const filterKeys = {
-    [filterKey]: {
-      key: filterKey,
-      name: filterKey,
-      kind: FieldKind.TAG,
-    },
+    [filterKey]: {key: filterKey, name: filterKey, kind: FieldKind.TAG},
   };
 
   it('preserves quoted key syntax when updating a value', () => {

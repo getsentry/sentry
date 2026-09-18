@@ -24,9 +24,7 @@ export function useSeerAcknowledgeMutation() {
     },
     onSuccess: () => {
       // Invalidate organization-level setup check
-      queryClient.invalidateQueries({
-        queryKey: [setupCheckQueryKey(organization.slug)],
-      });
+      queryClient.invalidateQueries({queryKey: [setupCheckQueryKey(organization.slug)]});
       // Invalidate all group-level autofix setup queries
       queryClient.invalidateQueries({
         predicate: query => {

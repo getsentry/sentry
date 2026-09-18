@@ -228,13 +228,7 @@ function DropdownMenu({
   // Avoids the menu from focusing before popper has placed it in the correct position
   const resolvedMenuProps = {...menuProps, autoFocus: false as const};
 
-  const {buttonProps} = useButton(
-    {
-      isDisabled,
-      ...menuTriggerProps,
-    },
-    triggerRef
-  );
+  const {buttonProps} = useButton({isDisabled, ...menuTriggerProps}, triggerRef);
 
   function renderTrigger() {
     if (trigger) {

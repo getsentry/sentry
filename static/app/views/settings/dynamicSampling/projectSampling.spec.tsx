@@ -59,9 +59,7 @@ describe('ProjectSampling', () => {
   });
 
   async function waitForProjectRateInput() {
-    return screen.findByRole('spinbutton', {
-      name: 'Sample rate for project-slug',
-    });
+    return screen.findByRole('spinbutton', {name: 'Sample rate for project-slug'});
   }
 
   it('renders project rate inputs with initial values', async () => {
@@ -205,10 +203,7 @@ describe('ProjectSampling', () => {
   });
 
   it('disables Apply Changes for users without org:write access', async () => {
-    const orgWithoutAccess = OrganizationFixture({
-      access: [],
-      samplingMode: 'project',
-    });
+    const orgWithoutAccess = OrganizationFixture({access: [], samplingMode: 'project'});
 
     render(<ProjectSampling />, {organization: orgWithoutAccess});
 

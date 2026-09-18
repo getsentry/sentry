@@ -26,10 +26,7 @@ describe('HttpErrorCard', () => {
     it('displays status text and status code', () => {
       const node = new SpanNode(
         null,
-        makeSpan({
-          status: 'internal_error',
-          data: {'http.response.status_code': 500},
-        }),
+        makeSpan({status: 'internal_error', data: {'http.response.status_code': 500}}),
         extra
       );
 

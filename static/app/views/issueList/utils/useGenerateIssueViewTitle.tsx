@@ -21,10 +21,7 @@ export function useGenerateIssueViewTitle({
       getApiUrl('/organizations/$organizationIdOrSlug/issue-view-title/generate/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        method: 'POST',
-        data: {query},
-      },
+      {method: 'POST', data: {query}},
     ],
     {
       staleTime: 5 * 60 * 1000,

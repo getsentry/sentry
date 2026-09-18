@@ -12,12 +12,7 @@ describe('useLocation', () => {
     }
 
     render(<HomePage />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/issues/',
-          query: {hello: 'world'},
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/issues/', query: {hello: 'world'}}},
     });
 
     expect(location.pathname).toBe('/issues/');

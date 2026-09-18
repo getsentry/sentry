@@ -71,13 +71,7 @@ function useHasOlderReleases({
       getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          statsPeriod: '90d',
-          project: project?.id,
-          per_page: 1,
-        },
-      },
+      {query: {statsPeriod: '90d', project: project?.id, per_page: 1}},
     ],
     {staleTime: 0, enabled: !skipOldReleaseCheck}
   );
@@ -170,10 +164,7 @@ export function ProjectLatestReleases({
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/',
       {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
-        query: {
-          ...pick(location.query, Object.values(URL_PARAM)),
-          per_page: 5,
-        },
+        query: {...pick(location.query, Object.values(URL_PARAM)), per_page: 5},
         staleTime: 0,
       }
     ),
@@ -186,10 +177,7 @@ export function ProjectLatestReleases({
         <SectionHeading>{t('Latest Releases')}</SectionHeading>
         <StyledLink
           to={{
-            pathname: makeReleasesPathname({
-              organization,
-              path: '/',
-            }),
+            pathname: makeReleasesPathname({organization, path: '/'}),
             query: {
               ...extractSelectionParameters(location.query),
               statsPeriod: undefined,

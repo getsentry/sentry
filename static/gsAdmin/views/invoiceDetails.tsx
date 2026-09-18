@@ -27,10 +27,7 @@ import {InvoiceStatus} from 'getsentry/types';
 const ERR_MESSAGE = 'There was an internal error updating this invoice';
 
 export function InvoiceDetails() {
-  const {invoiceId, region} = useParams<{
-    invoiceId: string;
-    region: string;
-  }>();
+  const {invoiceId, region} = useParams<{invoiceId: string; region: string}>();
   const cellInfo = getCells().find(c => c.name.toLowerCase() === region.toLowerCase());
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -38,9 +35,7 @@ export function InvoiceDetails() {
     getApiUrl('/_admin/cells/$region/admin-invoices/$invoiceId/', {
       path: {region, invoiceId},
     }),
-    {
-      host: cellInfo ? cellInfo.locality_url : '',
-    },
+    {host: cellInfo ? cellInfo.locality_url : ''},
   ];
 
   const {
@@ -48,9 +43,7 @@ export function InvoiceDetails() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Invoice>(QUERY_KEY, {
-    staleTime: 0,
-  });
+  } = useApiQuery<Invoice>(QUERY_KEY, {staleTime: 0});
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -71,10 +64,7 @@ export function InvoiceDetails() {
     try {
       const updatedInvoice = await api.requestPromise(
         `/_admin/cells/${region}/invoices/${invoiceId}/close/`,
-        {
-          method: 'PUT',
-          host: cellInfo ? cellInfo.locality_url : '',
-        }
+        {method: 'PUT', host: cellInfo ? cellInfo.locality_url : ''}
       );
       updateCache(updatedInvoice);
       addSuccessMessage('Invoice has been closed');
@@ -97,9 +87,7 @@ export function InvoiceDetails() {
     try {
       const updatedInvoice = await api.requestPromise(
         `/customers/${customer.slug}/invoices/${invoiceId}/retry-payment/`,
-        {
-          method: 'PUT',
-        }
+        {method: 'PUT'}
       );
       updateCache(updatedInvoice);
       addSuccessMessage('Payment will be retried');
@@ -294,18 +282,9 @@ export function InvoiceDetails() {
         },
       ]}
       sections={[
-        {
-          content: overviewPanel,
-        },
-        {
-          noPadding: true,
-          content: invoiceTable,
-        },
-        {
-          noPadding: true,
-          name: 'Charges',
-          content: chargesTable,
-        },
+        {content: overviewPanel},
+        {noPadding: true, content: invoiceTable},
+        {noPadding: true, name: 'Charges', content: chargesTable},
       ]}
     />
   );

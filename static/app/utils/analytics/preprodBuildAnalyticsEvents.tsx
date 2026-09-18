@@ -10,10 +10,7 @@ type BasePreprodBuildEvent = {
   project_type?: string | null;
 };
 
-type PreprodSettingsEvent = {
-  organization: Organization;
-  project_slug: string;
-};
+type PreprodSettingsEvent = {organization: Organization; project_slug: string};
 
 export type BuildListPageSource =
   | 'preprod_builds_list'
@@ -25,9 +22,7 @@ export type PreprodBuildEventParameters = {
   'preprod.builds.compare.copy_insight_diff': BasePreprodBuildEvent & {
     insight_count: number;
   };
-  'preprod.builds.compare.download_csv': BasePreprodBuildEvent & {
-    item_count: number;
-  };
+  'preprod.builds.compare.download_csv': BasePreprodBuildEvent & {item_count: number};
   'preprod.builds.compare.go_to_build_details': BasePreprodBuildEvent & {
     slot?: 'head' | 'base';
   };
@@ -36,9 +31,7 @@ export type PreprodBuildEventParameters = {
   'preprod.builds.compare.trigger_comparison': BasePreprodBuildEvent;
   'preprod.builds.details.compare_build_clicked': BasePreprodBuildEvent;
   'preprod.builds.details.delete_build': BasePreprodBuildEvent;
-  'preprod.builds.details.expand_insight': BasePreprodBuildEvent & {
-    insight_key: string;
-  };
+  'preprod.builds.details.expand_insight': BasePreprodBuildEvent & {insight_key: string};
   'preprod.builds.details.open_insight_details_modal': BasePreprodBuildEvent & {
     insight_key: string;
   };
@@ -72,12 +65,8 @@ export type PreprodBuildEventParameters = {
     project_id: string;
   };
   'preprod.builds.release.build_row_clicked': BasePreprodBuildEvent;
-  'preprod.releases.mobile-builds.tab-clicked': {
-    organization: Organization;
-  };
-  'preprod.releases.snapshots.tab-clicked': {
-    organization: Organization;
-  };
+  'preprod.releases.mobile-builds.tab-clicked': {organization: Organization};
+  'preprod.releases.snapshots.tab-clicked': {organization: Organization};
   'preprod.settings.pr_comment_rule_created': PreprodSettingsEvent;
   'preprod.settings.pr_comment_rule_deleted': PreprodSettingsEvent;
   'preprod.settings.pr_comment_rule_updated': PreprodSettingsEvent & {
@@ -111,9 +100,7 @@ export type PreprodBuildEventParameters = {
     diff_status: string | null;
     organization: Organization;
   };
-  'preprod.snapshots.details.keyboard_shortcuts_opened': {
-    organization: Organization;
-  };
+  'preprod.snapshots.details.keyboard_shortcuts_opened': {organization: Organization};
   'preprod.snapshots.details.view_mode_changed': {
     organization: Organization;
     view_mode: string;

@@ -24,12 +24,7 @@ function DashboardsMEPProvider({children}: {children: ReactNode}) {
   const [isMetricsData, setIsMetricsData] = useState<boolean | undefined>(undefined); // undefined means not initialized
 
   return (
-    <DashboardsMEPContext
-      value={{
-        isMetricsData,
-        setIsMetricsData,
-      }}
-    >
+    <DashboardsMEPContext value={{isMetricsData, setIsMetricsData}}>
       {children}
     </DashboardsMEPContext>
   );

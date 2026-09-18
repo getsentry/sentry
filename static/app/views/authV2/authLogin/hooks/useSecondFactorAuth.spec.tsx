@@ -19,10 +19,7 @@ describe('useSecondFactorMethods', () => {
       mfaRequired: true as const,
       mfaMethods: [{id: 'totp' as const}, {id: 'recovery' as const}],
     };
-    const request = MockApiClient.addMockResponse({
-      url: '/auth/2fa/',
-      body: response,
-    });
+    const request = MockApiClient.addMockResponse({url: '/auth/2fa/', body: response});
 
     const {result} = renderHookWithProviders(() => useSecondFactorMethods(true));
 
@@ -140,10 +137,7 @@ describe('useSecondFactorAuth', () => {
     await waitFor(() => expect(result.current.result).toEqual(response));
     expect(request).toHaveBeenCalledWith(
       '/auth/2fa/',
-      expect.objectContaining({
-        method: 'POST',
-        data: {method: 'totp', otp: '123456'},
-      })
+      expect.objectContaining({method: 'POST', data: {method: 'totp', otp: '123456'}})
     );
   });
 

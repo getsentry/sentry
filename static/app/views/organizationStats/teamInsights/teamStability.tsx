@@ -58,12 +58,7 @@ export function TeamStability({
       getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          ...commonQuery,
-          ...normalizeDateTimeParams(datetime),
-        },
-      },
+      {query: {...commonQuery, ...normalizeDateTimeParams(datetime)}},
     ],
     {staleTime: 5000}
   );
@@ -78,12 +73,7 @@ export function TeamStability({
       getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          ...commonQuery,
-          statsPeriod: '7d',
-        },
-      },
+      {query: {...commonQuery, statsPeriod: '7d'}},
     ],
     {staleTime: 5000}
   );

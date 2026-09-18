@@ -68,10 +68,7 @@ export function OwnerInput({
       getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
-      {
-        method: 'PUT',
-        data: {raw: text || ''},
-      }
+      {method: 'PUT', data: {raw: text || ''}}
     );
 
     request

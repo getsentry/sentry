@@ -7,18 +7,12 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {EventTags} from 'sentry/components/events/eventTags';
 
 describe('event tags', () => {
-  const {organization, project} = initializeOrg({
-    organization: {
-      relayPiiConfig: null,
-    },
-  });
+  const {organization, project} = initializeOrg({organization: {relayPiiConfig: null}});
 
   it('display redacted tags', async () => {
     const event = EventFixture({
       tags: null,
-      _meta: {
-        tags: {'': {rem: [['project:2', 'x']]}},
-      },
+      _meta: {tags: {'': {rem: [['project:2', 'x']]}}},
     });
 
     render(<EventTags projectSlug={project.slug} event={event} />, {organization});
@@ -41,15 +35,7 @@ describe('event tags', () => {
 
     const event = EventFixture({
       tags,
-      _meta: {
-        tags: {
-          '0': {
-            value: {
-              '': {rem: [['project:2', 'x']]},
-            },
-          },
-        },
-      },
+      _meta: {tags: {'0': {value: {'': {rem: [['project:2', 'x']]}}}}},
     });
 
     MockApiClient.addMockResponse({
@@ -77,9 +63,7 @@ describe('event tags', () => {
   it('transaction tag links to transaction overview', async () => {
     const tags = [{key: 'transaction', value: 'mytransaction'}];
 
-    const event = EventFixture({
-      tags,
-    });
+    const event = EventFixture({tags});
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,

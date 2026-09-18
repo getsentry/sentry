@@ -291,9 +291,7 @@ function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableP
       animate="animate"
       exit="exit"
       variants={{animate: {}}}
-      transition={{
-        staggerChildren: 0.2,
-      }}
+      transition={{staggerChildren: 0.2}}
       data-test-id={`onboarding-step-${props.id}`}
     >
       {props.children}
@@ -484,10 +482,7 @@ export function OnboardingWithoutContext() {
     return (
       <SkipOnboardingLink
         onClick={() => {
-          trackAnalytics('growth.onboarding_clicked_skip', {
-            organization,
-            source,
-          });
+          trackAnalytics('growth.onboarding_clicked_skip', {organization, source});
           onboardingContext.resetOnboarding();
           activateSidebar({
             userClicked: false,
@@ -587,9 +582,7 @@ export function OnboardingWithoutContext() {
               visible: {
                 opacity: 1,
                 transition: {delay: 1},
-                transitionEnd: {
-                  visibility: 'visible',
-                },
+                transitionEnd: {visibility: 'visible'},
               },
             }}
           >
@@ -637,9 +630,7 @@ function Onboarding() {
   );
 }
 
-const OnboardingContainerNewWelcomeUI = styled('div')<{
-  hasFooter: boolean;
-}>`
+const OnboardingContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
   flex-grow: 1;
   display: flex;
   flex-direction: column;

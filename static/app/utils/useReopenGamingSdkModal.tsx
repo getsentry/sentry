@@ -20,9 +20,7 @@ export function useReopenGamingSdkModal(
 
   useEffect(() => {
     if (reopenModal) {
-      queryClient.invalidateQueries({
-        queryKey: ['/users/me/user-identities/'],
-      });
+      queryClient.invalidateQueries({queryKey: ['/users/me/user-identities/']});
       setReopenModal(null);
       openPrivateGamingSdkAccessModal(modalPropsRef.current);
     }

@@ -104,19 +104,13 @@ function OrganizationMembersList() {
   );
   const membersQueryOptions = membersApiOptions({
     orgSlug: organization.slug,
-    query: {
-      query: location.query.query,
-      cursor: location.query.cursor,
-    },
+    query: {query: location.query.query, cursor: location.query.cursor},
   });
   const {
     data: membersResponse,
     isPending: isPendingMembers,
     refetch: refetchMembers,
-  } = useQuery({
-    ...membersQueryOptions,
-    select: selectJsonWithHeaders,
-  });
+  } = useQuery({...membersQueryOptions, select: selectJsonWithHeaders});
   const members = useMemo(() => membersResponse?.json ?? [], [membersResponse?.json]);
   const {data: activeOwnerMembers = [], isPending: isPendingOwners} = useQuery({
     ...membersApiOptions({
@@ -138,18 +132,12 @@ function OrganizationMembersList() {
       getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
         path: {organizationIdOrSlug: organization.slug, memberId: id},
       }),
-      {
-        method: 'DELETE',
-        data: {},
-      }
+      {method: 'DELETE', data: {}}
     );
 
     queryClient.setQueryData(membersQueryOptions.queryKey, prevData =>
       prevData
-        ? {
-            ...prevData,
-            json: prevData.json.filter(member => member.id !== id),
-          }
+        ? {...prevData, json: prevData.json.filter(member => member.id !== id)}
         : prevData
     );
   };
@@ -238,10 +226,7 @@ function OrganizationMembersList() {
         getApiUrl('/organizations/$organizationIdOrSlug/invite-requests/$memberId/', {
           path: {organizationIdOrSlug: organization.slug, memberId: inviteRequest.id},
         }),
-        {
-          method,
-          data,
-        }
+        {method, data}
       );
 
       removeInviteRequest(inviteRequest.id);
@@ -260,11 +245,7 @@ function OrganizationMembersList() {
     handleInviteRequestAction({
       inviteRequest,
       method: 'PUT',
-      data: {
-        role: inviteRequest.role,
-        teams: inviteRequest.teams,
-        approve: 1,
-      },
+      data: {role: inviteRequest.role, teams: inviteRequest.teams, approve: 1},
       successMessage: tct('[email] has been invited', {email: inviteRequest.email}),
       errorMessage: tct('Error inviting [email]', {email: inviteRequest.email}),
       eventKey: 'invite_request.approved',
@@ -287,9 +268,7 @@ function OrganizationMembersList() {
   };
 
   const handleQueryChange = (query: string) => {
-    navigate({
-      query: {...location.query, query, cursor: undefined},
-    });
+    navigate({query: {...location.query, query, cursor: undefined}});
   };
 
   const canAddMembers = organization.access.includes('member:write');

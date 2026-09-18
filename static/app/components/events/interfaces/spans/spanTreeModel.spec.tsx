@@ -100,9 +100,7 @@ describe('SpanTreeModel', () => {
             parent_span_id: 'a934857184bdf5a6',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             status: 'ok',
-            tags: {
-              'http.status_code': '200',
-            },
+            tags: {'http.status_code': '200'},
             data: {
               'http.method': 'GET',
               type: 'fetch',
@@ -118,14 +116,8 @@ describe('SpanTreeModel', () => {
             parent_span_id: 'a934857184bdf5a6',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             status: 'ok',
-            tags: {
-              'http.status_code': '200',
-            },
-            data: {
-              'http.method': 'GET',
-              type: 'fetch',
-              url: '/api/0/internal/health/',
-            },
+            tags: {'http.status_code': '200'},
+            data: {'http.method': 'GET', type: 'fetch', url: '/api/0/internal/health/'},
           },
           {
             timestamp: 1622079936.05839,
@@ -186,9 +178,7 @@ describe('SpanTreeModel', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/sentry/events/project:broken/',
-      body: {
-        ...event,
-      },
+      body: {...event},
       statusCode: 500,
     });
   });
@@ -217,9 +207,7 @@ describe('SpanTreeModel', () => {
               parent_span_id: 'a934857184bdf5a6',
               trace_id: '8cbbc19c0f54447ab702f00263262726',
               status: 'ok',
-              tags: {
-                'http.status_code': '200',
-              },
+              tags: {'http.status_code': '200'},
               data: {
                 'http.method': 'GET',
                 type: 'fetch',
@@ -296,9 +284,7 @@ describe('SpanTreeModel', () => {
           parent_span_id: 'a934857184bdf5a6',
           trace_id: '8cbbc19c0f54447ab702f00263262726',
           status: 'ok',
-          tags: {
-            'http.status_code': '200',
-          },
+          tags: {'http.status_code': '200'},
           data: {
             'http.method': 'GET',
             type: 'fetch',
@@ -327,14 +313,8 @@ describe('SpanTreeModel', () => {
           parent_span_id: 'a934857184bdf5a6',
           trace_id: '8cbbc19c0f54447ab702f00263262726',
           status: 'ok',
-          tags: {
-            'http.status_code': '200',
-          },
-          data: {
-            'http.method': 'GET',
-            type: 'fetch',
-            url: '/api/0/internal/health/',
-          },
+          tags: {'http.status_code': '200'},
+          data: {'http.method': 'GET', type: 'fetch', url: '/api/0/internal/health/'},
         },
         numOfSpanChildren: 1,
         treeDepth: 1,
@@ -384,9 +364,7 @@ describe('SpanTreeModel', () => {
     });
 
     let spans = spanTreeModel.getSpansList({
-      operationNameFilters: {
-        type: 'no_filter',
-      },
+      operationNameFilters: {type: 'no_filter'},
       generateBounds,
       treeDepth: 0,
       isLastSibling: true,
@@ -431,9 +409,7 @@ describe('SpanTreeModel', () => {
     expect(spanTreeModel.fetchEmbeddedChildrenState).toBe('idle');
 
     spans = spanTreeModel.getSpansList({
-      operationNameFilters: {
-        type: 'no_filter',
-      },
+      operationNameFilters: {type: 'no_filter'},
       generateBounds,
       treeDepth: 0,
       isLastSibling: true,
@@ -508,9 +484,7 @@ describe('SpanTreeModel', () => {
       }
     );
 
-    fullWaterfallExpected[0] = {
-      ...fullWaterfallExpected[0]!,
-    };
+    fullWaterfallExpected[0] = {...fullWaterfallExpected[0]!};
     assert(fullWaterfallExpected[0].type === 'span');
     fullWaterfallExpected[0].numOfSpanChildren += 1;
     fullWaterfallExpected[0].showEmbeddedChildren = true;
@@ -534,9 +508,7 @@ describe('SpanTreeModel', () => {
     expect(spanTreeModel.fetchEmbeddedChildrenState).toBe('idle');
 
     spans = spanTreeModel.getSpansList({
-      operationNameFilters: {
-        type: 'no_filter',
-      },
+      operationNameFilters: {type: 'no_filter'},
       generateBounds,
       treeDepth: 0,
       isLastSibling: true,
@@ -563,10 +535,7 @@ describe('SpanTreeModel', () => {
     const rootSpan = generateRootSpan(parsedTrace);
 
     const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
-    const eventSlug = generateEventSlug({
-      id: 'broken',
-      project: 'project',
-    });
+    const eventSlug = generateEventSlug({id: 'broken', project: 'project'});
 
     spanTreeModel.makeToggleEmbeddedChildren({
       addTraceBounds: () => {},
@@ -586,12 +555,7 @@ describe('SpanTreeModel', () => {
   it('automatically groups siblings with the same operation and description', () => {
     const event2 = {
       ...event,
-      entries: [
-        {
-          data: [],
-          type: EntryType.SPANS,
-        },
-      ],
+      entries: [{data: [], type: EntryType.SPANS}],
     } as EventTransaction;
 
     const spanTemplate = {
@@ -603,14 +567,8 @@ describe('SpanTreeModel', () => {
       parent_span_id: 'a934857184bdf5a6',
       trace_id: '8cbbc19c0f54447ab702f00263262726',
       status: 'ok',
-      tags: {
-        'http.status_code': '200',
-      },
-      data: {
-        'http.method': 'GET',
-        type: 'fetch',
-        url: '/api/0/internal/health/',
-      },
+      tags: {'http.status_code': '200'},
+      data: {'http.method': 'GET', type: 'fetch', url: '/api/0/internal/health/'},
     };
 
     if (!Array.isArray(event2.entries[0]!.data)) {
@@ -635,9 +593,7 @@ describe('SpanTreeModel', () => {
     });
 
     const spans = spanTreeModel.getSpansList({
-      operationNameFilters: {
-        type: 'no_filter',
-      },
+      operationNameFilters: {type: 'no_filter'},
       generateBounds,
       treeDepth: 0,
       isLastSibling: true,
@@ -668,12 +624,7 @@ describe('SpanTreeModel', () => {
   it('does not autogroup similar siblings if there are less than 5 in a row', () => {
     const event2 = {
       ...event,
-      entries: [
-        {
-          data: [],
-          type: EntryType.SPANS,
-        },
-      ],
+      entries: [{data: [], type: EntryType.SPANS}],
     } as EventTransaction;
 
     const spanTemplate = {
@@ -685,14 +636,8 @@ describe('SpanTreeModel', () => {
       parent_span_id: 'a934857184bdf5a6',
       trace_id: '8cbbc19c0f54447ab702f00263262726',
       status: 'ok',
-      tags: {
-        'http.status_code': '200',
-      },
-      data: {
-        'http.method': 'GET',
-        type: 'fetch',
-        url: '/api/0/internal/health/',
-      },
+      tags: {'http.status_code': '200'},
+      data: {'http.method': 'GET', type: 'fetch', url: '/api/0/internal/health/'},
     };
 
     if (!Array.isArray(event2.entries[0]!.data)) {
@@ -717,9 +662,7 @@ describe('SpanTreeModel', () => {
     });
 
     const spans = spanTreeModel.getSpansList({
-      operationNameFilters: {
-        type: 'no_filter',
-      },
+      operationNameFilters: {type: 'no_filter'},
       generateBounds,
       treeDepth: 0,
       isLastSibling: true,
@@ -745,12 +688,7 @@ describe('SpanTreeModel', () => {
   it('properly autogroups similar siblings and leaves other siblings ungrouped', () => {
     const event2 = {
       ...event,
-      entries: [
-        {
-          data: [],
-          type: EntryType.SPANS,
-        },
-      ],
+      entries: [{data: [], type: EntryType.SPANS}],
     } as EventTransaction;
 
     const groupableSpanTemplate = {
@@ -762,14 +700,8 @@ describe('SpanTreeModel', () => {
       parent_span_id: 'a934857184bdf5a6',
       trace_id: '8cbbc19c0f54447ab702f00263262726',
       status: 'ok',
-      tags: {
-        'http.status_code': '200',
-      },
-      data: {
-        'http.method': 'GET',
-        type: 'fetch',
-        url: '/api/0/internal/health/',
-      },
+      tags: {'http.status_code': '200'},
+      data: {'http.method': 'GET', type: 'fetch', url: '/api/0/internal/health/'},
     };
 
     const normalSpanTemplate = {
@@ -781,14 +713,8 @@ describe('SpanTreeModel', () => {
       parent_span_id: 'a934857184bdf5a6',
       trace_id: '8cbbc19c0f54447ab702f00263262726',
       status: 'ok',
-      tags: {
-        'http.status_code': '200',
-      },
-      data: {
-        'http.method': 'GET',
-        type: 'fetch',
-        url: '/api/0/internal/health/',
-      },
+      tags: {'http.status_code': '200'},
+      data: {'http.method': 'GET', type: 'fetch', url: '/api/0/internal/health/'},
     };
 
     if (!Array.isArray(event2.entries[0]!.data)) {
@@ -820,9 +746,7 @@ describe('SpanTreeModel', () => {
     });
 
     const spans = spanTreeModel.getSpansList({
-      operationNameFilters: {
-        type: 'no_filter',
-      },
+      operationNameFilters: {type: 'no_filter'},
       generateBounds,
       treeDepth: 0,
       isLastSibling: true,

@@ -26,10 +26,7 @@ function renderMockRequests({firstIssue}: {firstIssue?: string} = {}) {
     body: ProjectFixture({platform: 'python-django', firstEvent: firstIssue ?? null}),
   });
 
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/sdks/',
-    method: 'GET',
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/sdks/', method: 'GET'});
 }
 
 describe('UpdatedEmptyState', () => {

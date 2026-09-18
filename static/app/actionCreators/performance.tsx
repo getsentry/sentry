@@ -9,16 +9,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
-type KeyTransaction = {
-  project_id: string;
-  transaction: string;
-};
+type KeyTransaction = {project_id: string; transaction: string};
 
-type TeamKeyTransaction = {
-  count: number;
-  keyed: KeyTransaction[];
-  team: string;
-};
+type TeamKeyTransaction = {count: number; keyed: KeyTransaction[]; team: string};
 
 export type TeamKeyTransactions = TeamKeyTransaction[];
 
@@ -89,13 +82,8 @@ export function toggleKeyTransaction(
     }),
     {
       method: isKeyTransaction ? 'DELETE' : 'POST',
-      query: {
-        project: projects.map(String),
-      },
-      data: {
-        transaction: transactionName,
-        team: teamIds,
-      },
+      query: {project: projects.map(String)},
+      data: {transaction: transactionName, team: teamIds},
     }
   );
 

@@ -11,9 +11,7 @@ import {
 } from 'sentry/views/insights/pages/mcp/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
-type Props = {
-  module?: HeaderProps['selectedModule'];
-};
+type Props = {module?: HeaderProps['selectedModule']};
 
 export function MCPPageHeader({module}: Props) {
   const organization = useOrganization();

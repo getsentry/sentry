@@ -134,10 +134,7 @@ describe('ConversationViewContent', () => {
   });
 
   it('scrolls the selected span into view when switching tabs', async () => {
-    const {rerender} = renderView({
-      activeTab: 'transcript',
-      selectedSpanId: 'span-a',
-    });
+    const {rerender} = renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
 
     // Wait for the deep-linked selection to render before asserting the switch.
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();

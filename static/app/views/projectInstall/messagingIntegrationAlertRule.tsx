@@ -62,10 +62,7 @@ export function useMessagingIntegrationAlertRule(
   const integrationOptions = useMemo(
     () =>
       provider && providersToIntegrations[provider]
-        ? providersToIntegrations[provider]?.map(i => ({
-            value: i,
-            label: i.name,
-          }))
+        ? providersToIntegrations[provider]?.map(i => ({value: i, label: i.name}))
         : [],
     [providersToIntegrations, provider]
   );

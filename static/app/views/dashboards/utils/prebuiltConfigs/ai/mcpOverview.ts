@@ -207,13 +207,7 @@ const OVERVIEW_TABLE: PrebuiltWidget = {
       orderby: '-count()',
     },
   ],
-  layout: {
-    x: 0,
-    y: 6,
-    w: 6,
-    h: 4,
-    minH: 2,
-  },
+  layout: {x: 0, y: 6, w: 6, h: 4, minH: 2},
 };
 
 export const MCP_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {

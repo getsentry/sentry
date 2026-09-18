@@ -22,11 +22,7 @@ describe('MentionComposer', () => {
     TeamStore.loadInitialData([TeamFixture({id: '1', slug: 'frontend'})]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [
-        MemberFixture({
-          user: UserFixture({id: '1', name: 'Alice Example'}),
-        }),
-      ],
+      body: [MemberFixture({user: UserFixture({id: '1', name: 'Alice Example'})})],
     });
   });
 

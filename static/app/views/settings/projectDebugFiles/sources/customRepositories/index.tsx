@@ -65,13 +65,7 @@ export function CustomRepositories({
   );
 
   const handleCloseModal = useCallback(() => {
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        customRepository: undefined,
-      },
-    });
+    navigate({...location, query: {...location.query, customRepository: undefined}});
   }, [location, navigate]);
 
   const openDebugFileSourceDialog = useCallback(() => {
@@ -121,13 +115,7 @@ export function CustomRepositories({
   }
 
   function handleEditRepository(repoId: CustomRepo['id']) {
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        customRepository: repoId,
-      },
-    });
+    navigate({...location, query: {...location.query, customRepository: repoId}});
   }
 
   return (

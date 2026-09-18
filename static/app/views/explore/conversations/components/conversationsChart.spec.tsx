@@ -122,10 +122,7 @@ describe('ConversationsChart', () => {
     render(<ConversationsChart />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {query: 'gen_ai.agent.name:my-agent'},
-        },
+        location: {pathname: '/', query: {query: 'gen_ai.agent.name:my-agent'}},
       },
     });
 
@@ -233,9 +230,7 @@ describe('ConversationsChart', () => {
   });
 
   it('disables "Add to Dashboard" without the dashboards-edit feature', async () => {
-    render(<ConversationsChart />, {
-      organization: OrganizationFixture({features: []}),
-    });
+    render(<ConversationsChart />, {organization: OrganizationFixture({features: []})});
 
     await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
 
@@ -275,9 +270,7 @@ describe('ConversationsChart', () => {
   it('maps the area chart type to the area dashboard display type', async () => {
     render(<ConversationsChart />, {
       organization: OrganizationFixture({features: ['dashboards-edit']}),
-      initialRouterConfig: {
-        location: {pathname: '/', query: {chartType: 'area'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {chartType: 'area'}}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));

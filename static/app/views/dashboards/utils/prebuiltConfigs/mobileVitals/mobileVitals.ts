@@ -33,13 +33,7 @@ const COLD_START_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
   interval: '1h',
-  thresholds: {
-    max_values: {
-      max1: 3000,
-      max2: 5000,
-    },
-    unit: null,
-  },
+  thresholds: {max_values: {max1: 3000, max2: 5000}, unit: null},
   queries: [
     {
       name: '',
@@ -50,13 +44,7 @@ const COLD_START_BIG_NUMBER_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 0,
-    y: 0,
-    w: 1,
-    minH: 1,
-  },
+  layout: {h: 1, x: 0, y: 0, w: 1, minH: 1},
 };
 
 const WARM_START_BIG_NUMBER_WIDGET: PrebuiltWidget = {
@@ -66,13 +54,7 @@ const WARM_START_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
   interval: '1h',
-  thresholds: {
-    max_values: {
-      max1: 1000,
-      max2: 2000,
-    },
-    unit: null,
-  },
+  thresholds: {max_values: {max1: 1000, max2: 2000}, unit: null},
   queries: [
     {
       name: '',
@@ -83,13 +65,7 @@ const WARM_START_BIG_NUMBER_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 1,
-    y: 0,
-    w: 1,
-    minH: 1,
-  },
+  layout: {h: 1, x: 1, y: 0, w: 1, minH: 1},
 };
 
 const AVG_TTID_BIG_NUMBER_WIDGET: PrebuiltWidget = {
@@ -110,13 +86,7 @@ const AVG_TTID_BIG_NUMBER_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 2,
-    y: 0,
-    w: 1,
-    minH: 1,
-  },
+  layout: {h: 1, x: 2, y: 0, w: 1, minH: 1},
 };
 
 const AVG_TTFD_BIG_NUMBER_WIDGET: PrebuiltWidget = {
@@ -137,13 +107,7 @@ const AVG_TTFD_BIG_NUMBER_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 3,
-    y: 0,
-    w: 1,
-    minH: 1,
-  },
+  layout: {h: 1, x: 3, y: 0, w: 1, minH: 1},
 };
 
 // Uses the Sessions (Release) dataset, so most dashboard global filters (which target Spans)
@@ -167,13 +131,7 @@ const CRASH_FREE_SESSION_RATE_BIG_NUMBER_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 3,
-    y: 1,
-    w: 1,
-    minH: 1,
-  },
+  layout: {h: 1, x: 3, y: 1, w: 1, minH: 1},
 };
 
 const SLOW_FRAME_RATE_WIDGET: PrebuiltWidget = {
@@ -204,13 +162,7 @@ const SLOW_FRAME_RATE_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 0,
-    y: 1,
-    w: 1,
-    minH: 1,
-  },
+  layout: {h: 1, x: 0, y: 1, w: 1, minH: 1},
 };
 
 const FROZEN_FRAME_RATE_WIDGET: PrebuiltWidget = {
@@ -241,13 +193,7 @@ const FROZEN_FRAME_RATE_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 1,
-    y: 1,
-    w: 1,
-    minH: 1,
-  },
+  layout: {h: 1, x: 1, y: 1, w: 1, minH: 1},
 };
 
 const AVG_FRAME_DELAY_WIDGET: PrebuiltWidget = {
@@ -268,13 +214,7 @@ const AVG_FRAME_DELAY_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 2,
-    y: 1,
-    w: 1,
-    minH: 1,
-  },
+  layout: {h: 1, x: 2, y: 1, w: 1, minH: 1},
 };
 
 const ABOUT_THIS_PAGE_TEXT_WIDGET: PrebuiltWidget = {
@@ -289,13 +229,7 @@ See the [Mobile Vitals docs](https://docs.sentry.io/product/insights/mobile/mobi
   displayType: DisplayType.TEXT,
   interval: '1h',
   queries: [],
-  layout: {
-    h: 2,
-    x: 4,
-    y: 0,
-    w: 2,
-    minH: 2,
-  },
+  layout: {h: 2, x: 4, y: 0, w: 2, minH: 2},
 };
 
 const APP_START_TABLE: PrebuiltWidget = {
@@ -334,13 +268,7 @@ const APP_START_TABLE: PrebuiltWidget = {
       ],
     },
   ],
-  layout: {
-    h: 3,
-    x: 0,
-    y: 2,
-    w: 6,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {h: 3, x: 0, y: 2, w: 6, minH: TABLE_MIN_HEIGHT},
 };
 
 const SCREEN_RENDERING_TABLE: PrebuiltWidget = {
@@ -376,21 +304,11 @@ const SCREEN_RENDERING_TABLE: PrebuiltWidget = {
       conditions: SCREEN_RENDERING_TABLE_CONDITION,
       orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [
-        {
-          field: SpanFields.TRANSACTION,
-          dashboardId: '-1',
-          staticDashboardId: 11,
-        },
+        {field: SpanFields.TRANSACTION, dashboardId: '-1', staticDashboardId: 11},
       ],
     },
   ],
-  layout: {
-    h: 3,
-    x: 0,
-    y: 8,
-    w: 6,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {h: 3, x: 0, y: 8, w: 6, minH: TABLE_MIN_HEIGHT},
 };
 
 const SCREEN_LOAD_TABLE: PrebuiltWidget = {
@@ -420,21 +338,11 @@ const SCREEN_LOAD_TABLE: PrebuiltWidget = {
       conditions: SCREEN_LOAD_TABLE_CONDITION,
       orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [
-        {
-          field: SpanFields.TRANSACTION,
-          dashboardId: '-1',
-          staticDashboardId: 10,
-        },
+        {field: SpanFields.TRANSACTION, dashboardId: '-1', staticDashboardId: 10},
       ],
     },
   ],
-  layout: {
-    h: 3,
-    x: 0,
-    y: 5,
-    w: 6,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {h: 3, x: 0, y: 5, w: 6, minH: TABLE_MIN_HEIGHT},
 };
 
 const FIRST_ROW_WIDGETS: PrebuiltWidget[] = [
@@ -468,11 +376,7 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: [
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'os.name',
-          name: 'os.name',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'os.name', name: 'os.name', kind: FieldKind.TAG},
         value: '',
       },
       {

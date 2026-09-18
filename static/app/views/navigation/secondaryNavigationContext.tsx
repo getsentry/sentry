@@ -54,10 +54,7 @@ export function SecondaryNavigationContextProvider(
   );
 
   const value = useMemo(() => {
-    return {
-      view,
-      setView,
-    };
+    return {view, setView};
   }, [view, setView]);
 
   return (

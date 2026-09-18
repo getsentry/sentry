@@ -15,10 +15,7 @@ const STALE_TIME = 5 * 60 * 1000;
 // These schemas mirror the response dataclasses in
 // src/sentry/api/endpoints/organization_events_validate.py
 // Matches Validation
-const ValidationSchema = z.object({
-  error: z.string().nullable(),
-  valid: z.boolean(),
-});
+const ValidationSchema = z.object({error: z.string().nullable(), valid: z.boolean()});
 
 // Mirrors NamedValidation
 const NamedValidationSchema = z.object({
@@ -101,10 +98,7 @@ export function validateEventParamsOptions({
   const originalQueryFn = baseOptions.queryFn;
 
   if (typeof originalQueryFn !== 'function') {
-    return queryOptions({
-      ...baseOptions,
-      placeholderData: keepPreviousData,
-    });
+    return queryOptions({...baseOptions, placeholderData: keepPreviousData});
   }
 
   return queryOptions({

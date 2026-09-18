@@ -73,12 +73,14 @@ describe('useConfigureSdk', () => {
     mockUseCreateProject.mockReturnValue(
       createProjectInstance as unknown as ReturnType<typeof useCreateProject>
     );
-    jest.mocked(useModal).mockReturnValue({
-      openModal: mockOpenModal,
-      closeModal: jest.fn(),
-      isOpen: false,
-      visible: false,
-    });
+    jest
+      .mocked(useModal)
+      .mockReturnValue({
+        openModal: mockOpenModal,
+        closeModal: jest.fn(),
+        isOpen: false,
+        visible: false,
+      });
   });
 
   afterEach(() => {

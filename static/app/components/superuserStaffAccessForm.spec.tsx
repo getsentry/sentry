@@ -11,10 +11,7 @@ function TestAccessCategory({RadioItem}: SuperuserAccessCategoryProps) {
 }
 
 function addAuthenticatorResponse(body: unknown[] = [{id: 'u2f', challenge: {}}]) {
-  return MockApiClient.addMockResponse({
-    url: '/authenticators/',
-    body,
-  });
+  return MockApiClient.addMockResponse({url: '/authenticators/', body});
 }
 
 async function waitForAccessForm() {
@@ -46,10 +43,7 @@ describe('SuperuserStaffAccessForm', () => {
 
   it('captures access details before starting WebAuthn', async () => {
     addAuthenticatorResponse();
-    const authRequest = MockApiClient.addMockResponse({
-      url: '/auth/',
-      method: 'PUT',
-    });
+    const authRequest = MockApiClient.addMockResponse({url: '/auth/', method: 'PUT'});
     render(<SuperuserStaffAccessForm hasStaff={false} />);
     await waitForAccessForm();
 
@@ -71,10 +65,7 @@ describe('SuperuserStaffAccessForm', () => {
 
   it('submits the bound access details when U2F is disabled', async () => {
     ConfigStore.set('disableU2FForSUForm', true);
-    const authRequest = MockApiClient.addMockResponse({
-      url: '/auth/',
-      method: 'PUT',
-    });
+    const authRequest = MockApiClient.addMockResponse({url: '/auth/', method: 'PUT'});
     render(<SuperuserStaffAccessForm hasStaff={false} />);
 
     await userEvent.click(screen.getByRole('radio', {name: 'Development'}));
@@ -102,10 +93,7 @@ describe('SuperuserStaffAccessForm', () => {
 
   it('submits the COPS/CSM access details through the form', async () => {
     ConfigStore.set('disableU2FForSUForm', true);
-    const authRequest = MockApiClient.addMockResponse({
-      url: '/auth/',
-      method: 'PUT',
-    });
+    const authRequest = MockApiClient.addMockResponse({url: '/auth/', method: 'PUT'});
     render(<SuperuserStaffAccessForm hasStaff={false} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'COPS/CSM'}));

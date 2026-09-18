@@ -26,10 +26,7 @@ export function useSentryAppExternalIssues({
     data: externalIssues,
     isLoading,
     onDeleteExternalIssue,
-  } = useExternalIssues({
-    group,
-    organization,
-  });
+  } = useExternalIssues({group, organization});
   const sentryAppComponents = useSentryAppComponentsStore({componentType: 'issue-link'});
   const sentryAppInstallations = useLegacyStore(SentryAppInstallationStore);
 

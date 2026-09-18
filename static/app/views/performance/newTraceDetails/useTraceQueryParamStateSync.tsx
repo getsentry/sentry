@@ -42,10 +42,7 @@ export function useTraceQueryParamStateSync(
       navigate(
         {
           pathname: location.pathname,
-          query: {
-            ...qs.parse(location.search),
-            ...previousQueryRef.current,
-          },
+          query: {...qs.parse(location.search), ...previousQueryRef.current},
         },
         {replace: true}
       );

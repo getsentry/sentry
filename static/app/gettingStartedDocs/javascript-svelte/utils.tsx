@@ -97,20 +97,8 @@ export default app;
 export const installSnippetBlock: ContentBlock = {
   type: 'code',
   tabs: [
-    {
-      label: 'npm',
-      language: 'bash',
-      code: 'npm install --save @sentry/svelte',
-    },
-    {
-      label: 'yarn',
-      language: 'bash',
-      code: 'yarn add @sentry/svelte',
-    },
-    {
-      label: 'pnpm',
-      language: 'bash',
-      code: 'pnpm add @sentry/svelte',
-    },
+    {label: 'npm', language: 'bash', code: 'npm install --save @sentry/svelte'},
+    {label: 'yarn', language: 'bash', code: 'yarn add @sentry/svelte'},
+    {label: 'pnpm', language: 'bash', code: 'pnpm add @sentry/svelte'},
   ],
 };

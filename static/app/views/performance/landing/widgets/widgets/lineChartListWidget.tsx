@@ -210,10 +210,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           // Change data set to spans
           eventView.dataset = spanDataset;
-          extraQueryParams = {
-            ...extraQueryParams,
-            ...spanQueryParams,
-          };
+          extraQueryParams = {...extraQueryParams, ...spanQueryParams};
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
@@ -238,10 +235,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           // Change data set to spans
           eventView.dataset = spanDataset;
-          extraQueryParams = {
-            ...extraQueryParams,
-            ...spanQueryParams,
-          };
+          extraQueryParams = {...extraQueryParams, ...spanQueryParams};
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
@@ -266,10 +260,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           // Change data set to spans
           eventView.dataset = spanDataset;
-          extraQueryParams = {
-            ...extraQueryParams,
-            ...spanQueryParams,
-          };
+          extraQueryParams = {...extraQueryParams, ...spanQueryParams};
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
@@ -292,10 +283,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           // Change data set to spans
           eventView.dataset = spanDataset;
-          extraQueryParams = {
-            ...extraQueryParams,
-            ...spanQueryParams,
-          };
+          extraQueryParams = {...extraQueryParams, ...spanQueryParams};
 
           // Update query
           const mutableSearch = MutableSearch.fromQueryObject(BASE_FILTERS);
@@ -304,10 +292,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
           eventView.additionalConditions.setFilterValues('count()', ['>1']);
-          extraQueryParams = {
-            ...extraQueryParams,
-            ...metricsQueryParams,
-          };
+          extraQueryParams = {...extraQueryParams, ...metricsQueryParams};
           eventView.dataset = metricsDataset;
           eventView.fields = [
             {field: 'transaction'},
@@ -500,10 +485,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           if (useEap) {
             eventView.dataset = DiscoverDatasets.SPANS;
-            extraQueryParams = {
-              ...extraQueryParams,
-              ...spanQueryParams,
-            };
+            extraQueryParams = {...extraQueryParams, ...spanQueryParams};
           }
 
           return (
@@ -531,10 +513,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     [props.chartSetting, selectedListIndex, mepSetting.memoizationKey]
   );
 
-  const Queries = {
-    list: listQuery,
-    chart: chartQuery,
-  };
+  const Queries = {list: listQuery, chart: chartQuery};
 
   const assembleAccordionItems = (provided: ComponentData) =>
     getItems(provided).map(item => ({
@@ -574,10 +553,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
       const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
       const transactionTarget = isUnparameterizedRow
-        ? createUnnamedTransactionsDiscoverTarget({
-            organization,
-            location,
-          })
+        ? createUnnamedTransactionsDiscoverTarget({organization, location})
         : transactionSummaryRouteWithQuery({
             organization: props.organization,
             projectID: listItem['project.id'] as string,
@@ -636,9 +612,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <Truncate value={transaction} maxLength={40} />
               </GrowLink>
               <RightAlignedCell>
-                {tct('[count] errors', {
-                  count: <Count value={rightValue!} />,
-                })}
+                {tct('[count] errors', {count: <Count value={rightValue!} />})}
               </RightAlignedCell>
               {!props.withStaticFilters && (
                 <ListClose

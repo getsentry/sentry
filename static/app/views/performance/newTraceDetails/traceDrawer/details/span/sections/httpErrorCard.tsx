@@ -11,9 +11,7 @@ import {HTTP_ERROR_STATUSES} from 'sentry/views/performance/newTraceDetails/trac
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 
-type HttpErrorCardProps = {
-  node: SpanNode | EapSpanNode;
-};
+type HttpErrorCardProps = {node: SpanNode | EapSpanNode};
 
 function formatStatusText(status: string): string {
   return status

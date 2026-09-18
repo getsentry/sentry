@@ -22,17 +22,13 @@ type Props = AdminConfirmRenderProps & {
   organization: Organization;
 };
 
-type State = {
-  regionUrl: string;
-};
+type State = {regionUrl: string};
 
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
 class ForkCustomerActionImpl extends Component<Props> {
-  state: State = {
-    regionUrl: '',
-  };
+  state: State = {regionUrl: ''};
 
   componentDidMount() {
     this.props.setConfirmCallback(this.handleConfirm);
@@ -50,10 +46,7 @@ class ForkCustomerActionImpl extends Component<Props> {
         getApiUrl('/organizations/$organizationIdOrSlug/fork/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'POST',
-          host: locality?.url,
-        }
+        {method: 'POST', host: locality?.url}
       );
 
       this.props.navigate(`/_admin/relocations/${locality?.name}/${response.uuid}/`);

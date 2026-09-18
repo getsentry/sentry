@@ -62,10 +62,7 @@ describe('getDateFromMoment', () => {
   it('shows the date and time in 24 hour format if 24 hour format is enabled', () => {
     ConfigStore.set('user', {
       ...ConfigStore.get('user'),
-      options: {
-        ...ConfigStore.get('user')?.options,
-        clock24Hours: true,
-      },
+      options: {...ConfigStore.get('user')?.options, clock24Hours: true},
     });
     expect(getDateFromMoment(start, '6h')).toBe('Jul 8 20:00 - 02:00 (-04:00)');
     expect(getDateFromMoment(start, '1h')).toBe('Jul 8 20:00 - 21:00 (-04:00)');

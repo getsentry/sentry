@@ -52,12 +52,7 @@ describe('useLogAttributesTreeActions', () => {
       () => useLogAttributesTreeActions({embedded: false}),
       {
         additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/explore/logs/',
-            query: {},
-          },
-        },
+        initialRouterConfig: {location: {pathname: '/explore/logs/', query: {}}},
       }
     );
 

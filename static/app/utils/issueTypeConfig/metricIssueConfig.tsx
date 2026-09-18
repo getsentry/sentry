@@ -15,10 +15,7 @@ export const metricIssueConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     defaultTimePeriod: {sinceFirstSeen: false},
-    customCopy: {
-      resolution: t('Back to baseline'),
-      eventUnits: t('Open Periods'),
-    },
+    customCopy: {resolution: t('Back to baseline'), eventUnits: t('Open Periods')},
     detector: {
       enabled: true,
       title: t('Metric Alert Detector'),

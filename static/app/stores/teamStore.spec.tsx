@@ -3,14 +3,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {TeamStore} from 'sentry/stores/teamStore';
 
 describe('TeamStore', () => {
-  const teamFoo = TeamFixture({
-    id: '1',
-    slug: 'team-foo',
-  });
-  const teamBar = TeamFixture({
-    id: '2',
-    slug: 'team-bar',
-  });
+  const teamFoo = TeamFixture({id: '1', slug: 'team-foo'});
+  const teamBar = TeamFixture({id: '2', slug: 'team-bar'});
 
   beforeEach(() => {
     TeamStore.reset();
@@ -37,10 +31,7 @@ describe('TeamStore', () => {
     });
 
     it('loads user teams', () => {
-      expect(TeamStore.getState()).toMatchObject({
-        teams: [],
-        loadedUserTeams: false,
-      });
+      expect(TeamStore.getState()).toMatchObject({teams: [], loadedUserTeams: false});
 
       TeamStore.loadUserTeams([teamFoo]);
       expect(TeamStore.getState()).toMatchObject({
@@ -71,43 +62,31 @@ describe('TeamStore', () => {
     it('adds new teams', async () => {
       TeamStore.loadInitialData([teamFoo]);
       await tick();
-      expect(TeamStore.getState()).toMatchObject({
-        teams: [teamFoo],
-      });
+      expect(TeamStore.getState()).toMatchObject({teams: [teamFoo]});
 
       TeamStore.onCreateSuccess(teamBar);
       await tick();
-      expect(TeamStore.getState()).toMatchObject({
-        teams: [teamBar, teamFoo],
-      });
+      expect(TeamStore.getState()).toMatchObject({teams: [teamBar, teamFoo]});
     });
 
     it('removes teams', async () => {
       TeamStore.loadInitialData([teamFoo]);
       await tick();
-      expect(TeamStore.getState()).toMatchObject({
-        teams: [teamFoo],
-      });
+      expect(TeamStore.getState()).toMatchObject({teams: [teamFoo]});
 
       TeamStore.onRemoveSuccess(teamFoo.slug);
       await tick();
-      expect(TeamStore.getState()).toMatchObject({
-        teams: [],
-      });
+      expect(TeamStore.getState()).toMatchObject({teams: []});
     });
 
     it('updates teams', async () => {
       TeamStore.loadInitialData([teamFoo]);
       await tick();
-      expect(TeamStore.getState()).toMatchObject({
-        teams: [teamFoo],
-      });
+      expect(TeamStore.getState()).toMatchObject({teams: [teamFoo]});
 
       TeamStore.onUpdateSuccess(teamFoo.slug, teamBar);
       await tick();
-      expect(TeamStore.getState()).toMatchObject({
-        teams: [teamBar],
-      });
+      expect(TeamStore.getState()).toMatchObject({teams: [teamBar]});
     });
   });
 });

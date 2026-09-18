@@ -192,10 +192,7 @@ function ChapterRow({
                   <Link
                     to={{
                       pathname: location.pathname,
-                      query: {
-                        t_main: TabKey.CONSOLE,
-                        t: startOffset / 1000,
-                      },
+                      query: {t_main: TabKey.CONSOLE, t: startOffset / 1000},
                     }}
                     onClick={() => setCurrentTime(startOffset)}
                   />
@@ -204,10 +201,7 @@ function ChapterRow({
                   <Link
                     to={{
                       pathname: location.pathname,
-                      query: {
-                        t_main: TabKey.NETWORK,
-                        t: startOffset / 1000,
-                      },
+                      query: {t_main: TabKey.NETWORK, t: startOffset / 1000},
                     }}
                     onClick={() => setCurrentTime(startOffset)}
                   />

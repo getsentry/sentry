@@ -62,10 +62,7 @@ function useLastEditedBy({
         path: {organizationIdOrSlug: organization.slug, issueId: groupId},
       }),
     ],
-    {
-      enabled: !defined(incomingLastEditedBy),
-      staleTime: 0,
-    }
+    {enabled: !defined(incomingLastEditedBy), staleTime: 0}
   );
 
   const lastEditedBy = useMemo(() => {

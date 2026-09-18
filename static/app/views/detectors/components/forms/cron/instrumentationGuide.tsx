@@ -101,10 +101,7 @@ export function InstrumentationGuide() {
 
     // If platform has exactly one guide, select it directly
     if (c.guides.length === 1) {
-      return {
-        ...item,
-        onAction: () => setPlatformGuide(c.platform, c.guides[0].key),
-      };
+      return {...item, onAction: () => setPlatformGuide(c.platform, c.guides[0].key)};
     }
 
     const children = c.guides.map(g => ({

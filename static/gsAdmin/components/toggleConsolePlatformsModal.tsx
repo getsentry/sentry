@@ -210,10 +210,7 @@ function ToggleConsolePlatformsModal({
 
     if (pendingRevocations.length > 0) {
       promises.push(
-        revokeConsoleInvites({
-          orgSlug: organization.slug,
-          items: pendingRevocations,
-        })
+        revokeConsoleInvites({orgSlug: organization.slug, items: pendingRevocations})
       );
     }
     promises.push(updateConsolePlatforms(data));

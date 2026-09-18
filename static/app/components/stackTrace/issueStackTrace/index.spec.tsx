@@ -24,19 +24,12 @@ function makeStackTraceData(): {
   const entry = EventEntryStacktraceFixture();
 
   return {
-    event: EventFixture({
-      platform: 'python',
-      projectID: '1',
-      entries: [entry],
-    }),
+    event: EventFixture({platform: 'python', projectID: '1', entries: [entry]}),
     stacktrace: {
       ...entry.data,
       hasSystemFrames: true,
       frames:
-        entry.data.frames?.map((frame, index) => ({
-          ...frame,
-          inApp: index >= 2,
-        })) ?? [],
+        entry.data.frames?.map((frame, index) => ({...frame, inApp: index >= 2})) ?? [],
     },
   };
 }
@@ -91,10 +84,7 @@ describe('IssueStackTrace', () => {
       ...event,
       entries: [
         ...event.entries,
-        {
-          type: 'threads' as const,
-          data: {values: [{id: 0, current: true}]},
-        },
+        {type: 'threads' as const, data: {values: [{id: 0, current: true}]}},
       ],
     });
 
@@ -337,16 +327,7 @@ describe('IssueStackTrace', () => {
         entries: {
           [entryIndex]: {
             data: {
-              values: {
-                0: {
-                  value: {
-                    '': {
-                      rem: [['project:0', 's', 0, 0]],
-                      len: 18,
-                    },
-                  },
-                },
-              },
+              values: {0: {value: {'': {rem: [['project:0', 's', 0, 0]], len: 18}}}},
             },
           },
         },
@@ -814,12 +795,7 @@ describe('IssueStackTrace', () => {
             type: 'ValueError',
             value: 'value error',
             module: null,
-            mechanism: {
-              handled: true,
-              type: 'chained',
-              exception_id: 1,
-              parent_id: 0,
-            },
+            mechanism: {handled: true, type: 'chained', exception_id: 1, parent_id: 0},
             stacktrace: minimalStacktrace,
             threadId: null,
             rawStacktrace: null,
@@ -843,12 +819,7 @@ describe('IssueStackTrace', () => {
             type: 'TypeError',
             value: 'type error',
             module: null,
-            mechanism: {
-              handled: true,
-              type: 'chained',
-              exception_id: 3,
-              parent_id: 2,
-            },
+            mechanism: {handled: true, type: 'chained', exception_id: 3, parent_id: 2},
             stacktrace: minimalStacktrace,
             threadId: null,
             rawStacktrace: null,
@@ -857,12 +828,7 @@ describe('IssueStackTrace', () => {
             type: 'KeyError',
             value: 'key error',
             module: null,
-            mechanism: {
-              handled: true,
-              type: 'chained',
-              exception_id: 4,
-              parent_id: 2,
-            },
+            mechanism: {handled: true, type: 'chained', exception_id: 4, parent_id: 2},
             stacktrace: minimalStacktrace,
             threadId: null,
             rawStacktrace: null,

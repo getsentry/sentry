@@ -24,11 +24,7 @@ type OperationName = string | typeof OtherOperation;
 type OperationNameIntervals = Record<OperationName, TimeWindowSpan[]>;
 type OperationNameCoverage = Record<OperationName, Duration>;
 
-type OpStats = {
-  name: OperationName;
-  percentage: number;
-  totalInterval: number;
-};
+type OpStats = {name: OperationName; percentage: number; totalInterval: number};
 
 type OpBreakdownType = OpStats[];
 

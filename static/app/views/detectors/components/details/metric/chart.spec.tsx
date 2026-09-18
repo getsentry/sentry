@@ -28,9 +28,7 @@ describe('MetricDetectorDetailsChart', () => {
   it('displays error alert and error panel when API request fails', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {
-        detail: 'Invalid query: xyz',
-      },
+      body: {detail: 'Invalid query: xyz'},
       statusCode: 400,
     });
 
@@ -41,9 +39,7 @@ describe('MetricDetectorDetailsChart', () => {
   });
 
   describe('anomaly threshold cutoff message', () => {
-    const organization = OrganizationFixture({
-      features: ['visibility-explore-view'],
-    });
+    const organization = OrganizationFixture({features: ['visibility-explore-view']});
 
     const anomalyDetector = MetricDetectorFixture({
       config: {detectionType: 'dynamic'},
@@ -80,12 +76,7 @@ describe('MetricDetectorDetailsChart', () => {
         url: `/organizations/org-slug/detectors/${anomalyDetector.id}/anomaly-data/`,
         body: {
           data: [
-            {
-              timestamp: baseTimestamp,
-              value: 50,
-              yhat_upper: yhatUpper,
-              yhat_lower: 10,
-            },
+            {timestamp: baseTimestamp, value: 50, yhat_upper: yhatUpper, yhat_lower: 10},
           ],
         },
       });

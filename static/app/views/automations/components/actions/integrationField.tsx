@@ -13,10 +13,7 @@ export function IntegrationField() {
       name={`${actionId}.integrationId`}
       aria-label={t('Integration')}
       value={action.integrationId ?? ''}
-      options={integrations?.map(team => ({
-        label: team.name,
-        value: team.id,
-      }))}
+      options={integrations?.map(team => ({label: team.name, value: team.id}))}
       onChange={(option: SelectValue<string>) => {
         const integration = handler.integrations?.find(i => i.id === option.value);
         const defaultService = integration?.services?.[0]?.id;

@@ -52,10 +52,7 @@ export function CustomerStatsFilters({
     }
 
     if (start && end) {
-      return {
-        start: moment.utc(start).format(),
-        end: moment.utc(end).format(),
-      };
+      return {start: moment.utc(start).format(), end: moment.utc(end).format()};
     }
 
     return {};

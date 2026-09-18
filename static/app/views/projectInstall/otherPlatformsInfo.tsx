@@ -112,9 +112,7 @@ export function OtherPlatformsInfo({
       <div>
         {tct(
           'Your favorite language or framework still cannot be found? Then we encourage you to consider [link:writing your own SDK].',
-          {
-            link: <ExternalLink href="https://develop.sentry.dev/sdk" />,
-          }
+          {link: <ExternalLink href="https://develop.sentry.dev/sdk" />}
         )}
       </div>
     </Wrapper>

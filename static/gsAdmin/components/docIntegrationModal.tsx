@@ -82,10 +82,7 @@ export function DocIntegrationModal(props: Props) {
           help="The title of the resource."
           required
           onChange={(value: any) => {
-            setResources({
-              ...resources,
-              [id]: {...entry, title: value},
-            });
+            setResources({...resources, [id]: {...entry, title: value}});
           }}
         />
         <ResourceTextField
@@ -96,10 +93,7 @@ export function DocIntegrationModal(props: Props) {
           help="A link to the resource."
           required
           onChange={(value: any) => {
-            setResources({
-              ...resources,
-              [id]: {...entry, url: value},
-            });
+            setResources({...resources, [id]: {...entry, url: value}});
           }}
         />
         <RemoveButton
@@ -123,10 +117,7 @@ export function DocIntegrationModal(props: Props) {
         variant="link"
         onClick={e => {
           e.preventDefault();
-          setResources(state => ({
-            ...state,
-            [lastResourceId + 1]: {},
-          }));
+          setResources(state => ({...state, [lastResourceId + 1]: {}}));
           setLastResourceId(lastResourceId + 1);
         }}
         icon={<IconAdd size="xs" />}

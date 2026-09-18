@@ -36,11 +36,7 @@ export function createMakeStepProps(
  * Call in beforeEach. Remember to call jest.restoreAllMocks() in afterEach.
  */
 export function setupMockPopup(): Window {
-  const popup = {
-    closed: false,
-    close: jest.fn(),
-    focus: jest.fn(),
-  } as unknown as Window;
+  const popup = {closed: false, close: jest.fn(), focus: jest.fn()} as unknown as Window;
   jest.spyOn(window, 'open').mockReturnValue(popup);
   return popup;
 }

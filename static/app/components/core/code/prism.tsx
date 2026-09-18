@@ -1,10 +1,7 @@
 import Prism from 'prismjs';
 import prismComponents from 'prismjs/components';
 
-type PrismLanguageDefinition = {
-  alias?: string | string[];
-  require?: string | string[];
-};
+type PrismLanguageDefinition = {alias?: string | string[]; require?: string | string[]};
 
 const prismLanguages = prismComponents.languages as Record<
   string,

@@ -37,10 +37,7 @@ describe('WidgetBuilderSortBySelector', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: defaultRouterConfig,
-      }
+      {organization, initialRouterConfig: defaultRouterConfig}
     );
 
     expect(await screen.findByText('Sort by')).toBeInTheDocument();
@@ -54,10 +51,7 @@ describe('WidgetBuilderSortBySelector', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: defaultRouterConfig,
-      }
+      {organization, initialRouterConfig: defaultRouterConfig}
     );
 
     expect(await screen.findByText('Sort by')).toBeInTheDocument();
@@ -77,10 +71,7 @@ describe('WidgetBuilderSortBySelector', () => {
           ...defaultRouterConfig,
           location: {
             pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
-            query: {
-              ...defaultRouterConfig.location?.query,
-              displayType: 'table',
-            },
+            query: {...defaultRouterConfig.location?.query, displayType: 'table'},
           },
         },
       }
@@ -96,10 +87,7 @@ describe('WidgetBuilderSortBySelector', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: defaultRouterConfig,
-      }
+      {organization, initialRouterConfig: defaultRouterConfig}
     );
 
     const sortDirectionSelector = await screen.findByText('High to low');
@@ -126,10 +114,7 @@ describe('WidgetBuilderSortBySelector', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: defaultRouterConfig,
-      }
+      {organization, initialRouterConfig: defaultRouterConfig}
     );
 
     // default limit is 5
@@ -163,10 +148,7 @@ describe('WidgetBuilderSortBySelector', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: defaultRouterConfig,
-      }
+      {organization, initialRouterConfig: defaultRouterConfig}
     );
 
     const limitSelector = await screen.findByText('Limit to 5 results');
@@ -358,10 +340,7 @@ describe('WidgetBuilderSortBySelector', () => {
           ...defaultRouterConfig,
           location: {
             pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
-            query: {
-              ...defaultRouterConfig.location?.query,
-              displayType: 'table',
-            },
+            query: {...defaultRouterConfig.location?.query, displayType: 'table'},
           },
         },
       }

@@ -13,10 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Project}) => {
   const {openDrawer} = useDrawer();
   const [{seerDrawer}, setDrawerQuery] = useQueryStates(
-    {
-      seerDrawer: parseAsBoolean.withDefault(false),
-      seerDrawerAction: parseAsString,
-    },
+    {seerDrawer: parseAsBoolean.withDefault(false), seerDrawerAction: parseAsString},
     {shallow: false}
   );
   const organization = useOrganization();

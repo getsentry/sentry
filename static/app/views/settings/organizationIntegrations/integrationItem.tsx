@@ -10,10 +10,7 @@ import type {Integration} from 'sentry/types/integrations';
 import {getIntegrationNoun} from 'sentry/utils/integrationUtil';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
-type Props = {
-  integration: Integration;
-  requiresUpgrade?: boolean | undefined;
-};
+type Props = {integration: Integration; requiresUpgrade?: boolean | undefined};
 
 export function IntegrationItem({integration, requiresUpgrade}: Props) {
   return (

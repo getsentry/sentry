@@ -44,10 +44,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, isLoading}: Props)
     ?.map(item => {
       const sampleRate = clampPercentRate(sampleRates[item.project.id] ?? 1);
       const sampledSpans = Math.floor(item.count * sampleRate);
-      return {
-        project: item.project,
-        sampledSpans,
-      };
+      return {project: item.project, sampledSpans};
     })
     .toSorted((a, b) => b.sampledSpans - a.sampledSpans);
 

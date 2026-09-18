@@ -44,10 +44,7 @@ type InvestigationFixtureApiProps = {
 
 type FixtureApiConfig = Omit<InvestigationFixtureApiProps, 'children'>;
 
-type FixtureResponse = {
-  body: unknown;
-  headers?: Record<string, string>;
-};
+type FixtureResponse = {body: unknown; headers?: Record<string, string>};
 
 type FixtureHandlerResult = Promise<FixtureResponse> | typeof NO_MATCH;
 type FixtureHandler = (
@@ -85,10 +82,7 @@ export function InvestigationFixtureApi({
         ...DEFAULT_QUERY_CLIENT_CONFIG,
         defaultOptions: {
           ...DEFAULT_QUERY_CLIENT_CONFIG.defaultOptions,
-          queries: {
-            ...DEFAULT_QUERY_CLIENT_CONFIG.defaultOptions?.queries,
-            retry: false,
-          },
+          queries: {...DEFAULT_QUERY_CLIENT_CONFIG.defaultOptions?.queries, retry: false},
         },
       })
   );
@@ -343,10 +337,7 @@ function handleFixtureRequest(
 
   if (parts[1] === 'favorite' && method === 'PUT') {
     const detail = getFixtureDetail(state, investigationId);
-    setFixtureDetail(state, {
-      ...detail,
-      isFavorited: data.shouldFavorite === true,
-    });
+    setFixtureDetail(state, {...detail, isFavorited: data.shouldFavorite === true});
     return {body: undefined};
   }
 
@@ -557,11 +548,7 @@ function handleFixtureRequest(
       const current =
         state.executions.get(key) ??
         InvestigationExecutionDetailFixture({id: executionId});
-      state.executions.set(key, {
-        ...current,
-        status,
-        pendingUserInput: null,
-      });
+      state.executions.set(key, {...current, status, pendingUserInput: null});
       setFixtureDetail(state, {
         ...detail,
         blocks: detail.blocks?.map(block =>
@@ -627,11 +614,7 @@ function applyFixtureCommandToHypothesis(
         effectiveStatus: hypothesis.agentVerdict?.verdict ?? 'inconclusive',
       };
     }
-    return {
-      ...hypothesis,
-      decisionSource: 'user',
-      effectiveStatus: command.disposition,
-    };
+    return {...hypothesis, decisionSource: 'user', effectiveStatus: command.disposition};
   }
 
   if (

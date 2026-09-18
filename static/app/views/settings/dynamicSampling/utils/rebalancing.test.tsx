@@ -7,10 +7,7 @@ describe('balanceSampleRate', () => {
       {id: '2', count: 1000, sampleRate: 0.1},
     ];
 
-    const {balancedItems, usedBudget} = balanceSampleRate({
-      items,
-      targetSampleRate: 0.2,
-    });
+    const {balancedItems, usedBudget} = balanceSampleRate({items, targetSampleRate: 0.2});
 
     expect(balancedItems).toHaveLength(2);
     expect(balancedItems[0]!.sampleRate).toBeCloseTo(0.2);
@@ -24,10 +21,7 @@ describe('balanceSampleRate', () => {
       {id: '2', count: 1000, sampleRate: 0.1},
     ];
 
-    const {balancedItems, usedBudget} = balanceSampleRate({
-      items,
-      targetSampleRate: 0.2,
-    });
+    const {balancedItems, usedBudget} = balanceSampleRate({items, targetSampleRate: 0.2});
 
     // Items should be sorted by count, so id:2 should be first
     expect(balancedItems[0]!.id).toBe('2');
@@ -44,10 +38,7 @@ describe('balanceSampleRate', () => {
       {id: '2', count: 10000, sampleRate: 0.1},
     ];
 
-    const {balancedItems} = balanceSampleRate({
-      items,
-      targetSampleRate: 0.8,
-    });
+    const {balancedItems} = balanceSampleRate({items, targetSampleRate: 0.8});
 
     expect(balancedItems[0]!.sampleRate).toBe(1); // Small count item should be capped at 1
     expect(balancedItems[1]!.sampleRate).toBeLessThan(1);

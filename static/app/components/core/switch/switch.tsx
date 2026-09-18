@@ -12,15 +12,9 @@ export interface SwitchProps extends Omit<
   size?: 'sm' | 'lg';
 }
 
-const toggleWrapperSize = {
-  sm: {width: 36, height: 20},
-  lg: {width: 40, height: 24},
-};
+const toggleWrapperSize = {sm: {width: 36, height: 20}, lg: {width: 40, height: 24}};
 
-const toggleButtonSize = {
-  sm: {width: 20, height: 20},
-  lg: {width: 24, height: 24},
-};
+const toggleButtonSize = {sm: {width: 20, height: 20}, lg: {width: 24, height: 24}};
 
 const NativeHiddenCheckbox = styled('input')<{
   nativeSize: NonNullable<SwitchProps['size']>;

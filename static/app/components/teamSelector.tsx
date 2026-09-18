@@ -79,10 +79,7 @@ const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
       display: 'block',
     },
   }),
-  placeholder: provided => ({
-    ...provided,
-    paddingLeft: 32,
-  }),
+  placeholder: provided => ({...provided, paddingLeft: 32}),
 });
 
 type Props = DistributedOmit<ControlProps, 'onChange'> & {
@@ -114,11 +111,7 @@ type Props = DistributedOmit<ControlProps, 'onChange'> & {
   useTeamDefaultIfOnlyOne?: boolean;
 };
 
-type TeamActor = {
-  id: string;
-  name: string;
-  type: 'team';
-};
+type TeamActor = {id: string; name: string; type: 'team'};
 
 export interface TeamOption extends SelectValue<string | null> {
   actor: TeamActor | null;
@@ -165,11 +158,7 @@ export function TeamSelector(props: Props) {
       label: `#${team.slug}`,
       leadingItems: <IdBadge team={team} hideName />,
       searchKey: team.slug,
-      actor: {
-        type: 'team',
-        id: team.id,
-        name: team.slug,
-      },
+      actor: {type: 'team', id: team.id, name: team.slug},
     }),
     [useId]
   );

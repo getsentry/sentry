@@ -14,18 +14,13 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-export type RawGroupBy = {
-  groupBy: string;
-};
+export type RawGroupBy = {groupBy: string};
 
 function isRawGroupBy(value: any): value is RawGroupBy {
   return typeof value === 'object' && typeof value.groupBy === 'string';
 }
 
-export type RawVisualize = {
-  yAxes: string[];
-  chartType?: number;
-};
+export type RawVisualize = {yAxes: string[]; chartType?: number};
 
 export function isRawVisualize(value: any): value is RawVisualize {
   return (

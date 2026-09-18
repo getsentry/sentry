@@ -26,10 +26,7 @@ describe('parseFunction', () => {
   });
 
   it('handles 0 arg functions', () => {
-    expect(parseFunction('count()')).toEqual({
-      name: 'count',
-      arguments: [],
-    });
+    expect(parseFunction('count()')).toEqual({name: 'count', arguments: []});
     expect(parseFunction('count_unique()')).toEqual({
       name: 'count_unique',
       arguments: [],
@@ -37,10 +34,7 @@ describe('parseFunction', () => {
   });
 
   it('handles 1 arg functions', () => {
-    expect(parseFunction('count(id)')).toEqual({
-      name: 'count',
-      arguments: ['id'],
-    });
+    expect(parseFunction('count(id)')).toEqual({name: 'count', arguments: ['id']});
     expect(parseFunction('count_unique(user)')).toEqual({
       name: 'count_unique',
       arguments: ['user'],
@@ -331,10 +325,7 @@ describe('measurement', () => {
 
 describe('explodeField', () => {
   it('explodes fields', () => {
-    expect(explodeField({field: 'foobar'})).toEqual({
-      kind: 'field',
-      field: 'foobar',
-    });
+    expect(explodeField({field: 'foobar'})).toEqual({kind: 'field', field: 'foobar'});
 
     // has width
     expect(explodeField({field: 'foobar', width: 123})).toEqual({
@@ -479,9 +470,7 @@ describe('fieldAlignment()', () => {
   });
 
   it('can use table metadata', () => {
-    const meta: Record<string, ColumnValueType> = {
-      'transaction.duration': 'duration',
-    };
+    const meta: Record<string, ColumnValueType> = {'transaction.duration': 'duration'};
     expect(fieldAlignment('transaction.duration', 'never', meta)).toBe('right');
     expect(fieldAlignment('transaction.duration', undefined, meta)).toBe('right');
 
@@ -491,12 +480,9 @@ describe('fieldAlignment()', () => {
 
 describe('prettifyParsedFunction', () => {
   it('prettifies typed tag arguments', () => {
-    expect(
-      prettifyParsedFunction({
-        name: 'avg',
-        arguments: ['tags[Limit,number]'],
-      })
-    ).toBe('avg(Limit)');
+    expect(prettifyParsedFunction({name: 'avg', arguments: ['tags[Limit,number]']})).toBe(
+      'avg(Limit)'
+    );
   });
 
   it('prettifies typed tag keys inside conditional filter arguments', () => {

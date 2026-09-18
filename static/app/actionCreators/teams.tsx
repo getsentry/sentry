@@ -45,9 +45,7 @@ export async function joinTeamPromise(
         },
       }
     ),
-    {
-      method: 'POST',
-    }
+    {method: 'POST'}
   );
 
   TeamStore.onUpdateSuccess(params.teamId, data);
@@ -70,9 +68,7 @@ export async function leaveTeamPromise(
         },
       }
     ),
-    {
-      method: 'DELETE',
-    }
+    {method: 'DELETE'}
   );
 
   TeamStore.onUpdateSuccess(params.teamId, data);
@@ -84,14 +80,9 @@ export function removeTeam(api: Client, params: OrgAndTeamSlug) {
   return api
     .requestPromise(
       getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/', {
-        path: {
-          organizationIdOrSlug: params.orgId,
-          teamIdOrSlug: params.teamId,
-        },
+        path: {organizationIdOrSlug: params.orgId, teamIdOrSlug: params.teamId},
       }),
-      {
-        method: 'DELETE',
-      }
+      {method: 'DELETE'}
     )
     .then(
       data => {

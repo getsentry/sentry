@@ -17,10 +17,7 @@ export type OverviewIssuePriorityGroup = Pick<
   | 'level'
   | 'owners'
   | 'priorityLockedAt'
-> & {
-  priority: PriorityLevel | null;
-  project: Pick<Group['project'], 'id'>;
-};
+> & {priority: PriorityLevel | null; project: Pick<Group['project'], 'id'>};
 
 interface OverviewIssuePriorityProps {
   group: OverviewIssuePriorityGroup;

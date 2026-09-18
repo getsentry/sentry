@@ -25,10 +25,7 @@ const SEER_CONTEXT_FEATURE = 'seer-context';
 function configIntegrationsQueryOptions(orgSlug: string) {
   return apiOptions.as<{providers: IntegrationProvider[]}>()(
     '/organizations/$organizationIdOrSlug/config/integrations/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: 0}
   );
 }
 

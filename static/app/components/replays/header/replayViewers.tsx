@@ -7,11 +7,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
-type TResponseData = {
-  data: {
-    viewed_by: User[];
-  };
-};
+type TResponseData = {data: {viewed_by: User[]}};
 
 interface Props {
   projectId: string;
@@ -38,9 +34,7 @@ export function ReplayViewers({projectId, replayId}: Props) {
         }
       ),
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   return isPending || isError ? (

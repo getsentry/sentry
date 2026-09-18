@@ -257,9 +257,7 @@ export function useVirtualStreaming({
           warnRef.current();
           logger.info(
             'No most recent page data timestamp found, setting auto-refresh to error',
-            {
-              organization: organizationRef.current.slug,
-            }
+            {organization: organizationRef.current.slug}
           );
           setLogsAutoRefresh('error');
           return;
@@ -292,9 +290,7 @@ export function useVirtualStreaming({
     };
   }, [autoRefresh, getMostRecentPageDataTimestamp, refreshInterval, setLogsAutoRefresh]);
 
-  return {
-    virtualStreamedTimestamp: virtualTimestamp,
-  };
+  return {virtualStreamedTimestamp: virtualTimestamp};
 }
 
 /**

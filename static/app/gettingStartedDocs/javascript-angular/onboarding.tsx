@@ -97,9 +97,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
       'In this quick guide you will use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
-      {
-        strong: <strong />,
-      }
+      {strong: <strong />}
     ),
   install: () => [
     {
@@ -124,9 +122,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
           type: 'text',
           text: tct(
             'Initialize the Sentry Angular SDK in your [code:main.ts] file as early as possible, before initializing Angular:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

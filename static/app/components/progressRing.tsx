@@ -3,11 +3,7 @@ import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-type TextProps = {
-  percent: number;
-  theme: Theme;
-  textCss?: Props['textCss'];
-};
+type TextProps = {percent: number; theme: Theme; textCss?: Props['textCss']};
 
 type Props = React.HTMLAttributes<SVGSVGElement> & {
   value: number;

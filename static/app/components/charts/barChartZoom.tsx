@@ -19,10 +19,7 @@ type RenderProps = {
   toolBox: ReturnType<typeof getToolBox>;
 };
 
-type BarChartBucket = {
-  end: number;
-  start: number;
-};
+type BarChartBucket = {end: number; start: number};
 
 type Props = {
   /**
@@ -98,11 +95,7 @@ export function BarChartZoom({
       if (minZoomWidth === undefined || end - start > minZoomWidth) {
         const target = {
           pathname: location.pathname,
-          query: {
-            ...location.query,
-            [paramStart]: start,
-            [paramEnd]: end,
-          },
+          query: {...location.query, [paramStart]: start, [paramEnd]: end},
         };
         if (onHistoryPush) {
           onHistoryPush(start, end);
@@ -129,15 +122,8 @@ export function BarChartZoom({
       {},
       {
         dataZoom: {
-          title: {
-            zoom: '',
-            back: '',
-          },
-          iconStyle: {
-            borderWidth: 0,
-            color: 'transparent',
-            opacity: 0,
-          },
+          title: {zoom: '', back: ''},
+          iconStyle: {borderWidth: 0, color: 'transparent', opacity: 0},
         },
       }
     ),

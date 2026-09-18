@@ -109,10 +109,7 @@ function prodTypeLoader(this: LoaderContext): string {
 
   const typeLoaderResult: TypeLoader.TypeLoaderResult = {
     props: moduleProps,
-    exports: {
-      module,
-      exports: moduleExports,
-    },
+    exports: {module, exports: moduleExports},
   };
   return `export default ${serializeTypeLoaderResult(
     typeLoaderResult,

@@ -30,11 +30,7 @@ interface CountMessageProps {
 function CountMessage({sentCount, errorCount, isRequest}: CountMessageProps) {
   const invites = <InviteCount count={sentCount} isRequest={isRequest} />;
   const failedInvites = <InviteCount count={errorCount} isRequest={isRequest} />;
-  const tctComponents = {
-    invites,
-    failed: errorCount,
-    failedInvites,
-  };
+  const tctComponents = {invites, failed: errorCount, failedInvites};
   return (
     <div>
       {sentCount > 0 && (

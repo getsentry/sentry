@@ -122,9 +122,7 @@ export function RouteError({error}: RouteErrorProps) {
         <p style={{marginTop: '1em', marginBottom: 0}}>
           {tct(
             'If the guide does not help, [link:contact support] — include as many of these details as you can:',
-            {
-              link: <ExternalLink href="https://www.sentry.help" />,
-            }
+            {link: <ExternalLink href="https://www.sentry.help" />}
           )}
         </p>
         <List symbol="bullet">

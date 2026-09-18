@@ -26,10 +26,7 @@ export function installSentryApp(
     getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      method: 'POST',
-      data: {slug: app.slug},
-    }
+    {method: 'POST', data: {slug: app.slug}}
   );
   promise.then(
     () => clearIndicators(),

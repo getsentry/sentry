@@ -6,10 +6,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 describe('DiscoverQuery', () => {
   let location: any, eventView: any;
   beforeEach(() => {
-    location = {
-      pathname: '/events',
-      query: {},
-    };
+    location = {pathname: '/events', query: {}};
     eventView = EventView.fromSavedQuery({
       id: '',
       name: 'test query',
@@ -74,10 +71,7 @@ describe('DiscoverQuery', () => {
       '/organizations/test-org/events/',
       expect.objectContaining({
         method: 'GET',
-        query: expect.objectContaining({
-          per_page: 3,
-          cursor: '1:0:1',
-        }),
+        query: expect.objectContaining({per_page: 3, cursor: '1:0:1'}),
       })
     );
   });
@@ -85,9 +79,7 @@ describe('DiscoverQuery', () => {
   it('parses string errors correctly', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/test-org/events/',
-      body: {
-        detail: 'Error Message',
-      },
+      body: {detail: 'Error Message'},
       statusCode: 400,
     });
 
@@ -114,13 +106,7 @@ describe('DiscoverQuery', () => {
   it('parses object errors correctly', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/test-org/events/',
-      body: {
-        detail: {
-          code: '?',
-          message: 'Object Error',
-          extra: {},
-        },
-      },
+      body: {detail: {code: '?', message: 'Object Error', extra: {}}},
       statusCode: 400,
     });
 

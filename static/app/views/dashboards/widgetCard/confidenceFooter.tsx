@@ -156,12 +156,7 @@ function toFooterTimeSeries(
     return {
       yAxis: seriesEntry.seriesName,
       values,
-      meta: {
-        interval,
-        valueType: 'number',
-        valueUnit: null,
-        dataScanned,
-      },
+      meta: {interval, valueType: 'number', valueUnit: null, dataScanned},
     };
   });
 }

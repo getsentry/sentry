@@ -89,12 +89,7 @@ describe('ExternalIssueSidebarList', () => {
     // Integrations are refetched, remove the external issue from the object
     const refetchMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
-      body: [
-        GitHubIntegrationFixture({
-          status: 'active',
-          externalIssues: [],
-        }),
-      ],
+      body: [GitHubIntegrationFixture({status: 'active', externalIssues: []})],
     });
 
     await userEvent.click(
@@ -140,9 +135,7 @@ describe('ExternalIssueSidebarList', () => {
     });
     SentryAppComponentsStore.loadComponents([component]);
     SentryAppInstallationStore.load([
-      SentryAppInstallationFixture({
-        app: component.sentryApp,
-      }),
+      SentryAppInstallationFixture({app: component.sentryApp}),
     ]);
 
     render(<ExternalIssueSidebarList event={event} group={group} />);
@@ -201,17 +194,11 @@ describe('ExternalIssueSidebarList', () => {
 
   it('should render issue tracker actions in the section header', async () => {
     const asanaComponent = SentryAppComponentFixture({
-      sentryApp: {
-        ...SentryAppComponentFixture().sentryApp,
-        slug: 'asana',
-        name: 'Asana',
-      },
+      sentryApp: {...SentryAppComponentFixture().sentryApp, slug: 'asana', name: 'Asana'},
     });
     SentryAppComponentsStore.loadComponents([asanaComponent]);
     SentryAppInstallationStore.load([
-      SentryAppInstallationFixture({
-        app: asanaComponent.sentryApp,
-      }),
+      SentryAppInstallationFixture({app: asanaComponent.sentryApp}),
     ]);
     mockExternalLinkRequests([
       GitHubIntegrationFixture({
@@ -321,9 +308,7 @@ describe('ExternalIssueSidebarList', () => {
       within(linkedIssueList).getByRole('button', {name: `Unlink ${issue.key}`})
     ).toBeInTheDocument();
     expect(
-      within(linkedIssueList).getByRole('button', {
-        name: `Unlink ${prefixedIssue.key}`,
-      })
+      within(linkedIssueList).getByRole('button', {name: `Unlink ${prefixedIssue.key}`})
     ).toBeInTheDocument();
   });
 

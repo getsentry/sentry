@@ -8,13 +8,7 @@ import {getStyledCallInfo} from './styled';
  * Used to test the utility via RuleTester.
  */
 const testRule = defineRule({
-  meta: {
-    type: 'problem',
-    schema: [],
-    messages: {
-      info: '{{kind}}:{{name}}',
-    },
-  },
+  meta: {type: 'problem', schema: [], messages: {info: '{{kind}}:{{name}}'}},
   create(context) {
     return {
       TaggedTemplateExpression(node) {
@@ -23,10 +17,7 @@ const testRule = defineRule({
           context.report({
             node,
             messageId: 'info',
-            data: {
-              kind: info.kind,
-              name: 'name' in info ? info.name : '',
-            },
+            data: {kind: info.kind, name: 'name' in info ? info.name : ''},
           });
         }
       },
@@ -36,10 +27,7 @@ const testRule = defineRule({
           context.report({
             node,
             messageId: 'info',
-            data: {
-              kind: info.kind,
-              name: 'name' in info ? info.name : '',
-            },
+            data: {kind: info.kind, name: 'name' in info ? info.name : ''},
           });
         }
       },
@@ -51,14 +39,8 @@ const ruleTester = new RuleTester();
 
 ruleTester.run('getStyledCallInfo', testRule, {
   valid: [
-    {
-      code: 'const x = foo`color: red`;',
-      filename: '/project/src/file.tsx',
-    },
-    {
-      code: 'const x = bar.baz`color: red`;',
-      filename: '/project/src/file.tsx',
-    },
+    {code: 'const x = foo`color: red`;', filename: '/project/src/file.tsx'},
+    {code: 'const x = bar.baz`color: red`;', filename: '/project/src/file.tsx'},
   ],
   invalid: [
     // css``

@@ -49,9 +49,7 @@ describe('ExploreCharts', () => {
           />
         </ChartSelectionProvider>
       </SpansQueryParamsProvider>,
-      {
-        organization: OrganizationFixture(),
-      }
+      {organization: OrganizationFixture()}
     );
 
     expect(

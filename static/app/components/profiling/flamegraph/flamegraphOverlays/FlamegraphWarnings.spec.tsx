@@ -20,9 +20,7 @@ const noDataProfileGroup = {
   profileID: '',
   profiles: [noDataProfile],
   projectID: 1,
-  shared: {
-    frames: [],
-  },
+  shared: {frames: []},
   metadata: {} as Profiling.Schema['metadata'],
 } as Profiling.Schema;
 
@@ -40,9 +38,7 @@ const onlySystemFramesProfile = {
 const onlySystemFramesProfileGroup = {
   ...noDataProfileGroup,
   profiles: [onlySystemFramesProfile],
-  shared: {
-    frames: [{name: 'system function', is_application: false}],
-  },
+  shared: {frames: [{name: 'system function', is_application: false}]},
   metadata: {} as Profiling.Schema['metadata'],
 } as Profiling.Schema;
 

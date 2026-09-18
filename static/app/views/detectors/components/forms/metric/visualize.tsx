@@ -103,14 +103,8 @@ const ADDITIONAL_EAP_AGGREGATES = [AggregationKey.APDEX];
  * Locks the primary dropdown to the single option
  */
 const LOCKED_SPAN_AGGREGATES = {
-  [AggregationKey.APDEX]: {
-    value: DEFAULT_VISUALIZATION_FIELD,
-    label: 'span.duration',
-  },
-  [AggregationKey.COUNT]: {
-    value: DEFAULT_VISUALIZATION_FIELD,
-    label: 'spans',
-  },
+  [AggregationKey.APDEX]: {value: DEFAULT_VISUALIZATION_FIELD, label: 'span.duration'},
+  [AggregationKey.COUNT]: {value: DEFAULT_VISUALIZATION_FIELD, label: 'spans'},
 };
 
 // Type guard for locked span aggregates
@@ -170,16 +164,10 @@ function getAggregateOptionMetadata(
   // Type guard to check if meta has parameters
   const meta = option.value.meta;
   if ('parameters' in meta) {
-    return {
-      name: meta.name,
-      parameters: meta.parameters,
-    };
+    return {name: meta.name, parameters: meta.parameters};
   }
 
-  return {
-    name: meta.name,
-    parameters: [],
-  };
+  return {name: meta.name, parameters: []};
 }
 
 /**
@@ -187,24 +175,15 @@ function getAggregateOptionMetadata(
  */
 function parseAggregateFunction(aggregateFunction: string) {
   if (!aggregateFunction) {
-    return {
-      aggregate: '',
-      parameters: [],
-    };
+    return {aggregate: '', parameters: []};
   }
 
   const parsed = parseFunction(aggregateFunction);
   if (!parsed) {
-    return {
-      aggregate: aggregateFunction,
-      parameters: [],
-    };
+    return {aggregate: aggregateFunction, parameters: []};
   }
 
-  return {
-    aggregate: parsed.name,
-    parameters: parsed.arguments || [],
-  };
+  return {aggregate: parsed.name, parameters: parsed.arguments || []};
 }
 
 /**

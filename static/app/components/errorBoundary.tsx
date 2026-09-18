@@ -9,13 +9,9 @@ import {DetailedError} from 'sentry/components/errors/detailedError';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type DefaultProps = {
-  mini: boolean;
-};
+type DefaultProps = {mini: boolean};
 
-type CustomComponentRenderProps = {
-  error: Error | null;
-};
+type CustomComponentRenderProps = {error: Error | null};
 
 type Props = DefaultProps & {
   // allow the error message to be dismissable, which allows the
@@ -34,9 +30,7 @@ type Props = DefaultProps & {
   message?: React.ReactNode;
 };
 
-type State = {
-  error: Error | null;
-};
+type State = {error: Error | null};
 
 const exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'] as const;
 
@@ -45,13 +39,9 @@ function getExclamation() {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    mini: false,
-  };
+  static defaultProps: DefaultProps = {mini: false};
 
-  state: State = {
-    error: null,
-  };
+  state: State = {error: null};
 
   componentDidMount(): void {
     // Reset error state on HMR (Hot Module Replacement) in development

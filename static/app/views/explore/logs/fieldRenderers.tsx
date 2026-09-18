@@ -246,10 +246,7 @@ function CodePathRenderer(props: LogFieldRendererProps) {
   const sdkVersion = props.extra.attributes?.[OurLogKnownFieldKey.SDK_VERSION];
   const sdk =
     typeof sdkVersion === 'string' && typeof sdkName === 'string'
-      ? {
-          name: sdkName,
-          version: sdkVersion,
-        }
+      ? {name: sdkName, version: sdkVersion}
       : undefined;
   const filename = props.item.value;
 
@@ -263,10 +260,7 @@ function CodePathRenderer(props: LogFieldRendererProps) {
   });
   const {data: codeLink} = useStacktraceLink(
     {
-      event: {
-        release,
-        sdk,
-      },
+      event: {release, sdk},
       frame: {
         function: typeof codeFunctionName === 'string' ? codeFunctionName : undefined,
         lineNo: codeLineNumber ? +codeLineNumber : undefined,
@@ -275,9 +269,7 @@ function CodePathRenderer(props: LogFieldRendererProps) {
       orgSlug: props.extra.organization.slug,
       projectSlug: props.extra.projectSlug ?? '',
     },
-    {
-      enabled: shouldLoad && !!props.extra.projectSlug && !!release,
-    }
+    {enabled: shouldLoad && !!props.extra.projectSlug && !!release}
   );
 
   return (
@@ -331,10 +323,7 @@ function useLazyLoadAttributeOnHover(hoverTimeout: number, props: LogFieldRender
   }, []);
 
   return {
-    wrapperProps: {
-      onMouseEnter: handleMouseEnter,
-      onMouseLeave: handleMouseLeave,
-    },
+    wrapperProps: {onMouseEnter: handleMouseEnter, onMouseLeave: handleMouseLeave},
     shouldLoad,
   };
 }
@@ -650,9 +639,7 @@ function BasicDiscoverRenderer(props: LogFieldRendererProps) {
   return (
     <LogBasicRendererContainer align={align}>
       {basicRenderer(
-        {
-          [props.item.fieldKey]: castValue,
-        },
+        {[props.item.fieldKey]: castValue},
         {
           unit: logMeta.units[props.item.fieldKey] ?? undefined,
           ...props.extra,
@@ -721,9 +708,7 @@ const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
 
 // Meta returned from TraceItemDetails is empty, in which case we can provide our own meta to map known fields to their types to get the basic rendering working.
 const logFieldBasicMetas: EventsMetaType = {
-  fields: {
-    [OurLogKnownFieldKey.PAYLOAD_SIZE]: 'size',
-  },
+  fields: {[OurLogKnownFieldKey.PAYLOAD_SIZE]: 'size'},
   units: {
     [OurLogKnownFieldKey.PAYLOAD_SIZE]: 'byte', // SIZE_UNITS
   },

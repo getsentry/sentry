@@ -87,11 +87,7 @@ export class Thresholds implements Plottable {
     const max = yAxisRange[1] === Infinity ? {y: maxOffset} : {yAxis: yAxisRange[1]};
     const min = {yAxis: yAxisRange[0]};
 
-    return MarkArea({
-      silent: true,
-      itemStyle: style,
-      data: [[max, min]],
-    });
+    return MarkArea({silent: true, itemStyle: style, data: [[max, min]]});
   }
 
   toMarkAreas(theme: Theme, maxOffset = this.maxOffset) {

@@ -4,11 +4,7 @@ import {po} from 'gettext-parser';
 // PO references are whitespace-delimited `path:line` values from JS and TS modules.
 const FRONTEND_REFERENCE = /(?:^|\s)[^\s:]+\.[jt]sx?:/;
 
-type CatalogMetadata = {
-  domain: string;
-  lang: string;
-  plural_forms: string;
-};
+type CatalogMetadata = {domain: string; lang: string; plural_forms: string};
 
 type CompiledPoCatalog = Record<string, string[] | CatalogMetadata>;
 
@@ -41,11 +37,7 @@ const poCatalogLoader: LoaderDefinition = function (source) {
     throw new Error(`Missing locale headers in ${this.resourcePath}`);
   }
 
-  output[''] = {
-    domain: 'sentry',
-    lang,
-    plural_forms: pluralForms,
-  };
+  output[''] = {domain: 'sentry', lang, plural_forms: pluralForms};
 
   return `module.exports=${JSON.stringify(output)}`;
 };

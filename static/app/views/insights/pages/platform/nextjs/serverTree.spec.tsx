@@ -32,11 +32,7 @@ describe('getFileAndFunctionName', () => {
 
 describe('mapResponseToTree', () => {
   it('creates empty root folder for empty response', () => {
-    expect(mapResponseToTree([])).toEqual({
-      children: [],
-      name: 'root',
-      type: 'folder',
-    });
+    expect(mapResponseToTree([])).toEqual({children: [], name: 'root', type: 'folder'});
   });
 
   it('handles single component with no path', () => {

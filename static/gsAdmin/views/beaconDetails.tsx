@@ -13,14 +13,8 @@ import {DetailsPage} from 'admin/components/detailsPage';
 export function BeaconDetails() {
   const params = useParams<{beaconId: string}>();
   const {data, isPending, isError} = useApiQuery<BeaconData>(
-    [
-      getApiUrl('/beacons/$beaconId/', {
-        path: {beaconId: params.beaconId},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
+    [getApiUrl('/beacons/$beaconId/', {path: {beaconId: params.beaconId}})],
+    {staleTime: 0}
   );
 
   if (isPending) {
@@ -31,29 +25,20 @@ export function BeaconDetails() {
     return <LoadingError />;
   }
 
-  const sectionProps = {
-    ...params,
-    data,
-  };
+  const sectionProps = {...params, data};
 
   return (
     <DetailsPage
       rootName="Beacons"
       name={data.installID}
       sections={[
-        {
-          content: <BeaconOverview {...sectionProps} />,
-        },
+        {content: <BeaconOverview {...sectionProps} />},
         {
           name: 'Similar Installs',
           content: <RelatedBeacons {...sectionProps} />,
           noPanel: true,
         },
-        {
-          name: 'Checkins',
-          noPanel: true,
-          content: <BeaconCheckins {...sectionProps} />,
-        },
+        {name: 'Checkins', noPanel: true, content: <BeaconCheckins {...sectionProps} />},
       ]}
     />
   );

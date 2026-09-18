@@ -15,10 +15,7 @@ export function useScmRepos(integrationId: string, selectedRepo?: Repository) {
   const reposQuery = useQuery({
     ...apiOptions.as<ScmReposResult>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
-      {
-        path: {organizationIdOrSlug: organization.slug, integrationId},
-        staleTime: 0,
-      }
+      {path: {organizationIdOrSlug: organization.slug, integrationId}, staleTime: 0}
     ),
     refetchOnWindowFocus: true,
   });
@@ -48,10 +45,7 @@ export function useScmRepos(integrationId: string, selectedRepo?: Repository) {
           });
           return acc;
         },
-        {
-          reposByIdentifier: new Map(),
-          dropdownItems: [],
-        }
+        {reposByIdentifier: new Map(), dropdownItems: []}
       ),
     [reposQuery.data, selectedRepoSlug]
   );

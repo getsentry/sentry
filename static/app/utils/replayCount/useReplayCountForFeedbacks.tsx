@@ -17,10 +17,7 @@ export function useReplayCountForFeedbacks() {
   });
 
   return useMemo(
-    () => ({
-      feedbackHasReplay: hasOne,
-      feedbacksHaveReplay: hasMany,
-    }),
+    () => ({feedbackHasReplay: hasOne, feedbacksHaveReplay: hasMany}),
     [hasMany, hasOne]
   );
 }

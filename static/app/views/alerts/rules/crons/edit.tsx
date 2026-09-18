@@ -24,10 +24,7 @@ type Props = {
 };
 
 export function CronRulesEdit({onChangeTitle, project, organization}: Props) {
-  const {monitorSlug, projectId} = useParams<{
-    monitorSlug: string;
-    projectId: string;
-  }>();
+  const {monitorSlug, projectId} = useParams<{monitorSlug: string; projectId: string}>();
 
   const navigate = useNavigate();
   const {selection} = usePageFilters();
@@ -42,10 +39,7 @@ export function CronRulesEdit({onChangeTitle, project, organization}: Props) {
     isError,
     data: monitor,
     refetch,
-  } = useApiQuery<Monitor>(queryKey, {
-    gcTime: 0,
-    staleTime: 0,
-  });
+  } = useApiQuery<Monitor>(queryKey, {gcTime: 0, staleTime: 0});
 
   useEffect(
     () => onChangeTitle(monitor?.name ?? t('Editing Monitor')),
@@ -60,10 +54,7 @@ export function CronRulesEdit({onChangeTitle, project, organization}: Props) {
           path: `/rules/crons/${data.project.slug}/${data.slug}/details/`,
           organization,
         }),
-        query: {
-          environment: selection.environments,
-          project: selection.projects,
-        },
+        query: {environment: selection.environments, project: selection.projects},
       })
     );
   }

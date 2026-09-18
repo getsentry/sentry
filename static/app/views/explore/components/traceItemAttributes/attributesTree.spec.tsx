@@ -22,21 +22,9 @@ describe('attributesTree', () => {
 
   it('correctly renders attributes tree', () => {
     const attributes: TraceItemResponseAttribute[] = [
-      {
-        type: 'str',
-        value: 'test value 1',
-        name: 'test.attribute1',
-      },
-      {
-        type: 'float',
-        value: 42,
-        name: 'test.attribute2',
-      },
-      {
-        type: 'bool',
-        value: true,
-        name: 'test.attribute3',
-      },
+      {type: 'str', value: 'test value 1', name: 'test.attribute1'},
+      {type: 'float', value: 42, name: 'test.attribute2'},
+      {type: 'bool', value: true, name: 'test.attribute3'},
     ];
 
     const renderers = {
@@ -57,12 +45,7 @@ describe('attributesTree', () => {
         attributes={attributes}
         getAdjustedAttributeKey={getAdjustedAttributeKey}
         renderers={renderers}
-        rendererExtra={{
-          theme,
-          location,
-          navigate: jest.fn(),
-          organization,
-        }}
+        rendererExtra={{theme, location, navigate: jest.fn(), organization}}
       />
     );
 
@@ -88,43 +71,22 @@ describe('attributesTree', () => {
 
   it('correctly renders cell actions', async () => {
     const attributes: TraceItemResponseAttribute[] = [
-      {
-        type: 'str',
-        value: 'test value 1',
-        name: 'test.attribute1',
-      },
-      {
-        type: 'str',
-        value: 'test value 2',
-        name: 'test',
-      },
-      {
-        type: 'str',
-        value: 'test value 3',
-        name: 'test.some-inner-thing.value',
-      },
+      {type: 'str', value: 'test value 1', name: 'test.attribute1'},
+      {type: 'str', value: 'test value 2', name: 'test'},
+      {type: 'str', value: 'test value 3', name: 'test.some-inner-thing.value'},
     ];
 
     render(
       <AttributesTree
         attributes={attributes}
-        rendererExtra={{
-          theme,
-          location,
-          navigate: jest.fn(),
-          organization,
-        }}
+        rendererExtra={{theme, location, navigate: jest.fn(), organization}}
         getCustomActions={content => {
           if (!content.originalAttribute) {
             return [];
           }
 
           const items: MenuItemProps[] = [
-            {
-              key: 'visible action',
-              label: 'Visible Action',
-              onAction: () => null,
-            },
+            {key: 'visible action', label: 'Visible Action', onAction: () => null},
             {
               key: 'hidden-action',
               label: 'Hidden Action',

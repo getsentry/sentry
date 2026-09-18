@@ -17,11 +17,7 @@ describe('AddToStartupProgramAction', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization, accountBalance: 0});
 
-  const modalProps = {
-    orgId: organization.slug,
-    onSuccess,
-    subscription,
-  };
+  const modalProps = {orgId: organization.slug, onSuccess, subscription};
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -86,11 +82,7 @@ describe('AddToStartupProgramAction', () => {
         `/_admin/customers/${organization.slug}/balance-changes/`,
         expect.objectContaining({
           method: 'POST',
-          data: {
-            creditAmount: 500000,
-            ticketUrl: '',
-            notes: 'sentryforstartups',
-          },
+          data: {creditAmount: 500000, ticketUrl: '', notes: 'sentryforstartups'},
         })
       );
     });
@@ -120,11 +112,7 @@ describe('AddToStartupProgramAction', () => {
         `/_admin/customers/${organization.slug}/balance-changes/`,
         expect.objectContaining({
           method: 'POST',
-          data: {
-            creditAmount: 500000,
-            ticketUrl: '',
-            notes: 'ycombinator',
-          },
+          data: {creditAmount: 500000, ticketUrl: '', notes: 'ycombinator'},
         })
       );
     });
@@ -194,11 +182,7 @@ describe('AddToStartupProgramAction', () => {
         `/_admin/customers/${organization.slug}/balance-changes/`,
         expect.objectContaining({
           method: 'POST',
-          data: {
-            creditAmount: 10000,
-            ticketUrl: url,
-            notes: 'custom note',
-          },
+          data: {creditAmount: 10000, ticketUrl: url, notes: 'custom note'},
         })
       );
     });

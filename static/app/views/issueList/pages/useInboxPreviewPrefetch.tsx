@@ -22,10 +22,7 @@ export function useInboxPreviewPrefetch(group: Group) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const environments = useEnvironmentsFromUrl();
-  const issueParams = {
-    groupId: group.id,
-    organizationSlug: organization.slug,
-  };
+  const issueParams = {groupId: group.id, organizationSlug: organization.slug};
   const prefetchDebouncer = useDebouncer(
     () => {
       void queryClient.prefetchQuery(

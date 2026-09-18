@@ -5,10 +5,7 @@ import {Access} from 'sentry/components/acl/access';
 import type {DetailedProject} from 'sentry/types/project';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-type ProjectAlertsOutletContext = {
-  canEditRule: boolean;
-  project: DetailedProject;
-};
+type ProjectAlertsOutletContext = {canEditRule: boolean; project: DetailedProject};
 
 function ProjectAlertsOutlet(props: ProjectAlertsOutletContext) {
   return <Outlet context={props} />;

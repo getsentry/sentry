@@ -44,13 +44,7 @@ const ASSET_DESCRIPTION_WIDGET: PrebuiltWidget = {
       linkedDashboards: [],
     },
   ],
-  layout: {
-    x: 0,
-    y: 0,
-    minH: 2,
-    h: 2,
-    w: 6,
-  },
+  layout: {x: 0, y: 0, minH: 2, h: 2, w: 6},
 };
 
 const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
@@ -265,13 +259,7 @@ const ASSETS_TABLE_WIDGET: PrebuiltWidget = {
       orderby: '-epm()',
     },
   ],
-  layout: {
-    x: 0,
-    y: 5,
-    minH: 2,
-    h: 6,
-    w: 6,
-  },
+  layout: {x: 0, y: 5, minH: 2, h: 6, w: 6},
 };
 
 export const FRONTEND_ASSETS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {

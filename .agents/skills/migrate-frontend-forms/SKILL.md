@@ -523,9 +523,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
-const slugSchema = z.object({
-  slug: z.string().min(1, 'Slug is required'),
-});
+const slugSchema = z.object({slug: z.string().min(1, 'Slug is required')});
 
 function SlugForm({project}: {project: Project}) {
   const mutation = useMutation({
@@ -670,9 +668,7 @@ const schema = z.object({
 });
 
 // z.input accepts null; z.output (after refine) does not
-const defaultValues: z.input<typeof schema> = {
-  provider: null,
-};
+const defaultValues: z.input<typeof schema> = {provider: null};
 
 const form = useScrapsForm({
   ...defaultFormOptions,

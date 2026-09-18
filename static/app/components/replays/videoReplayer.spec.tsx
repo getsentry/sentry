@@ -23,65 +23,25 @@ describe('VideoReplayer - no starting gap', () => {
   });
 
   const attachments = [
-    {
-      id: 0,
-      timestamp: 0,
-      duration: 5000,
-    },
+    {id: 0, timestamp: 0, duration: 5000},
     // no gap
-    {
-      id: 1,
-      timestamp: 5000,
-      duration: 5000,
-    },
-    {
-      id: 2,
-      timestamp: 10_001,
-      duration: 5000,
-    },
+    {id: 1, timestamp: 5000, duration: 5000},
+    {id: 2, timestamp: 10_001, duration: 5000},
     // 5 second gap
-    {
-      id: 3,
-      timestamp: 20_000,
-      duration: 5000,
-    },
+    {id: 3, timestamp: 20_000, duration: 5000},
     // 5 second gap
-    {
-      id: 4,
-      timestamp: 30_000,
-      duration: 5000,
-    },
-    {
-      id: 5,
-      timestamp: 35_002,
-      duration: 5000,
-    },
+    {id: 4, timestamp: 30_000, duration: 5000},
+    {id: 5, timestamp: 35_002, duration: 5000},
   ];
 
   const extra = [
-    {
-      id: 6,
-      timestamp: 40_002,
-      duration: 5000,
-    },
-    {
-      id: 7,
-      timestamp: 45_002,
-      duration: 5000,
-    },
+    {id: 6, timestamp: 40_002, duration: 5000},
+    {id: 7, timestamp: 45_002, duration: 5000},
   ];
 
   const skip = [
-    {
-      id: 7,
-      timestamp: 45_002,
-      duration: 5000,
-    },
-    {
-      id: 8,
-      timestamp: 50_002,
-      duration: 5000,
-    },
+    {id: 7, timestamp: 45_002, duration: 5000},
+    {id: 8, timestamp: 50_002, duration: 5000},
   ];
 
   it('plays and seeks inside of a segment', async () => {
@@ -300,39 +260,15 @@ describe('VideoReplayer - with starting gap', () => {
   });
 
   const attachments = [
-    {
-      id: 0,
-      timestamp: 2500,
-      duration: 5000,
-    },
+    {id: 0, timestamp: 2500, duration: 5000},
     // no gap
-    {
-      id: 1,
-      timestamp: 5000,
-      duration: 5000,
-    },
-    {
-      id: 2,
-      timestamp: 10_001,
-      duration: 5000,
-    },
+    {id: 1, timestamp: 5000, duration: 5000},
+    {id: 2, timestamp: 10_001, duration: 5000},
     // 5 second gap
-    {
-      id: 3,
-      timestamp: 20_000,
-      duration: 5000,
-    },
+    {id: 3, timestamp: 20_000, duration: 5000},
     // 5 second gap
-    {
-      id: 4,
-      timestamp: 30_000,
-      duration: 5000,
-    },
-    {
-      id: 5,
-      timestamp: 35_002,
-      duration: 5000,
-    },
+    {id: 4, timestamp: 30_000, duration: 5000},
+    {id: 5, timestamp: 35_002, duration: 5000},
   ];
 
   it('plays and seeks before replay starts', async () => {
@@ -421,39 +357,15 @@ describe('VideoReplayer - with ending gap', () => {
   });
 
   const attachments = [
-    {
-      id: 0,
-      timestamp: 2500,
-      duration: 5000,
-    },
+    {id: 0, timestamp: 2500, duration: 5000},
     // no gap
-    {
-      id: 1,
-      timestamp: 5000,
-      duration: 5000,
-    },
-    {
-      id: 2,
-      timestamp: 10_001,
-      duration: 5000,
-    },
+    {id: 1, timestamp: 5000, duration: 5000},
+    {id: 2, timestamp: 10_001, duration: 5000},
     // 5 second gap
-    {
-      id: 3,
-      timestamp: 20_000,
-      duration: 5000,
-    },
+    {id: 3, timestamp: 20_000, duration: 5000},
     // 5 second gap
-    {
-      id: 4,
-      timestamp: 30_000,
-      duration: 5000,
-    },
-    {
-      id: 5,
-      timestamp: 35_002,
-      duration: 5000,
-    },
+    {id: 4, timestamp: 30_000, duration: 5000},
+    {id: 5, timestamp: 35_002, duration: 5000},
   ];
 
   it('keeps playing until the end if there is an ending gap', async () => {
@@ -535,11 +447,7 @@ describe('VideoReplayer - maxVideoElements eviction', () => {
   });
 
   const makeAttachments = (count: number) =>
-    Array.from({length: count}, (_, i) => ({
-      id: i,
-      timestamp: i * 5000,
-      duration: 5000,
-    }));
+    Array.from({length: count}, (_, i) => ({id: i, timestamp: i * 5000, duration: 5000}));
 
   it('caps _videos at maxVideoElements when seeking forward', async () => {
     const attachments = makeAttachments(50);

@@ -124,13 +124,7 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
   });
 
   return getDynamicText({
-    value: children({
-      ...props,
-      dataScanned,
-      confidence,
-      sampleCount,
-      isSampled,
-    }),
+    value: children({...props, dataScanned, confidence, sampleCount, isSampled}),
     fixed: <div />,
   });
 }

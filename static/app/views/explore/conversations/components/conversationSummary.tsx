@@ -518,12 +518,7 @@ function getConversationUser(nodes: AITraceSpanNode[]): ConversationUser | null 
     const ipAddress = normalizeUserField(getStringAttr(node, SpanFields.USER_IP));
     const id = normalizeUserField(getStringAttr(node, SpanFields.USER_ID));
     if (email || username || ipAddress || id) {
-      return {
-        email,
-        username,
-        ip_address: ipAddress,
-        id,
-      };
+      return {email, username, ip_address: ipAddress, id};
     }
   }
   return null;

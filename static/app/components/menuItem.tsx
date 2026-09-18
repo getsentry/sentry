@@ -109,13 +109,7 @@ export function MenuItem({
     }
   };
 
-  const linkProps = {
-    onClick: handleClick,
-    tabIndex: -1,
-    isActive,
-    disabled,
-    withBorder,
-  };
+  const linkProps = {onClick: handleClick, tabIndex: -1, isActive, disabled, withBorder};
 
   const anchor = to ? (
     <MenuLink to={to} {...linkProps} title={title} data-test-id="menu-item">

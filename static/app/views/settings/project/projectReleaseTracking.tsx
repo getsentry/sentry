@@ -24,17 +24,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-type TokenResponse = {
-  token: string;
-  webhookUrl: string;
-};
+type TokenResponse = {token: string; webhookUrl: string};
 
 const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
 const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';
-const placeholderData = {
-  token: TOKEN_PLACEHOLDER,
-  webhookUrl: WEBHOOK_PLACEHOLDER,
-};
+const placeholderData = {token: TOKEN_PLACEHOLDER, webhookUrl: WEBHOOK_PLACEHOLDER};
 
 function getReleaseTokenQueryKey(
   organizationSlug: string,
@@ -59,10 +53,7 @@ export default function ProjectReleaseTracking() {
     error,
   } = useApiQuery<TokenResponse>(
     getReleaseTokenQueryKey(organization.slug, project.slug),
-    {
-      staleTime: 0,
-      retry: false,
-    }
+    {staleTime: 0, retry: false}
   );
 
   const {mutate: regenerateToken, isPending: isRegenerating} = useMutation({

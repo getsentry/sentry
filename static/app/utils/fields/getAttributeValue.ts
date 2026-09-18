@@ -19,11 +19,7 @@ type AttributeValueKind = keyof AttributeValueByKind;
 
 type AttributeValue = Exclude<AttributeValueByKind[AttributeValueKind], bigint>;
 
-type AttributeEntry = {
-  name: string;
-  value: unknown;
-  type?: unknown;
-};
+type AttributeEntry = {name: string; value: unknown; type?: unknown};
 
 type AttributeSource = Record<string, unknown> | AttributeEntry[];
 

@@ -30,16 +30,10 @@ export function ChangeARRAction(props: Props) {
 
 type ModalProps = ModalRenderProps & Props;
 
-type ModalState = {
-  error: boolean;
-  newAcv: number;
-};
+type ModalState = {error: boolean; newAcv: number};
 
 class ChangeARRModal extends Component<ModalProps, ModalState> {
-  state: ModalState = {
-    newAcv: this.props.customer.acv / 100,
-    error: false,
-  };
+  state: ModalState = {newAcv: this.props.customer.acv / 100, error: false};
 
   onChange = (value: string) => {
     const newAcv = parseInt(value, 10) || 0;

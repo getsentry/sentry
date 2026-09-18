@@ -14,19 +14,14 @@ import type {Invoice, Plan, PreviewData, Subscription} from 'getsentry/types';
 import {displayBudgetName, hasBillingAccess, supportsPayg} from 'getsentry/utils/billing';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type UpsellModalOptions = {
-  organization: Organization;
-  source: string;
-};
+type UpsellModalOptions = {organization: Organization; source: string};
 
 export async function openUpsellModal(options: UpsellModalOptions) {
   const {default: Modal, modalCss} = await import('getsentry/components/upsellModal');
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-type TrialModalProps = {
-  organization: Organization;
-};
+type TrialModalProps = {organization: Organization};
 
 function genTrialEndingModalOnClose(options: TrialModalProps) {
   const api = new Client();

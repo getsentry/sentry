@@ -605,17 +605,12 @@ export function useCompareAnalytics({
   | 'timeseriesResult'
   | 'interval'
   | 'isTopN'
-> & {
-  query: ReadableExploreQueryParts;
-}) {
+> & {query: ReadableExploreQueryParts}) {
   const dataset = DiscoverDatasets.SPANS;
   const query = queryParts.query;
   const fields = queryParts.fields;
   const visualizes = queryParts.yAxes.flatMap(yAxis =>
-    Visualize.fromJSON({
-      yAxes: [yAxis],
-      chartType: queryParts.chartType,
-    })
+    Visualize.fromJSON({yAxes: [yAxis], chartType: queryParts.chartType})
   );
 
   return useTrackAnalytics({

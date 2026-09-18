@@ -40,10 +40,7 @@ export default function LegacyWebhookDetails() {
   const webhookQueryOptions = apiOptions.as<LegacyWebhookResponse>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/',
     {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: project.slug,
-      },
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       staleTime: 0,
     }
   );
@@ -113,13 +110,7 @@ export default function LegacyWebhookDetails() {
           path: {organizationIdOrSlug: organization.slug},
         }),
         data: {
-          actions: [
-            {
-              type: 'webhook',
-              data: {},
-              config: {target_identifier: 'webhooks'},
-            },
-          ],
+          actions: [{type: 'webhook', data: {}, config: {target_identifier: 'webhooks'}}],
           projectSlug: project.slug,
         },
       });

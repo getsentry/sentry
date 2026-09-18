@@ -17,10 +17,7 @@ describe('LocalWidgetLegendSelectionState', () => {
     const renderSpy = jest.fn();
     const {result} = renderHook(() => {
       renderSpy();
-      return useLocalWidgetLegendSelectionState({
-        dashboard,
-        organization,
-      });
+      return useLocalWidgetLegendSelectionState({dashboard, organization});
     });
     const legendState = result.current;
     const selection = {

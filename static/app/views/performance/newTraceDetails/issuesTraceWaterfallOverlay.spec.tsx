@@ -11,19 +11,10 @@ import {IssueTraceWaterfallOverlay} from './issuesTraceWaterfallOverlay';
 
 describe('IssueTraceWaterfallOverlay', () => {
   it('does not carry issue list filters into the trace target', () => {
-    const event = EventFixture({
-      contexts: {
-        trace: {
-          trace_id: '123',
-        },
-      },
-    });
+    const event = EventFixture({contexts: {trace: {trace_id: '123'}}});
     const organization = OrganizationFixture({features: ['performance-view']});
     const viewManager = {
-      row_measurer: {
-        off: jest.fn(),
-        on: jest.fn(),
-      },
+      row_measurer: {off: jest.fn(), on: jest.fn()},
     } as unknown as VirtualizedViewManager;
 
     render(

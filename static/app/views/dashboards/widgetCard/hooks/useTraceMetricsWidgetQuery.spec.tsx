@@ -50,23 +50,14 @@ describe('useTraceMetricsSeriesQuery', () => {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       },
     });
 
     renderHookWithProviders(() =>
-      useTraceMetricsSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useTraceMetricsSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -104,11 +95,7 @@ describe('useTraceMetricsSeriesQuery', () => {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       },
@@ -119,9 +106,7 @@ describe('useTraceMetricsSeriesQuery', () => {
         widget,
         organization,
         pageFilters,
-        dashboardFilters: {
-          release: ['1.0.0'],
-        },
+        dashboardFilters: {release: ['1.0.0']},
         enabled: true,
       })
     );
@@ -155,28 +140,17 @@ describe('useTraceMetricsSeriesQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
-      body: {
-        timeSeries: [],
-      },
+      body: {timeSeries: []},
     });
 
     renderHookWithProviders(() =>
-      useTraceMetricsSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useTraceMetricsSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events-timeseries/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            groupBy: ['project'],
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({groupBy: ['project']})})
       );
     });
   });
@@ -210,31 +184,19 @@ describe('useTraceMetricsTableQuery', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
-        data: [
-          {
-            project: 'frontend',
-            'avg(value,test_metric,millisecond,none)': 150,
-          },
-        ],
+        data: [{project: 'frontend', 'avg(value,test_metric,millisecond,none)': 150}],
       },
     });
 
     renderHookWithProviders(() =>
-      useTraceMetricsTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useTraceMetricsTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            dataset: 'tracemetrics',
-          }),
+          query: expect.objectContaining({dataset: 'tracemetrics'}),
         })
       );
     });
@@ -258,12 +220,7 @@ describe('useTraceMetricsTableQuery', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
-        data: [
-          {
-            project: 'frontend',
-            'avg(value,test_metric,millisecond,none)': 150,
-          },
-        ],
+        data: [{project: 'frontend', 'avg(value,test_metric,millisecond,none)': 150}],
       },
     });
 
@@ -282,10 +239,7 @@ describe('useTraceMetricsTableQuery', () => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            per_page: 25,
-            cursor: 'test-cursor',
-          }),
+          query: expect.objectContaining({per_page: 25, cursor: 'test-cursor'}),
         })
       );
     });
@@ -462,14 +416,7 @@ describe('useTraceMetricsHeatmapQuery', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            'min(value)': 0,
-            'max(value)': 100,
-          },
-        ],
-      },
+      body: {data: [{'min(value)': 0, 'max(value)': 100}]},
     });
 
     MockApiClient.addMockResponse({

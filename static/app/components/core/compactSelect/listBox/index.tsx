@@ -247,10 +247,7 @@ export function ListBox<T extends ListItemBase>({
         <Container {...virtualizer.wrapperProps}>
           <ListWrap
             {...mergedProps}
-            style={{
-              ...mergedProps.style,
-              ...virtualizer.listWrapStyle,
-            }}
+            style={{...mergedProps.style, ...virtualizer.listWrapStyle}}
             onKeyDown={onKeyDown}
             onMouseLeave={onMouseLeave}
             ref={mergeRefs(listElementRef, ref)}
@@ -376,9 +373,7 @@ function useVirtualizedItems<T extends ListItemBase>({
     scrollToIndex: () => {},
     scrollElementRef: undefined,
     itemProps: () => {},
-    wrapperProps: {
-      'data-is-virtualized': false,
-    },
+    wrapperProps: {'data-is-virtualized': false},
     listWrapStyle: {},
   } as const;
 }

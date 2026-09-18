@@ -28,9 +28,7 @@ import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {getPotentialProductTrial, getSeerTrialCategory} from 'getsentry/utils/billing';
 
-type AiSetupDataConsentProps = {
-  groupId?: string;
-};
+type AiSetupDataConsentProps = {groupId?: string};
 
 export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const api = useApi({persistInFlight: true});
@@ -94,10 +92,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       navigate('/checkout/?referrer=ai_setup_data_consent#step2');
       return;
     }
-    openOnDemandBudgetEditModal({
-      organization,
-      subscription,
-    });
+    openOnDemandBudgetEditModal({organization, subscription});
   }
 
   return (
@@ -129,10 +124,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
               {isTouchCustomer
                 ? tct(
                     'Contact your customer success manager to get access to Seer.[break]Send us an [link:email] if you need help.',
-                    {
-                      link: <ExternalLink href="mailto:sales@sentry.io" />,
-                      break: <br />,
-                    }
+                    {link: <ExternalLink href="mailto:sales@sentry.io" />, break: <br />}
                   )
                 : tct(
                     'Seer is not available on Sponsored plans.[break]Send us an [link:email] if you need help.',
@@ -169,9 +161,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     <ErrorText>
                       {tct(
                         "You've run out of [budgetTerm] budget. Please add more to keep using Seer.",
-                        {
-                          budgetTerm: subscription?.planDetails.budgetTerm,
-                        }
+                        {budgetTerm: subscription?.planDetails.budgetTerm}
                       )}
                     </ErrorText>
                     <Flex>
@@ -259,9 +249,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                 disabled={autofixAcknowledgeMutation.isPending}
                 analyticsEventKey="gen_ai_consent.in_drawer_clicked"
                 analyticsEventName="Gen AI Consent: Clicked In Drawer"
-                analyticsParams={{
-                  is_first_user_in_org: !orgHasAcknowledged,
-                }}
+                analyticsParams={{is_first_user_in_org: !orgHasAcknowledged}}
                 size="md"
               >
                 {autofixAcknowledgeMutation.isPending ? (

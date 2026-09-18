@@ -85,11 +85,7 @@ export function RRWebIncrementalSnapshotFrameEventFixture({
   data: incrementalSnapshotEvent['data'];
   timestamp: Date;
 }): IncrementalSnapshotEvent {
-  return {
-    type: EventType.IncrementalSnapshot,
-    timestamp: timestamp.getTime(),
-    data,
-  };
+  return {type: EventType.IncrementalSnapshot, timestamp: timestamp.getTime(), data};
 }
 
 export function RRWebDOMFrameFixture({
@@ -115,11 +111,7 @@ export function RRWebDOMFrameFixture({
       childNodes: childNodes ?? [],
     };
   }
-  return {
-    type: NodeType.Text,
-    id,
-    textContent: textContent ?? '',
-  };
+  return {type: NodeType.Text, id, textContent: textContent ?? ''};
 }
 
 export function RRWebHelloWorldFrameFixture() {
@@ -129,11 +121,7 @@ export function RRWebHelloWorldFrameFixture() {
       RRWebDOMFrameFixture({
         tagName: 'h1',
         attributes: {style: 'text-align: center;'},
-        childNodes: [
-          RRWebDOMFrameFixture({
-            textContent: 'Hello World',
-          }),
-        ],
+        childNodes: [RRWebDOMFrameFixture({textContent: 'Hello World'})],
       }),
     ],
   });

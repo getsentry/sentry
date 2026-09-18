@@ -7,17 +7,11 @@ import {EarlyFeaturesSettingsForm} from 'sentry/views/settings/earlyFeatures/set
 describe('EarlyFeaturesSettingsForm', () => {
   const organization = OrganizationFixture({access: ['org:write']});
   const featureFlags = {
-    'organizations:my-flag': {
-      description: 'My feature flag',
-      value: false,
-    },
+    'organizations:my-flag': {description: 'My feature flag', value: false},
   };
 
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: '/internal/feature-flags/',
-      body: featureFlags,
-    });
+    MockApiClient.addMockResponse({url: '/internal/feature-flags/', body: featureFlags});
   });
 
   it('renders flags with their current values', async () => {
@@ -46,10 +40,7 @@ describe('EarlyFeaturesSettingsForm', () => {
       expect(putMock).toHaveBeenNthCalledWith(
         1,
         '/internal/feature-flags/',
-        expect.objectContaining({
-          method: 'PUT',
-          data: {'organizations:my-flag': true},
-        })
+        expect.objectContaining({method: 'PUT', data: {'organizations:my-flag': true}})
       );
     });
 
@@ -59,10 +50,7 @@ describe('EarlyFeaturesSettingsForm', () => {
       expect(putMock).toHaveBeenNthCalledWith(
         2,
         '/internal/feature-flags/',
-        expect.objectContaining({
-          method: 'PUT',
-          data: {'organizations:my-flag': false},
-        })
+        expect.objectContaining({method: 'PUT', data: {'organizations:my-flag': false}})
       );
     });
   });

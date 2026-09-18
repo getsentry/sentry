@@ -35,11 +35,7 @@ export function AssistantBlock({
   const embedScope: SeerEmbedScope | null =
     runId === undefined
       ? null
-      : {
-          conversationId: String(runId),
-          messageId: block.id,
-          surface: 'seer_explorer',
-        };
+      : {conversationId: String(runId), messageId: block.id, surface: 'seer_explorer'};
 
   if (block.loading) {
     if (isStreamingEnabled && hasValidContent(content)) {

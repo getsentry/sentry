@@ -16,9 +16,7 @@ describe('ContinuousTimeSeries', () => {
     });
 
     it('marks empty series as empty', () => {
-      const timeSeries = TimeSeriesFixture({
-        values: [],
-      });
+      const timeSeries = TimeSeriesFixture({values: []});
 
       const plottable = new Dots(timeSeries);
 
@@ -65,9 +63,7 @@ describe('ContinuousTimeSeries', () => {
 
   describe('start/end', () => {
     it('sets start and end to null if there is not data', () => {
-      const timeSeries = TimeSeriesFixture({
-        values: [],
-      });
+      const timeSeries = TimeSeriesFixture({values: []});
 
       const plottable = new Dots(timeSeries);
 

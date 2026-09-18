@@ -25,10 +25,7 @@ import {useStableMergeRef} from './useStableMergeRef';
 
 function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {
   return [
-    {
-      name: 'hide',
-      enabled: false,
-    },
+    {name: 'hide', enabled: false},
     {
       name: 'computeStyles',
       options: {
@@ -49,20 +46,8 @@ function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: nu
         padding: 4,
       },
     },
-    {
-      name: 'offset',
-      options: {
-        offset: [0, offset],
-      },
-    },
-    {
-      name: 'preventOverflow',
-      enabled: true,
-      options: {
-        padding: 12,
-        altAxis: true,
-      },
-    },
+    {name: 'offset', options: {offset: [0, offset]}},
+    {name: 'preventOverflow', enabled: true, options: {padding: 12, altAxis: true}},
   ];
 }
 
@@ -665,11 +650,7 @@ function useHoverOverlay({
   ]);
 
   const arrowProps = useMemo(() => {
-    return {
-      ref: setArrowElement,
-      style: styles.arrow,
-      placement: state?.placement,
-    };
+    return {ref: setArrowElement, style: styles.arrow, placement: state?.placement};
   }, [setArrowElement, styles.arrow, state?.placement]);
 
   return {

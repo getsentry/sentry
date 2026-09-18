@@ -7,13 +7,11 @@ const organization = OrganizationFixture();
 
 describe('TraceTree', () => {
   it('empty trace', () => {
-    const tree = TraceTree.FromTrace(
-      makeTrace({
-        transactions: [],
-        orphan_errors: [],
-      }),
-      {replay: null, meta: null, organization}
-    );
+    const tree = TraceTree.FromTrace(makeTrace({transactions: [], orphan_errors: []}), {
+      replay: null,
+      meta: null,
+      organization,
+    });
 
     expect(tree.shape).toBe(TraceShape.EMPTY_TRACE);
   });
@@ -21,14 +19,7 @@ describe('TraceTree', () => {
   it('no root', () => {
     const tree = TraceTree.FromTrace(
       makeTrace({
-        transactions: [
-          makeTransaction({
-            children: [],
-          }),
-          makeTransaction({
-            children: [],
-          }),
-        ],
+        transactions: [makeTransaction({children: []}), makeTransaction({children: []})],
         orphan_errors: [],
       }),
       {replay: null, meta: null, organization}
@@ -40,12 +31,7 @@ describe('TraceTree', () => {
   it('one root', () => {
     const tree = TraceTree.FromTrace(
       makeTrace({
-        transactions: [
-          makeTransaction({
-            parent_span_id: null,
-            children: [],
-          }),
-        ],
+        transactions: [makeTransaction({parent_span_id: null, children: []})],
         orphan_errors: [],
       }),
       {replay: null, meta: null, organization}
@@ -58,13 +44,8 @@ describe('TraceTree', () => {
     const tree = TraceTree.FromTrace(
       makeTrace({
         transactions: [
-          makeTransaction({
-            parent_span_id: null,
-            children: [],
-          }),
-          makeTransaction({
-            children: [],
-          }),
+          makeTransaction({parent_span_id: null, children: []}),
+          makeTransaction({children: []}),
         ],
         orphan_errors: [],
       }),
@@ -93,14 +74,8 @@ describe('TraceTree', () => {
     const tree = TraceTree.FromTrace(
       makeTrace({
         transactions: [
-          makeTransaction({
-            parent_span_id: null,
-            children: [],
-          }),
-          makeTransaction({
-            parent_span_id: null,
-            children: [],
-          }),
+          makeTransaction({parent_span_id: null, children: []}),
+          makeTransaction({parent_span_id: null, children: []}),
         ],
         orphan_errors: [],
       }),
@@ -112,10 +87,7 @@ describe('TraceTree', () => {
 
   it('only errors', () => {
     const tree = TraceTree.FromTrace(
-      makeTrace({
-        transactions: [],
-        orphan_errors: [makeTraceError()],
-      }),
+      makeTrace({transactions: [], orphan_errors: [makeTraceError()]}),
       {replay: null, meta: null, organization}
     );
 

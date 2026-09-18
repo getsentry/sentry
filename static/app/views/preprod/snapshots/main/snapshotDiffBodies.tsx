@@ -249,9 +249,7 @@ export const OnionCardBody = memo(function OnionCardBodyImpl({
         position="relative"
         width="100%"
         maxWidth={displayMaxW ? `${displayMaxW}px` : undefined}
-        style={{
-          aspectRatio: maxW && maxH ? `${maxW} / ${maxH}` : undefined,
-        }}
+        style={{aspectRatio: maxW && maxH ? `${maxW} / ${maxH}` : undefined}}
       >
         <OnionImg
           src={baseUrl}

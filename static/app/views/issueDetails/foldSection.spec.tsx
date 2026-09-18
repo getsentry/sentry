@@ -12,9 +12,7 @@ import {FoldSection, getFoldSectionKey} from 'sentry/views/issueDetails/foldSect
 
 // Mock dependencies
 jest.mock('sentry/views/issueDetails/context');
-jest.mock('sentry/utils/analytics', () => ({
-  trackAnalytics: jest.fn(),
-}));
+jest.mock('sentry/utils/analytics', () => ({trackAnalytics: jest.fn()}));
 
 describe('FoldSection', () => {
   const mockUseIssueDetails = {
@@ -39,9 +37,7 @@ describe('FoldSection', () => {
         <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       expect(screen.getByText('Test Section')).toBeVisible();
@@ -53,9 +49,7 @@ describe('FoldSection', () => {
         <FoldSection title={<span>Custom Title</span>} sectionKey={SectionKey.HIGHLIGHTS}>
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       expect(screen.getByText('Custom Title')).toBeVisible();
@@ -70,9 +64,7 @@ describe('FoldSection', () => {
         >
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       expect(screen.getByText('Custom Block Title')).toBeVisible();
@@ -87,9 +79,7 @@ describe('FoldSection', () => {
         >
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       expect(screen.getByRole('region', {name: 'Accessible Title'})).toBeInTheDocument();
@@ -103,9 +93,7 @@ describe('FoldSection', () => {
         <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       const section = screen.getByTestId('highlights');
@@ -126,9 +114,7 @@ describe('FoldSection', () => {
         >
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       expect(screen.getByTestId('highlights-extra')).toHaveAttribute(
@@ -144,9 +130,7 @@ describe('FoldSection', () => {
         <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       expect(screen.getByTestId('highlights')).toBeVisible();
@@ -158,9 +142,7 @@ describe('FoldSection', () => {
         <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       const expandButton = screen.getByRole('button');
@@ -190,9 +172,7 @@ describe('FoldSection', () => {
         >
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       expect(screen.queryByText('Test Content')).not.toBeInTheDocument();
@@ -204,9 +184,7 @@ describe('FoldSection', () => {
         <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       const expandButton = screen.getByRole('button');
@@ -231,9 +209,7 @@ describe('FoldSection', () => {
         >
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       // Button exists but should not be functional when preventCollapse is true
@@ -257,9 +233,7 @@ describe('FoldSection', () => {
         >
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       // Should be expanded despite localStorage value
@@ -277,9 +251,7 @@ describe('FoldSection', () => {
         >
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       // Actions visible when expanded
@@ -295,9 +267,7 @@ describe('FoldSection', () => {
         >
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       // Collapse the section
@@ -322,9 +292,7 @@ describe('FoldSection', () => {
         >
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       // Click the action button
@@ -344,9 +312,7 @@ describe('FoldSection', () => {
         <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       // Collapse section
@@ -382,9 +348,7 @@ describe('FoldSection', () => {
         >
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       // Collapse section
@@ -431,9 +395,7 @@ describe('FoldSection', () => {
         >
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       expect(mockUseIssueDetails.dispatch).toHaveBeenCalledWith({
@@ -444,20 +406,18 @@ describe('FoldSection', () => {
     });
 
     it('does not update context if section already exists', () => {
-      jest.mocked(useIssueDetails).mockReturnValue({
-        ...mockUseIssueDetails,
-        sectionData: {
-          [SectionKey.HIGHLIGHTS]: {key: SectionKey.HIGHLIGHTS},
-        },
-      });
+      jest
+        .mocked(useIssueDetails)
+        .mockReturnValue({
+          ...mockUseIssueDetails,
+          sectionData: {[SectionKey.HIGHLIGHTS]: {key: SectionKey.HIGHLIGHTS}},
+        });
 
       render(
         <FoldSection title="Test Section" sectionKey={SectionKey.HIGHLIGHTS}>
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       expect(mockUseIssueDetails.dispatch).not.toHaveBeenCalled();
@@ -473,9 +433,7 @@ describe('FoldSection', () => {
         >
           <div>Test Content</div>
         </FoldSection>,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       expect(mockUseIssueDetails.dispatch).toHaveBeenCalledWith({

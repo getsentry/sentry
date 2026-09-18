@@ -56,22 +56,11 @@ export const onboarding: OnboardingConfig = {
             code: <code />,
           }),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'composer require sentry/sentry-laravel',
-        },
+        {type: 'code', language: 'bash', code: 'composer require sentry/sentry-laravel'},
         ...(params.isProfilingSelected
           ? ([
-              {
-                type: 'text',
-                text: t('Install the Excimer extension via PECL:'),
-              },
-              {
-                type: 'code',
-                language: 'bash',
-                code: 'pecl install excimer',
-              },
+              {type: 'text', text: t('Install the Excimer extension via PECL:')},
+              {type: 'code', language: 'bash', code: 'pecl install excimer'},
               {
                 type: 'text',
                 text: tct(
@@ -89,16 +78,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Enable capturing unhandled exception to report to Sentry by making the following change to your [code:bootstrap/app.php]:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'php',
-          code: getExceptionHandlerSnippet(),
-        },
+        {type: 'code', language: 'php', code: getExceptionHandlerSnippet()},
       ],
     },
   ],
@@ -106,10 +89,7 @@ export const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       content: [
-        {
-          type: 'text',
-          text: t('Configure the Sentry DSN with this command:'),
-        },
+        {type: 'text', text: t('Configure the Sentry DSN with this command:')},
         {
           type: 'code',
           language: 'shell',
@@ -122,11 +102,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'shell',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'shell', code: getConfigureSnippet(params)},
         {
           type: 'conditional',
           condition: params.isLogsSelected,
@@ -159,9 +135,7 @@ export const onboarding: OnboardingConfig = {
           showIcon: false,
           text: tct(
             'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
       ],
@@ -175,16 +149,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'You can test your configuration using the provided [code:sentry:test] artisan command:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'shell',
-          code: 'php artisan sentry:test',
-        },
+        {type: 'code', language: 'shell', code: 'php artisan sentry:test'},
         {
           type: 'conditional',
           condition: params.isLogsSelected,

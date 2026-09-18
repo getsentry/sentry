@@ -28,10 +28,7 @@ const HISTORY_COLUMNS: TableColumnConfig[] = [
 
 const DEFAULT_HISTORY_PER_PAGE = 10;
 
-type Props = {
-  automationId: string;
-  query?: Record<string, any>;
-};
+type Props = {automationId: string; query?: Record<string, any>};
 
 function Skeletons() {
   return (
@@ -150,10 +147,7 @@ export function AutomationHistoryList({automationId, query}: Props) {
         onCursor={newCursor => {
           navigate({
             pathname: location.pathname,
-            query: {
-              ...location.query,
-              cursor: newCursor,
-            },
+            query: {...location.query, cursor: newCursor},
           });
         }}
         pageLinks={pageLinks}

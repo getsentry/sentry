@@ -84,8 +84,5 @@ export function useSpanSamplesCategorizedQuery({
     ? data.sort((a, b) => a[`${webVital}Score`] - b[`${webVital}Score`])
     : data.sort((a, b) => a.totalScore - b.totalScore);
 
-  return {
-    data: spanSamplesTableData,
-    isLoading,
-  };
+  return {data: spanSamplesTableData, isLoading};
 }

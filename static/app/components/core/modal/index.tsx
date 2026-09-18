@@ -92,17 +92,11 @@ type ModalRenderProps = {
  *
  * eg. you won't accidentally import ModalRenderProps from here.
  */
-export type ModalTypes = {
-  options: ModalOptions;
-  renderProps: ModalRenderProps;
-};
+export type ModalTypes = {options: ModalOptions; renderProps: ModalRenderProps};
 
 function useModalStore() {
   const store = useLegacyStore(ModalStore);
-  return {
-    ...store,
-    visible: typeof store.renderer === 'function',
-  };
+  return {...store, visible: typeof store.renderer === 'function'};
 }
 
 export function GlobalModal() {

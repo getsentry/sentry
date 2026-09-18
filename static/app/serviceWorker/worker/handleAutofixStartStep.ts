@@ -8,29 +8,14 @@ type AutofixExplorerStep = 'root_cause' | 'solution' | 'code_changes' | 'pr_iter
 export interface AutofixStartStepData {
   issueId: string;
   notification: {
-    body: {
-      error: string;
-      success: string;
-    };
-    navigateTo: {
-      pathname: string;
-      query?: Record<string, string>;
-    };
-    project: {
-      avatar: string;
-    };
-    title: {
-      error: string;
-      success: string;
-    };
+    body: {error: string; success: string};
+    navigateTo: {pathname: string; query?: Record<string, string>};
+    project: {avatar: string};
+    title: {error: string; success: string};
   };
   organizationIdOrSlug: string;
   step: AutofixExplorerStep;
-  stepOptions: {
-    insertIndex?: number;
-    runId?: number | string;
-    userContext?: string;
-  };
+  stepOptions: {insertIndex?: number; runId?: number | string; userContext?: string};
 }
 
 /**

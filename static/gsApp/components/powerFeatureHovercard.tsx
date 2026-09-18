@@ -74,10 +74,7 @@ function PowerFeatureHovercard({
     e.preventDefault();
 
     recordAnalytics();
-    openUpsellModal({
-      organization,
-      source: id ?? '',
-    });
+    openUpsellModal({organization, source: id ?? ''});
   };
 
   const hoverBody = (

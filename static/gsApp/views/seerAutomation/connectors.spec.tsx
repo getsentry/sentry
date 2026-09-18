@@ -9,15 +9,10 @@ import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import SeerConnectors from 'getsentry/views/seerAutomation/connectors';
 
 describe('SeerConnectors', () => {
-  const organization = OrganizationFixture({
-    features: ['seer-infra-telemetry'],
-  });
+  const organization = OrganizationFixture({features: ['seer-infra-telemetry']});
 
   function makeProvider(params: Partial<IntegrationProvider>): IntegrationProvider {
-    return IntegrationProviderFixture({
-      features: ['seer-context'],
-      ...params,
-    });
+    return IntegrationProviderFixture({features: ['seer-context'], ...params});
   }
 
   function makeIntegration(providerKey: string, status: Integration['status']) {
@@ -77,19 +72,10 @@ describe('SeerConnectors', () => {
 
   it('renders header and only seer-context providers', async () => {
     mockConfig([
-      makeProvider({
-        key: 'gcp',
-        slug: 'gcp',
-        name: 'Google Cloud Platform for Seer',
-      }),
+      makeProvider({key: 'gcp', slug: 'gcp', name: 'Google Cloud Platform for Seer'}),
       makeProvider({key: 'datadog', slug: 'datadog', name: 'Datadog for Seer'}),
       // Not a seer-context provider: must be filtered out.
-      makeProvider({
-        key: 'github',
-        slug: 'github',
-        name: 'GitHub',
-        features: [],
-      }),
+      makeProvider({key: 'github', slug: 'github', name: 'GitHub', features: []}),
     ]);
     mockIntegrations([]);
 
@@ -107,11 +93,7 @@ describe('SeerConnectors', () => {
 
   it('shows install status per provider', async () => {
     mockConfig([
-      makeProvider({
-        key: 'gcp',
-        slug: 'gcp',
-        name: 'Google Cloud Platform for Seer',
-      }),
+      makeProvider({key: 'gcp', slug: 'gcp', name: 'Google Cloud Platform for Seer'}),
       makeProvider({key: 'datadog', slug: 'datadog', name: 'Datadog for Seer'}),
     ]);
     mockIntegrations([makeIntegration('gcp', 'active')]);
@@ -124,11 +106,7 @@ describe('SeerConnectors', () => {
 
   it('links a provider name to its integration detail page', async () => {
     mockConfig([
-      makeProvider({
-        key: 'gcp',
-        slug: 'gcp',
-        name: 'Google Cloud Platform for Seer',
-      }),
+      makeProvider({key: 'gcp', slug: 'gcp', name: 'Google Cloud Platform for Seer'}),
     ]);
     mockIntegrations([]);
 

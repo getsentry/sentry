@@ -33,7 +33,5 @@ export const docs: Docs<PlatformOptions> = {
     docsPlatform: 'vue',
     packageName: '@sentry/vue',
   }),
-  agentMonitoringOnboarding: agentMonitoring({
-    packageName: '@sentry/vue',
-  }),
+  agentMonitoringOnboarding: agentMonitoring({packageName: '@sentry/vue'}),
 };

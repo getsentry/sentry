@@ -46,10 +46,7 @@ export default function AccountSecurity() {
 
   async function handleSessionClose() {
     try {
-      await api.requestPromise('/auth/', {
-        method: 'DELETE',
-        data: {all: true},
-      });
+      await api.requestPromise('/auth/', {method: 'DELETE', data: {all: true}});
       testableWindowLocation.assign('/auth/login/');
     } catch (err) {
       addErrorMessage(t('There was a problem closing all sessions'));

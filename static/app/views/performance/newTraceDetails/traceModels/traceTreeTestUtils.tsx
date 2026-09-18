@@ -15,11 +15,7 @@ import type {TraceTree} from './traceTree';
 export function makeTrace(
   overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
 ): TraceSplitResults<TraceTree.Transaction> {
-  return {
-    transactions: [],
-    orphan_errors: [],
-    ...overrides,
-  };
+  return {transactions: [], orphan_errors: [], ...overrides};
 }
 
 export function makeEAPTrace(overrides: Partial<TraceTree.EAPTrace>): TraceTree.EAPTrace {
@@ -174,9 +170,7 @@ export function makeParentAutogroup(
   overrides: Partial<TraceTree.ChildrenAutogroup> = {}
 ): TraceTree.ChildrenAutogroup {
   return {
-    autogrouped_by: {
-      op: overrides.op ?? 'op',
-    },
+    autogrouped_by: {op: overrides.op ?? 'op'},
     ...overrides,
   } as TraceTree.ChildrenAutogroup;
 }
@@ -268,8 +262,6 @@ export function mockSpansResponse(
   return MockApiClient.addMockResponse({
     url: `/organizations/org-slug/events/${project_slug}:${event_id}/?averageColumn=span.self_time&averageColumn=span.duration`,
     method: 'GET',
-    body: makeEventTransaction({
-      entries: [{type: EntryType.SPANS, data: spans}],
-    }),
+    body: makeEventTransaction({entries: [{type: EntryType.SPANS, data: spans}]}),
   });
 }

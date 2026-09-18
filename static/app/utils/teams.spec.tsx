@@ -29,14 +29,8 @@ describe('utils.teams', () => {
         hasMore: null,
         fetchError: null,
         teams: [
-          expect.objectContaining({
-            id: '1',
-            slug: 'bar',
-          }),
-          expect.objectContaining({
-            id: '2',
-            slug: 'foo',
-          }),
+          expect.objectContaining({id: '1', slug: 'bar'}),
+          expect.objectContaining({id: '2', slug: 'foo'}),
         ],
       })
     );

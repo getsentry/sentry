@@ -63,9 +63,7 @@ export function RootAllocationCard({
               <Text>
                 {tct(
                   'Click the button to create one and to enable spend allocation for [selectedMetric].',
-                  {
-                    selectedMetric,
-                  }
+                  {selectedMetric}
                 )}
               </Text>
             </Container>
@@ -130,9 +128,7 @@ export function RootAllocationCard({
                         N/A
                       </InfoText>
                     ) : (
-                      displayPrice({
-                        cents: rootAllocation.costPerItem * availableEvents,
-                      })
+                      displayPrice({cents: rootAllocation.costPerItem * availableEvents})
                     )}
                   </Cell>
                   <Cell>

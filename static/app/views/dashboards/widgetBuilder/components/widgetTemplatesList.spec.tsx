@@ -177,9 +177,7 @@ describe('WidgetTemplatesList', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/dashboards/new/widget/0/',
-            query: {
-              widgetTemplateId: 'high-throughput-transactions',
-            },
+            query: {widgetTemplateId: 'high-throughput-transactions'},
           },
         },
       }

@@ -15,10 +15,7 @@ import {ErrorNodeDetails} from './error';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 describe('ErrorNodeDetails', () => {
   beforeEach(() => {
@@ -75,10 +72,7 @@ describe('ErrorNodeDetails', () => {
       expect(issueMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/issues/${group.id}/`,
         expect.objectContaining({
-          query: {
-            collapse: ['release', 'tags', 'stats'],
-            expand: ['inbox', 'owners'],
-          },
+          query: {collapse: ['release', 'tags', 'stats'], expand: ['inbox', 'owners']},
         })
       );
     });

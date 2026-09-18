@@ -19,9 +19,7 @@ describe('WidgetBuilder', () => {
     // trigger blur
     await userEvent.tab();
     expect(router.location).toEqual(
-      expect.objectContaining({
-        query: expect.objectContaining({title: 'some name'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({title: 'some name'})})
     );
 
     await userEvent.click(await screen.findByTestId('add-description'));

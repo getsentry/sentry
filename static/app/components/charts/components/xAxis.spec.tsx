@@ -14,21 +14,14 @@ jest.mock('moment-timezone', () => {
 describe('Chart XAxis', () => {
   let axisLabelFormatter: (value: string | number, index: number) => string;
   let xAxisObj!: ReturnType<typeof createXAxisOptions>;
-  const props: XAxisProps = {
-    isGroupedByDate: true,
-    theme,
-  };
+  const props: XAxisProps = {isGroupedByDate: true, theme};
   const timestamp = 1531094400000;
 
   describe('axisLabel', () => {
     describe('With Period > 24h', () => {
       describe('Local timezone', () => {
         beforeEach(() => {
-          xAxisObj = createXAxisOptions({
-            ...props,
-            period: '7d',
-            utc: false,
-          });
+          xAxisObj = createXAxisOptions({...props, period: '7d', utc: false});
 
           // @ts-expect-error formatter type is missing
           axisLabelFormatter = xAxisObj.axisLabel!.formatter;
@@ -45,11 +38,7 @@ describe('Chart XAxis', () => {
 
       describe('UTC', () => {
         beforeEach(() => {
-          xAxisObj = createXAxisOptions({
-            ...props,
-            period: '7d',
-            utc: true,
-          });
+          xAxisObj = createXAxisOptions({...props, period: '7d', utc: true});
 
           // @ts-expect-error formatter type is missing
           axisLabelFormatter = xAxisObj.axisLabel!.formatter;
@@ -66,11 +55,7 @@ describe('Chart XAxis', () => {
 
       describe('Multiline', () => {
         beforeEach(() => {
-          xAxisObj = createXAxisOptions({
-            ...props,
-            useMultilineDate: true,
-            period: '7d',
-          });
+          xAxisObj = createXAxisOptions({...props, useMultilineDate: true, period: '7d'});
 
           // @ts-expect-error formatter type is missing
           axisLabelFormatter = xAxisObj.axisLabel!.formatter;
@@ -89,11 +74,7 @@ describe('Chart XAxis', () => {
     describe('With Period <= 24h', () => {
       describe('Local timezone', () => {
         beforeEach(() => {
-          xAxisObj = createXAxisOptions({
-            ...props,
-            period: '24h',
-            utc: false,
-          });
+          xAxisObj = createXAxisOptions({...props, period: '24h', utc: false});
 
           // @ts-expect-error formatter type is missing
           axisLabelFormatter = xAxisObj.axisLabel!.formatter;
@@ -110,11 +91,7 @@ describe('Chart XAxis', () => {
 
       describe('UTC', () => {
         beforeEach(() => {
-          xAxisObj = createXAxisOptions({
-            ...props,
-            period: '24h',
-            utc: true,
-          });
+          xAxisObj = createXAxisOptions({...props, period: '24h', utc: true});
 
           // @ts-expect-error formatter type is missing
           axisLabelFormatter = xAxisObj.axisLabel!.formatter;

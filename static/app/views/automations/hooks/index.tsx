@@ -116,10 +116,7 @@ export function useDataConditionsQuery(groupType: DataConditionHandlerGroupType)
       }),
       {query: {group: groupType}},
     ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
+    {staleTime: Infinity, retry: false}
   );
 }
 
@@ -132,10 +129,7 @@ export function useAvailableActionsQuery() {
         path: {organizationIdOrSlug: slug},
       }),
     ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
+    {staleTime: Infinity, retry: false}
   );
 }
 
@@ -152,15 +146,10 @@ export function useCreateAutomation({
         getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
           path: {organizationIdOrSlug: org.slug},
         }),
-        {
-          method: 'POST',
-          data,
-        }
+        {method: 'POST', data}
       ),
     onSuccess: _ => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
     },
     onError: error => {
       if (suppressErrorMessage) {
@@ -185,14 +174,10 @@ export function useDeleteAutomationMutation() {
         getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
           path: {organizationIdOrSlug: org.slug, workflowId: automationId},
         }),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
       addSuccessMessage(t('Alert deleted'));
     },
     onError: error => {
@@ -219,18 +204,12 @@ export function useDeleteAutomationsMutation() {
         }),
         {
           method: 'DELETE',
-          query: {
-            id: params.ids,
-            query: params.query,
-            project: params.projects,
-          },
+          query: {id: params.ids, query: params.query, project: params.projects},
         }
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
       addSuccessMessage(t('Alerts deleted'));
     },
     onError: error => {
@@ -254,10 +233,7 @@ export function useUpdateAutomation() {
         getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
           path: {organizationIdOrSlug: org.slug, workflowId: data.id},
         }),
-        {
-          method: 'PUT',
-          data,
-        }
+        {method: 'PUT', data}
       ),
     onSuccess: data => {
       // Update cache with new automation data
@@ -271,9 +247,7 @@ export function useUpdateAutomation() {
         data
       );
       // Invalidate list query
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
     },
     onError: error => {
       addErrorMessage(
@@ -303,18 +277,12 @@ export function useUpdateAutomationsMutation() {
         {
           method: 'PUT',
           data: {enabled: params.enabled},
-          query: {
-            id: params.ids,
-            query: params.query,
-            project: params.projects,
-          },
+          query: {id: params.ids, query: params.query, project: params.projects},
         }
       );
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
       addSuccessMessage(variables.enabled ? t('Alerts enabled') : t('Alerts disabled'));
     },
     onError: (error, variables) => {
@@ -347,16 +315,11 @@ export function useSendTestNotification(
         getApiUrl('/organizations/$organizationIdOrSlug/test-fire-actions/', {
           path: {organizationIdOrSlug: org.slug},
         }),
-        {
-          method: 'POST',
-          data: {actions, projectSlug},
-        }
+        {method: 'POST', data: {actions, projectSlug}}
       ),
     ...options,
     onSuccess: (data, variables, onMutateResult, context) => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
       addSuccessMessage(
         tn('Notification fired!', 'Notifications sent!', variables.actions.length)
       );

@@ -96,12 +96,7 @@ function SearchComboBox<T extends SearchItem>(props: SearchComboBoxProps<T>) {
   });
 
   const {inputProps, listBoxProps, labelProps} = useSearchTokenCombobox<T>(
-    {
-      ...props,
-      inputRef,
-      listBoxRef,
-      popoverRef,
-    },
+    {...props, inputRef, listBoxRef, popoverRef},
     state
   );
 

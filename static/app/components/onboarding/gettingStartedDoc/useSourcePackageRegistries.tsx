@@ -28,9 +28,7 @@ export function useSourcePackageRegistries(organization: Organization) {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
-    {
-      staleTime: Infinity,
-    }
+    {staleTime: Infinity}
   );
 
   useEffect(() => {

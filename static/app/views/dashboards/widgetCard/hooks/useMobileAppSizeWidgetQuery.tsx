@@ -78,10 +78,7 @@ export function useMobileAppSizeSeriesQuery(
         ...restParams
       } = requestData;
 
-      const queryParams = {
-        ...restParams,
-        ...(period ? {statsPeriod: period} : {}),
-      };
+      const queryParams = {...restParams, ...(period ? {statsPeriod: period} : {})};
 
       if (queryParams.start) {
         queryParams.start = getUtcDateString(queryParams.start);
@@ -128,11 +125,7 @@ export function useMobileAppSizeSeriesQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: Series[] = [];

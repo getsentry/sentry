@@ -39,10 +39,7 @@ function DashboardWidgetQuerySelectorModal(props: Props) {
   const renderQueries = () => {
     const querySearchBars = widget.queries.map((query, index) => {
       const discoverLocation = getWidgetDiscoverUrl(
-        {
-          ...widget,
-          queries: [query],
-        },
+        {...widget, queries: [query]},
         dashboardFilters,
         selection,
         organization

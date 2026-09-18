@@ -146,10 +146,7 @@ const DEFAULT_POLLING_CONFIG = [
     phaseTimeout: 30_000,
     transitionToast: t('Repositories still syncing, this may take a few minutes'),
   },
-  {
-    pollInterval: 30_000,
-    phaseTimeout: 60_000 * 4.5,
-  },
+  {pollInterval: 30_000, phaseTimeout: 60_000 * 4.5},
 ] as const satisfies PollPhaseConfig[];
 
 /**
@@ -240,9 +237,7 @@ export function useSyncRepositories(
             method: 'POST',
             url: getApiUrl(
               '/organizations/$organizationIdOrSlug/integrations/$integrationId/repo-sync/',
-              {
-                path: {organizationIdOrSlug, integrationId},
-              }
+              {path: {organizationIdOrSlug, integrationId}}
             ),
           })
             .then(() => {

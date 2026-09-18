@@ -107,10 +107,7 @@ function ComparisonTypeField() {
       aria-label={t('Comparison type')}
       value={condition.type}
       options={[
-        {
-          label: 'more than...',
-          value: DataConditionType.PERCENT_SESSIONS_COUNT,
-        },
+        {label: 'more than...', value: DataConditionType.PERCENT_SESSIONS_COUNT},
         {
           label: 'relatively higher than...',
           value: DataConditionType.PERCENT_SESSIONS_PERCENT,

@@ -48,9 +48,7 @@ const getDefaultProfilingHeaderContent = (): ContentBlock[] => [
     type: 'text',
     text: tct(
       "How you do this will depend on your server. If you're using a server like Express, you'll be able to use the [link:response.set] function.",
-      {
-        link: <ExternalLink href="https://expressjs.com/en/4x/api.html#res.set" />,
-      }
+      {link: <ExternalLink href="https://expressjs.com/en/4x/api.html#res.set" />}
     ),
   },
   {
@@ -88,9 +86,7 @@ export const profiling = <
           type: 'text',
           text: tct(
             'Install our SDK using your preferred package manager, the minimum version that supports profiling is [code:7.60.0].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         installSnippetBlock,
@@ -105,9 +101,7 @@ export const profiling = <
           type: 'text',
           text: tct(
             'For the JavaScript browser profiler to start, the document response header needs to include a [code:Document-Policy] header key with the [code:js-profiling] value.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         ...getDefaultProfilingHeaderContent(),
@@ -120,9 +114,7 @@ export const profiling = <
           type: 'text',
           text: tct(
             'Set up the [code:browserTracingIntegration] and [code:browserProfilingIntegration] in your [code:Sentry.init()] call.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -140,9 +132,7 @@ export const profiling = <
           type: 'text',
           text: tct(
             'For more detailed information, see the [link:browser profiling documentation].',
-            {
-              link: <ExternalLink href={docsLink} />,
-            }
+            {link: <ExternalLink href={docsLink} />}
           ),
         },
       ],
@@ -184,10 +174,7 @@ export const profilingFullStack = <
           type: 'text',
           text: tct(
             'To enable profiling, add [code:@sentry/profiling-node] to your imports and make sure [packageName] is up-to-date. The minimum version of [packageName] that supports node and browser profiling is [code:7.60.0].',
-            {
-              code: <code />,
-              packageName: <code>{packageName}</code>,
-            }
+            {code: <code />, packageName: <code>{packageName}</code>}
           ),
         },
         {
@@ -221,9 +208,7 @@ export const profilingFullStack = <
           type: 'text',
           text: tct(
             'Set up the [code:nodeProfilingIntegration] in your server-side [code:Sentry.init()] call.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -279,17 +264,12 @@ export const profilingFullStack = <
     {
       title: t('Configure Browser Profiling'),
       content: [
-        {
-          type: 'custom',
-          content: <BrowserProfilingBetaWarning />,
-        },
+        {type: 'custom', content: <BrowserProfilingBetaWarning />},
         {
           type: 'text',
           text: tct(
             'Set up the [code:browserProfilingIntegration] in your client-side [code:Sentry.init()] call.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -306,9 +286,7 @@ export const profilingFullStack = <
           type: 'text',
           text: tct(
             'For the JavaScript browser profiler to start, the document response header needs to include a [code:Document-Policy] header key with the [code:js-profiling] value.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         ...getProfilingHeaderContent(params),
@@ -316,9 +294,7 @@ export const profilingFullStack = <
           type: 'text',
           text: tct(
             'For more detailed information, see the [link:browser profiling documentation].',
-            {
-              link: <ExternalLink href={browserProfilingLink} />,
-            }
+            {link: <ExternalLink href={browserProfilingLink} />}
           ),
         },
       ],

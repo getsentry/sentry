@@ -10,10 +10,7 @@ export function convertSeriesToTimeseries(series: DiscoverSeries): TimeSeries {
         ? datum.name * 1000 // Timestamps from `events-stats` are in seconds
         : new Date(datum.name).getTime();
 
-    return {
-      timestamp,
-      value: datum.value,
-    };
+    return {timestamp, value: datum.value};
   });
 
   const interval = getTimeSeriesInterval(values);

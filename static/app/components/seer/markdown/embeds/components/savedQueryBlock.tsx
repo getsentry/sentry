@@ -88,9 +88,7 @@ export default function SavedQueryBlock({data}: {data: SavedQueryData}) {
               time: <TimeSince date={savedQuery.dateUpdated} />,
               name: savedQuery.createdBy.name,
             })
-          : tct('Updated [time]', {
-              time: <TimeSince date={savedQuery.dateUpdated} />,
-            })}
+          : tct('Updated [time]', {time: <TimeSince date={savedQuery.dateUpdated} />})}
       </Text>
     </QueryEmbedCard>
   );

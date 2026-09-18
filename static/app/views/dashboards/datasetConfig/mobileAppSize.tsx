@@ -104,10 +104,7 @@ function getPrimaryFieldOptions(
   const mobileAppSizeFields: Record<string, FieldValueOption> = {
     'measurement:install_size': {
       label: 'install_size',
-      value: {
-        kind: FieldValueKind.TAG,
-        meta: {name: 'install_size', dataType: 'number'},
-      },
+      value: {kind: FieldValueKind.TAG, meta: {name: 'install_size', dataType: 'number'}},
     },
     'measurement:download_size': {
       label: 'download_size',

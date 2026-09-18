@@ -114,10 +114,7 @@ export function FullSpanDescription({
   return <Fragment>{description}</Fragment>;
 }
 
-type TruncatedQueryClipBoxProps = {
-  children: ReactNode;
-  group: string | null | undefined;
-};
+type TruncatedQueryClipBoxProps = {children: ReactNode; group: string | null | undefined};
 
 function QueryClippedBox({group, children}: TruncatedQueryClipBoxProps) {
   const navigate = useNavigate();

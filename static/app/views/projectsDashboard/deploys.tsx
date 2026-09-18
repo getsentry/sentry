@@ -12,10 +12,7 @@ import type {Deploy as DeployType} from 'sentry/types/release';
 
 const DEPLOY_COUNT = 2;
 
-type Props = {
-  project: Project;
-  latestDeploys?: Project['latestDeploys'];
-};
+type Props = {project: Project; latestDeploys?: Project['latestDeploys']};
 
 export function Deploys({latestDeploys, project}: Props) {
   const flattenedDeploys = Object.entries(latestDeploys ?? {}).map(

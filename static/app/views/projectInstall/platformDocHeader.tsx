@@ -91,10 +91,8 @@ export function PlatformDocHeader({
     }
 
     navigate(
-      makeProjectsPathname({
-        path: '/new/',
-        organization,
-      }) + `?referrer=getting-started&project=${recentCreatedProject.id}`,
+      makeProjectsPathname({path: '/new/', organization}) +
+        `?referrer=getting-started&project=${recentCreatedProject.id}`,
       {replace: true}
     );
   }, [

@@ -13,15 +13,9 @@ export function useSegmentSpanWidgetState() {
     const stateParams = convertBuilderStateToStateQueryParams(state);
     dispatch({
       type: BuilderStateAction.SET_STATE,
-      payload: {
-        ...stateParams,
-        dataset: nextDataset,
-        query: ['is_transaction:true'],
-      },
+      payload: {...stateParams, dataset: nextDataset, query: ['is_transaction:true']},
     });
   }, [dispatch, state]);
 
-  return {
-    setSegmentSpanBuilderState,
-  };
+  return {setSegmentSpanBuilderState};
 }

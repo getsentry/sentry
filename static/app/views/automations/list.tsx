@@ -184,11 +184,7 @@ function TableHeader() {
 
   return (
     <Grid
-      columns={{
-        zero: '100%',
-        xl: '1fr auto',
-        '3xl': 'auto 1fr min-content',
-      }}
+      columns={{zero: '100%', xl: '1fr auto', '3xl': 'auto 1fr min-content'}}
       areas={{
         zero: `
           "project"

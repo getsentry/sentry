@@ -22,10 +22,7 @@ interface ExternalIssueListContentProps extends GroupIntegrationIssueResult {
 }
 
 export function ExternalIssueList({group, event}: ExternalIssueListProps) {
-  const externalIssueData = useGroupExternalIssues({
-    group,
-    event,
-  });
+  const externalIssueData = useGroupExternalIssues({group, event});
 
   return (
     <ExternalIssueListContent

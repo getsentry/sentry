@@ -28,10 +28,7 @@ export interface TraceOverviewData {
     representative: EventsLogsResult['data'] | undefined;
     routingHint?: string;
   };
-  metrics: {
-    availability: TraceDataAvailability;
-    count: number | undefined;
-  };
+  metrics: {availability: TraceDataAvailability; count: number | undefined};
   projectIds: string[] | undefined;
 }
 
@@ -302,9 +299,6 @@ export function useTraceOverviewData({
       representative: representativeLogResult.data?.data,
       routingHint: representativeLogResult.data?.meta?.routingHint,
     },
-    metrics: {
-      availability: metricsAvailability,
-      count: metricsCount,
-    },
+    metrics: {availability: metricsAvailability, count: metricsCount},
   };
 }

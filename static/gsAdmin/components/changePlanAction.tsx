@@ -140,9 +140,7 @@ function ChangePlanAction({
         );
         if (closestTier) {
           formModel.setValue(
-            `reserved${toTitleCase(category, {
-              allowInnerUpperCase: true,
-            })}`,
+            `reserved${toTitleCase(category, {allowInnerUpperCase: true})}`,
             closestTier
           );
         }
@@ -183,11 +181,7 @@ function ChangePlanAction({
   // the navigation that will allow modifying the billing cycle
   const header = partnerPlanId ? null : (
     <ul className="nav nav-pills">
-      <li
-        className={classNames({
-          active: billingInterval === MONTHLY,
-        })}
-      >
+      <li className={classNames({active: billingInterval === MONTHLY})}>
         <a
           onClick={() => {
             setBillingInterval(MONTHLY);
@@ -196,11 +190,7 @@ function ChangePlanAction({
           Monthly
         </a>
       </li>
-      <li
-        className={classNames({
-          active: billingInterval === ANNUAL,
-        })}
-      >
+      <li className={classNames({active: billingInterval === ANNUAL})}>
         <a
           onClick={() => {
             setBillingInterval(ANNUAL);

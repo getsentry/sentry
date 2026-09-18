@@ -26,24 +26,15 @@ function getIntegrationNames(integrationIssue: IntegrationComponent) {
     ? getIntegrationDisplayName(integrationIssue.props.externalIssue.integrationKey)
     : '';
 
-  return {
-    name,
-    icon,
-  };
+  return {name, icon};
 }
 
 function getAppIntegrationNames(integrationIssue: SentryAppIssueComponent) {
-  return {
-    name: integrationIssue.props.sentryApp.name,
-    icon: integrationIssue.key ?? '',
-  };
+  return {name: integrationIssue.props.sentryApp.name, icon: integrationIssue.key ?? ''};
 }
 
 export function IssueTrackingSignals({group}: Props) {
-  const {linkedIssues} = useHasLinkedIssues({
-    group,
-    event: {} as Event,
-  });
+  const {linkedIssues} = useHasLinkedIssues({group, event: {} as Event});
 
   if (!linkedIssues.length) {
     return null;

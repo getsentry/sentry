@@ -212,10 +212,7 @@ export default Storybook.story('Confirm', story => {
         </p>
         <p>Button clicks: {clicks} </p>
         <Storybook.PropMatrix
-          propMatrix={{
-            disabled: [false, true],
-            stopPropagation: [false, true],
-          }}
+          propMatrix={{disabled: [false, true], stopPropagation: [false, true]}}
           render={props => (
             <Button onClick={() => setClicks(prev => prev + 1)}>
               <Confirm {...props}>

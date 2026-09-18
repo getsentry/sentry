@@ -28,43 +28,19 @@ describe('ActorAvatar', () => {
   });
 
   it('should show a gravatar when actor type is a user', async () => {
-    render(
-      <ActorAvatar
-        actor={{
-          id: '1',
-          name: 'Jane Bloggs',
-          type: 'user',
-        }}
-      />
-    );
+    render(<ActorAvatar actor={{id: '1', name: 'Jane Bloggs', type: 'user'}} />);
 
     expect(await screen.findByText('JB')).toBeInTheDocument();
   });
 
   it('should not show a gravatar when actor type is a team', () => {
-    render(
-      <ActorAvatar
-        actor={{
-          id: '3',
-          name: 'COOL TEAM',
-          type: 'team',
-        }}
-      />
-    );
+    render(<ActorAvatar actor={{id: '3', name: 'COOL TEAM', type: 'team'}} />);
 
     expect(screen.getByText('CT')).toBeInTheDocument();
   });
 
   it('should show an avatar even if the user is not in the memberlist', async () => {
-    render(
-      <ActorAvatar
-        actor={{
-          id: '2',
-          name: 'Jane Vloggs',
-          type: 'user',
-        }}
-      />
-    );
+    render(<ActorAvatar actor={{id: '2', name: 'Jane Vloggs', type: 'user'}} />);
 
     expect(await screen.findByText('JV')).toBeInTheDocument();
   });
@@ -97,15 +73,7 @@ describe('ActorAvatar', () => {
       body: [team2],
     });
 
-    render(
-      <ActorAvatar
-        actor={{
-          id: team2.id,
-          name: team2.name,
-          type: 'team',
-        }}
-      />
-    );
+    render(<ActorAvatar actor={{id: team2.id, name: team2.name, type: 'team'}} />);
 
     expect(await screen.findByText('CT')).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalled();
@@ -124,14 +92,7 @@ describe('ActorAvatar', () => {
       body: [{user: user2}],
     });
 
-    render(
-      <ActorAvatar
-        actor={{
-          id: user2.id,
-          type: 'user',
-        }}
-      />
-    );
+    render(<ActorAvatar actor={{id: user2.id, type: 'user'}} />);
 
     expect(await screen.findByText('CU')).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalled();

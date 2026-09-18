@@ -15,9 +15,7 @@ export const onboarding: OnboardingConfig = {
     <p>
       {tct(
         "Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.",
-        {
-          remixLink: <ExternalLink href="https://remix.run/" />,
-        }
+        {remixLink: <ExternalLink href="https://remix.run/" />}
       )}
     </p>
   ),
@@ -55,9 +53,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Start your development server and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -69,11 +65,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'Javascript',
-              language: 'javascript',
-              code: 'myUndefinedFunction();',
-            },
+            {label: 'Javascript', language: 'javascript', code: 'myUndefinedFunction();'},
           ],
         },
         {

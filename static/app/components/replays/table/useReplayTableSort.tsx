@@ -25,17 +25,10 @@ export function useReplayTableSort() {
     (key: string) => {
       setSort(getNextSort(key, sort));
 
-      trackAnalytics('replay.list-sorted', {
-        organization,
-        column: key,
-      });
+      trackAnalytics('replay.list-sorted', {organization, column: key});
     },
     [organization, setSort, sort]
   );
 
-  return {
-    sortType: sort,
-    sortQuery: encodeSort(sort),
-    onSortClick: handleSortClick,
-  };
+  return {sortType: sort, sortQuery: encodeSort(sort), onSortClick: handleSortClick};
 }

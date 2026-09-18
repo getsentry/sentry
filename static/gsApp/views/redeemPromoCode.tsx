@@ -25,9 +25,7 @@ import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import {PartnershipNote} from 'getsentry/views/subscriptionPage/partnershipNote';
 
-const schema = z.object({
-  code: z.string().min(1, t('Promotional code is required')),
-});
+const schema = z.object({code: z.string().min(1, t('Promotional code is required'))});
 
 function RedeemPromoCode({subscription}: {subscription: Subscription}) {
   const organization = useOrganization();
@@ -35,9 +33,7 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
   const {accountBalance} = subscription;
   const accountCredit =
     accountBalance < 0 ? Number((accountBalance / -100).toFixed(2)) : 0;
-  useRouteAnalyticsParams({
-    account_credit: accountCredit,
-  });
+  useRouteAnalyticsParams({account_credit: accountCredit});
 
   const mutation = useMutation({
     mutationFn: (data: {code: string}) =>
@@ -51,9 +47,7 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
     onSuccess: resp => {
       const msg = resp?.details || t('Successfully applied credit to your organization');
 
-      SubscriptionStore.loadData(organization.slug, null, {
-        markStartedTrial: true,
-      });
+      SubscriptionStore.loadData(organization.slug, null, {markStartedTrial: true});
       fetchOrganizationDetails(new Client(), organization.slug);
       addSuccessMessage(msg);
     },

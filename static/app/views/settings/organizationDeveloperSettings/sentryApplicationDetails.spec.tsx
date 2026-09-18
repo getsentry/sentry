@@ -31,9 +31,7 @@ describe('Sentry Application Details', () => {
 
   describe('Creating a new public Sentry App', () => {
     const initialRouterConfig: RouterConfig = {
-      location: {
-        pathname: '/sentry-apps/new-public/',
-      },
+      location: {pathname: '/sentry-apps/new-public/'},
       route: '/sentry-apps/new-public/',
     };
     function renderComponent() {
@@ -140,10 +138,7 @@ describe('Sentry Application Details', () => {
 
       expect(createAppRequest).toHaveBeenCalledWith(
         '/sentry-apps/',
-        expect.objectContaining({
-          data,
-          method: 'POST',
-        })
+        expect.objectContaining({data, method: 'POST'})
       );
     });
 
@@ -166,9 +161,7 @@ describe('Sentry Application Details', () => {
       expect(createAppRequest).toHaveBeenCalledWith(
         '/sentry-apps/',
         expect.objectContaining({
-          data: expect.objectContaining({
-            webhookHeaders: ['X-Example: value'],
-          }),
+          data: expect.objectContaining({webhookHeaders: ['X-Example: value']}),
           method: 'POST',
         })
       );
@@ -177,9 +170,7 @@ describe('Sentry Application Details', () => {
 
   describe('Creating a new internal Sentry App', () => {
     const initialRouterConfig: RouterConfig = {
-      location: {
-        pathname: '/sentry-apps/new-internal/',
-      },
+      location: {pathname: '/sentry-apps/new-internal/'},
       route: '/sentry-apps/new-internal/',
     };
     function renderComponent() {
@@ -307,10 +298,7 @@ describe('Sentry Application Details', () => {
 
         expect(trackAnalytics).toHaveBeenCalledWith(
           'integrations.sentry_app_template_applied',
-          expect.objectContaining({
-            template: 'claude-routine',
-            referrer: 'test_referrer',
-          })
+          expect.objectContaining({template: 'claude-routine', referrer: 'test_referrer'})
         );
       });
 
@@ -480,9 +468,7 @@ describe('Sentry Application Details', () => {
 
   describe('Renders public app', () => {
     const initialRouterConfig: RouterConfig = {
-      location: {
-        pathname: '/sentry-apps/sample-app/',
-      },
+      location: {pathname: '/sentry-apps/sample-app/'},
       route: '/sentry-apps/:appSlug/',
     };
     function renderComponent() {
@@ -556,9 +542,7 @@ describe('Sentry Application Details', () => {
 
   describe('Renders for internal apps', () => {
     const initialRouterConfig: RouterConfig = {
-      location: {
-        pathname: '/sentry-apps/sample-app/',
-      },
+      location: {pathname: '/sentry-apps/sample-app/'},
       route: '/sentry-apps/:appSlug/',
     };
     function renderComponent() {
@@ -646,9 +630,7 @@ describe('Sentry Application Details', () => {
 
   describe('Renders masked values', () => {
     const initialRouterConfig: RouterConfig = {
-      location: {
-        pathname: '/sentry-apps/sample-app/',
-      },
+      location: {pathname: '/sentry-apps/sample-app/'},
       route: '/sentry-apps/:appSlug/',
     };
     function renderComponent() {
@@ -656,10 +638,7 @@ describe('Sentry Application Details', () => {
     }
 
     beforeEach(() => {
-      sentryApp = SentryAppFixture({
-        status: 'internal',
-        clientSecret: maskedValue,
-      });
+      sentryApp = SentryAppFixture({status: 'internal', clientSecret: maskedValue});
       token = SentryAppTokenFixture({token: maskedValue, refreshToken: maskedValue});
       sentryApp.events = ['issue'];
 
@@ -693,9 +672,7 @@ describe('Sentry Application Details', () => {
 
   describe('Editing internal app tokens', () => {
     const initialRouterConfig: RouterConfig = {
-      location: {
-        pathname: '/sentry-apps/sample-app/',
-      },
+      location: {pathname: '/sentry-apps/sample-app/'},
       route: '/sentry-apps/:appSlug/',
     };
     function renderComponent() {
@@ -703,10 +680,7 @@ describe('Sentry Application Details', () => {
     }
 
     beforeEach(() => {
-      sentryApp = SentryAppFixture({
-        status: 'internal',
-        isAlertable: true,
-      });
+      sentryApp = SentryAppFixture({status: 'internal', isAlertable: true});
       token = SentryAppTokenFixture();
       sentryApp.events = ['issue'];
 
@@ -788,9 +762,7 @@ describe('Sentry Application Details', () => {
 
   describe('Editing an existing public Sentry App', () => {
     const initialRouterConfig: RouterConfig = {
-      location: {
-        pathname: '/sentry-apps/sample-app/',
-      },
+      location: {pathname: '/sentry-apps/sample-app/'},
       route: '/sentry-apps/:appSlug/',
     };
     function renderComponent() {
@@ -845,10 +817,7 @@ describe('Sentry Application Details', () => {
       expect(editAppRequest).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/`,
         expect.objectContaining({
-          data: expect.objectContaining({
-            redirectUrl: 'https://hello.com/',
-            events: [],
-          }),
+          data: expect.objectContaining({redirectUrl: 'https://hello.com/', events: []}),
           method: 'PUT',
         })
       );
@@ -871,9 +840,7 @@ describe('Sentry Application Details', () => {
       expect(editAppRequest).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/`,
         expect.objectContaining({
-          data: expect.objectContaining({
-            events: [],
-          }),
+          data: expect.objectContaining({events: []}),
           method: 'PUT',
         })
       );
@@ -897,9 +864,7 @@ describe('Sentry Application Details', () => {
       expect(editAppRequest).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/`,
         expect.objectContaining({
-          data: expect.objectContaining({
-            events: [],
-          }),
+          data: expect.objectContaining({events: []}),
           method: 'PUT',
         })
       );
@@ -908,9 +873,7 @@ describe('Sentry Application Details', () => {
 
   describe('Editing granular event subscriptions', () => {
     const initialRouterConfig: RouterConfig = {
-      location: {
-        pathname: '/sentry-apps/sample-app/',
-      },
+      location: {pathname: '/sentry-apps/sample-app/'},
       route: '/sentry-apps/:appSlug/',
     };
     function renderComponent() {
@@ -955,9 +918,7 @@ describe('Sentry Application Details', () => {
       expect(editAppRequest).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/`,
         expect.objectContaining({
-          data: expect.objectContaining({
-            events: ['issue.created', 'issue.resolved'],
-          }),
+          data: expect.objectContaining({events: ['issue.created', 'issue.resolved']}),
           method: 'PUT',
         })
       );
@@ -975,9 +936,7 @@ describe('Sentry Application Details', () => {
       expect(editAppRequest).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/`,
         expect.objectContaining({
-          data: expect.objectContaining({
-            events: ['issue.resolved', 'comment.created'],
-          }),
+          data: expect.objectContaining({events: ['issue.resolved', 'comment.created']}),
           method: 'PUT',
         })
       );
@@ -1000,9 +959,7 @@ describe('Sentry Application Details', () => {
       expect(editAppRequest).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/`,
         expect.objectContaining({
-          data: expect.objectContaining({
-            events: ['issue.ignored'],
-          }),
+          data: expect.objectContaining({events: ['issue.ignored']}),
           method: 'PUT',
         })
       );
@@ -1011,9 +968,7 @@ describe('Sentry Application Details', () => {
 
   describe('Editing an existing public Sentry App with a scope error', () => {
     const initialRouterConfig: RouterConfig = {
-      location: {
-        pathname: '/sentry-apps/sample-app/',
-      },
+      location: {pathname: '/sentry-apps/sample-app/'},
       route: '/sentry-apps/:appSlug/',
     };
     function renderComponent() {
@@ -1071,9 +1026,7 @@ describe('Sentry Application Details', () => {
       const rotateSecretApiCall = MockApiClient.addMockResponse({
         method: 'POST',
         url: `/sentry-apps/${sentryApp.slug}/rotate-secret/`,
-        body: {
-          clientSecret: 'newSecret!',
-        },
+        body: {clientSecret: 'newSecret!'},
       });
 
       renderComponent();

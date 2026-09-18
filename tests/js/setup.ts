@@ -107,9 +107,9 @@ jest
   .mockImplementation(props => props.children as ReactElement);
 
 jest.mock('@sentry-internal/global-search', () => ({
-  SentryGlobalSearch: jest.fn().mockImplementation(() => ({
-    query: jest.fn().mockResolvedValue([]),
-  })),
+  SentryGlobalSearch: jest
+    .fn()
+    .mockImplementation(() => ({query: jest.fn().mockResolvedValue([])})),
 }));
 
 jest.mock('@stripe/stripe-js', () => ({
@@ -117,10 +117,7 @@ jest.mock('@stripe/stripe-js', () => ({
     Promise.resolve({
       createToken: jest.fn(() => Promise.resolve({token: {id: 'test-token'}})),
       confirmCardPayment: jest.fn(() =>
-        Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        })
+        Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
       ),
       confirmCardSetup: jest.fn((secretKey: string) => {
         if (secretKey === 'ERROR') {
@@ -135,11 +132,7 @@ jest.mock('@stripe/stripe-js', () => ({
         Promise.resolve({setupIntent: {payment_method: 'test-pm'}})
       ),
       elements: jest.fn(() => ({
-        create: jest.fn(() => ({
-          mount: jest.fn(),
-          on: jest.fn(),
-          update: jest.fn(),
-        })),
+        create: jest.fn(() => ({mount: jest.fn(), on: jest.fn(), update: jest.fn()})),
       })),
     })
   ),
@@ -178,10 +171,7 @@ jest.mock('@stripe/react-stripe-js', () => {
     }),
     useStripe: jest.fn(() => ({
       confirmCardPayment: jest.fn(() =>
-        Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        })
+        Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
       ),
       confirmCardSetup: jest.fn((secretKey: string) => {
         if (secretKey === 'ERROR') {
@@ -205,10 +195,7 @@ jest.mock('@stripe/react-stripe-js', () => {
         if (options?.clientSecret === 'ERROR') {
           return Promise.resolve({error: {message: 'payment failed'}});
         }
-        return Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        });
+        return Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}});
       }),
     })),
     useElements: jest.fn(() => ({
@@ -228,11 +215,7 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
    * instead of mocking properties on the testableLocation object.
    * Use this mock for checking if window.location.assign was called.
    */
-  testableWindowLocation: {
-    assign: jest.fn(),
-    replace: jest.fn(),
-    reload: jest.fn(),
-  },
+  testableWindowLocation: {assign: jest.fn(), replace: jest.fn(), reload: jest.fn()},
 }));
 
 // Close any open modals before each test
@@ -292,19 +275,14 @@ jest.mock('@sentry/react', function sentryReact() {
     browserTracingIntegration: jest.fn().mockReturnValue({}),
     browserProfilingIntegration: jest.fn().mockReturnValue({}),
     addEventProcessor: jest.fn(),
-    BrowserClient: jest.fn().mockReturnValue({
-      captureEvent: jest.fn(),
-    }),
+    BrowserClient: jest.fn().mockReturnValue({captureEvent: jest.fn()}),
     startInactiveSpan: () => ({
       end: jest.fn(),
       setStatus: jest.fn(),
-      startChild: jest.fn().mockReturnValue({
-        end: jest.fn(),
-      }),
-      spanContext: jest.fn().mockReturnValue({
-        spanId: 'test-span-id',
-        traceId: 'test-trace-id',
-      }),
+      startChild: jest.fn().mockReturnValue({end: jest.fn()}),
+      spanContext: jest
+        .fn()
+        .mockReturnValue({spanId: 'test-span-id', traceId: 'test-trace-id'}),
     }),
     logger: {
       warn: jest.fn(),
@@ -321,13 +299,15 @@ jest.mock('@sentry/react', function sentryReact() {
 ConfigStore.loadInitialData(ConfigFixture());
 
 // Default browser timezone to UTC
-jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(() => ({
-  locale: 'en-US',
-  calendar: 'gregory',
-  numberingSystem: 'latn',
-  timeZone: 'UTC',
-  timeZoneName: 'short',
-}));
+jest
+  .spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions')
+  .mockImplementation(() => ({
+    locale: 'en-US',
+    calendar: 'gregory',
+    numberingSystem: 'latn',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+  }));
 
 /**
  * Test Globals
@@ -396,11 +376,7 @@ HTMLElement.prototype.setPointerCapture ??= jest.fn();
 window.ResizeObserver = MockResizeObserver;
 
 // Mock the crypto.subtle API for Gravatar
-Object.defineProperty(global.self, 'crypto', {
-  value: {
-    subtle: webcrypto.subtle,
-  },
-});
+Object.defineProperty(global.self, 'crypto', {value: {subtle: webcrypto.subtle}});
 
 if (typeof globalThis.structuredClone !== 'function') {
   const nodeUtil = require('node:util') as {

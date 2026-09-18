@@ -127,10 +127,7 @@ export const makeStackToColor = (
   ) => {
     const colorMap = generateColorMap(frames, colorBucket, theme);
     const colorBuffer = makeColorBuffer(frames, colorMap, fallbackColor);
-    return {
-      colorBuffer,
-      colorMap,
-    };
+    return {colorBuffer, colorMap};
   };
 };
 

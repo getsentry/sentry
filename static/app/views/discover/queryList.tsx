@@ -87,10 +87,7 @@ class QueryList extends Component<Props> {
 
     handleCreateQuery(api, organization, eventView, yAxis).then(() => {
       refetchSavedQueries();
-      navigate({
-        pathname: location.pathname,
-        query: {},
-      });
+      navigate({pathname: location.pathname, query: {}});
     });
   };
 
@@ -385,10 +382,7 @@ class QueryList extends Component<Props> {
               delete newQuery.cursor;
             }
 
-            this.props.navigate({
-              pathname: path,
-              query: newQuery,
-            });
+            this.props.navigate({pathname: path, query: newQuery});
           }}
         />
       </Fragment>

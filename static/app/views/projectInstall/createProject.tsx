@@ -87,10 +87,7 @@ function getMissingValues({
   platform,
 }: {
   isOrgMemberWithNoAccess: boolean;
-  notificationProps: {
-    actions?: string[];
-    channel?: IntegrationChannel;
-  };
+  notificationProps: {actions?: string[]; channel?: IntegrationChannel};
   projectName: string;
   team: string | undefined;
   platform?: OnboardingSelectedSDK;
@@ -119,9 +116,7 @@ function getSubmitTooltipText({
   isMissingMessagingIntegrationChannel,
   isMissingPlatform,
   formErrorCount,
-}: ReturnType<typeof getMissingValues> & {
-  formErrorCount: number;
-}): string {
+}: ReturnType<typeof getMissingValues> & {formErrorCount: number}): string {
   if (formErrorCount > 1) {
     return t('Please fill out all the required fields');
   }
@@ -198,11 +193,7 @@ export function CreateProject() {
       };
     }
 
-    return {
-      projectName: '',
-      platform: undefined,
-      team: defaultTeam,
-    };
+    return {projectName: '', platform: undefined, team: defaultTeam};
   }, [autoFill, defaultTeam, createdProject]);
 
   const [formData, setFormData] = useState(initialData);
@@ -261,17 +252,11 @@ export function CreateProject() {
   const submitTooltipText =
     isNotifyingViaIntegration && validateChannelError
       ? validateChannelError
-      : getSubmitTooltipText({
-          ...missingValues,
-          formErrorCount,
-        });
+      : getSubmitTooltipText({...missingValues, formErrorCount});
 
   const updateFormData = useCallback(
     <K extends keyof FormData>(field: K, value: FormData[K]) => {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value,
-      }));
+      setFormData(prev => ({...prev, [field]: value}));
     },
     []
   );
@@ -431,11 +416,7 @@ export function CreateProject() {
           onClose: () => {
             trackAnalytics(
               'project_creation.select_framework_modal_close_button_clicked',
-              {
-                platform: platform.key,
-                organization,
-                variant: 'legacy',
-              }
+              {platform: platform.key, organization, variant: 'legacy'}
             );
           },
         }
@@ -535,10 +516,7 @@ export function CreateProject() {
             threshold={formData.alertRule?.threshold}
             notificationProps={notificationProps}
             onFieldChange={(field, value) => {
-              updateFormData('alertRule', {
-                ...formData.alertRule,
-                [field]: value,
-              });
+              updateFormData('alertRule', {...formData.alertRule, [field]: value});
               if (field === 'alertSetting') {
                 const optionMap: Record<number, string> = {
                   [RuleAction.DEFAULT_ALERT]: 'high_priority',

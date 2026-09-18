@@ -37,10 +37,7 @@ export function StaticReplayPreview({
   const organization = useOrganization();
   const matches = useMatches();
   const fullReplayUrl = {
-    pathname: makeReplaysPathname({
-      path: `/${replayId}/`,
-      organization,
-    }),
+    pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
     query: {
       referrer: getRouteStringFromRoutes({matches}),
       t_main: TabKey.ERRORS,
@@ -48,12 +45,7 @@ export function StaticReplayPreview({
     },
   };
 
-  const offset = useMemo(
-    () => ({
-      offsetMs: initialTimeOffsetMs,
-    }),
-    [initialTimeOffsetMs]
-  );
+  const offset = useMemo(() => ({offsetMs: initialTimeOffsetMs}), [initialTimeOffsetMs]);
 
   return (
     <ReplayContextProvider

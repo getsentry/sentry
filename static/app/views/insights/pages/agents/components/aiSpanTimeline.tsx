@@ -327,47 +327,22 @@ function getSpanPresentation(
         getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
         getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
         '';
-      return {
-        color,
-        isTool: false,
-        title: name || op,
-        secondary: model,
-      };
+      return {color, isTool: false, title: name || op, secondary: model};
     }
     case GenAiOperationType.AI_CLIENT: {
       const responseModel = getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL);
       const title = responseModel || description || op;
-      return {
-        color,
-        isTool: false,
-        title,
-        secondary: title === op ? '' : op,
-      };
+      return {color, isTool: false, title, secondary: title === op ? '' : op};
     }
     case GenAiOperationType.TOOL: {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
       const inputPreview = getToolInputPreview(node);
-      return {
-        color,
-        isTool: true,
-        title: toolName || op,
-        secondary: inputPreview || '',
-      };
+      return {color, isTool: true, title: toolName || op, secondary: inputPreview || ''};
     }
     case GenAiOperationType.HANDOFF:
-      return {
-        color,
-        isTool: false,
-        title: op,
-        secondary: description || '',
-      };
+      return {color, isTool: false, title: op, secondary: description || ''};
     default:
-      return {
-        color,
-        isTool: false,
-        title: op,
-        secondary: description || '',
-      };
+      return {color, isTool: false, title: op, secondary: description || ''};
   }
 }
 
@@ -381,9 +356,7 @@ const EllipsisTag = styled(Tag)`
   }
 `;
 
-const RowContainer = styled('button')<{
-  indent: number;
-}>`
+const RowContainer = styled('button')<{indent: number}>`
   width: 100%;
   border: none;
   font: inherit;

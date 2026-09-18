@@ -22,9 +22,7 @@ import {BillingInformation} from 'getsentry/views/subscriptionPage/billingInform
 // TODO(isabella): tbh most of these tests should be in a spec for the individual panel components
 
 describe('Subscription > BillingInformation', () => {
-  const {organization} = initializeOrg({
-    organization: {access: ['org:billing']},
-  });
+  const {organization} = initializeOrg({organization: {access: ['org:billing']}});
   const subscription = SubscriptionFixture({organization});
 
   beforeEach(() => {
@@ -65,10 +63,7 @@ describe('Subscription > BillingInformation', () => {
   it('renders an error for non-billing roles', async () => {
     const org = {...organization, access: OrganizationFixture().access};
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/`,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${org.slug}/members/`, body: []});
 
     render(<BillingInformation subscription={subscription} />, {organization: org});
 
@@ -313,9 +308,7 @@ describe('Subscription > BillingInformation', () => {
       url: `/organizations/${organization.slug}/payments/setup/`,
       method: 'POST',
       statusCode: 400,
-      body: {
-        detail: 'Unable to initialize payment setup, please try again later.',
-      },
+      body: {detail: 'Unable to initialize payment setup, please try again later.'},
     });
 
     render(<BillingInformation subscription={testSubscription} />, {organization});

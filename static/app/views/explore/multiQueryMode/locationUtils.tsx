@@ -57,12 +57,7 @@ function validateSortBys(
       if (parsedSortBys.every(sort => fields?.includes(sort.field))) {
         return parsedSortBys;
       }
-      return [
-        {
-          field: 'timestamp',
-          kind: 'desc' as const,
-        },
-      ];
+      return [{field: 'timestamp', kind: 'desc' as const}];
     }
 
     return defaultSortBys(fields ?? []);
@@ -251,13 +246,7 @@ function getUpdatedLocationWithQueries(
   queries: WritableExploreQueryParts[] | null | undefined
 ) {
   const targetQueries = defined(queries) ? getQueriesAsUrlParam(queries) : null;
-  return {
-    ...location,
-    query: {
-      ...location.query,
-      queries: targetQueries,
-    },
-  };
+  return {...location, query: {...location.query, queries: targetQueries}};
 }
 
 export function useUpdateQueryAtIndex(index: number) {
@@ -388,10 +377,7 @@ export function getQueryMode(groupBys?: string[]): Mode {
 }
 
 function getCompareBaseUrl(organization: Organization) {
-  return makeTracesPathname({
-    organization,
-    path: '/compare/',
-  });
+  return makeTracesPathname({organization, path: '/compare/'});
 }
 
 type CompareRouteProps = {
@@ -409,10 +395,7 @@ export function generateExploreCompareRoute({
 }: CompareRouteProps): LocationDescriptorObject {
   const url = getCompareBaseUrl(organization);
   const compareQueries = queries.map(query => {
-    const normalized = normalizeCompareQueryParts({
-      ...query,
-      yAxes: query.yAxes ?? [],
-    });
+    const normalized = normalizeCompareQueryParts({...query, yAxes: query.yAxes ?? []});
     return {
       ...normalized,
       fields: getFieldsForConstructedQuery(normalized.yAxes ?? []),
@@ -433,8 +416,5 @@ export function generateExploreCompareRoute({
     queries: getQueriesAsUrlParam(compareQueries),
   };
 
-  return {
-    pathname: url,
-    query,
-  };
+  return {pathname: url, query};
 }

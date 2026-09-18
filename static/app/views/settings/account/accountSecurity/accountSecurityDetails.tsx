@@ -35,9 +35,7 @@ import {AuthenticatorHeader} from './components/authenticatorHeader';
 const ENDPOINT = '/users/me/authenticators/';
 const getAuthenticatorQueryKey = (authId: string) =>
   [
-    getApiUrl('/users/$userId/authenticators/$authId/', {
-      path: {userId: 'me', authId},
-    }),
+    getApiUrl('/users/$userId/authenticators/$authId/', {path: {userId: 'me', authId}}),
   ] as const;
 
 interface AuthenticatorDateProps {
@@ -70,18 +68,14 @@ export default function AccountSecurityDetails() {
     isPending: isAuthenticatorPending,
     isError,
     refetch,
-  } = useApiQuery<Authenticator>(getAuthenticatorQueryKey(authId), {
-    staleTime: 0,
-  });
+  } = useApiQuery<Authenticator>(getAuthenticatorQueryKey(authId), {staleTime: 0});
 
   const {mutate: remove, isPending: isRemoveLoading} = useMutation({
     mutationFn: ({id, device}: {id: string; device?: AuthenticatorDevice}) => {
       // if the device is defined, it means that U2f is being removed
       // reason for adding a trailing slash is a result of the endpoint on line 109 needing it but it can't be set there as if deviceId is None, the route will end with '//'
       const deviceId = device ? `${device.key_handle}/` : '';
-      return api.requestPromise(`${ENDPOINT}${id}/${deviceId}`, {
-        method: 'DELETE',
-      });
+      return api.requestPromise(`${ENDPOINT}${id}/${deviceId}`, {method: 'DELETE'});
     },
     onSuccess: (_, {device}) => {
       const deviceName = device ? device.name : t('Authenticator');
@@ -108,9 +102,7 @@ export default function AccountSecurityDetails() {
     }) => {
       return api.requestPromise(`${ENDPOINT}${id}/${device.key_handle}/`, {
         method: 'PUT',
-        data: {
-          name,
-        },
+        data: {name},
       });
     },
     onSuccess: () => {

@@ -140,10 +140,7 @@ export interface StateProps {
 
 export type Thresholds = ThresholdsConfig;
 
-export type Release = {
-  timestamp: string;
-  version: string;
-};
+export type Release = {timestamp: string; version: string};
 
 export type LegendSelection = Record<string, boolean>;
 

@@ -65,10 +65,7 @@ export function CreateIssueViewModal({
   const navigate = useNavigate();
 
   const {isLoading: isGeneratingTitle, data: generatedTitleData} =
-    useGenerateIssueViewTitle({
-      query: initialQuery,
-      enabled: !initialName.trim(),
-    });
+    useGenerateIssueViewTitle({query: initialQuery, enabled: !initialName.trim()});
   const generatedTitle = generatedTitleData?.title;
 
   const {mutateAsync: createIssueView, isError} = useCreateGroupSearchView({

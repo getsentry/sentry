@@ -311,11 +311,7 @@ export function ToolbarSaveAs() {
         <WideLinkButton
           aria-label={t('Compare')}
           disabled={hasCrossEvents || !canCompareQueries}
-          onClick={() =>
-            trackAnalytics('trace_explorer.compare', {
-              organization,
-            })
-          }
+          onClick={() => trackAnalytics('trace_explorer.compare', {organization})}
           to={generateExploreCompareRoute({
             organization,
             mode,

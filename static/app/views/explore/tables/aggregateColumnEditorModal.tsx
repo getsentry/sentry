@@ -226,10 +226,7 @@ function ColumnEditorRow({
       data-test-id="editor-row"
       key={column.id}
       ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-      }}
+      style={{transform: CSS.Transform.toString(transform), transition}}
       {...attributes}
     >
       <StyledDragReorderButton size="sm" iconSize="sm" {...listeners} />
@@ -383,9 +380,7 @@ function GroupBySelector({
         <OverlayTrigger.Button
           {...triggerProps}
           prefix={t('Group By')}
-          style={{
-            width: '100%',
-          }}
+          style={{width: '100%'}}
         >
           {label}
         </OverlayTrigger.Button>
@@ -437,11 +432,7 @@ function AggregateSelector({
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
-      return {
-        label: aggregate,
-        value: aggregate,
-        textValue: aggregate,
-      };
+      return {label: aggregate, value: aggregate, textValue: aggregate};
     });
   }, []);
 
@@ -519,9 +510,7 @@ function AggregateSelector({
             <OverlayTrigger.Button
               {...triggerProps}
               prefix={t('Function')}
-              style={{
-                width: '100%',
-              }}
+              style={{width: '100%'}}
             />
           )}
         />
@@ -687,12 +676,7 @@ function AttributeArgumentSelect({
         forceDisabled || (supportedKinds.length === 0 && baseOptions.length === 1)
       }
       trigger={triggerProps => (
-        <OverlayTrigger.Button
-          {...triggerProps}
-          style={{
-            width: '100%',
-          }}
-        >
+        <OverlayTrigger.Button {...triggerProps} style={{width: '100%'}}>
           {label}
         </OverlayTrigger.Button>
       )}

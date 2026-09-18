@@ -22,21 +22,13 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import type {ViewHierarchyData} from './viewHierarchy';
 import {ViewHierarchy} from './viewHierarchy';
 
-type Props = {
-  event: Event;
-  project: Project;
-  disableCollapsePersistence?: boolean;
-};
+type Props = {event: Event; project: Project; disableCollapsePersistence?: boolean};
 
 function EventViewHierarchyContent({event, project, disableCollapsePersistence}: Props) {
   const organization = useOrganization();
 
   const {data: attachments} = useFetchEventAttachments(
-    {
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-      eventId: event.id,
-    },
+    {orgSlug: organization.slug, projectSlug: project.slug, eventId: event.id},
     {notifyOnChangeProps: ['data']}
   );
   const hierarchyMeta = attachments?.find(
@@ -56,12 +48,8 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
               attachmentId: hierarchyMeta.id,
             }
           : skipToken,
-        headers: {
-          Accept: '*/*; charset=utf-8',
-        },
-        query: {
-          download: true,
-        },
+        headers: {Accept: '*/*; charset=utf-8'},
+        query: {download: true},
         staleTime: Infinity,
       }
     ),

@@ -127,11 +127,7 @@ function toLogAttributes(
 
   return toSplicedSorted(
     details.attributes,
-    {
-      name: OurLogKnownFieldKey.TIMESTAMP,
-      type: 'str',
-      value: details.timestamp,
-    },
+    {name: OurLogKnownFieldKey.TIMESTAMP, type: 'str', value: details.timestamp},
     (a, b) => a.name.localeCompare(b.name)
   );
 }

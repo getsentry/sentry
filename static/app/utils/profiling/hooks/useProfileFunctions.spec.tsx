@@ -17,16 +17,11 @@ describe('useProfileFunctions', () => {
       useProfileFunctions({
         fields: ['count()'],
         referrer: '',
-        sort: {
-          key: 'count()',
-          order: 'desc',
-        },
+        sort: {key: 'count()', order: 'desc'},
       })
     );
     expect(hook.result.current).toMatchObject(
-      expect.objectContaining({
-        isInitialLoading: true,
-      })
+      expect.objectContaining({isInitialLoading: true})
     );
   });
 
@@ -40,10 +35,7 @@ describe('useProfileFunctions', () => {
       useProfileFunctions({
         fields: ['count()'],
         referrer: '',
-        sort: {
-          key: 'count()',
-          order: 'desc',
-        },
+        sort: {key: 'count()', order: 'desc'},
       })
     );
     expect(hook.result.current.isPending).toBe(true);
@@ -53,9 +45,7 @@ describe('useProfileFunctions', () => {
         expect.objectContaining({
           isLoading: false,
           isFetched: true,
-          data: expect.objectContaining({
-            data: expect.any(Array),
-          }),
+          data: expect.objectContaining({data: expect.any(Array)}),
         })
       )
     );

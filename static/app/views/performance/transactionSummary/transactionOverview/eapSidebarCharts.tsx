@@ -27,10 +27,7 @@ import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 const REFERRER = 'eap-sidebar-charts';
 
-type Props = {
-  hasWebVitals: boolean;
-  transactionName: string;
-};
+type Props = {hasWebVitals: boolean; transactionName: string};
 
 export function EAPSidebarCharts({transactionName, hasWebVitals}: Props) {
   return (
@@ -113,9 +110,7 @@ function WebVitalsWidget({transactionName}: {transactionName: string}) {
   );
 }
 
-type FailureRateWidgetProps = {
-  transactionName: string;
-};
+type FailureRateWidgetProps = {transactionName: string};
 
 function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
   const organization = useOrganization();
@@ -131,10 +126,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     isPending: isFailureRateSeriesPending,
     isError: isFailureRateSeriesError,
   } = useFetchSpanTimeSeries(
-    {
-      query: transactionSearch.copy(),
-      yAxis: ['failure_rate()'],
-    },
+    {query: transactionSearch.copy(), yAxis: ['failure_rate()']},
     REFERRER
   );
 

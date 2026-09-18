@@ -30,9 +30,7 @@ describe('ApiApplicationDetails', () => {
     render(<ApiApplicationDetails />, {
       initialRouterConfig: {
         route: '/settings/account/api-applications/:appId/',
-        location: {
-          pathname: '/settings/account/api-applications/abcd/',
-        },
+        location: {pathname: '/settings/account/api-applications/abcd/'},
       },
     });
 
@@ -79,17 +77,13 @@ describe('ApiApplicationDetails', () => {
     const rotateSecretApiCall = MockApiClient.addMockResponse({
       method: 'POST',
       url: '/api-applications/abcd/rotate-secret/',
-      body: {
-        clientSecret: 'newSecret!',
-      },
+      body: {clientSecret: 'newSecret!'},
     });
 
     render(<ApiApplicationDetails />, {
       initialRouterConfig: {
         route: '/settings/account/api-applications/:appId/',
-        location: {
-          pathname: '/settings/account/api-applications/abcd/',
-        },
+        location: {pathname: '/settings/account/api-applications/abcd/'},
       },
     });
     renderGlobalModal();
@@ -133,9 +127,7 @@ describe('ApiApplicationDetails', () => {
     render(<ApiApplicationDetails />, {
       initialRouterConfig: {
         route: '/settings/account/api-applications/:appId/',
-        location: {
-          pathname: '/settings/account/api-applications/public-app/',
-        },
+        location: {pathname: '/settings/account/api-applications/public-app/'},
       },
     });
 
@@ -185,9 +177,7 @@ describe('ApiApplicationDetails', () => {
     render(<ApiApplicationDetails />, {
       initialRouterConfig: {
         route: '/settings/account/api-applications/:appId/',
-        location: {
-          pathname: '/settings/account/api-applications/conf-app/',
-        },
+        location: {pathname: '/settings/account/api-applications/conf-app/'},
       },
     });
 

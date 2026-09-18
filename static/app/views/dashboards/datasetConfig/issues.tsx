@@ -55,10 +55,7 @@ const DEFAULT_ISSUE_SERIES_WIDGET_QUERY: WidgetQuery = {
   orderby: '-count(new_issues)',
 };
 
-const DEFAULT_FIELD: QueryFieldValue = {
-  field: 'issue',
-  kind: FieldValueKind.FIELD,
-};
+const DEFAULT_FIELD: QueryFieldValue = {field: 'issue', kind: FieldValueKind.FIELD};
 
 const DEFAULT_SERIES_FIELD: QueryFieldValue = {
   function: ['count', 'new_issues', undefined, undefined],
@@ -67,11 +64,7 @@ const DEFAULT_SERIES_FIELD: QueryFieldValue = {
 
 export type IssuesSeriesResponse = {
   timeSeries: TimeSeries[];
-  meta?: {
-    dataset: string;
-    end: number;
-    start: number;
-  };
+  meta?: {dataset: string; end: number; start: number};
 };
 
 export const IssuesConfig: DatasetConfig<IssuesSeriesResponse, Group[]> = {
@@ -156,11 +149,7 @@ export function transformIssuesResponseToTable(
           transformedResultProps[key] = resultProps[key];
         });
 
-      issueRowMetadata[id] = {
-        assignedTo,
-        owners,
-        links: annotations ?? [],
-      };
+      issueRowMetadata[id] = {assignedTo, owners, links: annotations ?? []};
 
       const transformedTableResult: TableDataRow = {
         ...transformedResultProps,
@@ -219,9 +208,6 @@ function filterYAxisOptions() {
 export function transformIssuesResponseToSeries(data: IssuesSeriesResponse): Series[] {
   return data.timeSeries.map(timeSeries => ({
     seriesName: timeSeries.yAxis,
-    data: timeSeries.values.map(item => ({
-      name: item.timestamp,
-      value: item.value ?? 0,
-    })),
+    data: timeSeries.values.map(item => ({name: item.timestamp, value: item.value ?? 0})),
   }));
 }

@@ -79,9 +79,7 @@ describe('FeatureFlagDrawer', () => {
     expect(within(drawerScreen).getByText(webVitalsFlag!.flag)).toBeInTheDocument();
     expect(within(drawerScreen).getByText(enableReplay!.flag)).toBeInTheDocument();
 
-    const searchInput = within(drawerScreen).getByRole('textbox', {
-      name: 'Search Flags',
-    });
+    const searchInput = within(drawerScreen).getByRole('textbox', {name: 'Search Flags'});
     await userEvent.type(searchInput, webVitalsFlag!.flag);
 
     expect(within(drawerScreen).getByText(webVitalsFlag!.flag)).toBeInTheDocument();
@@ -100,9 +98,7 @@ describe('FeatureFlagDrawer', () => {
         .compareDocumentPosition(within(drawerScreen).getByText(webVitalsFlag!.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
 
-    const sortControl = within(drawerScreen).getByRole('button', {
-      name: 'Sort Flags',
-    });
+    const sortControl = within(drawerScreen).getByRole('button', {name: 'Sort Flags'});
     await userEvent.click(sortControl);
     await userEvent.click(
       within(drawerScreen).getByRole('option', {name: 'Oldest First'})

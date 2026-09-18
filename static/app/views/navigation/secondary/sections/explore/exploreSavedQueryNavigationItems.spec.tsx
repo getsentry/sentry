@@ -9,14 +9,7 @@ describe('ExploreSavedQueryNavigationItems', () => {
     {
       id: 1,
       name: 'My Saved Query',
-      query: [
-        {
-          query: '',
-          fields: [],
-          groupby: [],
-          visualize: [],
-        },
-      ],
+      query: [{query: '', fields: [], groupby: [], visualize: []}],
       starred: true,
       position: 1,
       projects: [],
@@ -24,14 +17,7 @@ describe('ExploreSavedQueryNavigationItems', () => {
     {
       id: 2,
       name: 'Another Saved Query',
-      query: [
-        {
-          query: '',
-          fields: [],
-          groupby: [],
-          visualize: [],
-        },
-      ],
+      query: [{query: '', fields: [], groupby: [], visualize: []}],
       starred: true,
       position: 2,
       projects: [],

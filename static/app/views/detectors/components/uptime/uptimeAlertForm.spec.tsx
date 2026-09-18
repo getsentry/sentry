@@ -237,9 +237,7 @@ describe('Uptime Alert Form', () => {
     expect(updateMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: expect.objectContaining({
-          url: 'https://existing-url.com/test',
-        }),
+        data: expect.objectContaining({url: 'https://existing-url.com/test'}),
       })
     );
   });
@@ -324,10 +322,7 @@ describe('Uptime Alert Form', () => {
   }, 20_000);
 
   it('does not show body for GET and HEAD', async () => {
-    const rule = UptimeRuleFixture({
-      projectSlug: project.slug,
-      owner: ActorFixture(),
-    });
+    const rule = UptimeRuleFixture({projectSlug: project.slug, owner: ActorFixture()});
     render(<UptimeAlertForm rule={rule} />, {organization});
     await screen.findByText('Configure Request');
 
@@ -410,9 +405,7 @@ describe('Uptime Alert Form', () => {
 
     expect(createMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        data: expect.objectContaining({}),
-      })
+      expect.objectContaining({data: expect.objectContaining({})})
     );
   });
 
@@ -521,11 +514,7 @@ describe('Uptime Alert Form', () => {
 
     expect(updateMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          assertion,
-        }),
-      })
+      expect.objectContaining({data: expect.objectContaining({assertion})})
     );
   });
 
@@ -646,11 +635,7 @@ describe('Uptime Alert Form', () => {
     // Should submit null, not default assertions
     expect(updateMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          assertion: null,
-        }),
-      })
+      expect.objectContaining({data: expect.objectContaining({assertion: null})})
     );
   });
 });

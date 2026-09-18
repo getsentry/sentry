@@ -60,11 +60,7 @@ describe('OccurrenceSummary', () => {
       issueCategory: IssueCategory.UPTIME,
       issueType: IssueType.UPTIME_DOMAIN_FAILURE,
     });
-    const event = EventFixture({
-      occurrence: {
-        evidenceData: {detectorId: 123},
-      },
-    });
+    const event = EventFixture({occurrence: {evidenceData: {detectorId: 123}}});
     render(<OccurrenceSummary group={group} event={event} />, {organization});
     expect(screen.getByText('Monitor ID')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument();
@@ -82,22 +78,10 @@ describe('OccurrenceSummary', () => {
       occurrence: {
         evidenceData: {},
         evidenceDisplay: [
-          {
-            name: 'Environment',
-            value: 'production',
-          },
-          {
-            name: 'Status Code',
-            value: '500',
-          },
-          {
-            name: 'Failure reason',
-            value: 'bad things',
-          },
-          {
-            name: 'Last successful check-in',
-            value: '2025-01-01T11:00:00Z',
-          },
+          {name: 'Environment', value: 'production'},
+          {name: 'Status Code', value: '500'},
+          {name: 'Failure reason', value: 'bad things'},
+          {name: 'Last successful check-in', value: '2025-01-01T11:00:00Z'},
         ],
       },
     });

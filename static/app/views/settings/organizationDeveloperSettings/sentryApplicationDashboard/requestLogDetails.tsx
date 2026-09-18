@@ -144,11 +144,7 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
     ...(defined(request.error_id)
       ? [
           {
-            item: {
-              key: 'errorId',
-              subject: t('Error ID'),
-              value: request.error_id,
-            },
+            item: {key: 'errorId', subject: t('Error ID'), value: request.error_id},
             disableFormattedData: true,
           },
         ]

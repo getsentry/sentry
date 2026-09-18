@@ -67,10 +67,7 @@ function TeamAssignee({data}: {data: GroupActivityAssigned['data']}) {
 function UserAssignee({data}: {data: GroupActivityAssigned['data']}) {
   const embeddedUser = data.user && !('slug' in data.user) ? data.user : undefined;
   const memberIds = useMemo(() => [data.assignee], [data.assignee]);
-  const memberLookup = useMembers({
-    enabled: !embeddedUser,
-    ids: memberIds,
-  });
+  const memberLookup = useMembers({enabled: !embeddedUser, ids: memberIds});
   const assignedUser =
     memberLookup.data?.find(member => member.id === data.assignee) ?? embeddedUser;
 
@@ -115,8 +112,5 @@ function AssignedActivityDetails({activity}: {activity: GroupActivityAssigned}) 
 }
 
 export function getAssignedActivityItem({activity}: {activity: GroupActivityAssigned}) {
-  return {
-    title: t('Assigned'),
-    details: <AssignedActivityDetails activity={activity} />,
-  };
+  return {title: t('Assigned'), details: <AssignedActivityDetails activity={activity} />};
 }

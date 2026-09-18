@@ -115,9 +115,7 @@ describe('WeeklyReportProjectExclusions', () => {
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: {projectIds: [1]},
-        })
+        expect.objectContaining({data: {projectIds: [1]}})
       );
     });
   });
@@ -155,9 +153,7 @@ describe('WeeklyReportProjectExclusions', () => {
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: {projectIds: [2]},
-        })
+        expect.objectContaining({data: {projectIds: [2]}})
       );
     });
   });
@@ -278,9 +274,7 @@ describe('WeeklyReportProjectExclusions', () => {
     expect(await screen.findByText('Off')).toBeInTheDocument();
 
     expect(
-      screen.queryByRole('checkbox', {
-        name: 'Toggle weekly report for project-a',
-      })
+      screen.queryByRole('checkbox', {name: 'Toggle weekly report for project-a'})
     ).not.toBeInTheDocument();
   });
 
@@ -375,9 +369,7 @@ describe('WeeklyReportProjectExclusions', () => {
         />
       );
 
-      await screen.findByRole('checkbox', {
-        name: 'Toggle weekly report for project-01',
-      });
+      await screen.findByRole('checkbox', {name: 'Toggle weekly report for project-01'});
 
       const checkboxes = screen.getAllByRole('checkbox');
       expect(checkboxes).toHaveLength(15);
@@ -395,9 +387,7 @@ describe('WeeklyReportProjectExclusions', () => {
         />
       );
 
-      await screen.findByRole('checkbox', {
-        name: 'Toggle weekly report for project-01',
-      });
+      await screen.findByRole('checkbox', {name: 'Toggle weekly report for project-01'});
 
       await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
@@ -422,9 +412,7 @@ describe('WeeklyReportProjectExclusions', () => {
         />
       );
 
-      await screen.findByRole('checkbox', {
-        name: 'Toggle weekly report for project-01',
-      });
+      await screen.findByRole('checkbox', {name: 'Toggle weekly report for project-01'});
 
       expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();

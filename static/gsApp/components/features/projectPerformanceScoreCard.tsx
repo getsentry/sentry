@@ -5,9 +5,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 
-type Props = React.PropsWithChildren<{
-  organization: Organization;
-}>;
+type Props = React.PropsWithChildren<{organization: Organization}>;
 
 export function ProjectPerformanceScoreCard({organization}: Props) {
   return (

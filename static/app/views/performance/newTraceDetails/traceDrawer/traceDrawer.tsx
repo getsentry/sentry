@@ -93,10 +93,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         size > min &&
         minimized
       ) {
-        traceDispatch({
-          type: 'minimize drawer',
-          payload: false,
-        });
+        traceDispatch({type: 'minimize drawer', payload: false});
       }
 
       const {width, height} = props.traceGridRef.getBoundingClientRect();
@@ -116,10 +113,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
             ? drawerHeight
             : drawerWidth;
 
-        traceDispatch({
-          type: 'set drawer dimension',
-          payload: drawer_size,
-        });
+        traceDispatch({type: 'set drawer dimension', payload: drawer_size});
       }, 1000);
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
@@ -192,21 +186,14 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const onParentClick = useCallback(
     (node: BaseNode) => {
       props.onTabScrollToNode(node);
-      traceDispatch({
-        type: 'activate tab',
-        payload: node,
-        pin_previous: true,
-      });
+      traceDispatch({type: 'activate tab', payload: node, pin_previous: true});
     },
     [props, traceDispatch]
   );
 
   const onMinimizeClick = useCallback(() => {
     traceAnalytics.trackDrawerMinimize(organization);
-    traceDispatch({
-      type: 'minimize drawer',
-      payload: !isDrawerMinimized,
-    });
+    traceDispatch({type: 'minimize drawer', payload: !isDrawerMinimized});
     if (isDrawerMinimized) {
       if (drawerOptions.initialSize === 0) {
         const userPreference =

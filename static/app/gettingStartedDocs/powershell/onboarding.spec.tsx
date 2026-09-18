@@ -7,11 +7,7 @@ import {docs} from '.';
 describe('powershell onboarding docs', () => {
   it('renders docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dotnet.powershell': {
-          version: '1.99.9',
-        },
-      },
+      releaseRegistry: {'sentry.dotnet.powershell': {version: '1.99.9'}},
     });
 
     // Renders main headings

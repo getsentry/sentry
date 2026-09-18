@@ -25,10 +25,7 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
         analyticsKey="statusupdate"
         label={t('Service status')}
         indicator="danger"
-        buttonProps={{
-          ...overlayTriggerProps,
-          icon: <IconFire />,
-        }}
+        buttonProps={{...overlayTriggerProps, icon: <IconFire />}}
       />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>

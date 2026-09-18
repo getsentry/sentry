@@ -46,15 +46,9 @@ export function AssertionSuggestionsDrawerContent({
         getApiUrl('/organizations/$organizationIdOrSlug/uptime-assertion-suggestions/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'POST',
-          data: {...payload},
-        },
+        {method: 'POST', data: {...payload}},
       ],
-      {
-        staleTime: 5 * 60 * 1000,
-        retry: false,
-      }
+      {staleTime: 5 * 60 * 1000, retry: false}
     );
 
   const suggestions = data?.suggestions ?? null;

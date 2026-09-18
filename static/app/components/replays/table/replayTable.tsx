@@ -18,10 +18,7 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 type SortProps =
-  | {
-      onSortClick: (key: string) => void;
-      sort: Sort;
-    }
+  | {onSortClick: (key: string) => void; sort: Sort}
   | {onSortClick?: never; sort?: never};
 
 type Props = SortProps & {
@@ -155,10 +152,7 @@ export function ReplayTable({
           <StyledPagination
             pageLinks={pageLinks}
             onCursor={(cursor, path, searchQuery) => {
-              navigate({
-                pathname: path,
-                query: {...searchQuery, cursor},
-              });
+              navigate({pathname: path, query: {...searchQuery, cursor}});
             }}
           />
         </SimpleTable.FullWidthRow>
@@ -171,10 +165,9 @@ function RowWithScrollIntoView({
   children,
   scrollIntoView,
   ...props
-}: {
-  children: React.ReactNode;
-  scrollIntoView: boolean;
-} & React.ComponentProps<typeof SimpleTable.Row>) {
+}: {children: React.ReactNode; scrollIntoView: boolean} & React.ComponentProps<
+  typeof SimpleTable.Row
+>) {
   const rowRef = useRef<HTMLTableRowElement>(null);
   useEffect(() => {
     if (scrollIntoView) {

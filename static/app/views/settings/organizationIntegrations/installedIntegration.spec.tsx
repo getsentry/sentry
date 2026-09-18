@@ -103,9 +103,7 @@ describe('InstalledIntegration', () => {
   });
 
   it('allows superusers to update without the admin tooltip', () => {
-    const superuserOrg = OrganizationFixture({
-      access: ['org:read', 'org:superuser'],
-    });
+    const superuserOrg = OrganizationFixture({access: ['org:read', 'org:superuser']});
     OrganizationStore.onUpdate(superuserOrg, {replace: true});
     ConfigStore.set('user', UserFixture({isSuperuser: true}));
 

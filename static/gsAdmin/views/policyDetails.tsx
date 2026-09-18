@@ -32,16 +32,9 @@ export function PolicyDetails() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Policy>(
-    [
-      getApiUrl('/policies/$policySlug/', {
-        path: {policySlug},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+  } = useApiQuery<Policy>([getApiUrl('/policies/$policySlug/', {path: {policySlug}})], {
+    staleTime: 0,
+  });
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -116,10 +109,7 @@ export function PolicyDetails() {
       ]}
       sections={[
         {content: overviewPanel},
-        {
-          content: <PolicyRevisions policy={policy} onUpdate={onUpdate} />,
-          noPanel: true,
-        },
+        {content: <PolicyRevisions policy={policy} onUpdate={onUpdate} />, noPanel: true},
       ]}
     />
   );

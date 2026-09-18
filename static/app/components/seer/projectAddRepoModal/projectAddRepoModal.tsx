@@ -77,18 +77,14 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
   const repoEntrySchema = z.object({
     repoId: z
       .string()
-      .refine(id => repositoriesById.has(id), {
-        message: t('Repository not found'),
-      })
+      .refine(id => repositoriesById.has(id), {message: t('Repository not found')})
       .nonempty(),
     branch: z.string(),
   });
   const formSchema = z.object({
     project: z
       .string()
-      .refine(id => projectsById.has(id), {
-        message: t('Please select a project'),
-      })
+      .refine(id => projectsById.has(id), {message: t('Please select a project')})
       .transform(id => projectsById.get(id)!),
     repoEntries: z
       .array(repoEntrySchema)
@@ -322,10 +318,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                             }
                             emptyMessage={t('No repositories found')}
                             onChange={option => {
-                              field.pushValue({
-                                repoId: option.value,
-                                branch: '',
-                              });
+                              field.pushValue({repoId: option.value, branch: ''});
                             }}
                             options={repositoryOptions.data ?? []}
                             search
@@ -409,9 +402,7 @@ function useUnconfiguredProjects({projects}: {projects: Project[]}) {
   const result = useInfiniteQuery({
     ...getInfiniteSeerProjectsSettingsQueryOptions({
       organization,
-      query: {
-        per_page: 100,
-      },
+      query: {per_page: 100},
     }),
     select: useCallback(
       ({pages}: InfiniteData<ApiResponse<SeerProjectSettingResponse[]>>) => {

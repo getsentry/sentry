@@ -23,9 +23,7 @@ export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
       to: makeMonitorBasePathname(organization.slug),
       preservePageFilters: true,
     },
-    {
-      label: t('Cron Monitor'),
-    },
+    {label: t('Cron Monitor')},
   ];
 
   return (

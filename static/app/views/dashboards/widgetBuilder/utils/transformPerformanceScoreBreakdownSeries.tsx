@@ -43,10 +43,7 @@ export function transformPerformanceScoreBreakdownSeries(
       ...series,
       data: series.data.map(([timestamp, values]) => [
         timestamp,
-        values.map(v => ({
-          ...v,
-          count: (v.count ?? 0) * weights[webVital],
-        })),
+        values.map(v => ({...v, count: (v.count ?? 0) * weights[webVital]})),
       ]),
     };
 

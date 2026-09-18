@@ -6,10 +6,7 @@ import {GroupingComponent} from './groupingComponent';
 import {GroupingComponentFrames} from './groupingComponentFrames';
 import {getFrameGroups} from './utils';
 
-type Props = {
-  component: EventGroupComponent;
-  showNonContributing: boolean;
-};
+type Props = {component: EventGroupComponent; showNonContributing: boolean};
 
 export function GroupingComponentStacktrace({component, showNonContributing}: Props) {
   return (

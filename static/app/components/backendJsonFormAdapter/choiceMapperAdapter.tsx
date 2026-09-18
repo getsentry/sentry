@@ -68,9 +68,7 @@ function AsyncSearchCompactSelect({
   const {data: options = defaultOptions, isFetching} = useQuery({
     queryKey: [url, {field: searchField, query: debouncedSearch}],
     queryFn: (): Promise<Array<SelectOption<string>>> =>
-      api.requestPromise(url, {
-        query: {field: searchField, query: debouncedSearch},
-      }),
+      api.requestPromise(url, {query: {field: searchField, query: debouncedSearch}}),
     enabled: !!debouncedSearch,
     staleTime: 30_000,
     placeholderData: previousData => (debouncedSearch ? previousData : undefined),
@@ -218,9 +216,7 @@ function useLazyPerItemSelectors({
     queries: itemsToFetch.map(itemKey => ({
       queryKey: [statusUrl, {field: 'status', project: itemKey}] as const,
       queryFn: (): Promise<Array<{label: string; value: string}>> =>
-        api.requestPromise(statusUrl!, {
-          query: {field: 'status', project: itemKey},
-        }),
+        api.requestPromise(statusUrl!, {query: {field: 'status', project: itemKey}}),
       staleTime: 30_000,
     })),
     combine: queryResults => {

@@ -48,9 +48,7 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
       {!isDataAvailable &&
         tct(
           'No queries found. Try updating your filters, or learn more about performance monitoring for queries in our [documentation:documentation].',
-          {
-            documentation: <ExternalLink href={MODULE_DOC_LINK} />,
-          }
+          {documentation: <ExternalLink href={MODULE_DOC_LINK} />}
         )}{' '}
       {outdatedProjects.length > 0 &&
         tct('You may be missing data due to outdated SDKs: [projectList].', {
@@ -75,12 +73,7 @@ function ProjectList({projects}: ProjectListProps) {
       {visibleProjects.slice(0, MAX_LISTED_PROJECTS).map((project, projectIndex) => {
         return (
           <span key={project.id}>
-            <Link
-              to={makeProjectsPathname({
-                path: `/${project.slug}/`,
-                organization,
-              })}
-            >
+            <Link to={makeProjectsPathname({path: `/${project.slug}/`, organization})}>
               {project.name}
             </Link>
             {projectIndex < visibleProjects.length - 1 && ', '}
@@ -88,9 +81,7 @@ function ProjectList({projects}: ProjectListProps) {
         );
       })}
       {hasMoreProjectsThanVisible &&
-        tct(' and [count] more.', {
-          count: projects.length - MAX_LISTED_PROJECTS,
-        })}{' '}
+        tct(' and [count] more.', {count: projects.length - MAX_LISTED_PROJECTS})}{' '}
     </Fragment>
   );
 }

@@ -22,14 +22,8 @@ export function makeDurationComparisonStatusColors(theme: Theme): {
   slower: {light: string; normal: string};
 } {
   return {
-    faster: {
-      light: theme.colors.green100,
-      normal: theme.colors.green600,
-    },
-    slower: {
-      light: theme.colors.red100,
-      normal: theme.colors.red600,
-    },
+    faster: {light: theme.colors.green100, normal: theme.colors.green600},
+    slower: {light: theme.colors.red100, normal: theme.colors.red600},
     equal: {
       light: theme.tokens.background.transparent.neutral.muted,
       normal: theme.tokens.content.secondary,
@@ -60,9 +54,7 @@ export const getDurationComparison = (
 
   const deltaText =
     status === 'equal'
-      ? tct('equal to avg [formattedBaseDuration]', {
-          formattedBaseDuration,
-        })
+      ? tct('equal to avg [formattedBaseDuration]', {formattedBaseDuration})
       : status === 'faster'
         ? tct('[deltaPct] faster than avg [formattedBaseDuration]', {
             formattedBaseDuration,

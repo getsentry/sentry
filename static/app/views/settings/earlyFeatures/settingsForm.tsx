@@ -21,9 +21,7 @@ type FeatureFlags = Record<string, FeatureFlag>;
 
 const featureFlagsQueryOptions = apiOptions.as<FeatureFlags>()(
   '/internal/feature-flags/',
-  {
-    staleTime: 0,
-  }
+  {staleTime: 0}
 );
 
 function getFeatureFlagSchema(flag: string) {
@@ -71,10 +69,7 @@ export function EarlyFeaturesSettingsForm({access}: Props) {
           return prev;
         }
 
-        return {
-          ...prev,
-          json: updateFeatureFlags(prev.json, updatedFlags),
-        };
+        return {...prev, json: updateFeatureFlags(prev.json, updatedFlags)};
       });
     },
     onError: () => addErrorMessage(t('Unable to save change')),

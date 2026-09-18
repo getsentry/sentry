@@ -103,14 +103,7 @@ export class TraceTimeCompression {
       const compressedEnd = compressedStart + retainedDuration;
       removedBefore += duration - retainedDuration;
 
-      return {
-        start,
-        end,
-        duration,
-        retainedDuration,
-        compressedStart,
-        compressedEnd,
-      };
+      return {start, end, duration, retainedDuration, compressedStart, compressedEnd};
     });
 
     return new TraceTimeCompression({

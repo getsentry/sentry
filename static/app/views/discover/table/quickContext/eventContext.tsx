@@ -50,9 +50,7 @@ export function EventContext(props: EventContextProps) {
         }
       ),
     ],
-    {
-      staleTime: tenSecondInMs,
-    }
+    {staleTime: tenSecondInMs}
   );
 
   useEffect(() => {

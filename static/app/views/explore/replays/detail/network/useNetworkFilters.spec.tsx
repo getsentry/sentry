@@ -33,9 +33,7 @@ const [
     description: 'http://localhost:3000/',
     startTimestamp: new Date(1663131080.5554),
     endTimestamp: new Date(1663131080.6947),
-    data: {
-      size: 1334,
-    },
+    data: {size: 1334},
   }),
   ReplayResourceFrameFixture({
     op: 'resource.link',
@@ -54,10 +52,7 @@ const [
     description: 'https://pokeapi.co/api/v2/pokemon',
     startTimestamp: new Date(1663131080.641),
     endTimestamp: new Date(1663131080.65),
-    data: {
-      method: 'GET',
-      statusCode: 200,
-    },
+    data: {method: 'GET', statusCode: 200},
   }),
   ReplayResourceFrameFixture({
     op: 'resource.img',
@@ -83,20 +78,14 @@ const [
     description: 'https://pokeapi.co/api/v2/pokemon/pikachu',
     startTimestamp: new Date(1663131092.471),
     endTimestamp: new Date(1663131092.48),
-    data: {
-      method: 'GET',
-      statusCode: 200,
-    },
+    data: {method: 'GET', statusCode: 200},
   }),
   ReplayRequestFrameFixture({
     op: 'resource.fetch',
     description: 'https://pokeapi.co/api/v2/pokemon/mewtu',
     startTimestamp: new Date(1663131120.198),
     endTimestamp: new Date(1663131122.693),
-    data: {
-      method: 'POST',
-      statusCode: 404,
-    },
+    data: {method: 'POST', statusCode: 404},
   }),
 ]);
 
@@ -132,9 +121,7 @@ describe('useNetworkFilters', () => {
 
     act(() => result.current.setFilters([TYPE_OPTION]));
     await waitFor(() =>
-      expect(router.location.query).toEqual({
-        f_n_type: TYPE_OPTION.value,
-      })
+      expect(router.location.query).toEqual({f_n_type: TYPE_OPTION.value})
     );
 
     act(() => result.current.setFilters([TYPE_OPTION, STATUS_OPTION]));
@@ -171,21 +158,13 @@ describe('useNetworkFilters', () => {
     const {result, router} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
       initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            n_detail_row: '0',
-            n_detail_tab: 'response',
-          },
-        },
+        location: {pathname: '/', query: {n_detail_row: '0', n_detail_tab: 'response'}},
       },
     });
 
     act(() => result.current.setFilters([TYPE_OPTION]));
     await waitFor(() =>
-      expect(router.location.query).toEqual({
-        f_n_type: TYPE_OPTION.value,
-      })
+      expect(router.location.query).toEqual({f_n_type: TYPE_OPTION.value})
     );
 
     act(() => result.current.setFilters([TYPE_OPTION, STATUS_OPTION]));
@@ -207,23 +186,14 @@ describe('useNetworkFilters', () => {
   });
 
   it('should not filter anything when no values are set', () => {
-    const {result} = renderHook(useNetworkFilters, {
-      initialProps: {networkFrames},
-    });
+    const {result} = renderHook(useNetworkFilters, {initialProps: {networkFrames}});
     expect(result.current.items).toHaveLength(9);
   });
 
   it('should filter by method', () => {
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            f_n_method: ['POST'],
-          },
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {f_n_method: ['POST']}}},
     });
     expect(result.current.items).toStrictEqual([SPAN_8_FETCH_POST]);
   });
@@ -231,14 +201,7 @@ describe('useNetworkFilters', () => {
   it('should include css/js/img when method GET is selected', () => {
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            f_n_method: ['GET'],
-          },
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {f_n_method: ['GET']}}},
     });
     expect(result.current.items).toHaveLength(8);
   });
@@ -246,14 +209,7 @@ describe('useNetworkFilters', () => {
   it('should filter by status', () => {
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            f_n_status: ['200'],
-          },
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {f_n_status: ['200']}}},
     });
     expect(result.current.items).toHaveLength(2);
   });
@@ -262,12 +218,7 @@ describe('useNetworkFilters', () => {
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
       initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            f_n_type: ['resource.fetch'],
-          },
-        },
+        location: {pathname: '/', query: {f_n_type: ['resource.fetch']}},
       },
     });
     expect(result.current.items).toHaveLength(3);
@@ -276,14 +227,7 @@ describe('useNetworkFilters', () => {
   it('should filter by searchTerm', () => {
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            f_n_search: 'pikachu',
-          },
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {f_n_search: 'pikachu'}}},
     });
     expect(result.current.items).toHaveLength(1);
   });
@@ -310,9 +254,7 @@ describe('getMethodTypes', () => {
   it('should default to having GET in the list of method types', () => {
     const networkFrames: any[] = [];
 
-    const {result} = renderHook(useNetworkFilters, {
-      initialProps: {networkFrames},
-    });
+    const {result} = renderHook(useNetworkFilters, {initialProps: {networkFrames}});
 
     expect(result.current.getMethodTypes()).toStrictEqual([
       {label: 'GET', value: 'GET', qs: 'f_n_method'},
@@ -322,9 +264,7 @@ describe('getMethodTypes', () => {
   it('should return a sorted list of method types', () => {
     const networkFrames = [SPAN_8_FETCH_POST!, SPAN_7_FETCH_GET!];
 
-    const {result} = renderHook(useNetworkFilters, {
-      initialProps: {networkFrames},
-    });
+    const {result} = renderHook(useNetworkFilters, {initialProps: {networkFrames}});
 
     expect(result.current.getMethodTypes()).toStrictEqual([
       {label: 'GET', value: 'GET', qs: 'f_n_method'},
@@ -335,9 +275,7 @@ describe('getMethodTypes', () => {
   it('should deduplicate BreadcrumbType', () => {
     const networkFrames = [SPAN_2_SCRIPT!, SPAN_3_FETCH!, SPAN_7_FETCH_GET!];
 
-    const {result} = renderHook(useNetworkFilters, {
-      initialProps: {networkFrames},
-    });
+    const {result} = renderHook(useNetworkFilters, {initialProps: {networkFrames}});
 
     expect(result.current.getMethodTypes()).toStrictEqual([
       {label: 'GET', value: 'GET', qs: 'f_n_method'},
@@ -349,9 +287,7 @@ describe('getResourceTypes', () => {
   it('should default to having fetch in the list of span types', () => {
     const networkFrames: any[] = [];
 
-    const {result} = renderHook(useNetworkFilters, {
-      initialProps: {networkFrames},
-    });
+    const {result} = renderHook(useNetworkFilters, {initialProps: {networkFrames}});
 
     expect(result.current.getResourceTypes()).toStrictEqual([
       {label: 'fetch', value: 'resource.fetch', qs: 'f_n_type'},
@@ -361,9 +297,7 @@ describe('getResourceTypes', () => {
   it('should return a sorted list of BreadcrumbType', () => {
     const networkFrames = [SPAN_0_NAVIGATE!, SPAN_1_LINK!, SPAN_2_SCRIPT!];
 
-    const {result} = renderHook(useNetworkFilters, {
-      initialProps: {networkFrames},
-    });
+    const {result} = renderHook(useNetworkFilters, {initialProps: {networkFrames}});
 
     expect(result.current.getResourceTypes()).toStrictEqual([
       {label: 'fetch', value: 'resource.fetch', qs: 'f_n_type'},
@@ -382,9 +316,7 @@ describe('getResourceTypes', () => {
       SPAN_7_FETCH_GET!,
     ];
 
-    const {result} = renderHook(useNetworkFilters, {
-      initialProps: {networkFrames},
-    });
+    const {result} = renderHook(useNetworkFilters, {initialProps: {networkFrames}});
 
     expect(result.current.getResourceTypes()).toStrictEqual([
       {label: 'fetch', value: 'resource.fetch', qs: 'f_n_type'},
@@ -404,16 +336,10 @@ describe('getStatusTypes', () => {
       SPAN_8_FETCH_POST!,
     ];
 
-    const {result} = renderHook(useNetworkFilters, {
-      initialProps: {networkFrames},
-    });
+    const {result} = renderHook(useNetworkFilters, {initialProps: {networkFrames}});
 
     expect(result.current.getStatusTypes()).toStrictEqual([
-      {
-        label: '200',
-        value: '200',
-        qs: 'f_n_status',
-      },
+      {label: '200', value: '200', qs: 'f_n_status'},
       {label: '404', value: '404', qs: 'f_n_status'},
       {label: 'unknown', value: 'unknown', qs: 'f_n_status'},
     ]);
@@ -429,16 +355,10 @@ describe('getStatusTypes', () => {
       SPAN_8_FETCH_POST!,
     ];
 
-    const {result} = renderHook(useNetworkFilters, {
-      initialProps: {networkFrames},
-    });
+    const {result} = renderHook(useNetworkFilters, {initialProps: {networkFrames}});
 
     expect(result.current.getStatusTypes()).toStrictEqual([
-      {
-        label: '200',
-        value: '200',
-        qs: 'f_n_status',
-      },
+      {label: '200', value: '200', qs: 'f_n_status'},
       {label: '404', value: '404', qs: 'f_n_status'},
       {label: 'unknown', value: 'unknown', qs: 'f_n_status'},
     ]);

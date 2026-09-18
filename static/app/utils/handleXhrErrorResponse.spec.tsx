@@ -51,12 +51,7 @@ describe('handleXhrErrorResponse', () => {
         responseText: 'Sudo required',
         statusText: 'Unauthorized',
         getResponseHeader: () => 'application/json',
-        responseJSON: {
-          detail: {
-            code: 'sudo-required',
-            detail: 'Sudo required',
-          },
-        },
+        responseJSON: {detail: {code: 'sudo-required', detail: 'Sudo required'}},
       })
     );
     expect(Sentry.captureException).not.toHaveBeenCalled();
@@ -65,10 +60,7 @@ describe('handleXhrErrorResponse', () => {
   it('adds data to the scope', () => {
     const status = 404;
     const responseJSON = {
-      detail: {
-        code: 'distracted-by-squirrel',
-        detail: 'Got distracted by a squirrel',
-      },
+      detail: {code: 'distracted-by-squirrel', detail: 'Got distracted by a squirrel'},
     };
     const err = new RequestError('GET', '/ball', new Error('API error'), {
       status,

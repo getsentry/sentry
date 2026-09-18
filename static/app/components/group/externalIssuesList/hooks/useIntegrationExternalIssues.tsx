@@ -110,10 +110,7 @@ export function useIntegrationExternalIssues({
                     },
                   }
                 ),
-                {
-                  method: 'DELETE',
-                  query: {externalIssue: issue!.id},
-                }
+                {method: 'DELETE', query: {externalIssue: issue!.id}}
               )
               .then(() => {
                 addSuccessMessage(t('Successfully unlinked issue.'));

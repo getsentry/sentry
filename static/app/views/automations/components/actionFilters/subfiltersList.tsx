@@ -59,11 +59,7 @@ export function SubfiltersList() {
   function addSubfilter() {
     const newSubfilters = [
       ...subfilters,
-      {
-        id: uuid4(),
-        match: MatchType.EQUAL,
-        value: '',
-      },
+      {id: uuid4(), match: MatchType.EQUAL, value: ''},
     ];
     onUpdate({comparison: {...condition.comparison, filters: newSubfilters}});
   }
@@ -184,14 +180,8 @@ function ComparisonTypeField() {
       value=""
       placeholder={t('Select value type')}
       options={[
-        {
-          label: t('Attribute'),
-          value: DataConditionType.EVENT_ATTRIBUTE,
-        },
-        {
-          label: t('Tag'),
-          value: DataConditionType.TAGGED_EVENT,
-        },
+        {label: t('Attribute'), value: DataConditionType.EVENT_ATTRIBUTE},
+        {label: t('Tag'), value: DataConditionType.TAGGED_EVENT},
       ]}
       onChange={(option: SelectValue<DataConditionType>) => {
         onUpdate({
@@ -260,14 +250,8 @@ function MatchField() {
       aria-label={t('Match type')}
       value={subfilter.match ?? ''}
       options={[
-        {
-          label: 'is',
-          value: MatchType.EQUAL,
-        },
-        {
-          label: 'is not',
-          value: MatchType.NOT_EQUAL,
-        },
+        {label: 'is', value: MatchType.EQUAL},
+        {label: 'is not', value: MatchType.NOT_EQUAL},
       ]}
       onChange={(option: SelectValue<MatchType>) => {
         onUpdate({...subfilter, match: option.value});

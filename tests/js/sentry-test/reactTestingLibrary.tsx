@@ -233,20 +233,11 @@ function makeRouter({
 }) {
   const childRoutes = createRoutesFromConfig(children, config);
   const routes = outletContext
-    ? [
-        {
-          path: '/',
-          element: <Outlet context={outletContext} />,
-          children: childRoutes,
-        },
-      ]
+    ? [{path: '/', element: <Outlet context={outletContext} />, children: childRoutes}]
     : childRoutes;
 
   const router = createRouter({
-    future: {
-      v7_prependBasename: true,
-      v7_relativeSplatPath: true,
-    },
+    future: {v7_prependBasename: true, v7_relativeSplatPath: true},
     history,
     routes,
   }).initialize();
@@ -265,10 +256,7 @@ class TestRouter {
     // Return parsed query params for convenience
     const query = qs.parse(this.router.state.location.search);
 
-    return {
-      ...this.router.state.location,
-      query,
-    };
+    return {...this.router.state.location, query};
   }
 
   navigate = (to: To | number, opts?: RouterNavigateOptions) => {
@@ -291,9 +279,7 @@ function parseLocationConfig(location: LocationConfig | undefined): InitialEntry
     return location.pathname;
   }
 
-  const config: InitialEntry = {
-    pathname: location.pathname,
-  };
+  const config: InitialEntry = {pathname: location.pathname};
 
   if (location.query) {
     config.search = parseQueryString(location.query);
@@ -342,9 +328,7 @@ function getInitialRouterConfig(options: InitialRouterOptions): {
 function render(ui: React.ReactElement, options: RenderOptions = {}): RenderReturn {
   const {initialEntry, config, outletContext} = getInitialRouterConfig(options);
 
-  const history = createMemoryHistory({
-    initialEntries: [initialEntry],
-  });
+  const history = createMemoryHistory({initialEntries: [initialEntry]});
 
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
@@ -380,11 +364,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
 
   const testRouter = new TestRouter(memoryRouter);
 
-  return {
-    ...renderResult,
-    rerender,
-    router: testRouter,
-  } as RenderReturn;
+  return {...renderResult, rerender, router: testRouter} as RenderReturn;
 }
 
 function renderHookWithProviders<Result = unknown, Props = unknown>(
@@ -393,9 +373,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
 ): rtl.RenderHookResult<Result, Props> & {router: TestRouter} {
   const {initialEntry, config, outletContext} = getInitialRouterConfig(options);
 
-  const history = createMemoryHistory({
-    initialEntries: [initialEntry],
-  });
+  const history = createMemoryHistory({initialEntries: [initialEntry]});
 
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
@@ -429,10 +407,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
   }
   const testRouter = new TestRouter(memoryRouter);
 
-  return {
-    ...hookResult,
-    router: testRouter,
-  };
+  return {...hookResult, router: testRouter};
 }
 
 /**

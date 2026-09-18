@@ -176,15 +176,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
     const renderer = initializeFlamegraphRenderer(
       [FlamegraphRendererWebGL, FlamegraphRenderer2D],
-      [
-        flamegraphCanvasRef,
-        flamegraph,
-        flamegraphTheme,
-        {
-          colorCoding,
-          draw_border: true,
-        },
-      ]
+      [flamegraphCanvasRef, flamegraph, flamegraphTheme, {colorCoding, draw_border: true}]
     );
 
     if (renderer === null) {
@@ -207,10 +199,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
     // fall back case, when we finally load the active profile index from the profile,
     // make sure we update the thread id so that it is show first
     if (defined(threadID)) {
-      dispatch({
-        type: 'set thread id',
-        payload: threadID,
-      });
+      dispatch({type: 'set thread id', payload: threadID});
     }
   }, [profileGroup, profiles.threadId, dispatch]);
 

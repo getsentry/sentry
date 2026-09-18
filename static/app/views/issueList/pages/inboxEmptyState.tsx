@@ -14,10 +14,7 @@ export function InboxEmptyState({
   assignmentFilter,
 }: {
   assignmentFilter: string;
-  alternateInbox?: {
-    label: string;
-    onClick: () => void;
-  };
+  alternateInbox?: {label: string; onClick: () => void};
 }) {
   const organization = useOrganization();
 

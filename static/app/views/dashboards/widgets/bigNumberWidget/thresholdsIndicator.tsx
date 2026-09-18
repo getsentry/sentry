@@ -6,13 +6,7 @@ import {normalizeUnit} from 'sentry/views/dashboards/utils/normalizeUnit';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {ThresholdsHoverWrapper} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 
-type ValidThresholds = {
-  max_values: {
-    max1: number;
-    max2: number;
-  };
-  unit?: string;
-};
+type ValidThresholds = {max_values: {max1: number; max2: number}; unit?: string};
 
 interface ThresholdsIndicatorProps {
   thresholds: ValidThresholds;
@@ -49,10 +43,7 @@ export function ThresholdsIndicator({
 
   const thresholdsConfig: ThresholdsConfig = {
     unit: thresholdUnit ?? null,
-    max_values: {
-      max1: max1 ?? null,
-      max2: max2 ?? null,
-    },
+    max_values: {max1: max1 ?? null, max2: max2 ?? null},
     preferredPolarity,
   };
 

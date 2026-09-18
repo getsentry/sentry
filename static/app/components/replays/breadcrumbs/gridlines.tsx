@@ -34,10 +34,7 @@ function Gridlines({
   );
 }
 
-type Props = {
-  durationMs: number;
-  width: number;
-};
+type Props = {durationMs: number; width: number};
 
 export function MajorGridlines({durationMs, width}: Props) {
   const {cols, remaining} = countColumns(durationMs, width);

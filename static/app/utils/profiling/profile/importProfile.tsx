@@ -59,10 +59,7 @@ export function importProfile(
   frameFilter?: (frame: Frame) => boolean
 ): ProfileGroup {
   return Sentry.withScope(scope => {
-    const span = Sentry.startInactiveSpan({
-      op: 'import',
-      name: 'profiles.import',
-    });
+    const span = Sentry.startInactiveSpan({op: 'import', name: 'profiles.import'});
 
     try {
       if (isSentryContinuousProfileChunk(input)) {
@@ -129,9 +126,7 @@ function importJSSelfProfile(
     activeProfileIndex: 0,
     profiles: [profile],
     measurements: {},
-    metadata: {
-      platform: 'javascript',
-    },
+    metadata: {platform: 'javascript'},
   };
 }
 
@@ -167,10 +162,7 @@ function importSentrySampledProfile(
   for (const key in samplesByThread) {
     const profile: Profiling.SentrySampledProfile = {
       ...input,
-      profile: {
-        ...input.profile,
-        samples: samplesByThread[key]!,
-      },
+      profile: {...input.profile, samples: samplesByThread[key]!},
     };
 
     if (key === String(input.transaction.active_thread_id)) {
@@ -185,10 +177,7 @@ function importSentrySampledProfile(
             type: options.type,
             frameFilter: options.frameFilter,
           }),
-        {
-          op: 'profile.import',
-          description: 'sampled',
-        }
+        {op: 'profile.import', description: 'sampled'}
       )
     );
   }
@@ -236,11 +225,7 @@ function importSchema(
         : 'mobile',
     input.shared.frames.map((frame, i) => {
       const frameInfo = input.shared.frame_infos?.[i];
-      return {
-        ...frame,
-        count: frameInfo?.count,
-        weight: frameInfo?.sumDuration,
-      };
+      return {...frame, count: frameInfo?.count, weight: frameInfo?.sumDuration};
     })
   );
 
@@ -277,9 +262,7 @@ export function eventedProfileToSampledProfile(
     let stackId = 0;
     const stack: number[] = [];
 
-    thread_metadata[profile.threadID] = {
-      name: profile.name,
-    };
+    thread_metadata[profile.threadID] = {name: profile.name};
 
     stack.push(profile.events[0]!.frame);
     samples.push({
@@ -333,11 +316,7 @@ export function eventedProfileToSampledProfile(
     }
   }
 
-  return {
-    samples,
-    stacks,
-    thread_metadata,
-  };
+  return {samples, stacks, thread_metadata};
 }
 
 export function importAndroidContinuousProfileChunk(
@@ -424,10 +403,7 @@ export function importAndroidContinuousProfileChunk(
             type: options.type,
             frameFilter: options.frameFilter,
           }),
-        {
-          op: 'profile.import',
-          description: 'continuous',
-        }
+        {op: 'profile.import', description: 'continuous'}
       )
     );
   }
@@ -443,10 +419,7 @@ export function importAndroidContinuousProfileChunk(
       input.measurements ?? {},
       minTimestamp
     ),
-    metadata: {
-      platform: input.metadata.platform,
-      projectID: input.metadata.projectID,
-    },
+    metadata: {platform: input.metadata.platform, projectID: input.metadata.projectID},
   };
 }
 
@@ -498,10 +471,7 @@ function importSentryContinuousProfileChunk(
             type: options.type,
             frameFilter: options.frameFilter,
           }),
-        {
-          op: 'profile.import',
-          description: 'continuous',
-        }
+        {op: 'profile.import', description: 'continuous'}
       )
     );
   }
@@ -517,10 +487,7 @@ function importSentryContinuousProfileChunk(
       input.measurements ?? {},
       minTimestamp
     ),
-    metadata: {
-      platform: input.platform,
-      projectID: input.project_id,
-    },
+    metadata: {platform: input.platform, projectID: input.project_id},
   };
 }
 
@@ -590,10 +557,7 @@ function importSingleProfile(
           type,
           frameFilter,
         }),
-      {
-        op: 'profile.import',
-        description: 'continuous-profile',
-      }
+      {op: 'profile.import', description: 'continuous-profile'}
     );
   }
   if (isEventedProfile(profile)) {
@@ -605,10 +569,7 @@ function importSingleProfile(
     return wrapWithSpan(
       span,
       () => EventedProfile.FromProfile(profile, frameIndex, {type, frameFilter}),
-      {
-        op: 'profile.import',
-        description: 'evented',
-      }
+      {op: 'profile.import', description: 'evented'}
     );
   }
   if (isSampledProfile(profile)) {
@@ -625,10 +586,7 @@ function importSingleProfile(
       span,
       () =>
         SampledProfile.FromProfile(profile, frameIndex, {type, frameFilter, profiles}),
-      {
-        op: 'profile.import',
-        description: 'sampled',
-      }
+      {op: 'profile.import', description: 'sampled'}
     );
   }
   if (isJSProfile(profile)) {
@@ -637,9 +595,7 @@ function importSingleProfile(
       return JSSelfProfile.FromProfile(
         profile,
         createFrameIndex('javascript', profile.frames),
-        {
-          type,
-        }
+        {type}
       );
     }
 
@@ -649,14 +605,9 @@ function importSingleProfile(
         JSSelfProfile.FromProfile(
           profile,
           createFrameIndex('javascript', profile.frames),
-          {
-            type,
-          }
+          {type}
         ),
-      {
-        op: 'profile.import',
-        description: 'js-self-profile',
-      }
+      {op: 'profile.import', description: 'js-self-profile'}
     );
   }
   throw new Error('Unrecognized trace format');

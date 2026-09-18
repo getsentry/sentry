@@ -73,8 +73,5 @@ export function useResetActiveNavigationGroup(): DOMAttributes {
     return {};
   }
 
-  return {
-    onMouseMove,
-    onMouseLeave,
-  };
+  return {onMouseMove, onMouseLeave};
 }

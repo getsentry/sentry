@@ -19,10 +19,7 @@ enum ReprocessableEventReason {
   ATTACHMENT_NOT_FOUND = 'attachment.not_found',
 }
 
-type ReprocessableEvent = {
-  reprocessable: boolean;
-  reason?: ReprocessableEventReason;
-};
+type ReprocessableEvent = {reprocessable: boolean; reason?: ReprocessableEventReason};
 
 type Props = {
   api: Client;

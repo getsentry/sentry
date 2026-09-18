@@ -2,9 +2,7 @@ import {Component, Fragment} from 'react';
 
 import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
 
-const defaultProps = {
-  height: '200px',
-};
+const defaultProps = {height: '200px'};
 
 type Props = {
   loading: boolean;
@@ -12,11 +10,7 @@ type Props = {
   children?: React.ReactNode;
 } & typeof defaultProps;
 
-type State = {
-  key: number;
-  prevLoading: boolean;
-  prevReloading: boolean;
-};
+type State = {key: number; prevLoading: boolean; prevReloading: boolean};
 
 export class TransitionChart extends Component<Props, State> {
   static defaultProps = defaultProps;
@@ -44,11 +38,7 @@ export class TransitionChart extends Component<Props, State> {
     // whenever loading changes, we explicitly remount the children by updating
     // the key prop; regardless of what state reloading is in
     if (prevLoading !== nextLoading) {
-      return {
-        prevReloading: nextReloading,
-        prevLoading: nextLoading,
-        key: state.key + 1,
-      };
+      return {prevReloading: nextReloading, prevLoading: nextLoading, key: state.key + 1};
     }
 
     // invariant: prevLoading === nextLoading
@@ -56,11 +46,7 @@ export class TransitionChart extends Component<Props, State> {
     // if loading is true, and hasn't changed from the previous re-render,
     // do not remount the children.
     if (nextLoading) {
-      return {
-        prevReloading: nextReloading,
-        prevLoading: nextLoading,
-        key: state.key,
-      };
+      return {prevReloading: nextReloading, prevLoading: nextLoading, key: state.key};
     }
 
     // invariant: loading is false
@@ -68,11 +54,7 @@ export class TransitionChart extends Component<Props, State> {
     // whenever the chart is transitioning from the reloading (pending) state to a non-loading state,
     // remount the children
     if (prevReloading && !nextReloading) {
-      return {
-        prevReloading: nextReloading,
-        prevLoading: nextLoading,
-        key: state.key + 1,
-      };
+      return {prevReloading: nextReloading, prevLoading: nextLoading, key: state.key + 1};
     }
 
     // do not remount the children in these remaining cases:
@@ -80,11 +62,7 @@ export class TransitionChart extends Component<Props, State> {
     // prevReloading && nextReloading (re-render with no prop change)
     // !prevReloading && nextReloading (from loaded to pending state)
 
-    return {
-      prevReloading: nextReloading,
-      prevLoading: nextLoading,
-      key: state.key,
-    };
+    return {prevReloading: nextReloading, prevLoading: nextLoading, key: state.key};
   }
 
   render() {

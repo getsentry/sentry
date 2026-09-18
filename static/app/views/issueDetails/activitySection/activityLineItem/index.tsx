@@ -21,13 +21,7 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
   const {issueCategory, project} = group;
   const {activity} = item;
   const activityItem = useMemo(
-    () =>
-      getActivityItem({
-        item,
-        organization,
-        project,
-        issueCategory,
-      }),
+    () => getActivityItem({item, organization, project, issueCategory}),
     [item, issueCategory, organization, project]
   );
   const timestamp = (

@@ -19,17 +19,13 @@ const suspendReasons = [
   ],
 ] as const;
 
-type State = {
-  suspensionReason: (typeof suspendReasons)[number][0] | null;
-};
+type State = {suspensionReason: (typeof suspendReasons)[number][0] | null};
 
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
 export class SuspendAccountAction extends Component<AdminConfirmRenderProps, State> {
-  state: State = {
-    suspensionReason: null,
-  };
+  state: State = {suspensionReason: null};
 
   componentDidMount() {
     this.props.setConfirmCallback(this.handleConfirm);

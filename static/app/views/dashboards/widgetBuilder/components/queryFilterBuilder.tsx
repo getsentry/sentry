@@ -167,9 +167,7 @@ export function WidgetBuilderQueryFilterBuilder({
   const getOnDemandFilterWarning = createOnDemandFilterWarning(
     tct(
       'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
-      {
-        strong: <strong />,
-      }
+      {strong: <strong />}
     )
   );
 

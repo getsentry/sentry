@@ -107,9 +107,7 @@ describe('convertBuilderStateToWidget', () => {
   });
 
   it('sets selectedAggregate to undefined if not provided', () => {
-    const mockState: WidgetBuilderState = {
-      query: ['transaction.duration:>100'],
-    };
+    const mockState: WidgetBuilderState = {query: ['transaction.duration:>100']};
 
     const widget = convertBuilderStateToWidget(mockState);
 
@@ -119,13 +117,7 @@ describe('convertBuilderStateToWidget', () => {
   it('applies the thresholds to the widget', () => {
     const mockState: WidgetBuilderState = {
       query: ['transaction.duration:>100'],
-      thresholds: {
-        max_values: {
-          max1: 200,
-          max2: 300,
-        },
-        unit: 'milliseconds',
-      },
+      thresholds: {max_values: {max1: 200, max2: 300}, unit: 'milliseconds'},
     };
 
     const widget = convertBuilderStateToWidget(mockState);
@@ -137,10 +129,7 @@ describe('convertBuilderStateToWidget', () => {
     const mockState: WidgetBuilderState = {
       fields: [
         {field: 'geo.country', kind: FieldValueKind.FIELD},
-        {
-          function: ['count', '', undefined, undefined],
-          kind: FieldValueKind.FUNCTION,
-        },
+        {function: ['count', '', undefined, undefined], kind: FieldValueKind.FUNCTION},
       ],
       displayType: DisplayType.TABLE,
       dataset: WidgetType.TRANSACTIONS,
@@ -155,10 +144,7 @@ describe('convertBuilderStateToWidget', () => {
     const mockState: WidgetBuilderState = {
       fields: [{field: 'geo.country', kind: FieldValueKind.FIELD}],
       yAxis: [
-        {
-          function: ['count', '', undefined, undefined],
-          kind: FieldValueKind.FUNCTION,
-        },
+        {function: ['count', '', undefined, undefined], kind: FieldValueKind.FUNCTION},
       ],
       displayType: DisplayType.LINE,
       dataset: WidgetType.TRANSACTIONS,

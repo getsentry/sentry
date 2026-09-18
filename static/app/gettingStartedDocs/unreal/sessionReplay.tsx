@@ -16,9 +16,7 @@ export const sessionReplay: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Session Replay is available in the Sentry Unreal Engine SDK. Make sure the Sentry plugin is installed and configured by following the [link:Unreal Engine setup guide] before enabling Session Replay.',
-            {
-              link: <ExternalLink href="https://docs.sentry.io/platforms/unreal/" />,
-            }
+            {link: <ExternalLink href="https://docs.sentry.io/platforms/unreal/" />}
           ),
         },
         {
@@ -46,11 +44,7 @@ export const sessionReplay: OnboardingConfig = {
             'Alternatively, you can enable Session Replay by adding the following to your project config file:'
           ),
         },
-        {
-          type: 'code',
-          language: 'ini',
-          code: configureIniSnippet,
-        },
+        {type: 'code', language: 'ini', code: configureIniSnippet},
         {
           type: 'text',
           text: tct(

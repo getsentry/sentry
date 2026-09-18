@@ -495,11 +495,7 @@ describe('MetricSelector', () => {
               [`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]: 1736507580000000000,
             },
           ],
-          meta: {
-            fields: {},
-            units: {},
-            dataScanned: 'full',
-          },
+          meta: {fields: {}, units: {}, dataScanned: 'full'},
         },
         match: [
           MockApiClient.matchQuery({
@@ -511,13 +507,7 @@ describe('MetricSelector', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/trace-items/attributes/`,
         method: 'GET',
-        body: [
-          {
-            attributeType: 'string',
-            key: 'release',
-            name: 'release',
-          },
-        ],
+        body: [{attributeType: 'string', key: 'release', name: 'release'}],
       });
 
       render(

@@ -135,10 +135,7 @@ describe('InvestigationFixtureApi', () => {
     });
     const addedBlock = await QUERY_API_CLIENT.requestPromise(`${baseUrl}blocks/`, {
       method: 'POST',
-      data: {
-        kind: 'query',
-        title: 'New query',
-      },
+      data: {kind: 'query', title: 'New query'},
     });
     const firstDuplicate = await QUERY_API_CLIENT.requestPromise(`${baseUrl}duplicate/`, {
       method: 'POST',
@@ -148,10 +145,7 @@ describe('InvestigationFixtureApi', () => {
       {method: 'POST'}
     );
 
-    expect(addedBlock).toMatchObject({
-      id: 'storybook-query-2-2',
-      position: 2,
-    });
+    expect(addedBlock).toMatchObject({id: 'storybook-query-2-2', position: 2});
     expect(firstDuplicate.id).toBe('fixture-id-collisions-copy');
     expect(secondDuplicate.id).toBe('fixture-id-collisions-copy-2');
   });

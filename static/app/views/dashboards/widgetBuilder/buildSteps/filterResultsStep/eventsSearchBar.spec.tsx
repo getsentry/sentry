@@ -64,9 +64,7 @@ describe('EventsSearchBar', () => {
           selectedAggregate: undefined,
         }}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     await userEvent.click(
@@ -98,9 +96,7 @@ describe('EventsSearchBar', () => {
           selectedAggregate: undefined,
         }}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
@@ -141,9 +137,7 @@ describe('EventsSearchBar', () => {
           selectedAggregate: undefined,
         }}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
@@ -180,9 +174,7 @@ describe('EventsSearchBar', () => {
           selectedAggregate: undefined,
         }}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});

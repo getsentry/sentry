@@ -7,11 +7,7 @@ import {t} from 'sentry/locale';
 import type {OrgRole} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-type Props = {
-  onChange: (query: string) => void;
-  query: string;
-  roles: OrgRole[];
-};
+type Props = {onChange: (query: string) => void; query: string; roles: OrgRole[]};
 
 type Filters = {
   has2fa: boolean | null;

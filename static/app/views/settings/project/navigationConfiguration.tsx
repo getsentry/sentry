@@ -64,20 +64,13 @@ export function getNavigationConfiguration({
           ],
           description: t('Manage ownership rules for a project'),
         },
-        {
-          path: `${pathPrefix}/seer/`,
-          title: t('Seer'),
-        },
+        {path: `${pathPrefix}/seer/`, title: t('Seer')},
         {
           path: `${pathPrefix}/user-feedback/`,
           title: t('User Feedback'),
           show: () => !isSelfHostedErrorsOnly,
         },
-        {
-          path: `${pathPrefix}/toolbar/`,
-          title: t('Dev Toolbar'),
-          badge: () => 'beta',
-        },
+        {path: `${pathPrefix}/toolbar/`, title: t('Dev Toolbar'), badge: () => 'beta'},
       ],
     },
     {
@@ -117,10 +110,7 @@ export function getNavigationConfiguration({
           keywords: [t('debug file'), t('debug files'), t('symbols'), t('dsyms')],
           badge: debugFilesNeedsReview ? () => 'warning' : undefined,
         },
-        {
-          path: `${pathPrefix}/proguard/`,
-          title: t('ProGuard'),
-        },
+        {path: `${pathPrefix}/proguard/`, title: t('ProGuard')},
         {
           path: `${pathPrefix}/source-maps/`,
           title: t('Source Maps'),
@@ -196,14 +186,8 @@ export function getNavigationConfiguration({
           title: t('Loader Script'),
           description: t("View and manage the project's Loader Script"),
         },
-        {
-          path: `${pathPrefix}/release-tracking/`,
-          title: t('Releases'),
-        },
-        {
-          path: `${pathPrefix}/security-headers/`,
-          title: t('Security Headers'),
-        },
+        {path: `${pathPrefix}/release-tracking/`, title: t('Releases')},
+        {path: `${pathPrefix}/security-headers/`, title: t('Security Headers')},
       ],
     },
     {

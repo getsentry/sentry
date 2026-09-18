@@ -19,10 +19,7 @@ export function useFeedbackInit() {
 
       if (!client?.getIntegrationByName?.('Feedback')) {
         const feedback = feedbackIntegration({
-          useSentryUser: {
-            email: 'email',
-            name: 'name',
-          },
+          useSentryUser: {email: 'email', name: 'name'},
           autoInject: false,
           showEmail: false,
           showName: false,

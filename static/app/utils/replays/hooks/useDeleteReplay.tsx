@@ -40,17 +40,12 @@ export function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
             replayId,
           },
         }),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
       navigate(
         issueReferrer
           ? {pathname: `/organizations/${organization.slug}/issues/${groupId}/replays/`}
-          : makeReplaysPathname({
-              path: '/',
-              organization,
-            }),
+          : makeReplaysPathname({path: '/', organization}),
         {replace: true}
       );
     } catch (err) {

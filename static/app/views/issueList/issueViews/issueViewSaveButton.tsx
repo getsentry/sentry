@@ -26,10 +26,7 @@ import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-type IssueViewSaveButtonProps = {
-  query: string;
-  sort: IssueSortOptions;
-};
+type IssueViewSaveButtonProps = {query: string; sort: IssueSortOptions};
 
 function SegmentedIssueViewSaveButton({
   openCreateIssueViewModal,
@@ -49,10 +46,7 @@ function SegmentedIssueViewSaveButton({
   const discardUnsavedChanges = () => {
     if (view) {
       trackAnalytics('issue_views.reset.clicked', {organization});
-      navigate({
-        pathname: location.pathname,
-        query: getIssueViewQueryParams({view}),
-      });
+      navigate({pathname: location.pathname, query: getIssueViewQueryParams({view})});
     }
   };
 

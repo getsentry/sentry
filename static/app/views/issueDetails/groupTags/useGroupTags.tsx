@@ -52,15 +52,7 @@ export function useGroupTags(
 ) {
   const organization = useOrganization();
   return useApiQuery<GroupTag[]>(
-    makeGroupTagsQueryKey({
-      orgSlug: organization.slug,
-      limit: 3,
-      ...parameters,
-    }),
-    {
-      staleTime: 30000,
-      enabled: defined(parameters.groupId) && enabled,
-      ...options,
-    }
+    makeGroupTagsQueryKey({orgSlug: organization.slug, limit: 3, ...parameters}),
+    {staleTime: 30000, enabled: defined(parameters.groupId) && enabled, ...options}
   );
 }

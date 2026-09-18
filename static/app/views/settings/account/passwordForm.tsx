@@ -36,14 +36,8 @@ export function PasswordForm() {
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      password: '',
-      passwordNew: '',
-      passwordVerify: '',
-    },
-    validators: {
-      onDynamic: schema,
-    },
+    defaultValues: {password: '', passwordNew: '', passwordVerify: ''},
+    validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) => {
       return mutation
         .mutateAsync(value)

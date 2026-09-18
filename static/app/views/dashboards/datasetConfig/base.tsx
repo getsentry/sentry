@@ -139,9 +139,7 @@ export type HeatmapWidgetQueryParams = Pick<
   | 'dashboardFilters'
   | 'skipDashboardFilterParens'
   | 'widgetInterval'
-> & {
-  yBuckets?: number;
-};
+> & {yBuckets?: number};
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**

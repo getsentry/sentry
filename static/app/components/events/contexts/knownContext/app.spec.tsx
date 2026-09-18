@@ -35,14 +35,7 @@ const MOCK_APP_CONTEXT: AppContext = {
 const MOCK_REDACTION = {
   app_name: {
     '': {
-      chunks: [
-        {
-          remark: 'x',
-          rule_id: 'organization:0',
-          text: '',
-          type: 'redaction',
-        },
-      ],
+      chunks: [{remark: 'x', rule_id: 'organization:0', text: '', type: 'redaction'}],
       len: 9,
       rem: [['organization:0', 'x', 0, 0]],
     },
@@ -58,27 +51,15 @@ describe('AppContext', () => {
         value: '2421fae1ac9237a8131e74883e52b0f7034a143f',
       },
       {key: 'build_type', subject: 'Build Type', value: 'test'},
-      {
-        key: 'app_identifier',
-        subject: 'Build ID',
-        value: 'io.sentry.sample.iOS-Swift',
-      },
+      {key: 'app_identifier', subject: 'Build ID', value: 'io.sentry.sample.iOS-Swift'},
       {key: 'app_name', subject: 'Build Name', value: ''},
       {key: 'app_version', subject: 'Version', value: '7.1.3'},
       {key: 'app_build', subject: 'App Build', value: '1'},
-      {
-        key: 'app_id',
-        subject: 'ID',
-        value: '3145EA1A-0EAE-3F8C-969A-13A01394D3EA',
-      },
+      {key: 'app_id', subject: 'ID', value: '3145EA1A-0EAE-3F8C-969A-13A01394D3EA'},
       {key: 'in_foreground', subject: 'In Foreground', value: false},
       {key: 'is_active', subject: 'Is Active', value: false},
       {key: 'app_memory', subject: 'Memory Usage', value: '12.0 MiB'},
-      {
-        key: 'view_names',
-        subject: 'View Names',
-        value: ['app.view1', 'app.view2'],
-      },
+      {key: 'view_names', subject: 'View Names', value: ['app.view1', 'app.view2']},
       {key: 'is_split_apks', subject: 'Split APKs', value: false},
       {
         key: 'permissions',
@@ -89,23 +70,13 @@ describe('AppContext', () => {
           INTERNET: 'granted',
         },
       },
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something'},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {app: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {app: MOCK_REDACTION}}});
 
     render(
       <ContextCard

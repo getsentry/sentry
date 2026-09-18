@@ -48,10 +48,7 @@ function ProjectSettingsLayoutContent({
   project,
 }: ProjectSettingsLayoutContentProps) {
   // set analytics params for route based analytics
-  useRouteAnalyticsParams({
-    project_id: project.id,
-    project_platform: project.platform,
-  });
+  useRouteAnalyticsParams({project_id: project.id, project_platform: project.platform});
 
   return (
     <SettingsLayout>

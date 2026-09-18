@@ -15,15 +15,11 @@ const DOCS_URL =
 
 export default function MetricDetectorsList() {
   const organization = useOrganization();
-  const detectorListQuery = useDetectorListQuery({
-    detectorFilter: 'metric_issue',
-  });
+  const detectorListQuery = useDetectorListQuery({detectorFilter: 'metric_issue'});
 
   const description = tct(
     'Metric Monitors automatically create [issuesLink:Issues] when queries meet defined thresholds.',
-    {
-      issuesLink: <Link to={`/organizations/${organization.slug}/issues/`} />,
-    }
+    {issuesLink: <Link to={`/organizations/${organization.slug}/issues/`} />}
   );
 
   return (

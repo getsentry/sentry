@@ -94,10 +94,7 @@ function getTermDescriptions(platform: PlatformKey | null) {
   switch (technology) {
     case 'dotnet':
     case 'java':
-      return {
-        ...commonTermsDescription,
-        ...mobileTermsDescription,
-      };
+      return {...commonTermsDescription, ...mobileTermsDescription};
     case 'java-spring':
     case 'dotnet-aspnetcore':
       return {
@@ -154,10 +151,7 @@ function getTermDescriptions(platform: PlatformKey | null) {
     case 'nintendo-switch':
     case 'playstation':
     case 'xbox':
-      return {
-        ...commonTermsDescription,
-        ...desktopTermDescriptions,
-      };
+      return {...commonTermsDescription, ...desktopTermDescriptions};
     case 'rust':
       return {
         ...commonTermsDescription,

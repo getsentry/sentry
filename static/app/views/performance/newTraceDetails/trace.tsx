@@ -223,10 +223,7 @@ export function Trace({
 
   const timeCompression = useMemo(
     () =>
-      TraceTimeCompression.FromVisibleItems({
-        ...timeCompressionOptions,
-        physicalWidth,
-      }),
+      TraceTimeCompression.FromVisibleItems({...timeCompressionOptions, physicalWidth}),
     [physicalWidth, timeCompressionOptions]
   );
   const timeCompressionOptionsRef = useRef(timeCompressionOptions);

@@ -12,16 +12,9 @@ import {defaultRow} from './testUtils';
 
 const mockedGroup = GroupFixture({
   id: '3512441874',
-  project: ProjectFixture({
-    id: '1',
-    slug: 'cool-team',
-  }),
+  project: ProjectFixture({id: '1', slug: 'cool-team'}),
   status: GroupStatus.IGNORED,
-  assignedTo: {
-    id: '12312',
-    name: 'ingest',
-    type: 'team',
-  },
+  assignedTo: {id: '12312', name: 'ingest', type: 'team'},
   count: '2500000',
   userCount: 64000,
   title: 'typeError: error description',

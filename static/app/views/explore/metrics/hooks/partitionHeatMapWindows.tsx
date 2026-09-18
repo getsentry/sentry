@@ -73,10 +73,7 @@ export function partitionDateTimeIntoHeatMapWindows(
   }
 
   if (!timeDomain || timeDomain.end - timeDomain.start < MINIMUM_PARTITION_RANGE) {
-    return {
-      windows: [dateTimeAsHeatMapWindow(datetime)],
-      timeDomain: {start: 0, end: 0},
-    };
+    return {windows: [dateTimeAsHeatMapWindow(datetime)], timeDomain: {start: 0, end: 0}};
   }
 
   const alignedStart = Math.floor(timeDomain.start / intervalMs) * intervalMs;

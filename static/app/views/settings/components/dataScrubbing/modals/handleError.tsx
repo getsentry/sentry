@@ -7,16 +7,11 @@ export enum ErrorType {
   ATTRIBUTE_INVALID = 'attribute-invalid',
 }
 
-type Error = {
-  message: string;
-  type: ErrorType;
-};
+type Error = {message: string; type: ErrorType};
 
 type ResponseFields = 'relayPiiConfig';
 
-type ResponseError = {
-  responseJSON?: Record<ResponseFields, string[]>;
-};
+type ResponseError = {responseJSON?: Record<ResponseFields, string[]>};
 
 export function handleError(error: ResponseError): Error {
   const errorMessage = error.responseJSON?.relayPiiConfig?.[0];
@@ -44,10 +39,7 @@ export function handleError(error: ResponseError): Error {
     for (const line of errorMessage.split('\n')) {
       if (line.startsWith('error:')) {
         const regex = line.slice(6).replace(/at line \d+ column \d+/, '');
-        return {
-          type: ErrorType.REGEX_PARSE,
-          message: t('Invalid regex: %s', regex),
-        };
+        return {type: ErrorType.REGEX_PARSE, message: t('Invalid regex: %s', regex)};
       }
     }
   }

@@ -191,14 +191,8 @@ function SidebarContent() {
       }
     );
     return [
-      {
-        label: t('Supported'),
-        options: supportedProjectItems,
-      },
-      {
-        label: t('Unsupported'),
-        options: unsupportedProjectItems,
-      },
+      {label: t('Supported'), options: supportedProjectItems},
+      {label: t('Unsupported'), options: unsupportedProjectItems},
     ];
   }, [supportedProjects, unsupportedProjects]);
 
@@ -338,10 +332,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     isPerformanceSelected: true,
     isProfilingSelected: true,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: PROFILING_ONBOARDING_STEPS,
     feedbackOptions: {},
     /**

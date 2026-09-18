@@ -14,37 +14,18 @@ const MOCK_REPLAY_CONTEXT = {
   unknown_key: 123,
 };
 
-const MOCK_REDACTION = {
-  extra_data: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
-};
+const MOCK_REDACTION = {extra_data: {'': {rem: [['organization:0', 's', 0, 0]], len: 5}}};
 
 describe('ReplayContext', () => {
   it('returns values and according to the parameters', () => {
     expect(getReplayContextData({data: MOCK_REPLAY_CONTEXT})).toEqual([
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123, meta: undefined},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {replay: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {replay: MOCK_REDACTION}}});
 
     render(
       <ContextCard

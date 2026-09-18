@@ -52,10 +52,7 @@ describe('TraceViewLogsSection', () => {
     const organization = OrganizationFixture({features: ['ourlogs-enabled']});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
-      body: {
-        data: [],
-        meta: {},
-      },
+      body: {data: [], meta: {}},
     });
     render(<Component traceSlug={TRACE_SLUG} />, {organization});
 
@@ -101,10 +98,7 @@ describe('TraceViewLogsSection', () => {
     );
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
-      body: {
-        data: [],
-        meta: {},
-      },
+      body: {data: [], meta: {}},
     });
     render(<Component traceSlug={TRACE_SLUG} />, {organization});
 
@@ -121,10 +115,7 @@ describe('TraceViewLogsSection', () => {
     const organization = OrganizationFixture({features: ['ourlogs-enabled']});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
-      body: {
-        data: [],
-        meta: {},
-      },
+      body: {data: [], meta: {}},
     });
     render(<Component traceSlug={TRACE_SLUG} />, {organization});
 
@@ -139,10 +130,7 @@ describe('TraceViewLogsSection', () => {
     const organization = OrganizationFixture({features: ['ourlogs-enabled']});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
-      body: {
-        data: [],
-        meta: {},
-      },
+      body: {data: [], meta: {}},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,

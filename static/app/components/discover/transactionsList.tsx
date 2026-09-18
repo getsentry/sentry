@@ -241,10 +241,7 @@ function TableRender({
       return;
     }
 
-    performanceAtScaleContext.setTransactionListTableData({
-      empty: !hasResults,
-      query,
-    });
+    performanceAtScaleContext.setTransactionListTableData({empty: !hasResults, query});
   }, [display, isLoading, hasResults, performanceAtScaleContext, query]);
 
   return (
@@ -297,10 +294,7 @@ function TableRender({
 class _TransactionsList extends Component<Props> {
   handleCursor: CursorHandler = (cursor, pathname, query) => {
     const {navigate} = this.props;
-    navigate({
-      pathname,
-      query: {...query, [TRANSACTION_CURSOR_NAME]: cursor},
-    });
+    navigate({pathname, query: {...query, [TRANSACTION_CURSOR_NAME]: cursor}});
   };
 
   getEventView() {

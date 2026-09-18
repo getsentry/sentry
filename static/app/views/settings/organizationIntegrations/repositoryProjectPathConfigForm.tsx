@@ -95,11 +95,7 @@ export function RepositoryProjectPathConfigModal({
 
   const mutation = useMutation({
     mutationFn: (data: Partial<RepositoryProjectPathConfig>) =>
-      fetchMutation({
-        method: existingConfig ? 'PUT' : 'POST',
-        url: endpoint,
-        data,
-      }),
+      fetchMutation({method: existingConfig ? 'PUT' : 'POST', url: endpoint, data}),
     onError: e => {
       Sentry.captureException(e);
       addErrorMessage(t('Failed to configure code path mapping'));

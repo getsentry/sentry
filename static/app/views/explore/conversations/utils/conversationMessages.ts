@@ -432,14 +432,9 @@ export function parseAssistantContent(node: AITraceSpanNode): {
     if (outputMessages === FILTERED) {
       return {content: FILTERED, reasoning: null};
     }
-    const extracted = extractAssistantOutput(outputMessages, {
-      defaultRole: 'assistant',
-    });
+    const extracted = extractAssistantOutput(outputMessages, {defaultRole: 'assistant'});
     if (extracted.responseText) {
-      return {
-        content: extracted.responseText,
-        reasoning: extracted.reasoningText,
-      };
+      return {content: extracted.responseText, reasoning: extracted.reasoningText};
     }
     // If tool calls or reasoning were found but no text, don't fall through to
     // response attributes — tool calls are rendered separately as badges and

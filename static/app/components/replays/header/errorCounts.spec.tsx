@@ -21,23 +21,13 @@ describe('ErrorCounts', () => {
         slug: 'my-js-app',
         platform: 'javascript',
       }),
-      ProjectFixture({
-        id: '123123123',
-        slug: 'my-py-backend',
-        platform: 'python',
-      }),
-      ProjectFixture({
-        id: '234234234',
-        slug: 'my-node-service',
-        platform: 'node',
-      }),
+      ProjectFixture({id: '123123123', slug: 'my-py-backend', platform: 'python'}),
+      ProjectFixture({id: '234234234', slug: 'my-node-service', platform: 'node'}),
     ]);
   });
 
   it('should render 0 when there are no errors in the array', () => {
-    render(<ErrorCounts replayErrors={[]} />, {
-      organization,
-    });
+    render(<ErrorCounts replayErrors={[]} />, {organization});
     const countNode = screen.getByLabelText('number of errors');
     expect(countNode).toHaveTextContent('0');
   });
@@ -47,9 +37,7 @@ describe('ErrorCounts', () => {
       RawReplayErrorFixture({...baseErrorProps, 'project.name': 'my-js-app'}),
     ];
 
-    render(<ErrorCounts replayErrors={errors} />, {
-      organization,
-    });
+    render(<ErrorCounts replayErrors={errors} />, {organization});
 
     const countNode = screen.getByLabelText('number of errors');
     expect(countNode).toHaveTextContent('1');
@@ -70,9 +58,7 @@ describe('ErrorCounts', () => {
       RawReplayErrorFixture({...baseErrorProps, 'project.name': 'my-py-backend'}),
     ];
 
-    render(<ErrorCounts replayErrors={errors} />, {
-      organization,
-    });
+    render(<ErrorCounts replayErrors={errors} />, {organization});
 
     const countNodes = screen.getAllByLabelText('number of errors');
     expect(countNodes[0]).toHaveTextContent('2');
@@ -103,9 +89,7 @@ describe('ErrorCounts', () => {
       RawReplayErrorFixture({...baseErrorProps, 'project.name': 'my-node-service'}),
     ];
 
-    render(<ErrorCounts replayErrors={errors} />, {
-      organization,
-    });
+    render(<ErrorCounts replayErrors={errors} />, {organization});
 
     const countNode = screen.getByLabelText('total errors');
     expect(countNode).toHaveTextContent('6');

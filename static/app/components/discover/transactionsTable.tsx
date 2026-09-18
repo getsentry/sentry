@@ -258,10 +258,7 @@ function getProfileAnalyticsHandler(organization: Organization, referrer?: strin
       referrer === 'performance.transactions_summary'
         ? ('performance.transactions_summary.overview' as const)
         : ('discover.transactions_table' as const);
-    trackAnalytics('profiling_views.go_to_flamegraph', {
-      organization,
-      source,
-    });
+    trackAnalytics('profiling_views.go_to_flamegraph', {organization, source});
   };
 }
 

@@ -169,9 +169,7 @@ describe('LogsDirectExportModalButton', () => {
         `/organizations/${organization.slug}/data-export/`,
         expect.objectContaining({
           data: expect.objectContaining({
-            query_info: expect.objectContaining({
-              sampling: 'HIGHEST_ACCURACY',
-            }),
+            query_info: expect.objectContaining({sampling: 'HIGHEST_ACCURACY'}),
           }),
         })
       );

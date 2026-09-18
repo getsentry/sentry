@@ -18,9 +18,7 @@ import {OrganizationTeams} from 'sentry/views/settings/organizationTeams/organiz
 jest.mocked(recreateRoute).mockReturnValue('');
 jest.unmock('@tanstack/react-pacer');
 
-jest.mock('sentry/actionCreators/modal', () => ({
-  openCreateTeamModal: jest.fn(),
-}));
+jest.mock('sentry/actionCreators/modal', () => ({openCreateTeamModal: jest.fn()}));
 
 const TEAM_SEARCH = 'frontend';
 
@@ -67,11 +65,7 @@ describe('OrganizationTeams', () => {
   });
 
   describe('Open Membership', () => {
-    const {organization} = initializeOrg({
-      organization: {
-        openMembership: true,
-      },
-    });
+    const {organization} = initializeOrg({organization: {openMembership: true}});
 
     const createWrapper = (
       props?: Partial<React.ComponentProps<typeof OrganizationTeams>>
@@ -96,27 +90,20 @@ describe('OrganizationTeams', () => {
       // action creator to open "create team modal" is called
       expect(openCreateTeamModal).toHaveBeenCalledWith(
         expect.objectContaining({
-          organization: expect.objectContaining({
-            slug: organization.slug,
-          }),
+          organization: expect.objectContaining({slug: organization.slug}),
         })
       );
     });
 
     it('can join team and have link to details', () => {
-      const team = TeamFixture({
-        hasAccess: true,
-        isMember: false,
-      });
+      const team = TeamFixture({hasAccess: true, isMember: false});
       const mockTeams = [team];
       TeamStore.loadInitialData(mockTeams, false, null);
       ProjectsStore.loadInitialData([
         ProjectFixture({slug: 'project-1', teams: [team]}),
         ProjectFixture({slug: 'project-2', teams: [team]}),
       ]);
-      createWrapper({
-        access: new Set(),
-      });
+      createWrapper({access: new Set()});
       expect(screen.getByLabelText('Join Team')).toBeInTheDocument();
 
       // Should also link to details
@@ -127,10 +114,7 @@ describe('OrganizationTeams', () => {
     });
 
     it('reloads projects after joining a team', async () => {
-      const team = TeamFixture({
-        hasAccess: true,
-        isMember: false,
-      });
+      const team = TeamFixture({hasAccess: true, isMember: false});
       const getOrgMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/',
         body: OrganizationFixture(),
@@ -165,20 +149,14 @@ describe('OrganizationTeams', () => {
         TeamFixture({flags: {'idp:provisioned': true}, isMember: false}),
       ];
       TeamStore.loadInitialData(mockTeams, false, null);
-      createWrapper({
-        access: new Set(),
-      });
+      createWrapper({access: new Set()});
 
       expect(screen.getByRole('button', {name: 'Join Team'})).toBeDisabled();
     });
   });
 
   describe('Closed Membership', () => {
-    const {organization} = initializeOrg({
-      organization: {
-        openMembership: false,
-      },
-    });
+    const {organization} = initializeOrg({organization: {openMembership: false}});
     const createWrapper = (
       props?: Partial<React.ComponentProps<typeof OrganizationTeams>>
     ) =>
@@ -194,12 +172,7 @@ describe('OrganizationTeams', () => {
       );
 
     it('can request access to team and does not have link to details', () => {
-      const mockTeams = [
-        TeamFixture({
-          hasAccess: false,
-          isMember: false,
-        }),
-      ];
+      const mockTeams = [TeamFixture({hasAccess: false, isMember: false})];
       TeamStore.loadInitialData(mockTeams, false, null);
       createWrapper({access: new Set()});
 
@@ -210,16 +183,9 @@ describe('OrganizationTeams', () => {
     });
 
     it('can leave team when you are a member', () => {
-      const mockTeams = [
-        TeamFixture({
-          hasAccess: true,
-          isMember: true,
-        }),
-      ];
+      const mockTeams = [TeamFixture({hasAccess: true, isMember: true})];
       TeamStore.loadInitialData(mockTeams, false, null);
-      createWrapper({
-        access: new Set(),
-      });
+      createWrapper({access: new Set()});
 
       expect(screen.getByLabelText('Leave Team')).toBeInTheDocument();
     });
@@ -229,9 +195,7 @@ describe('OrganizationTeams', () => {
         TeamFixture({flags: {'idp:provisioned': true}, isMember: false}),
       ];
       TeamStore.loadInitialData(mockTeams, false, null);
-      createWrapper({
-        access: new Set(),
-      });
+      createWrapper({access: new Set()});
 
       expect(screen.getByRole('button', {name: 'Request Access'})).toBeDisabled();
     });
@@ -239,24 +203,16 @@ describe('OrganizationTeams', () => {
     it('cannot leave idp-provisioned team', () => {
       const mockTeams = [TeamFixture({flags: {'idp:provisioned': true}, isMember: true})];
       TeamStore.loadInitialData(mockTeams, false, null);
-      createWrapper({
-        access: new Set(),
-      });
+      createWrapper({access: new Set()});
 
       expect(screen.getByRole('button', {name: 'Leave Team'})).toBeDisabled();
     });
   });
 
   describe('Team Requests', () => {
-    const {organization} = initializeOrg({
-      organization: {
-        openMembership: false,
-      },
-    });
+    const {organization} = initializeOrg({organization: {openMembership: false}});
     const orgId = organization.slug;
-    const accessRequest = AccessRequestFixture({
-      requester: {},
-    });
+    const accessRequest = AccessRequestFixture({requester: {}});
     const requester = UserFixture({
       id: '9',
       username: 'requester@example.com',
@@ -296,20 +252,14 @@ describe('OrganizationTeams', () => {
         method: 'PUT',
       });
 
-      createWrapper({
-        onRemoveAccessRequest: onUpdateRequestListMock,
-      });
+      createWrapper({onRemoveAccessRequest: onUpdateRequestListMock});
       await userEvent.click(screen.getAllByLabelText('Approve')[0]!);
 
       await tick();
 
       expect(approveMock).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: {
-            isApproved: true,
-          },
-        })
+        expect.objectContaining({data: {isApproved: true}})
       );
       expect(onUpdateRequestListMock).toHaveBeenCalledWith(accessRequest.id, true);
     });
@@ -321,9 +271,7 @@ describe('OrganizationTeams', () => {
         method: 'PUT',
       });
 
-      createWrapper({
-        onRemoveAccessRequest: onUpdateRequestListMock,
-      });
+      createWrapper({onRemoveAccessRequest: onUpdateRequestListMock});
 
       await userEvent.click(screen.getAllByLabelText('Deny')[0]!);
 
@@ -331,11 +279,7 @@ describe('OrganizationTeams', () => {
 
       expect(denyMock).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: {
-            isApproved: false,
-          },
-        })
+        expect.objectContaining({data: {isApproved: false}})
       );
       expect(onUpdateRequestListMock).toHaveBeenCalledWith(accessRequest.id, false);
     });
@@ -446,9 +390,7 @@ describe('OrganizationTeams', () => {
     const access = new Set<string>();
 
     it('does not render alert without feature flag', () => {
-      const {organization} = initializeOrg({
-        organization: {orgRole: 'admin'},
-      });
+      const {organization} = initializeOrg({organization: {orgRole: 'admin'}});
       render(
         <OrganizationTeams
           organization={organization}
@@ -464,9 +406,7 @@ describe('OrganizationTeams', () => {
     });
 
     it('renders alert with elevated org role', () => {
-      const {organization} = initializeOrg({
-        organization: {orgRole: 'admin'},
-      });
+      const {organization} = initializeOrg({organization: {orgRole: 'admin'}});
       render(
         <OrganizationTeams
           organization={organization}
@@ -487,9 +427,7 @@ describe('OrganizationTeams', () => {
     });
 
     it('does not render alert with lowest org role', () => {
-      const {organization} = initializeOrg({
-        organization: {orgRole: 'member'},
-      });
+      const {organization} = initializeOrg({organization: {orgRole: 'member'}});
       render(
         <OrganizationTeams
           organization={organization}

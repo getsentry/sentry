@@ -68,10 +68,7 @@ function makeIntegrationIssueConfigTicketRuleQueryKey({
 }): ApiQueryKey {
   return [
     getApiUrl('/organizations/$organizationIdOrSlug/integrations/$integrationId/', {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        integrationId,
-      },
+      path: {organizationIdOrSlug: orgSlug, integrationId},
     }),
     {query: {ignored: IGNORED_FIELDS, ...query}},
   ];
@@ -224,10 +221,7 @@ export function TicketRuleModal({
    */
   const cleanData = useCallback(
     (data: Record<string, unknown>) => {
-      const formData: {
-        [key: string]: any;
-        integration?: string | number;
-      } = {};
+      const formData: {[key: string]: any; integration?: string | number} = {};
       if (instance && Object.hasOwn(instance, 'integration')) {
         formData.integration = instance.integration;
       }
@@ -302,10 +296,7 @@ export function TicketRuleModal({
           field.url &&
           cachedChoices
         ) {
-          return {
-            ...field,
-            choices: mergeChoices(field.choices ?? [], cachedChoices),
-          };
+          return {...field, choices: mergeChoices(field.choices ?? [], cachedChoices)};
         }
         return field;
       }

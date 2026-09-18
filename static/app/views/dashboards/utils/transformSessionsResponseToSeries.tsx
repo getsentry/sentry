@@ -47,10 +47,7 @@ export function transformSessionsResponseToSeries(
     return [
       {
         seriesName: `(${t('no results')})`,
-        data: data.intervals.map(interval => ({
-          name: interval,
-          value: 0,
-        })),
+        data: data.intervals.map(interval => ({name: interval, value: 0})),
       },
     ];
   }

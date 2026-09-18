@@ -62,11 +62,7 @@ describe('AssertionOpGroup', () => {
 
   describe('root mode', () => {
     it('renders root group without border controls', async () => {
-      const value: UptimeAndOp = {
-        id: 'test-id-1',
-        op: UptimeOpType.AND,
-        children: [],
-      };
+      const value: UptimeAndOp = {id: 'test-id-1', op: UptimeOpType.AND, children: []};
 
       await renderRootGroup(value);
 
@@ -100,11 +96,7 @@ describe('AssertionOpGroup', () => {
     });
 
     it('adds operation in root mode', async () => {
-      const value: UptimeAndOp = {
-        id: 'test-id-root',
-        op: UptimeOpType.AND,
-        children: [],
-      };
+      const value: UptimeAndOp = {id: 'test-id-root', op: UptimeOpType.AND, children: []};
 
       await renderRootGroup(value);
 
@@ -182,22 +174,14 @@ describe('AssertionOpGroup', () => {
     });
 
     it('shows empty state message when no children', async () => {
-      const value: UptimeAndOp = {
-        id: 'test-id-1',
-        op: UptimeOpType.AND,
-        children: [],
-      };
+      const value: UptimeAndOp = {id: 'test-id-1', op: UptimeOpType.AND, children: []};
 
       await renderGroup(value);
       expect(screen.getByText('Empty assertion group')).toBeInTheDocument();
     });
 
     it('calls onRemove when remove button is clicked', async () => {
-      const value: UptimeAndOp = {
-        id: 'test-id-1',
-        op: UptimeOpType.AND,
-        children: [],
-      };
+      const value: UptimeAndOp = {id: 'test-id-1', op: UptimeOpType.AND, children: []};
 
       await renderGroup(value, mockOnRemove);
       await userEvent.click(screen.getByRole('button', {name: 'Remove Group'}));
@@ -205,11 +189,7 @@ describe('AssertionOpGroup', () => {
     });
 
     it('does not show remove button when onRemove is not provided', async () => {
-      const value: UptimeAndOp = {
-        id: 'test-id-1',
-        op: UptimeOpType.AND,
-        children: [],
-      };
+      const value: UptimeAndOp = {id: 'test-id-1', op: UptimeOpType.AND, children: []};
 
       render(<AssertionOpGroup value={value} onChange={mockOnChange} />);
       await screen.findByRole('button', {name: 'Assert All'});
@@ -468,13 +448,7 @@ describe('AssertionOpGroup', () => {
       expect(mockOnChange).toHaveBeenCalledWith({
         id: 'test-id-3',
         op: UptimeOpType.AND,
-        children: [
-          {
-            id: 'test-id-2',
-            op: UptimeOpType.OR,
-            children: [statusCodeOp],
-          },
-        ],
+        children: [{id: 'test-id-2', op: UptimeOpType.OR, children: [statusCodeOp]}],
       });
     });
 

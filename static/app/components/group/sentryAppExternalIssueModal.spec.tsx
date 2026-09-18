@@ -14,11 +14,7 @@ describe('openSentryAppIssueModal', () => {
   const group = GroupFixture();
   const sentryApp = SentryAppFixture();
   const component = SentryAppComponentFixture({
-    sentryApp: {
-      uuid: sentryApp.uuid,
-      slug: sentryApp.slug,
-      name: sentryApp.name,
-    },
+    sentryApp: {uuid: sentryApp.uuid, slug: sentryApp.slug, name: sentryApp.name},
   });
   // unable to use the selectByValue here so remove the select option
   component.schema.create.required_fields.pop();
@@ -117,11 +113,7 @@ describe('openSentryAppIssueModal', () => {
     expect(request).toHaveBeenCalledWith(
       submitUrl,
       expect.objectContaining({
-        data: expect.objectContaining({
-          action: 'link',
-          issue: '99',
-          groupId: group.id,
-        }),
+        data: expect.objectContaining({action: 'link', issue: '99', groupId: group.id}),
       })
     );
   });

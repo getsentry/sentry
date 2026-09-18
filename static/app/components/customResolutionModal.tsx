@@ -105,10 +105,7 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
       '/organizations/$organizationIdOrSlug/releases/$version/',
       {
         path: shouldLookupExact
-          ? {
-              organizationIdOrSlug: organization.slug,
-              version: exactSearch,
-            }
+          ? {organizationIdOrSlug: organization.slug, version: exactSearch}
           : skipToken,
         staleTime: 30_000,
       }

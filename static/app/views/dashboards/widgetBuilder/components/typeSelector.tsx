@@ -56,11 +56,7 @@ export function WidgetBuilderTypeSelector({
   const hasTraceMetricsTableWidget = canUseMetricsDashboardTable(organization);
   // Use an array to define display type order explicitly.
   // Object key ordering in JS is technically specified but easy to break accidentally.
-  const displayTypeOrder: Array<{
-    details: string;
-    label: string;
-    type: DisplayType;
-  }> = [
+  const displayTypeOrder: Array<{details: string; label: string; type: DisplayType}> = [
     {
       type: DisplayType.AREA,
       label: t('Area'),
@@ -124,10 +120,7 @@ export function WidgetBuilderTypeSelector({
       const oldDisplayIsChart = usesTimeSeriesData(state.displayType);
       if (newDisplayIsChart === oldDisplayIsChart) {
         // Data source does not change, so we just do a normal display type change.
-        dispatch({
-          type: BuilderStateAction.SET_DISPLAY_TYPE,
-          payload: newValue,
-        });
+        dispatch({type: BuilderStateAction.SET_DISPLAY_TYPE, payload: newValue});
       } else {
         // Data source changed between table and series, so we need to reset the query.
         dispatch({
@@ -206,10 +199,7 @@ export function WidgetBuilderTypeSelector({
             } else if (state.dataset === WidgetType.ISSUE) {
               handleIssueWidgetDisplayTypeChange(newValue);
             } else {
-              dispatch({
-                type: BuilderStateAction.SET_DISPLAY_TYPE,
-                payload: newValue,
-              });
+              dispatch({type: BuilderStateAction.SET_DISPLAY_TYPE, payload: newValue});
               if (
                 (newValue === DisplayType.TABLE ||
                   newValue === DisplayType.BIG_NUMBER ||

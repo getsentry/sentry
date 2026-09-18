@@ -37,12 +37,7 @@ function useFeedbackListQuery({listHeadTime, organization, prefetch}: Props) {
   );
 
   const fixedQueryView = useMemo(
-    () =>
-      coaleseIssueStatsPeriodQuery({
-        listHeadTime,
-        prefetch,
-        queryView,
-      }),
+    () => coaleseIssueStatsPeriodQuery({listHeadTime, prefetch, queryView}),
     [listHeadTime, prefetch, queryView]
   );
 

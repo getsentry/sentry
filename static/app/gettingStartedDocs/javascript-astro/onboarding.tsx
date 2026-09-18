@@ -139,17 +139,13 @@ export const onboarding: OnboardingConfig = {
       <p>
         {tct(
           "Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.",
-          {
-            astroLink: <ExternalLink href="https://astro.build/" />,
-          }
+          {astroLink: <ExternalLink href="https://astro.build/" />}
         )}
       </p>
       <p>
         {tct(
           "In this quick guide you'll use the [astrocli:astro] CLI to set up Sentry with separate configuration files for client and server-side initialization:",
-          {
-            astrocli: <strong />,
-          }
+          {astrocli: <strong />}
         )}
       </p>
     </Fragment>
@@ -162,9 +158,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Install the [code:@sentry/astro] package with the [code:astro] CLI:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         installSnippetBlock,
@@ -179,9 +173,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Configure the Sentry integration in your [astroConfig:astro.config.mjs] file:',
-            {
-              astroConfig: <code />,
-            }
+            {astroConfig: <code />}
           ),
         },
         {
@@ -198,9 +190,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Create a [clientConfig:sentry.client.config.js] file in the root of your project to configure the client-side SDK:',
-            {
-              clientConfig: <code />,
-            }
+            {clientConfig: <code />}
           ),
         },
         {
@@ -217,9 +207,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Create a [serverConfig:sentry.server.config.js] file in the root of your project to configure the server-side SDK:',
-            {
-              serverConfig: <code />,
-            }
+            {serverConfig: <code />}
           ),
         },
         {
@@ -236,9 +224,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Add your Sentry auth token to the [authTokenEnvVar:SENTRY_AUTH_TOKEN] environment variable:',
-            {
-              authTokenEnvVar: <code />,
-            }
+            {authTokenEnvVar: <code />}
           ),
         },
         {
@@ -266,13 +252,7 @@ export const onboarding: OnboardingConfig = {
         },
         {
           type: 'code',
-          tabs: [
-            {
-              label: 'Astro',
-              language: 'html',
-              code: getVerifySnippet(params),
-            },
-          ],
+          tabs: [{label: 'Astro', language: 'html', code: getVerifySnippet(params)}],
         },
         {
           type: 'text',

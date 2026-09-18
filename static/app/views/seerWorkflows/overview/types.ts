@@ -131,13 +131,8 @@ const MILESTONE_BY_SECTION: Record<AutofixStateKey, MilestoneKey> = {
   merged: 'pull_requests_merged',
 };
 
-export const OVERVIEW_SECTIONS: Array<{
-  key: AutofixStateKey;
-  milestone: MilestoneKey;
-}> = SECTION_ORDER.map(key => ({
-  key,
-  milestone: MILESTONE_BY_SECTION[key],
-}));
+export const OVERVIEW_SECTIONS: Array<{key: AutofixStateKey; milestone: MilestoneKey}> =
+  SECTION_ORDER.map(key => ({key, milestone: MILESTONE_BY_SECTION[key]}));
 
 export interface OverviewPullRequestFile {
   additions: number;
@@ -189,11 +184,7 @@ export interface OverviewRunIssue {
   owners: SuggestedOwner[];
   priority: PriorityLevel | null;
   priorityLockedAt: string | null;
-  project: {
-    id: string;
-    slug: string;
-    platform?: PlatformKey;
-  };
+  project: {id: string; slug: string; platform?: PlatformKey};
   substatus: string | null;
   userCount: number | null;
 }

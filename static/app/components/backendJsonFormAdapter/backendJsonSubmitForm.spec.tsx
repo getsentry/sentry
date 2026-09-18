@@ -148,14 +148,7 @@ describe('BackendJsonSubmitForm', () => {
     it('handles disabled fields', () => {
       render(
         <BackendJsonSubmitForm
-          fields={[
-            {
-              name: 'title',
-              type: 'string',
-              label: 'Title',
-              disabled: true,
-            },
-          ]}
+          fields={[{name: 'title', type: 'string', label: 'Title', disabled: true}]}
           onSubmit={onSubmit}
           submitLabel="Save"
         />,
@@ -169,11 +162,7 @@ describe('BackendJsonSubmitForm', () => {
       render(
         <BackendJsonSubmitForm
           fields={[
-            {
-              name: 'title',
-              type: 'string',
-              label: 'Title',
-            },
+            {name: 'title', type: 'string', label: 'Title'},
             {
               name: 'priority',
               type: 'select',
@@ -410,12 +399,7 @@ describe('BackendJsonSubmitForm', () => {
       render(
         <BackendJsonSubmitForm
           fields={[
-            {
-              name: 'title',
-              type: 'string',
-              label: 'Title',
-              default: 'Default Title',
-            },
+            {name: 'title', type: 'string', label: 'Title', default: 'Default Title'},
           ]}
           initialValues={{title: 'Overridden Title'}}
           onSubmit={onSubmit}
@@ -572,10 +556,7 @@ describe('BackendJsonSubmitForm', () => {
     });
 
     it('prefetches async select options and searches when the user types', async () => {
-      MockApiClient.addMockResponse({
-        url: '/search',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/search', body: []});
       const prefetchResponse = MockApiClient.addMockResponse({
         url: '/search',
         match: [MockApiClient.matchQuery({field: 'repo', query: ''})],
@@ -634,18 +615,8 @@ describe('BackendJsonSubmitForm', () => {
       render(
         <BackendJsonSubmitForm
           fields={[
-            {
-              name: 'repo',
-              type: 'select',
-              label: 'Repository',
-              updatesForm: true,
-            },
-            {
-              name: 'project',
-              type: 'select',
-              label: 'Project',
-              updatesForm: true,
-            },
+            {name: 'repo', type: 'select', label: 'Repository', updatesForm: true},
+            {name: 'project', type: 'select', label: 'Project', updatesForm: true},
             {
               name: 'labels',
               type: 'select',
@@ -667,10 +638,7 @@ describe('BackendJsonSubmitForm', () => {
 
     it('async select fetches from URL on search', async () => {
       // Catch-all for unmatched queries
-      MockApiClient.addMockResponse({
-        url: '/search',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/search', body: []});
       const searchResponse = MockApiClient.addMockResponse({
         url: '/search',
         match: [MockApiClient.matchQuery({field: 'repo', query: 'test'})],
@@ -791,12 +759,7 @@ describe('BackendJsonSubmitForm', () => {
         },
       ];
       const secondFields: JsonFormAdapterFieldConfig[] = [
-        {
-          name: 'title',
-          type: 'string',
-          label: 'Title',
-          default: 'Server title',
-        },
+        {name: 'title', type: 'string', label: 'Title', default: 'Server title'},
         {
           name: 'priority',
           type: 'select',
@@ -852,12 +815,7 @@ describe('BackendJsonSubmitForm', () => {
         },
       ];
       const secondFields: JsonFormAdapterFieldConfig[] = [
-        {
-          name: 'version',
-          type: 'select',
-          label: 'Version',
-          choices: [],
-        },
+        {name: 'version', type: 'select', label: 'Version', choices: []},
       ];
 
       const {rerender} = render(
@@ -1054,10 +1012,7 @@ describe('BackendJsonSubmitForm', () => {
       render(
         <BackendJsonSubmitForm
           fields={[
-            {
-              ...tableField,
-              default: [{id: '1', service: 'Existing', key: 'xyz'}],
-            },
+            {...tableField, default: [{id: '1', service: 'Existing', key: 'xyz'}]},
           ]}
           onSubmit={onSubmit}
           submitLabel="Save"
@@ -1137,9 +1092,7 @@ describe('BackendJsonSubmitForm', () => {
 
       await waitFor(() => {
         expect(onSubmit).toHaveBeenCalledWith(
-          expect.objectContaining({
-            status_mapping: {repo1: {on_resolve: 'closed'}},
-          })
+          expect.objectContaining({status_mapping: {repo1: {on_resolve: 'closed'}}})
         );
       });
     });
@@ -1203,9 +1156,7 @@ describe('BackendJsonSubmitForm', () => {
 
       await waitFor(() => {
         expect(onSubmit).toHaveBeenCalledWith(
-          expect.objectContaining({
-            project_mappings: [[101, 'proj-1']],
-          })
+          expect.objectContaining({project_mappings: [[101, 'proj-1']]})
         );
       });
     });

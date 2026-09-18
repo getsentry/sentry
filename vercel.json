@@ -16,10 +16,7 @@
       "source": "/(api|organization-avatar|team-avatar|avatar)/(.*)",
       "destination": "https://sentry.io/$1/$2"
     },
-    {
-      "source": "/region/(\\w+)/(.*)",
-      "destination": "https://$1.sentry.io/$2"
-    },
+    {"source": "/region/(\\w+)/(.*)", "destination": "https://$1.sentry.io/$2"},
     {"source": "/_assets/(.*)", "destination": "/$1"},
     {"source": "/(.*)", "destination": "/index.html"}
   ],
@@ -31,10 +28,7 @@
     {
       "source": "/_assets/(chunks|assets)/(.*)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
+        {"key": "Cache-Control", "value": "public, max-age=31536000, immutable"}
       ]
     },
     {

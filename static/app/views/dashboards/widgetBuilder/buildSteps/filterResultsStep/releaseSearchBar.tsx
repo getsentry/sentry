@@ -111,9 +111,5 @@ export function useReleasesSearchBarDataProvider(
     [api, organization.slug, pageFilters.projects]
   );
 
-  return {
-    getFilterKeys,
-    getFilterKeySections,
-    getTagValues,
-  };
+  return {getFilterKeys, getFilterKeySections, getTagValues};
 }

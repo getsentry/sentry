@@ -104,13 +104,7 @@ const ASSETS_TABLE: PrebuiltWidget = {
       ],
     },
   ],
-  layout: {
-    x: 0,
-    y: 2,
-    w: 6,
-    h: 6,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {x: 0, y: 2, w: 6, h: 6, minH: TABLE_MIN_HEIGHT},
 };
 
 export const FRONTEND_ASSETS_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -156,11 +150,7 @@ export const FRONTEND_ASSETS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: SpanFields.SPAN_OP,
-          name: SpanFields.SPAN_OP,
-          kind: FieldKind.TAG,
-        },
+        tag: {key: SpanFields.SPAN_OP, name: SpanFields.SPAN_OP, kind: FieldKind.TAG},
         value: `${SpanFields.SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
       },
       {

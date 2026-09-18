@@ -228,11 +228,7 @@ describe('HypothesisCard', () => {
             InvestigationVerificationStepFixture({
               status: 'failed',
               result: null,
-              error: {
-                code: 'timeout',
-                message: 'The query timed out.',
-                retryable: true,
-              },
+              error: {code: 'timeout', message: 'The query timed out.', retryable: true},
             }),
           ],
         })}

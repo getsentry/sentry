@@ -95,10 +95,7 @@ export function preprodFormDataToEndpointPayload(
     owner: data.owner || null,
     description: data.description || null,
     workflowIds: data.workflowIds || [],
-    conditionGroup: {
-      logicType: DataConditionGroupLogicType.ANY,
-      conditions,
-    },
+    conditionGroup: {logicType: DataConditionGroupLogicType.ANY, conditions},
     config: {
       measurement: data.measurement,
       thresholdType: data.thresholdType,

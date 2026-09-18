@@ -17,10 +17,7 @@ type DatePickerInputProps = {
   onChange?: (date: Date) => void;
 };
 
-type DateRangeInputsProps = {
-  onChange: (range: Range) => void;
-  range: Range;
-};
+type DateRangeInputsProps = {onChange: (range: Range) => void; range: Range};
 
 function DatePickerInput({date, onChange, ...props}: DatePickerInputProps) {
   return (

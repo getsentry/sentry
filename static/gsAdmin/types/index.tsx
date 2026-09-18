@@ -53,11 +53,7 @@ type RelocationStep = keyof typeof RelocationSteps;
 
 type RelocationProvenance = 'SELF_HOSTED' | 'SAAS_TO_SAAS';
 
-type RelocationAssociatedUser = {
-  email: string;
-  id: string;
-  username: string;
-};
+type RelocationAssociatedUser = {email: string; id: string; username: string};
 
 export type Relocation = {
   creator: RelocationAssociatedUser | null;
@@ -80,21 +76,11 @@ export type Relocation = {
   wantUsernames: string[];
 };
 
-export type ContractDate = {
-  day?: number;
-  month?: number;
-  year?: number;
-};
+export type ContractDate = {day?: number; month?: number; year?: number};
 
-type ContractPricingTier = {
-  end?: string;
-  ratePerUnitCpe?: string;
-  start?: string;
-};
+type ContractPricingTier = {end?: string; ratePerUnitCpe?: string; start?: string};
 
-type ContractTieredPricingRate = {
-  tiers?: ContractPricingTier[];
-};
+type ContractTieredPricingRate = {tiers?: ContractPricingTier[]};
 
 export type ContractSKUConfig = {
   basePriceCents?: string;
@@ -111,14 +97,9 @@ export type ContractSharedSKUBudget = {
   skus?: string[];
 };
 
-type ContractMetadata = {
-  id?: string;
-  organizationId?: string;
-};
+type ContractMetadata = {id?: string; organizationId?: string};
 
-type ContractAddress = {
-  countryCode?: string;
-};
+type ContractAddress = {countryCode?: string};
 
 type ContractBillingConfig = {
   address?: ContractAddress;

@@ -125,10 +125,7 @@ const truncateStyles = css`
   text-overflow: ellipsis;
 `;
 
-const VersionText = styled('span')<{
-  shouldWrapText?: boolean;
-  truncate?: boolean;
-}>`
+const VersionText = styled('span')<{shouldWrapText?: boolean; truncate?: boolean}>`
   ${p => p.truncate && truncateStyles}
   white-space: ${p => (p.shouldWrapText ? 'normal' : 'nowrap')};
 `;

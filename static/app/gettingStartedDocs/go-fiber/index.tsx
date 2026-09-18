@@ -16,8 +16,6 @@ export const docs: Docs = {
       'https://docs.sentry.io/platforms/go/guides/fiber/user-feedback/configuration/#crash-report-modal',
   }),
   feedbackOnboardingJsLoader,
-  logsOnboarding: logs({
-    docsPlatform: 'fiber',
-  }),
+  logsOnboarding: logs({docsPlatform: 'fiber'}),
   metricsOnboarding: metrics,
 };

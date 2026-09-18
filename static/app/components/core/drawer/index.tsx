@@ -212,9 +212,7 @@ export function GlobalDrawer({children}: any) {
   ]);
 
   const renderedChild = currentDrawerConfig?.renderer
-    ? currentDrawerConfig.renderer({
-        closeDrawer: handleClose,
-      })
+    ? currentDrawerConfig.renderer({closeDrawer: handleClose})
     : null;
 
   return (

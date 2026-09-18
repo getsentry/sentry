@@ -39,9 +39,7 @@ interface SecurityTabProps {
   securityEndpoint: string;
 }
 
-const securitySchema = z.object({
-  securityEndpoint: z.string(),
-});
+const securitySchema = z.object({securityEndpoint: z.string()});
 
 function SecurityTab({securityEndpoint}: SecurityTabProps) {
   const form = useScrapsForm({
@@ -83,9 +81,7 @@ interface MinidumpTabProps {
   minidumpEndpoint: string;
 }
 
-const minidumpSchema = z.object({
-  minidumpEndpoint: z.string(),
-});
+const minidumpSchema = z.object({minidumpEndpoint: z.string()});
 
 function MinidumpTab({minidumpEndpoint}: MinidumpTabProps) {
   const form = useScrapsForm({
@@ -127,9 +123,7 @@ interface UnrealTabProps {
   unrealEndpoint: string;
 }
 
-const unrealSchema = z.object({
-  unrealEndpoint: z.string(),
-});
+const unrealSchema = z.object({unrealEndpoint: z.string()});
 
 function UnrealTab({unrealEndpoint}: UnrealTabProps) {
   const form = useScrapsForm({
@@ -247,31 +241,11 @@ export function ProjectKeyCredentials({
         label: t('Credentials'),
         visible: showPublicKey && showSecretKey && showProjectId,
       },
-      {
-        key: 'otlp',
-        label: t('OpenTelemetry (OTLP)'),
-        visible: true,
-      },
-      {
-        key: 'security',
-        label: t('Security Header'),
-        visible: showSecurityEndpoint,
-      },
-      {
-        key: 'minidump',
-        label: t('Minidump'),
-        visible: showMinidump,
-      },
-      {
-        key: 'unreal',
-        label: t('Unreal Engine'),
-        visible: showUnreal,
-      },
-      {
-        key: 'vercel',
-        label: t('Vercel Drains'),
-        visible: true,
-      },
+      {key: 'otlp', label: t('OpenTelemetry (OTLP)'), visible: true},
+      {key: 'security', label: t('Security Header'), visible: showSecurityEndpoint},
+      {key: 'minidump', label: t('Minidump'), visible: showMinidump},
+      {key: 'unreal', label: t('Unreal Engine'), visible: showUnreal},
+      {key: 'vercel', label: t('Vercel Drains'), visible: true},
     ];
     return tabs.filter(tab => tab.visible);
   }, [
@@ -287,16 +261,8 @@ export function ProjectKeyCredentials({
 
   const dsnForm = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      dsn: data.dsn.public,
-      useCase: data.useCase ?? '',
-    },
-    validators: {
-      onDynamic: z.object({
-        dsn: z.string(),
-        useCase: z.string(),
-      }),
-    },
+    defaultValues: {dsn: data.dsn.public, useCase: data.useCase ?? ''},
+    validators: {onDynamic: z.object({dsn: z.string(), useCase: z.string()})},
   });
 
   const tabParser = useMemo(

@@ -6,14 +6,9 @@ import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSe
 
 type LegendSelection = Record<string, boolean>;
 
-type Props = {
-  dashboard: DashboardDetails;
-  organization: Organization;
-};
+type Props = {dashboard: DashboardDetails; organization: Organization};
 
-type StateProps = Props & {
-  onChange: () => void;
-};
+type StateProps = Props & {onChange: () => void};
 
 export class LocalWidgetLegendSelectionState extends WidgetLegendSelectionState {
   private readonly selectionByWidget = new Map<string, LegendSelection>();
@@ -59,11 +54,7 @@ export function useLocalWidgetLegendSelectionState({dashboard, organization}: Pr
 
   return useMemo(
     () =>
-      new LocalWidgetLegendSelectionState({
-        dashboard,
-        onChange: rerender,
-        organization,
-      }),
+      new LocalWidgetLegendSelectionState({dashboard, onChange: rerender, organization}),
     [dashboard, organization]
   );
 }

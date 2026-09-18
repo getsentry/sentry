@@ -87,14 +87,8 @@ function ReplayBadge({replay}: {replay: ReplayRecord}) {
 
   const replaysIndexUrl = searchQuery
     ? {
-        pathname: makeReplaysPathname({
-          path: '/',
-          organization,
-        }),
-        query: {
-          query: searchQuery,
-          project: replay.project_id,
-        },
+        pathname: makeReplaysPathname({path: '/', organization}),
+        query: {query: searchQuery, project: replay.project_id},
       }
     : null;
 

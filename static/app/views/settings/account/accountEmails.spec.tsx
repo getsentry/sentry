@@ -15,10 +15,7 @@ const ENDPOINT = '/users/me/emails/';
 describe('AccountEmails', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      body: AccountEmailsFixture(),
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, body: AccountEmailsFixture()});
   });
 
   it('renders with emails', () => {
@@ -44,12 +41,7 @@ describe('AccountEmails', () => {
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
-      expect.objectContaining({
-        method: 'DELETE',
-        data: {
-          email: 'secondary1@example.com',
-        },
-      })
+      expect.objectContaining({method: 'DELETE', data: {email: 'secondary1@example.com'}})
     );
   });
 
@@ -69,12 +61,7 @@ describe('AccountEmails', () => {
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {
-          email: 'secondary1@example.com',
-        },
-      })
+      expect.objectContaining({method: 'PUT', data: {email: 'secondary1@example.com'}})
     );
   });
 
@@ -94,12 +81,7 @@ describe('AccountEmails', () => {
 
     expect(mock).toHaveBeenCalledWith(
       `${ENDPOINT}confirm/`,
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          email: 'secondary2@example.com',
-        },
-      })
+      expect.objectContaining({method: 'POST', data: {email: 'secondary2@example.com'}})
     );
   });
 
@@ -115,11 +97,7 @@ describe('AccountEmails', () => {
 
     const mockGetResponseBody = [
       ...AccountEmailsFixture(),
-      {
-        email: 'test@example.com',
-        isPrimary: false,
-        isVerified: false,
-      },
+      {email: 'test@example.com', isPrimary: false, isVerified: false},
     ];
 
     const mockGet = MockApiClient.addMockResponse({
@@ -141,12 +119,7 @@ describe('AccountEmails', () => {
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(
         ENDPOINT,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            email: 'test@example.com',
-          },
-        })
+        expect.objectContaining({method: 'POST', data: {email: 'test@example.com'}})
       );
     });
 
@@ -158,9 +131,7 @@ describe('AccountEmails', () => {
 
     expect(mockGet).toHaveBeenCalledWith(
       ENDPOINT,
-      expect.objectContaining({
-        method: 'GET',
-      })
+      expect.objectContaining({method: 'GET'})
     );
   });
 });

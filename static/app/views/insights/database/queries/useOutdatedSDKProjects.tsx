@@ -46,10 +46,7 @@ export function useOutdatedSDKProjects({enabled, projectId}: Options) {
     .map(update => ProjectsStore.getById(update.projectId))
     .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
-  return {
-    ...response,
-    projects: uniqBy(projects, 'id'),
-  };
+  return {...response, projects: uniqBy(projects, 'id')};
 }
 
 /**

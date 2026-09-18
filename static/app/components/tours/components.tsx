@@ -81,22 +81,11 @@ export function TourContextProvider<T extends TourEnumType>({
   const organization = useOrganization();
   const {mutate} = useMutateAssistant();
   const options = useMemo(
-    () => ({
-      onStartTour,
-      onEndTour,
-      onStepChange,
-      requireAllStepsRegistered,
-    }),
+    () => ({onStartTour, onEndTour, onStepChange, requireAllStepsRegistered}),
     [onStartTour, onEndTour, onStepChange, requireAllStepsRegistered]
   );
   const tourContextValue = useTourReducer<T>(
-    {
-      isCompleted,
-      isRegistered: false,
-      orderedStepIds,
-      currentStepId: null,
-      tourKey,
-    },
+    {isCompleted, isRegistered: false, orderedStepIds, currentStepId: null, tourKey},
     options
   );
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
@@ -212,10 +201,7 @@ export function TourElement<T extends TourEnumType>({
   const tourContextValue = useContext(tourContext);
   if (!tourContextValue) {
     // Tour is not active, render children with no-op props
-    return children({
-      'aria-expanded': false,
-      ref: () => {},
-    });
+    return children({'aria-expanded': false, ref: () => {}});
   }
 
   return (
@@ -371,11 +357,7 @@ interface TourGuideProps extends Omit<
   title?: React.ReactNode;
 }
 
-const zIndex = {
-  blur: 10100,
-  element: 10101,
-  overlay: 10102,
-};
+const zIndex = {blur: 10100, element: 10101, overlay: 10102};
 
 export function TourGuide({
   children,

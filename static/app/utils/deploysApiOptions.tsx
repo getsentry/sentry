@@ -13,10 +13,7 @@ export function deploysApiOptions({
   return apiOptions.as<Deploy[]>()(
     '/organizations/$organizationIdOrSlug/releases/$version/deploys/',
     {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        version: releaseVersion,
-      },
+      path: {organizationIdOrSlug: orgSlug, version: releaseVersion},
       query,
       staleTime: Infinity,
     }

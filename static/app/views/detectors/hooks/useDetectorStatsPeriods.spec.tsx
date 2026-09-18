@@ -5,9 +5,7 @@ import {useDetectorStatsPeriods} from 'sentry/views/detectors/hooks/useDetectorS
 describe('useDetectorStatsPeriods', () => {
   it('does nothing when there is no statsPeriod in the URL', () => {
     const {router} = renderHookWithProviders(() => useDetectorStatsPeriods(3600), {
-      initialRouterConfig: {
-        location: {pathname: '/detectors/1/', query: {}},
-      },
+      initialRouterConfig: {location: {pathname: '/detectors/1/', query: {}}},
     });
 
     expect(router.location.query).toEqual({});

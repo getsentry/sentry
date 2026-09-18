@@ -51,13 +51,8 @@ const schema = z.object({
 function MyForm() {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      email: '',
-      name: '',
-    },
-    validators: {
-      onDynamic: schema,
-    },
+    defaultValues: {email: '', name: ''},
+    validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) => {
       // Handle submission
       console.log(value);
@@ -456,10 +451,7 @@ const schema = z.object({
 });
 
 // z.input allows null for the provider field
-const defaultValues: z.input<typeof schema> = {
-  provider: null,
-  name: '',
-};
+const defaultValues: z.input<typeof schema> = {provider: null, name: ''};
 
 // z.output<typeof schema> has provider as non-null after refine
 type FormOutput = z.output<typeof schema>;
@@ -483,10 +475,7 @@ Use `.refine()` for cross-field validation:
 
 ```tsx
 const schema = z
-  .object({
-    password: z.string(),
-    confirmPassword: z.string(),
-  })
+  .object({password: z.string(), confirmPassword: z.string()})
   .refine(data => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
     path: ['confirmPassword'],
@@ -533,11 +522,7 @@ import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorT
 function MyForm() {
   const mutation = useMutation({
     mutationFn: (data: {email: string; username: string}) => {
-      return fetchMutation({
-        url: '/users/',
-        method: 'POST',
-        data,
-      });
+      return fetchMutation({url: '/users/', method: 'POST', data});
     },
   });
 
@@ -609,9 +594,7 @@ import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {fetchMutation} from 'sentry/utils/queryClient';
 
-const schema = z.object({
-  displayName: z.string().min(1, 'Display name is required'),
-});
+const schema = z.object({displayName: z.string().min(1, 'Display name is required')});
 
 function SettingsForm() {
   return (
@@ -621,11 +604,7 @@ function SettingsForm() {
       initialValue={user.displayName}
       mutationOptions={{
         mutationFn: data => {
-          return fetchMutation({
-            url: '/user/',
-            method: 'PUT',
-            data,
-          });
+          return fetchMutation({url: '/user/', method: 'PUT', data});
         },
         onSuccess: data => {
           // Update React Query cache
@@ -828,15 +807,10 @@ const form = useScrapsForm({
 
 ```tsx
 // ❌ Don't forget defaultFormOptions
-const form = useScrapsForm({
-  defaultValues: {name: ''},
-});
+const form = useScrapsForm({defaultValues: {name: ''}});
 
 // ✅ Always spread defaultFormOptions first
-const form = useScrapsForm({
-  ...defaultFormOptions,
-  defaultValues: {name: ''},
-});
+const form = useScrapsForm({...defaultFormOptions, defaultValues: {name: ''}});
 ```
 
 ### Nullable Default Values

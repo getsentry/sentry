@@ -3,9 +3,7 @@ import {useMatches} from 'react-router-dom';
 
 import {useBreadcrumbTitleEffect} from './context';
 
-type Props = {
-  title: string;
-};
+type Props = {title: string};
 
 /**
  * Breadcrumb title sets the breadcrumb label for the provided route match

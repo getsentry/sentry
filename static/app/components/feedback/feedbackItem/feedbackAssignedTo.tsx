@@ -33,10 +33,7 @@ export function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props) {
         }
       ),
     ],
-    {
-      staleTime: 0,
-      enabled: Boolean(feedbackEvent),
-    }
+    {staleTime: 0, enabled: Boolean(feedbackEvent)}
   );
   const {updateCached} = useFeedbackCache();
   const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({

@@ -149,9 +149,7 @@ export function ScmConnect({
               <Button
                 analyticsEventKey="onboarding.scm_connect_skip_clicked"
                 analyticsEventName="Onboarding: SCM Connect Skip Clicked"
-                analyticsParams={{
-                  has_integration: !!effectiveIntegration,
-                }}
+                analyticsParams={{has_integration: !!effectiveIntegration}}
                 onClick={() => onComplete()}
                 variant="transparent"
                 style={{minWidth: 0}}

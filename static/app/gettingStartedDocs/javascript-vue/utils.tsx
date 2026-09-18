@@ -19,14 +19,8 @@ export const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
   siblingOption: {
     label: t('Vue Version'),
     items: [
-      {
-        label: t('Vue 3'),
-        value: VueVersion.VUE3,
-      },
-      {
-        label: t('Vue 2'),
-        value: VueVersion.VUE2,
-      },
+      {label: t('Vue 3'), value: VueVersion.VUE3},
+      {label: t('Vue 2'), value: VueVersion.VUE2},
     ],
   },
 };
@@ -182,20 +176,8 @@ export function getSetupCodeBlock(params: Params): ContentBlock {
 export const installSnippetBlock: ContentBlock = {
   type: 'code',
   tabs: [
-    {
-      label: 'npm',
-      language: 'bash',
-      code: 'npm install --save @sentry/vue',
-    },
-    {
-      label: 'yarn',
-      language: 'bash',
-      code: 'yarn add @sentry/vue',
-    },
-    {
-      label: 'pnpm',
-      language: 'bash',
-      code: 'pnpm add @sentry/vue',
-    },
+    {label: 'npm', language: 'bash', code: 'npm install --save @sentry/vue'},
+    {label: 'yarn', language: 'bash', code: 'yarn add @sentry/vue'},
+    {label: 'pnpm', language: 'bash', code: 'pnpm add @sentry/vue'},
   ],
 };

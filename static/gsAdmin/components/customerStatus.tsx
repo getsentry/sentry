@@ -7,9 +7,7 @@ import type {Subscription} from 'getsentry/types';
 import {isTrial} from 'getsentry/utils/billing';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
-type Props = {
-  customer: Subscription;
-};
+type Props = {customer: Subscription};
 
 const getLabel = (item: Subscription) => {
   if (item.isEnterpriseTrial) {

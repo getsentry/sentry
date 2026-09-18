@@ -31,19 +31,14 @@ describe('generateQueryWithTag', () => {
   it('produces !has query when tag value missing', () => {
     expect(
       generateQueryWithTag({referrer: 'tag-details-drawer'}, {key: 'device', value: ''})
-    ).toEqual({
-      referrer: 'tag-details-drawer',
-      query: '!has:device',
-    });
+    ).toEqual({referrer: 'tag-details-drawer', query: '!has:device'});
   });
 });
 
 describe('addQueryParamsToExistingUrl', () => {
   it('adds new query params to existing query params', () => {
     const url = 'https://example.com?value=3';
-    const newParams = {
-      id: 4,
-    };
+    const newParams = {id: 4};
     expect(addQueryParamsToExistingUrl(url, newParams)).toBe(
       'https://example.com/?id=4&value=3'
     );
@@ -51,17 +46,13 @@ describe('addQueryParamsToExistingUrl', () => {
 
   it('adds new query params without existing query params', () => {
     const url = 'https://example.com';
-    const newParams = {
-      id: 4,
-    };
+    const newParams = {id: 4};
     expect(addQueryParamsToExistingUrl(url, newParams)).toBe('https://example.com/?id=4');
   });
 
   it('returns empty string no url is passed', () => {
     let url: any;
-    const newParams = {
-      id: 4,
-    };
+    const newParams = {id: 4};
     expect(addQueryParamsToExistingUrl(url, newParams)).toBe('');
   });
 });

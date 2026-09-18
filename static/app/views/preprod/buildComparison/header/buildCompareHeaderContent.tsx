@@ -46,11 +46,7 @@ interface BuildCompareHeaderContentProps {
   onRerunComparison?: () => void;
 }
 
-const buildCompareFeedbackOptions = {
-  tags: {
-    'feedback.source': 'preprod.buildDetails',
-  },
-};
+const buildCompareFeedbackOptions = {tags: {'feedback.source': 'preprod.buildDetails'}};
 
 export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
   const {buildDetails, headArtifactId, baseArtifactId, onRerunComparison, isRerunning} =
@@ -74,9 +70,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
     });
   }
 
-  breadcrumbs.push({
-    label: t('Compare'),
-  });
+  breadcrumbs.push({label: t('Compare')});
 
   return (
     <Flex justify="between" align="center" gap="lg">

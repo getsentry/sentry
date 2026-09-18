@@ -25,10 +25,7 @@ import {
 
 import {SidebarSection} from './styles';
 
-type Props = {
-  organization: Organization;
-  project?: Project;
-};
+type Props = {organization: Organization; project?: Project};
 
 export function ProjectQuickLinks({organization, project}: Props) {
   const domainView = project
@@ -133,9 +130,7 @@ function QuickLinkComponent({
   );
 }
 
-const QuickLink = styled(QuickLinkComponent)<{
-  disabled?: boolean;
-}>`
+const QuickLink = styled(QuickLinkComponent)<{disabled?: boolean}>`
   margin-bottom: ${p => p.theme.space.md};
   display: grid;
   align-items: center;

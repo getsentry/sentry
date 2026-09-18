@@ -12,9 +12,7 @@ import type {GroupSearchView} from 'sentry/views/issueList/types';
 type UpdateGroupSearchViewVariables = Pick<
   GroupSearchView,
   'id' | 'name' | 'query' | 'querySort' | 'projects' | 'environments' | 'timeFilters'
-> & {
-  optimistic?: boolean;
-};
+> & {optimistic?: boolean};
 
 export const useUpdateGroupSearchView = (
   options: {onSuccess?: (data: GroupSearchView) => void} = {}

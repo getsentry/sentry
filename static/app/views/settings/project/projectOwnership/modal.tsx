@@ -140,9 +140,7 @@ export function ProjectOwnershipModal({
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   if (isOwnershipPending || isUrlTagDataPending) {

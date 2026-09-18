@@ -105,9 +105,7 @@ import {
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-type LogsTabProps = {
-  datePageFilterProps: DatePageFilterProps;
-};
+type LogsTabProps = {datePageFilterProps: DatePageFilterProps};
 
 interface LogsSearchBarProps {
   tracesItemSearchQueryBuilderProps: Parameters<typeof TraceItemSearchQueryBuilder>[0];
@@ -360,10 +358,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     queryClient.setQueryData(tableData.queryKey, data => {
       if (data?.pages) {
         // We only want to keep the first page of data to avoid re-fetching multiple pages, since infinite query will otherwise fetch up to max pages (eg. 30) all at once.
-        return {
-          pages: data.pages.slice(0, 1),
-          pageParams: data.pageParams.slice(0, 1),
-        };
+        return {pages: data.pages.slice(0, 1), pageParams: data.pageParams.slice(0, 1)};
       }
       return data;
     });

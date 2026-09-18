@@ -36,10 +36,7 @@ export async function updateUptimeRule(
           },
         }
       ),
-      {
-        method: 'PUT',
-        data,
-      }
+      {method: 'PUT', data}
     );
     clearIndicators();
 
@@ -88,9 +85,7 @@ export async function deleteUptimeRule(
           },
         }
       ),
-      {
-        method: 'DELETE',
-      }
+      {method: 'DELETE'}
     );
     clearIndicators();
   } catch (_err) {

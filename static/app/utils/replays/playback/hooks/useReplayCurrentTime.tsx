@@ -40,9 +40,7 @@ export function useReplayCurrentTime(props: Props) {
   // oxlint-disable-next-line react/refs
   replayersRef.current = replayers;
 
-  const returnRef = useRef({
-    timeMs: () => replayersRef.current.at(0)?.getCurrentTime(),
-  });
+  const returnRef = useRef({timeMs: () => replayersRef.current.at(0)?.getCurrentTime()});
 
   // oxlint-disable-next-line react/refs
   return returnRef.current;

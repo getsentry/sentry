@@ -365,9 +365,7 @@ export const WrappingText = styled('div')<{wrapText?: boolean}>`
   text-overflow: ellipsis;
 `;
 
-export const AlignedCellContent = styled('div')<{
-  align?: 'left' | 'center' | 'right';
-}>`
+export const AlignedCellContent = styled('div')<{align?: 'left' | 'center' | 'right'}>`
   display: flex;
   align-items: center;
   flex-direction: row;
@@ -536,9 +534,7 @@ export const FloatingBackToTopContainer = styled('div')<{
   }
 `;
 
-export const FloatingBottomContainer = styled('div')<{
-  tableWidth?: number;
-}>`
+export const FloatingBottomContainer = styled('div')<{tableWidth?: number}>`
   position: absolute;
   bottom: 0;
   width: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};

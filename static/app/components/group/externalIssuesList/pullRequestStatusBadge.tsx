@@ -31,57 +31,21 @@ type PullRequestDetailConfig = {
 };
 
 const STATUS_CONFIG = {
-  closed: {
-    icon: IconPullRequestClosed,
-    label: () => t('Closed'),
-    variant: 'danger',
-  },
-  draft: {
-    icon: IconPullRequest,
-    label: () => t('Draft'),
-    variant: 'muted',
-  },
-  merged: {
-    icon: IconMerge,
-    label: () => t('Merged'),
-    variant: 'info',
-  },
-  open: {
-    icon: IconPullRequest,
-    label: () => t('Open'),
-    variant: 'success',
-  },
-  unknown: {
-    icon: IconPullRequest,
-    label: () => t('Unknown'),
-    variant: 'muted',
-  },
+  closed: {icon: IconPullRequestClosed, label: () => t('Closed'), variant: 'danger'},
+  draft: {icon: IconPullRequest, label: () => t('Draft'), variant: 'muted'},
+  merged: {icon: IconMerge, label: () => t('Merged'), variant: 'info'},
+  open: {icon: IconPullRequest, label: () => t('Open'), variant: 'success'},
+  unknown: {icon: IconPullRequest, label: () => t('Unknown'), variant: 'muted'},
 } satisfies Record<PullRequestStatus, PullRequestBadgeConfig>;
 
 const CHECKS_CONFIG = {
-  failure: {
-    icon: IconClose,
-    label: () => t('Checks failed'),
-    variant: 'danger',
-  },
-  pending: {
-    icon: IconCircle,
-    label: () => t('Checks running'),
-    variant: 'warning',
-  },
-  success: {
-    icon: IconCheckmark,
-    label: () => t('Checks passed'),
-    variant: 'success',
-  },
+  failure: {icon: IconClose, label: () => t('Checks failed'), variant: 'danger'},
+  pending: {icon: IconCircle, label: () => t('Checks running'), variant: 'warning'},
+  success: {icon: IconCheckmark, label: () => t('Checks passed'), variant: 'success'},
 } satisfies Record<PullRequestChecksStatus, PullRequestDetailConfig>;
 
 const REVIEW_CONFIG = {
-  approved: {
-    icon: IconCheckmark,
-    label: () => t('Approved'),
-    variant: 'success',
-  },
+  approved: {icon: IconCheckmark, label: () => t('Approved'), variant: 'success'},
   changes_requested: {
     icon: IconClose,
     label: () => t('Changes requested'),

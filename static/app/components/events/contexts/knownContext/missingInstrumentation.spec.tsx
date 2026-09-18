@@ -19,14 +19,7 @@ const MOCK_MISSING_INSTRUMENTATION_CONTEXT: MissingInstrumentationContext = {
 const MOCK_REDACTION = {
   package: {
     '': {
-      chunks: [
-        {
-          remark: 'x',
-          rule_id: 'project:0',
-          text: '',
-          type: 'redaction',
-        },
-      ],
+      chunks: [{remark: 'x', rule_id: 'project:0', text: '', type: 'redaction'}],
       len: 7,
       rem: [['project:0', 'x', 0, 0]],
     },
@@ -38,28 +31,10 @@ describe('MissingInstrumentationContext', () => {
     expect(
       getMissingInstrumentationContextData({data: MOCK_MISSING_INSTRUMENTATION_CONTEXT})
     ).toEqual([
-      {
-        key: 'package',
-        subject: 'Package w/o Instrumentation',
-        value: 'express',
-      },
-      {
-        key: 'javascript.is_cjs',
-        subject: 'From CommonJS Module?',
-        value: true,
-      },
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'package', subject: 'Package w/o Instrumentation', value: 'express'},
+      {key: 'javascript.is_cjs', subject: 'From CommonJS Module?', value: true},
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123, meta: undefined},
     ]);
   });
 

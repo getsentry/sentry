@@ -11,12 +11,7 @@ describe('AppSizeInsightsSidebar', () => {
     const insights = InsightResultsFixture({
       large_images: {
         total_savings: 128000,
-        files: [
-          {
-            file_path: 'src/assets/logo.png',
-            total_savings: 128000,
-          },
-        ],
+        files: [{file_path: 'src/assets/logo.png', total_savings: 128000}],
       },
     });
     const totalSize = 10240000;

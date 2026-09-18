@@ -12,21 +12,14 @@ export enum SentryInitRenderReactComponent {
 }
 
 export type OnSentryInitConfiguration =
-  | {
-      element: string;
-      input: string;
-      name: 'passwordStrength';
-    }
+  | {element: string; input: string; name: 'passwordStrength'}
   | {
       component: SentryInitRenderReactComponent;
       container: string;
       name: 'renderReact';
       props?: Record<string, any>;
     }
-  | {
-      name: 'onReady';
-      onReady: (globals: Record<string, any>) => void;
-    };
+  | {name: 'onReady'; onReady: (globals: Record<string, any>) => void};
 
 declare global {
   interface Window {
@@ -55,9 +48,7 @@ declare global {
      */
     __onSentryInit:
       | OnSentryInitConfiguration[]
-      | {
-          push: (config: OnSentryInitConfiguration) => void;
-        };
+      | {push: (config: OnSentryInitConfiguration) => void};
 
     /**
      * Used to open tooltips for testing purposes.
@@ -74,9 +65,7 @@ declare global {
       ConfigStore: any;
       Modal: any;
       getModalPortal: () => HTMLElement;
-      modalFocusTrap?: {
-        current?: FocusTrap | null;
-      };
+      modalFocusTrap?: {current?: FocusTrap | null};
     };
     /**
      * Is the UI running as dev-ui proxy.
@@ -153,10 +142,7 @@ export interface Config {
   enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
-  initialTrace: {
-    baggage: string;
-    sentry_trace: string;
-  };
+  initialTrace: {baggage: string; sentry_trace: string};
   invitesEnabled: boolean;
   isAuthenticated: boolean;
 
@@ -210,29 +196,16 @@ export interface Config {
    * @deprecated
    */
   user: User;
-  userIdentity: {
-    email: string;
-    id: string;
-    ip_address: string;
-    isStaff: boolean;
-  };
+  userIdentity: {email: string; id: string; ip_address: string; isStaff: boolean};
   validateSUForm: boolean;
-  version: {
-    build: string;
-    current: string;
-    latest: string;
-    upgradeAvailable: boolean;
-  };
+  version: {build: string; current: string; latest: string; upgradeAvailable: boolean};
   intercomAppId?: string;
   partnershipAgreementPrompt?: {
     agreements: ParntershipAgreementType[];
     partnerDisplayName: string;
   } | null;
   shouldShowBeaconConsentPrompt?: boolean;
-  statuspage?: {
-    api_host: string;
-    id: string;
-  };
+  statuspage?: {api_host: string; id: string};
 }
 
 export interface Broadcast {

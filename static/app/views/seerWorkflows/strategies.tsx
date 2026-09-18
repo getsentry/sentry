@@ -14,22 +14,14 @@ import type {
   WorkflowDisplayStatus,
 } from 'sentry/views/seerWorkflows/types';
 
-type StrategyMeta = {
-  label: string;
-  runAction?: {feature: string; label: string};
-};
+type StrategyMeta = {label: string; runAction?: {feature: string; label: string}};
 
 export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
   duplicate_monitors: {
-    runAction: {
-      feature: 'seer-workflows-monitor-cleanup',
-      label: t('Monitor scan'),
-    },
+    runAction: {feature: 'seer-workflows-monitor-cleanup', label: t('Monitor scan')},
     label: 'Duplicate monitors',
   },
-  agentic_triage: {
-    label: 'Agentic triage',
-  },
+  agentic_triage: {label: 'Agentic triage'},
 };
 
 export function getWorkflowStatus(run: SeerWorkflowRun): WorkflowDisplayStatus {

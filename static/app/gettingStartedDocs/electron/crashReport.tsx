@@ -16,10 +16,7 @@ export const crashReport: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: getCrashReportModalInstallDescriptionJavaScript(),
-        },
+        {type: 'text', text: getCrashReportModalInstallDescriptionJavaScript()},
         {
           type: 'code',
           language: 'javascript',

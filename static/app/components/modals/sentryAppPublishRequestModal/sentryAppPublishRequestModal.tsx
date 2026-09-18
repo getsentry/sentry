@@ -53,18 +53,9 @@ const QUESTIONS: ReadonlyArray<{name: keyof FormValues; question: string}> = [
     question:
       'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on Sentry Integrations.',
   },
-  {
-    name: 'question2',
-    question: 'Select what category best describes your integration.',
-  },
-  {
-    name: 'question3',
-    question: 'Link to your documentation page.',
-  },
-  {
-    name: 'supportEmail',
-    question: 'Email address for user support.',
-  },
+  {name: 'question2', question: 'Select what category best describes your integration.'},
+  {name: 'question3', question: 'Link to your documentation page.'},
+  {name: 'supportEmail', question: 'Email address for user support.'},
   {
     name: 'question4',
     question:
@@ -72,10 +63,7 @@ const QUESTIONS: ReadonlyArray<{name: keyof FormValues; question: string}> = [
   },
 ];
 
-const CATEGORY_OPTIONS = INTEGRATION_CATEGORIES.map(([value, label]) => ({
-  value,
-  label,
-}));
+const CATEGORY_OPTIONS = INTEGRATION_CATEGORIES.map(([value, label]) => ({value, label}));
 
 type Props = ModalRenderProps & {
   app: SentryApp;
@@ -177,9 +165,7 @@ export function SentryAppPublishRequestModal({
               <field.Layout.Stack
                 label={tct(
                   'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on [link:Sentry Integrations].',
-                  {
-                    link: <ExternalLink href="https://sentry.io/integrations/" />,
-                  }
+                  {link: <ExternalLink href="https://sentry.io/integrations/" />}
                 )}
                 required
               >

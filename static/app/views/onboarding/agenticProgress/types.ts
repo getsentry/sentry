@@ -49,6 +49,4 @@ export type AgenticProgressRun = {
   onboardingCode?: string;
 };
 
-export type InitializedAgenticProgressRun = AgenticProgressRun & {
-  onboardingCode: string;
-};
+export type InitializedAgenticProgressRun = AgenticProgressRun & {onboardingCode: string};

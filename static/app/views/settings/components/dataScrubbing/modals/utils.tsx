@@ -8,10 +8,7 @@ const ADVANCED_DATA_SCRUBBING_LOCALSTORAGE_KEY = 'advanced-data-scrubbing';
 export function useSourceGroupData() {
   const [sourceGroupData, setSourceGroupData] = useLocalStorageState(
     ADVANCED_DATA_SCRUBBING_LOCALSTORAGE_KEY,
-    {
-      eventId: '',
-      sourceSuggestions: valueSuggestions,
-    }
+    {eventId: '', sourceSuggestions: valueSuggestions}
   );
 
   const saveToSourceGroupData = (
@@ -29,10 +26,7 @@ export function useSourceGroupData() {
     }
   };
 
-  return {
-    sourceGroupData,
-    saveToSourceGroupData,
-  };
+  return {sourceGroupData, saveToSourceGroupData};
 }
 
 export function hasCaptureGroups(pattern: string) {

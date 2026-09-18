@@ -178,11 +178,7 @@ export function getKnownData<Data, DataType>({
         return null;
       }
 
-      return {
-        key: type,
-        ...knownDataDetails,
-        value: knownDataDetails.value,
-      };
+      return {key: type, ...knownDataDetails, value: knownDataDetails.value};
     })
     .filter(defined);
 }
@@ -524,11 +520,7 @@ export function getContextSummary({
 }: {
   type: string;
   value?: Record<string, any>;
-}): {
-  subtitle: React.ReactNode;
-  title: React.ReactNode;
-  subtitleType?: string;
-} {
+}): {subtitle: React.ReactNode; title: React.ReactNode; subtitleType?: string} {
   let title: React.ReactNode = null;
   let subtitle: React.ReactNode = null;
   let subtitleType: string | undefined = undefined;
@@ -586,10 +578,7 @@ export function getContextSummary({
         subtitleType = t('Username');
       }
       if (title === subtitle) {
-        return {
-          title,
-          subtitle: null,
-        };
+        return {title, subtitle: null};
       }
       break;
     case 'runtime':
@@ -607,11 +596,7 @@ export function getContextSummary({
       }
       break;
   }
-  return {
-    title,
-    subtitle,
-    subtitleType,
-  };
+  return {title, subtitle, subtitleType};
 }
 
 const RelativeTime = styled('span')`

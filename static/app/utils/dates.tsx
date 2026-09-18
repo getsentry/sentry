@@ -313,12 +313,7 @@ export function getFormat({
   }
 
   const dateFormat = getDateFormat({year});
-  const timeFormat = getTimeFormat({
-    clock24Hours,
-    seconds,
-    milliseconds,
-    timeZone,
-  });
+  const timeFormat = getTimeFormat({clock24Hours, seconds, milliseconds, timeZone});
 
   // If the year is shown, then there's already a comma in dateFormat ("Jan 1, 2020"),
   // so we don't need to add another comma between the date and time

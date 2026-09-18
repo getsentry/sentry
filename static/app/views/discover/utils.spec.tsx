@@ -61,10 +61,7 @@ describe('decodeColumnOrder', () => {
     expect(results[0]).toEqual({
       key: 'title',
       name: 'title',
-      column: {
-        kind: 'field',
-        field: 'title',
-      },
+      column: {kind: 'field', field: 'title'},
       width: 123,
       isSortable: false,
       type: 'string',
@@ -79,10 +76,7 @@ describe('decodeColumnOrder', () => {
     expect(results[0]).toEqual({
       key: 'measurements.foo',
       name: 'measurements.foo',
-      column: {
-        kind: 'field',
-        field: 'measurements.foo',
-      },
+      column: {kind: 'field', field: 'measurements.foo'},
       width: 123,
       isSortable: false,
       type: 'number',
@@ -97,10 +91,7 @@ describe('decodeColumnOrder', () => {
     expect(results[0]).toEqual({
       key: 'spans.foo',
       name: 'spans.foo',
-      column: {
-        kind: 'field',
-        field: 'spans.foo',
-      },
+      column: {kind: 'field', field: 'spans.foo'},
       width: 123,
       isSortable: false,
       type: 'duration',
@@ -114,10 +105,7 @@ describe('decodeColumnOrder', () => {
     expect(results[0]).toEqual({
       key: 'count()',
       name: 'count()',
-      column: {
-        kind: 'function',
-        function: ['count', '', undefined, undefined],
-      },
+      column: {kind: 'function', function: ['count', '', undefined, undefined]},
       width: 123,
       isSortable: true,
       type: 'number',
@@ -212,10 +200,7 @@ describe('decodeColumnOrder', () => {
     expect(results[0]).toEqual({
       key: 'avg(spans.foo)',
       name: 'avg(spans.foo)',
-      column: {
-        kind: 'function',
-        function: ['avg', 'spans.foo', undefined, undefined],
-      },
+      column: {kind: 'function', function: ['avg', 'spans.foo', undefined, undefined]},
       width: COL_WIDTH_UNDEFINED,
       isSortable: true,
       type: 'duration',
@@ -456,12 +441,7 @@ describe('getExpandedResults()', () => {
       ],
     });
     const result = getExpandedResults(view, {});
-    expect(result.fields).toEqual([
-      {
-        field: 'id',
-        width: -1,
-      },
-    ]);
+    expect(result.fields).toEqual([{field: 'id', width: -1}]);
   });
 
   it('keeps equations without aggregates', () => {
@@ -472,10 +452,7 @@ describe('getExpandedResults()', () => {
     });
     const result = getExpandedResults(view, {});
     expect(result.fields).toEqual([
-      {
-        field: 'equation|transaction.duration / 2',
-        width: -1,
-      },
+      {field: 'equation|transaction.duration / 2', width: -1},
     ]);
   });
 
@@ -545,32 +522,20 @@ describe('getExpandedResults()', () => {
     let event = EventFixture({
       title: 'something bad',
       // user context should be ignored.
-      user: {
-        id: 1234,
-        username: 'uhoh',
-      },
+      user: {id: 1234, username: 'uhoh'},
       tags: [{key: 'user', value: 'id:1234'}],
     });
     let result = getExpandedResults(view, {}, event);
     expect(result.query).toBe('event.type:error user:id:1234 title:"something bad"');
 
-    event = EventFixture({
-      title: 'something bad',
-      tags: [{key: 'user', value: '1234'}],
-    });
+    event = EventFixture({title: 'something bad', tags: [{key: 'user', value: '1234'}]});
     result = getExpandedResults(view, {}, event);
     expect(result.query).toBe('event.type:error user:1234 title:"something bad"');
   });
 
   it('applies the user field in a table row', () => {
-    const view = new EventView({
-      ...state,
-      fields: [{field: 'user'}, {field: 'title'}],
-    });
-    const event = EventFixture({
-      title: 'something bad',
-      user: 'id:1234',
-    });
+    const view = new EventView({...state, fields: [{field: 'user'}, {field: 'title'}]});
+    const event = EventFixture({title: 'something bad', user: 'id:1234'});
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toBe('event.type:error user:id:1234 title:"something bad"');
   });
@@ -581,10 +546,7 @@ describe('getExpandedResults()', () => {
       fields: [{field: 'timestamp'}],
       sorts: [{field: 'timestamp', kind: 'desc'}],
     });
-    const event = EventFixture({
-      type: 'error',
-      timestamp: '2020-02-13T17:05:46+00:00',
-    });
+    const event = EventFixture({type: 'error', timestamp: '2020-02-13T17:05:46+00:00'});
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toBe('event.type:error timestamp:2020-02-13T17:05:46');
   });
@@ -595,9 +557,7 @@ describe('getExpandedResults()', () => {
       ...state,
       query: 'event.type:error title:bogus',
     });
-    const event = EventFixture({
-      title: 'bogus',
-    });
+    const event = EventFixture({title: 'bogus'});
     const result = getExpandedResults(view, {trace: 'abc123'}, event);
     expect(result.query).toBe('event.type:error trace:abc123 title:bogus');
   });
@@ -685,17 +645,13 @@ describe('downloadAsCsv', () => {
     ).toContain(encodeURIComponent('message,environment\r\ntest 1,prod\r\ntest 2,test'));
   });
   it('handles aggregations', () => {
-    const result = {
-      data: [{count: 3}],
-    };
+    const result = {data: [{count: 3}]};
     expect(downloadAsCsv(result, [countColumn], 'filename.csv')).toContain(
       encodeURI('count\r\n3')
     );
   });
   it('quotes unsafe strings', () => {
-    const result = {
-      data: [{message: '=HYPERLINK(http://some-bad-website#)'}],
-    };
+    const result = {data: [{message: '=HYPERLINK(http://some-bad-website#)'}]};
     expect(downloadAsCsv(result, [messageColumn], 'filename.csv')).toContain(
       encodeURIComponent("message\r\n'=HYPERLINK(http://some-bad-website#)")
     );
@@ -716,9 +672,7 @@ describe('downloadAsCsv', () => {
     );
   });
   it('handles equations', () => {
-    const result = {
-      data: [{'equation| count() + count()': 3}],
-    };
+    const result = {data: [{'equation| count() + count()': 3}]};
     expect(downloadAsCsv(result, [equationColumn], 'filename.csv')).toContain(
       encodeURIComponent('count() + count()\r\n3')
     );
@@ -811,23 +765,11 @@ describe('generateFieldOptions', () => {
     ).toEqual({
       'field:environment': {
         label: 'environment',
-        value: {
-          kind: 'field',
-          meta: {
-            dataType: 'string',
-            name: 'environment',
-          },
-        },
+        value: {kind: 'field', meta: {dataType: 'string', name: 'environment'}},
       },
       'tag:environment': {
         label: 'environment',
-        value: {
-          kind: 'tag',
-          meta: {
-            dataType: 'string',
-            name: 'tags[environment]',
-          },
-        },
+        value: {kind: 'tag', meta: {dataType: 'string', name: 'tags[environment]'}},
       },
     });
   });
@@ -838,9 +780,7 @@ describe('constructAddQueryToDashboardLink', () => {
   let location: Location;
   describe('new widget builder', () => {
     beforeEach(() => {
-      organization = OrganizationFixture({
-        features: [],
-      });
+      organization = OrganizationFixture({features: []});
       location = LocationFixture();
     });
 
@@ -1110,9 +1050,7 @@ describe('handleAddQueryToDashboard', () => {
 
   describe('new widget builder', () => {
     beforeEach(() => {
-      organization = OrganizationFixture({
-        features: [],
-      });
+      organization = OrganizationFixture({features: []});
     });
 
     it('constructs the correct widget queries for the modal with single yAxis', () => {

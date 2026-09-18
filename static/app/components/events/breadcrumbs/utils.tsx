@@ -111,11 +111,7 @@ function getBreadcrumbLevelOptions(crumbs: EnhancedCrumb[]) {
 
   const levelOptions = Object.entries(crumbLevels).map<SelectOption<string>>(
     ([crumbLevel, levelComponent]) => {
-      return {
-        value: crumbLevel,
-        label: levelComponent,
-        textValue: crumbLevel,
-      };
+      return {value: crumbLevel, label: levelComponent, textValue: crumbLevel};
     }
   );
   return levelOptions.sort((a, b) => a.value.localeCompare(b.value));

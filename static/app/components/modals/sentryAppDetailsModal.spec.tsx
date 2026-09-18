@@ -56,12 +56,7 @@ describe('SentryAppDetailsModal', () => {
 
     expect(mockRequests.interaction).toHaveBeenCalledWith(
       `/sentry-apps/${sentryApp.slug}/interaction/`,
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          tsdbField: 'sentry_app_viewed',
-        },
-      })
+      expect.objectContaining({method: 'POST', data: {tsdbField: 'sentry_app_viewed'}})
     );
   });
 

@@ -67,10 +67,7 @@ describe('Onboarding Setup Docs', () => {
 
   it('does not render Product Selection', async () => {
     const organization = OrganizationFixture();
-    const project = ProjectFixture({
-      slug: 'python',
-      platform: 'python',
-    });
+    const project = ProjectFixture({slug: 'python', platform: 'python'});
 
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
@@ -101,10 +98,7 @@ describe('Onboarding Setup Docs', () => {
 
   it('renders SDK version from the sentry release registry', async () => {
     const organization = OrganizationFixture();
-    const project = ProjectFixture({
-      slug: 'java',
-      platform: 'java',
-    });
+    const project = ProjectFixture({slug: 'java', platform: 'java'});
 
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
@@ -138,10 +132,7 @@ describe('Onboarding Setup Docs', () => {
       ProjectsStore.init();
       ProjectsStore.loadInitialData([project]);
 
-      renderMockRequests({
-        project,
-        orgSlug: organization.slug,
-      });
+      renderMockRequests({project, orgSlug: organization.slug});
 
       render(
         <OnboardingContextProvider>
@@ -188,10 +179,7 @@ describe('Onboarding Setup Docs', () => {
       ProjectsStore.init();
       ProjectsStore.loadInitialData([project]);
 
-      renderMockRequests({
-        project,
-        orgSlug: organization.slug,
-      });
+      renderMockRequests({project, orgSlug: organization.slug});
 
       render(
         <OnboardingContextProvider>
@@ -229,10 +217,7 @@ describe('Onboarding Setup Docs', () => {
       ProjectsStore.init();
       ProjectsStore.loadInitialData([project]);
 
-      renderMockRequests({
-        project,
-        orgSlug: organization.slug,
-      });
+      renderMockRequests({project, orgSlug: organization.slug});
 
       render(
         <OnboardingContextProvider>
@@ -270,10 +255,7 @@ describe('Onboarding Setup Docs', () => {
       ProjectsStore.init();
       ProjectsStore.loadInitialData([project]);
 
-      renderMockRequests({
-        project,
-        orgSlug: organization.slug,
-      });
+      renderMockRequests({project, orgSlug: organization.slug});
 
       render(
         <OnboardingContextProvider>
@@ -309,10 +291,7 @@ describe('Onboarding Setup Docs', () => {
       const organization = OrganizationFixture({
         features: ['session-replay', 'performance-view'],
       });
-      const project = ProjectFixture({
-        slug: 'javascript',
-        platform: 'javascript',
-      });
+      const project = ProjectFixture({slug: 'javascript', platform: 'javascript'});
 
       const updateLoaderMock = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/keys/${PROJECT_KEY.id}/`,
@@ -323,10 +302,7 @@ describe('Onboarding Setup Docs', () => {
       ProjectsStore.init();
       ProjectsStore.loadInitialData([project]);
 
-      renderMockRequests({
-        project,
-        orgSlug: organization.slug,
-      });
+      renderMockRequests({project, orgSlug: organization.slug});
 
       render(
         <OnboardingContextProvider>
@@ -408,10 +384,7 @@ describe('Onboarding Setup Docs', () => {
   describe('special platforms', () => {
     it('renders platform other', async () => {
       const organization = OrganizationFixture();
-      const project = ProjectFixture({
-        slug: 'other',
-        platform: 'other',
-      });
+      const project = ProjectFixture({slug: 'other', platform: 'other'});
 
       ProjectsStore.init();
       ProjectsStore.loadInitialData([project]);

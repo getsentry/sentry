@@ -58,11 +58,5 @@ export function IssueWidgetQueries({
     widgetInterval,
   });
 
-  return getDynamicText({
-    value: children({
-      loading,
-      ...rest,
-    }),
-    fixed: <div />,
-  });
+  return getDynamicText({value: children({loading, ...rest}), fixed: <div />});
 }

@@ -43,11 +43,7 @@ const motionCurves: Record<
 
 // Disable transitions in acceptance tests or node testing environments.
 const IS_ACCEPTANCE_OR_TESTING = IS_ACCEPTANCE_TEST || NODE_ENV === 'test';
-const EMPTY_TRANSITION: Transition = {
-  duration: 0,
-  staggerChildren: 0,
-  type: false,
-};
+const EMPTY_TRANSITION: Transition = {duration: 0, staggerChildren: 0, type: false};
 
 const motionCurveWithDuration = (
   durations: Record<MotionDuration, number>,
@@ -62,22 +58,13 @@ const motionCurveWithDuration = (
   const framerMotion: Record<MotionDuration, Transition> = {
     fast: IS_ACCEPTANCE_OR_TESTING
       ? EMPTY_TRANSITION
-      : {
-          duration: durations.fast / 1000,
-          ease: easing,
-        },
+      : {duration: durations.fast / 1000, ease: easing},
     moderate: IS_ACCEPTANCE_OR_TESTING
       ? EMPTY_TRANSITION
-      : {
-          duration: durations.moderate / 1000,
-          ease: easing,
-        },
+      : {duration: durations.moderate / 1000, ease: easing},
     slow: IS_ACCEPTANCE_OR_TESTING
       ? EMPTY_TRANSITION
-      : {
-          duration: durations.slow / 1000,
-          ease: easing,
-        },
+      : {duration: durations.slow / 1000, ease: easing},
   };
 
   return [motion, framerMotion];
@@ -85,21 +72,9 @@ const motionCurveWithDuration = (
 
 const motionTransitions: Record<'spring', Record<MotionDuration, Transition>> = {
   spring: {
-    fast: {
-      type: 'spring',
-      stiffness: 1400,
-      damping: 50,
-    },
-    moderate: {
-      type: 'spring',
-      stiffness: 1000,
-      damping: 50,
-    },
-    slow: {
-      type: 'spring',
-      stiffness: 600,
-      damping: 50,
-    },
+    fast: {type: 'spring', stiffness: 1400, damping: 50},
+    moderate: {type: 'spring', stiffness: 1000, damping: 50},
+    slow: {type: 'spring', stiffness: 600, damping: 50},
   },
 };
 
@@ -107,18 +82,9 @@ const motionTransitionWithDuration = (
   transitionDefinitions: Record<MotionDuration, Transition>
 ): [MotionDefinition, Record<MotionDuration, Transition>] => {
   const motion = {
-    fast: `${spring({
-      keyframes: [0, 1],
-      ...transitionDefinitions.fast,
-    })}`,
-    moderate: `${spring({
-      keyframes: [0, 1],
-      ...transitionDefinitions.moderate,
-    })}`,
-    slow: `${spring({
-      keyframes: [0, 1],
-      ...transitionDefinitions.slow,
-    })}`,
+    fast: `${spring({keyframes: [0, 1], ...transitionDefinitions.fast})}`,
+    moderate: `${spring({keyframes: [0, 1], ...transitionDefinitions.moderate})}`,
+    slow: `${spring({keyframes: [0, 1], ...transitionDefinitions.slow})}`,
   };
 
   return [motion, transitionDefinitions];
@@ -262,9 +228,7 @@ export interface SentryTheme extends Omit<
   typeof lightThemeDefinition,
   'chart' | 'tokens'
 > {
-  chart: {
-    getColorPalette: ReturnType<typeof makeChartColorPalette>;
-  };
+  chart: {getColorPalette: ReturnType<typeof makeChartColorPalette>};
   swatch: Swatch;
   tokens: Tokens;
 }
@@ -810,13 +774,9 @@ const lightThemeDefinition = {
   /**
    * @deprecated do not use this.
    */
-  level: {
-    orange: ccl.orange,
-  },
+  level: {orange: ccl.orange},
 
-  chart: {
-    getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
-  },
+  chart: {getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT)},
 
   swatch: makeSwatch(
     (({lime: _lime, ...rest}) => rest)(color.categorical.light),
@@ -851,13 +811,9 @@ export const darkTheme: SentryTheme = {
   /**
    * @deprecated do not use this.
    */
-  level: {
-    orange: ccd.orange,
-  },
+  level: {orange: ccd.orange},
 
-  chart: {
-    getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
-  },
+  chart: {getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK)},
 
   swatch: makeSwatch(
     (({lime: _lime, ...rest}) => rest)(color.categorical.dark),

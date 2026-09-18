@@ -92,9 +92,7 @@ function ConnectedInstallation({installation, children}: InstallationWrapperProp
     organization,
     staleTime: 0,
   });
-  const integrationsOptions = organizationIntegrationsQueryOptions({
-    organization,
-  });
+  const integrationsOptions = organizationIntegrationsQueryOptions({organization});
 
   // XXX: We have to fetch each integration to load the configData. This is not
   // provided by the integrations list query.
@@ -127,9 +125,7 @@ function ConnectedInstallation({installation, children}: InstallationWrapperProp
   useAutoSyncOnConnect(installation.integration.id, syncNow, hasAccess);
 
   // Settings cannot be opened until we've loaded the integrationWithConfig
-  const settingsButtonProps = {
-    disabled: integrationWithConfig === undefined,
-  };
+  const settingsButtonProps = {disabled: integrationWithConfig === undefined};
 
   const uninstallButtonProps = hasAccess
     ? undefined

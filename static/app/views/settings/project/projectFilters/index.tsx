@@ -72,11 +72,7 @@ export default function ProjectFilters() {
                 <TabList.Item
                   key="custom-filters"
                   hidden={!hasInboundFiltersV2}
-                  to={recreateRoute('custom-filters/', {
-                    routes,
-                    params,
-                    stepBack: -1,
-                  })}
+                  to={recreateRoute('custom-filters/', {routes, params, stepBack: -1})}
                 >
                   {t('Custom Filters')}
                 </TabList.Item>

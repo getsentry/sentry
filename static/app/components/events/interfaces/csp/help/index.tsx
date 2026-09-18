@@ -10,11 +10,7 @@ type EffectiveDirective = keyof typeof effectiveDirectives;
 
 const linkOverrides = {'script-src': 'script-src_2'};
 
-export type HelpProps = {
-  data: {
-    effective_directive: EffectiveDirective;
-  };
-};
+export type HelpProps = {data: {effective_directive: EffectiveDirective}};
 
 export function CSPHelp({data: {effective_directive: key}}: HelpProps) {
   const getLinkHref = () => {

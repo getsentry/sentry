@@ -67,10 +67,7 @@ const SortKeys = {
   createdBy: {asc: 'mydashboards', desc: 'mydashboards'},
 };
 
-type FavoriteButtonProps = {
-  dashboard: DashboardListItem;
-  isFavorited: boolean;
-};
+type FavoriteButtonProps = {dashboard: DashboardListItem; isFavorited: boolean};
 
 function FavoriteButton({isFavorited, dashboard}: FavoriteButtonProps) {
   const toggleFavorite = useToggleDashboardFavorite();
@@ -124,9 +121,7 @@ function DashboardRowActions({
             icon={<IconCopy />}
             size="sm"
             disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-            tooltipProps={{
-              title: limitMessage,
-            }}
+            tooltipProps={{title: limitMessage}}
           />
         )}
       </DashboardCreateLimitWrapper>
@@ -166,12 +161,8 @@ function DashboardTable({
   isLoading,
   isOnlyPrebuilt,
 }: Props) {
-  const handleDuplicateDashboard = useDuplicateDashboard({
-    onSuccess: onDashboardsChange,
-  });
-  const handleDeleteDashboard = useDeleteDashboard({
-    onSuccess: onDashboardsChange,
-  });
+  const handleDuplicateDashboard = useDuplicateDashboard({onSuccess: onDashboardsChange});
+  const handleDeleteDashboard = useDeleteDashboard({onSuccess: onDashboardsChange});
   const hasUserLastVisited = organization.features.includes(
     'dashboards-user-last-visited'
   );
@@ -376,10 +367,7 @@ function DashboardTable({
         getColumnSort,
         // favorite column
         renderPrependColumns: (isHeader: boolean, dataRow?: any) => {
-          const favoriteColumn = {
-            key: ResponseKeys.FAVORITE,
-            name: t('Favorite'),
-          };
+          const favoriteColumn = {key: ResponseKeys.FAVORITE, name: t('Favorite')};
 
           if (isHeader) {
             return [

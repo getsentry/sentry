@@ -24,9 +24,7 @@ describe('resolveRoute', () => {
   let configState: Config;
 
   const organization = OrganizationFixture();
-  const otherOrg = OrganizationFixture({
-    slug: 'other-org',
-  });
+  const otherOrg = OrganizationFixture({slug: 'other-org'});
 
   beforeEach(() => {
     devUi = window.__SENTRY_DEV_UI;

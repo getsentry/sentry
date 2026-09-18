@@ -101,9 +101,7 @@ describe('MetricsAggregateExportModalButton', () => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        datetime: {start: null, end: null, period: '24h', utc: null},
-      })
+      PageFiltersFixture({datetime: {start: null, end: null, period: '24h', utc: null}})
     );
   });
 

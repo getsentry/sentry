@@ -24,10 +24,7 @@ describe('useOwners', () => {
     OrganizationStore.onUpdate(org, {replace: true});
 
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/user-teams/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/user-teams/', body: []});
     teamsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
       body: [],
@@ -39,9 +36,7 @@ describe('useOwners', () => {
   });
 
   it('includes members and teams', async () => {
-    const {result} = renderHookWithProviders(useOwners, {
-      initialProps: {},
-    });
+    const {result} = renderHookWithProviders(useOwners, {initialProps: {}});
 
     await waitFor(() => expect(result.current.fetching).toBe(false));
 
@@ -50,11 +45,7 @@ describe('useOwners', () => {
   });
 
   it('fetches users and members', async () => {
-    const members = [
-      MemberFixture({
-        user: UserFixture({id: '5'}),
-      }),
-    ];
+    const members = [MemberFixture({user: UserFixture({id: '5'})})];
     const teams = [TeamFixture({id: '4', slug: 'other-slug'})];
 
     teamsRequest = MockApiClient.addMockResponse({
@@ -75,15 +66,11 @@ describe('useOwners', () => {
 
     expect(teamsRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: {query: 'id:4'},
-      })
+      expect.objectContaining({query: {query: 'id:4'}})
     );
     expect(membersRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: {query: 'user.id:5'},
-      })
+      expect.objectContaining({query: {query: 'user.id:5'}})
     );
 
     expect(result.current.members).toEqual([

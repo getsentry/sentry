@@ -38,18 +38,12 @@ describe('PreprodSearchBar', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [
         {key: 'app.name', name: 'app.name', attributeType: 'string'},
-        {
-          key: 'tags[app.features,array]',
-          name: 'app.features',
-          attributeType: 'array',
-        },
+        {key: 'tags[app.features,array]', name: 'app.features', attributeType: 'array'},
       ],
     });
 
     render(<PreprodSearchBar initialQuery="" projects={[1]} />, {
-      organization: OrganizationFixture({
-        features: ['trace-item-array-query-support'],
-      }),
+      organization: OrganizationFixture({features: ['trace-item-array-query-support']}),
     });
 
     await waitFor(() => {
@@ -66,11 +60,7 @@ describe('PreprodSearchBar', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [
         {key: 'app.name', name: 'app.name', attributeType: 'string'},
-        {
-          key: 'tags[app.features,array]',
-          name: 'app.features',
-          attributeType: 'array',
-        },
+        {key: 'tags[app.features,array]', name: 'app.features', attributeType: 'array'},
       ],
     });
 
@@ -109,11 +99,7 @@ describe('PreprodSearchBar', () => {
         projects={[1]}
         allowedKeys={['app_name', 'install_groups']}
       />,
-      {
-        organization: OrganizationFixture({
-          features: ['trace-item-array-query-support'],
-        }),
-      }
+      {organization: OrganizationFixture({features: ['trace-item-array-query-support']})}
     );
 
     await waitFor(() => {
@@ -143,11 +129,7 @@ describe('PreprodSearchBar', () => {
         allowedKeys={['install_groups']}
         freeformKeys={['install_groups']}
       />,
-      {
-        organization: OrganizationFixture({
-          features: ['trace-item-array-query-support'],
-        }),
-      }
+      {organization: OrganizationFixture({features: ['trace-item-array-query-support']})}
     );
 
     await waitFor(() => {

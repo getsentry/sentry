@@ -7,9 +7,7 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 
 describe('ExploreSecondaryNavigation', () => {
   const {organization} = initializeOrg({
-    organization: {
-      features: ['performance-view', 'visibility-explore-view'],
-    },
+    organization: {features: ['performance-view', 'visibility-explore-view']},
   });
 
   beforeEach(() => {
@@ -17,24 +15,13 @@ describe('ExploreSecondaryNavigation', () => {
       url: '/organizations/org-slug/group-search-views/starred/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/explore/saved/',
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/explore/saved/'});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/broadcasts/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/broadcasts/', body: []});
 
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/assistant/', body: []});
   });
 
   it('renders', () => {
@@ -48,9 +35,7 @@ describe('ExploreSecondaryNavigation', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-          },
+          location: {pathname: '/organizations/org-slug/explore/traces/'},
         },
       }
     );
@@ -77,9 +62,7 @@ describe('ExploreSecondaryNavigation', () => {
       {
         organization: investigationsOrganization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/investigations/',
-          },
+          location: {pathname: '/organizations/org-slug/explore/investigations/'},
         },
       }
     );
@@ -144,9 +127,7 @@ describe('ExploreSecondaryNavigation', () => {
       {
         organization: closedMembershipOrganization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-          },
+          location: {pathname: '/organizations/org-slug/explore/traces/'},
         },
       }
     );
@@ -165,9 +146,7 @@ describe('ExploreSecondaryNavigation', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/preprod/snapshots/123/',
-          },
+          location: {pathname: '/organizations/org-slug/preprod/snapshots/123/'},
         },
       }
     );

@@ -614,10 +614,7 @@ describe('CompactSelect', () => {
       await waitFor(() => expect(searchInput).toHaveFocus());
       await userEvent.keyboard('{Enter}');
 
-      expect(onChange).toHaveBeenCalledWith({
-        value: 'opt_enabled',
-        label: 'Enabled',
-      });
+      expect(onChange).toHaveBeenCalledWith({value: 'opt_enabled', label: 'Enabled'});
     });
 
     it('highlights the matched substring when search.highlight is enabled', async () => {

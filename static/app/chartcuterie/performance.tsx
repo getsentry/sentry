@@ -63,10 +63,7 @@ export function makePerformanceCharts(theme: Theme): Array<RenderDescriptor<Char
       const transformedSeries = transformToLineSeries({series});
       const modifiedOptions = modifyOptionsForSlack(chartOptions);
 
-      return {
-        ...modifiedOptions,
-        series: transformedSeries,
-      };
+      return {...modifiedOptions, series: transformedSeries};
     },
     ...slackChartSize,
   });
@@ -93,10 +90,7 @@ export function makePerformanceCharts(theme: Theme): Array<RenderDescriptor<Char
       const transformedSeries = transformToLineSeries({series});
       const modifiedOptions = modifyOptionsForSlack(chartOptions);
 
-      return {
-        ...modifiedOptions,
-        series: transformedSeries,
-      };
+      return {...modifiedOptions, series: transformedSeries};
     },
     ...slackChartSize,
   });

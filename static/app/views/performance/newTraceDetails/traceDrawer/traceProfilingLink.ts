@@ -10,10 +10,7 @@ import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModel
 
 export function makeTransactionProfilingLink(
   profileId: string,
-  options: {
-    organization: Organization;
-    projectSlug: string;
-  }
+  options: {organization: Organization; projectSlug: string}
 ): LocationDescriptor | null {
   if (!options.projectSlug || !options.organization) {
     return null;

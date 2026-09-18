@@ -41,23 +41,14 @@ function TracesNotFound({performanceActive}: {performanceActive: boolean}) {
 const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
     minimized: false,
-    sizes: {
-      'drawer left': 0.33,
-      'drawer right': 0.33,
-      'drawer bottom': 0.4,
-    },
+    sizes: {'drawer left': 0.33, 'drawer right': 0.33, 'drawer bottom': 0.4},
     layoutOptions: [],
   },
   missing_instrumentation: true,
-  autogroup: {
-    parent: true,
-    sibling: true,
-  },
+  autogroup: {parent: true, sibling: true},
   compressed_timeline: false,
   layout: 'drawer bottom',
-  list: {
-    width: 0.5,
-  },
+  list: {width: 0.5},
 };
 
 const REPLAY_TRACE_WATERFALL_PREFERENCES_KEY = 'replay-trace-waterfall-preferences';
@@ -96,10 +87,7 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
     timestamp: firstTrace?.timestamp,
   });
   const meta = useReplayTraceMeta(replay);
-  const tree = useTraceTree({
-    trace,
-    replay: replay ?? null,
-  });
+  const tree = useTraceTree({trace, replay: replay ?? null});
 
   useTraceStateAnalytics({
     trace,

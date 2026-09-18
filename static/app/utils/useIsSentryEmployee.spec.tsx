@@ -11,13 +11,7 @@ describe('useIsSentryEmployee', () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
-          emails: [
-            {
-              email: 'jenn@sentry.io',
-              is_verified: true,
-              id: '1',
-            },
-          ],
+          emails: [{email: 'jenn@sentry.io', is_verified: true, id: '1'}],
         }),
       })
     );
@@ -32,13 +26,7 @@ describe('useIsSentryEmployee', () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
-          emails: [
-            {
-              email: 'jenn@not-sentry.com',
-              is_verified: true,
-              id: '1',
-            },
-          ],
+          emails: [{email: 'jenn@not-sentry.com', is_verified: true, id: '1'}],
         }),
       })
     );
@@ -52,13 +40,7 @@ describe('useIsSentryEmployee', () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
-          emails: [
-            {
-              email: 'jenn@sentry.io',
-              is_verified: false,
-              id: '1',
-            },
-          ],
+          emails: [{email: 'jenn@sentry.io', is_verified: false, id: '1'}],
         }),
       })
     );

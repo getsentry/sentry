@@ -140,9 +140,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install our Go Fiber SDK using [code:go get]:', {
-            code: <code />,
-          }),
+          text: tct('Install our Go Fiber SDK using [code:go get]:', {code: <code />}),
         },
         {
           type: 'code',
@@ -162,15 +160,8 @@ export const onboarding: OnboardingConfig = {
             "Import and initialize the Sentry SDK early in your application's setup:"
           ),
         },
-        {
-          type: 'code',
-          language: 'go',
-          code: getConfigureSnippet(params),
-        },
-        {
-          type: 'subheader',
-          text: t('Options'),
-        },
+        {type: 'code', language: 'go', code: getConfigureSnippet(params)},
+        {type: 'subheader', text: t('Options')},
         {
           type: 'text',
           text: [
@@ -181,11 +172,7 @@ export const onboarding: OnboardingConfig = {
             t('Currently it respects 3 options:'),
           ],
         },
-        {
-          type: 'code',
-          language: 'go',
-          code: getOptionsSnippet(),
-        },
+        {type: 'code', language: 'go', code: getOptionsSnippet()},
       ],
     },
     {
@@ -212,33 +199,20 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'go',
-          code: getUsageSnippet(),
-        },
+        {type: 'code', language: 'go', code: getUsageSnippet()},
         {
           type: 'subheader',
           text: tct('Accessing Request in [beforeSendCode:BeforeSend] callback', {
             beforeSendCode: <code />,
           }),
         },
-        {
-          type: 'code',
-          language: 'go',
-          code: getBeforeSendSnippet(params),
-        },
+        {type: 'code', language: 'go', code: getBeforeSendSnippet(params)},
       ],
     },
   ],
   verify: (params: DocsParams) =>
     params.isMetricsSelected
-      ? [
-          {
-            type: StepType.VERIFY,
-            content: [metricsVerify(params)],
-          },
-        ]
+      ? [{type: StepType.VERIFY, content: [metricsVerify(params)]}]
       : [],
   nextSteps: (params: DocsParams) => {
     const steps = [];

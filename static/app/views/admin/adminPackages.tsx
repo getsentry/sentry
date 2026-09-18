@@ -14,9 +14,7 @@ type Data = {
 export default function AdminPackages() {
   const {data, isPending, isError} = useApiQuery<Data>(
     [getApiUrl('/internal/packages/')],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   if (isError) {

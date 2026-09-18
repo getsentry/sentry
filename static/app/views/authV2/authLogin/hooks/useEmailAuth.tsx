@@ -13,17 +13,11 @@ export interface EmailAuthCredentials {
 }
 
 export type EmailAuthResult =
-  | {
-      methods: MfaMethod[];
-      status: 'mfa-required';
-    }
+  | {methods: MfaMethod[]; status: 'mfa-required'}
   | (AuthenticatedResult & {status: 'authenticated'});
 
 type EmailAuthResponse =
-  | {
-      mfaMethods: MfaMethod[];
-      mfaRequired: true;
-    }
+  | {mfaMethods: MfaMethod[]; mfaRequired: true}
   | AuthenticatedResult;
 
 /**
@@ -37,11 +31,7 @@ export function useEmailAuth(organizationSlug?: string) {
       const response = await fetchMutation<EmailAuthResponse>({
         url: getApiUrl('/auth/login/'),
         method: 'POST',
-        data: {
-          username: email,
-          password,
-          orgSlug: organizationSlug ?? null,
-        },
+        data: {username: email, password, orgSlug: organizationSlug ?? null},
       });
 
       if ('mfaRequired' in response) {

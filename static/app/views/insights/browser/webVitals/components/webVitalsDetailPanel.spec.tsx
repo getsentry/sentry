@@ -16,15 +16,11 @@ describe('WebVitalsDetailPanel', () => {
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
     });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
-      body: {
-        timeSeries: [],
-      },
+      body: {timeSeries: []},
     });
   });
 
@@ -33,9 +29,7 @@ describe('WebVitalsDetailPanel', () => {
   });
 
   it('renders correctly with empty results', async () => {
-    render(<WebVitalsDetailPanel webVital="lcp" />, {
-      organization,
-    });
+    render(<WebVitalsDetailPanel webVital="lcp" />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(

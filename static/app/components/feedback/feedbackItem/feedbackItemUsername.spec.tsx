@@ -10,12 +10,7 @@ describe('FeedbackItemUsername', () => {
   const mockSeerSetup = () => {
     return MockApiClient.addMockResponse({
       url: '/organizations/org-slug/seer/setup-check/',
-      body: {
-        billing: {
-          hasAutofixQuota: false,
-          hasScannerQuota: false,
-        },
-      },
+      body: {billing: {hasAutofixQuota: false, hasScannerQuota: false}},
     });
   };
 
@@ -23,20 +18,11 @@ describe('FeedbackItemUsername', () => {
     MockApiClient.clearMockResponses();
     seerSetupMock = mockSeerSetup();
 
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: jest.fn().mockResolvedValue(''),
-      },
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
   });
 
   it('should fallback to "Anonymous User" when no name/contact_email exist', () => {
-    const issue = FeedbackIssueFixture({
-      metadata: {
-        name: null,
-        contact_email: null,
-      },
-    });
+    const issue = FeedbackIssueFixture({metadata: {name: null, contact_email: null}});
     render(<FeedbackItemUsername feedbackIssue={issue} />);
 
     expect(screen.getByText('Anonymous User')).toBeInTheDocument();
@@ -45,10 +31,7 @@ describe('FeedbackItemUsername', () => {
 
   it('should show name if that is all that exists', () => {
     const issue = FeedbackIssueFixture({
-      metadata: {
-        name: 'Foo Bar',
-        contact_email: null,
-      },
+      metadata: {name: 'Foo Bar', contact_email: null},
     });
     render(<FeedbackItemUsername feedbackIssue={issue} />);
 
@@ -58,10 +41,7 @@ describe('FeedbackItemUsername', () => {
 
   it('should show contact_email if that is all that exists', () => {
     const issue = FeedbackIssueFixture({
-      metadata: {
-        name: null,
-        contact_email: 'foo@bar.com',
-      },
+      metadata: {name: null, contact_email: 'foo@bar.com'},
     });
     render(<FeedbackItemUsername feedbackIssue={issue} />);
 
@@ -77,10 +57,7 @@ describe('FeedbackItemUsername', () => {
 
   it('should show both name and contact_email if they are set', () => {
     const issue = FeedbackIssueFixture({
-      metadata: {
-        name: 'Foo Bar',
-        contact_email: 'foo@bar.com',
-      },
+      metadata: {name: 'Foo Bar', contact_email: 'foo@bar.com'},
     });
     render(<FeedbackItemUsername feedbackIssue={issue} />);
 
@@ -97,10 +74,7 @@ describe('FeedbackItemUsername', () => {
 
   it('should not show duplicate name & contact_email if they are the same value', () => {
     const issue = FeedbackIssueFixture({
-      metadata: {
-        name: 'foo@bar.com',
-        contact_email: 'foo@bar.com',
-      },
+      metadata: {name: 'foo@bar.com', contact_email: 'foo@bar.com'},
     });
     render(<FeedbackItemUsername feedbackIssue={issue} />);
 
@@ -116,10 +90,7 @@ describe('FeedbackItemUsername', () => {
 
   it('should copy text and select it on click', async () => {
     const issue = FeedbackIssueFixture({
-      metadata: {
-        name: 'Foo Bar',
-        contact_email: 'foo@bar.com',
-      },
+      metadata: {name: 'Foo Bar', contact_email: 'foo@bar.com'},
     });
     render(<FeedbackItemUsername feedbackIssue={issue} />);
 
@@ -147,9 +118,7 @@ describe('FeedbackItemUsername', () => {
       });
 
       render(<FeedbackItemUsername feedbackIssue={issue} />, {
-        organization: {
-          features: ['gen-ai-features'],
-        },
+        organization: {features: ['gen-ai-features']},
       });
 
       await waitFor(() => {
@@ -182,17 +151,11 @@ describe('FeedbackItemUsername', () => {
         seerSetupMock = mockSeerSetup();
 
         const issue = FeedbackIssueFixture({
-          metadata: {
-            name: 'Foo Bar',
-            contact_email: 'foo@bar.com',
-            summary,
-          },
+          metadata: {name: 'Foo Bar', contact_email: 'foo@bar.com', summary},
         });
 
         render(<FeedbackItemUsername feedbackIssue={issue} />, {
-          organization: {
-            features,
-          },
+          organization: {features},
         });
 
         await waitFor(() => {

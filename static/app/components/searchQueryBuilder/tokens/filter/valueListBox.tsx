@@ -146,18 +146,10 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
 
       const refsToSync = [listBoxRef, popoverRef];
 
-      constrainAndAlignListBox({
-        popoverRef,
-        refsToSync,
-        referenceRef: wrapperRef,
-      });
+      constrainAndAlignListBox({popoverRef, refsToSync, referenceRef: wrapperRef});
 
       const observer = new ResizeObserver(() => {
-        constrainAndAlignListBox({
-          popoverRef,
-          refsToSync,
-          referenceRef: wrapperRef,
-        });
+        constrainAndAlignListBox({popoverRef, refsToSync, referenceRef: wrapperRef});
       });
 
       observer.observe(element);

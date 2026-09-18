@@ -6,10 +6,7 @@ import EmailVerificationModal from 'sentry/components/modals/emailVerificationMo
 
 describe('Email Verification Modal', () => {
   it('renders', () => {
-    MockApiClient.addMockResponse({
-      url: '/users/me/emails/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/users/me/emails/', body: []});
 
     render(
       <EmailVerificationModal
@@ -33,10 +30,7 @@ describe('Email Verification Modal', () => {
 
   it('renders with action param', () => {
     const actionMessage = 'accepting the tenet';
-    MockApiClient.addMockResponse({
-      url: '/users/me/emails/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/users/me/emails/', body: []});
 
     render(
       <EmailVerificationModal

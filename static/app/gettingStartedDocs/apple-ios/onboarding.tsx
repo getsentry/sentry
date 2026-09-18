@@ -21,13 +21,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'code',
-          tabs: getWizardInstallSnippet({
-            platform: 'ios',
-            params,
-          }),
-        },
+        {type: 'code', tabs: getWizardInstallSnippet({platform: 'ios', params})},
         {
           type: 'text',
           text: t('The Sentry wizard will automatically patch your application:'),
@@ -38,21 +32,15 @@ export const onboarding: OnboardingConfig = {
             t('Install the Sentry SDK via Swift Package Manager or xcframeworks'),
             tct(
               'Update your [appDelegate: AppDelegate] or SwiftUI App Initializer with the default Sentry configuration and an example error',
-              {
-                appDelegate: <code />,
-              }
+              {appDelegate: <code />}
             ),
             tct(
               'Add a new [code: Upload Debug Symbols] phase to your [code: xcodebuild] build script',
-              {
-                code: <code />,
-              }
+              {code: <code />}
             ),
             tct(
               'Create [code: .sentryclirc] with an auth token to upload debug symbols (this file is automatically added to [code: .gitignore])',
-              {
-                code: <code />,
-              }
+              {code: <code />}
             ),
             t(
               "When you're using Fastlane, it will add a Sentry lane for uploading debug symbols"

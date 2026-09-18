@@ -98,12 +98,7 @@ function makeSection(
   artifacts?: AutofixSection['artifacts'],
   status: AutofixSection['status'] = 'completed'
 ): AutofixSection {
-  return {
-    step,
-    artifacts: artifacts ?? defaultArtifacts(step),
-    blocks: [],
-    status,
-  };
+  return {step, artifacts: artifacts ?? defaultArtifacts(step), blocks: [], status};
 }
 
 describe('SeerDrawerNextStep', () => {
@@ -920,10 +915,7 @@ describe('SeerDrawerNextStep', () => {
     function makePrIterationAutofix(
       overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
     ) {
-      return makeAutofix({
-        runState: {run_id: 1, blocks: []} as any,
-        ...overrides,
-      });
+      return makeAutofix({runState: {run_id: 1, blocks: []} as any, ...overrides});
     }
 
     beforeEach(() => {
@@ -964,9 +956,7 @@ describe('SeerDrawerNextStep', () => {
     });
 
     it('returns null when the run is not valid for PR iteration', () => {
-      const autofix = makeAutofix({
-        runState: {run_id: 1, blocks: []} as any,
-      });
+      const autofix = makeAutofix({runState: {run_id: 1, blocks: []} as any});
       const {container} = render(
         <SeerDrawerNextStep
           group={GroupFixture()}

@@ -15,14 +15,8 @@ const BASE_SUPPORTED_PROVIDERS = [
  * Feature-gated providers. Each entry maps a feature flag to the provider IDs
  * it unlocks. Add new providers here as they become supported.
  */
-const FEATURE_GATED_PROVIDERS: Array<{
-  flag: string;
-  providerIds: string[];
-}> = [
-  {
-    flag: 'seer-gitlab-support',
-    providerIds: ['gitlab', 'integrations:gitlab'],
-  },
+const FEATURE_GATED_PROVIDERS: Array<{flag: string; providerIds: string[]}> = [
+  {flag: 'seer-gitlab-support', providerIds: ['gitlab', 'integrations:gitlab']},
 ];
 
 /**

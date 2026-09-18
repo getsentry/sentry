@@ -61,10 +61,7 @@ export function useSpanProfileDetails(
 
     const entries: EventTransaction['entries'] = [...(event.entries || [])];
     if (profileGroup.images) {
-      entries.push({
-        data: {images: profileGroup.images},
-        type: EntryType.DEBUGMETA,
-      });
+      entries.push({data: {images: profileGroup.images}, type: EntryType.DEBUGMETA});
     }
     return {...event, entries};
   }, [event, profileGroup]);
@@ -164,9 +161,7 @@ export function useSpanProfileDetails(
           organization,
           projectSlug: project.slug,
           profileId: profileContext.profile_id,
-          query: {
-            spanId: span.span_id,
-          },
+          query: {spanId: span.span_id},
         });
       }
 

@@ -104,11 +104,7 @@ function ConfidenceMessage({
     if (isTopN) {
       return tct(
         '[matchingMetricsCount] of [totalMetricsCount] for top [topEvents] groups',
-        {
-          matchingMetricsCount,
-          totalMetricsCount,
-          topEvents,
-        }
+        {matchingMetricsCount, totalMetricsCount, topEvents}
       );
     }
 
@@ -148,24 +144,13 @@ function ConfidenceMessage({
       if (isTopN) {
         return tct(
           '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingMetricsCount]] of [totalMetricsCount]',
-          {
-            maybeWarning,
-            topEvents,
-            maybeTooltip,
-            matchingMetricsCount,
-            totalMetricsCount,
-          }
+          {maybeWarning, topEvents, maybeTooltip, matchingMetricsCount, totalMetricsCount}
         );
       }
 
       return tct(
         '[maybeWarning]Estimated from [maybeTooltip:[matchingMetricsCount]] of [totalMetricsCount]',
-        {
-          maybeWarning,
-          maybeTooltip,
-          matchingMetricsCount,
-          totalMetricsCount,
-        }
+        {maybeWarning, maybeTooltip, matchingMetricsCount, totalMetricsCount}
       );
     }
 
@@ -179,12 +164,7 @@ function ConfidenceMessage({
     if (isTopN) {
       return tct(
         '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingMetricsCount]]',
-        {
-          maybeWarning,
-          topEvents,
-          maybeTooltip,
-          matchingMetricsCount,
-        }
+        {maybeWarning, topEvents, maybeTooltip, matchingMetricsCount}
       );
     }
 
@@ -272,24 +252,13 @@ function ConfidenceMessage({
   if (isTopN) {
     return tct(
       '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingMetricsCount]] of [totalMetricsCount]',
-      {
-        maybeWarning,
-        topEvents,
-        maybeTooltip,
-        matchingMetricsCount,
-        totalMetricsCount,
-      }
+      {maybeWarning, topEvents, maybeTooltip, matchingMetricsCount, totalMetricsCount}
     );
   }
 
   return tct(
     '[maybeWarning]Estimated from [maybeTooltip:[matchingMetricsCount]] of [totalMetricsCount]',
-    {
-      maybeWarning,
-      maybeTooltip,
-      matchingMetricsCount,
-      totalMetricsCount,
-    }
+    {maybeWarning, maybeTooltip, matchingMetricsCount, totalMetricsCount}
   );
 }
 

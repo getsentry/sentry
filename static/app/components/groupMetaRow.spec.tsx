@@ -83,9 +83,7 @@ describe('GroupMetaRow', () => {
   });
 
   it('should only make one replay-count API request', async () => {
-    const organization = OrganizationFixture({
-      features: ['session-replay'],
-    });
+    const organization = OrganizationFixture({features: ['session-replay']});
     const mockReplayCount = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
       body: {groupId: 5},

@@ -9,11 +9,7 @@ type ExcludedProperties = 'createdBy' | 'dateCreated' | 'id' | 'dashboardId' | '
 
 export async function exportDashboard() {
   try {
-    const structure = {
-      base_url: null,
-      dashboard_id: null,
-      org_slug: null,
-    };
+    const structure = {base_url: null, dashboard_id: null, org_slug: null};
 
     const params = getAPIParams(structure);
     const apiUrl = `https://${params.base_url}/api/0/organizations/${params.org_slug}/dashboards/${params.dashboard_id}/`;

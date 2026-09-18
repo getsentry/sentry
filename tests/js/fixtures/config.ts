@@ -32,10 +32,7 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
     lastOrganization: null,
     localities: [{name: 'us', url: 'https://sentry.io'}],
     gravatarBaseUrl: 'https://gravatar.com',
-    initialTrace: {
-      baggage: 'baggage',
-      sentry_trace: 'sentry_trace',
-    },
+    initialTrace: {baggage: 'baggage', sentry_trace: 'sentry_trace'},
     dsn: 'test-dsn',
     userIdentity: {
       ip_address: '127.0.0.1',

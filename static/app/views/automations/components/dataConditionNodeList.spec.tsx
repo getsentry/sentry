@@ -23,15 +23,9 @@ import {AutomationBuilderTestProvider} from 'sentry/views/automations/components
 
 const dataConditionHandlers: DataConditionHandler[] = [
   DataConditionHandlerFixture({type: DataConditionType.AGE_COMPARISON}),
-  DataConditionHandlerFixture({
-    type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
-  }),
-  DataConditionHandlerFixture({
-    type: DataConditionType.ISSUE_PRIORITY_DEESCALATING,
-  }),
-  DataConditionHandlerFixture({
-    type: DataConditionType.ISSUE_TYPE,
-  }),
+  DataConditionHandlerFixture({type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL}),
+  DataConditionHandlerFixture({type: DataConditionType.ISSUE_PRIORITY_DEESCALATING}),
+  DataConditionHandlerFixture({type: DataConditionType.ISSUE_TYPE}),
   DataConditionHandlerFixture({
     type: DataConditionType.EVENT_FREQUENCY,
     handlerSubgroup: DataConditionHandlerSubgroupType.EVENT_ATTRIBUTES,
@@ -162,11 +156,7 @@ describe('DataConditionNodeList', () => {
           conditions={[
             DataConditionFixture({
               type: DataConditionType.EVENT_ATTRIBUTE,
-              comparison: {
-                attribute: 'message',
-                match: MatchType.CONTAINS,
-                value: 'foo',
-              },
+              comparison: {attribute: 'message', match: MatchType.CONTAINS, value: 'foo'},
             }),
           ]}
         />
@@ -271,9 +261,7 @@ describe('DataConditionNodeList', () => {
   });
 
   it('displays error message when error context contains an error for a condition', () => {
-    const conditionWithError = DataConditionFixture({
-      id: 'condition-with-error',
-    });
+    const conditionWithError = DataConditionFixture({id: 'condition-with-error'});
     const errorMessage = 'This condition has an error';
 
     render(
@@ -323,10 +311,7 @@ describe('DataConditionNodeList', () => {
       const condition = DataConditionFixture({
         id: 'issue-category',
         type: DataConditionType.ISSUE_CATEGORY,
-        comparison: {
-          value: 1,
-          include: false,
-        },
+        comparison: {value: 1, include: false},
       });
 
       render(
@@ -366,10 +351,7 @@ describe('DataConditionNodeList', () => {
       const condition = DataConditionFixture({
         id: 'issue-type',
         type: DataConditionType.ISSUE_TYPE,
-        comparison: {
-          value: IssueType.ERROR,
-          include: true,
-        },
+        comparison: {value: IssueType.ERROR, include: true},
       });
 
       render(

@@ -13,15 +13,10 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {useTeams} from 'sentry/utils/useTeams';
 import {withProjects} from 'sentry/utils/withProjects';
 
-type BaseProps = {
-  organization: Organization;
-  transactionName: string;
-};
+type BaseProps = {organization: Organization; transactionName: string};
 
 type Props = BaseProps &
-  TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps & {
-    project: Project;
-  };
+  TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps & {project: Project};
 
 function TeamKeyTransactionButton({
   counts,
@@ -79,10 +74,7 @@ function TeamKeyTransactionButton({
   );
 }
 
-type WrapperProps = BaseProps & {
-  eventView: EventView;
-  projects: Project[];
-};
+type WrapperProps = BaseProps & {eventView: EventView; projects: Project[]};
 
 function TeamKeyTransactionButtonWrapper({
   eventView,

@@ -14,21 +14,11 @@ import {
 
 const NONE_SELECTED = -1;
 
-type DropdownOption = {
-  active: boolean;
-  kind: 'field' | 'operator';
-  value: string;
-};
+type DropdownOption = {active: boolean; kind: 'field' | 'operator'; value: string};
 
-type DropdownOptionGroup = {
-  options: DropdownOption[];
-  title: string;
-};
+type DropdownOptionGroup = {options: DropdownOption[]; title: string};
 
-type DefaultProps = {
-  options: Column[];
-  className?: string;
-};
+type DefaultProps = {options: Column[]; className?: string};
 
 type Props = DefaultProps &
   InputProps & {
@@ -47,9 +37,7 @@ type State = {
 };
 
 export class ArithmeticInput extends PureComponent<Props, State> {
-  static defaultProps: DefaultProps = {
-    options: [],
-  };
+  static defaultProps: DefaultProps = {options: []};
 
   static getDerivedStateFromProps(props: Readonly<Props>, state: State): State {
     const changed = !isEqual(state.rawOptions, props.options);
@@ -373,25 +361,15 @@ function makeFieldOptions(
     })
     .filter(({value}) => (partialTerm ? value.includes(partialTerm) : true));
 
-  return {
-    title: 'Fields',
-    options,
-  };
+  return {title: 'Fields', options};
 }
 
 function makeOperatorOptions(partialTerm: string | null): DropdownOptionGroup {
   const options = ['+', '-', '*', '/', '(', ')']
     .filter(operator => (partialTerm ? operator.includes(partialTerm) : true))
-    .map(operator => ({
-      kind: 'operator' as const,
-      active: false,
-      value: operator,
-    }));
+    .map(operator => ({kind: 'operator' as const, active: false, value: operator}));
 
-  return {
-    title: 'Operators',
-    options,
-  };
+  return {title: 'Operators', options};
 }
 
 function makeOptions(

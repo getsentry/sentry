@@ -14,16 +14,9 @@ import {WidgetWrapper} from './widgetWrapper';
 
 export const ADD_WIDGET_BUTTON_DRAG_ID = 'add-widget-button';
 
-const initialStyles = {
-  x: 0,
-  y: 0,
-  scaleX: 1,
-  scaleY: 1,
-};
+const initialStyles = {x: 0, y: 0, scaleX: 1, scaleY: 1};
 
-type Props = {
-  onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
-};
+type Props = {onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void};
 
 export function AddWidget({onAddWidget}: Props) {
   const {setNodeRef, transform} = useSortable({
@@ -65,9 +58,7 @@ export function AddWidget({onAddWidget}: Props) {
               }
             : initialStyles
         }
-        transition={{
-          duration: 0.25,
-        }}
+        transition={{duration: 0.25}}
       >
         <InnerWrapper onClick={() => onAddWidget?.(defaultDataset)}>
           <DropdownMenu

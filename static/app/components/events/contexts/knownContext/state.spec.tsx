@@ -9,54 +9,25 @@ import {
 } from 'sentry/components/events/contexts/knownContext/state';
 
 const MOCK_STATE_CONTEXT: StateContext = {
-  state: {
-    type: 'redux',
-    value: {
-      a: 'abc',
-    },
-  },
+  state: {type: 'redux', value: {a: 'abc'}},
   // Extra data is still valid and preserved
   extra_data: 'something',
   unknown_key: 123,
 };
 
-const MOCK_REDACTION = {
-  extra_data: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
-};
+const MOCK_REDACTION = {extra_data: {'': {rem: [['organization:0', 's', 0, 0]], len: 5}}};
 
 describe('StateContext', () => {
   it('returns values and according to the parameters', () => {
     expect(getStateContextData({data: MOCK_STATE_CONTEXT})).toEqual([
-      {
-        key: 'state',
-        subject: 'State (Redux)',
-        value: {a: 'abc'},
-        meta: undefined,
-      },
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'state', subject: 'State (Redux)', value: {a: 'abc'}, meta: undefined},
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123, meta: undefined},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {state: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {state: MOCK_REDACTION}}});
 
     render(
       <ContextCard

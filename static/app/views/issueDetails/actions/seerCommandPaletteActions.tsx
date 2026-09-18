@@ -31,22 +31,14 @@ function useSeerState(group: Group, project: Project) {
   const issueTypeSupportsSeer =
     issueTypeConfig.autofix || issueTypeConfig.issueSummary.enabled;
 
-  const autofix = useExplorerAutofix(group, {
-    enabled: aiConfig.areAiFeaturesAllowed,
-  });
+  const autofix = useExplorerAutofix(group, {enabled: aiConfig.areAiFeaturesAllowed});
 
   const sections = useMemo(
     () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
   );
 
-  return {
-    organization,
-    aiConfig,
-    issueTypeSupportsSeer,
-    autofix,
-    sections,
-  };
+  return {organization, aiConfig, issueTypeSupportsSeer, autofix, sections};
 }
 
 interface SeerCommandPaletteActionsProps {

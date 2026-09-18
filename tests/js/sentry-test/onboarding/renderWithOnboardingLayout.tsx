@@ -21,9 +21,7 @@ interface Options<PlatformOptions extends BasePlatformOptions = BasePlatformOpti
   selectedProducts?: ProductSolution[];
 }
 
-type RenderOptions = {
-  organization?: Organization;
-};
+type RenderOptions = {organization?: Organization};
 
 export function renderWithOnboardingLayout<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
@@ -88,9 +86,6 @@ export function renderWithOnboardingLayout<
       activeProductSelection={selectedProducts}
       projectKeyId={projectKey}
     />,
-    {
-      organization,
-      initialRouterConfig,
-    }
+    {organization, initialRouterConfig}
   );
 }

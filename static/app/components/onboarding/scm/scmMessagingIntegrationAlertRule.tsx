@@ -29,9 +29,7 @@ import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
  * option lists) and the same provider sentence as the classic layout, so copy
  * and behavior stay in lockstep; only the presentation differs.
  */
-type Props = IssueAlertNotificationProps & {
-  analyticsFlow: ScmAnalyticsFlow;
-};
+type Props = IssueAlertNotificationProps & {analyticsFlow: ScmAnalyticsFlow};
 
 export function ScmMessagingIntegrationAlertRule({analyticsFlow, ...props}: Props) {
   const {

@@ -55,20 +55,14 @@ export function IntegrationServerlessRow({
   );
 
   const handleUpdate = useCallback(async () => {
-    const data = {
-      action: 'updateVersion',
-      target: serverlessFunction.name,
-    };
+    const data = {action: 'updateVersion', target: serverlessFunction.name};
     try {
       setIsSubmitting(true);
       // don't know the latest version but at least optimistically remove the update button
       onUpdate({outOfDate: false});
       addLoadingMessage();
       recordAction('updateVersion');
-      const resp = await api.requestPromise(endpoint, {
-        method: 'POST',
-        data,
-      });
+      const resp = await api.requestPromise(endpoint, {method: 'POST', data});
       // update remaining after response
       onUpdate(resp);
       addSuccessMessage(t('Success'));
@@ -82,20 +76,14 @@ export function IntegrationServerlessRow({
 
   const handleToggle = useCallback(async () => {
     const action = serverlessFunction.enabled ? 'disable' : 'enable';
-    const data = {
-      action,
-      target: serverlessFunction.name,
-    };
+    const data = {action, target: serverlessFunction.name};
     try {
       addLoadingMessage();
       setIsSubmitting(true);
       // optimistically update enable state
       onUpdate({enabled: !serverlessFunction.enabled});
       recordAction(action);
-      const resp = await api.requestPromise(endpoint, {
-        method: 'POST',
-        data,
-      });
+      const resp = await api.requestPromise(endpoint, {method: 'POST', data});
       // update remaining after response
       onUpdate(resp);
       addSuccessMessage(t('Success'));

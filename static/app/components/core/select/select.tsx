@@ -39,25 +39,15 @@ import {
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
 
-const selectSpacing = {
-  md: '8px',
-  sm: '6px',
-  xs: '4px',
-} as const satisfies Record<FormSize, string>;
+const selectSpacing = {md: '8px', sm: '6px', xs: '4px'} as const satisfies Record<
+  FormSize,
+  string
+>;
 
 const multiValueSizeMapping = {
-  md: {
-    height: '20px',
-    spacing: '4px',
-  },
-  sm: {
-    height: '18px',
-    spacing: '2px',
-  },
-  xs: {
-    height: '16px',
-    spacing: '2px',
-  },
+  md: {height: '20px', spacing: '4px'},
+  sm: {height: '18px', spacing: '2px'},
+  xs: {height: '16px', spacing: '2px'},
 } satisfies Record<FormSize, {height: string; spacing: string}>;
 
 const getStylesConfig = ({
@@ -89,9 +79,7 @@ const getStylesConfig = ({
     color: state.isDisabled
       ? theme.tokens.content.disabled
       : theme.tokens.content.primary,
-    ':hover': {
-      color: 'currentcolor',
-    },
+    ':hover': {color: 'currentcolor'},
   });
   const boxShadow = `0px 1px 0px 0px ${theme.tokens.interactive.chonky.debossed.neutral.chonk} inset`;
 
@@ -134,10 +122,7 @@ const getStylesConfig = ({
       minWidth: '100%',
       maxWidth: maxMenuWidth ?? 'auto',
     }),
-    noOptionsMessage: provided => ({
-      ...provided,
-      color: theme.tokens.content.disabled,
-    }),
+    noOptionsMessage: provided => ({...provided, color: theme.tokens.content.disabled}),
     menuPortal: provided => ({
       ...provided,
       maxWidth: maxMenuWidth ?? '24rem',
@@ -149,15 +134,11 @@ const getStylesConfig = ({
       color: theme.tokens.content.primary,
       background: 'transparent',
       padding: 0,
-      ':active': {
-        background: 'transparent',
-      },
+      ':active': {background: 'transparent'},
     }),
     container: (provided, state) => ({
       ...provided,
-      ...(state.isDisabled && {
-        pointerEvents: 'unset',
-      }),
+      ...(state.isDisabled && {pointerEvents: 'unset'}),
     }),
     valueContainer: (provided, state) => ({
       ...provided,
@@ -174,11 +155,7 @@ const getStylesConfig = ({
         scrollbarColor: `${theme.tokens.graphics.accent.moderate} ${theme.tokens.background.primary}`,
       }),
     }),
-    input: provided => ({
-      ...provided,
-      color: theme.tokens.content.primary,
-      margin: 0,
-    }),
+    input: provided => ({...provided, color: theme.tokens.content.primary, margin: 0}),
     singleValue: (provided, state) => ({
       ...provided,
       color: state.isDisabled
@@ -224,9 +201,7 @@ const getStylesConfig = ({
       margin: '4px 4px',
 
       ...(isDisabled
-        ? {
-            pointerEvents: 'none',
-          }
+        ? {pointerEvents: 'none'}
         : {
             '&:hover': {
               cursor: 'pointer',
@@ -249,20 +224,13 @@ const getStylesConfig = ({
       color: theme.tokens.content.secondary,
       marginBottom: 0,
       padding: `${theme.space.xs} ${theme.space.lg}`,
-      ':empty': {
-        display: 'none',
-      },
+      ':empty': {display: 'none'},
     }),
     group: provided => ({
       ...provided,
       paddingTop: 0,
-      ':last-of-type': {
-        paddingBottom: 0,
-      },
-      ':not(:last-of-type)': {
-        position: 'relative',
-        marginBottom: theme.space.md,
-      },
+      ':last-of-type': {paddingBottom: 0},
+      ':not(:last-of-type)': {position: 'relative', marginBottom: theme.space.md},
       // Add divider between sections
       ':not(:last-of-type)::after': {
         content: '""',
@@ -609,14 +577,8 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
 
   // Override the default style with in-field labels if they are provided
   const inFieldLabelStyles: StylesConfig = {
-    singleValue: (base: CSSObject) => ({
-      ...base,
-      ...getFieldLabelStyle(inFieldLabel),
-    }),
-    placeholder: (base: CSSObject) => ({
-      ...base,
-      ...getFieldLabelStyle(inFieldLabel),
-    }),
+    singleValue: (base: CSSObject) => ({...base, ...getFieldLabelStyle(inFieldLabel)}),
+    placeholder: (base: CSSObject) => ({...base, ...getFieldLabelStyle(inFieldLabel)}),
   };
   const labelOrDefaultStyles = inFieldLabel
     ? mergeStyles(defaultStyles, inFieldLabelStyles)
@@ -678,9 +640,7 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
 type SelectPickerProps<OptionType extends OptionTypeBase> = Omit<
   ControlProps<OptionType>,
   'value'
-> & {
-  value?: ValueType<OptionType, boolean>;
-};
+> & {value?: ValueType<OptionType, boolean>};
 
 function SelectPicker<OptionType extends OptionTypeBase>({
   async,

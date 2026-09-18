@@ -27,10 +27,7 @@ import {ScreenshotCard} from './screenshotCard';
 import {useDeleteGroupEventAttachment} from './useDeleteGroupEventAttachment';
 import {useGroupEventAttachments} from './useGroupEventAttachments';
 
-type GroupEventAttachmentsProps = {
-  group: Group;
-  project: Project;
-};
+type GroupEventAttachmentsProps = {group: Group; project: Project};
 
 const DEFAULT_ATTACHMENTS_TAB = EventAttachmentFilter.ALL;
 

@@ -140,13 +140,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
       <Pagination
         caption={paginationCaption}
         onCursor={(cursor, path, query) =>
-          navigate({
-            pathname: path,
-            query: {
-              ...query,
-              tagDrawerCursor: cursor,
-            },
-          })
+          navigate({pathname: path, query: {...query, tagDrawerCursor: cursor}})
         }
         size="xs"
         pageLinks={tagValuesResponse?.headers.Link}
@@ -171,20 +165,12 @@ function TagDetailsRow({
   const key = tagValue.key ?? tag.key;
   const query =
     key === 'environment'
-      ? {
-          environment: tagValue.value,
-          query: undefined,
-        }
-      : {
-          query: tagValue.query || `${key}:"${tagValue.value}"`,
-        };
+      ? {environment: tagValue.value, query: undefined}
+      : {query: tagValue.query || `${key}:"${tagValue.value}"`};
 
   const allEventsLocation = {
     pathname: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
-    query: {
-      ...location.query,
-      ...query,
-    },
+    query: {...location.query, ...query},
   };
   const percentage = Math.round(percent(tagValue.count ?? 0, tag.totalValues ?? 0));
   // Ensure no item shows 100% when there are multiple tag values
@@ -239,9 +225,7 @@ function TagDetailsValue({
             alias: 'user',
             type: 'user',
             value: tagValue,
-            contextIconProps: {
-              size: 'md',
-            },
+            contextIconProps: {size: 'md'},
             theme,
           })}
           <Flex wrap="wrap" gap="xs" minWidth={0}>
@@ -288,9 +272,7 @@ function TagValueActionsMenu({
   const referrer = 'tag-details-drawer';
   const key = escapeIssueTagKey(tagValue.key ?? tag.key);
   const query = tagValue.query
-    ? {
-        query: tagValue.query,
-      }
+    ? {query: tagValue.query}
     : generateQueryWithTag({referrer}, {key, value: tagValue.value});
   const globalSelectionParams = extractSelectionParameters(location.query);
   const eventView = useIssueDetailsEventView({group, queryProps: query});

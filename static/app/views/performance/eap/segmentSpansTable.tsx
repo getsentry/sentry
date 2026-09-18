@@ -96,17 +96,11 @@ export function SegmentSpansTable({
   const consolidatedData = tableData?.map(row => {
     const user =
       row['user.username'] || row['user.email'] || row['user.ip'] || row['user.id'];
-    return {
-      ...row,
-      'user.display': user,
-    };
+    return {...row, 'user.display': user};
   });
 
   const handleCursor: CursorHandler = (_cursor, pathname, cursorQuery) => {
-    navigate({
-      pathname,
-      query: {...cursorQuery, [SEGMENT_SPANS_CURSOR]: _cursor},
-    });
+    navigate({pathname, query: {...cursorQuery, [SEGMENT_SPANS_CURSOR]: _cursor}});
   };
 
   const handleViewSampledEvents = () => {
@@ -210,9 +204,7 @@ function renderBodyCell(
           icon={<IconProfiling size="xs" />}
           to={{
             pathname: `/organizations/${organization.slug}/profiling/profile/${projectSlug}/${row['profile.id']}/flamegraph/`,
-            query: {
-              referrer: 'performance',
-            },
+            query: {referrer: 'performance'},
           }}
           aria-label={t('View Profile')}
           disabled={!row['profile.id']}
@@ -228,13 +220,8 @@ function renderBodyCell(
           size="xs"
           icon={<IconPlay size="xs" />}
           to={{
-            pathname: makeReplaysPathname({
-              path: `/${row.replayId}/`,
-              organization,
-            }),
-            query: {
-              referrer: 'performance',
-            },
+            pathname: makeReplaysPathname({path: `/${row.replayId}/`, organization}),
+            query: {referrer: 'performance'},
           }}
           disabled={!row.replayId}
           aria-label={t('View Replay')}

@@ -54,9 +54,7 @@ export const metrics: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Metrics are automatically enabled in your Sentry SDK configuration. You can emit metrics using the [code:Sentry.metrics()] API.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

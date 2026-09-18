@@ -51,9 +51,7 @@ export abstract class Visualize {
   }): Visualize;
 
   serialize(): BaseVisualize {
-    const json: BaseVisualize = {
-      yAxes: [this.yAxis],
-    };
+    const json: BaseVisualize = {yAxes: [this.yAxis]};
 
     if (defined(this.selectedChartType)) {
       json.chartType = this.selectedChartType;

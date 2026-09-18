@@ -78,9 +78,7 @@ const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
 const SESSION_DURATION_ALERT_TEXT = tct(
   'session.duration is no longer being recorded as of [date]. Data in this widget may be incomplete.',
-  {
-    date: <DateTime dateOnly year date={SESSION_DURATION_INGESTION_STOP_DATE} />,
-  }
+  {date: <DateTime dateOnly year date={SESSION_DURATION_INGESTION_STOP_DATE} />}
 );
 
 export const SESSION_DURATION_ALERT = (
@@ -549,9 +547,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
   ) {
     return tct(
       "You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.",
-      {
-        numDays: retentionLimitDays,
-      }
+      {numDays: retentionLimitDays}
     );
   }
 

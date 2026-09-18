@@ -64,10 +64,7 @@ export function useFeedbackActions({feedbackItem}: Props) {
     resolve(newStatus, mutationOptions);
     if (!isSpam) {
       // not currently spam, clicking the button will turn it into spam
-      trackAnalytics('feedback.mark-spam-clicked', {
-        organization,
-        type: 'details',
-      });
+      trackAnalytics('feedback.mark-spam-clicked', {organization, type: 'details'});
     }
   }, [isSpam, organization, resolve, mutationOptions]);
 

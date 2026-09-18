@@ -17,10 +17,7 @@ const ERROR_MAP: Record<number, string | undefined> = {
 
 describe('initializeSdk', () => {
   beforeAll(() => {
-    window.__initialData = {
-      ...window.__initialData,
-      customerDomain: null,
-    };
+    window.__initialData = {...window.__initialData, customerDomain: null};
   });
 
   // This is a regression test for Sentry incident inc-433
@@ -39,9 +36,7 @@ describe('initializeSdk', () => {
     });
 
     expect(Sentry.init).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tracePropagationTargets: expect.arrayContaining([/^\//]),
-      })
+      expect.objectContaining({tracePropagationTargets: expect.arrayContaining([/^\//])})
     );
   });
 
@@ -49,12 +44,7 @@ describe('initializeSdk', () => {
     initializeSdk({
       ...window.__initialData,
       apmSampling: 1,
-      sentryConfig: {
-        allowUrls: [],
-        dsn: '',
-        release: '',
-        tracePropagationTargets: [],
-      },
+      sentryConfig: {allowUrls: [], dsn: '', release: '', tracePropagationTargets: []},
     });
 
     const ignoreErrors = jest.mocked(Sentry.init).mock.lastCall?.[0]?.ignoreErrors ?? [];
@@ -200,17 +190,13 @@ describe('isEventWithFileUrl', () => {
 describe('addEndpointTagToRequestError', () => {
   it('adds `endpoint` tag to events with matching message`', () => {
     const event = {
-      exception: {
-        values: [{type: 'RequestError', value: 'GET /dogs/are/great/ 500'}],
-      },
+      exception: {values: [{type: 'RequestError', value: 'GET /dogs/are/great/ 500'}]},
       tags: {},
     };
 
     addEndpointTagToRequestError(event);
 
-    expect(event.tags).toEqual({
-      endpoint: 'GET /dogs/are/great/',
-    });
+    expect(event.tags).toEqual({endpoint: 'GET /dogs/are/great/'});
   });
 
   it("doesn't add `endpoint` tag to events with non-matching message", () => {
@@ -221,12 +207,7 @@ describe('addEndpointTagToRequestError', () => {
     ];
 
     for (const msg of nonmatchingMessages) {
-      const event = {
-        exception: {
-          values: [{type: 'RequestError', value: msg}],
-        },
-        tags: {},
-      };
+      const event = {exception: {values: [{type: 'RequestError', value: msg}]}, tags: {}};
 
       addEndpointTagToRequestError(event);
 
@@ -235,9 +216,7 @@ describe('addEndpointTagToRequestError', () => {
   });
 
   it("doesn't add `endpoint` tag to events with no exception", () => {
-    const event = {
-      tags: {},
-    };
+    const event = {tags: {}};
 
     addEndpointTagToRequestError(event);
 

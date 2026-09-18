@@ -42,22 +42,12 @@ describe('useIssuesSeriesQuery', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-timeseries/',
       body: {
-        timeSeries: [
-          {
-            yAxis: 'count(new_issues)',
-            values: [{timestamp: 1, value: 10}],
-          },
-        ],
+        timeSeries: [{yAxis: 'count(new_issues)', values: [{timestamp: 1, value: 10}]}],
       },
     });
 
     renderHookWithProviders(() =>
-      useIssuesSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useIssuesSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -91,12 +81,7 @@ describe('useIssuesSeriesQuery', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-timeseries/',
       body: {
-        timeSeries: [
-          {
-            yAxis: 'count(new_issues)',
-            values: [{timestamp: 1, value: 10}],
-          },
-        ],
+        timeSeries: [{yAxis: 'count(new_issues)', values: [{timestamp: 1, value: 10}]}],
       },
     });
 
@@ -105,9 +90,7 @@ describe('useIssuesSeriesQuery', () => {
         widget,
         organization,
         pageFilters,
-        dashboardFilters: {
-          release: ['1.0.0'],
-        },
+        dashboardFilters: {release: ['1.0.0']},
         enabled: true,
       })
     );
@@ -165,12 +148,7 @@ describe('useIssuesTableQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useIssuesTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useIssuesTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -230,10 +208,7 @@ describe('useIssuesTableQuery', () => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
-          data: expect.objectContaining({
-            limit: 50,
-            cursor: 'test-cursor',
-          }),
+          data: expect.objectContaining({limit: 50, cursor: 'test-cursor'}),
         })
       );
     });

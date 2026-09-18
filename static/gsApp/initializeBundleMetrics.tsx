@@ -19,9 +19,7 @@ export function initializeBundleMetrics() {
     }
     performance.getEntriesByType('measure').forEach(measurement => {
       // `window.ra` can potentially be undefined here (e.g. it did not successfully load)
-      window.ra?.metric(measurement.name, measurement.duration, {
-        release,
-      });
+      window.ra?.metric(measurement.name, measurement.duration, {release});
     });
   } catch (err) {
     Sentry.captureException(err);

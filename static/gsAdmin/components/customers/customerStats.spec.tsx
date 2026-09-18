@@ -45,11 +45,7 @@ describe('CustomerStats', () => {
 
     render(
       <CustomerStats orgSlug={organization.slug} dataType={DataCategoryExact.SPAN} />,
-      {
-        initialRouterConfig: {
-          location: {pathname: '/customers/org/', query},
-        },
-      }
+      {initialRouterConfig: {location: {pathname: '/customers/org/', query}}}
     );
 
     return statsMock;

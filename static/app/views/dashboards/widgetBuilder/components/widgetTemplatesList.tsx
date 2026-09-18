@@ -66,9 +66,7 @@ export function WidgetTemplatesList({
   }, []);
 
   useEffect(() => {
-    trackAnalytics('dashboards_views.widget_builder.templates.open', {
-      organization,
-    });
+    trackAnalytics('dashboards_views.widget_builder.templates.open', {organization});
     // We only want to track this once when the component is mounted
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

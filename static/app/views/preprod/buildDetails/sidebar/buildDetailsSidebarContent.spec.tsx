@@ -63,23 +63,16 @@ function TestComponent({
 }
 
 describe('BuildDetailsSidebarContent', () => {
-  const {organization} = initializeOrg({
-    organization: OrganizationFixture(),
-  });
+  const {organization} = initializeOrg({organization: OrganizationFixture()});
 
-  const defaultProps = {
-    artifactId: '123',
-    projectId: 'test-project',
-  };
+  const defaultProps = {artifactId: '123', projectId: 'test-project'};
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
   it('renders loading skeleton when data is pending', () => {
-    render(<TestComponent {...defaultProps} isBuildDetailsPending />, {
-      organization,
-    });
+    render(<TestComponent {...defaultProps} isBuildDetailsPending />, {organization});
 
     expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0);
   });
@@ -110,10 +103,7 @@ describe('BuildDetailsSidebarContent', () => {
   });
 
   it('hides app info, status check info and build metadata section when artifact state is UPLOADED', () => {
-    const buildDetailsData = {
-      ...mockBuildDetailsData,
-      state: BuildDetailsState.UPLOADED,
-    };
+    const buildDetailsData = {...mockBuildDetailsData, state: BuildDetailsState.UPLOADED};
 
     render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
       organization,
@@ -142,10 +132,7 @@ describe('BuildDetailsSidebarContent', () => {
   });
 
   it('hides app info, status check info and build metadata section when artifact state is FAILED', () => {
-    const buildDetailsData = {
-      ...mockBuildDetailsData,
-      state: BuildDetailsState.FAILED,
-    };
+    const buildDetailsData = {...mockBuildDetailsData, state: BuildDetailsState.FAILED};
 
     render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
       organization,
@@ -161,10 +148,7 @@ describe('BuildDetailsSidebarContent', () => {
     it('does not render Base Build row when base_sha is null', async () => {
       const buildDetailsData: BuildDetailsApiResponse = {
         ...mockBuildDetailsData,
-        vcs_info: {
-          ...mockBuildDetailsData.vcs_info,
-          base_sha: null,
-        },
+        vcs_info: {...mockBuildDetailsData.vcs_info, base_sha: null},
       };
 
       render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
@@ -182,10 +166,7 @@ describe('BuildDetailsSidebarContent', () => {
     it('renders Base Build row with dash when base_sha exists but no base_build_info', async () => {
       const buildDetailsData = {
         ...mockBuildDetailsData,
-        vcs_info: {
-          ...mockBuildDetailsData.vcs_info,
-          base_sha: 'def456',
-        },
+        vcs_info: {...mockBuildDetailsData.vcs_info, base_sha: 'def456'},
         base_build_info: null,
       };
 
@@ -212,15 +193,9 @@ describe('BuildDetailsSidebarContent', () => {
     it('renders Base Build row with link when base_sha and base_build_info exist', async () => {
       const buildDetailsData: BuildDetailsApiResponse = {
         ...mockBuildDetailsData,
-        vcs_info: {
-          ...mockBuildDetailsData.vcs_info,
-          base_sha: 'def456',
-        },
+        vcs_info: {...mockBuildDetailsData.vcs_info, base_sha: 'def456'},
         base_artifact_id: 'base-artifact-id',
-        base_build_info: {
-          version: '1.0',
-          build_number: '2',
-        },
+        base_build_info: {version: '1.0', build_number: '2'},
       };
 
       render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
@@ -254,15 +229,9 @@ describe('BuildDetailsSidebarContent', () => {
     it('renders Base Build row with link even when projectId is null', async () => {
       const buildDetailsData: BuildDetailsApiResponse = {
         ...mockBuildDetailsData,
-        vcs_info: {
-          ...mockBuildDetailsData.vcs_info,
-          base_sha: 'def456',
-        },
+        vcs_info: {...mockBuildDetailsData.vcs_info, base_sha: 'def456'},
         base_artifact_id: 'base-artifact-id',
-        base_build_info: {
-          version: '1.0',
-          build_number: '2',
-        },
+        base_build_info: {version: '1.0', build_number: '2'},
       };
 
       render(
@@ -271,9 +240,7 @@ describe('BuildDetailsSidebarContent', () => {
           projectId={null as unknown as string}
           buildDetailsData={buildDetailsData}
         />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       await waitFor(() => {

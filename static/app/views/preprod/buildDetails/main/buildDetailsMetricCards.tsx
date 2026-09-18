@@ -135,9 +135,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
     totalSize > 0 ? totalPotentialSavings / totalSize : null;
   const potentialSavingsPercentageText =
     potentialSavingsPercentage !== null && potentialSavingsPercentage !== undefined
-      ? ` (${formatPercentage(potentialSavingsPercentage, 1, {
-          minimumValue: 0.001,
-        })})`
+      ? ` (${formatPercentage(potentialSavingsPercentage, 1, {minimumValue: 0.001})})`
       : undefined;
 
   const metricsCards: MetricCardConfig[] = [
@@ -380,11 +378,7 @@ function calculateDelta(
   const diff = headValue - baseValue;
   const percentageChange = baseValue === 0 ? 0 : diff / baseValue;
 
-  return {
-    baseValue,
-    diff,
-    percentageChange,
-  };
+  return {baseValue, diff, percentageChange};
 }
 
 const MetricValue = styled('span')<{$interactive?: boolean}>`

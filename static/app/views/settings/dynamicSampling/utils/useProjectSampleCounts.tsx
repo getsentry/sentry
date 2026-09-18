@@ -9,11 +9,7 @@ import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 
 interface MetricsQueryApiResponse {
   data: Array<
-    Array<{
-      by: Record<string, string>;
-      series: Array<number | null>;
-      totals: number;
-    }>
+    Array<{by: Record<string, string>; series: Array<number | null>; totals: number}>
   >;
   end: string;
   intervals: string[];
@@ -38,15 +34,9 @@ export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod
       getApiUrl('/organizations/$organizationIdOrSlug/sampling/project-root-counts/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          statsPeriod: period,
-        },
-      },
+      {query: {statsPeriod: period}},
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   const queryResult = data?.data?.[0];
@@ -86,12 +76,7 @@ export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod
 
       // Initialize the map with the project slug if needed
       if (!map.has(project.slug)) {
-        map.set(project.slug, {
-          project,
-          count: 0,
-          ownCount: 0,
-          subProjects: [],
-        });
+        map.set(project.slug, {project, count: 0, ownCount: 0, subProjects: []});
       }
 
       const entry = map.get(project.slug)!;
@@ -103,10 +88,7 @@ export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod
       if (subProject.id === project.id) {
         entry.ownCount = rowValue;
       } else {
-        entry.subProjects.push({
-          count: rowValue,
-          project: subProject,
-        });
+        entry.subProjects.push({count: rowValue, project: subProject});
       }
     }
 

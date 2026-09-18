@@ -54,10 +54,7 @@ const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options'
         // flip the popper to
         Math.max(width - overflow[widthSide] - x, -overflow[flippedWidthSide]);
 
-    state.modifiersData[name] = {
-      width: maxWidth,
-      height: maxHeight,
-    };
+    state.modifiersData[name] = {width: maxWidth, height: maxHeight};
   },
 };
 
@@ -174,10 +171,7 @@ export function useOverlay({
 
   const modifiers = useMemo(
     () => [
-      {
-        name: 'hide',
-        enabled: false,
-      },
+      {name: 'hide', enabled: false},
       {
         name: 'computeStyles',
         options: {
@@ -207,36 +201,19 @@ export function useOverlay({
           ...flipOptions,
         },
       },
-      {
-        name: 'offset',
-        options: {
-          offset: Array.isArray(offset) ? offset : [0, offset],
-        },
-      },
+      {name: 'offset', options: {offset: Array.isArray(offset) ? offset : [0, offset]}},
       {
         name: 'preventOverflow',
         enabled: true,
-        options: {
-          padding: 16,
-          ...preventOverflowOptions,
-        },
+        options: {padding: 16, ...preventOverflowOptions},
       },
       {
         ...maxSize,
         enabled: openState.isOpen,
-        options: {
-          padding: 16,
-          ...preventOverflowOptions,
-        },
+        options: {padding: 16, ...preventOverflowOptions},
       },
-      {
-        ...applyMinWidth,
-        enabled: openState.isOpen && shouldApplyMinWidth,
-      },
-      {
-        ...applyMaxSize,
-        enabled: openState.isOpen,
-      },
+      {...applyMinWidth, enabled: openState.isOpen && shouldApplyMinWidth},
+      {...applyMaxSize, enabled: openState.isOpen},
     ],
     [
       arrowElement,
@@ -341,10 +318,7 @@ export function useOverlay({
     state: openState,
     update: popperUpdate,
     triggerRef,
-    triggerProps: {
-      ref: setTriggerElement,
-      ...triggerAriaProps,
-    },
+    triggerProps: {ref: setTriggerElement, ...triggerAriaProps},
     overlayRef,
     overlayProps: {
       ref: setOverlayElement,

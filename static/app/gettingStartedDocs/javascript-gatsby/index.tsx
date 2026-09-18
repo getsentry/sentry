@@ -32,7 +32,5 @@ export const docs: Docs = {
     docsPlatform: 'gatsby',
     packageName: '@sentry/gatsby',
   }),
-  agentMonitoringOnboarding: agentMonitoring({
-    packageName: '@sentry/gatsby',
-  }),
+  agentMonitoringOnboarding: agentMonitoring({packageName: '@sentry/gatsby'}),
 };

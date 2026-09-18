@@ -5,15 +5,11 @@ import {EventMissingBanner} from 'sentry/views/issueDetails/eventMissingBanner';
 describe('EventMissingBanner', () => {
   it('renders elements for known event IDs', () => {
     const initialRouterConfig = {
-      location: {
-        pathname: '/organizations/org-slug/issues/group-1/events/recommended/',
-      },
+      location: {pathname: '/organizations/org-slug/issues/group-1/events/recommended/'},
       route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
     };
 
-    render(<EventMissingBanner />, {
-      initialRouterConfig,
-    });
+    render(<EventMissingBanner />, {initialRouterConfig});
 
     // Header
     expect(screen.getByText(/We couldn't track down an event/)).toBeInTheDocument();
@@ -27,15 +23,11 @@ describe('EventMissingBanner', () => {
 
   it('renders elements for specific event IDs', () => {
     const initialRouterConfig = {
-      location: {
-        pathname: '/organizations/org-slug/issues/group-1/events/abc123/',
-      },
+      location: {pathname: '/organizations/org-slug/issues/group-1/events/abc123/'},
       route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
     };
 
-    render(<EventMissingBanner />, {
-      initialRouterConfig,
-    });
+    render(<EventMissingBanner />, {initialRouterConfig});
 
     // Header
     expect(screen.getByText(/We couldn't track down that event/)).toBeInTheDocument();

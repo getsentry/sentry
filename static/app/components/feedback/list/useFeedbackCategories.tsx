@@ -31,39 +31,19 @@ export function useFeedbackCategories(): {
   const {data, isPending, isError} = useApiQuery<FeedbackCategoriesResponse>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/feedback-categories/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
+        path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          ...normalizedDateRange,
-          project: selection.projects,
-        },
-      },
+      {query: {...normalizedDateRange, project: selection.projects}},
     ],
-    {
-      staleTime: 5000,
-      retry: 1,
-    }
+    {staleTime: 5000, retry: 1}
   );
 
   if (isPending) {
-    return {
-      categories: null,
-      isPending: true,
-      isError: false,
-      tooFewFeedbacks: false,
-    };
+    return {categories: null, isPending: true, isError: false, tooFewFeedbacks: false};
   }
 
   if (isError) {
-    return {
-      categories: null,
-      isPending: false,
-      isError: true,
-      tooFewFeedbacks: false,
-    };
+    return {categories: null, isPending: false, isError: true, tooFewFeedbacks: false};
   }
 
   return {

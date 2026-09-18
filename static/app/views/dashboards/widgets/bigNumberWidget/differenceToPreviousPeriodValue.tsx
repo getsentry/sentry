@@ -41,9 +41,7 @@ export function DifferenceToPreviousPeriodValue({
   const directionMarker = getDifferenceDirectionMarker(difference);
 
   // Create a fake data row so we can pass it to field renderers. Omit the +/- sign since the direction marker will indicate it
-  const differenceAsDatum = {
-    [field ?? 'unknown']: Math.abs(difference),
-  };
+  const differenceAsDatum = {[field ?? 'unknown']: Math.abs(difference)};
 
   return (
     <Difference rating={rating}>

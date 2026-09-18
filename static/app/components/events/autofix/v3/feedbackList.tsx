@@ -125,11 +125,7 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
       if (!commentUrl) {
         return null;
       }
-      const comment = {
-        ...base,
-        githubUsername: source.comment?.user?.login,
-        commentUrl,
-      };
+      const comment = {...base, githubUsername: source.comment?.user?.login, commentUrl};
       return source.type === 'github-pr-review-comment'
         ? {...comment, sourceType: source.type, reviewId: source.review_id}
         : {...comment, sourceType: source.type};
@@ -154,11 +150,7 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
       };
     }
     default:
-      return {
-        ...base,
-        sourceType: 'other',
-        source: parsed.source?.type ?? 'unknown',
-      };
+      return {...base, sourceType: 'other', source: parsed.source?.type ?? 'unknown'};
   }
 }
 

@@ -63,9 +63,7 @@ export function SnapshotVariantFrame({
           position="absolute"
           inset={0}
           pointerEvents="none"
-          style={{
-            border: `1px solid ${theme.tokens.border.accent.vibrant}`,
-          }}
+          style={{border: `1px solid ${theme.tokens.border.accent.vibrant}`}}
         />
       ) : null}
     </SnapshotVariantContainer>

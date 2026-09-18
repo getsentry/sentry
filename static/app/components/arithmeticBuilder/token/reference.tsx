@@ -35,12 +35,7 @@ export function ArithmeticBuilderTokenReference({
   token,
 }: ArithmeticBuilderTokenReferenceProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {rowProps, gridCellProps} = useGridListItem({
-    item,
-    ref,
-    state,
-    focusable: true,
-  });
+  const {rowProps, gridCellProps} = useGridListItem({item, ref, state, focusable: true});
 
   return (
     <Row
@@ -124,9 +119,7 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
       text: value,
       type: 'REPLACE_TOKEN',
       token,
-      focusOverride: {
-        itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
-      },
+      focusOverride: {itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT)},
     });
     setInputValue('');
     setIsCurrentlyEditing(false);
@@ -203,9 +196,7 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
         text: option.value,
         type: 'REPLACE_TOKEN',
         token,
-        focusOverride: {
-          itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
-        },
+        focusOverride: {itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT)},
       });
       setInputValue('');
       setIsCurrentlyEditing(false);

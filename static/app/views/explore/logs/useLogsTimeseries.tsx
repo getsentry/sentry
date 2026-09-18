@@ -62,9 +62,7 @@ export function useLogsTimeseries({
   const timeseriesResult = useProgressiveQuery<typeof useLogsTimeseriesImpl>({
     queryHookImplementation: useLogsTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {enabled, timeseriesIngestDelay},
-    queryOptions: {
-      canTriggerHighAccuracy,
-    },
+    queryOptions: {canTriggerHighAccuracy},
   });
 
   return useStreamingTimeseriesResult(
@@ -79,11 +77,7 @@ function useLogsTimeseriesImpl({
   queryExtras,
   timeseriesIngestDelay,
 }: UseLogsTimeseriesImplOptions) {
-  const request = useLogsTimeseriesRequest({
-    enabled,
-    queryExtras,
-    timeseriesIngestDelay,
-  });
+  const request = useLogsTimeseriesRequest({enabled, queryExtras, timeseriesIngestDelay});
 
   const timeseriesResult = useSortedTimeSeries(
     request,
@@ -91,7 +85,5 @@ function useLogsTimeseriesImpl({
     DiscoverDatasets.OURLOGS
   );
 
-  return {
-    result: timeseriesResult,
-  };
+  return {result: timeseriesResult};
 }

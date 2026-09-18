@@ -3,10 +3,7 @@ import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/typ
 
 export const sampleRateData: CategoricalSeries = {
   valueAxis: 'spm()',
-  meta: {
-    valueType: 'rate',
-    valueUnit: RateUnit.PER_SECOND,
-  },
+  meta: {valueType: 'rate', valueUnit: RateUnit.PER_SECOND},
   values: [
     {category: 'GET /users', value: 125.5},
     {category: 'POST /orders', value: 45.2},

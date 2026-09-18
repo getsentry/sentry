@@ -15,14 +15,7 @@ function mockCore() {
 }
 
 function mockContext({prNumber = 123, headSha = 'abc123'} = {}) {
-  return {
-    payload: {
-      pull_request: {
-        number: prNumber,
-        head: {sha: headSha},
-      },
-    },
-  };
+  return {payload: {pull_request: {number: prNumber, head: {sha: headSha}}}};
 }
 
 function makeGithub({failUntilAttempt = 0} = {}) {

@@ -115,11 +115,7 @@ describe('ProjectKeyDetails', () => {
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
-      expect.objectContaining({
-        data: {
-          name: 'New Name',
-        },
-      })
+      expect.objectContaining({data: {name: 'New Name'}})
     );
   });
 
@@ -129,18 +125,14 @@ describe('ProjectKeyDetails', () => {
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
-      expect.objectContaining({
-        data: {isActive: false},
-      })
+      expect.objectContaining({data: {isActive: false}})
     );
 
     await userEvent.click(await screen.findByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
-      expect.objectContaining({
-        data: {isActive: false},
-      })
+      expect.objectContaining({data: {isActive: false}})
     );
   });
 
@@ -154,17 +146,9 @@ describe('ProjectKeyDetails', () => {
 
   it('does not resubmit a rate limit after the API canonicalizes it to null', async () => {
     project = ProjectFixture({features: ['rate-limits']});
-    projectKeys = [
-      {
-        ...ProjectKeysFixture()[0],
-        rateLimit: {count: 5, window: 60},
-      },
-    ];
+    projectKeys = [{...ProjectKeysFixture()[0], rateLimit: {count: 5, window: 60}}];
 
-    mockProjectKeyDetailsResponses(projectKeys[0], {
-      ...projectKeys[0]!,
-      rateLimit: null,
-    });
+    mockProjectKeyDetailsResponses(projectKeys[0], {...projectKeys[0]!, rateLimit: null});
 
     renderProjectKeyDetails();
 
@@ -183,9 +167,7 @@ describe('ProjectKeyDetails', () => {
 
     expect(putMock).toHaveBeenLastCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
-      expect.objectContaining({
-        data: {rateLimit: {count: 10, window: 60}},
-      })
+      expect.objectContaining({data: {rateLimit: {count: 10, window: 60}}})
     );
 
     // After API responds with null, the form resets — Reset should be disabled (pristine)

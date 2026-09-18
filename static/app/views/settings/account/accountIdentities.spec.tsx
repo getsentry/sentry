@@ -16,11 +16,7 @@ describe('AccountIdentities', () => {
   });
 
   it('renders empty', () => {
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: []});
 
     render(<AccountIdentities />);
   });
@@ -33,20 +29,14 @@ describe('AccountIdentities', () => {
         {
           category: 'social-identity',
           id: '1',
-          provider: {
-            key: 'github',
-            name: 'GitHub',
-          },
+          provider: {key: 'github', name: 'GitHub'},
           status: 'can_disconnect',
           organization: null,
         },
         {
           category: 'org-identity',
           id: '2',
-          provider: {
-            key: 'google',
-            name: 'Google',
-          },
+          provider: {key: 'google', name: 'Google'},
           status: 'needed_for_global_auth',
           organization: null,
         },
@@ -85,10 +75,7 @@ describe('AccountIdentities', () => {
         {
           category: 'social-identity',
           id: '1',
-          provider: {
-            key: 'github',
-            name: 'GitHub',
-          },
+          provider: {key: 'github', name: 'GitHub'},
           status: 'can_disconnect',
           organization: null,
         },
@@ -97,10 +84,7 @@ describe('AccountIdentities', () => {
 
     render(<AccountIdentities />);
 
-    const disconnectRequest = {
-      url: `${ENDPOINT}social-identity/1/`,
-      method: 'DELETE',
-    };
+    const disconnectRequest = {url: `${ENDPOINT}social-identity/1/`, method: 'DELETE'};
 
     const mock = MockApiClient.addMockResponse(disconnectRequest);
 
@@ -119,9 +103,7 @@ describe('AccountIdentities', () => {
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(
       `${ENDPOINT}social-identity/1/`,
-      expect.objectContaining({
-        method: 'DELETE',
-      })
+      expect.objectContaining({method: 'DELETE'})
     );
   });
 });

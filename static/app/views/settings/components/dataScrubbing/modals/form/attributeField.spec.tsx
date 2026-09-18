@@ -21,31 +21,11 @@ const defaultFieldProps = {
 describe('AttributeField', () => {
   const {organization} = initializeOrg();
   const mockAttributeKeys: Tag[] = [
-    {
-      key: 'user.email',
-      name: 'user.email',
-      kind: FieldKind.TAG,
-    },
-    {
-      key: 'user.id',
-      name: 'user.id',
-      kind: FieldKind.TAG,
-    },
-    {
-      key: 'custom.field',
-      name: 'custom.field',
-      kind: FieldKind.TAG,
-    },
-    {
-      key: 'request.method',
-      name: 'request.method',
-      kind: FieldKind.TAG,
-    },
-    {
-      key: 'response.status',
-      name: 'response.status',
-      kind: FieldKind.TAG,
-    },
+    {key: 'user.email', name: 'user.email', kind: FieldKind.TAG},
+    {key: 'user.id', name: 'user.id', kind: FieldKind.TAG},
+    {key: 'custom.field', name: 'custom.field', kind: FieldKind.TAG},
+    {key: 'request.method', name: 'request.method', kind: FieldKind.TAG},
+    {key: 'response.status', name: 'response.status', kind: FieldKind.TAG},
   ];
 
   beforeEach(() => {
@@ -57,12 +37,7 @@ describe('AttributeField', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [1],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: false},
     });
   });
 
@@ -325,11 +300,7 @@ describe('AttributeField', () => {
     const value = '';
     const manyAttributes: Tag[] = [];
     for (let i = 0; i < 100; i++) {
-      manyAttributes.push({
-        key: `attr${i}`,
-        name: `attr${i}`,
-        kind: FieldKind.TAG,
-      });
+      manyAttributes.push({key: `attr${i}`, name: `attr${i}`, kind: FieldKind.TAG});
     }
 
     mockTraceItemAttributeKeysApi(organization.slug, manyAttributes);
@@ -359,36 +330,20 @@ describe('AttributeField', () => {
   it('filters out tag-based attributes using elideTagBasedAttributes', async () => {
     const value = '';
     const attributesWithTags: Tag[] = [
-      {
-        key: 'user.email',
-        name: 'user.email',
-        kind: FieldKind.TAG,
-      },
+      {key: 'user.email', name: 'user.email', kind: FieldKind.TAG},
       {
         key: 'tags[environment,string]',
         name: 'tags[environment,string]',
         kind: FieldKind.TAG,
       },
-      {
-        key: 'tags[id,string]',
-        name: 'tags[id,string]',
-        kind: FieldKind.TAG,
-      },
-      {
-        key: 'tags[message,string]',
-        name: 'tags[message,string]',
-        kind: FieldKind.TAG,
-      },
+      {key: 'tags[id,string]', name: 'tags[id,string]', kind: FieldKind.TAG},
+      {key: 'tags[message,string]', name: 'tags[message,string]', kind: FieldKind.TAG},
       {
         key: 'tags[project_id,string]',
         name: 'tags[project_id,string]',
         kind: FieldKind.TAG,
       },
-      {
-        key: 'custom.field',
-        name: 'custom.field',
-        kind: FieldKind.TAG,
-      },
+      {key: 'custom.field', name: 'custom.field', kind: FieldKind.TAG},
     ];
 
     MockApiClient.clearMockResponses();

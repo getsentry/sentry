@@ -17,11 +17,7 @@ import GroupUptimeChecks from 'sentry/views/issueDetails/groupUptimeChecks';
 
 describe('GroupUptimeChecks', () => {
   const detectorId = '123';
-  const event = EventFixture({
-    occurrence: {
-      evidenceData: {detectorId},
-    },
-  });
+  const event = EventFixture({occurrence: {evidenceData: {detectorId}}});
   const group = GroupFixture({
     issueCategory: IssueCategory.UPTIME,
     issueType: IssueType.UPTIME_DOMAIN_FAILURE,
@@ -66,10 +62,7 @@ describe('GroupUptimeChecks', () => {
       body: [],
     });
 
-    render(<GroupUptimeChecks />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<GroupUptimeChecks />, {organization, initialRouterConfig});
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     for (const column of ['Timestamp', 'Status', 'Duration', 'Trace', 'Region']) {
       expect(screen.getByText(column)).toBeInTheDocument();
@@ -86,16 +79,11 @@ describe('GroupUptimeChecks', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-      },
+      body: {data: []},
       match: [MockApiClient.matchQuery({referrer: 'api.uptime-checks-grid'})],
     });
 
-    render(<GroupUptimeChecks />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<GroupUptimeChecks />, {organization, initialRouterConfig});
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     expect(screen.queryByText('No matching uptime checks found')).not.toBeInTheDocument();
     expect(screen.getByText('Showing 1-1 matching uptime checks')).toBeInTheDocument();
@@ -124,16 +112,11 @@ describe('GroupUptimeChecks', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [{trace: uptimeCheck.traceId, 'count()': 10}],
-      },
+      body: {data: [{trace: uptimeCheck.traceId, 'count()': 10}]},
       match: [MockApiClient.matchQuery({referrer: 'api.uptime-checks-grid'})],
     });
 
-    render(<GroupUptimeChecks />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<GroupUptimeChecks />, {organization, initialRouterConfig});
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
 
     const traceId = getShortEventId(uptimeCheck.traceId);

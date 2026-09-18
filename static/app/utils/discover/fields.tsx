@@ -33,10 +33,7 @@ import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './type
 
 export type SortKind = 'asc' | 'desc';
 
-export type Sort = {
-  field: string;
-  kind: SortKind;
-};
+export type Sort = {field: string; kind: SortKind};
 
 // Contains the URL field value & the related table column width.
 // Can be parsed into a Column using explodeField()
@@ -101,21 +98,9 @@ export type AggregationRefinement = string | undefined;
 // This type can be converted into a Field.field using generateFieldAsString()
 // When an alias is defined for a field, it will be shown as a column name in the table visualization.
 export type QueryFieldValue =
-  | {
-      field: string;
-      kind: 'field';
-      alias?: string;
-    }
-  | {
-      field: string;
-      kind: 'calculatedField';
-      alias?: string;
-    }
-  | {
-      field: string;
-      kind: 'equation';
-      alias?: string;
-    }
+  | {field: string; kind: 'field'; alias?: string}
+  | {field: string; kind: 'calculatedField'; alias?: string}
+  | {field: string; kind: 'equation'; alias?: string}
   | {
       function: [AggregationKeyWithAlias, string, ...AggregationRefinement[]];
       kind: 'function';
@@ -291,9 +276,7 @@ export const AGGREGATIONS = {
       if (parameter.kind === 'column') {
         return {defaultValue: 'user'};
       }
-      return {
-        defaultValue: parameter.defaultValue,
-      };
+      return {defaultValue: parameter.defaultValue};
     },
     parameters: [
       {
@@ -302,12 +285,7 @@ export const AGGREGATIONS = {
         defaultValue: 'user',
         required: true,
       },
-      {
-        kind: 'value',
-        dataType: 'number',
-        defaultValue: '300',
-        required: true,
-      },
+      {kind: 'value', dataType: 'number', defaultValue: '300', required: true},
     ],
     isSortable: true,
     multiPlotType: 'area',
@@ -331,12 +309,7 @@ export const AGGREGATIONS = {
         defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
         required: true,
       },
-      {
-        kind: 'value',
-        dataType: 'string',
-        defaultValue: '300',
-        required: true,
-      },
+      {kind: 'value', dataType: 'string', defaultValue: '300', required: true},
     ],
     isSortable: true,
     multiPlotType: 'area',
@@ -554,12 +527,7 @@ export const AGGREGATIONS = {
         defaultValue: 'transaction.duration',
         required: true,
       },
-      {
-        kind: 'value',
-        dataType: 'number',
-        defaultValue: '0.5',
-        required: true,
-      },
+      {kind: 'value', dataType: 'number', defaultValue: '0.5', required: true},
     ],
     isSortable: true,
     multiPlotType: 'line',
@@ -580,12 +548,7 @@ export const AGGREGATIONS = {
   [AggregationKey.APDEX]: {
     ...getDocsAndOutputType(AggregationKey.APDEX),
     parameters: [
-      {
-        kind: 'value',
-        dataType: 'number',
-        defaultValue: '300',
-        required: true,
-      },
+      {kind: 'value', dataType: 'number', defaultValue: '300', required: true},
     ],
     isSortable: true,
     multiPlotType: 'line',
@@ -593,12 +556,7 @@ export const AGGREGATIONS = {
   [AggregationKey.USER_MISERY]: {
     ...getDocsAndOutputType(AggregationKey.USER_MISERY),
     parameters: [
-      {
-        kind: 'value',
-        dataType: 'number',
-        defaultValue: '300',
-        required: true,
-      },
+      {kind: 'value', dataType: 'number', defaultValue: '300', required: true},
     ],
     isSortable: true,
     multiPlotType: 'line',
@@ -651,10 +609,7 @@ export const AGGREGATIONS = {
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
-const ALIASES = {
-  tpm: AggregationKey.EPM,
-  tps: AggregationKey.EPS,
-};
+const ALIASES = {tpm: AggregationKey.EPM, tps: AggregationKey.EPS};
 
 assert(AGGREGATIONS);
 
@@ -675,9 +630,7 @@ export type AggregationOutputType = Extract<
 
 export type PlotType = 'bar' | 'line' | 'area';
 
-type DefaultValueInputs = {
-  parameter: AggregateParameter;
-};
+type DefaultValueInputs = {parameter: AggregateParameter};
 
 export type Aggregation = {
   /**
@@ -713,10 +666,7 @@ export const SEMVER_TAGS = {
     key: FieldKey.RELEASE_VERSION,
     name: FieldKey.RELEASE_VERSION,
   },
-  [FieldKey.RELEASE_BUILD]: {
-    key: FieldKey.RELEASE_BUILD,
-    name: FieldKey.RELEASE_BUILD,
-  },
+  [FieldKey.RELEASE_BUILD]: {key: FieldKey.RELEASE_BUILD, name: FieldKey.RELEASE_BUILD},
   [FieldKey.RELEASE_PACKAGE]: {
     key: FieldKey.RELEASE_PACKAGE,
     name: FieldKey.RELEASE_PACKAGE,
@@ -993,16 +943,9 @@ export function parseFunction(field: string): ParsedFunction | null {
     const args = parseArguments(results[2]!);
     const firstArgument = args[0];
     if (isSearchFilterArgument(firstArgument ?? '') && name.endsWith(IF_SUFFIX)) {
-      return {
-        name,
-        arguments: args,
-        filter: firstArgument!.slice(1, -1),
-      };
+      return {name, arguments: args, filter: firstArgument!.slice(1, -1)};
     }
-    return {
-      name,
-      arguments: args,
-    };
+    return {name, arguments: args};
   }
 
   return null;
@@ -1152,10 +1095,7 @@ export function generateAggregateFields(
       if (overrides === undefined) {
         return param;
       }
-      return {
-        ...param,
-        ...overrides({parameter: param, organization}),
-      };
+      return {...param, ...overrides({parameter: param, organization})};
     });
 
     if (parameters.every((param: any) => param.defaultValue !== undefined)) {

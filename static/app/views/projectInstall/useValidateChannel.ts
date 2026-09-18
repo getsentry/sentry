@@ -3,10 +3,7 @@ import {skipToken} from '@tanstack/react-query';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {IntegrationChannel} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
-type Response = {
-  valid: boolean;
-  detail?: string;
-};
+type Response = {valid: boolean; detail?: string};
 
 /**
  * Returns the query options for checking whether a manually entered integration

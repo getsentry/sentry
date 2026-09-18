@@ -48,16 +48,8 @@ export enum ChartDataTransform {
 }
 
 export const CHART_OPTIONS_DATA_TRANSFORM: Array<SelectValue<ChartDataTransform>> = [
-  {
-    label: t('Cumulative'),
-    value: ChartDataTransform.CUMULATIVE,
-    disabled: false,
-  },
-  {
-    label: t('Periodic'),
-    value: ChartDataTransform.PERIODIC,
-    disabled: false,
-  },
+  {label: t('Cumulative'), value: ChartDataTransform.CUMULATIVE, disabled: false},
+  {label: t('Periodic'), value: ChartDataTransform.PERIODIC, disabled: false},
 ];
 
 export const enum SeriesTypes {
@@ -147,10 +139,7 @@ const cumulativeTotalDataTransformation: UsageChartProps['handleDataTransformati
       const [x, y] = stat.value;
       count = isCumulative ? count + y : y;
 
-      return {
-        ...stat,
-        value: [x, count],
-      };
+      return {...stat, value: [x, count]};
     });
   });
 
@@ -159,10 +148,7 @@ const cumulativeTotalDataTransformation: UsageChartProps['handleDataTransformati
 
 const getUnitYaxisFormatter =
   (dataCategory: UsageChartProps['dataCategory']) => (val: number) =>
-    formatUsageWithUnits(val, dataCategory, {
-      isAbbreviated: true,
-      useUnitScaling: true,
-    });
+    formatUsageWithUnits(val, dataCategory, {isAbbreviated: true, useUnitScaling: true});
 
 export type ChartStats = {
   accepted: NonNullable<BarSeriesOption['data']>;
@@ -214,9 +200,7 @@ function chartMetadata({
   }
 
   // Do not assume that handleDataTransformation is a pure function
-  const chartData: ChartStats = {
-    ...handleDataTransformation(usageStats, dataTransform),
-  };
+  const chartData: ChartStats = {...handleDataTransformation(usageStats, dataTransform)};
 
   Object.keys(chartData).forEach(k => {
     const isProjected = k === SeriesTypes.PROJECTED;
@@ -435,22 +419,14 @@ function UsageChartBody({
   return (
     <BaseChart
       colors={colors}
-      options={{
-        aria: {
-          decal: {
-            show: true,
-          },
-        },
-      }}
+      options={{aria: {decal: {show: true}}}}
       grid={{bottom: '3px', left: '3px', right: '10px', top: '40px'}}
       xAxis={createXAxisOptions({
         show: true,
         type: 'category',
         name: 'Date',
         data: xAxisData,
-        axisTick: {
-          alignWithLabel: true,
-        },
+        axisTick: {alignWithLabel: true},
         axisLabel: {
           interval: function (index: number) {
             return xAxisLabelVisibility[index]!;

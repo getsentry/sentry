@@ -18,9 +18,7 @@ describe('SamplingModeSwitch', () => {
   });
 
   it('cannot enter advanced mode from organization mode', async () => {
-    render(<SamplingModeSwitch />, {
-      organization,
-    });
+    render(<SamplingModeSwitch />, {organization});
 
     expect(screen.getByText('Advanced Mode')).toBeInTheDocument();
     expect(screen.getByRole('checkbox')).not.toBeChecked();
@@ -63,9 +61,7 @@ describe('SamplingModeSwitch', () => {
       samplingMode: 'project',
     });
 
-    render(<SamplingModeSwitch />, {
-      organization: orgWithoutAccess,
-    });
+    render(<SamplingModeSwitch />, {organization: orgWithoutAccess});
 
     expect(screen.getByRole('checkbox')).toBeDisabled();
 

@@ -16,17 +16,9 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {Field} from 'sentry/views/admin/options';
 import {getForm, getOptionDefault, getOptionField} from 'sentry/views/admin/options';
 
-type InstallWizardProps = {
-  onConfigured: () => void;
-};
+type InstallWizardProps = {onConfigured: () => void};
 
-export type InstallWizardOptions = Record<
-  string,
-  {
-    field: Field;
-    value?: unknown;
-  }
->;
+export type InstallWizardOptions = Record<string, {field: Field; value?: unknown}>;
 
 export default function InstallWizard({onConfigured}: InstallWizardProps) {
   const {
@@ -35,9 +27,7 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
     isError,
   } = useApiQuery<InstallWizardOptions>(
     [getApiUrl('/internal/options/'), {query: {query: 'is:required'}}],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   if (isPending) {

@@ -54,50 +54,17 @@ import {
 import {HiddenLogSearchFields} from './constants';
 
 export const LOG_AGGREGATES: Array<SelectOption<OurLogsAggregate>> = [
-  {
-    label: t('count'),
-    value: AggregationKey.COUNT,
-  },
-  {
-    label: t('count unique'),
-    value: AggregationKey.COUNT_UNIQUE,
-  },
-  {
-    label: t('sum'),
-    value: AggregationKey.SUM,
-  },
-  {
-    label: t('avg'),
-    value: AggregationKey.AVG,
-  },
-  {
-    label: t('p50'),
-    value: AggregationKey.P50,
-  },
-  {
-    label: t('p75'),
-    value: AggregationKey.P75,
-  },
-  {
-    label: t('p90'),
-    value: AggregationKey.P90,
-  },
-  {
-    label: t('p95'),
-    value: AggregationKey.P95,
-  },
-  {
-    label: t('p99'),
-    value: AggregationKey.P99,
-  },
-  {
-    label: t('max'),
-    value: AggregationKey.MAX,
-  },
-  {
-    label: t('min'),
-    value: AggregationKey.MIN,
-  },
+  {label: t('count'), value: AggregationKey.COUNT},
+  {label: t('count unique'), value: AggregationKey.COUNT_UNIQUE},
+  {label: t('sum'), value: AggregationKey.SUM},
+  {label: t('avg'), value: AggregationKey.AVG},
+  {label: t('p50'), value: AggregationKey.P50},
+  {label: t('p75'), value: AggregationKey.P75},
+  {label: t('p90'), value: AggregationKey.P90},
+  {label: t('p95'), value: AggregationKey.P95},
+  {label: t('p99'), value: AggregationKey.P99},
+  {label: t('max'), value: AggregationKey.MAX},
+  {label: t('min'), value: AggregationKey.MIN},
 ];
 
 export function LogsToolbar() {

@@ -18,11 +18,7 @@ import type {Project} from 'sentry/types/project';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-type Props = {
-  event: Event;
-  isShare: boolean;
-  project: Project;
-};
+type Props = {event: Event; isShare: boolean; project: Project};
 
 const keyMapping = {
   image_uuid: 'Debug ID',

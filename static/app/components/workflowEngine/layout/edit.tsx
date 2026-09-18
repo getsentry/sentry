@@ -142,10 +142,7 @@ function Footer({children, label, maxWidth}: FooterProps) {
   );
 }
 
-export const EditLayout = Object.assign(EditLayoutComponent, {
-  Body,
-  Footer,
-});
+export const EditLayout = Object.assign(EditLayoutComponent, {Body, Footer});
 
 /**
  * This component is for forms still using the legacy `FormModel` system.

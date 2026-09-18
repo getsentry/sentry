@@ -54,9 +54,7 @@ export function formatUsageWithUnits(
   ) {
     // Profile duration is in milliseconds, convert to hours
     const hours = usageQuantity / 1000 / 60 / 60;
-    return hours.toLocaleString(undefined, {
-      maximumFractionDigits: hours < 0.01 ? 3 : 2,
-    });
+    return hours.toLocaleString(undefined, {maximumFractionDigits: hours < 0.01 ? 3 : 2});
   }
 
   return options.isAbbreviated

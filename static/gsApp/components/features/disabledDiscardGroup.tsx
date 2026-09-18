@@ -12,10 +12,7 @@ import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
-type Props = {
-  features: Organization['features'];
-  organization: Organization;
-};
+type Props = {features: Organization['features']; organization: Organization};
 
 export function DisabledDiscardGroup({organization, features}: Props) {
   return (
@@ -31,10 +28,7 @@ export function DisabledDiscardGroup({organization, features}: Props) {
                 variant="primary"
                 icon={<IconBusiness />}
                 onClick={() =>
-                  openUpsellModal({
-                    organization,
-                    source: 'feature.discard_group',
-                  })
+                  openUpsellModal({organization, source: 'feature.discard_group'})
                 }
               >
                 {t('Learn More')}

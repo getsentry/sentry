@@ -95,10 +95,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   );
 
   const tableData: Array<
-    (typeof data)[0] & {
-      'avg(measurements.score.total)': number;
-    } & Opportunity &
-      Score
+    (typeof data)[0] & {'avg(measurements.score.total)': number} & Opportunity & Score
   > = data.map(row => {
     // Map back performance score key so we don't have to handle both keys in the UI
     const finalRow = {
@@ -126,9 +123,5 @@ export const useTransactionWebVitalsScoresQuery = ({
     };
   });
 
-  return {
-    data: tableData,
-    isPending,
-    ...rest,
-  };
+  return {data: tableData, isPending, ...rest};
 };

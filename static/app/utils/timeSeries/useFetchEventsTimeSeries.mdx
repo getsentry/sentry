@@ -12,9 +12,7 @@ The minimum requirements for a request are a Y axis, and a referrer string. The 
 
 ```jsx
 const {isPending, data, error} = useFetchSpanTimeSeries(
-  {
-    yAxis: 'p99(span.duration)',
-  },
+  {yAxis: 'p99(span.duration)'},
   'api.storybook.example'
 );
 

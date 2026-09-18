@@ -28,9 +28,7 @@ interface BaseTabProps {
   variant?: 'flat' | 'floating';
 }
 
-const StyledTabWrap = styled('li', {
-  shouldForwardProp: tabsShouldForwardProp,
-})<{
+const StyledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   overflowing: boolean;
   selected: boolean;
 }>`

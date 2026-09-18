@@ -256,10 +256,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
       setRootCauseAnalysisRepositories(prev => [...prev, repo]);
 
       // Initialize empty project mapping
-      setRepositoryProjectMapping(prev => ({
-        ...prev,
-        [repoId]: [],
-      }));
+      setRepositoryProjectMapping(prev => ({...prev, [repoId]: []}));
     },
     [repositoriesMap]
   );
@@ -311,10 +308,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
           newProjects[index] = newValue;
         }
 
-        const result = {
-          ...prev,
-          [repoId]: newProjects,
-        };
+        const result = {...prev, [repoId]: newProjects};
 
         return result;
       });

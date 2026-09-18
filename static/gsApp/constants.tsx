@@ -52,9 +52,10 @@ export enum AllocationTargetTypes {
 // XXX: initialize the BilledDataCategoryInfo-specific field for all non-billed
 // `categories and make TS happy so we can access the BilledDataCategoryInfo
 // fields directly without needing to check that they exist on the object
-const DEFAULT_BILLED_DATA_CATEGORY_INFO = {
-  ...DATA_CATEGORY_INFO,
-} as Record<DataCategoryExact, BilledDataCategoryInfo>;
+const DEFAULT_BILLED_DATA_CATEGORY_INFO = {...DATA_CATEGORY_INFO} as Record<
+  DataCategoryExact,
+  BilledDataCategoryInfo
+>;
 Object.entries(DEFAULT_BILLED_DATA_CATEGORY_INFO).forEach(
   ([categoryExact, categoryInfo]) => {
     DEFAULT_BILLED_DATA_CATEGORY_INFO[categoryExact as DataCategoryExact] = {

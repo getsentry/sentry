@@ -19,11 +19,7 @@ type RelativePeriodUnit = Exclude<PeriodUnit, 's'>;
 
 type RelativeUnitsMapping = Record<
   string,
-  {
-    convertToDaysMultiplier: number;
-    label: (num: number) => string;
-    searchKey: string;
-  }
+  {convertToDaysMultiplier: number; label: (num: number) => string; searchKey: string}
 >;
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
@@ -34,13 +30,7 @@ const RELATIVE_PERIOD_REGEX = /^(\d+)([mhdw])$/;
 const PERIOD_UNIT_TO_MOMENT_UNIT: Record<
   PeriodUnit,
   moment.unitOfTime.DurationConstructor
-> = {
-  s: 'seconds',
-  m: 'minutes',
-  h: 'hours',
-  d: 'days',
-  w: 'weeks',
-};
+> = {s: 'seconds', m: 'minutes', h: 'hours', d: 'days', w: 'weeks'};
 
 const SUPPORTED_RELATIVE_PERIOD_UNITS: RelativeUnitsMapping = {
   m: {
@@ -92,10 +82,7 @@ const parseRelativePeriodString = (relativePeriodString: string) => {
   const value = parseInt(result[1]!, 10);
   const unit = result[2] as RelativePeriodUnit;
 
-  return {
-    value,
-    unit,
-  };
+  return {value, unit};
 };
 
 /**
@@ -311,10 +298,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
 export const timeRangeAutoCompleteFilter = function (
   items: TimeRangeItem[] | null,
   filterValue: string,
-  options: {
-    maxDateRange?: number;
-    maxDays?: number;
-  }
+  options: {maxDateRange?: number; maxDays?: number}
 ): TimeRangeItem[] {
   return _timeRangeAutoCompleteFilter(items, filterValue, {
     supportedPeriods: SUPPORTED_RELATIVE_PERIOD_UNITS,

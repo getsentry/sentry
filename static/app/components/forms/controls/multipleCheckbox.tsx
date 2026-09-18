@@ -56,11 +56,7 @@ export function MultipleCheckbox<T extends string | number>({
   );
 
   const contextValue = useMemo(
-    () => ({
-      value,
-      handleChange,
-      name,
-    }),
+    () => ({value, handleChange, name}),
     [handleChange, name, value]
   );
 

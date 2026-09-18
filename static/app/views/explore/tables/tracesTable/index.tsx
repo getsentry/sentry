@@ -276,9 +276,7 @@ function Breakdown({trace}: {trace: TraceResult}) {
   const [highlightedSliceName, _setHighlightedSliceName] = useState('');
   const setHighlightedSliceName = useMemo(
     () =>
-      debounce(sliceName => _setHighlightedSliceName(sliceName), 100, {
-        leading: true,
-      }),
+      debounce(sliceName => _setHighlightedSliceName(sliceName), 100, {leading: true}),
     [_setHighlightedSliceName]
   );
 

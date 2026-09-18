@@ -28,10 +28,7 @@ describe('ProjectRouteProvider', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/users/`,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${org.slug}/users/`, body: []});
   });
 
   it('displays error on 404s', async () => {
@@ -143,9 +140,7 @@ describe('ProjectRouteProvider', () => {
 
     render(
       <ProjectRouteProvider projectSlug={project.slug}>{null}</ProjectRouteProvider>,
-      {
-        organization: org,
-      }
+      {organization: org}
     );
 
     await waitFor(() => {

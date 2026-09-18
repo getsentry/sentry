@@ -18,9 +18,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {SpanFields} from 'sentry/views/insights/types';
 
-type Props = {
-  segmentSpanName: string;
-};
+type Props = {segmentSpanName: string};
 
 const LIMIT = 10;
 
@@ -73,10 +71,7 @@ export function SpanCategoryFilter({segmentSpanName}: Props) {
 
     navigate({
       ...location,
-      query: {
-        ...location.query,
-        [SpanFields.SPAN_CATEGORY]: selectedOption?.value,
-      },
+      query: {...location.query, [SpanFields.SPAN_CATEGORY]: selectedOption?.value},
     });
   };
 

@@ -37,13 +37,7 @@ export function segmentTimeSeriesByIncompleteData(
   }
 
   return segments.map(partition => {
-    return [
-      {
-        ...timeSeries,
-        values: partition.data,
-      },
-      partition.predicateValue,
-    ];
+    return [{...timeSeries, values: partition.data}, partition.predicateValue];
   });
 }
 

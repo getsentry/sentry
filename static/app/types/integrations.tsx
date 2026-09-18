@@ -82,10 +82,7 @@ export type Repository = {
  * Available only when calling API with `expand=settings` query parameter
  */
 export interface RepositoryWithSettings extends Repository {
-  settings: null | {
-    codeReviewTriggers: CodeReviewTrigger[];
-    enabledCodeReview: boolean;
-  };
+  settings: null | {codeReviewTriggers: CodeReviewTrigger[]; enabledCodeReview: boolean};
 }
 
 export const DEFAULT_CODE_REVIEW_TRIGGERS: CodeReviewTrigger[] = ['on_ready_for_review'];
@@ -126,10 +123,7 @@ export type Committer = {
   group_owner_id?: number;
 };
 
-export type CommitAuthor = {
-  email?: string;
-  name?: string;
-};
+export type CommitAuthor = {email?: string; name?: string};
 
 export type PullRequestAuthor = User | CommitAuthor;
 
@@ -209,16 +203,8 @@ export type SentryAppStatus =
   | 'deletion_in_progress';
 
 export type SentryAppSchemaIssueLink = {
-  create: {
-    required_fields: any[];
-    uri: string;
-    optional_fields?: any[];
-  };
-  link: {
-    required_fields: any[];
-    uri: string;
-    optional_fields?: any[];
-  };
+  create: {required_fields: any[]; uri: string; optional_fields?: any[]};
+  link: {required_fields: any[]; uri: string; optional_fields?: any[]};
   type: 'issue-link';
 };
 
@@ -273,9 +259,7 @@ export type SentryApp = {
   // possible null params
   popularity: number | null;
   redirectUrl: string | null;
-  schema: {
-    elements?: SentryAppSchemaElement[];
-  };
+  schema: {elements?: SentryAppSchemaElement[]};
   scopes: Scope[];
   slug: string;
   status: SentryAppStatus;
@@ -291,10 +275,7 @@ export type SentryApp = {
   clientSecret?: string;
   // optional params below
   datePublished?: string;
-  owner?: {
-    id: number;
-    slug: string;
-  };
+  owner?: {id: number; slug: string};
   // Each entry is a "Header-Name: value" line. Saved values are masked by the API
   webhookHeaders?: string[];
 };
@@ -308,13 +289,8 @@ export type AvatarSentryApp = {
 };
 
 export type SentryAppInstallation = {
-  app: {
-    slug: string;
-    uuid: string;
-  };
-  organization: {
-    slug: string;
-  };
+  app: {slug: string; uuid: string};
+  organization: {slug: string};
   status: 'installed' | 'pending' | 'pending_deletion';
   uuid: string;
   code?: string;
@@ -326,20 +302,13 @@ export type SentryAppComponent<
     | SentryAppSchemaElement,
 > = {
   schema: Schema;
-  sentryApp: {
-    avatars: Avatar[];
-    name: string;
-    slug: string;
-    uuid: string;
-  };
+  sentryApp: {avatars: Avatar[]; name: string; slug: string; uuid: string};
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
   uuid: string;
   error?: string | boolean;
 };
 
-export type SentryAppAvatar = Avatar & {
-  photoType: SentryAppAvatarPhotoType;
-};
+export type SentryAppAvatar = Avatar & {photoType: SentryAppAvatarPhotoType};
 
 export type SentryAppAvatarPhotoType = 'icon' | 'logo';
 
@@ -351,11 +320,7 @@ export type SentryAppWebhookRequest = {
   webhookUrl: string;
   durationMs?: number | null;
   error_id?: string | null;
-  organization?: {
-    id: number;
-    name: string;
-    slug: string;
-  };
+  organization?: {id: number; name: string; slug: string};
   project_id?: number | null;
   requestId?: string | null;
   request_body?: string | null;
@@ -387,10 +352,7 @@ export type IntegrationInstallationStatus =
   | typeof DISABLED_STATUS
   | typeof PENDING_DELETION;
 
-type IntegrationDialog = {
-  actionText: string;
-  body: string;
-};
+type IntegrationDialog = {actionText: string; body: string};
 
 export type DocIntegration = {
   author: string;
@@ -414,16 +376,10 @@ type IntegrationAspects = {
       variant?: AlertProps['variant'];
     }
   >;
-  configure_integration?: {
-    title: string;
-  };
+  configure_integration?: {title: string};
   directEnable?: boolean;
   disable_dialog?: IntegrationDialog;
-  externalInstall?: {
-    buttonText: string;
-    noticeText: string;
-    url: string;
-  };
+  externalInstall?: {buttonText: string; noticeText: string; url: string};
   removal_dialog?: IntegrationDialog;
 };
 
@@ -469,20 +425,14 @@ export interface Integration extends CommonIntegration {
   /** OAuth scopes from provider metadata. Always sent; null when unused (e.g. GitHub). */
   scopes: string[] | null;
   dynamicDisplayInformation?: {
-    configure_integration?: {
-      instructions: string[];
-    };
-    integration_detail?: {
-      uninstallationUrl?: string;
-    };
+    configure_integration?: {instructions: string[]};
+    integration_detail?: {uninstallationUrl?: string};
   };
   // Present on OrganizationIntegration; for GitHub this is the App installation id.
   externalId?: string;
 }
 
-type ConfigData = Record<string, unknown> & {
-  installationType?: string;
-};
+type ConfigData = Record<string, unknown> & {installationType?: string};
 
 export interface OrganizationIntegration extends Integration {
   configData: ConfigData | null;
@@ -574,23 +524,13 @@ export type CodeOwner = {
   schema?: {rules: ParsedOwnershipRule[]; version: number};
 };
 
-export type CodeownersFile = {
-  filepath: string;
-  html_url: string;
-  raw: string;
-};
+export type CodeownersFile = {filepath: string; html_url: string; raw: string};
 
 type RepoName = string;
 type FileName = string;
 export type FilesByRepository = Record<
   RepoName,
-  Record<
-    FileName,
-    {
-      authors?: Record<string, CommitAuthor>;
-      types?: Set<string>;
-    }
-  >
+  Record<FileName, {authors?: Record<string, CommitAuthor>; types?: Set<string>}>
 >;
 
 interface BaseRepositoryProjectPathConfig {

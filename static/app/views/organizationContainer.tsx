@@ -14,9 +14,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 function OrganizationLoadingIndicator() {
   /* Track how long this component is rendered for. */
-  useProfiler('OrganizationLoadingIndicator', {
-    hasRenderSpan: true,
-  });
+  useProfiler('OrganizationLoadingIndicator', {hasRenderSpan: true});
 
   return <InitialLoadingIndicator fallback={<LoadingIndicator />} />;
 }

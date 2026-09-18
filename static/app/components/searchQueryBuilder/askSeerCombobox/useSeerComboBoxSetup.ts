@@ -244,12 +244,7 @@ export function buildSeerDateTimeSelection(
   });
 
   if (normalized.statsPeriod) {
-    return {
-      start: null,
-      end: null,
-      period: normalized.statsPeriod,
-      utc: null,
-    };
+    return {start: null, end: null, period: normalized.statsPeriod, utc: null};
   }
 
   if (normalized.start && normalized.end) {

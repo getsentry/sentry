@@ -99,10 +99,7 @@ export function OnboardingCopyMarkdownButton({
 
   const getMarkdown = () => {
     try {
-      const stepsMarkdown = stepsToMarkdown(steps, {
-        tabSelectionsMap,
-        authToken,
-      });
+      const stepsMarkdown = stepsToMarkdown(steps, {tabSelectionsMap, authToken});
 
       if (!postamble) {
         return stepsMarkdown;

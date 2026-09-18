@@ -85,11 +85,7 @@ export const alternativeProfiling = (params: DocsParams): ContentBlock => ({
       type: 'text',
       text: tct(
         'Alternatively, you can also explicitly control continuous profiling or use transaction profiling. See our [link:documentation] for more information.',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/python/profiling/" />
-          ),
-        }
+        {link: <ExternalLink href="https://docs.sentry.io/platforms/python/profiling/" />}
       ),
     },
   ],
@@ -97,9 +93,7 @@ export const alternativeProfiling = (params: DocsParams): ContentBlock => ({
 
 export const profiling = ({
   traceLifecycle = 'trace',
-}: {
-  traceLifecycle?: 'manual' | 'trace';
-} = {}): OnboardingConfig => ({
+}: {traceLifecycle?: 'manual' | 'trace'} = {}): OnboardingConfig => ({
   install: () => [
     {
       type: StepType.INSTALL,
@@ -108,14 +102,10 @@ export const profiling = ({
           type: 'text',
           text: tct(
             'To enable profiling, update the Sentry SDK to a compatible version ([code:2.24.1] or higher).',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        getPythonInstallCodeBlock({
-          minimumVersion: '2.24.1',
-        }),
+        getPythonInstallCodeBlock({minimumVersion: '2.24.1'}),
       ],
     },
   ],

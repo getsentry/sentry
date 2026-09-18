@@ -21,10 +21,7 @@ export function useIntegrations({integrationIds}: UseIntegrationsOptions) {
       apiOptions.as<OrganizationIntegration>()(
         '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
         {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            integrationId: String(id),
-          },
+          path: {organizationIdOrSlug: organization.slug, integrationId: String(id)},
           staleTime: Infinity,
         }
       )

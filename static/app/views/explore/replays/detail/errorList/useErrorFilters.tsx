@@ -12,14 +12,12 @@ export interface ErrorSelectOption extends SelectOption<string> {
   qs: 'f_e_level' | 'f_e_project';
 }
 
-const DEFAULT_FILTERS = {
-  f_e_level: [],
-  f_e_project: [],
-} as Record<ErrorSelectOption['qs'], string[]>;
+const DEFAULT_FILTERS = {f_e_level: [], f_e_project: []} as Record<
+  ErrorSelectOption['qs'],
+  string[]
+>;
 
-type Options = {
-  errorFrames: ErrorFrame[];
-};
+type Options = {errorFrames: ErrorFrame[]};
 
 type Return = {
   getLevelOptions: () => ErrorSelectOption[];
@@ -81,11 +79,7 @@ export function useErrorFilters({errorFrames}: Options): Return {
       )
         .filter(Boolean)
         .sort()
-        .map((value): ErrorSelectOption => ({
-          value,
-          label: value,
-          qs: 'f_e_project',
-        })),
+        .map((value): ErrorSelectOption => ({value, label: value, qs: 'f_e_project'})),
     [errorFrames, project]
   );
 
@@ -97,10 +91,7 @@ export function useErrorFilters({errorFrames}: Options): Return {
   const setFilters = useCallback(
     (value: ErrorSelectOption[]) => {
       const groupedValues = value.reduce((state, selection) => {
-        return {
-          ...state,
-          [selection.qs]: [...state[selection.qs], selection.value],
-        };
+        return {...state, [selection.qs]: [...state[selection.qs], selection.value]};
       }, DEFAULT_FILTERS);
       setFilter(groupedValues);
     },

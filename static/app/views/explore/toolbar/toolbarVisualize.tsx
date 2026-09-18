@@ -194,11 +194,7 @@ function ToolbarVisualizeItem({
   const aggregateOptions = useMemo(
     () =>
       ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
-        return {
-          label: aggregate,
-          value: aggregate,
-          textValue: aggregate,
-        };
+        return {label: aggregate, value: aggregate, textValue: aggregate};
       }),
     []
   );

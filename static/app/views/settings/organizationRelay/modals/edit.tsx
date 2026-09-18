@@ -3,9 +3,7 @@ import type {Relay} from 'sentry/types/relay';
 
 import {ModalManager} from './modalManager';
 
-type Props = {
-  relay: Relay;
-} & ModalManager['props'];
+type Props = {relay: Relay} & ModalManager['props'];
 
 export class Edit extends ModalManager<Props> {
   getDefaultState() {

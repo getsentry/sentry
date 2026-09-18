@@ -6,20 +6,10 @@ export function recordingEndFrame(replayRecord: HydratedReplayRecord): Recording
   return {
     type: EventType.Custom,
     timestamp: replayRecord.finished_at.getTime(),
-    data: {
-      tag: 'replay.end',
-      payload: {},
-    },
+    data: {tag: 'replay.end', payload: {}},
   };
 }
 
 export function clipEndFrame(timestamp: number): RecordingFrame {
-  return {
-    type: EventType.Custom,
-    timestamp,
-    data: {
-      tag: 'replay.clip_end',
-      payload: {},
-    },
-  };
+  return {type: EventType.Custom, timestamp, data: {tag: 'replay.clip_end', payload: {}}};
 }

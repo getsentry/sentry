@@ -13,19 +13,14 @@ export type SeriesDataUnit = {
   // number because we sometimes use timestamps
   name: string | number;
   value: number;
-  itemStyle?: {
-    color?: string;
-  };
+  itemStyle?: {color?: string};
   onClick?: (series: Series, instance: ECharts) => void;
 };
 
 export type Series = {
   data: SeriesDataUnit[];
   seriesName: string;
-  areaStyle?: {
-    color: string | PatternObject;
-    opacity: number;
-  };
+  areaStyle?: {color: string | PatternObject; opacity: number};
   color?: string;
   confidence?: Confidence;
   id?: string;

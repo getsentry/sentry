@@ -15,20 +15,14 @@ import {TransactionNode} from './transactionNode';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 describe('SiblingAutogroupNode', () => {
   describe('constructor', () => {
     it('should initialize with basic properties', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'db.query',
-          description: 'Database operations',
-        },
+        autogrouped_by: {op: 'db.query', description: 'Database operations'},
       });
 
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
@@ -42,15 +36,9 @@ describe('SiblingAutogroupNode', () => {
 
     it('should initialize with parent node', () => {
       const extra = createMockExtra();
-      const parentValue = makeEAPSpan({
-        event_id: 'parent',
-        is_transaction: true,
-      });
+      const parentValue = makeEAPSpan({event_id: 'parent', is_transaction: true});
       const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'http.request',
-          description: 'HTTP requests',
-        },
+        autogrouped_by: {op: 'http.request', description: 'HTTP requests'},
       });
 
       const parentNode = new EapSpanNode(null, parentValue, extra);
@@ -90,10 +78,7 @@ describe('SiblingAutogroupNode', () => {
     it('should return correct op from value', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'db.query',
-          description: 'Database operations',
-        },
+        autogrouped_by: {op: 'db.query', description: 'Database operations'},
       });
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
@@ -103,10 +88,7 @@ describe('SiblingAutogroupNode', () => {
     it('should return correct description from value', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'http.request',
-          description: 'HTTP requests',
-        },
+        autogrouped_by: {op: 'http.request', description: 'HTTP requests'},
       });
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
@@ -116,10 +98,7 @@ describe('SiblingAutogroupNode', () => {
     it('should return correct drawerTabsTitle', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'db.query',
-          description: 'Database operations',
-        },
+        autogrouped_by: {op: 'db.query', description: 'Database operations'},
       });
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
@@ -129,10 +108,7 @@ describe('SiblingAutogroupNode', () => {
     it('should return correct traceHeaderTitle', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'http.request',
-          description: 'GET /api/users',
-        },
+        autogrouped_by: {op: 'http.request', description: 'GET /api/users'},
       });
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
@@ -145,10 +121,7 @@ describe('SiblingAutogroupNode', () => {
     it('should return fallback traceHeaderTitle when op is empty', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: '',
-          description: 'Some description',
-        },
+        autogrouped_by: {op: '', description: 'Some description'},
       });
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
@@ -245,10 +218,7 @@ describe('SiblingAutogroupNode', () => {
     it('should return correct printNode', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'custom.operation',
-          description: 'Custom description',
-        },
+        autogrouped_by: {op: 'custom.operation', description: 'Custom description'},
       });
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
@@ -260,10 +230,7 @@ describe('SiblingAutogroupNode', () => {
     it('should match by operation', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'db.query',
-          description: 'Database operations',
-        },
+        autogrouped_by: {op: 'db.query', description: 'Database operations'},
       });
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
@@ -275,10 +242,7 @@ describe('SiblingAutogroupNode', () => {
     it('should match by description', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'http.request',
-          description: 'SELECT * FROM users',
-        },
+        autogrouped_by: {op: 'http.request', description: 'SELECT * FROM users'},
       });
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
@@ -290,10 +254,7 @@ describe('SiblingAutogroupNode', () => {
     it('should prioritize operation match over description', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'db.query',
-          description: 'Database operation failed',
-        },
+        autogrouped_by: {op: 'db.query', description: 'Database operation failed'},
       });
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
@@ -332,10 +293,7 @@ describe('SiblingAutogroupNode', () => {
     it('should handle groupCount updates in printNode output', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'test.op',
-          description: 'Test operation',
-        },
+        autogrouped_by: {op: 'test.op', description: 'Test operation'},
       });
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 

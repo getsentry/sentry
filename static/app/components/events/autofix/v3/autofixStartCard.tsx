@@ -102,8 +102,6 @@ export function AutofixStartCardContent() {
   );
 }
 
-const ImageContainer = styled(Flex)<{
-  aspectRatio?: CSS['aspectRatio'];
-}>`
+const ImageContainer = styled(Flex)<{aspectRatio?: CSS['aspectRatio']}>`
   ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
 `;

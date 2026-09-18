@@ -18,9 +18,7 @@ export function useReorderStarredDashboards() {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'PUT',
-        data: {
-          dashboard_ids: dashboards.map(dashboard => dashboard.id),
-        },
+        data: {dashboard_ids: dashboards.map(dashboard => dashboard.id)},
       }),
     onMutate: dashboards => {
       queryClient.setQueryData(queryKey, prev =>

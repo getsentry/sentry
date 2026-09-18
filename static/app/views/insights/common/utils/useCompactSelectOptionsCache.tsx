@@ -21,10 +21,7 @@ type Option = SelectOption<SelectKey>;
 export function useCompactSelectOptionsCache<T extends Option>(
   options: T[],
   cacheKey = 'cacheKey'
-): {
-  clear: () => void;
-  options: T[];
-} {
+): {clear: () => void; options: T[]} {
   const cacheMap = useRef({[cacheKey]: new Map()});
   // oxlint-disable-next-line react/refs
   if (!cacheMap.current[cacheKey]) {

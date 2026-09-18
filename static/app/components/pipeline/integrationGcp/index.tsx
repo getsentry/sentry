@@ -149,10 +149,7 @@ function GcpCustomerConfigStep({
     defaultValues: emptyGcpCustomerConfig,
     validators: {onDynamic: gcpCustomerConfigSchema},
     onSubmit: ({value}) => {
-      advance({
-        customerSaEmail: value.customerSaEmail,
-        projects: value.projects,
-      });
+      advance({customerSaEmail: value.customerSaEmail, projects: value.projects});
     },
   });
 

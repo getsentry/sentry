@@ -177,18 +177,12 @@ export function resolveSeerProjectSelection(
     if (allResolved && !queryHasOr(query)) {
       search.removeFilter('project');
       search.removeFilter('project.id');
-      return {
-        projectIds: Array.from(new Set(resolvedIds)),
-        query: search.formatString(),
-      };
+      return {projectIds: Array.from(new Set(resolvedIds)), query: search.formatString()};
     }
     return {projectIds: undefined, query};
   }
 
-  return {
-    projectIds: expandedProjectIds?.length ? expandedProjectIds : undefined,
-    query,
-  };
+  return {projectIds: expandedProjectIds?.length ? expandedProjectIds : undefined, query};
 }
 
 export function getCrossEventFilterQuery(crossEvent: CrossEvent): string {
@@ -391,10 +385,7 @@ const FILTER_PHRASES: ReadonlyArray<{
   // Wildcards use the wildcard markers the builder parses back into a proper
   // chip (CONTAINS / STARTS_WITH / ENDS_WITH). Negation is the `!` prefix — the
   // DoesNot* markers are display-only and aren't valid query input.
-  {
-    phrase: 'does not contain',
-    esq: (k, v) => `!${k}:${WildcardOperators.CONTAINS}${v}`,
-  },
+  {phrase: 'does not contain', esq: (k, v) => `!${k}:${WildcardOperators.CONTAINS}${v}`},
   {
     phrase: 'does not start with',
     esq: (k, v) => `!${k}:${WildcardOperators.STARTS_WITH}${v}`,

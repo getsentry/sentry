@@ -35,9 +35,7 @@ export function useMonitorStats({monitors, timeWindowConfig}: Options) {
 
   const monitorStatsQueryKey = getApiUrl(
     '/organizations/$organizationIdOrSlug/monitors-stats/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-    }
+    {path: {organizationIdOrSlug: organization.slug}}
   );
 
   return useApiQuery<Result>(
@@ -52,10 +50,6 @@ export function useMonitorStats({monitors, timeWindowConfig}: Options) {
         },
       },
     ],
-    {
-      staleTime: 0,
-      enabled: rollupConfig.totalBuckets > 0,
-      retry: false,
-    }
+    {staleTime: 0, enabled: rollupConfig.totalBuckets > 0, retry: false}
   );
 }

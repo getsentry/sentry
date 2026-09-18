@@ -30,10 +30,7 @@ describe('GroupDetailsLayout', () => {
   beforeEach(() => {
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/flags/logs/',
       body: {data: []},
@@ -47,10 +44,7 @@ describe('GroupDetailsLayout', () => {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/repos/',
-      body: {},
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/repos/', body: {}});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
@@ -96,9 +90,7 @@ describe('GroupDetailsLayout', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-      }),
+      body: AutofixSetupFixture({integration: {ok: true, reason: null}}),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',

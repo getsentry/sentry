@@ -27,10 +27,7 @@ export function useOrganizationMutationOptions(organization: Organization) {
   ] as const;
   const queryOptions = apiOptions.as<Organization>()(
     '/organizations/$organizationIdOrSlug/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
   );
 
   return mutationOptions({
@@ -66,10 +63,7 @@ export function useOrganizationMutationOptions(organization: Organization) {
       // 3. update the v2 cache
       queryClient.setQueryData(queryOptions.queryKey, prevApiResponse =>
         prevApiResponse
-          ? {
-              ...prevApiResponse,
-              json: updatedOrganization,
-            }
+          ? {...prevApiResponse, json: updatedOrganization}
           : prevApiResponse
       );
 
@@ -101,10 +95,7 @@ export function useOrganizationMutationOptions(organization: Organization) {
         // 3. rollback the v2 cache
         queryClient.setQueryData(queryOptions.queryKey, prevApiResponse =>
           prevApiResponse
-            ? {
-                ...prevApiResponse,
-                json: context.previousOrganization,
-              }
+            ? {...prevApiResponse, json: context.previousOrganization}
             : prevApiResponse
         );
       }

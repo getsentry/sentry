@@ -39,9 +39,7 @@ describe('IssuesSecondaryNavigation', () => {
   }
 
   it('shows the inbox count for Seer progress sections assigned or suggested to the user', async () => {
-    const request = mockInboxCount({
-      [inboxCountQuery]: 12,
-    });
+    const request = mockInboxCount({[inboxCountQuery]: 12});
 
     renderNavigation();
 
@@ -61,9 +59,7 @@ describe('IssuesSecondaryNavigation', () => {
   });
 
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
-    mockInboxCount({
-      [inboxCountQuery]: 100,
-    });
+    mockInboxCount({[inboxCountQuery]: 100});
 
     renderNavigation();
 

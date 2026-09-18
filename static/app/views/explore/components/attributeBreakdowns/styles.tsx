@@ -36,10 +36,7 @@ function FeedbackButton() {
           messagePlaceholder: t(
             'How can we make attribute breakdowns work better for you?'
           ),
-          tags: {
-            'feedback.source': 'attribute-breakdowns',
-            'feedback.owner': 'ml-ai',
-          },
+          tags: {'feedback.source': 'attribute-breakdowns', 'feedback.owner': 'ml-ai'},
         })
       }
     >
@@ -80,28 +77,20 @@ const StyledIconTimer = styled(IconTimer)`
 
 const ERROR_STATE_CONFIG: Record<
   number | 'default',
-  {
-    icon: React.ReactNode;
-    subtitle: React.ReactNode;
-    title: string;
-  }
+  {icon: React.ReactNode; subtitle: React.ReactNode; title: string}
 > = {
   504: {
     title: t('Query timed out'),
     icon: <StyledIconTimer size="xl" />,
     subtitle: tct(
       'You can try narrowing the time range. Seeing this often? [feedbackLink]',
-      {
-        feedbackLink: <FeedbackLink />,
-      }
+      {feedbackLink: <FeedbackLink />}
     ),
   },
   default: {
     title: t('Failed to load attribute breakdowns'),
     icon: <StyledIconWarning size="xl" />,
-    subtitle: tct('Seeing this often? [feedbackLink]', {
-      feedbackLink: <FeedbackLink />,
-    }),
+    subtitle: tct('Seeing this often? [feedbackLink]', {feedbackLink: <FeedbackLink />}),
   },
 };
 
@@ -130,9 +119,7 @@ function EmptySearchState() {
         {t('No matching attributes found')}
       </Text>
       <Text size="md" variant="muted">
-        {tct('Expecting results? [feedbackLink]', {
-          feedbackLink: <FeedbackLink />,
-        })}
+        {tct('Expecting results? [feedbackLink]', {feedbackLink: <FeedbackLink />})}
       </Text>
     </Stack>
   );
@@ -261,12 +248,7 @@ function Chart({
       ref={chartRef}
       autoHeightResize
       tooltip={tooltip}
-      grid={{
-        left: 2,
-        right: 8,
-        bottom: 40,
-        containLabel: false,
-      }}
+      grid={{left: 2, right: 8, bottom: 40, containLabel: false}}
       xAxis={{
         show: true,
         type: 'category',
@@ -274,9 +256,7 @@ function Chart({
         truncate: 14,
         axisLabel:
           xAxisData.length > 20
-            ? {
-                show: false,
-              }
+            ? {show: false}
             : {
                 hideOverlap: false,
                 showMaxLabel: false,

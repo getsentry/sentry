@@ -32,24 +32,14 @@ export type SpanBoundsType = {endTimestamp: number; startTimestamp: number};
 export type SpanGeneratedBoundsType =
   | {isSpanVisibleInView: boolean; type: 'TRACE_TIMESTAMPS_EQUAL'}
   | {isSpanVisibleInView: boolean; type: 'INVALID_VIEW_WINDOW'}
-  | {
-      isSpanVisibleInView: boolean;
-      start: number;
-      type: 'TIMESTAMPS_EQUAL';
-      width: number;
-    }
+  | {isSpanVisibleInView: boolean; start: number; type: 'TIMESTAMPS_EQUAL'; width: number}
   | {
       end: number;
       isSpanVisibleInView: boolean;
       start: number;
       type: 'TIMESTAMPS_REVERSED';
     }
-  | {
-      end: number;
-      isSpanVisibleInView: boolean;
-      start: number;
-      type: 'TIMESTAMPS_STABLE';
-    };
+  | {end: number; isSpanVisibleInView: boolean; start: number; type: 'TIMESTAMPS_STABLE'};
 
 export enum SpanSubTimingMark {
   SPAN_START = 0,
@@ -104,10 +94,7 @@ export function getTraceDateTimeRange(input: {end: number; start: number}): {
     .utc()
     .format('YYYY-MM-DDTHH:mm:ss.SSS');
 
-  return {
-    start,
-    end,
-  };
+  return {start, end};
 }
 
 function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
@@ -344,10 +331,7 @@ export function parseTrace(
       // so we set its parent span id to be the root transaction span's id
       span.parent_span_id = rootSpanID;
 
-      span = {
-        type: 'orphan',
-        ...span,
-      };
+      span = {type: 'orphan', ...span};
     }
 
     assert(span.parent_span_id);

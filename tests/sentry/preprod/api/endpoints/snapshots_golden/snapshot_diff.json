@@ -42,9 +42,7 @@
         "height": 40,
         "image_file_name": "b_changed.png",
         "key": "h_changed",
-        "tags": {
-          "env": "prod"
-        },
+        "tags": {"env": "prod"},
         "width": 30
       }
     }
@@ -188,13 +186,8 @@
       "height": 60,
       "image_file_name": "c_unchanged.png",
       "key": "h_unchanged",
-      "nested_extra": {
-        "k": 1
-      },
-      "tags": {
-        "one": "one",
-        "two": "two"
-      },
+      "nested_extra": {"k": 1},
+      "tags": {"one": "one", "two": "two"},
       "width": 50
     }
   ],

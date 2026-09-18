@@ -104,24 +104,10 @@ const FILTER_KEYS: TagCollection = {
     predefined: true,
     values: ['[Filtered]'],
   },
-  custom_tag_name: {
-    key: 'custom_tag_name',
-    name: 'Custom_Tag_Name',
-  },
-  uncategorized_tag: {
-    key: 'uncategorized_tag',
-    name: 'uncategorized_tag',
-  },
-  'tags[foo,string]': {
-    key: 'tags[foo,string]',
-    name: 'foo',
-    kind: FieldKind.TAG,
-  },
-  'tags[bar,number]': {
-    key: 'tags[bar,number]',
-    name: 'bar',
-    kind: FieldKind.MEASUREMENT,
-  },
+  custom_tag_name: {key: 'custom_tag_name', name: 'Custom_Tag_Name'},
+  uncategorized_tag: {key: 'uncategorized_tag', name: 'uncategorized_tag'},
+  'tags[foo,string]': {key: 'tags[foo,string]', name: 'foo', kind: FieldKind.TAG},
+  'tags[bar,number]': {key: 'tags[bar,number]', name: 'bar', kind: FieldKind.MEASUREMENT},
   [FieldKey.RELEASE_VERSION]: {
     key: FieldKey.RELEASE_VERSION,
     name: 'Release Version',
@@ -143,11 +129,7 @@ const FILTER_KEY_SECTIONS: FilterKeySection[] = [
       FieldKey.TIMES_SEEN,
     ],
   },
-  {
-    value: FieldKind.TAG,
-    label: 'Category 2',
-    children: ['custom_tag_name'],
-  },
+  {value: FieldKind.TAG, label: 'Category 2', children: ['custom_tag_name']},
 ];
 
 const numberOperatorConversionOrganization = OrganizationFixture({
@@ -195,10 +177,7 @@ describe('SearchQueryBuilder', () => {
     getTagValues: jest.fn(() => Promise.resolve([])),
     initialQuery: '',
     filterKeySections: FILTER_KEY_SECTIONS,
-    filterKeys: {
-      ...FILTER_KEYS,
-      has: getHasTag(FILTER_KEYS),
-    },
+    filterKeys: {...FILTER_KEYS, has: getHasTag(FILTER_KEYS)},
     label: 'Query Builder',
     searchSource: '',
   };
@@ -524,10 +503,7 @@ describe('SearchQueryBuilder', () => {
             return getFieldDefinition(key);
           }
 
-          return {
-            kind: FieldKind.FIELD,
-            valueType: null,
-          };
+          return {kind: FieldKind.FIELD, valueType: null};
         };
 
         render(
@@ -561,9 +537,7 @@ describe('SearchQueryBuilder', () => {
         );
 
         await userEvent.click(
-          screen.getByRole('button', {
-            name: 'Edit value for filter: browser.name',
-          })
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
 
         expect(
@@ -1406,14 +1380,7 @@ describe('SearchQueryBuilder', () => {
 
       // First freeText area is 5px wide
       freeText1!.getBoundingClientRect = () => {
-        return {
-          top: 0,
-          left: 10,
-          bottom: 10,
-          right: 15,
-          width: 5,
-          height: 10,
-        } as DOMRect;
+        return {top: 0, left: 10, bottom: 10, right: 15, width: 5, height: 10} as DOMRect;
       };
       // "is:unresolved" filter is 100px wide
       filter!.getBoundingClientRect = () => {
@@ -1498,9 +1465,7 @@ describe('SearchQueryBuilder', () => {
 
       expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
       expect(
-        await screen.findByRole('row', {
-          name: `a:${WildcardOperators.CONTAINS}b`,
-        })
+        await screen.findByRole('row', {name: `a:${WildcardOperators.CONTAINS}b`})
       ).toBeInTheDocument();
 
       expect(mockOnChange).toHaveBeenCalledTimes(1);
@@ -1619,11 +1584,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
 
       // New token should have a value, and selecting from dropdown switches operator to "is"
-      expect(
-        screen.getByRole('row', {
-          name: 'browser.name:Firefox',
-        })
-      ).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
 
       // Now we call onChange
       expect(mockOnChange).toHaveBeenCalledTimes(1);
@@ -1659,9 +1620,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.click(screen.getByRole('option', {name: filterKey}));
 
       expect(
-        screen.getByRole('row', {
-          name: `"${filterKey}":${WildcardOperators.CONTAINS}""`,
-        })
+        screen.getByRole('row', {name: `"${filterKey}":${WildcardOperators.CONTAINS}""`})
       ).toBeInTheDocument();
     });
 
@@ -1672,9 +1631,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.click(screen.getByRole('option', {name: 'custom_tag_name'}));
 
       expect(
-        screen.getByRole('row', {
-          name: `custom_tag_name:${WildcardOperators.CONTAINS}""`,
-        })
+        screen.getByRole('row', {name: `custom_tag_name:${WildcardOperators.CONTAINS}""`})
       ).toBeInTheDocument();
     });
 
@@ -1851,9 +1808,7 @@ describe('SearchQueryBuilder', () => {
 
       // Selecting from dropdown switches operator from contains to "is"
       expect(
-        await screen.findByRole('row', {
-          name: 'message:"[Filtered]"',
-        })
+        await screen.findByRole('row', {name: 'message:"[Filtered]"'})
       ).toBeInTheDocument();
     });
   });
@@ -1865,9 +1820,7 @@ describe('SearchQueryBuilder', () => {
 
       await userEvent.type(getLastInput(), 'bro');
 
-      const browserNameOption = await screen.findByRole('option', {
-        name: 'browser.name',
-      });
+      const browserNameOption = await screen.findByRole('option', {name: 'browser.name'});
       expect(
         within(browserNameOption).getByTestId('sqb-highlighted-match')
       ).toHaveTextContent('bro');
@@ -1879,9 +1832,7 @@ describe('SearchQueryBuilder', () => {
 
       await userEvent.type(getLastInput(), 'BRO');
 
-      const browserNameOption = await screen.findByRole('option', {
-        name: 'browser.name',
-      });
+      const browserNameOption = await screen.findByRole('option', {name: 'browser.name'});
       expect(
         within(browserNameOption).getByTestId('sqb-highlighted-match')
       ).toHaveTextContent('bro');
@@ -1893,9 +1844,7 @@ describe('SearchQueryBuilder', () => {
 
       await userEvent.type(getLastInput(), 'browsr');
 
-      const browserNameOption = await screen.findByRole('option', {
-        name: 'browser.name',
-      });
+      const browserNameOption = await screen.findByRole('option', {name: 'browser.name'});
       expect(
         within(browserNameOption).queryByTestId('sqb-highlighted-match')
       ).not.toBeInTheDocument();
@@ -1934,9 +1883,7 @@ describe('SearchQueryBuilder', () => {
         screen.getByRole('combobox', {name: 'Add a search term'}),
         'foo bar'
       );
-      const suggestionItem = await screen.findByRole('option', {
-        name: '"foo bar"',
-      });
+      const suggestionItem = await screen.findByRole('option', {name: '"foo bar"'});
 
       // Clicking it should add quotes and fire the search
       await userEvent.click(suggestionItem);
@@ -1951,17 +1898,13 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(getLastInput());
 
         await userEvent.type(getLastInput(), 'and');
-        const andSuggestionItem = await screen.findByRole('option', {
-          name: 'AND',
-        });
+        const andSuggestionItem = await screen.findByRole('option', {name: 'AND'});
         expect(andSuggestionItem).toBeInTheDocument();
 
         await userEvent.clear(getLastInput());
 
         await userEvent.type(getLastInput(), 'or');
-        const orSuggestionItem = await screen.findByRole('option', {
-          name: 'OR',
-        });
+        const orSuggestionItem = await screen.findByRole('option', {name: 'OR'});
         expect(orSuggestionItem).toBeInTheDocument();
       });
     });
@@ -1970,11 +1913,7 @@ describe('SearchQueryBuilder', () => {
   describe('keyboard interactions', () => {
     beforeEach(() => {
       // jsdom does not support clipboard API
-      Object.assign(navigator, {
-        clipboard: {
-          writeText: jest.fn().mockResolvedValue(''),
-        },
-      });
+      Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
     });
 
     it('can remove a previous token by pressing backspace', async () => {
@@ -3894,9 +3833,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.keyboard('{enter}');
 
         expect(
-          await screen.findByRole('row', {
-            name: 'browser.name:["foo bar",edge,x,safari]',
-          })
+          await screen.findByRole('row', {name: 'browser.name:["foo bar",edge,x,safari]'})
         ).toBeInTheDocument();
       });
 
@@ -4754,9 +4691,7 @@ describe('SearchQueryBuilder', () => {
         );
 
         await userEvent.click(
-          screen.getByRole('button', {
-            name: 'Edit operator for filter: custom_tag_name',
-          })
+          screen.getByRole('button', {name: 'Edit operator for filter: custom_tag_name'})
         );
 
         expect(await screen.findByRole('option', {name: 'contains'})).toBeInTheDocument();
@@ -4891,10 +4826,7 @@ describe('SearchQueryBuilder', () => {
 
     describe('duration', () => {
       const durationFilterKeys: TagCollection = {
-        duration: {
-          key: 'duration',
-          name: 'Duration',
-        },
+        duration: {key: 'duration', name: 'Duration'},
       };
 
       const fieldDefinitionGetter: FieldDefinitionGetter = () => ({
@@ -5041,12 +4973,7 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('size', () => {
-      const sizeFilterKeys: TagCollection = {
-        size: {
-          key: 'size',
-          name: 'Size',
-        },
-      };
+      const sizeFilterKeys: TagCollection = {size: {key: 'size', name: 'Size'}};
 
       const fieldDefinitionGetter: FieldDefinitionGetter = () => ({
         valueType: FieldValueType.SIZE,
@@ -5190,12 +5117,7 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('percentage', () => {
-      const percentageFilterKeys: TagCollection = {
-        rate: {
-          key: 'rate',
-          name: 'rate',
-        },
-      };
+      const percentageFilterKeys: TagCollection = {rate: {key: 'rate', name: 'rate'}};
 
       const fieldDefinitionGetter: FieldDefinitionGetter = () => ({
         valueType: FieldValueType.PERCENTAGE,
@@ -5312,12 +5234,7 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('currency', () => {
-      const currencyFilterKeys: TagCollection = {
-        cost: {
-          key: 'cost',
-          name: 'cost',
-        },
-      };
+      const currencyFilterKeys: TagCollection = {cost: {key: 'cost', name: 'cost'}};
 
       const fieldDefinitionGetter: FieldDefinitionGetter = () => ({
         valueType: FieldValueType.CURRENCY,
@@ -5405,9 +5322,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: cost'})
         );
-        const combobox = await screen.findByRole('combobox', {
-          name: 'Edit filter value',
-        });
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
         await userEvent.clear(combobox);
 
         expect(combobox).toHaveAttribute('placeholder', '$0.00');
@@ -5418,9 +5333,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: cost'})
         );
-        const combobox = await screen.findByRole('combobox', {
-          name: 'Edit filter value',
-        });
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
         await userEvent.clear(combobox);
 
         await waitFor(() => {
@@ -5775,36 +5688,16 @@ describe('SearchQueryBuilder', () => {
 
     describe('aggregate filters', () => {
       const aggregateFilterKeys: TagCollection = {
-        count: {
-          key: 'count',
-          name: 'count',
-          kind: FieldKind.FUNCTION,
-        },
-        count_if: {
-          key: 'count_if',
-          name: 'count_if',
-          kind: FieldKind.FUNCTION,
-        },
-        p95: {
-          key: 'p95',
-          name: 'p95',
-          kind: FieldKind.FUNCTION,
-        },
+        count: {key: 'count', name: 'count', kind: FieldKind.FUNCTION},
+        count_if: {key: 'count_if', name: 'count_if', kind: FieldKind.FUNCTION},
+        p95: {key: 'p95', name: 'p95', kind: FieldKind.FUNCTION},
         'transaction.duration': {
           key: 'transaction.duration',
           name: 'transaction.duration',
           kind: FieldKind.FIELD,
         },
-        timesSeen: {
-          key: 'timesSeen',
-          name: 'timesSeen',
-          kind: FieldKind.FIELD,
-        },
-        lastSeen: {
-          key: 'lastSeen',
-          name: 'lastSeen',
-          kind: FieldKind.FIELD,
-        },
+        timesSeen: {key: 'timesSeen', name: 'timesSeen', kind: FieldKind.FIELD},
+        lastSeen: {key: 'lastSeen', name: 'lastSeen', kind: FieldKind.FIELD},
       };
 
       const aggregateGetFieldDefinition: FieldDefinitionGetter = key => {
@@ -5961,9 +5854,7 @@ describe('SearchQueryBuilder', () => {
         expect((input as HTMLInputElement).selectionStart).toBe(9);
 
         expect(
-          await screen.findByRole('row', {
-            name: 'count_if(timesSeen):>100',
-          })
+          await screen.findByRole('row', {name: 'count_if(timesSeen):>100'})
         ).toBeInTheDocument();
       });
 
@@ -5980,9 +5871,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.keyboard('a,b,c{enter}');
 
         expect(
-          await screen.findByRole('row', {
-            name: 'count_if(a,b,c):>100',
-          })
+          await screen.findByRole('row', {name: 'count_if(a,b,c):>100'})
         ).toBeInTheDocument();
       });
 
@@ -6005,9 +5894,7 @@ describe('SearchQueryBuilder', () => {
 
         // After selecting timesSeen, the value should change to a number
         expect(
-          await screen.findByRole('row', {
-            name: 'p95(timesSeen):>100',
-          })
+          await screen.findByRole('row', {name: 'p95(timesSeen):>100'})
         ).toBeInTheDocument();
       });
 
@@ -6376,11 +6263,7 @@ describe('SearchQueryBuilder', () => {
           disallowUnsupportedFilters
           filterKeys={{
             ...defaultProps.filterKeys,
-            constructor: {
-              key: 'constructor',
-              name: 'Constructor',
-              kind: FieldKind.TAG,
-            },
+            constructor: {key: 'constructor', name: 'Constructor', kind: FieldKind.TAG},
           }}
           initialQuery="constructor:value"
         />
@@ -6452,11 +6335,7 @@ describe('SearchQueryBuilder', () => {
           }}
           filterKeys={{
             ...defaultProps.filterKeys,
-            p95: {
-              key: 'p95',
-              name: 'p95',
-              kind: FieldKind.FUNCTION,
-            },
+            p95: {key: 'p95', name: 'p95', kind: FieldKind.FUNCTION},
             'transaction.duration': {
               key: 'transaction.duration',
               name: 'transaction.duration',
@@ -6503,9 +6382,7 @@ describe('SearchQueryBuilder', () => {
         <SearchQueryBuilder
           {...defaultProps}
           initialQuery="foo:"
-          invalidMessages={{
-            [InvalidReason.FILTER_MUST_HAVE_VALUE]: 'foo bar baz',
-          }}
+          invalidMessages={{[InvalidReason.FILTER_MUST_HAVE_VALUE]: 'foo bar baz'}}
         />
       );
 
@@ -7066,9 +6943,7 @@ describe('SearchQueryBuilder', () => {
         );
 
         expect(
-          screen.getByRole('row', {
-            name: 'span.description:*random*value*',
-          })
+          screen.getByRole('row', {name: 'span.description:*random*value*'})
         ).toBeInTheDocument();
       });
     });
@@ -7259,9 +7134,7 @@ describe('SearchQueryBuilder', () => {
   describe('ask seer', () => {
     it('renders ask seer in the footer', async () => {
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-        organization: {
-          features: ['gen-ai-features'],
-        },
+        organization: {features: ['gen-ai-features']},
       });
 
       await userEvent.click(getLastInput());
@@ -7285,11 +7158,7 @@ describe('SearchQueryBuilder', () => {
           />
           <button>Next control</button>
         </Fragment>,
-        {
-          organization: {
-            features: ['gen-ai-features'],
-          },
-        }
+        {organization: {features: ['gen-ai-features']}}
       );
 
       await userEvent.click(getLastInput());
@@ -7327,11 +7196,7 @@ describe('SearchQueryBuilder', () => {
           enableAISearch
           initialQuery="browser.name:Firefox"
         />,
-        {
-          organization: {
-            features: ['gen-ai-features'],
-          },
-        }
+        {organization: {features: ['gen-ai-features']}}
       );
 
       await userEvent.click(
@@ -7346,9 +7211,7 @@ describe('SearchQueryBuilder', () => {
 
     it('does not render ask seer in the footer when AI search is disabled', async () => {
       render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {
-          features: ['gen-ai-features'],
-        },
+        organization: {features: ['gen-ai-features']},
       });
 
       await userEvent.click(getLastInput());
@@ -7412,9 +7275,7 @@ describe('SearchQueryBuilder', () => {
                   }>({
                     url: getApiUrl(
                       '/organizations/$organizationIdOrSlug/trace-explorer-ai/query/',
-                      {
-                        path: {organizationIdOrSlug: 'org-slug'},
-                      }
+                      {path: {organizationIdOrSlug: 'org-slug'}}
                     ),
                     method: 'POST',
                     data: {},
@@ -7457,11 +7318,7 @@ describe('SearchQueryBuilder', () => {
           <AskSeerWrapper>
             <SearchQueryBuilder {...defaultProps} />
           </AskSeerWrapper>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          {organization: {features: ['gen-ai-features']}}
         );
 
         await userEvent.click(getLastInput());
@@ -7532,9 +7389,7 @@ describe('SearchQueryBuilder', () => {
           <AskSeerComboBox
             initialQuery={initialSeerQuery}
             applySeerSearchQuery={() => {}}
-            askSeerMutationOptions={mutationOptions({
-              mutationFn: mockAskSeer,
-            })}
+            askSeerMutationOptions={mutationOptions({mutationFn: mockAskSeer})}
           />
         ) : (
           children
@@ -7543,9 +7398,7 @@ describe('SearchQueryBuilder', () => {
 
       it('keeps ask seer in the footer when searching free text', async () => {
         render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-          organization: {
-            features: ['gen-ai-features'],
-          },
+          organization: {features: ['gen-ai-features']},
         });
 
         await userEvent.click(getLastInput());
@@ -7573,11 +7426,7 @@ describe('SearchQueryBuilder', () => {
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
           </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          {organization: {features: ['gen-ai-features']}}
         );
 
         await userEvent.click(getLastInput());
@@ -7587,9 +7436,7 @@ describe('SearchQueryBuilder', () => {
         );
 
         expect(
-          await screen.findByRole('combobox', {
-            name: 'Ask Seer with Natural Language',
-          })
+          await screen.findByRole('combobox', {name: 'Ask Seer with Natural Language'})
         ).toHaveValue('browser.name is firefox find slow spans ');
         await waitFor(() => {
           expect(mockAskSeer).toHaveBeenCalledWith(
@@ -7615,20 +7462,14 @@ describe('SearchQueryBuilder', () => {
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
           </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          {organization: {features: ['gen-ai-features']}}
         );
 
         await userEvent.click(getLastInput());
         await userEvent.type(getLastInput(), 'slow spans{enter}');
 
         expect(
-          await screen.findByRole('combobox', {
-            name: 'Ask Seer with Natural Language',
-          })
+          await screen.findByRole('combobox', {name: 'Ask Seer with Natural Language'})
         ).toHaveValue('slow spans ');
         await waitFor(() => {
           expect(mockAskSeer).toHaveBeenCalledWith('slow spans', expect.anything());
@@ -7657,11 +7498,7 @@ describe('SearchQueryBuilder', () => {
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
           </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          {organization: {features: ['gen-ai-features']}}
         );
 
         await userEvent.click(getLastInput());
@@ -7690,20 +7527,14 @@ describe('SearchQueryBuilder', () => {
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
           </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          {organization: {features: ['gen-ai-features']}}
         );
 
         await userEvent.click(screen.getByRole('row', {name: 'find slow'}));
         await userEvent.type(screen.getByDisplayValue('find slow'), ' spans{enter}');
 
         expect(
-          await screen.findByRole('combobox', {
-            name: 'Ask Seer with Natural Language',
-          })
+          await screen.findByRole('combobox', {name: 'Ask Seer with Natural Language'})
         ).toHaveValue('find slow spans ');
         await waitFor(() => {
           expect(mockAskSeer).toHaveBeenCalledWith('find slow spans', expect.anything());
@@ -7732,11 +7563,7 @@ describe('SearchQueryBuilder', () => {
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
           </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          {organization: {features: ['gen-ai-features']}}
         );
 
         await userEvent.click(getLastInput());
@@ -7768,11 +7595,7 @@ describe('SearchQueryBuilder', () => {
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
           </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          {organization: {features: ['gen-ai-features']}}
         );
 
         await userEvent.click(getLastInput());
@@ -7793,11 +7616,7 @@ describe('SearchQueryBuilder', () => {
       it('does not submit free text to ask seer when defaulting to ask seer is disabled', async () => {
         const mockOnSearch = jest.fn();
         const mockAskSeer = makeMockAskSeer();
-        const props = {
-          ...defaultProps,
-          enableAISearch: true,
-          onSearch: mockOnSearch,
-        };
+        const props = {...defaultProps, enableAISearch: true, onSearch: mockOnSearch};
 
         render(
           <SearchQueryBuilderProvider {...props}>
@@ -7805,11 +7624,7 @@ describe('SearchQueryBuilder', () => {
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
           </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          {organization: {features: ['gen-ai-features']}}
         );
 
         await userEvent.click(getLastInput());
@@ -8407,13 +8222,15 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('uses async key metadata to create measurement filters', async () => {
-      const mockGetTagKeys = jest.fn().mockResolvedValue([
-        {
-          key: 'app.vitals.start.warm.value',
-          name: 'app.vitals.start.warm.value',
-          kind: FieldKind.MEASUREMENT,
-        },
-      ]);
+      const mockGetTagKeys = jest
+        .fn()
+        .mockResolvedValue([
+          {
+            key: 'app.vitals.start.warm.value',
+            name: 'app.vitals.start.warm.value',
+            kind: FieldKind.MEASUREMENT,
+          },
+        ]);
       render(
         <SearchQueryBuilder
           {...defaultProps}

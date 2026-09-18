@@ -46,9 +46,7 @@ function DashboardsSecondaryNavigationImpl() {
   const isOnDashboardsList = isPrimaryNavigationLinkActive(
     `${baseUrl}/`,
     location.pathname,
-    {
-      end: true,
-    }
+    {end: true}
   );
 
   useLLMContext({

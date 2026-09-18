@@ -31,12 +31,7 @@ function BaseScoreBar({
   const paletteIndex = scoreInBounds - 1;
 
   // Size of bar, depends on orientation, although we could just apply a transformation via css
-  const barProps = {
-    vertical,
-    thickness: DEFAULT_THICKNESS,
-    size,
-    radius,
-  };
+  const barProps = {vertical, thickness: DEFAULT_THICKNESS, size, radius};
 
   return (
     <div className={className} {...props}>

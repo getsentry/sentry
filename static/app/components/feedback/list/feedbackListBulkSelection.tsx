@@ -31,10 +31,7 @@ export function FeedbackListBulkSelection({
     onToggleResolved,
     onMarkAsRead,
     onMarkUnread,
-  } = useBulkEditFeedbacks({
-    selectedIds,
-    deselectAll,
-  });
+  } = useBulkEditFeedbacks({selectedIds, deselectAll});
 
   const newMailboxResolve =
     mailbox === 'resolved' ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
@@ -46,11 +43,7 @@ export function FeedbackListBulkSelection({
   return (
     <Flex gap="md" align="center" justify="between" flex="1 0 auto">
       <span>
-        <strong>
-          {tct('[countSelected] Selected', {
-            countSelected,
-          })}
-        </strong>
+        <strong>{tct('[countSelected] Selected', {countSelected})}</strong>
       </span>
       <Flex gap="md" justify="end">
         <ErrorBoundary mini>
@@ -93,11 +86,7 @@ export function FeedbackListBulkSelection({
                   ? undefined
                   : t('You must be a member of the project'),
               },
-              {
-                key: 'mark unread',
-                label: t('Mark Unread'),
-                onAction: onMarkUnread,
-              },
+              {key: 'mark unread', label: t('Mark Unread'), onAction: onMarkUnread},
               {
                 key: 'delete',
                 priority: 'danger' as const,

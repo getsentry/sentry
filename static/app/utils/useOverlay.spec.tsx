@@ -4,9 +4,7 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useOverlay} from 'sentry/utils/useOverlay';
 
-jest.mock('react-popper', () => ({
-  usePopper: jest.fn(),
-}));
+jest.mock('react-popper', () => ({usePopper: jest.fn()}));
 
 const mockUsePopper = jest.mocked(usePopper);
 const mockPopperUpdate = jest.fn();

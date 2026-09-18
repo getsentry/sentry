@@ -17,15 +17,10 @@ import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReade
 import {ReplayDetailsUserBadge} from 'sentry/views/explore/replays/detail/header/replayDetailsUserBadge';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
-const {organization, project} = initializeOrg({
-  organization: OrganizationFixture({}),
-});
+const {organization, project} = initializeOrg({organization: OrganizationFixture({})});
 
 function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
-  return ReplayRecordFixture({
-    ...replayRecord,
-    project_id: project.id,
-  });
+  return ReplayRecordFixture({...replayRecord, project_id: project.id});
 }
 
 jest.useFakeTimers();
@@ -56,9 +51,7 @@ describe('replayDetailsUserBadge', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
       headers: {
         Link: [
           '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
@@ -69,11 +62,7 @@ describe('replayDetailsUserBadge', () => {
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/replays/${replayRecord.id}/recording-segments/`,
-      body: [
-        RRWebInitFrameEventsFixture({
-          timestamp: startedAt,
-        }),
-      ],
+      body: [RRWebInitFrameEventsFixture({timestamp: startedAt})],
       match: [(_url, options) => options.query?.cursor === '0:0:0'],
     });
 
@@ -114,9 +103,7 @@ describe('replayDetailsUserBadge', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
       headers: {
         Link: [
           '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
@@ -128,13 +115,8 @@ describe('replayDetailsUserBadge', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/replays/${replayRecord.id}/recording-segments/`,
       body: [
-        RRWebInitFrameEventsFixture({
-          timestamp: startedAt,
-        }),
-        ReplayNavigateEventFixture({
-          startTimestamp: startedAt,
-          endTimestamp: finishedAt,
-        }),
+        RRWebInitFrameEventsFixture({timestamp: startedAt}),
+        ReplayNavigateEventFixture({startTimestamp: startedAt, endTimestamp: finishedAt}),
       ],
       match: [(_url, options) => options.query?.cursor === '0:0:0'],
     });

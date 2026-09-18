@@ -54,12 +54,7 @@ export interface SnubaQueryDataSource extends BaseDataSource {
   /**
    * See QuerySubscriptionSerializer
    */
-  queryObj: {
-    id: string;
-    snubaQuery: SnubaQuery;
-    status: number;
-    subscription: string;
-  };
+  queryObj: {id: string; snubaQuery: SnubaQuery; status: number; subscription: string};
   type: 'snuba_query_subscription';
 }
 
@@ -257,10 +252,7 @@ export interface MetricDetectorUpdatePayload extends BaseDetectorUpdatePayload {
 }
 
 export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
-  dataSources: Array<{
-    config: MonitorConfig;
-    name: string;
-  }>;
+  dataSources: Array<{config: MonitorConfig; name: string}>;
   type: 'monitor_check_in_failure';
 }
 

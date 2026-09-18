@@ -75,13 +75,7 @@ export class WidgetLegendSelectionState {
         !this.widgetRequiresLegendUnselection(widget)
       ) {
         navigate(
-          {
-            ...location,
-            query: {
-              ...location.query,
-              unselectedSeries: newLegendQuery,
-            },
-          },
+          {...location, query: {...location.query, unselectedSeries: newLegendQuery}},
           {replace: true, preventScrollReset: true}
         );
       }
@@ -104,13 +98,7 @@ export class WidgetLegendSelectionState {
             this.encodeLegendQueryParam(widget, selected),
           ];
       navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            unselectedSeries,
-          },
-        },
+        {...location, query: {...location.query, unselectedSeries}},
         {replace: true, preventScrollReset: true}
       );
     } else {

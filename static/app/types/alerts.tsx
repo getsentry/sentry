@@ -128,7 +128,4 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
   snoozeForEveryone?: boolean;
 }
 
-export type NoteType = {
-  mentions: string[];
-  text: string;
-};
+export type NoteType = {mentions: string[]; text: string};

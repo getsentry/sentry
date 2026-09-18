@@ -53,10 +53,7 @@ function DelayedForceVisibleTrigger({
 }: {
   forceVisible?: boolean | 'delayed';
 }) {
-  const {wrapTrigger, isOpen} = useHoverOverlay({
-    skipWrapper: true,
-    forceVisible,
-  });
+  const {wrapTrigger, isOpen} = useHoverOverlay({skipWrapper: true, forceVisible});
 
   return (
     <Fragment>

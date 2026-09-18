@@ -49,9 +49,7 @@ export const metrics: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Metrics for Unity are supported in Sentry SDK version [code:4.1.0] and above.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
       ],
@@ -71,9 +69,7 @@ export const metrics: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Open your project settings: [strong:Tools > Sentry > Advanced > Metrics] and check the [strong:Enable Metrics] option.',
-            {
-              strong: <strong />,
-            }
+            {strong: <strong />}
           ),
         },
         {
@@ -98,9 +94,6 @@ export const metrics: OnboardingConfig = {
     },
   ],
   verify: (params: DocsParams) => [
-    {
-      type: StepType.VERIFY,
-      content: [metricsVerify(params)],
-    },
+    {type: StepType.VERIFY, content: [metricsVerify(params)]},
   ],
 };

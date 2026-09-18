@@ -60,9 +60,7 @@ describe('projectIssueGrouping', () => {
     await waitFor(() => {
       expect(updateRequest).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/`,
-        expect.objectContaining({
-          data: {fingerprintingRules: 'error.type:Foo -> bar'},
-        })
+        expect.objectContaining({data: {fingerprintingRules: 'error.type:Foo -> bar'}})
       );
     });
   });

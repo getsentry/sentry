@@ -151,10 +151,7 @@ describe('OrganizationCreate', () => {
 
     ConfigStore.set('localities', [
       {url: 'https://us.example.com', name: 'us'},
-      {
-        url: 'https://de.example.com',
-        name: 'de',
-      },
+      {url: 'https://de.example.com', name: 'de'},
     ]);
     ConfigStore.set('signupLocalities', ['us', 'de']);
 
@@ -273,10 +270,7 @@ describe('OrganizationCreate', () => {
     ConfigStore.set('urlPrefix', 'https://sentry.io');
     ConfigStore.set('localities', [
       {url: 'https://us.example.com', name: 'us'},
-      {
-        url: 'https://de.example.com',
-        name: 'de',
-      },
+      {url: 'https://de.example.com', name: 'de'},
     ]);
     ConfigStore.set('signupLocalities', ['us', 'de']);
     const orgCreateMock = MockApiClient.addMockResponse({

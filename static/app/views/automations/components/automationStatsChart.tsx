@@ -75,9 +75,7 @@ export function AutomationStatsChart({
               top: theme.space['2xl'],
               bottom: 0,
             }}
-            yAxis={{
-              minInterval: 1,
-            }}
+            yAxis={{minInterval: 1}}
             series={[
               {
                 seriesName: t('Alerts Triggered'),
@@ -85,9 +83,7 @@ export function AutomationStatsChart({
                   name: automation.date,
                   value: automation.count,
                 })),
-                emphasis: {
-                  disabled: true,
-                },
+                emphasis: {disabled: true},
                 animation: false,
               },
             ]}

@@ -29,9 +29,7 @@ const baseBuild = {
     release_notes: null,
     install_groups: null,
   },
-  vcs_info: {
-    head_sha: 'abcdef1',
-  },
+  vcs_info: {head_sha: 'abcdef1'},
 };
 
 describe('PreprodBuildsTable', () => {
@@ -54,10 +52,7 @@ describe('PreprodBuildsTable', () => {
     const nonInstallableBuild = {
       ...baseBuild,
       id: 'build-2',
-      app_info: {
-        ...baseBuild.app_info,
-        name: 'Non Installable App',
-      },
+      app_info: {...baseBuild.app_info, name: 'Non Installable App'},
       distribution_info: {
         ...baseBuild.distribution_info,
         is_installable: false,
@@ -96,10 +91,7 @@ describe('PreprodBuildsTable', () => {
   it('renders install groups in distribution rows', () => {
     const buildWithOneGroup = {
       ...baseBuild,
-      distribution_info: {
-        ...baseBuild.distribution_info,
-        install_groups: ['internal'],
-      },
+      distribution_info: {...baseBuild.distribution_info, install_groups: ['internal']},
     };
     const buildWithThreeGroups = {
       ...baseBuild,
@@ -164,10 +156,7 @@ describe('PreprodBuildsTable', () => {
   it('does not render install groups in the size view', () => {
     const buildWithGroup = {
       ...baseBuild,
-      distribution_info: {
-        ...baseBuild.distribution_info,
-        install_groups: ['internal'],
-      },
+      distribution_info: {...baseBuild.distribution_info, install_groups: ['internal']},
     };
 
     render(
@@ -208,11 +197,7 @@ describe('PreprodBuildsTable', () => {
   it('falls back to build_number when build_number_raw is an empty string', () => {
     const buildWithEmptyRawNumber = {
       ...baseBuild,
-      app_info: {
-        ...baseBuild.app_info,
-        build_number: '456',
-        build_number_raw: '',
-      },
+      app_info: {...baseBuild.app_info, build_number: '456', build_number_raw: ''},
     };
 
     render(

@@ -73,10 +73,7 @@ const Anchor = styled('a', {
   ${getLinkStyles}
 `;
 
-type LinkPropsWithButtonBehavior = LinkProps & {
-  busy?: boolean;
-  variant?: ButtonVariant;
-};
+type LinkPropsWithButtonBehavior = LinkProps & {busy?: boolean; variant?: ButtonVariant};
 
 function LinkBase(props: LinkPropsWithButtonBehavior) {
   const {Component, behavior} = useLinkBehavior(props);

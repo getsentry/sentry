@@ -26,11 +26,7 @@ import {Chart as DurationPercentileChart} from './durationPercentileChart/chart'
 
 const REFERRER = 'transaction-summary-charts-widget';
 
-type Options = {
-  query: string;
-  selectedWidget: EAPWidgetType;
-  transactionName: string;
-};
+type Options = {query: string; selectedWidget: EAPWidgetType; transactionName: string};
 
 /**
  * Returns the representative visualization for the selected widget. Handles data fetching, error handling, and loading states.
@@ -95,10 +91,7 @@ function useDurationBreakdownVisualization({
 
   const {releases: releasesWithDate} = useReleaseStats(selection);
   const releases =
-    releasesWithDate?.map(({date, version}) => ({
-      timestamp: date,
-      version,
-    })) ?? [];
+    releasesWithDate?.map(({date, version}) => ({timestamp: date, version})) ?? [];
 
   const newQuery = new MutableSearch(query);
   newQuery.addFilterValue('transaction', transactionName);
@@ -153,13 +146,7 @@ function useDurationBreakdownVisualization({
       legendSelection={legendSelection}
       onLegendSelectionChange={selected => {
         const unselected = Object.keys(selected).filter(key => !selected[key]);
-        navigate({
-          ...location,
-          query: {
-            ...location.query,
-            unselectedSeries: unselected,
-          },
-        });
+        navigate({...location, query: {...location.query, unselectedSeries: unselected}});
       }}
     />
   );
@@ -242,10 +229,7 @@ function useWebVitalsVisualization({
 
   const {releases: releasesWithDate} = useReleaseStats(selection);
   const releases =
-    releasesWithDate?.map(({date, version}) => ({
-      timestamp: date,
-      version,
-    })) ?? [];
+    releasesWithDate?.map(({date, version}) => ({timestamp: date, version})) ?? [];
 
   const newQuery = new MutableSearch(query);
   newQuery.addFilterValue('transaction', transactionName);
@@ -286,13 +270,7 @@ function useWebVitalsVisualization({
       legendSelection={legendSelection}
       onLegendSelectionChange={selected => {
         const unselected = Object.keys(selected).filter(key => !selected[key]);
-        navigate({
-          ...location,
-          query: {
-            ...location.query,
-            unselectedSeries: unselected,
-          },
-        });
+        navigate({...location, query: {...location.query, unselectedSeries: unselected}});
       }}
     />
   );

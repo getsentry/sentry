@@ -151,9 +151,7 @@ describe('Confirm', () => {
 
       await screen.findByRole('dialog');
 
-      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}), {
-        delay: null,
-      });
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}), {delay: null});
 
       // Should keep modal in view until the promise is resolved
       expect(onConfirmAsync).toHaveBeenCalled();
@@ -188,9 +186,7 @@ describe('Confirm', () => {
 
       await screen.findByRole('dialog');
 
-      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}), {
-        delay: null,
-      });
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}), {delay: null});
 
       // Should keep modal in view until the promise is resolved
       expect(onConfirmAsync).toHaveBeenCalled();

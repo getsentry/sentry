@@ -34,18 +34,13 @@ function renderMockRequests({
     method: 'PUT',
   });
 
-  MockApiClient.addMockResponse({
-    url: `/organizations/${orgSlug}/sdks/`,
-  });
+  MockApiClient.addMockResponse({url: `/organizations/${orgSlug}/sdks/`});
 }
 
 describe('Renders SDK Documentation corretly based on platform id and language', () => {
   it('Native QT', async () => {
     const organization = OrganizationFixture();
-    const project = ProjectFixture({
-      slug: 'native-qt',
-      platform: 'native-qt',
-    });
+    const project = ProjectFixture({slug: 'native-qt', platform: 'native-qt'});
 
     renderMockRequests({project, orgSlug: organization.slug});
 
@@ -75,10 +70,7 @@ describe('Renders SDK Documentation corretly based on platform id and language',
 
   it('JavaScript', async () => {
     const organization = OrganizationFixture();
-    const project = ProjectFixture({
-      slug: 'javascript',
-      platform: 'javascript',
-    });
+    const project = ProjectFixture({slug: 'javascript', platform: 'javascript'});
 
     renderMockRequests({project, orgSlug: organization.slug});
 
@@ -100,10 +92,7 @@ describe('Renders SDK Documentation corretly based on platform id and language',
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/',
-            query: {installationMode: 'manual'},
-          },
+          location: {pathname: '/', query: {installationMode: 'manual'}},
         },
       }
     );

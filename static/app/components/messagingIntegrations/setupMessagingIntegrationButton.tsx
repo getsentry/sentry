@@ -126,9 +126,7 @@ export function SetupMessagingIntegrationButton({analyticsView, variant}: Props)
                     variant={variant}
                   />
                 ),
-                {
-                  closeEvents: 'escape-key',
-                }
+                {closeEvents: 'escape-key'}
               );
             }}
           >

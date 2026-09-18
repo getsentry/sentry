@@ -133,9 +133,7 @@ export function ListItemCheckboxProvider({
   hits,
   knownIds,
   endpointOptions,
-}: {
-  children: React.ReactNode;
-} & PublicProps) {
+}: {children: React.ReactNode} & PublicProps) {
   const [state, setState] = useState<State>({ids: new Set()});
   const endpointOptionsRef = useRef(endpointOptions);
 

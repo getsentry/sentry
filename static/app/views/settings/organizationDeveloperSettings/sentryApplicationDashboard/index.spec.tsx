@@ -203,9 +203,7 @@ describe('Sentry Application Dashboard', () => {
     beforeEach(() => {
       sentryApp = SentryAppFixture({
         status: 'internal',
-        schema: {
-          elements: [{type: 'stacktrace-link', uri: '/test', url: '/test'}],
-        },
+        schema: {elements: [{type: 'stacktrace-link', uri: '/test', url: '/test'}]},
       });
       webhookRequest = SentryAppWebhookRequestFixture();
 
@@ -227,9 +225,7 @@ describe('Sentry Application Dashboard', () => {
       interactionMock = MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/interaction/`,
         body: {
-          componentInteractions: {
-            'stacktrace-link': [[1569783600, 1]],
-          },
+          componentInteractions: {'stacktrace-link': [[1569783600, 1]]},
           views: [[1569783600, 1]],
         },
       });
@@ -299,10 +295,7 @@ describe('Sentry Application Dashboard', () => {
 
       interactionMock = MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/interaction/`,
-        body: {
-          componentInteractions: {},
-          views: [[1569783600, 1]],
-        },
+        body: {componentInteractions: {}, views: [[1569783600, 1]]},
       });
 
       MockApiClient.addMockResponse({

@@ -39,10 +39,7 @@ describe('LoaderScript', () => {
       statusCode: 400,
     });
 
-    render(<LoaderScript />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<LoaderScript />, {organization, outletContext: {project}});
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -56,10 +53,7 @@ describe('LoaderScript', () => {
 
     mockApi({organization, project, projectKeys: []});
 
-    render(<LoaderScript />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<LoaderScript />, {organization, outletContext: {project}});
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -75,10 +69,7 @@ describe('LoaderScript', () => {
 
     mockApi({organization, project, projectKeys});
 
-    render(<LoaderScript />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<LoaderScript />, {organization, outletContext: {project}});
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -144,19 +135,14 @@ describe('LoaderScript', () => {
 
     mockApi({organization, project, projectKeys});
 
-    render(<LoaderScript />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<LoaderScript />, {organization, outletContext: {project}});
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText(`Client Key: ${projectKeys[0].name}`)).toBeInTheDocument();
     expect(screen.getByText(`Client Key: ${projectKeys[1]!.name}`)).toBeInTheDocument();
 
-    const allLoaderScripts = screen.getAllByRole('textbox', {
-      name: 'Loader Script',
-    });
+    const allLoaderScripts = screen.getAllByRole('textbox', {name: 'Loader Script'});
 
     expect(allLoaderScripts).toHaveLength(2);
   });
@@ -166,10 +152,7 @@ describe('LoaderScript', () => {
     const baseKey = ProjectKeysFixture()[0];
     const projectKey = {
       ...baseKey,
-      dynamicSdkLoaderOptions: {
-        ...baseKey.dynamicSdkLoaderOptions,
-        hasReplay: true,
-      },
+      dynamicSdkLoaderOptions: {...baseKey.dynamicSdkLoaderOptions, hasReplay: true},
     };
 
     mockApi({organization, project, projectKeys: [projectKey]});
@@ -186,10 +169,7 @@ describe('LoaderScript', () => {
       },
     });
 
-    render(<LoaderScript />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<LoaderScript />, {organization, outletContext: {project}});
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -197,30 +177,20 @@ describe('LoaderScript', () => {
     expect(screen.getByText('Enable Session Replay')).toBeInTheDocument();
     expect(screen.getByText('Enable SDK debugging')).toBeInTheDocument();
 
-    let performanceCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Tracing',
-    });
+    let performanceCheckbox = screen.getByRole('checkbox', {name: 'Enable Tracing'});
     expect(performanceCheckbox).toBeEnabled();
     expect(performanceCheckbox).not.toBeChecked();
 
-    const replayCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Session Replay',
-    });
+    const replayCheckbox = screen.getByRole('checkbox', {name: 'Enable Session Replay'});
     expect(replayCheckbox).toBeEnabled();
     expect(replayCheckbox).toBeChecked();
 
-    const debugCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable SDK debugging',
-    });
+    const debugCheckbox = screen.getByRole('checkbox', {name: 'Enable SDK debugging'});
     expect(debugCheckbox).toBeEnabled();
     expect(debugCheckbox).not.toBeChecked();
 
     // Toggle performance option
-    await userEvent.click(
-      screen.getByRole('checkbox', {
-        name: 'Enable Tracing',
-      })
-    );
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Enable Tracing'}));
 
     performanceCheckbox = await screen.findByRole('checkbox', {
       name: 'Enable Tracing',
@@ -231,9 +201,7 @@ describe('LoaderScript', () => {
 
     expect(mockPut).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
-      expect.objectContaining({
-        data: {dynamicSdkLoaderOptions: {hasPerformance: true}},
-      })
+      expect.objectContaining({data: {dynamicSdkLoaderOptions: {hasPerformance: true}}})
     );
   });
 
@@ -302,70 +270,40 @@ describe('LoaderScript', () => {
       },
     });
 
-    render(<LoaderScript />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<LoaderScript />, {organization, outletContext: {project}});
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(
-      screen.getAllByRole('checkbox', {
-        name: 'Enable Tracing',
-        checked: false,
-      })
+      screen.getAllByRole('checkbox', {name: 'Enable Tracing', checked: false})
     ).toHaveLength(2);
     expect(
-      screen.getAllByRole('checkbox', {
-        name: 'Enable Session Replay',
-        checked: false,
-      })
+      screen.getAllByRole('checkbox', {name: 'Enable Session Replay', checked: false})
     ).toHaveLength(2);
     expect(
-      screen.getAllByRole('checkbox', {
-        name: 'Enable SDK debugging',
-        checked: false,
-      })
+      screen.getAllByRole('checkbox', {name: 'Enable SDK debugging', checked: false})
     ).toHaveLength(2);
 
     // Toggle performance option
-    await userEvent.click(
-      screen.getAllByRole('checkbox', {
-        name: 'Enable Tracing',
-      })[1]!
-    );
+    await userEvent.click(screen.getAllByRole('checkbox', {name: 'Enable Tracing'})[1]!);
 
     expect(
-      await screen.findByRole('checkbox', {
-        name: 'Enable Tracing',
-        checked: true,
-      })
+      await screen.findByRole('checkbox', {name: 'Enable Tracing', checked: true})
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole('checkbox', {
-        name: 'Enable Tracing',
-        checked: false,
-      })
+      screen.getByRole('checkbox', {name: 'Enable Tracing', checked: false})
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole('checkbox', {
-        name: 'Enable Session Replay',
-        checked: false,
-      })
+      screen.getAllByRole('checkbox', {name: 'Enable Session Replay', checked: false})
     ).toHaveLength(2);
     expect(
-      screen.getAllByRole('checkbox', {
-        name: 'Enable SDK debugging',
-        checked: false,
-      })
+      screen.getAllByRole('checkbox', {name: 'Enable SDK debugging', checked: false})
     ).toHaveLength(2);
 
     expect(mockPut).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/keys/${projectKey!.id}/`,
-      expect.objectContaining({
-        data: {dynamicSdkLoaderOptions: {hasPerformance: true}},
-      })
+      expect.objectContaining({data: {dynamicSdkLoaderOptions: {hasPerformance: true}}})
     );
   });
 });

@@ -14,10 +14,7 @@ const NAVIGATION_DATE = new Date('2022-06-15T00:46:00.333Z');
 const NEW_DOMAIN_DATE = new Date('2022-06-15T00:47:00.444Z');
 const END_DATE = new Date('2022-06-15T00:50:00.555Z');
 
-const replayRecord = ReplayRecordFixture({
-  started_at: START_DATE,
-  finished_at: END_DATE,
-});
+const replayRecord = ReplayRecordFixture({started_at: START_DATE, finished_at: END_DATE});
 
 const PAGELOAD_FRAME = replayInitBreadcrumb(replayRecord);
 

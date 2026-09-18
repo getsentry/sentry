@@ -198,19 +198,13 @@ class Table extends PureComponent<TableProps, TableState> {
 
     this.props.api.clear();
     this.props.api
-      .requestPromise(url, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: apiPayload,
-      })
+      .requestPromise(url, {method: 'GET', includeAllArgs: true, query: apiPayload})
       .then(([data, _, resp]) => {
         // We want to measure this metric regardless of whether we use the result
         metric.measure({
           name: 'app.api.discover-query',
           start: `discover-events-start-${apiPayload.query}`,
-          data: {
-            status: resp?.status,
-          },
+          data: {status: resp?.status},
         });
         if (this.state.tableFetchID !== tableFetchID) {
           // invariant: a different request was initiated after this request
@@ -219,10 +213,7 @@ class Table extends PureComponent<TableProps, TableState> {
 
         const {fields, ...nonFieldsMeta} = data.meta ?? {};
         // events api uses a different response format so we need to construct tableData differently
-        const tableData = {
-          ...data,
-          meta: {...fields, ...nonFieldsMeta, fields},
-        };
+        const tableData = {...data, meta: {...fields, ...nonFieldsMeta, fields}};
 
         trackAnalytics('discover_search.success', {
           has_results: tableData.data.length > 0,
@@ -257,9 +248,7 @@ class Table extends PureComponent<TableProps, TableState> {
         metric.measure({
           name: 'app.api.discover-query',
           start: `discover-events-start-${apiPayload.query}`,
-          data: {
-            status: err.status,
-          },
+          data: {status: err.status},
         });
 
         const message = err?.responseJSON?.detail || t('An unknown error occurred.');

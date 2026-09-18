@@ -38,10 +38,7 @@ const ProductUnavailableCTA = OverrideOrDefault({
   overrideName: 'component:product-unavailable-cta',
 });
 
-type Props = {
-  platform: PlatformIntegration | undefined;
-  project: Project;
-};
+type Props = {platform: PlatformIntegration | undefined; project: Project};
 
 type ProjectCreationGettingStartedAnalyticsProps = {
   platform: string;
@@ -102,13 +99,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
     PageFiltersStore.pin('projects', true);
     setPageFiltersStorage(organization.slug, new Set(['projects']));
 
-    navigate({
-      ...to,
-      query: {
-        ...to.query,
-        project: project?.id,
-      },
-    });
+    navigate({...to, query: {...to.query, project: project?.id}});
   };
 
   if (!platform) {
@@ -200,9 +191,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
               } else {
                 trackAnalytics('onboarding.take_me_to_issues_clicked', analyticsParams);
               }
-              redirectWithProjectSelection({
-                pathname: issueStreamLink,
-              });
+              redirectWithProjectSelection({pathname: issueStreamLink});
             }}
           >
             {t('Take me to Issues')}

@@ -121,9 +121,7 @@ describe('DebugMeta', () => {
       image_size: 123,
       candidates: [],
       debug_status: ImageStatus.MISSING,
-      features: {
-        ...eventEntryDebugMeta.data.images![0]!.features,
-      },
+      features: {...eventEntryDebugMeta.data.images![0]!.features},
       unwind_status: ImageStatus.MISSING,
       type: 'elf',
     };
@@ -193,9 +191,7 @@ describe('DebugMeta', () => {
     };
     const eventEntryDebugMeta = {
       ...EntryDebugMetaFixture(),
-      data: {
-        images: [firstImage, secondImage],
-      },
+      data: {images: [firstImage, secondImage]},
     };
 
     const event = EventFixture({entries: [eventEntryDebugMeta]});
@@ -235,9 +231,7 @@ describe('DebugMeta', () => {
     });
     const eventEntryDebugMeta = {
       ...EntryDebugMetaFixture(),
-      data: {
-        images: [firstImage, secondImage],
-      },
+      data: {images: [firstImage, secondImage]},
     };
 
     const event = EventFixture({entries: [eventEntryDebugMeta]});

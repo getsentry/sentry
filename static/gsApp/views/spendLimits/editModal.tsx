@@ -36,10 +36,7 @@ import {
 function getBudgetSaveError(plan: Plan) {
   return t(
     'Unable to save your %s',
-    displayBudgetName(plan, {
-      pluralOndemand: true,
-      withBudget: true,
-    })
+    displayBudgetName(plan, {pluralOndemand: true, withBudget: true})
   );
 }
 
@@ -135,9 +132,7 @@ class SpendLimitsEditModal extends Component<Props, State> {
 
     if (exceedsInvoicedBudgetLimit(subscription, newOnDemandBudget)) {
       const message = getBudgetExceededInvoicedLimitError(subscription.planDetails);
-      this.setState({
-        updateError: message,
-      });
+      this.setState({updateError: message});
       addErrorMessage(message);
       return;
     }
@@ -168,19 +163,14 @@ class SpendLimitsEditModal extends Component<Props, State> {
     try {
       await this.props.api.requestPromise(
         `/customers/${subscription.slug}/ondemand-budgets/`,
-        {
-          method: 'POST',
-          data: ondemandBudget,
-        }
+        {method: 'POST', data: ondemandBudget}
       );
       SubscriptionStore.loadData(subscription.slug);
       return true;
     } catch (response: any) {
       const updateError =
         response?.responseJSON ?? getBudgetSaveError(subscription.planDetails);
-      this.setState({
-        updateError,
-      });
+      this.setState({updateError});
       addErrorMessage(getBudgetSaveError(subscription.planDetails));
       return false;
     }
@@ -218,9 +208,7 @@ class SpendLimitsEditModal extends Component<Props, State> {
               currentReserved={currentReserved}
               addOns={subscription.addOns ?? {}}
               onUpdate={({onDemandBudgets}) => {
-                this.setState({
-                  onDemandBudget: onDemandBudgets,
-                });
+                this.setState({onDemandBudget: onDemandBudgets});
               }}
             />
           </Container>

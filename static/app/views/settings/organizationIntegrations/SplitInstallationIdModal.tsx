@@ -6,10 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 
-type Props = {
-  closeModal: () => void;
-  installationId: string;
-};
+type Props = {closeModal: () => void; installationId: string};
 
 /**
  * This component is a hack for Split.

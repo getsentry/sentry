@@ -7,9 +7,7 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "value": {
-          "type": "string"
-        },
+        "value": {"type": "string"},
         "format": {
           "default": "absolute",
           "type": "string",
@@ -22,17 +20,11 @@
     "examples": [
       {
         "label": "Absolute",
-        "data": {
-          "value": "2025-07-15T14:30:00Z",
-          "format": "absolute"
-        }
+        "data": {"value": "2025-07-15T14:30:00Z", "format": "absolute"}
       },
       {
         "label": "Relative",
-        "data": {
-          "value": "2025-07-15T14:30:00Z",
-          "format": "relative"
-        }
+        "data": {"value": "2025-07-15T14:30:00Z", "format": "relative"}
       }
     ]
   },
@@ -43,24 +35,14 @@
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
-      "properties": {
-        "href": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        }
-      },
+      "properties": {"href": {"type": "string"}, "title": {"type": "string"}},
       "required": ["href", "title"],
       "additionalProperties": false
     },
     "examples": [
       {
         "label": "Doc link",
-        "data": {
-          "href": "https://docs.sentry.io/product/issues/",
-          "title": "Issues"
-        }
+        "data": {"href": "https://docs.sentry.io/product/issues/", "title": "Issues"}
       }
     ]
   },
@@ -72,26 +54,14 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "title": {
-          "type": "string",
-          "minLength": 1
-        }
+        "id": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1}
       },
       "required": ["id"],
       "additionalProperties": false
     },
     "examples": [
-      {
-        "label": "Dashboard",
-        "data": {
-          "id": "123",
-          "title": "Application health"
-        }
-      }
+      {"label": "Dashboard", "data": {"id": "123", "title": "Application health"}}
     ]
   },
   {
@@ -101,20 +71,14 @@
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
-      "properties": {
-        "value": {
-          "type": "string"
-        }
-      },
+      "properties": {"value": {"type": "string"}},
       "required": ["value"],
       "additionalProperties": false
     },
     "examples": [
       {
         "label": "DSN",
-        "data": {
-          "value": "https://examplePublicKey@o0.ingest.sentry.io/0"
-        }
+        "data": {"value": "https://examplePublicKey@o0.ingest.sentry.io/0"}
       }
     ]
   },
@@ -126,37 +90,16 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string",
-          "enum": ["user", "team"]
-        },
-        "name": {
-          "type": "string"
-        }
+        "id": {"type": "string"},
+        "type": {"type": "string", "enum": ["user", "team"]},
+        "name": {"type": "string"}
       },
       "required": ["id", "type", "name"],
       "additionalProperties": false
     },
     "examples": [
-      {
-        "label": "User",
-        "data": {
-          "id": "1",
-          "type": "user",
-          "name": "Jane Doe"
-        }
-      },
-      {
-        "label": "Team",
-        "data": {
-          "id": "2",
-          "type": "team",
-          "name": "platform"
-        }
-      }
+      {"label": "User", "data": {"id": "1", "type": "user", "name": "Jane Doe"}},
+      {"label": "Team", "data": {"id": "2", "type": "team", "name": "platform"}}
     ]
   },
   {
@@ -166,27 +109,13 @@
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        }
-      },
+      "properties": {"id": {"type": "string"}},
       "required": ["id"],
       "additionalProperties": false
     },
     "examples": [
-      {
-        "label": "Inline",
-        "data": {
-          "id": "JAVASCRIPT-22SP"
-        }
-      },
-      {
-        "label": "Block",
-        "data": {
-          "id": "JAVASCRIPT-22SP"
-        }
-      }
+      {"label": "Inline", "data": {"id": "JAVASCRIPT-22SP"}},
+      {"label": "Block", "data": {"id": "JAVASCRIPT-22SP"}}
     ]
   },
   {
@@ -197,10 +126,7 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
+        "id": {"type": "string", "minLength": 1},
         "eventTimestamp": {
           "type": "string",
           "format": "date-time",
@@ -214,17 +140,11 @@
     "examples": [
       {
         "label": "Inline",
-        "data": {
-          "id": "4c1f2e3d1234567890",
-          "eventTimestamp": "2026-08-25T16:37:12Z"
-        }
+        "data": {"id": "4c1f2e3d1234567890", "eventTimestamp": "2026-08-25T16:37:12Z"}
       },
       {
         "label": "Block",
-        "data": {
-          "id": "4c1f2e3d1234567890",
-          "eventTimestamp": "2026-08-25T16:37:12Z"
-        }
+        "data": {"id": "4c1f2e3d1234567890", "eventTimestamp": "2026-08-25T16:37:12Z"}
       }
     ]
   },
@@ -236,32 +156,14 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "version": {
-          "type": "string",
-          "minLength": 1
-        },
-        "projectId": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "number"
-            }
-          ]
-        }
+        "version": {"type": "string", "minLength": 1},
+        "projectId": {"anyOf": [{"type": "string"}, {"type": "number"}]}
       },
       "required": ["version"],
       "additionalProperties": false
     },
     "examples": [
-      {
-        "label": "Release",
-        "data": {
-          "version": "example-app@1.2.3",
-          "projectId": "1"
-        }
-      }
+      {"label": "Release", "data": {"version": "example-app@1.2.3", "projectId": "1"}}
     ]
   },
   {
@@ -272,23 +174,14 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "title": {
-          "type": "string",
-          "minLength": 1
-        },
-        "subtitle": {
-          "type": "string"
-        },
+        "title": {"type": "string", "minLength": 1},
+        "subtitle": {"type": "string"},
         "visualization": {
           "default": "line",
           "type": "string",
           "enum": ["line", "area", "bar"]
         },
-        "x_axis": {
-          "default": "time",
-          "type": "string",
-          "enum": ["time", "category"]
-        },
+        "x_axis": {"default": "time", "type": "string", "enum": ["time", "category"]},
         "y_axis_unit": {
           "default": "number",
           "type": "string",
@@ -314,19 +207,8 @@
                     "items": {
                       "type": "object",
                       "properties": {
-                        "x": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            }
-                          ]
-                        },
-                        "y": {
-                          "type": "number"
-                        }
+                        "x": {"anyOf": [{"type": "string"}, {"type": "number"}]},
+                        "y": {"type": "number"}
                       },
                       "required": ["x", "y"],
                       "additionalProperties": false
@@ -339,10 +221,7 @@
               {
                 "type": "object",
                 "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Legacy alias for label"
-                  },
+                  "name": {"type": "string", "description": "Legacy alias for label"},
                   "data": {
                     "minItems": 1,
                     "maxItems": 200,
@@ -350,19 +229,8 @@
                     "items": {
                       "type": "object",
                       "properties": {
-                        "x": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            }
-                          ]
-                        },
-                        "y": {
-                          "type": "number"
-                        }
+                        "x": {"anyOf": [{"type": "string"}, {"type": "number"}]},
+                        "y": {"type": "number"}
                       },
                       "required": ["x", "y"],
                       "additionalProperties": false
@@ -392,30 +260,12 @@
             {
               "label": "Errors",
               "data": [
-                {
-                  "x": "2026-07-30T12:00:00Z",
-                  "y": 12
-                },
-                {
-                  "x": "2026-07-30T13:00:00Z",
-                  "y": 18
-                },
-                {
-                  "x": "2026-07-30T14:00:00Z",
-                  "y": 15
-                },
-                {
-                  "x": "2026-07-30T15:00:00Z",
-                  "y": 31
-                },
-                {
-                  "x": "2026-07-30T16:00:00Z",
-                  "y": 46
-                },
-                {
-                  "x": "2026-07-30T17:00:00Z",
-                  "y": 38
-                }
+                {"x": "2026-07-30T12:00:00Z", "y": 12},
+                {"x": "2026-07-30T13:00:00Z", "y": 18},
+                {"x": "2026-07-30T14:00:00Z", "y": 15},
+                {"x": "2026-07-30T15:00:00Z", "y": 31},
+                {"x": "2026-07-30T16:00:00Z", "y": 46},
+                {"x": "2026-07-30T17:00:00Z", "y": 38}
               ]
             }
           ]
@@ -435,28 +285,18 @@
           "type": "string",
           "enum": ["root_cause", "solution", "code_changes", "pr_iteration"]
         },
-        "result": {
-          "type": "string"
-        },
-        "id": {
-          "type": "string"
-        },
-        "shortId": {
-          "type": "string"
-        },
+        "result": {"type": "string"},
+        "id": {"type": "string"},
+        "shortId": {"type": "string"},
         "fiveWhys": {
           "description": "root_cause only: the causal chain, most immediate cause first.",
           "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "items": {"type": "string"}
         },
         "reproductionSteps": {
           "description": "root_cause only: ordered steps that reproduce the error.",
           "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "items": {"type": "string"}
         },
         "steps": {
           "description": "solution only: the ordered steps needed to resolve the issue.",
@@ -464,12 +304,8 @@
           "items": {
             "type": "object",
             "properties": {
-              "title": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              }
+              "title": {"type": "string"},
+              "description": {"type": "string"}
             },
             "required": ["title", "description"],
             "additionalProperties": false
@@ -532,18 +368,9 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "kind": {
-          "type": "string",
-          "enum": ["metric", "issue", "uptime", "cron"]
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        }
+        "id": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "enum": ["metric", "issue", "uptime", "cron"]},
+        "name": {"type": "string", "minLength": 1}
       },
       "required": ["id", "kind"],
       "additionalProperties": false
@@ -551,34 +378,16 @@
     "examples": [
       {
         "label": "Metric alert",
-        "data": {
-          "id": "4521",
-          "kind": "metric",
-          "name": "Checkout p95 latency"
-        }
+        "data": {"id": "4521", "kind": "metric", "name": "Checkout p95 latency"}
       },
-      {
-        "label": "Issue alert",
-        "data": {
-          "id": "881",
-          "kind": "issue"
-        }
-      },
+      {"label": "Issue alert", "data": {"id": "881", "kind": "issue"}},
       {
         "label": "Uptime alert",
-        "data": {
-          "id": "774",
-          "kind": "uptime",
-          "name": "Checkout availability"
-        }
+        "data": {"id": "774", "kind": "uptime", "name": "Checkout availability"}
       },
       {
         "label": "Cron alert",
-        "data": {
-          "id": "9931",
-          "kind": "cron",
-          "name": "nightly-sync"
-        }
+        "data": {"id": "9931", "kind": "cron", "name": "nightly-sync"}
       }
     ]
   },
@@ -590,26 +399,14 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        }
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1}
       },
       "required": ["id"],
       "additionalProperties": false
     },
     "examples": [
-      {
-        "label": "Monitor",
-        "data": {
-          "id": "9931",
-          "name": "nightly-billing-sync"
-        }
-      }
+      {"label": "Monitor", "data": {"id": "9931", "name": "nightly-billing-sync"}}
     ]
   },
   {
@@ -620,14 +417,8 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        }
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1}
       },
       "required": ["id"],
       "additionalProperties": false
@@ -635,10 +426,7 @@
     "examples": [
       {
         "label": "Saved issue view",
-        "data": {
-          "id": "77",
-          "name": "Unresolved in checkout"
-        }
+        "data": {"id": "77", "name": "Unresolved in checkout"}
       }
     ]
   },
@@ -650,10 +438,7 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
+        "id": {"type": "string", "minLength": 1},
         "dataset": {
           "type": "string",
           "enum": [
@@ -665,10 +450,7 @@
             "ai_conversations"
           ]
         },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        }
+        "name": {"type": "string", "minLength": 1}
       },
       "required": ["id", "dataset"],
       "additionalProperties": false
@@ -676,11 +458,7 @@
     "examples": [
       {
         "label": "Saved query",
-        "data": {
-          "id": "312",
-          "dataset": "spans",
-          "name": "Slow checkout spans"
-        }
+        "data": {"id": "312", "dataset": "spans", "name": "Slow checkout spans"}
       }
     ]
   },
@@ -692,19 +470,13 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "traceId": {
-          "type": "string",
-          "minLength": 1
-        },
+        "traceId": {"type": "string", "minLength": 1},
         "timestamp": {
           "type": "string",
           "format": "date-time",
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
         },
-        "spanId": {
-          "type": "string",
-          "minLength": 1
-        }
+        "spanId": {"type": "string", "minLength": 1}
       },
       "required": ["traceId"],
       "additionalProperties": false
@@ -727,19 +499,13 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "traceId": {
-          "type": "string",
-          "minLength": 1
-        },
+        "traceId": {"type": "string", "minLength": 1},
         "timestamp": {
           "type": "string",
           "format": "date-time",
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
         },
-        "spanId": {
-          "type": "string",
-          "minLength": 1
-        }
+        "spanId": {"type": "string", "minLength": 1}
       },
       "required": ["traceId"],
       "additionalProperties": false
@@ -762,14 +528,8 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "projectSlug": {
-          "type": "string",
-          "minLength": 1
-        },
-        "profileId": {
-          "type": "string",
-          "minLength": 1
-        }
+        "projectSlug": {"type": "string", "minLength": 1},
+        "profileId": {"type": "string", "minLength": 1}
       },
       "required": ["projectSlug", "profileId"],
       "additionalProperties": false
@@ -777,17 +537,11 @@
     "examples": [
       {
         "label": "Inline",
-        "data": {
-          "projectSlug": "javascript",
-          "profileId": "7f3c2b1a9d8e4f60"
-        }
+        "data": {"projectSlug": "javascript", "profileId": "7f3c2b1a9d8e4f60"}
       },
       {
         "label": "Block",
-        "data": {
-          "projectSlug": "javascript",
-          "profileId": "7f3c2b1a9d8e4f60"
-        }
+        "data": {"projectSlug": "javascript", "profileId": "7f3c2b1a9d8e4f60"}
       }
     ]
   },
@@ -799,18 +553,9 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "issueId": {
-          "type": "string",
-          "minLength": 1
-        },
-        "shortId": {
-          "type": "string",
-          "minLength": 1
-        },
+        "id": {"type": "string", "minLength": 1},
+        "issueId": {"type": "string", "minLength": 1},
+        "shortId": {"type": "string", "minLength": 1},
         "view": {
           "default": "summary",
           "type": "string",
@@ -819,10 +564,7 @@
         "tagKeys": {
           "description": "Required when view is \"tag\". The tag keys to break down, e.g. [\"browser\", \"os\"].",
           "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
+          "items": {"type": "string", "minLength": 1}
         }
       },
       "required": ["id", "issueId", "view"],
@@ -876,24 +618,9 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "traceId": {
-          "type": "string",
-          "minLength": 1
-        },
-        "projectId": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "number"
-            }
-          ]
-        },
+        "id": {"type": "string", "minLength": 1},
+        "traceId": {"type": "string", "minLength": 1},
+        "projectId": {"anyOf": [{"type": "string"}, {"type": "number"}]},
         "timestamp": {
           "type": "string",
           "format": "date-time",
@@ -966,23 +693,9 @@
         "projects": {
           "description": "Project IDs. Omit for the \"My Projects\" selection.",
           "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              }
-            ]
-          }
+          "items": {"anyOf": [{"type": "string"}, {"type": "number"}]}
         },
-        "environments": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
+        "environments": {"type": "array", "items": {"type": "string"}},
         "statsPeriod": {
           "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
           "type": "string",
@@ -998,17 +711,9 @@
           "format": "date-time",
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
         },
-        "query": {
-          "default": "",
-          "type": "string"
-        },
-        "sort": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string",
-          "minLength": 1
-        }
+        "query": {"default": "", "type": "string"},
+        "sort": {"type": "string"},
+        "title": {"type": "string", "minLength": 1}
       },
       "required": ["query"],
       "additionalProperties": false
@@ -1042,23 +747,9 @@
         "projects": {
           "description": "Project IDs. Omit for the \"My Projects\" selection.",
           "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              }
-            ]
-          }
+          "items": {"anyOf": [{"type": "string"}, {"type": "number"}]}
         },
-        "environments": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
+        "environments": {"type": "array", "items": {"type": "string"}},
         "statsPeriod": {
           "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
           "type": "string",
@@ -1074,34 +765,16 @@
           "format": "date-time",
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
         },
-        "query": {
-          "default": "",
-          "type": "string"
-        },
+        "query": {"default": "", "type": "string"},
         "mode": {
           "default": "samples",
           "type": "string",
           "enum": ["samples", "aggregate"]
         },
-        "fields": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "yAxes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "sort": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string",
-          "minLength": 1
-        }
+        "fields": {"type": "array", "items": {"type": "string"}},
+        "yAxes": {"type": "array", "items": {"type": "string"}},
+        "sort": {"type": "string"},
+        "title": {"type": "string", "minLength": 1}
       },
       "required": ["query", "mode"],
       "additionalProperties": false
@@ -1152,23 +825,9 @@
         "projects": {
           "description": "Project IDs. Omit for the \"My Projects\" selection.",
           "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              }
-            ]
-          }
+          "items": {"anyOf": [{"type": "string"}, {"type": "number"}]}
         },
-        "environments": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
+        "environments": {"type": "array", "items": {"type": "string"}},
         "statsPeriod": {
           "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
           "type": "string",
@@ -1184,41 +843,21 @@
           "format": "date-time",
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
         },
-        "query": {
-          "default": "",
-          "type": "string"
-        },
+        "query": {"default": "", "type": "string"},
         "mode": {
           "default": "samples",
           "type": "string",
           "enum": ["samples", "aggregate"]
         },
-        "groupBy": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
+        "groupBy": {"type": "array", "items": {"type": "string"}},
         "yAxes": {
           "description": "Aggregate functions to chart, e.g. \"count()\" or \"p95(span.duration)\".",
           "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "items": {"type": "string"}
         },
-        "sort": {
-          "type": "string"
-        },
-        "fields": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "title": {
-          "type": "string",
-          "minLength": 1
-        }
+        "sort": {"type": "string"},
+        "fields": {"type": "array", "items": {"type": "string"}},
+        "title": {"type": "string", "minLength": 1}
       },
       "required": ["query", "mode"],
       "additionalProperties": false
@@ -1270,23 +909,9 @@
         "projects": {
           "description": "Project IDs. Omit for the \"My Projects\" selection.",
           "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              }
-            ]
-          }
+          "items": {"anyOf": [{"type": "string"}, {"type": "number"}]}
         },
-        "environments": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
+        "environments": {"type": "array", "items": {"type": "string"}},
         "statsPeriod": {
           "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
           "type": "string",
@@ -1302,41 +927,21 @@
           "format": "date-time",
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
         },
-        "query": {
-          "default": "",
-          "type": "string"
-        },
+        "query": {"default": "", "type": "string"},
         "mode": {
           "default": "samples",
           "type": "string",
           "enum": ["samples", "aggregate"]
         },
-        "groupBy": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
+        "groupBy": {"type": "array", "items": {"type": "string"}},
         "yAxes": {
           "description": "Aggregate functions to chart, e.g. \"count()\" or \"p95(span.duration)\".",
           "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "items": {"type": "string"}
         },
-        "sort": {
-          "type": "string"
-        },
-        "fields": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "title": {
-          "type": "string",
-          "minLength": 1
-        }
+        "sort": {"type": "string"},
+        "fields": {"type": "array", "items": {"type": "string"}},
+        "title": {"type": "string", "minLength": 1}
       },
       "required": ["query", "mode"],
       "additionalProperties": false
@@ -1344,11 +949,7 @@
     "examples": [
       {
         "label": "Error logs",
-        "data": {
-          "query": "severity:error",
-          "mode": "samples",
-          "statsPeriod": "24h"
-        }
+        "data": {"query": "severity:error", "mode": "samples", "statsPeriod": "24h"}
       },
       {
         "label": "Log volume by severity",
@@ -1370,26 +971,11 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "title": {
-          "type": "string",
-          "minLength": 1
-        },
+        "id": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
         "projects": {
           "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              }
-            ]
-          }
+          "items": {"anyOf": [{"type": "string"}, {"type": "number"}]}
         },
         "start": {
           "type": "string",
@@ -1429,23 +1015,9 @@
         "projects": {
           "description": "Project IDs. Omit for the \"My Projects\" selection.",
           "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              }
-            ]
-          }
+          "items": {"anyOf": [{"type": "string"}, {"type": "number"}]}
         },
-        "environments": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
+        "environments": {"type": "array", "items": {"type": "string"}},
         "statsPeriod": {
           "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
           "type": "string",
@@ -1461,21 +1033,13 @@
           "format": "date-time",
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
         },
-        "query": {
-          "default": "",
-          "type": "string"
-        },
+        "query": {"default": "", "type": "string"},
         "agents": {
           "description": "Filter to these agent names, as reported by gen_ai.agent.name.",
           "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "items": {"type": "string"}
         },
-        "title": {
-          "type": "string",
-          "minLength": 1
-        }
+        "title": {"type": "string", "minLength": 1}
       },
       "required": ["query"],
       "additionalProperties": false
@@ -1503,23 +1067,9 @@
         "projects": {
           "description": "Project IDs. Omit for the \"My Projects\" selection.",
           "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              }
-            ]
-          }
+          "items": {"anyOf": [{"type": "string"}, {"type": "number"}]}
         },
-        "environments": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
+        "environments": {"type": "array", "items": {"type": "string"}},
         "statsPeriod": {
           "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
           "type": "string",
@@ -1535,17 +1085,9 @@
           "format": "date-time",
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
         },
-        "query": {
-          "default": "",
-          "type": "string"
-        },
-        "sort": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string",
-          "minLength": 1
-        }
+        "query": {"default": "", "type": "string"},
+        "sort": {"type": "string"},
+        "title": {"type": "string", "minLength": 1}
       },
       "required": ["query"],
       "additionalProperties": false
@@ -1553,10 +1095,7 @@
     "examples": [
       {
         "label": "Replays with rage clicks",
-        "data": {
-          "query": "count_rage_clicks:>0",
-          "statsPeriod": "7d"
-        }
+        "data": {"query": "count_rage_clicks:>0", "statsPeriod": "7d"}
       }
     ]
   },
@@ -1571,23 +1110,9 @@
         "projects": {
           "description": "Project IDs. Omit for the \"My Projects\" selection.",
           "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              }
-            ]
-          }
+          "items": {"anyOf": [{"type": "string"}, {"type": "number"}]}
         },
-        "environments": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
+        "environments": {"type": "array", "items": {"type": "string"}},
         "statsPeriod": {
           "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
           "type": "string",
@@ -1603,60 +1128,24 @@
           "format": "date-time",
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
         },
-        "query": {
-          "default": "",
-          "type": "string"
-        },
+        "query": {"default": "", "type": "string"},
         "mode": {
           "default": "samples",
           "type": "string",
           "enum": ["samples", "aggregate"]
         },
-        "groupBy": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
+        "groupBy": {"type": "array", "items": {"type": "string"}},
         "yAxes": {
           "description": "Aggregate functions to chart, e.g. \"count()\" or \"p95(span.duration)\".",
           "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "items": {"type": "string"}
         },
-        "sort": {
-          "type": "string"
-        },
-        "fields": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "title": {
-          "type": "string",
-          "minLength": 1
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "type": {
-          "type": "string",
-          "minLength": 1
-        },
-        "unit": {
-          "anyOf": [
-            {
-              "type": "string",
-              "minLength": 1
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
+        "sort": {"type": "string"},
+        "fields": {"type": "array", "items": {"type": "string"}},
+        "title": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "type": {"type": "string", "minLength": 1},
+        "unit": {"anyOf": [{"type": "string", "minLength": 1}, {"type": "null"}]}
       },
       "required": ["query", "mode", "name", "type"],
       "additionalProperties": false
@@ -1687,22 +1176,9 @@
           "type": "string",
           "enum": ["root_cause", "solution", "code_changes", "pr_iteration"]
         },
-        "id": {
-          "type": "string"
-        },
-        "shortId": {
-          "type": "string"
-        },
-        "runId": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "number"
-            }
-          ]
-        }
+        "id": {"type": "string"},
+        "shortId": {"type": "string"},
+        "runId": {"anyOf": [{"type": "string"}, {"type": "number"}]}
       },
       "required": ["step", "id", "shortId", "runId"],
       "additionalProperties": false

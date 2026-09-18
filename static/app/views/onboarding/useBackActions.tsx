@@ -96,12 +96,7 @@ export function useBackActions({
         hasScmOnboarding
           ? 'onboarding.scm_back_button_clicked'
           : 'onboarding.back_button_clicked',
-        {
-          organization,
-          from: currentStep.id,
-          to: prevStep.id,
-          browserBackButton,
-        }
+        {organization, from: currentStep.id, to: prevStep.id, browserBackButton}
       );
 
       // from selected platform to welcome

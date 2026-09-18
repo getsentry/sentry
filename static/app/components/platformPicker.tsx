@@ -45,9 +45,7 @@ const selectablePlatforms = platforms.filter(platform =>
 
 export type Category = (typeof categoryList)[number]['id'];
 
-export type Platform = PlatformIntegration & {
-  category: Category;
-};
+export type Platform = PlatformIntegration & {category: Category};
 
 interface PlatformPickerProps {
   setPlatform: (props: Platform | null) => void;

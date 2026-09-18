@@ -41,10 +41,7 @@ type Stats = {
   uninstallStats: Array<[number, number]>;
 };
 
-type TimeRange = {
-  since: number;
-  until: number;
-};
+type TimeRange = {since: number; until: number};
 
 function sentryAppInteractionsApiOptions({
   appSlug,
@@ -141,11 +138,7 @@ function SentryApplicationDashboard() {
 
 export default SentryApplicationDashboard;
 
-type InstallDataSectionProps = {
-  app: SentryApp;
-  appSlug: string;
-  timeRange: TimeRange;
-};
+type InstallDataSectionProps = {app: SentryApp; appSlug: string; timeRange: TimeRange};
 
 function InstallDataSection({app, appSlug, timeRange}: InstallDataSectionProps) {
   const {
@@ -197,17 +190,11 @@ function InstallCharts({installStats, uninstallStats}: InstallChartsProps) {
   const theme = useTheme();
 
   const installSeries = {
-    data: installStats.map(point => ({
-      name: point[0] * 1000,
-      value: point[1],
-    })),
+    data: installStats.map(point => ({name: point[0] * 1000, value: point[1]})),
     seriesName: t('installed'),
   };
   const uninstallSeries = {
-    data: uninstallStats.map(point => ({
-      name: point[0] * 1000,
-      value: point[1],
-    })),
+    data: uninstallStats.map(point => ({name: point[0] * 1000, value: point[1]})),
     seriesName: t('uninstalled'),
   };
 
@@ -285,10 +272,7 @@ function IntegrationViewsSection({
   );
 }
 
-type ComponentInteractionsSectionProps = {
-  appSlug: string;
-  timeRange: TimeRange;
-};
+type ComponentInteractionsSectionProps = {appSlug: string; timeRange: TimeRange};
 
 function ComponentInteractionsSection({
   appSlug,
@@ -346,9 +330,7 @@ function ComponentInteractionsSection({
   );
 }
 
-type InteractionsChartProps = {
-  data: Record<string, Array<[number, number]>>;
-};
+type InteractionsChartProps = {data: Record<string, Array<[number, number]>>};
 function InteractionsChart({data}: InteractionsChartProps) {
   const theme = useTheme();
   const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(
@@ -357,10 +339,7 @@ function InteractionsChart({data}: InteractionsChartProps) {
         value: point[1],
         name: point[0] * 1000,
       }));
-      return {
-        seriesName: key,
-        data: seriesData,
-      };
+      return {seriesName: key, data: seriesData};
     }
   );
 
@@ -370,11 +349,7 @@ function InteractionsChart({data}: InteractionsChartProps) {
         isGroupedByDate
         series={elementInteractionsSeries}
         grid={{left: theme.space['3xl'], right: theme.space['3xl']}}
-        legend={{
-          show: true,
-          orient: 'horizontal',
-          data: Object.keys(data),
-        }}
+        legend={{show: true, orient: 'horizontal', data: Object.keys(data)}}
       />
     </Container>
   );

@@ -35,12 +35,7 @@ export function DashboardPageFilters({
       skipLoadLastUsed={skipLoadLastUsed}
       maxPickableDays={maxPickableDays}
       defaultSelection={{
-        datetime: {
-          start: null,
-          end: null,
-          utc: false,
-          period: DEFAULT_STATS_PERIOD,
-        },
+        datetime: {start: null, end: null, utc: false, period: DEFAULT_STATS_PERIOD},
       }}
     >
       {children}

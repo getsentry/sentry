@@ -2,15 +2,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
 export type ExploreAnalyticsEventParameters = {
-  'explore.floating_trigger.clear_selection': {
-    organization: Organization;
-  };
-  'explore.floating_trigger.compare_attribute_breakdowns': {
-    organization: Organization;
-  };
-  'explore.floating_trigger.zoom_in': {
-    organization: Organization;
-  };
+  'explore.floating_trigger.clear_selection': {organization: Organization};
+  'explore.floating_trigger.compare_attribute_breakdowns': {organization: Organization};
+  'explore.floating_trigger.zoom_in': {organization: Organization};
   'explore.share_link_copied': {
     frozen_relative_period: boolean;
     organization: Organization;

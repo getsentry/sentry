@@ -19,14 +19,8 @@ function createWrapper(projectSlug?: string) {
   return function Wrapper({children}: any) {
     const wrapped = <SentryNuqsTestingAdapter>{children}</SentryNuqsTestingAdapter>;
     const memoryRouter = createMemoryRouter([
-      {
-        path: '/',
-        element: wrapped,
-      },
-      {
-        path: '/:projectId/',
-        element: wrapped,
-      },
+      {path: '/', element: wrapped},
+      {path: '/:projectId/', element: wrapped},
     ]);
 
     if (projectSlug) {
@@ -42,23 +36,14 @@ function mockPageFilterStore(projects: Project[]) {
   PageFiltersStore.onInitializeUrlState({
     projects: projects.map(p => parseInt(p.id, 10)),
     environments: [],
-    datetime: {
-      period: '7d',
-      start: null,
-      end: null,
-      utc: null,
-    },
+    datetime: {period: '7d', start: null, end: null, utc: null},
   });
 }
 
 describe('useCurrentProjectState', () => {
   const rust_1 = ProjectFixture({id: '1', platform: 'rust', slug: 'project-a'});
   const rust_2 = ProjectFixture({id: '2', platform: 'rust', slug: 'project-b'});
-  const javascript = ProjectFixture({
-    id: '3',
-    platform: 'javascript',
-    slug: 'project-c',
-  });
+  const javascript = ProjectFixture({id: '3', platform: 'javascript', slug: 'project-c'});
   const angular = ProjectFixture({
     id: '4',
     platform: 'javascript-angular',

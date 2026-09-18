@@ -76,11 +76,7 @@ export function getGPUCrashContextData({
       case GPUCrashContextKeys.SDK_VERSION:
         return {key: ctxKey, subject: t('SDK Version'), value: data.sdk_version};
       case GPUCrashContextKeys.DECODE_TIME_MS:
-        return {
-          key: ctxKey,
-          subject: t('Decode Time (ms)'),
-          value: data.decode_time_ms,
-        };
+        return {key: ctxKey, subject: t('Decode Time (ms)'), value: data.decode_time_ms};
       case GPUCrashContextKeys.FAULT_TYPE:
         return {key: ctxKey, subject: t('Fault Type'), value: data.fault_type};
       case GPUCrashContextKeys.FAULT_DESCRIPTION:
@@ -92,27 +88,15 @@ export function getGPUCrashContextData({
       case GPUCrashContextKeys.FAULT_CODE:
         return {key: ctxKey, subject: t('Fault Code'), value: data.fault_code};
       case GPUCrashContextKeys.VIRTUAL_ADDRESS:
-        return {
-          key: ctxKey,
-          subject: t('Virtual Address'),
-          value: data.virtual_address,
-        };
+        return {key: ctxKey, subject: t('Virtual Address'), value: data.virtual_address};
       case GPUCrashContextKeys.ACCESS_TYPE:
         return {key: ctxKey, subject: t('Access Type'), value: data.access_type};
       case GPUCrashContextKeys.DEVICE_NAME:
         return {key: ctxKey, subject: t('Device Name'), value: data.device_name};
       case GPUCrashContextKeys.DEVICE_STATUS:
-        return {
-          key: ctxKey,
-          subject: t('Device Status'),
-          value: data.device_status,
-        };
+        return {key: ctxKey, subject: t('Device Status'), value: data.device_status};
       case GPUCrashContextKeys.DRIVER_VERSION:
-        return {
-          key: ctxKey,
-          subject: t('Driver Version'),
-          value: data.driver_version,
-        };
+        return {key: ctxKey, subject: t('Driver Version'), value: data.driver_version};
       case GPUCrashContextKeys.GRAPHICS_API:
         return {key: ctxKey, subject: t('Graphics API'), value: data.graphics_api};
       case GPUCrashContextKeys.OS_VERSION:
@@ -132,11 +116,7 @@ export function getGPUCrashContextData({
       case GPUCrashContextKeys.ENGINE_RESET:
         return {key: ctxKey, subject: t('Engine Reset'), value: data.engine_reset};
       case GPUCrashContextKeys.ADAPTER_RESET:
-        return {
-          key: ctxKey,
-          subject: t('Adapter Reset'),
-          value: data.adapter_reset,
-        };
+        return {key: ctxKey, subject: t('Adapter Reset'), value: data.adapter_reset};
       case GPUCrashContextKeys.SHADER_HASH:
         return {key: ctxKey, subject: t('Shader Hash'), value: data.shader_hash};
       case GPUCrashContextKeys.SHADER_NAME:

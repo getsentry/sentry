@@ -10,9 +10,7 @@ import {Access} from 'sentry/components/acl/access';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 describe('Access', () => {
-  const organization = OrganizationFixture({
-    access: ['project:write', 'project:read'],
-  });
+  const organization = OrganizationFixture({access: ['project:write', 'project:read']});
 
   describe('as render prop', () => {
     const childrenMock = jest.fn().mockReturnValue(null);
@@ -26,21 +24,13 @@ describe('Access', () => {
         organization,
       });
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasAccess: true,
-        hasSuperuser: false,
-      });
+      expect(childrenMock).toHaveBeenCalledWith({hasAccess: true, hasSuperuser: false});
     });
 
     it('has no access', () => {
-      render(<Access access={['org:write']}>{childrenMock}</Access>, {
-        organization,
-      });
+      render(<Access access={['org:write']}>{childrenMock}</Access>, {organization});
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasAccess: false,
-        hasSuperuser: false,
-      });
+      expect(childrenMock).toHaveBeenCalledWith({hasAccess: false, hasSuperuser: false});
     });
 
     it('read access from team', () => {
@@ -55,15 +45,10 @@ describe('Access', () => {
       );
 
       expect(childrenMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          hasAccess: false,
-          hasSuperuser: false,
-        })
+        expect.objectContaining({hasAccess: false, hasSuperuser: false})
       );
 
-      const team2 = TeamFixture({
-        access: ['team:read', 'team:write', 'team:admin'],
-      });
+      const team2 = TeamFixture({access: ['team:read', 'team:write', 'team:admin']});
       render(
         <Access access={['team:admin']} team={team2}>
           {childrenMock}
@@ -72,10 +57,7 @@ describe('Access', () => {
       );
 
       expect(childrenMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          hasAccess: true,
-          hasSuperuser: false,
-        })
+        expect.objectContaining({hasAccess: true, hasSuperuser: false})
       );
     });
 
@@ -91,10 +73,7 @@ describe('Access', () => {
       );
 
       expect(childrenMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          hasAccess: false,
-          hasSuperuser: false,
-        })
+        expect.objectContaining({hasAccess: false, hasSuperuser: false})
       );
 
       const proj2 = ProjectFixture({access: ['project:read']});
@@ -106,74 +85,45 @@ describe('Access', () => {
       );
 
       expect(childrenMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          hasAccess: true,
-          hasSuperuser: false,
-        })
+        expect.objectContaining({hasAccess: true, hasSuperuser: false})
       );
     });
 
     it('handles no org', () => {
-      render(<Access access={['org:write']}>{childrenMock}</Access>, {
-        organization,
-      });
+      render(<Access access={['org:write']}>{childrenMock}</Access>, {organization});
 
       expect(childrenMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          hasAccess: false,
-          hasSuperuser: false,
-        })
+        expect.objectContaining({hasAccess: false, hasSuperuser: false})
       );
     });
 
     it('handles no user', () => {
       // Regression test for the share sheet.
-      ConfigStore.loadInitialData(
-        ConfigFixture({
-          user: undefined,
-        })
-      );
+      ConfigStore.loadInitialData(ConfigFixture({user: undefined}));
 
       render(<Access access={[]}>{childrenMock}</Access>, {organization});
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasAccess: true,
-        hasSuperuser: false,
-      });
+      expect(childrenMock).toHaveBeenCalledWith({hasAccess: true, hasSuperuser: false});
     });
 
     it('is superuser', () => {
       ConfigStore.loadInitialData(
-        ConfigFixture({
-          user: UserFixture({isSuperuser: true}),
-        })
+        ConfigFixture({user: UserFixture({isSuperuser: true})})
       );
 
-      render(<Access access={[]}>{childrenMock}</Access>, {
-        organization,
-      });
+      render(<Access access={[]}>{childrenMock}</Access>, {organization});
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasAccess: true,
-        hasSuperuser: true,
-      });
+      expect(childrenMock).toHaveBeenCalledWith({hasAccess: true, hasSuperuser: true});
     });
 
     it('is not superuser', () => {
       ConfigStore.loadInitialData(
-        ConfigFixture({
-          user: UserFixture({isSuperuser: false}),
-        })
+        ConfigFixture({user: UserFixture({isSuperuser: false})})
       );
 
-      render(<Access access={[]}>{childrenMock}</Access>, {
-        organization,
-      });
+      render(<Access access={[]}>{childrenMock}</Access>, {organization});
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasAccess: true,
-        hasSuperuser: false,
-      });
+      expect(childrenMock).toHaveBeenCalledWith({hasAccess: true, hasSuperuser: false});
     });
   });
 

@@ -204,13 +204,7 @@ export function useLogsApiOptionsWithInfinite({
     referrer,
     highFidelity,
   });
-  return {
-    infiniteApiOptions,
-    other: {
-      eventView,
-      pageFiltersReady,
-    },
-  };
+  return {infiniteApiOptions, other: {eventView, pageFiltersReady}};
 }
 
 /**
@@ -242,10 +236,7 @@ function getPageParam(
     const isDescending = sortBy.kind === 'desc';
     // Previous pages have to have the sort order reversed in order to start at the limit from the initial page.
     const querySortDirection: Sort | undefined = isGetPreviousPage
-      ? {
-          field: OurLogKnownFieldKey.TIMESTAMP,
-          kind: isDescending ? 'asc' : 'desc',
-        }
+      ? {field: OurLogKnownFieldKey.TIMESTAMP, kind: isDescending ? 'asc' : 'desc'}
       : undefined;
 
     if (highFidelity || isFlexTimePageParam(pageParam)) {
@@ -365,10 +356,7 @@ function getParamBasedQuery(
   }
 
   if (isFlexTimePageParam(pageParam)) {
-    return {
-      ...query,
-      cursor: pageParam.cursor,
-    };
+    return {...query, cursor: pageParam.cursor};
   }
 
   const comparison =
@@ -503,20 +491,13 @@ export function useInfiniteLogsQuery({
 
       // Build a v2 (non-infinite) query key for apiFetch — we drive pagination via
       // the query body, not via Link cursors, so we don't need apiFetchInfinite.
-      const fetchContext = {
-        client,
-        signal,
-        meta,
-      };
+      const fetchContext = {client, signal, meta};
 
       let response = await apiFetch<EventsLogsResult>({
         ...fetchContext,
         queryKey: [
           url,
-          {
-            ...baseOptions,
-            query: getParamBasedQuery(baseOptions?.query, pageParam),
-          },
+          {...baseOptions, query: getParamBasedQuery(baseOptions?.query, pageParam)},
           {infinite: false},
         ],
       });
@@ -534,10 +515,7 @@ export function useInfiniteLogsQuery({
           ...fetchContext,
           queryKey: [
             url,
-            {
-              ...retryOptions,
-              query: getParamBasedQuery(retryOptions.query, pageParam),
-            },
+            {...retryOptions, query: getParamBasedQuery(retryOptions.query, pageParam)},
             {infinite: false},
           ],
         });
@@ -601,10 +579,7 @@ export function useInfiniteLogsQuery({
         const pages = oldData.pages.filter((_, index) => keepPages[index]);
         const pageParams = oldData.pageParams.filter((_, index) => keepPages[index]);
 
-        return {
-          pages,
-          pageParams,
-        };
+        return {pages, pageParams};
       }
 
       const pageIndexWithMostRecentTimestamp =

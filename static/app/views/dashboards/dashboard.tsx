@@ -64,10 +64,7 @@ const MOBILE = 'mobile';
 const NUM_MOBILE_COLS = 2;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
-const BOTTOM_MOBILE_VIEW_POSITION = {
-  x: 0,
-  y: Number.MAX_SAFE_INTEGER,
-};
+const BOTTOM_MOBILE_VIEW_POSITION = {x: 0, y: Number.MAX_SAFE_INTEGER};
 const MOBILE_BREAKPOINT = (theme: Theme) => parseInt(theme.breakpoints.sm, 10);
 const BREAKPOINTS = (theme: Theme) => ({
   [MOBILE]: 0,
@@ -304,25 +301,16 @@ function DashboardInner({
           columnDepths = nextColumnDepths;
 
           // Set the position for the desktop layout
-          matchingLayout = {
-            ...defaultWidgetParams,
-            ...nextPosition,
-          };
+          matchingLayout = {...defaultWidgetParams, ...nextPosition};
 
           if (isMobile) {
             // This is a new widget and it's on the mobile page so we keep it at the bottom
             const mobileLayout = newLayouts[MOBILE].filter(({i}) => i !== gridKey);
-            mobileLayout.push({
-              ...defaultWidgetParams,
-              ...BOTTOM_MOBILE_VIEW_POSITION,
-            });
+            mobileLayout.push({...defaultWidgetParams, ...BOTTOM_MOBILE_VIEW_POSITION});
             newLayouts[MOBILE] = mobileLayout;
           }
         }
-        return {
-          ...widget,
-          layout: pickDefinedStoreKeys(matchingLayout),
-        };
+        return {...widget, layout: pickDefinedStoreKeys(matchingLayout)};
       });
 
       onUpdate(newWidgets);
@@ -351,12 +339,7 @@ function DashboardInner({
       const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
       position = nextPosition;
     }
-    return {
-      ...position,
-      w: DEFAULT_WIDGET_WIDTH,
-      h: 1,
-      isResizable: false,
-    };
+    return {...position, w: DEFAULT_WIDGET_WIDTH, h: 1, isResizable: false};
   }, [layouts, isMobile]);
 
   const columnDepths = calculateColumnDepths(layouts[DESKTOP]);

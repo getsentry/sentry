@@ -50,16 +50,8 @@ interface OnboardingGuide {
 }
 
 const onboardingGuides: Record<string, OnboardingGuide> = {
-  cli: {
-    label: 'Sentry CLI',
-    icon: <IconTerminal size="sm" />,
-    Guide: CLICronQuickStart,
-  },
-  curl: {
-    label: 'cURL',
-    icon: <IconGlobe size="sm" />,
-    Guide: CurlCronQuickStart,
-  },
+  cli: {label: 'Sentry CLI', icon: <IconTerminal size="sm" />, Guide: CLICronQuickStart},
+  curl: {label: 'cURL', icon: <IconGlobe size="sm" />, Guide: CurlCronQuickStart},
   python: {
     label: 'Python',
     icon: <PlatformIcon size={16} platform="python" alt="" />,

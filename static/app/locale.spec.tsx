@@ -7,12 +7,8 @@ import {tct} from 'sentry/locale';
 describe('locale.gettextComponentTemplate', () => {
   it('should not wrap translated text in span', () => {
     // spaces are removed because pretter keeps trying to remove them in the snapshot
-    expect(
-      tct('hello[one]two[three:3]', {
-        one: ' one',
-        three: <code />,
-      })
-    ).toMatchInlineSnapshot(`
+    expect(tct('hello[one]two[three:3]', {one: ' one', three: <code />}))
+      .toMatchInlineSnapshot(`
       <React.Fragment>
         <React.Fragment>
           <React.Fragment>
@@ -37,12 +33,8 @@ describe('locale.gettextComponentTemplate', () => {
   it('should render two component templates inside the same parent', () => {
     render(
       <div>
-        {tct('1st: [one]', {
-          one: 'one',
-        })}
-        {tct('2nd: [two]', {
-          two: 'two',
-        })}
+        {tct('1st: [one]', {one: 'one'})}
+        {tct('2nd: [two]', {two: 'two'})}
       </div>
     );
 
@@ -55,9 +47,7 @@ describe('locale.gettextComponentTemplate', () => {
     const RenderChildren = ({children}: {children?: React.ReactNode}) => children;
     render(
       <div>
-        {tct('[render:one] [render:two] [render:three]', {
-          render: <RenderChildren />,
-        })}
+        {tct('[render:one] [render:two] [render:three]', {render: <RenderChildren />})}
       </div>
     );
 
@@ -66,11 +56,7 @@ describe('locale.gettextComponentTemplate', () => {
 
   it('should render multiple groups with the same name in an HTML tag', () => {
     const {container} = render(
-      <div>
-        {tct('[render:one] [render:two] [render:three]', {
-          render: <b />,
-        })}
-      </div>
+      <div>{tct('[render:one] [render:two] [render:three]', {render: <b />})}</div>
     );
 
     expect(screen.getByText(textWithMarkupMatcher('one two three'))).toBeInTheDocument();

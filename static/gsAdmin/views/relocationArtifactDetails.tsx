@@ -10,9 +10,7 @@ import {useParams} from 'sentry/utils/useParams';
 
 import {DetailsPage} from 'admin/components/detailsPage';
 
-type RelocationData = {
-  contents: string;
-};
+type RelocationData = {contents: string};
 
 export function RelocationArtifactDetails() {
   const {artifactKind, fileName, regionName, relocationUuid} = useParams<{
@@ -28,13 +26,9 @@ export function RelocationArtifactDetails() {
       getApiUrl('/relocations/$relocationUuid/artifacts/$artifactKind/$fileName', {
         path: {relocationUuid, artifactKind, fileName},
       }),
-      {
-        host: locality?.url,
-      },
+      {host: locality?.url},
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   if (isPending) {

@@ -139,9 +139,7 @@ function AccountIdentities() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<UserIdentityConfig[]>([IDENTITIES_ENDPOINT], {
-    staleTime: 0,
-  });
+  } = useApiQuery<UserIdentityConfig[]>([IDENTITIES_ENDPOINT], {staleTime: 0});
 
   const appIdentities = useMemo(
     () =>

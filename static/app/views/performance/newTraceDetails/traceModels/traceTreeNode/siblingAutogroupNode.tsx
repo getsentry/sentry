@@ -44,14 +44,8 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
     return t('Autogroup') + ' - ' + this.op;
   }
 
-  get traceHeaderTitle(): {
-    title: string;
-    subtitle?: string;
-  } {
-    return {
-      title: this.op || t('Trace'),
-      subtitle: this.description,
-    };
+  get traceHeaderTitle(): {title: string; subtitle?: string} {
+    return {title: this.op || t('Trace'), subtitle: this.description};
   }
 
   get autogroupedSegments(): Array<[number, number]> {

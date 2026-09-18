@@ -29,12 +29,7 @@ const MOCK_MEMORY_INFO_CONTEXT = {
 };
 
 const MOCK_REDACTION = {
-  pinned_objects_count: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
+  pinned_objects_count: {'': {rem: [['organization:0', 's', 0, 0]], len: 5}},
 };
 
 describe('MemoryInfoContext', () => {
@@ -68,25 +63,13 @@ describe('MemoryInfoContext', () => {
       {key: 'compacted', subject: 'Compacted', value: true},
       {key: 'concurrent', subject: 'Concurrent', value: true},
       {key: 'pause_durations', subject: 'Pause Durations', value: [0, 0]},
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123, meta: undefined},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {memory_info: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {memory_info: MOCK_REDACTION}}});
 
     render(
       <ContextCard

@@ -40,11 +40,4 @@ export const remarkPlugins = [
  *
  * Used by rspack.config.ts (build).
  */
-export const rehypePlugins = [
-  [
-    rehypeExpressiveCode,
-    {
-      useDarkModeMediaQuery: false,
-    },
-  ],
-];
+export const rehypePlugins = [[rehypeExpressiveCode, {useDarkModeMediaQuery: false}]];

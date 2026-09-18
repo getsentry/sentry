@@ -23,12 +23,9 @@ const [MOCK_ITEM] = hydrateSpans(ReplayRecordFixture(), [
 ]);
 
 describe('Setup', () => {
-  jest.mocked(useProjectSdkNeedsUpdate).mockReturnValue({
-    isError: false,
-    isFetching: false,
-    needsUpdate: false,
-    data: [],
-  });
+  jest
+    .mocked(useProjectSdkNeedsUpdate)
+    .mockReturnValue({isError: false, isFetching: false, needsUpdate: false, data: []});
 
   beforeEach(() => {
     jest.mocked(useReplayReader).mockReturnValue(null);
@@ -161,10 +158,12 @@ describe('Setup', () => {
 
   describe('Mobile (video) replay with supported SDK', () => {
     function mockVideoReplay(sdkName: string) {
-      jest.mocked(useReplayReader).mockReturnValue({
-        isVideoReplay: () => true,
-        getReplay: () => ({sdk: {name: sdkName}}) as any,
-      } as any);
+      jest
+        .mocked(useReplayReader)
+        .mockReturnValue({
+          isVideoReplay: () => true,
+          getReplay: () => ({sdk: {name: sdkName}}) as any,
+        } as any);
     }
 
     it.each([
@@ -274,10 +273,12 @@ describe('Setup', () => {
 
   describe('Mobile (video) replay with unsupported SDK', () => {
     it('should render the not available message for Flutter replays', () => {
-      jest.mocked(useReplayReader).mockReturnValue({
-        isVideoReplay: () => true,
-        getReplay: () => ({sdk: {name: 'sentry.dart.flutter'}}) as any,
-      } as any);
+      jest
+        .mocked(useReplayReader)
+        .mockReturnValue({
+          isVideoReplay: () => true,
+          getReplay: () => ({sdk: {name: 'sentry.dart.flutter'}}) as any,
+        } as any);
 
       render(
         <Setup
@@ -298,10 +299,12 @@ describe('Setup', () => {
     });
 
     it('should render nothing on details tab for unsupported mobile SDK', () => {
-      jest.mocked(useReplayReader).mockReturnValue({
-        isVideoReplay: () => true,
-        getReplay: () => ({sdk: {name: 'sentry.dart.flutter'}}) as any,
-      } as any);
+      jest
+        .mocked(useReplayReader)
+        .mockReturnValue({
+          isVideoReplay: () => true,
+          getReplay: () => ({sdk: {name: 'sentry.dart.flutter'}}) as any,
+        } as any);
 
       const {container} = render(
         <Setup

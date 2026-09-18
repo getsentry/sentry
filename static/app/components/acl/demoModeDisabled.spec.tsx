@@ -4,9 +4,7 @@ import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 import {DisableInDemoMode} from './demoModeDisabled'; // Adjust the import path as necessary
 
-jest.mock('sentry/utils/demoMode', () => ({
-  isDemoModeActive: jest.fn(),
-}));
+jest.mock('sentry/utils/demoMode', () => ({isDemoModeActive: jest.fn()}));
 
 describe('DisableInDemoMode', () => {
   it('renders children when demo mode is disabled', () => {

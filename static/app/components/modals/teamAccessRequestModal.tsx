@@ -34,9 +34,7 @@ function CreateTeamAccessRequestModal(props: CreateTeamAccessRequestModalProps) 
           '/organizations/$organizationIdOrSlug/members/$memberId/teams/$teamIdOrSlug/',
           {path: {organizationIdOrSlug: orgId, memberId, teamIdOrSlug: teamId}}
         ),
-        {
-          method: 'POST',
-        }
+        {method: 'POST'}
       );
       addSuccessMessage(t('Team request sent for approval'));
     } catch (err) {

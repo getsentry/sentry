@@ -32,9 +32,7 @@ describe('WidgetPreview', () => {
       {
         organization: OrganizationFixture(),
         additionalWrapper: WidgetBuilderProvider,
-        initialRouterConfig: {
-          location: {pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME},
-        },
+        initialRouterConfig: {location: {pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME}},
       }
     );
   }

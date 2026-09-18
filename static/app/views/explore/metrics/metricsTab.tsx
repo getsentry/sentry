@@ -45,9 +45,7 @@ import {
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
-type MetricsTabProps = {
-  datePageFilterProps: DatePageFilterProps;
-};
+type MetricsTabProps = {datePageFilterProps: DatePageFilterProps};
 
 function MetricsTabContentInner({datePageFilterProps}: MetricsTabProps) {
   const {referencedMetricLabels, onEquationLabelsChange} = useEquationReferencedLabels();

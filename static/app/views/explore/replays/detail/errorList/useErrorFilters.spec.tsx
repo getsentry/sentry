@@ -64,15 +64,11 @@ describe('useErrorFilters', () => {
     } as ErrorSelectOption;
     const SEARCH_FILTER = 'BadRequestError';
 
-    const {result, router} = renderHook(useErrorFilters, {
-      initialProps: {errorFrames},
-    });
+    const {result, router} = renderHook(useErrorFilters, {initialProps: {errorFrames}});
 
     act(() => result.current.setFilters([PROJECT_OPTION]));
     await waitFor(() =>
-      expect(router.location.query).toEqual({
-        f_e_project: PROJECT_OPTION.value,
-      })
+      expect(router.location.query).toEqual({f_e_project: PROJECT_OPTION.value})
     );
 
     act(() => result.current.setSearchTerm(SEARCH_FILTER));
@@ -91,9 +87,7 @@ describe('useErrorFilters', () => {
       ERROR_3_JS_UNDEFINED!,
     ];
 
-    const {result} = renderHook(useErrorFilters, {
-      initialProps: {errorFrames},
-    });
+    const {result} = renderHook(useErrorFilters, {initialProps: {errorFrames}});
     await waitFor(() => expect(result.current.items).toHaveLength(3));
   });
 
@@ -107,12 +101,7 @@ describe('useErrorFilters', () => {
     const {result} = renderHook(useErrorFilters, {
       initialProps: {errorFrames},
       initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            f_e_project: ['javascript'],
-          },
-        },
+        location: {pathname: '/', query: {f_e_project: ['javascript']}},
       },
     });
     expect(result.current.items).toStrictEqual([
@@ -130,14 +119,7 @@ describe('useErrorFilters', () => {
 
     const {result} = renderHook(useErrorFilters, {
       initialProps: {errorFrames},
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            f_e_level: ['error'],
-          },
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {f_e_level: ['error']}}},
     });
     expect(result.current.items).toStrictEqual([
       ERROR_2_NEXTJS_TYPEERROR!,
@@ -155,12 +137,7 @@ describe('useErrorFilters', () => {
     const {result} = renderHook(useErrorFilters, {
       initialProps: {errorFrames},
       initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            f_e_search: 'Maximum update depth',
-          },
-        },
+        location: {pathname: '/', query: {f_e_search: 'Maximum update depth'}},
       },
     });
     expect(result.current.items).toHaveLength(1);
@@ -168,9 +145,7 @@ describe('useErrorFilters', () => {
 
   describe('getProjectOptions', () => {
     it('should default to having nothing in the list of method types', () => {
-      const {result} = renderHook(useErrorFilters, {
-        initialProps: {errorFrames: []},
-      });
+      const {result} = renderHook(useErrorFilters, {initialProps: {errorFrames: []}});
 
       expect(result.current.getProjectOptions()).toStrictEqual([]);
     });
@@ -178,9 +153,7 @@ describe('useErrorFilters', () => {
     it('should return a sorted list of options', () => {
       const errorFrames = [ERROR_2_NEXTJS_TYPEERROR!, ERROR_3_JS_UNDEFINED!];
 
-      const {result} = renderHook(useErrorFilters, {
-        initialProps: {errorFrames},
-      });
+      const {result} = renderHook(useErrorFilters, {initialProps: {errorFrames}});
 
       expect(result.current.getProjectOptions()).toStrictEqual([
         {label: 'javascript', value: 'javascript', qs: 'f_e_project'},
@@ -191,9 +164,7 @@ describe('useErrorFilters', () => {
     it('should deduplicate ProjectOptions', () => {
       const errorFrames = [ERROR_1_JS_RANGEERROR!, ERROR_3_JS_UNDEFINED!];
 
-      const {result} = renderHook(useErrorFilters, {
-        initialProps: {errorFrames},
-      });
+      const {result} = renderHook(useErrorFilters, {initialProps: {errorFrames}});
 
       // Given >1 errorFrames each with the same projectSlug, we should only
       // have one option in the list.
@@ -205,9 +176,7 @@ describe('useErrorFilters', () => {
 
   describe('getLevelOptions', () => {
     it('should default to having nothing in the list of method types', () => {
-      const {result} = renderHook(useErrorFilters, {
-        initialProps: {errorFrames: []},
-      });
+      const {result} = renderHook(useErrorFilters, {initialProps: {errorFrames: []}});
 
       expect(result.current.getLevelOptions()).toStrictEqual([]);
     });
@@ -215,9 +184,7 @@ describe('useErrorFilters', () => {
     it('should return a sorted list of project slugs', () => {
       const errorFrames = [ERROR_1_JS_RANGEERROR!, ERROR_3_JS_UNDEFINED!];
 
-      const {result} = renderHook(useErrorFilters, {
-        initialProps: {errorFrames},
-      });
+      const {result} = renderHook(useErrorFilters, {initialProps: {errorFrames}});
 
       expect(result.current.getLevelOptions()).toStrictEqual([
         {label: 'Error', value: 'error', qs: 'f_e_level'},
@@ -228,9 +195,7 @@ describe('useErrorFilters', () => {
     it('should deduplicate BreadcrumbType', () => {
       const errorFrames = [ERROR_2_NEXTJS_TYPEERROR!, ERROR_3_JS_UNDEFINED!];
 
-      const {result} = renderHook(useErrorFilters, {
-        initialProps: {errorFrames},
-      });
+      const {result} = renderHook(useErrorFilters, {initialProps: {errorFrames}});
 
       expect(result.current.getLevelOptions()).toStrictEqual([
         {label: 'Error', value: 'error', qs: 'f_e_level'},

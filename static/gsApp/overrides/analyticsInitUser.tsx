@@ -11,10 +11,7 @@ import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 const MARKETING_EVENT_SESSION_KEY = 'marketing_event_recorded';
 
 // fields should be string but need to validate
-type MarketingEventSchema = {
-  event_name: unknown;
-  event_label?: unknown;
-};
+type MarketingEventSchema = {event_name: unknown; event_label?: unknown};
 
 function identifyAmplitudeUser(user: User) {
   // Most of our in-app amplitude logging happens on the backend, whereas anonymous user tracking
@@ -61,14 +58,8 @@ export function analyticsInitUser(user: User | null) {
   Amplitude.init(amplitudeKey, undefined, {
     logLevel: Amplitude.Types.LogLevel.None,
     minIdLength: 1,
-    attribution: {
-      disabled: false,
-    },
-    trackingOptions: {
-      city: false,
-      ip_address: false,
-      dma: false,
-    },
+    attribution: {disabled: false},
+    trackingOptions: {city: false, ip_address: false, dma: false},
   });
 
   if (user) {

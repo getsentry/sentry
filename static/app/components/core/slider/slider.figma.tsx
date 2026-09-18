@@ -13,8 +13,5 @@ import {Slider} from '@sentry/scraps/slider';
 figma.connect(
   Slider,
   'https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=3538-6616&m=draw&t=ITviPfKTjIMGFJOi-11',
-  {
-    props: {},
-    example: props => <Slider {...props} />,
-  }
+  {props: {}, example: props => <Slider {...props} />}
 );

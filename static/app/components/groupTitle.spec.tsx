@@ -72,9 +72,7 @@ describe('GroupTitle', () => {
       title: 'Hello',
       type: EventOrGroupType.TRANSACTION,
       issueCategory: IssueCategory.PERFORMANCE,
-      metadata: {
-        title: 'N+1 Query',
-      },
+      metadata: {title: 'N+1 Query'},
       culprit: 'transaction name',
     });
 

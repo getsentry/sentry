@@ -7,21 +7,9 @@ import {getFeedbackConfigOptions} from 'sentry/components/onboarding/gettingStar
 export const installCodeBlock: ContentBlock = {
   type: 'code',
   tabs: [
-    {
-      label: 'npm',
-      language: 'bash',
-      code: 'npm install @sentry/react-native@latest',
-    },
-    {
-      label: 'yarn',
-      language: 'bash',
-      code: 'yarn add @sentry/react-native@latest',
-    },
-    {
-      label: 'pnpm',
-      language: 'bash',
-      code: 'pnpm add @sentry/react-native@latest',
-    },
+    {label: 'npm', language: 'bash', code: 'npm install @sentry/react-native@latest'},
+    {label: 'yarn', language: 'bash', code: 'yarn add @sentry/react-native@latest'},
+    {label: 'pnpm', language: 'bash', code: 'pnpm add @sentry/react-native@latest'},
   ],
 };
 

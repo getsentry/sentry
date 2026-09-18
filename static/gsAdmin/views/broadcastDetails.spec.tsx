@@ -30,16 +30,11 @@ describe('Broadcast Details', () => {
       earlyAdopter: true,
     };
 
-    MockApiClient.addMockResponse({
-      url: `/broadcasts/${broadcast.id}/`,
-      body: broadcast,
-    });
+    MockApiClient.addMockResponse({url: `/broadcasts/${broadcast.id}/`, body: broadcast});
 
     render(<BroadcastDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/_admin/broadcasts/${broadcast.id}/`,
-        },
+        location: {pathname: `/_admin/broadcasts/${broadcast.id}/`},
         route: '/_admin/broadcasts/:broadcastId/',
       },
     });

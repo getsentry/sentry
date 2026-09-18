@@ -44,9 +44,7 @@ describe('DisabledSelectorItems', () => {
       SubscriptionFixture({
         organization,
         plan: 'mm2_b_100k',
-        planDetails: PlanFixture({
-          retentionDays: 90,
-        }),
+        planDetails: PlanFixture({retentionDays: 90}),
       })
     );
 
@@ -81,9 +79,7 @@ describe('DisabledSelectorItems', () => {
       SubscriptionFixture({
         organization,
         plan: 'mm2_f',
-        planDetails: PlanFixture({
-          retentionDays: 30,
-        }),
+        planDetails: PlanFixture({retentionDays: 30}),
       })
     );
 
@@ -118,9 +114,7 @@ describe('DisabledSelectorItems', () => {
       SubscriptionFixture({
         organization,
         plan: 'mm2_f',
-        planDetails: PlanFixture({
-          retentionDays: 30,
-        }),
+        planDetails: PlanFixture({retentionDays: 30}),
       })
     );
 

@@ -16,10 +16,7 @@ import {UptimeAlertForm} from 'sentry/views/detectors/components/uptime/uptimeAl
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {useUptimeRule} from 'sentry/views/insights/uptime/utils/useUptimeRule';
 
-type RouteParams = {
-  projectId: string;
-  ruleId: string;
-};
+type RouteParams = {projectId: string; ruleId: string};
 
 type Props = {
   onChangeTitle: (data: string) => void;

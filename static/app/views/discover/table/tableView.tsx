@@ -469,10 +469,7 @@ export function TableView(props: TableViewProps) {
       const query = new MutableSearch(eventView.query);
 
       let nextView = eventView.clone();
-      trackAnalytics('discover_v2.results.cellaction', {
-        organization,
-        action,
-      });
+      trackAnalytics('discover_v2.results.cellaction', {organization, action});
 
       switch (action) {
         case Actions.RELEASE: {
@@ -498,9 +495,7 @@ export function TableView(props: TableViewProps) {
         }
         case Actions.DRILLDOWN: {
           // count_unique(column) drilldown
-          trackAnalytics('discover_v2.results.drilldown', {
-            organization,
-          });
+          trackAnalytics('discover_v2.results.drilldown', {organization});
 
           // Drilldown into each distinct value and get a count() for each value.
           nextView = getExpandedResults(nextView, {}, dataRow).withNewColumn({
@@ -554,9 +549,7 @@ export function TableView(props: TableViewProps) {
     const {organization, eventView, location, isHomepage, queryDataset} = props;
 
     // metrics
-    trackAnalytics('discover_v2.update_columns', {
-      organization,
-    });
+    trackAnalytics('discover_v2.update_columns', {organization});
 
     const nextView = eventView.withColumns(columns);
     const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(
@@ -613,9 +606,7 @@ export function TableView(props: TableViewProps) {
       ? []
       : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
 
-  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
-    columns: columnOrder,
-  });
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({columns: columnOrder});
 
   return (
     <GridEditable
@@ -645,14 +636,9 @@ type EventTargetOptions = {
   organization: Organization;
 };
 
-type TraceEventDataRow = TableDataRow & {
-  timestamp: string | number;
-  trace: string;
-};
+type TraceEventDataRow = TableDataRow & {timestamp: string | number; trace: string};
 
-type IssueEventDataRow = TableDataRow & {
-  'issue.id': string | number;
-};
+type IssueEventDataRow = TableDataRow & {'issue.id': string | number};
 
 function getEventTarget({
   dataRow,
@@ -704,9 +690,7 @@ function getIssueEventTarget(
 ): LocationDescriptor {
   return normalizeUrl({
     pathname: `/organizations/${organization.slug}/issues/${dataRow['issue.id']}/events/${dataRow.id}/`,
-    query: {
-      referrer: 'discover-events-table',
-    },
+    query: {referrer: 'discover-events-table'},
   });
 }
 

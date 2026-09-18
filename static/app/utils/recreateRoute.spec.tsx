@@ -22,15 +22,9 @@ const projectRoutes = [
   {name: 'Alerts', path: 'alerts/'},
 ];
 
-const params = {
-  orgId: 'org-slug',
-  projectId: 'project-slug',
-};
+const params = {orgId: 'org-slug', projectId: 'project-slug'};
 
-const location = {
-  ...LocationFixture(),
-  search: '',
-};
+const location = {...LocationFixture(), search: ''};
 
 describe('recreateRoute', () => {
   it('returns correct path to a route object', () => {
@@ -83,10 +77,7 @@ describe('recreateRoute', () => {
   });
 
   it('maintains the query string', () => {
-    const withSearch = {
-      ...LocationFixture(),
-      search: '?key1=foo&key2=bar',
-    };
+    const withSearch = {...LocationFixture(), search: '?key1=foo&key2=bar'};
 
     expect(recreateRoute(routes[5]!, {routes, params, location: withSearch})).toBe(
       '/settings/org-slug/api-keys/?key1=foo&key2=bar'

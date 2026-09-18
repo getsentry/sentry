@@ -83,11 +83,7 @@ function useRegisterServiceWorker() {
 
         const worker = registration.installing;
         worker?.addEventListener('statechange', () => {
-          log('statechange', {
-            attributes: {
-              state: worker.state,
-            },
-          });
+          log('statechange', {attributes: {state: worker.state}});
         });
       })
       .catch(error => {

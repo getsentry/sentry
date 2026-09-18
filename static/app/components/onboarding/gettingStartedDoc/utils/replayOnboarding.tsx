@@ -10,18 +10,13 @@ import {tct} from 'sentry/locale';
 export const getReplayMobileConfigureDescription = ({link}: {link: string}) =>
   tct(
     'The SDK aggressively redacts all text and images by default. You can easily configure the unmasking or masking behavior. Learn more about configuring Session Replay by reading the [link:configuration docs].',
-    {
-      link: <ExternalLink href={link} />,
-    }
+    {link: <ExternalLink href={link} />}
   );
 
 export const getReplayConfigureDescription = ({link}: {link: string}) =>
   tct(
     'Add the following to your SDK config. There are several privacy and sampling options available, all of which can be set using the [code:integrations] constructor. Learn more about configuring Session Replay by reading the [link:configuration docs].',
-    {
-      code: <code />,
-      link: <ExternalLink href={link} />,
-    }
+    {code: <code />, link: <ExternalLink href={link} />}
   );
 
 export const getReplayJsLoaderSdkSetupSnippet = (params: DocsParams) => `
@@ -88,10 +83,7 @@ export const getReplaySDKSetupSnippet = ({
     dsn: "${dsn}",
 
     integrations: [
-      Sentry.replayIntegration(${getReplayConfigOptions({
-        mask,
-        block,
-      })}),
+      Sentry.replayIntegration(${getReplayConfigOptions({mask, block})}),
     ],
     // Session Replay
     replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
@@ -101,10 +93,7 @@ export const getReplaySDKSetupSnippet = ({
 export const getReplayConfigOptions = ({
   mask,
   block,
-}: {
-  block?: boolean;
-  mask?: boolean;
-} = {}) => {
+}: {block?: boolean; mask?: boolean} = {}) => {
   if (mask && block) {
     return '';
   }

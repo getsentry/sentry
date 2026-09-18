@@ -8,9 +8,7 @@ import {SnapshotStatusChecks} from 'sentry/views/settings/project/preprod/snapsh
 describe('SnapshotStatusChecks', () => {
   const {organization} = initializeOrg();
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/projects/test-project/snapshots/`,
-    },
+    location: {pathname: `/settings/projects/test-project/snapshots/`},
     route: '/settings/projects/:projectId/snapshots/',
   };
 
@@ -83,10 +81,7 @@ describe('SnapshotStatusChecks', () => {
   it('saves fail_on_changed when toggled off', async () => {
     const project = DetailedProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-    MockApiClient.addMockResponse({
-      url: projectEndpoint,
-      body: project,
-    });
+    MockApiClient.addMockResponse({url: projectEndpoint, body: project});
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -117,10 +112,7 @@ describe('SnapshotStatusChecks', () => {
   it('saves fail_on_renamed when toggled on', async () => {
     const project = DetailedProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-    MockApiClient.addMockResponse({
-      url: projectEndpoint,
-      body: project,
-    });
+    MockApiClient.addMockResponse({url: projectEndpoint, body: project});
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -151,10 +143,7 @@ describe('SnapshotStatusChecks', () => {
   it('immediately hides failure condition toggles when status checks are disabled', async () => {
     const project = DetailedProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-    MockApiClient.addMockResponse({
-      url: projectEndpoint,
-      body: project,
-    });
+    MockApiClient.addMockResponse({url: projectEndpoint, body: project});
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -174,9 +163,7 @@ describe('SnapshotStatusChecks', () => {
     });
 
     await userEvent.click(
-      await screen.findByRole('checkbox', {
-        name: 'Enable Snapshot Status Checks',
-      })
+      await screen.findByRole('checkbox', {name: 'Enable Snapshot Status Checks'})
     );
 
     expect(

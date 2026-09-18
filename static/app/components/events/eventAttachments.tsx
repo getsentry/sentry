@@ -58,10 +58,7 @@ function ViewAllGroupAttachmentsButton() {
   return (
     <LinkButton
       size="xs"
-      to={{
-        pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
-        query: location.query,
-      }}
+      to={{pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`, query: location.query}}
     >
       {t('View All Attachments')}
     </LinkButton>

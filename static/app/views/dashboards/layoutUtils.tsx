@@ -186,12 +186,7 @@ export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layo
 
     return {
       ...widget,
-      layout: {
-        ...nextPosition,
-        h: height,
-        minH: height,
-        w: DEFAULT_WIDGET_WIDTH,
-      },
+      layout: {...nextPosition, h: height, minH: height, w: DEFAULT_WIDGET_WIDTH},
     };
   });
   return newWidgets;

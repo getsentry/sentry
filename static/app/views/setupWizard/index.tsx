@@ -6,10 +6,7 @@ import {useOrganizationsWithRegion} from 'sentry/views/setupWizard/utils/useOrga
 import {WaitingForWizardToConnect} from 'sentry/views/setupWizard/waitingForWizardToConnect';
 import {WizardProjectSelection} from 'sentry/views/setupWizard/wizardProjectSelection';
 
-type Props = {
-  hash: string;
-  enableProjectSelection?: boolean;
-};
+type Props = {hash: string; enableProjectSelection?: boolean};
 
 function SetupWizard({hash, enableProjectSelection = false}: Props) {
   const {data: organizations, isError, isPending} = useOrganizationsWithRegion();

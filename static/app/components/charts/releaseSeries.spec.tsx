@@ -18,12 +18,7 @@ describe('ReleaseSeries', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
-    releases = [
-      {
-        version: 'sentry-android-shop@1.2.0',
-        date: '2020-03-23T00:00:00Z',
-      },
-    ];
+    releases = [{version: 'sentry-android-shop@1.2.0', date: '2020-03-23T00:00:00Z'}];
     MockApiClient.clearMockResponses();
     releasesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
@@ -101,11 +96,7 @@ describe('ReleaseSeries', () => {
     expect(releasesMock).toHaveBeenCalled();
 
     await waitFor(() =>
-      expect(renderFunc).toHaveBeenCalledWith(
-        expect.objectContaining({
-          releases,
-        })
-      )
+      expect(renderFunc).toHaveBeenCalledWith(expect.objectContaining({releases}))
     );
   });
 
@@ -119,9 +110,7 @@ describe('ReleaseSeries', () => {
     await waitFor(() =>
       expect(releasesMock).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({project: [1, 2]}),
-        })
+        expect.objectContaining({query: expect.objectContaining({project: [1, 2]})})
       )
     );
   });
@@ -195,9 +184,7 @@ describe('ReleaseSeries', () => {
     await waitFor(() =>
       expect(releasesMock).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({statsPeriod: '14d'}),
-        })
+        expect.objectContaining({query: expect.objectContaining({statsPeriod: '14d'})})
       )
     );
   });
@@ -305,10 +292,7 @@ describe('ReleaseSeries', () => {
   });
 
   it('allows updating the emphasized release', async () => {
-    releases.push({
-      version: 'sentry-android-shop@1.2.1',
-      date: '2020-03-24T00:00:00Z',
-    });
+    releases.push({version: 'sentry-android-shop@1.2.1', date: '2020-03-24T00:00:00Z'});
     const wrapper = render(
       <ReleaseSeries
         {...baseSeriesProps}

@@ -184,11 +184,7 @@ describe('ApiNewToken', () => {
     jest.spyOn(indicators, 'addErrorMessage');
 
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      method: 'POST',
-      url: '/api-tokens/',
-      statusCode: 400,
-    });
+    MockApiClient.addMockResponse({method: 'POST', url: '/api-tokens/', statusCode: 400});
 
     render(<ApiNewToken />);
 

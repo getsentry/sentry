@@ -123,10 +123,7 @@ export function AttributeDistribution() {
       const normalizedName = prettyName.toLocaleLowerCase().trim();
       if (!seen.has(normalizedName)) {
         seen.add(normalizedName);
-        acc.push({
-          attributeName: prettyName,
-          values,
-        });
+        acc.push({attributeName: prettyName, values});
       }
       return acc;
     }, []);
@@ -144,10 +141,7 @@ export function AttributeDistribution() {
           <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search keys')}
             onChange={value => {
-              setQueryParams({
-                breakdownQuery: value,
-                breakdownCursor: null,
-              });
+              setQueryParams({breakdownQuery: value, breakdownCursor: null});
             }}
             query={searchQuery}
             size="sm"
@@ -191,9 +185,7 @@ export function AttributeDistribution() {
                 });
               }}
               onNextClick={() => {
-                setQueryParams({
-                  breakdownCursor: parsedLinks.next?.cursor,
-                });
+                setQueryParams({breakdownCursor: parsedLinks.next?.cursor});
               }}
             />
           </Fragment>
@@ -212,9 +204,7 @@ function getPreviousBreakdownCursor(cursor: string | undefined) {
 }
 
 function ChartSelectionAlert() {
-  const {dismiss, isDismissed} = useDismissAlert({
-    key: CHART_SELECTION_ALERT_KEY,
-  });
+  const {dismiss, isDismissed} = useDismissAlert({key: CHART_SELECTION_ALERT_KEY});
 
   if (isDismissed) {
     return null;

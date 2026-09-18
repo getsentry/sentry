@@ -16,9 +16,7 @@ import {OnDemandBudgetMode} from 'getsentry/types';
 import {PaygCard} from 'getsentry/views/subscriptionPage/headerCards/paygCard';
 
 describe('PaygCard', () => {
-  const organization = OrganizationFixture({
-    access: ['org:billing'],
-  });
+  const organization = OrganizationFixture({access: ['org:billing']});
 
   beforeEach(() => {
     setMockDate(new Date('2022-06-09'));
@@ -29,22 +27,14 @@ describe('PaygCard', () => {
   });
 
   it('renders set/edit button for users with billing perms', () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_team'});
     render(<PaygCard organization={organization} subscription={subscription} />);
     expect(screen.getByRole('button', {name: 'Set limit'})).toBeInTheDocument();
   });
 
   it('does not render set/edit button for users without billing perms', () => {
-    const diffOrg = OrganizationFixture({
-      access: [],
-    });
-    const subscription = SubscriptionFixture({
-      organization: diffOrg,
-      plan: 'am3_team',
-    });
+    const diffOrg = OrganizationFixture({access: []});
+    const subscription = SubscriptionFixture({organization: diffOrg, plan: 'am3_team'});
     render(<PaygCard organization={diffOrg} subscription={subscription} />);
     expect(screen.queryByRole('button', {name: 'Set limit'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Edit limit'})).not.toBeInTheDocument();
@@ -116,15 +106,8 @@ describe('PaygCard', () => {
       onDemandBudgets: {
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
         enabled: true,
-        budgets: {
-          errors: 1_00,
-          replays: 2_00,
-          attachments: 3_00,
-        },
-        usedSpends: {
-          errors: 50,
-          attachments: 3_00,
-        },
+        budgets: {errors: 1_00, replays: 2_00, attachments: 3_00},
+        usedSpends: {errors: 50, attachments: 3_00},
       },
     });
     render(<PaygCard organization={organization} subscription={subscription} />);
@@ -142,10 +125,7 @@ describe('PaygCard', () => {
       method: 'POST',
       statusCode: 200,
     });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_team'});
     render(<PaygCard organization={organization} subscription={subscription} />);
 
     expect(screen.getByRole('heading', {name: 'Pay-as-you-go'})).toBeInTheDocument();
@@ -162,10 +142,7 @@ describe('PaygCard', () => {
       `/customers/${organization.slug}/ondemand-budgets/`,
       expect.objectContaining({
         method: 'POST',
-        data: {
-          budgetMode: OnDemandBudgetMode.SHARED,
-          sharedMaxBudget: 100_00,
-        },
+        data: {budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 100_00},
       })
     );
 
@@ -174,10 +151,7 @@ describe('PaygCard', () => {
   });
 
   it('enables edit button for present payment source', () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_team'});
     render(<PaygCard organization={organization} subscription={subscription} />);
     expect(screen.getByRole('button', {name: 'Set limit'})).toBeEnabled();
   });

@@ -10,9 +10,7 @@ export interface PasswordResetResult {
   status: 'accepted';
 }
 
-type PasswordResetResponse = {
-  detail: string;
-};
+type PasswordResetResponse = {detail: string};
 
 export function usePasswordReset() {
   const mutation = useMutation({
@@ -23,10 +21,7 @@ export function usePasswordReset() {
         data: {user: email},
       });
 
-      return {
-        status: 'accepted',
-        message: response.detail,
-      } satisfies PasswordResetResult;
+      return {status: 'accepted', message: response.detail} satisfies PasswordResetResult;
     },
   });
 

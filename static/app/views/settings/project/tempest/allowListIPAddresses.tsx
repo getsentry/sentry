@@ -10,17 +10,8 @@ export const ALLOWLIST_IP_ADDRESSES_DESCRIPTION = t(
 
 export function AllowListIPAddresses() {
   const {data: ipAddresses, isPending} = useApiQuery<string>(
-    [
-      getApiUrl('/tempest-ips/'),
-      {
-        headers: {
-          Accept: 'text/html, text/plain, */*',
-        },
-      },
-    ],
-    {
-      staleTime: Infinity,
-    }
+    [getApiUrl('/tempest-ips/'), {headers: {Accept: 'text/html, text/plain, */*'}}],
+    {staleTime: Infinity}
   );
 
   return (

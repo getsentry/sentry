@@ -26,13 +26,7 @@ describe('useLogsAggregatesTable', () => {
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     const mockNormalRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-        meta: {
-          dataScanned: 'partial',
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {dataScanned: 'partial', fields: {}}},
       method: 'GET',
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -43,13 +37,7 @@ describe('useLogsAggregatesTable', () => {
 
     const mockHighAccuracyRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-        meta: {
-          dataScanned: 'full',
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {dataScanned: 'full', fields: {}}},
       method: 'GET',
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -58,14 +46,9 @@ describe('useLogsAggregatesTable', () => {
       ],
     });
 
-    renderHookWithProviders(
-      () =>
-        useLogsAggregatesTable({
-          enabled: true,
-          limit: 100,
-        }),
-      {additionalWrapper: Wrapper}
-    );
+    renderHookWithProviders(() => useLogsAggregatesTable({enabled: true, limit: 100}), {
+      additionalWrapper: Wrapper,
+    });
 
     expect(mockNormalRequest).toHaveBeenCalledTimes(1);
     expect(mockNormalRequest).toHaveBeenCalledWith(

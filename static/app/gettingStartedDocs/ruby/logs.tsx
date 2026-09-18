@@ -34,11 +34,7 @@ export const logs = <PlatformOptions extends BasePlatformOptions = BasePlatformO
             }
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'gem install sentry-ruby',
-        },
+        {type: 'code', language: 'bash', code: 'gem install sentry-ruby'},
       ],
     },
   ],
@@ -50,9 +46,7 @@ export const logs = <PlatformOptions extends BasePlatformOptions = BasePlatformO
           type: 'text',
           text: tct(
             'To enable logging, you need to initialize the SDK with the [code:enable_logs] option set to [code:true]. You can also patch the Ruby logger to forward logs to Sentry.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

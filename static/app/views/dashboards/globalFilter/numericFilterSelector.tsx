@@ -264,9 +264,7 @@ export function NumericFilterSelector({
 
   const operatorOptions = [
     ...nativeFilter.operatorOptions,
-    {
-      value: CustomOperator.BETWEEN,
-    },
+    {value: CustomOperator.BETWEEN},
   ];
 
   const operatorItems = operatorOptions.map(option => ({
@@ -345,10 +343,7 @@ export function NumericFilterSelector({
                 <MenuComponents.ApplyButton
                   disabled={!filter.isValidValue}
                   onClick={() => {
-                    onUpdateFilter({
-                      ...globalFilter,
-                      value: filter.buildFilterQuery(),
-                    });
+                    onUpdateFilter({...globalFilter, value: filter.buildFilterQuery()});
                   }}
                 />
               </Flex>

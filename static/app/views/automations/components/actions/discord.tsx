@@ -78,9 +78,7 @@ function TargetIdentifierField() {
       placeholder={t('channel ID or URL')}
       value={action.config.targetIdentifier ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        onUpdate({
-          config: {...action.config, targetIdentifier: e.target.value},
-        });
+        onUpdate({config: {...action.config, targetIdentifier: e.target.value}});
         removeError(action.id);
       }}
     />

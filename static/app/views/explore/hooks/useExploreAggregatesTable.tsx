@@ -58,10 +58,7 @@ export function useExploreAggregatesTable({
   return useProgressiveQuery<typeof useExploreAggregatesTableImp>({
     queryHookImplementation: useExploreAggregatesTableImp, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {enabled, limit, query, queryExtras},
-    queryOptions: {
-      canTriggerHighAccuracy,
-      disableExtrapolation: !extrapolate,
-    },
+    queryOptions: {canTriggerHighAccuracy, disableExtrapolation: !extrapolate},
   });
 }
 

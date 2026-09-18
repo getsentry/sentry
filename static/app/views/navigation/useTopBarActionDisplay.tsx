@@ -14,8 +14,5 @@ export function useTopBarActionDisplay(): {
     sm: 'label',
   });
 
-  return {
-    display: isSearchInMobileRow ? 'icon' : responsiveDisplay,
-    isSearchInMobileRow,
-  };
+  return {display: isSearchInMobileRow ? 'icon' : responsiveDisplay, isSearchInMobileRow};
 }

@@ -40,11 +40,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
   );
 
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
-    useResetAutofixStep({
-      autofix,
-      section,
-      step: 'solution',
-    });
+    useResetAutofixStep({autofix, section, step: 'solution'});
 
   return (
     <ArtifactCard

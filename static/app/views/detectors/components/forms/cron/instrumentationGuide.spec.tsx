@@ -98,9 +98,7 @@ describe('InstrumentationGuide', () => {
     expect(await screen.findByText('Auto-Instrument with PHP')).toBeInTheDocument();
 
     // Click the manual button
-    const manualButton = screen.getByRole('button', {
-      name: 'Manually Create a Monitor',
-    });
+    const manualButton = screen.getByRole('button', {name: 'Manually Create a Monitor'});
     await userEvent.click(manualButton);
 
     // Guide should be hidden
@@ -121,10 +119,7 @@ describe('InstrumentationGuide', () => {
         </Form>,
         {
           initialRouterConfig: {
-            location: {
-              pathname: '/test/',
-              query: {skipGuideDetection: 'true'},
-            },
+            location: {pathname: '/test/', query: {skipGuideDetection: 'true'}},
           },
         }
       );
@@ -148,10 +143,7 @@ describe('InstrumentationGuide', () => {
         </Form>,
         {
           initialRouterConfig: {
-            location: {
-              pathname: '/test/',
-              query: {platform: 'php', guide: 'upsert'},
-            },
+            location: {pathname: '/test/', query: {platform: 'php', guide: 'upsert'}},
           },
         }
       );
@@ -215,10 +207,7 @@ describe('InstrumentationGuide', () => {
         </Form>,
         {
           initialRouterConfig: {
-            location: {
-              pathname: '/test/',
-              query: {platform: 'php', guide: 'upsert'},
-            },
+            location: {pathname: '/test/', query: {platform: 'php', guide: 'upsert'}},
           },
         }
       );

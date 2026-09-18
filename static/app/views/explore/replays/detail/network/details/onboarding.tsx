@@ -254,9 +254,7 @@ function MobileSetupInstructions({
       <p>
         {tct(
           'To protect user privacy, Session Replay defaults to not capturing the request or response headers. However, we provide the option to do so, if it’s critical to your debugging process. [link].',
-          {
-            link: <ExternalLink href={docsUrl}>{t('Learn More')}</ExternalLink>,
-          }
+          {link: <ExternalLink href={docsUrl}>{t('Learn More')}</ExternalLink>}
         )}
       </p>
       {(showSnippet === Output.SETUP || showSnippet === Output.URL_SKIPPED) &&
@@ -383,11 +381,7 @@ function SetupInstructions({
       <h2>{t('Prerequisites')}</h2>
       <ol>
         {sdkNeedsUpdate ? (
-          <li>
-            {tct('Update your SDK version to >= [minVersion]', {
-              minVersion,
-            })}
-          </li>
+          <li>{tct('Update your SDK version to >= [minVersion]', {minVersion})}</li>
         ) : null}
         <li>{t('Edit the Replay integration configuration to allow this URL.')}</li>
         <li>{t('That’s it!')}</li>

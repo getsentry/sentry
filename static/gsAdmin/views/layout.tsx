@@ -21,10 +21,7 @@ import {GlobalStyles} from 'admin/globalStyles';
 
 const ADMIN_SIDEBAR_COLLAPSED_KEY = 'getsentryAdminSidebarCollapsed';
 
-const themes = {
-  darkTheme,
-  lightTheme,
-};
+const themes = {darkTheme, lightTheme};
 
 type ThemeName = keyof typeof themes;
 

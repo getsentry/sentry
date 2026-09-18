@@ -10,9 +10,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {InitializedAgenticProgressRun} from './types';
 
-type UseAgenticProgressInitOptions = {
-  enabled: boolean;
-};
+type UseAgenticProgressInitOptions = {enabled: boolean};
 
 const createOnboardingCode = () => uuid4().slice(0, 10);
 
@@ -35,10 +33,7 @@ export function useAgenticProgressInit({enabled}: UseAgenticProgressInitOptions)
       url: getApiUrl('/organizations/$organizationIdOrSlug/onboarding/agent/runs/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      data: {
-        clientRunId: nextClientRunId,
-        onboardingCode: nextOnboardingCode,
-      },
+      data: {clientRunId: nextClientRunId, onboardingCode: nextOnboardingCode},
     });
 
   // A conflicting onboarding code is replaced without changing the run's cache identity.

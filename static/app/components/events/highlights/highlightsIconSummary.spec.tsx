@@ -18,10 +18,7 @@ jest.mock('sentry/components/events/contexts/contextIcon', () => ({
 describe('HighlightsIconSummary', () => {
   const organization = OrganizationFixture();
   const group = GroupFixture();
-  const event = EventFixture({
-    contexts: TEST_EVENT_CONTEXTS,
-    tags: TEST_EVENT_TAGS,
-  });
+  const event = EventFixture({contexts: TEST_EVENT_CONTEXTS, tags: TEST_EVENT_TAGS});
   const iosDeviceContext = {
     type: 'device',
     name: 'device',
@@ -56,11 +53,7 @@ describe('HighlightsIconSummary', () => {
 
   it('hides user if there is no id, email, username, etc', () => {
     const eventWithoutUser = EventFixture({
-      contexts: {
-        user: {
-          customProperty: 'customValue',
-        },
-      },
+      contexts: {user: {customProperty: 'customValue'}},
     });
 
     const {container} = render(
@@ -71,13 +64,7 @@ describe('HighlightsIconSummary', () => {
 
   it('renders user if there is id, email, username, etc', async () => {
     const eventWithUser = EventFixture({
-      contexts: {
-        user: {
-          id: 'user id',
-          email: 'user email',
-          username: 'user username',
-        },
-      },
+      contexts: {user: {id: 'user id', email: 'user email', username: 'user username'}},
     });
 
     render(<HighlightsIconSummary event={eventWithUser} group={group} />);
@@ -105,16 +92,8 @@ describe('HighlightsIconSummary', () => {
   it('hides client_os and browser contexts for Meta-Framework backend issues', () => {
     const duplicateOsContextEvent = EventFixture({
       contexts: {
-        client_os: {
-          type: 'os',
-          name: 'macOS',
-          version: '15.3',
-        },
-        os: {
-          type: 'os',
-          name: 'Linux',
-          version: '5.10.243',
-        },
+        client_os: {type: 'os', name: 'macOS', version: '15.3'},
+        os: {type: 'os', name: 'Linux', version: '5.10.243'},
         runtime: {
           name: 'node',
           runtime: 'node v20.18.3',
@@ -135,15 +114,8 @@ describe('HighlightsIconSummary', () => {
   it('deduplicates client_os and os contexts', () => {
     const duplicateOsContextEvent = EventFixture({
       contexts: {
-        client_os: {
-          type: 'os',
-          name: 'macOS',
-        },
-        os: {
-          type: 'os',
-          name: 'macOS',
-          version: '15.3',
-        },
+        client_os: {type: 'os', name: 'macOS'},
+        os: {type: 'os', name: 'macOS', version: '15.3'},
       },
     });
     render(<HighlightsIconSummary event={duplicateOsContextEvent} group={group} />);
@@ -154,16 +126,8 @@ describe('HighlightsIconSummary', () => {
   it('deduplicates browser and runtime contexts', () => {
     const eventWithDuplicateContexts = EventFixture({
       contexts: {
-        browser: {
-          type: 'browser',
-          name: 'Chrome',
-          version: '120.0.0',
-        },
-        runtime: {
-          type: 'runtime',
-          name: 'Chrome',
-          version: '120.0.0',
-        },
+        browser: {type: 'browser', name: 'Chrome', version: '120.0.0'},
+        runtime: {type: 'runtime', name: 'Chrome', version: '120.0.0'},
       },
     });
     render(<HighlightsIconSummary event={eventWithDuplicateContexts} group={group} />);
@@ -176,15 +140,10 @@ describe('HighlightsIconSummary', () => {
 
   it('hides device for non mobile/native', () => {
     const groupWithPlatform = GroupFixture({
-      project: ProjectFixture({
-        platform: 'javascript',
-      }),
+      project: ProjectFixture({platform: 'javascript'}),
     });
     const eventWithDevice = EventFixture({
-      contexts: {
-        ...TEST_EVENT_CONTEXTS,
-        device: iosDeviceContext,
-      },
+      contexts: {...TEST_EVENT_CONTEXTS, device: iosDeviceContext},
     });
 
     render(<HighlightsIconSummary event={eventWithDevice} group={groupWithPlatform} />);
@@ -194,15 +153,10 @@ describe('HighlightsIconSummary', () => {
 
   it('displays device for mobile/native event platforms', async () => {
     const groupWithPlatform = GroupFixture({
-      project: ProjectFixture({
-        platform: 'android',
-      }),
+      project: ProjectFixture({platform: 'android'}),
     });
     const eventWithDevice = EventFixture({
-      contexts: {
-        ...TEST_EVENT_CONTEXTS,
-        device: iosDeviceContext,
-      },
+      contexts: {...TEST_EVENT_CONTEXTS, device: iosDeviceContext},
     });
 
     render(<HighlightsIconSummary event={eventWithDevice} group={groupWithPlatform} />);
@@ -219,9 +173,7 @@ describe('HighlightsIconSummary', () => {
   });
 
   it('renders screenshot', async () => {
-    const orgWithAttachments = OrganizationFixture({
-      features: ['event-attachments'],
-    });
+    const orgWithAttachments = OrganizationFixture({features: ['event-attachments']});
     MockApiClient.addMockResponse({
       url: `/projects/${orgWithAttachments.slug}/${group.project.slug}/events/${event.id}/attachments/`,
       body: [EventAttachmentFixture()],

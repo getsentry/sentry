@@ -13,14 +13,7 @@ export function GitHubIntegrationFixture(
       key: 'github',
       canAdd: true,
       features: [],
-      aspects: {
-        alerts: [
-          {
-            variant: 'warning',
-            text: 'This is a an alert example',
-          },
-        ],
-      },
+      aspects: {alerts: [{variant: 'warning', text: 'This is a an alert example'}]},
       canDisable: false,
       slug: '',
     },

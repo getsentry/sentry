@@ -56,11 +56,7 @@ function TransactionRenderer({basicRendered, extra, item}: EventTagRendererProps
     return basicRendered;
   }
 
-  const query = qs.stringify({
-    project: extra.projectId,
-    transaction,
-    referrer: REFERRER,
-  });
+  const query = qs.stringify({project: extra.projectId, transaction, referrer: REFERRER});
 
   return (
     <Link to={`${getTransactionSummaryBaseUrl(extra.organization)}/?${query}`}>

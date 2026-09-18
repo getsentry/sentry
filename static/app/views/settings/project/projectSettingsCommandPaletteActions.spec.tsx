@@ -10,9 +10,7 @@ describe('ProjectSettingsCommandPaletteActions', () => {
       features: ['performance-view'],
       slug: 'acme',
     });
-    const project = DetailedProjectFixture({
-      slug: 'frontend',
-    });
+    const project = DetailedProjectFixture({slug: 'frontend'});
 
     const sections = getProjectSettingsCommandPaletteSections({organization, project});
 
@@ -39,9 +37,7 @@ describe('ProjectSettingsCommandPaletteActions', () => {
                 }),
               ]),
             }),
-            expect.objectContaining({
-              label: 'SDK setup',
-            }),
+            expect.objectContaining({label: 'SDK setup'}),
             expect.objectContaining({
               display: expect.objectContaining({label: 'Webhooks (Legacy)'}),
               to: '/settings/acme/projects/frontend/legacy-webhooks/',

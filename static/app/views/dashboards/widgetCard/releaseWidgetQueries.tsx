@@ -88,11 +88,7 @@ export function resolveDerivedStatusFields(
   fields: string[],
   orderby: string,
   useSessionAPI: boolean
-): {
-  aggregates: string[];
-  derivedStatusFields: string[];
-  injectedFields: string[];
-} {
+): {aggregates: string[]; derivedStatusFields: string[]; injectedFields: string[]} {
   const aggregates = fields.map(stripDerivedMetricsPrefix);
   const derivedStatusFields = aggregates.filter(agg =>
     Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
@@ -345,8 +341,5 @@ export function ReleaseWidgetQueries({
     widgetInterval,
   });
 
-  return children({
-    errorMessage: requestErrorMessage ?? errorMessage,
-    ...rest,
-  });
+  return children({errorMessage: requestErrorMessage ?? errorMessage, ...rest});
 }

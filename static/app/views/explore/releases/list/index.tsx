@@ -70,14 +70,8 @@ type ReleaseTab = 'releases' | 'mobile-builds' | 'snapshots';
 
 const RELEASE_FILTER_KEYS = [
   ...Object.values(SEMVER_TAGS),
-  {
-    key: 'release',
-    name: 'release',
-  },
-  {
-    key: FieldKey.RELEASE_CREATED,
-    name: FieldKey.RELEASE_CREATED,
-  },
+  {key: 'release', name: 'release'},
+  {key: FieldKey.RELEASE_CREATED, name: FieldKey.RELEASE_CREATED},
 ].reduce<TagCollection>((acc, tag) => {
   acc[tag.key] = tag;
   return acc;
@@ -119,9 +113,7 @@ function makeReleaseListApiOptions({
 
 const releasesFeedbackOptions = {
   messagePlaceholder: t('How can we improve the Releases experience?'),
-  tags: {
-    'feedback.source': 'releases-list-header',
-  },
+  tags: {'feedback.source': 'releases-list-header'},
 };
 
 function ReleasesListInnerPage() {
@@ -142,10 +134,7 @@ function ReleasesListInnerPage() {
       navigate(
         {
           pathname: location.pathname,
-          query: {
-            ...location.query,
-            statsPeriod: validatedStatsPeriod,
-          },
+          query: {...location.query, statsPeriod: validatedStatsPeriod},
         },
         {replace: true}
       );
@@ -318,20 +307,14 @@ function ReleasesListInnerPage() {
 
   const handleSearch = useCallback(
     (query: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query},
-      });
+      navigate({...location, query: {...location.query, cursor: undefined, query}});
     },
     [location, navigate]
   );
 
   const handleSortBy = useCallback(
     (sort: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, sort},
-      });
+      navigate({...location, query: {...location.query, cursor: undefined, sort}});
     },
     [location, navigate]
   );
@@ -371,23 +354,16 @@ function ReleasesListInnerPage() {
 
   const handleStatus = useCallback(
     (status: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, status},
-      });
+      navigate({...location, query: {...location.query, cursor: undefined, status}});
     },
     [location, navigate]
   );
 
   const handleTabChange = (newTab: string) => {
     if (newTab === 'mobile-builds') {
-      trackAnalytics('preprod.releases.mobile-builds.tab-clicked', {
-        organization,
-      });
+      trackAnalytics('preprod.releases.mobile-builds.tab-clicked', {organization});
     } else if (newTab === 'snapshots') {
-      trackAnalytics('preprod.releases.snapshots.tab-clicked', {
-        organization,
-      });
+      trackAnalytics('preprod.releases.snapshots.tab-clicked', {organization});
     }
   };
 
@@ -493,11 +469,7 @@ function ReleasesListInnerPage() {
                       key="releases"
                       to={{
                         pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: undefined,
-                        },
+                        query: {...location.query, query: undefined, tab: undefined},
                       }}
                       textValue={t('Releases')}
                     >
@@ -525,11 +497,7 @@ function ReleasesListInnerPage() {
                       key="snapshots"
                       to={{
                         pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: 'snapshots',
-                        },
+                        query: {...location.query, query: undefined, tab: 'snapshots'},
                       }}
                       textValue={t('Snapshots')}
                     >

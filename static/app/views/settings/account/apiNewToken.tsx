@@ -39,9 +39,7 @@ import {
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
-const schema = z.object({
-  name: z.string(),
-});
+const schema = z.object({name: z.string()});
 
 const INITIAL_PERMISSIONS: Permissions = {
   Event: 'no-access',
@@ -90,10 +88,7 @@ export default function ApiNewToken() {
       fetchMutation<NewInternalAppApiToken>({
         url: getApiUrl('/api-tokens/'),
         method: 'POST',
-        data: {
-          ...data,
-          scopes,
-        },
+        data: {...data, scopes},
       }),
     onSuccess: token => {
       addSuccessMessage(t('Created personal token.'));
@@ -134,9 +129,7 @@ export default function ApiNewToken() {
               <div>
                 {tct(
                   'For more information on how to use the web API, see our [link:documentation].',
-                  {
-                    link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                  }
+                  {link: <ExternalLink href="https://docs.sentry.io/api/" />}
                 )}
               </div>
             </Stack>

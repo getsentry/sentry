@@ -29,17 +29,15 @@ function mockDimensions(wrapperWidth: number) {
 function mockChildWidths() {
   const itemsContainer = screen.getByTestId('legend-items');
   Array.from(itemsContainer.children).forEach(child => {
-    jest.spyOn(child, 'getBoundingClientRect').mockReturnValue({
-      width: 80,
-    } as DOMRect);
+    jest.spyOn(child, 'getBoundingClientRect').mockReturnValue({width: 80} as DOMRect);
   });
 
   // The trigger button is always in the DOM (hidden when no overflow).
   // Mock its width so the overflow algorithm can measure it.
   const triggerButton = screen.getByText(/more/);
-  jest.spyOn(triggerButton, 'getBoundingClientRect').mockReturnValue({
-    width: 60,
-  } as DOMRect);
+  jest
+    .spyOn(triggerButton, 'getBoundingClientRect')
+    .mockReturnValue({width: 60} as DOMRect);
 }
 
 describe('ChartLegend', () => {

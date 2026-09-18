@@ -367,9 +367,7 @@ function EditConnectedMonitorsContent({
     [setConnectedIds, errorContext]
   );
 
-  const canEditAllProjects = useCanEditDetectorWorkflowConnections({
-    projectId: null,
-  });
+  const canEditAllProjects = useCanEditDetectorWorkflowConnections({projectId: null});
 
   const monitorModeChoices: Array<RadioOption<MonitorMode>> = [
     ['project', t('Alert on all issues in selected projects')],

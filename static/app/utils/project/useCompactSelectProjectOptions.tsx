@@ -38,16 +38,8 @@ export function useCompactSelectProjectOptions({
       return myProjects;
     }
     return [
-      {
-        key: 'my-projects',
-        label: t('My Projects'),
-        options: myProjects,
-      },
-      {
-        key: 'other-projects',
-        label: t('Other Projects'),
-        options: otherProjects,
-      },
+      {key: 'my-projects', label: t('My Projects'), options: myProjects},
+      {key: 'other-projects', label: t('Other Projects'), options: otherProjects},
     ];
   }, [projects]);
 }

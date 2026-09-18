@@ -176,9 +176,7 @@ function AuthenticatorError({error, triggerWebAuthn}: AuthenticatorErrorProps) {
     UNKNOWN_DEVICE: t('The device or passkey you used for sign-in is unknown.'),
     BAD_APPID: tct(
       'The Sentry server administrator modified the device registrations. You need to remove and re-add the device or passkey. Use a different sign-in method or contact [supportEmail:support] for assistance.',
-      {
-        supportEmail: <ExternalLink href={`mailTo:${supportEmail}`} />,
-      }
+      {supportEmail: <ExternalLink href={`mailTo:${supportEmail}`} />}
     ),
   };
 

@@ -13,22 +13,14 @@ describe('ConsolidatedScopes', () => {
 
   it('exposes scopes, grouped for each resource', () => {
     expect(toResourcePermissions(scopes)).toEqual(
-      expect.objectContaining({
-        Event: 'admin',
-        Release: 'admin',
-        Organization: 'read',
-      })
+      expect.objectContaining({Event: 'admin', Release: 'admin', Organization: 'read'})
     );
   });
 
   it('removes org:integrations scopes', () => {
     scopes.push('org:integrations');
     expect(toResourcePermissions(scopes)).toEqual(
-      expect.objectContaining({
-        Event: 'admin',
-        Release: 'admin',
-        Organization: 'read',
-      })
+      expect.objectContaining({Event: 'admin', Release: 'admin', Organization: 'read'})
     );
   });
 
@@ -42,10 +34,7 @@ describe('ConsolidatedScopes', () => {
 
   it('exposes special permissions separately', () => {
     expect(getSpecialPermissions(scopes)).toEqual([
-      expect.objectContaining({
-        label: 'Continuous Integration (CI)',
-        scope: 'org:ci',
-      }),
+      expect.objectContaining({label: 'Continuous Integration (CI)', scope: 'org:ci'}),
     ]);
   });
 });

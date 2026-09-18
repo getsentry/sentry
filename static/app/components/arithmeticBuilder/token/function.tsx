@@ -158,10 +158,7 @@ function ArgumentsGrid({
 
   const [args, setArguments] = useState(
     functionToken.attributes.map((attr, index) => {
-      return {
-        label: resolveArgumentLabel(index, attr.attribute),
-        value: attr.text,
-      };
+      return {label: resolveArgumentLabel(index, attr.attribute), value: attr.text};
     })
   );
 
@@ -264,11 +261,7 @@ function ArgumentsGridList({
     },
   });
 
-  const {gridProps} = useGridList({
-    props,
-    state,
-    ref,
-  });
+  const {gridProps} = useGridList({props, state, ref});
 
   // Shrink to fit beside the function name; do not grow to the full chip width
   // (that painted long filters over the name).

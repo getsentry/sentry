@@ -15,10 +15,7 @@ export function useMutateUserOptions() {
   const api = useApi({persistInFlight: false});
   return useMutation<User, RequestError, UpdateUserOptionsVariables>({
     mutationFn: (options: UpdateUserOptionsVariables) => {
-      return api.requestPromise('/users/me/', {
-        method: 'PUT',
-        data: {options},
-      });
+      return api.requestPromise('/users/me/', {method: 'PUT', data: {options}});
     },
     onMutate: (options: UpdateUserOptionsVariables) => {
       if (

@@ -140,23 +140,11 @@ export function getDeviceContextData({
   return getContextKeys({data: getInferredData(data)}).map(ctxKey => {
     switch (ctxKey) {
       case DeviceContextKey.NAME:
-        return {
-          key: ctxKey,
-          subject: t('Name'),
-          value: data.name,
-        };
+        return {key: ctxKey, subject: t('Name'), value: data.name};
       case DeviceContextKey.FAMILY:
-        return {
-          key: ctxKey,
-          subject: t('Family'),
-          value: data.family,
-        };
+        return {key: ctxKey, subject: t('Family'), value: data.family};
       case DeviceContextKey.MODEL_ID:
-        return {
-          key: ctxKey,
-          subject: t('Model Id'),
-          value: data.model_id,
-        };
+        return {key: ctxKey, subject: t('Model Id'), value: data.model_id};
       case DeviceContextKey.MODEL:
         return {
           key: ctxKey,
@@ -169,17 +157,9 @@ export function getDeviceContextData({
             ) : undefined,
         };
       case DeviceContextKey.CPU_DESCRIPTION:
-        return {
-          key: ctxKey,
-          subject: t('CPU Description'),
-          value: data.cpu_description,
-        };
+        return {key: ctxKey, subject: t('CPU Description'), value: data.cpu_description};
       case DeviceContextKey.ARCH:
-        return {
-          key: ctxKey,
-          subject: t('Architecture'),
-          value: data.arch,
-        };
+        return {key: ctxKey, subject: t('Architecture'), value: data.arch};
       case DeviceContextKey.BATTERY_LEVEL:
         return {
           key: ctxKey,
@@ -187,11 +167,7 @@ export function getDeviceContextData({
           value: defined(data.battery_level) ? `${data.battery_level}%` : undefined,
         };
       case DeviceContextKey.BATTERY_STATUS:
-        return {
-          key: ctxKey,
-          subject: t('Battery Status'),
-          value: data.battery_status,
-        };
+        return {key: ctxKey, subject: t('Battery Status'), value: data.battery_status};
       case DeviceContextKey.BATTERY_TEMPERATURE:
         return {
           key: ctxKey,
@@ -199,11 +175,7 @@ export function getDeviceContextData({
           value: data.battery_temperature,
         };
       case DeviceContextKey.ORIENTATION:
-        return {
-          key: ctxKey,
-          subject: t('Orientation'),
-          value: data.orientation,
-        };
+        return {key: ctxKey, subject: t('Orientation'), value: data.orientation};
       case 'memory': {
         const {memory_size, free_memory, usable_memory} = data;
         return {
@@ -274,11 +246,7 @@ export function getDeviceContextData({
         };
       }
       case DeviceContextKey.SIMULATOR:
-        return {
-          key: ctxKey,
-          subject: t('Simulator'),
-          value: data.simulator,
-        };
+        return {key: ctxKey, subject: t('Simulator'), value: data.simulator};
       case DeviceContextKey.BOOT_TIME:
         return {
           key: ctxKey,
@@ -289,11 +257,7 @@ export function getDeviceContextData({
           ),
         };
       case DeviceContextKey.DEVICE_TYPE:
-        return {
-          key: ctxKey,
-          subject: t('Device Type'),
-          value: data.device_type,
-        };
+        return {key: ctxKey, subject: t('Device Type'), value: data.device_type};
       case DeviceContextKey.DEVICE_UNIQUE_IDENTIFIER:
         return {
           key: ctxKey,
@@ -301,23 +265,11 @@ export function getDeviceContextData({
           value: data.device_unique_identifier,
         };
       case DeviceContextKey.BRAND:
-        return {
-          key: ctxKey,
-          subject: t('Brand'),
-          value: data.brand,
-        };
+        return {key: ctxKey, subject: t('Brand'), value: data.brand};
       case DeviceContextKey.CHARGING:
-        return {
-          key: ctxKey,
-          subject: t('Charging'),
-          value: data.charging,
-        };
+        return {key: ctxKey, subject: t('Charging'), value: data.charging};
       case DeviceContextKey.LOW_MEMORY:
-        return {
-          key: ctxKey,
-          subject: t('Low Memory'),
-          value: data.low_memory,
-        };
+        return {key: ctxKey, subject: t('Low Memory'), value: data.low_memory};
       case DeviceContextKey.FREE_MEMORY:
         return {
           key: ctxKey,
@@ -337,29 +289,13 @@ export function getDeviceContextData({
           value: data.usable_memory ? <FileSize bytes={data.usable_memory} /> : undefined,
         };
       case DeviceContextKey.MANUFACTURER:
-        return {
-          key: ctxKey,
-          subject: t('Manufacturer'),
-          value: data.manufacturer,
-        };
+        return {key: ctxKey, subject: t('Manufacturer'), value: data.manufacturer};
       case DeviceContextKey.ONLINE:
-        return {
-          key: ctxKey,
-          subject: t('Online'),
-          value: data.online,
-        };
+        return {key: ctxKey, subject: t('Online'), value: data.online};
       case DeviceContextKey.SCREEN_DENSITY:
-        return {
-          key: ctxKey,
-          subject: t('Screen Density'),
-          value: data.screen_density,
-        };
+        return {key: ctxKey, subject: t('Screen Density'), value: data.screen_density};
       case DeviceContextKey.SCREEN_DPI:
-        return {
-          key: ctxKey,
-          subject: t('Screen DPI'),
-          value: data.screen_dpi,
-        };
+        return {key: ctxKey, subject: t('Screen DPI'), value: data.screen_dpi};
       case DeviceContextKey.SCREEN_HEIGHT_PIXELS:
         return {
           key: ctxKey,
@@ -379,11 +315,7 @@ export function getDeviceContextData({
           value: data.screen_width_pixels,
         };
       case DeviceContextKey.PROCESSOR_COUNT:
-        return {
-          key: ctxKey,
-          subject: t('Processor Count'),
-          value: data.processor_count,
-        };
+        return {key: ctxKey, subject: t('Processor Count'), value: data.processor_count};
       case DeviceContextKey.PROCESSOR_FREQUENCY:
         return {
           key: ctxKey,
@@ -398,11 +330,7 @@ export function getDeviceContextData({
           value: data.supports_accelerometer,
         };
       case DeviceContextKey.SUPPORTS_AUDIO:
-        return {
-          key: ctxKey,
-          subject: t('Supports Audio'),
-          value: data.supports_audio,
-        };
+        return {key: ctxKey, subject: t('Supports Audio'), value: data.supports_audio};
       case DeviceContextKey.SUPPORTS_GYROSCOPE:
         return {
           key: ctxKey,
@@ -422,47 +350,19 @@ export function getDeviceContextData({
           value: data.supports_vibration,
         };
       case DeviceContextKey.TIMEZONE:
-        return {
-          key: ctxKey,
-          subject: t('Timezone'),
-          value: data.timezone,
-        };
+        return {key: ctxKey, subject: t('Timezone'), value: data.timezone};
       case DeviceContextKey.LOCALE:
-        return {
-          key: ctxKey,
-          subject: t('Locale'),
-          value: data.locale,
-        };
+        return {key: ctxKey, subject: t('Locale'), value: data.locale};
       case DeviceContextKey.ARCHS:
-        return {
-          key: ctxKey,
-          subject: t('Architectures'),
-          value: data.archs,
-        };
+        return {key: ctxKey, subject: t('Architectures'), value: data.archs};
       case DeviceContextKey.CHIPSET:
-        return {
-          key: ctxKey,
-          subject: t('Chipset'),
-          value: data.chipset,
-        };
+        return {key: ctxKey, subject: t('Chipset'), value: data.chipset};
       case DeviceContextKey.CONNECTION_TYPE:
-        return {
-          key: ctxKey,
-          subject: t('Connection Type'),
-          value: data.connection_type,
-        };
+        return {key: ctxKey, subject: t('Connection Type'), value: data.connection_type};
       case DeviceContextKey.LOW_POWER_MODE:
-        return {
-          key: ctxKey,
-          subject: t('Low Power Mode'),
-          value: data.low_power_mode,
-        };
+        return {key: ctxKey, subject: t('Low Power Mode'), value: data.low_power_mode};
       case DeviceContextKey.THERMAL_STATE:
-        return {
-          key: ctxKey,
-          subject: t('Thermal State'),
-          value: data.thermal_state,
-        };
+        return {key: ctxKey, subject: t('Thermal State'), value: data.thermal_state};
       default:
         return {
           key: ctxKey,

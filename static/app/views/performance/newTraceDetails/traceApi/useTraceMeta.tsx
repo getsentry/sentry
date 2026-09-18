@@ -18,22 +18,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {EAPTraceMeta, ResponseEAPTraceMeta} from './types';
 
-export type TraceMetaTrace = {
-  timestamp: number | undefined;
-  traceSlug: string;
-};
+export type TraceMetaTrace = {timestamp: number | undefined; traceSlug: string};
 
 type UseTraceMetaOptions = TraceMetaTrace | TraceMetaTrace[];
 
 type TraceMetaQueryParams =
-  | {
-      include_uptime: string;
-      statsPeriod: string;
-    }
-  | {
-      include_uptime: string;
-      timestamp: number;
-    };
+  | {include_uptime: string; statsPeriod: string}
+  | {include_uptime: string; timestamp: number};
 
 function isEmptyMeta(meta: EAPTraceMeta): boolean {
   return (
@@ -126,12 +117,7 @@ async function fetchTraceMetaInBatches(
       batch.map(trace => {
         const url = getApiUrl(
           '/organizations/$organizationIdOrSlug/trace-meta/$traceId/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              traceId: trace.traceSlug,
-            },
-          }
+          {path: {organizationIdOrSlug: organization.slug, traceId: trace.traceSlug}}
         );
 
         return apiFetch<ResponseEAPTraceMeta>({

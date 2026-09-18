@@ -262,9 +262,7 @@ describe('makeLazyloadComponent', () => {
         {
           path: '/test-route',
           element: <div>Route wrapper</div>,
-          handle: {
-            [PRELOAD_HANDLE]: LazyComponent[PRELOAD_HANDLE],
-          },
+          handle: {[PRELOAD_HANDLE]: LazyComponent[PRELOAD_HANDLE]},
         },
       ];
 
@@ -337,16 +335,12 @@ describe('makeLazyloadComponent', () => {
         {
           path: '/parent',
           element: <div>Parent</div>,
-          handle: {
-            [PRELOAD_HANDLE]: LazyComponent1[PRELOAD_HANDLE],
-          },
+          handle: {[PRELOAD_HANDLE]: LazyComponent1[PRELOAD_HANDLE]},
           children: [
             {
               path: 'child',
               element: <div>Child</div>,
-              handle: {
-                [PRELOAD_HANDLE]: LazyComponent2[PRELOAD_HANDLE],
-              },
+              handle: {[PRELOAD_HANDLE]: LazyComponent2[PRELOAD_HANDLE]},
             },
           ],
         },
@@ -404,9 +398,7 @@ describe('makeLazyloadComponent', () => {
         {
           path: '/no-preload',
           element: <div>No preload</div>,
-          handle: {
-            name: 'No preload route',
-          },
+          handle: {name: 'No preload route'},
         },
       ];
 

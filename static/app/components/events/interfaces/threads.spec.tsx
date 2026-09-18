@@ -26,10 +26,7 @@ describe('Threads', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    const promptResponse = {
-      dismissed_ts: undefined,
-      snoozed_ts: undefined,
-    };
+    const promptResponse = {dismissed_ts: undefined, snoozed_ts: undefined};
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: promptResponse,
@@ -236,9 +233,7 @@ describe('Threads', () => {
       };
 
       it('renders', async () => {
-        render(<Threads {...props} />, {
-          organization,
-        });
+        render(<Threads {...props} />, {organization});
 
         // Title
         expect(
@@ -362,13 +357,9 @@ describe('Threads', () => {
         MockApiClient.addMockResponse({
           method: 'GET',
           url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
-          body: {
-            committers,
-          },
+          body: {committers},
         });
-        render(<Threads {...props} group={group} />, {
-          organization,
-        });
+        render(<Threads {...props} group={group} />, {organization});
         expect(await screen.findByText('Stack Trace')).toBeInTheDocument();
 
         // Suspect commits
@@ -1007,11 +998,7 @@ describe('Threads', () => {
                     },
                   ],
                   framesOmitted: null,
-                  registers: {
-                    cpsr: '0x60000000',
-                    fp: '0x16fd79870',
-                    lr: '0x10008c5ac',
-                  },
+                  registers: {cpsr: '0x60000000', fp: '0x16fd79870', lr: '0x10008c5ac'},
                   hasSystemFrames: true,
                 },
                 rawStacktrace: null,
@@ -1064,15 +1051,7 @@ describe('Threads', () => {
           rawStacktrace: null,
           state: 'WaitingPerformingGc',
         };
-        threadsEntry.values = [
-          {
-            ...thread,
-          },
-          {
-            ...thread,
-            id: 1,
-          },
-        ];
+        threadsEntry.values = [{...thread}, {...thread, id: 1}];
 
         const newProps = {...props, event: newEvent};
         render(<Threads {...newProps} />, {organization});
@@ -1274,15 +1253,7 @@ describe('Threads', () => {
           },
           rawStacktrace: null,
         };
-        threadsEntry.values = [
-          {
-            ...thread,
-          },
-          {
-            ...thread,
-            id: 1,
-          },
-        ];
+        threadsEntry.values = [{...thread}, {...thread, id: 1}];
         const newProps = {...props, event: newEvent};
         render(<Threads {...newProps} />, {organization});
         // Title

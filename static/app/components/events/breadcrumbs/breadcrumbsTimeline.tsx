@@ -163,12 +163,7 @@ export function BreadcrumbsTimeline({
   });
 
   return (
-    <div
-      style={{
-        height: virtualizer.getTotalSize(),
-        position: 'relative',
-      }}
-    >
+    <div style={{height: virtualizer.getTotalSize(), position: 'relative'}}>
       <VirtualOffset offset={virtualItems?.[0]?.start ?? 0}>
         <Timeline.Container>{items}</Timeline.Container>
       </VirtualOffset>

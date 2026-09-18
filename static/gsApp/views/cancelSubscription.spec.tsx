@@ -73,11 +73,7 @@ describe('CancelSubscription', () => {
     expect(mock).toHaveBeenCalledWith(
       `/customers/${organization.slug}/`,
       expect.objectContaining({
-        data: {
-          reason: 'competitor',
-          followup: 'Cancellation reason',
-          checkboxes: [],
-        },
+        data: {reason: 'competitor', followup: 'Cancellation reason', checkboxes: []},
       })
     );
   });

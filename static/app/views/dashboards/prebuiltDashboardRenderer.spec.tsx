@@ -13,21 +13,14 @@ jest.mock('sentry/views/dashboards/detail', () => ({
 }));
 
 jest.mock('sentry/views/dashboards/utils/usePopulateLinkedDashboards', () => ({
-  useGetPrebuiltDashboard: () => ({
-    dashboard: {id: '42', widgets: []},
-    isLoading: false,
-  }),
+  useGetPrebuiltDashboard: () => ({dashboard: {id: '42', widgets: []}, isLoading: false}),
 }));
 
 describe('PrebuiltDashboardRenderer', () => {
   const initialRouterConfig = {
     location: {
       pathname: '/insights/backend/',
-      query: {
-        project: '1',
-        environment: 'production',
-        statsPeriod: '7d',
-      },
+      query: {project: '1', environment: 'production', statsPeriod: '7d'},
     },
   };
 

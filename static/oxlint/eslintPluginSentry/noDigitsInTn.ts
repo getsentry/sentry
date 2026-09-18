@@ -3,14 +3,10 @@ import {defineRule} from '@oxlint/plugins';
 export const noDigitsInTn = defineRule({
   meta: {
     type: 'suggestion',
-    docs: {
-      description: "Disallow using '%d' within 'tn()' — use '%s' instead",
-    },
+    docs: {description: "Disallow using '%d' within 'tn()' — use '%s' instead"},
     fixable: 'code',
     schema: [],
-    messages: {
-      noDigits: "Do not use '%d' within 'tn()'. Use '%s' instead.",
-    },
+    messages: {noDigits: "Do not use '%d' within 'tn()'. Use '%s' instead."},
   },
   create(context) {
     return {

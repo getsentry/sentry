@@ -11,10 +11,7 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 type Props = {
-  data: {
-    formatted: string | null;
-    params?: Record<string, any> | any[] | null;
-  };
+  data: {formatted: string | null; params?: Record<string, any> | any[] | null};
   event: Event;
 };
 
@@ -31,12 +28,7 @@ function renderParams(params: Props['data']['params'], meta: any) {
   if (Array.isArray(params)) {
     const arrayData = params.map((value, i) => {
       const key = `#${i}`;
-      return {
-        key,
-        value,
-        subject: key,
-        meta: meta?.data?.params?.[i]?.[''],
-      };
+      return {key, value, subject: key, meta: meta?.data?.params?.[i]?.['']};
     });
 
     return (

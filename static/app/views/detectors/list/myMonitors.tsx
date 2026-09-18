@@ -11,9 +11,7 @@ const DESCRIPTION = t('View monitors assigned to you or your teams.');
 const DOCS_URL = 'https://docs.sentry.io/product/new-monitors-and-alerts/monitors/';
 
 export default function MyMonitorsList() {
-  const detectorListQuery = useDetectorListQuery({
-    assigneeFilter: '[me,my_teams]',
-  });
+  const detectorListQuery = useDetectorListQuery({assigneeFilter: '[me,my_teams]'});
 
   return (
     <SentryDocumentTitle title={TITLE}>

@@ -217,10 +217,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
       <Stack>
         {groups.map(({id: groupId, shortId}) => (
           <QuickContextHovercard
-            dataRow={{
-              'issue.id': groupId,
-              issue: shortId,
-            }}
+            dataRow={{'issue.id': groupId, issue: shortId}}
             contextType={ContextType.ISSUE}
             organization={organization}
             key={groupId}

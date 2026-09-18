@@ -17,9 +17,7 @@ describe('capacitor onboarding docs', () => {
   for (const enumMember in SiblingOption) {
     it(`renders capacitor docs correctly with sibling ${enumMember}`, () => {
       renderWithOnboardingLayout(docs, {
-        selectedOptions: {
-          siblingOption: enumMember as SiblingOption,
-        },
+        selectedOptions: {siblingOption: enumMember as SiblingOption},
       });
 
       // Renders main headings

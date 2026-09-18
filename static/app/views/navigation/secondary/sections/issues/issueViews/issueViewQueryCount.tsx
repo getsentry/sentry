@@ -11,11 +11,7 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 
 const constructCountTimeFrame = (
   timeFilters: PageFilterDatetime
-): {
-  end?: string;
-  start?: string;
-  statsPeriod?: string;
-} => {
+): {end?: string; start?: string; statsPeriod?: string} => {
   if (timeFilters.period) {
     return {statsPeriod: timeFilters.period};
   }

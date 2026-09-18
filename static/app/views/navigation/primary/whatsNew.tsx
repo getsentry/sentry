@@ -258,10 +258,7 @@ export function PrimaryNavigationWhatsNew() {
         analyticsKey="broadcasts"
         label={t("What's New")}
         indicator={unseenPostIds.length > 0 ? 'accent' : undefined}
-        buttonProps={{
-          ...overlayTriggerProps,
-          icon: <IconBroadcast />,
-        }}
+        buttonProps={{...overlayTriggerProps, icon: <IconBroadcast />}}
       />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>

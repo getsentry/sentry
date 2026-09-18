@@ -8,11 +8,7 @@ import {
 } from 'sentry/utils/replays/projectSupportsReplay';
 
 function mockProjectFixture(platform: PlatformKey): MinimalProject {
-  return {
-    id: '1',
-    slug: 'test-project',
-    platform,
-  };
+  return {id: '1', slug: 'test-project', platform};
 }
 
 describe('projectSupportsReplay & projectCanLinkToReplay', () => {

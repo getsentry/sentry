@@ -247,9 +247,7 @@ describe('ConversationsOverviewPage', () => {
       screen.getByRole('option', {name: 'conversation.generationDuration'})
     );
     expect(
-      await screen.findByRole('row', {
-        name: 'conversation.generationDuration:>10ms',
-      })
+      await screen.findByRole('row', {name: 'conversation.generationDuration:>10ms'})
     ).toBeInTheDocument();
   });
 });

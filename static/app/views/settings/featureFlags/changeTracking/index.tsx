@@ -35,13 +35,9 @@ export type Secret = {
 
 type FetchSecretResponse = {data: Secret[]};
 
-type FetchSecretParameters = {
-  orgSlug: string;
-};
+type FetchSecretParameters = {orgSlug: string};
 
-type RemoveSecretQueryVariables = {
-  id: number;
-};
+type RemoveSecretQueryVariables = {id: number};
 
 export const makeFetchSecretQueryKey = ({orgSlug}: FetchSecretParameters) =>
   [
@@ -112,9 +108,7 @@ function OrganizationFeatureFlagsChangeTracking() {
     refetch: refetchSecretList,
   } = useApiQuery<FetchSecretResponse>(
     makeFetchSecretQueryKey({orgSlug: organization.slug}),
-    {
-      staleTime: Infinity,
-    }
+    {staleTime: Infinity}
   );
 
   const {mutate: handleRemoveSecret, isPending: isRemoving} = useMutation<
@@ -128,9 +122,7 @@ function OrganizationFeatureFlagsChangeTracking() {
           '/organizations/$organizationIdOrSlug/flags/signing-secrets/$signingSecretId/',
           {path: {organizationIdOrSlug: organization.slug, signingSecretId: id}}
         ),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       ),
 
     onSuccess: (_data, {id}) => {

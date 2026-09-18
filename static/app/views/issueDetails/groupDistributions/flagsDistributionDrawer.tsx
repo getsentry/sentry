@@ -36,14 +36,8 @@ export function FlagsDistributionDrawer({group, organization, setTab}: Props) {
   const [orderBy, setOrderBy] = useState(OrderBy.A_TO_Z);
 
   const orderByOptions = [
-    {
-      label: t('A-Z'),
-      value: OrderBy.A_TO_Z,
-    },
-    {
-      label: t('Z-A'),
-      value: OrderBy.Z_TO_A,
-    },
+    {label: t('A-Z'), value: OrderBy.A_TO_Z},
+    {label: t('Z-A'), value: OrderBy.Z_TO_A},
   ];
 
   return (
@@ -62,10 +56,7 @@ export function FlagsDistributionDrawer({group, organization, setTab}: Props) {
               search={search}
               onChange={value => {
                 setSearch(value);
-                trackAnalytics('tags.drawer.action', {
-                  control: 'search',
-                  organization,
-                });
+                trackAnalytics('tags.drawer.action', {control: 'search', organization});
               }}
             />
 

@@ -21,10 +21,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {getFormattedDuration} from './webVitalMeters';
 
-type Coordinates = {
-  x: number;
-  y: number;
-};
+type Coordinates = {x: number; y: number};
 
 type ProjectData = {
   'p75(browser.web_vital.cls.value)': number;
@@ -81,13 +78,7 @@ function WebVitalLabel({
 
   return (
     <Link
-      to={{
-        pathname: moduleURL,
-        query: {
-          ...location.query,
-          webVital,
-        },
-      }}
+      to={{pathname: moduleURL, query: {...location.query, webVital}}}
       onMouseEnter={() => onHover(webVital)}
       onMouseLeave={() => onUnHover()}
       disabled={!inPerformanceWidget}
@@ -284,10 +275,7 @@ function calculateLabelCoordinates(
   radiusPadding: number
 ) {
   const radius = size / 2 + barWidth + radiusPadding;
-  const center = {
-    x: x + size / 2,
-    y: y + size / 2 + labelHeightPadding / 2,
-  };
+  const center = {x: x + size / 2, y: y + size / 2 + labelHeightPadding / 2};
   const sumMaxValues = Object.values(weights).reduce((acc, val) => acc + val, 0);
   const BASE_ANGLE = -90;
   const weightToAngle = (weight: number) => (weight / sumMaxValues) * 360;
@@ -306,10 +294,7 @@ function calculateLabelCoordinates(
   const results: Partial<Record<WebVitals, {x: number; y: number}>> = {};
   Object.keys(weights).forEach((key, index) => {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    results[key] = {
-      x: coordinates[index]!.x,
-      y: coordinates[index]!.y,
-    };
+    results[key] = {x: coordinates[index]!.x, y: coordinates[index]!.y};
   });
   return results;
 }

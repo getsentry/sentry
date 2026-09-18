@@ -76,15 +76,8 @@ export function AssertionSuggestionsButton({
       const current = getCurrentAssertion();
 
       const newRoot = current?.root
-        ? {
-            ...current.root,
-            children: [...current.root.children, newOp],
-          }
-        : {
-            op: UptimeOpType.AND as const,
-            id: uniqueId(),
-            children: [newOp],
-          };
+        ? {...current.root, children: [...current.root.children, newOp]}
+        : {op: UptimeOpType.AND as const, id: uniqueId(), children: [newOp]};
 
       onApplySuggestion({root: newRoot});
     },

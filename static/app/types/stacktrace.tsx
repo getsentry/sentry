@@ -22,22 +22,9 @@ export interface StacktraceType {
 }
 
 interface MechanismMeta {
-  errno?: {
-    number: number;
-    name?: string;
-  };
-  mach_exception?: {
-    code: number;
-    exception: number;
-    subcode: number;
-    name?: string;
-  };
-  signal?: {
-    number: number;
-    code?: number;
-    code_name?: string;
-    name?: string;
-  };
+  errno?: {number: number; name?: string};
+  mach_exception?: {code: number; exception: number; subcode: number; name?: string};
+  signal?: {number: number; code?: number; code_name?: string; name?: string};
 }
 
 export interface StackTraceMechanism {

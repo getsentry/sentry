@@ -36,9 +36,7 @@ export interface SourceMapDebugResponseFrame {
 
 export interface SourceMapDebugResponse {
   dist: string | null;
-  exceptions: Array<{
-    frames: SourceMapDebugResponseFrame[];
-  }>;
+  exceptions: Array<{frames: SourceMapDebugResponseFrame[]}>;
   has_debug_ids: boolean;
   has_uploaded_some_artifact_with_a_debug_id: boolean;
   project_has_some_artifact_bundle: boolean;

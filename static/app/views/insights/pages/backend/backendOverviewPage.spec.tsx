@@ -11,12 +11,7 @@ import BackendOverviewPage from 'sentry/views/insights/pages/backend/backendOver
 const organization = OrganizationFixture({features: ['performance-view']});
 const pageFilterSelection = PageFiltersFixture({
   projects: [1, 2],
-  datetime: {
-    period: '14d',
-    start: null,
-    end: null,
-    utc: false,
-  },
+  datetime: {period: '14d', start: null, end: null, utc: false},
 });
 const projects = [
   ProjectFixture({id: '1', platform: 'javascript-react', firstTransactionEvent: true}),
@@ -106,9 +101,7 @@ const setupMocks = () => {
   });
   mainTableApiCall = MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',
-    body: {
-      data: [],
-    },
+    body: {data: []},
   });
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events-stats/',

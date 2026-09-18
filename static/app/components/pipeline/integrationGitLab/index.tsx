@@ -35,10 +35,7 @@ const installationConfigSchema = z
   });
 
 interface InstallationConfigStepData {
-  defaults?: {
-    includeSubgroups?: boolean;
-    verifySsl?: boolean;
-  };
+  defaults?: {includeSubgroups?: boolean; verifySsl?: boolean};
   setupValues?: Array<{label: string; value: string}>;
 }
 

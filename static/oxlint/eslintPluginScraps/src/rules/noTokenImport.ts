@@ -49,10 +49,7 @@ export const noTokenImport = defineRule({
         const value = node.source.value;
 
         if (isForbiddenImportPath(value)) {
-          context.report({
-            node,
-            messageId: 'forbidden',
-          });
+          context.report({node, messageId: 'forbidden'});
         }
       },
     };

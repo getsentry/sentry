@@ -6,11 +6,7 @@ import {ResultGrid} from 'sentry/components/resultGrid';
 
 import {AdminConfirmationModal} from 'admin/components/adminConfirmationModal';
 
-type Props = {
-  onRemoveEmail: (hash: string) => void;
-  orgId: string;
-  projectId: string;
-};
+type Props = {onRemoveEmail: (hash: string) => void; orgId: string; projectId: string};
 
 export function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
   const getRow = (row: any) => {

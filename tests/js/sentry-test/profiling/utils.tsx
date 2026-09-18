@@ -32,10 +32,7 @@ export const makeContextMock = (
     vertexAttribPointer: jest.fn(),
     viewport: jest.fn(),
 
-    canvas: {
-      width: 1000,
-      height: 1000,
-    } as HTMLCanvasElement,
+    canvas: {width: 1000, height: 1000} as HTMLCanvasElement,
     ...partialMock,
   };
 

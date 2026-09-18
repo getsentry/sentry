@@ -23,10 +23,7 @@ export function SamplingModeSwitch({initialTargetRate}: Props) {
   const isInAdvancedMode = samplingMode === 'project';
 
   const handleSwitchMode = () => {
-    openSamplingModeSwitchModal({
-      samplingMode: 'organization',
-      initialTargetRate,
-    });
+    openSamplingModeSwitchModal({samplingMode: 'organization', initialTargetRate});
   };
 
   const disabledReason = isInAdvancedMode

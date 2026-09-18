@@ -9,9 +9,7 @@ import {StackTracePreview} from './stackTracePreview';
 
 beforeEach(() => {
   MockApiClient.clearMockResponses();
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/issues/123/',
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/123/'});
 });
 
 describe('StackTracePreview', () => {
@@ -85,12 +83,7 @@ describe('StackTracePreview', () => {
 
     const errorEvent = {
       id: '456',
-      entries: [
-        {
-          type: EntryType.EXCEPTION,
-          data: exceptionValue,
-        },
-      ],
+      entries: [{type: EntryType.EXCEPTION, data: exceptionValue}],
     } as EventError;
 
     MockApiClient.addMockResponse({

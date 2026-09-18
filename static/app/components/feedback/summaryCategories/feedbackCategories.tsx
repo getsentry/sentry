@@ -54,17 +54,11 @@ export function FeedbackCategories() {
       return;
     }
     if (isError) {
-      trackAnalytics('feedback.summary.categories-error', {
-        organization,
-      });
+      trackAnalytics('feedback.summary.categories-error', {organization});
     } else if (tooFewFeedbacks) {
-      trackAnalytics('feedback.summary.categories-too-few-feedbacks', {
-        organization,
-      });
+      trackAnalytics('feedback.summary.categories-too-few-feedbacks', {organization});
     } else if (!categories || categories.length === 0) {
-      trackAnalytics('feedback.summary.categories-empty', {
-        organization,
-      });
+      trackAnalytics('feedback.summary.categories-empty', {organization});
     } else {
       trackAnalytics('feedback.summary.categories-rendered', {
         organization,

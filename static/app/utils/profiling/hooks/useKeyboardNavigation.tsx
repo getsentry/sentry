@@ -36,11 +36,7 @@ function useRovingTabIndex(items: any[]) {
     [tabIndex, items]
   );
 
-  return {
-    tabIndex,
-    setTabIndex,
-    onKeyDown,
-  };
+  return {tabIndex, setTabIndex, onKeyDown};
 }
 
 export function useKeyboardNavigation() {
@@ -77,11 +73,7 @@ export function useKeyboardNavigation() {
   }, [offScreen, menuRef, tabIndex]);
 
   function getMenuProps() {
-    return {
-      tabIndex: -1,
-      ref: setMenuRef,
-      onKeyDown,
-    };
+    return {tabIndex: -1, ref: setMenuRef, onKeyDown};
   }
 
   function getItemProps() {
@@ -109,11 +101,5 @@ export function useKeyboardNavigation() {
     };
   }
 
-  return {
-    menuRef,
-    getItemProps,
-    getMenuProps,
-    tabIndex,
-    setTabIndex,
-  };
+  return {menuRef, getItemProps, getMenuProps, tabIndex, setTabIndex};
 }

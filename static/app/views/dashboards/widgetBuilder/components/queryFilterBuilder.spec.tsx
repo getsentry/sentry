@@ -19,9 +19,7 @@ describe('QueryFilterBuilder', () => {
   let organization: Organization;
 
   beforeEach(() => {
-    organization = OrganizationFixture({
-      features: [],
-    });
+    organization = OrganizationFixture({features: []});
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
     jest
       .mocked(useTraceItemDatasetAttributes)
@@ -38,10 +36,7 @@ describe('QueryFilterBuilder', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
   });
 
   it('renders a dataset-specific query filter bar', async () => {

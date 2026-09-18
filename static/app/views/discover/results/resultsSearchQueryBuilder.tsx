@@ -461,10 +461,7 @@ const getMeasurementTags = (
 ) => {
   const measurementsWithKind = Object.keys(measurements).reduce((tags, key) => {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    tags[key] = {
-      ...measurements[key],
-      kind: FieldKind.MEASUREMENT,
-    };
+    tags[key] = {...measurements[key], kind: FieldKind.MEASUREMENT};
     return tags;
   }, {});
 
@@ -474,10 +471,7 @@ const getMeasurementTags = (
 
   return Object.keys(customMeasurements).reduce((tags, key) => {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    tags[key] = {
-      ...customMeasurements[key],
-      kind: FieldKind.MEASUREMENT,
-    };
+    tags[key] = {...customMeasurements[key], kind: FieldKind.MEASUREMENT};
     return tags;
   }, measurementsWithKind);
 };

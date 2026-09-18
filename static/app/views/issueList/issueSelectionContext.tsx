@@ -32,10 +32,7 @@ interface IssueSelectionActions {
   toggleSelectAllVisible: () => void;
 }
 
-type IssueSelectionProviderProps = {
-  children: ReactNode;
-  visibleGroupIds: string[];
-};
+type IssueSelectionProviderProps = {children: ReactNode; visibleGroupIds: string[]};
 
 const IssueSelectionSummaryContext = createContext<IssueSelectionSummary | null>(null);
 const IssueSelectionActionsContext = createContext<IssueSelectionActions | null>(null);
@@ -105,12 +102,7 @@ function issueSelectionReducer(
         return state;
       }
 
-      return {
-        ...state,
-        allInQuerySelected: false,
-        records,
-        lastSelected: null,
-      };
+      return {...state, allInQuerySelected: false, records, lastSelected: null};
     }
     case 'TOGGLE_SELECT': {
       if (!state.records.has(action.groupId)) {
@@ -187,11 +179,7 @@ function issueSelectionReducer(
       const nextRecords = new Map(state.records);
       nextRecords.forEach((_, id) => nextRecords.set(id, false));
 
-      return {
-        ...state,
-        allInQuerySelected: false,
-        records: nextRecords,
-      };
+      return {...state, allInQuerySelected: false, records: nextRecords};
     }
     case 'SET_ALL_IN_QUERY_SELECTED':
       return {...state, allInQuerySelected: action.value};
@@ -228,11 +216,7 @@ export function IssueSelectionProvider({
 
   const shiftToggleSelect = useCallback(
     (groupId: string) => {
-      dispatch({
-        type: 'SHIFT_TOGGLE_SELECT',
-        groupId,
-        visibleGroupIds,
-      });
+      dispatch({type: 'SHIFT_TOGGLE_SELECT', groupId, visibleGroupIds});
     },
     [visibleGroupIds]
   );
@@ -258,13 +242,7 @@ export function IssueSelectionProvider({
   const pageSelected = anySelected && selectedIdsSet.size === state.records.size;
 
   const summaryValue = useMemo<IssueSelectionSummary>(
-    () => ({
-      ...state,
-      selectedIdsSet,
-      anySelected,
-      multiSelected,
-      pageSelected,
-    }),
+    () => ({...state, selectedIdsSet, anySelected, multiSelected, pageSelected}),
     [state, selectedIdsSet, anySelected, multiSelected, pageSelected]
   );
   const actionsValue = useMemo<IssueSelectionActions>(

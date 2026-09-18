@@ -35,10 +35,7 @@ const storeConfig: TagStoreDefinition = {
     const newState: TagCollection = {};
 
     for (const tag of data) {
-      newState[tag.key] = {
-        values: [],
-        ...tag,
-      };
+      newState[tag.key] = {values: [], ...tag};
     }
 
     // We will iterate through the previous tags in reverse so that previously

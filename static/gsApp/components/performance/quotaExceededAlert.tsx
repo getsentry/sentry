@@ -79,12 +79,7 @@ function useQuotaExceededAlertMessage(
   const formattedDateRange = getFormattedDateTime(selection.datetime);
   const billingPageLink = (
     <Link
-      to={{
-        pathname: `/checkout/?referrer=${referrer}`,
-        query: {
-          skipBundles: true,
-        },
-      }}
+      to={{pathname: `/checkout/?referrer=${referrer}`, query: {skipBundles: true}}}
     />
   );
 
@@ -107,11 +102,7 @@ function useQuotaExceededAlertMessage(
         )
       : tct(
           "You've exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more [datasetType] until [periodRenewalDate]. If you need more, [billingPageLink:increase your reserved volumes].",
-          {
-            periodRenewalDate,
-            billingPageLink,
-            datasetType,
-          }
+          {periodRenewalDate, billingPageLink, datasetType}
         );
   }
 
@@ -150,17 +141,11 @@ function useQuotaExceededAlertMessage(
           rest: period
             ? tct(
                 'If you need more, [billingPageLink: increase your reserved volumes] or adjust your date range prior to [formattedDateRange].',
-                {
-                  billingPageLink,
-                  formattedDateRange,
-                }
+                {billingPageLink, formattedDateRange}
               )
             : tct(
                 'If you need more, [billingPageLink: increase your reserved volumes] or adjust your date range before or after [formattedDateRange].',
-                {
-                  billingPageLink,
-                  formattedDateRange,
-                }
+                {billingPageLink, formattedDateRange}
               ),
         }
       );

@@ -47,21 +47,14 @@ export function sentryAppWebhookRequestsApiOptions({
 }) {
   return apiOptions.as<SentryAppWebhookRequest[]>()(
     '/sentry-apps/$sentryAppIdOrSlug/webhook-requests/',
-    {
-      path: {sentryAppIdOrSlug: appSlug},
-      query: {eventType, errorsOnly},
-      staleTime: 0,
-    }
+    {path: {sentryAppIdOrSlug: appSlug}, query: {eventType, errorsOnly}, staleTime: 0}
   );
 }
 
 export function sentryAppTokensApiOptions({appSlug}: {appSlug: string | null}) {
   return apiOptions.as<InternalAppApiToken[]>()(
     '/sentry-apps/$sentryAppIdOrSlug/api-tokens/',
-    {
-      path: appSlug ? {sentryAppIdOrSlug: appSlug} : skipToken,
-      staleTime: 30_000,
-    }
+    {path: appSlug ? {sentryAppIdOrSlug: appSlug} : skipToken, staleTime: 30_000}
   );
 }
 
@@ -73,9 +66,7 @@ export function sentryAppTokensApiOptions({appSlug}: {appSlug: string | null}) {
  */
 export function removeSentryApp(client: Client, app: SentryApp): Promise<undefined> {
   addLoadingMessage();
-  const promise = client.requestPromise(`/sentry-apps/${app.slug}/`, {
-    method: 'DELETE',
-  });
+  const promise = client.requestPromise(`/sentry-apps/${app.slug}/`, {method: 'DELETE'});
   promise.then(
     () => {
       addSuccessMessage(t('%s successfully removed.', app.slug));

@@ -6,9 +6,7 @@ interface GroupRelease {
   lastRelease: Release | null;
 }
 
-type FirstLastReleaseQueryOptions = {
-  environment?: string[];
-};
+type FirstLastReleaseQueryOptions = {environment?: string[]};
 
 type GetIssueFirstLastReleaseQueryOptions = {
   groupId: string;

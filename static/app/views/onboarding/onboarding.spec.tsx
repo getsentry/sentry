@@ -52,9 +52,7 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         initialRouterConfig: {
-          location: {
-            pathname: '/onboarding/org-slug/welcome/',
-          },
+          location: {pathname: '/onboarding/org-slug/welcome/'},
           route: '/onboarding/:orgId/:step/',
         },
       }
@@ -75,9 +73,7 @@ describe('Onboarding', () => {
         </OnboardingContextProvider>,
         {
           initialRouterConfig: {
-            location: {
-              pathname: '/onboarding/org-slug/welcome/',
-            },
+            location: {pathname: '/onboarding/org-slug/welcome/'},
             route: '/onboarding/:orgId/:step/',
           },
         }
@@ -85,9 +81,7 @@ describe('Onboarding', () => {
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'growth.onboarding_start_onboarding',
-        expect.objectContaining({
-          source: 'targeted_onboarding',
-        })
+        expect.objectContaining({source: 'targeted_onboarding'})
       );
     });
 
@@ -113,9 +107,7 @@ describe('Onboarding', () => {
         </OnboardingContextProvider>,
         {
           initialRouterConfig: {
-            location: {
-              pathname: '/onboarding/org-slug/welcome/',
-            },
+            location: {pathname: '/onboarding/org-slug/welcome/'},
             route: '/onboarding/:orgId/:step/',
           },
         }
@@ -141,9 +133,7 @@ describe('Onboarding', () => {
         </OnboardingContextProvider>,
         {
           initialRouterConfig: {
-            location: {
-              pathname: '/onboarding/org-slug/welcome/',
-            },
+            location: {pathname: '/onboarding/org-slug/welcome/'},
             route: '/onboarding/:orgId/:step/',
           },
         }
@@ -153,9 +143,7 @@ describe('Onboarding', () => {
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'growth.onboarding_clicked_instrument_app',
-        expect.objectContaining({
-          source: 'targeted_onboarding',
-        })
+        expect.objectContaining({source: 'targeted_onboarding'})
       );
 
       await waitFor(() => {
@@ -174,9 +162,7 @@ describe('Onboarding', () => {
           </OnboardingContextProvider>,
           {
             initialRouterConfig: {
-              location: {
-                pathname: '/onboarding/org-slug/welcome/',
-              },
+              location: {pathname: '/onboarding/org-slug/welcome/'},
               route: '/onboarding/:orgId/:step/',
             },
           }
@@ -188,9 +174,7 @@ describe('Onboarding', () => {
 
         expect(trackAnalytics).toHaveBeenCalledWith(
           'growth.onboarding_clicked_skip',
-          expect.objectContaining({
-            source: 'targeted_onboarding',
-          })
+          expect.objectContaining({source: 'targeted_onboarding'})
         );
 
         jest.runAllTimers();
@@ -210,9 +194,7 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         initialRouterConfig: {
-          location: {
-            pathname: '/onboarding/org-slug/select-platform/',
-          },
+          location: {pathname: '/onboarding/org-slug/select-platform/'},
           route: '/onboarding/:orgId/:step/',
         },
       }
@@ -260,10 +242,7 @@ describe('Onboarding', () => {
     jest
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {
-        return {
-          project: nextJsProject,
-          isProjectActive: false,
-        };
+        return {project: nextJsProject, isProjectActive: false};
       });
 
     render(
@@ -283,9 +262,7 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         initialRouterConfig: {
-          location: {
-            pathname: `/onboarding/${organization.slug}/setup-docs/`,
-          },
+          location: {pathname: `/onboarding/${organization.slug}/setup-docs/`},
           route: '/onboarding/:orgId/:step/',
         },
       }
@@ -326,10 +303,7 @@ describe('Onboarding', () => {
     jest
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {
-        return {
-          project: reactProject,
-          isProjectActive: true,
-        };
+        return {project: reactProject, isProjectActive: true};
       });
 
     render(
@@ -349,9 +323,7 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         initialRouterConfig: {
-          location: {
-            pathname: `/onboarding/${organization.slug}/setup-docs/`,
-          },
+          location: {pathname: `/onboarding/${organization.slug}/setup-docs/`},
           route: '/onboarding/:orgId/:step/',
         },
       }
@@ -378,9 +350,7 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         initialRouterConfig: {
-          location: {
-            pathname: '/onboarding/org-slug/select-platform/',
-          },
+          location: {pathname: '/onboarding/org-slug/select-platform/'},
           route: '/onboarding/:orgId/:step/',
         },
       }
@@ -427,10 +397,7 @@ describe('Onboarding', () => {
     jest
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {
-        return {
-          project: reactProject,
-          isProjectActive: true,
-        };
+        return {project: reactProject, isProjectActive: true};
       });
 
     render(
@@ -450,9 +417,7 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         initialRouterConfig: {
-          location: {
-            pathname: `/onboarding/${organization.slug}/setup-docs/`,
-          },
+          location: {pathname: `/onboarding/${organization.slug}/setup-docs/`},
           route: '/onboarding/:orgId/:step/',
         },
       }
@@ -482,10 +447,7 @@ describe('Onboarding', () => {
 
     jest
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-      .mockImplementation(() => ({
-        project: reactProject,
-        isProjectActive: false,
-      }));
+      .mockImplementation(() => ({project: reactProject, isProjectActive: false}));
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sdks/`,
@@ -524,9 +486,7 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         initialRouterConfig: {
-          location: {
-            pathname: `/onboarding/${organization.slug}/setup-docs/`,
-          },
+          location: {pathname: `/onboarding/${organization.slug}/setup-docs/`},
           route: '/onboarding/:orgId/:step/',
         },
       }
@@ -552,9 +512,7 @@ describe('Onboarding', () => {
       features: ['onboarding-scm-experiment', 'onboarding-scm-messaging-experiment'],
     });
 
-    const githubProvider = GitHubIntegrationProviderFixture({
-      features: ['commits'],
-    });
+    const githubProvider = GitHubIntegrationProviderFixture({features: ['commits']});
 
     const nextJsPlatform = {
       key: 'javascript-nextjs' as PlatformKey,
@@ -602,12 +560,7 @@ describe('Onboarding', () => {
         url: `/organizations/${scmOrganization.slug}/onboarding/agent/runs/${agenticRun.runId}/`,
         body: AgenticProgressRunFixture({
           stages: [
-            {
-              stage: 'connect_mcp',
-              status: 'completed',
-              eventNote: null,
-              extra: null,
-            },
+            {stage: 'connect_mcp', status: 'completed', eventNote: null, extra: null},
           ],
         }),
       });
@@ -629,9 +582,7 @@ describe('Onboarding', () => {
         {
           organization,
           initialRouterConfig: {
-            location: {
-              pathname: `/onboarding/${organization.slug}/${step}/`,
-            },
+            location: {pathname: `/onboarding/${organization.slug}/${step}/`},
             route: '/onboarding/:orgId/:step/',
           },
         }
@@ -737,10 +688,7 @@ describe('Onboarding', () => {
       expect(window.getSelection()?.toString()).toBe(prompt.textContent);
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_welcome_agent_snippet_selected',
-        expect.objectContaining({
-          organization: scmOrganization,
-          source: 'prompt',
-        })
+        expect.objectContaining({organization: scmOrganization, source: 'prompt'})
       );
     });
 
@@ -795,10 +743,7 @@ describe('Onboarding', () => {
         JSON.stringify({
           selectedPlatform: nextJsPlatform,
           selectedFeatures: [ProductSolution.ERROR_MONITORING],
-          createdProject: {
-            slug: 'javascript-nextjs',
-            messagingSelection: undefined,
-          },
+          createdProject: {slug: 'javascript-nextjs', messagingSelection: undefined},
           messagingSetup: selectedMessagingSetup,
           agentSetupProjectBaseline: {
             organizationId: scmOrganization.id,
@@ -821,9 +766,7 @@ describe('Onboarding', () => {
     });
 
     it('goes straight to scm-connect when the agentic setup is off', async () => {
-      const organization = OrganizationFixture({
-        features: ['onboarding-scm-experiment'],
-      });
+      const organization = OrganizationFixture({features: ['onboarding-scm-experiment']});
       const {router} = renderFlow(organization, 'welcome');
 
       expect(trackAnalytics).not.toHaveBeenCalledWith(
@@ -926,9 +869,7 @@ describe('Onboarding', () => {
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_header_skip_clicked',
-        expect.objectContaining({
-          step: 'scm-connect',
-        })
+        expect.objectContaining({step: 'scm-connect'})
       );
     });
 
@@ -950,10 +891,7 @@ describe('Onboarding', () => {
       });
       jest
         .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-        .mockImplementation(() => ({
-          project: createdProject,
-          isProjectActive: false,
-        }));
+        .mockImplementation(() => ({project: createdProject, isProjectActive: false}));
       MockApiClient.addMockResponse({
         url: `/organizations/${controlOrganization.slug}/`,
         body: controlOrganization,
@@ -1161,10 +1099,7 @@ describe('Onboarding', () => {
 
         jest
           .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-          .mockImplementation(() => ({
-            project: nextJsProject,
-            isProjectActive: true,
-          }));
+          .mockImplementation(() => ({project: nextJsProject, isProjectActive: true}));
 
         MockApiClient.addMockResponse({
           url: `/organizations/${scmOrganization.slug}/sdks/`,
@@ -1184,10 +1119,7 @@ describe('Onboarding', () => {
           JSON.stringify({
             selectedPlatform: nextJsPlatform,
             selectedFeatures: [ProductSolution.ERROR_MONITORING],
-            createdProject: {
-              slug: nextJsProject.slug,
-              messagingSelection: undefined,
-            },
+            createdProject: {slug: nextJsProject.slug, messagingSelection: undefined},
           })
         );
 
@@ -1214,10 +1146,7 @@ describe('Onboarding', () => {
 
       jest
         .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-        .mockImplementation(() => ({
-          project: nextJsProject,
-          isProjectActive: false,
-        }));
+        .mockImplementation(() => ({project: nextJsProject, isProjectActive: false}));
 
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/sdks/`,
@@ -1240,10 +1169,7 @@ describe('Onboarding', () => {
       const initialContext = {
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        createdProject: {
-          slug: nextJsProject.slug,
-          messagingSelection: undefined,
-        },
+        createdProject: {slug: nextJsProject.slug, messagingSelection: undefined},
         messagingSetup: selectedMessagingSetup,
       };
 
@@ -1257,9 +1183,7 @@ describe('Onboarding', () => {
         {
           organization: scmOrganization,
           initialRouterConfig: {
-            location: {
-              pathname: `/onboarding/${scmOrganization.slug}/setup-docs/`,
-            },
+            location: {pathname: `/onboarding/${scmOrganization.slug}/setup-docs/`},
             route: '/onboarding/:orgId/:step/',
           },
         }
@@ -1310,9 +1234,7 @@ describe('Onboarding', () => {
           {
             organization: scmOrganization,
             initialRouterConfig: {
-              location: {
-                pathname: `/onboarding/${scmOrganization.slug}/setup-docs/`,
-              },
+              location: {pathname: `/onboarding/${scmOrganization.slug}/setup-docs/`},
               route: '/onboarding/:orgId/:step/',
             },
           }
@@ -1367,10 +1289,7 @@ describe('Onboarding', () => {
         }),
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        createdProject: {
-          slug: 'javascript-nextjs',
-          messagingSelection: undefined,
-        },
+        createdProject: {slug: 'javascript-nextjs', messagingSelection: undefined},
         messagingSetup: selectedMessagingSetup,
       };
 
@@ -1490,9 +1409,7 @@ describe('Onboarding', () => {
       </OnboardingContextProvider>,
       {
         initialRouterConfig: {
-          location: {
-            pathname: `/onboarding/${organization.slug}/select-platform/`,
-          },
+          location: {pathname: `/onboarding/${organization.slug}/select-platform/`},
           route: '/onboarding/:orgId/:step/',
         },
       }

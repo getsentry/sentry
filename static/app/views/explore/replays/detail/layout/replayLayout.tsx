@@ -55,9 +55,7 @@ function ReplayLayoutBody({
   const [layout, setLayout] = useReplayLayout();
 
   const fullscreenRef = useRef(null);
-  const {toggle: toggleFullscreen} = useFullscreen({
-    elementRef: fullscreenRef,
-  });
+  const {toggle: toggleFullscreen} = useFullscreen({elementRef: fullscreenRef});
 
   const measureRef = useRef<HTMLDivElement>(null);
   const {width, height} = useDimensions({elementRef: measureRef});

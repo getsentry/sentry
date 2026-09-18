@@ -2,10 +2,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {t} from 'sentry/locale';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 
-type ErrorDetail = {
-  code?: string;
-  message?: string;
-} | null;
+type ErrorDetail = {code?: string; message?: string} | null;
 
 interface DownloadPreprodArtifactOptions {
   artifactId: string | number;
@@ -26,10 +23,7 @@ export async function downloadPreprodArtifact({
   const downloadUrl = `${baseUrl}/api/0/internal/${organizationSlug}/${projectSlug}/files/preprodartifacts/${artifactId}/`;
 
   try {
-    const response = await fetch(downloadUrl, {
-      method: 'HEAD',
-      credentials: 'include',
-    });
+    const response = await fetch(downloadUrl, {method: 'HEAD', credentials: 'include'});
 
     if (!response.ok) {
       if (response.status === 403) {

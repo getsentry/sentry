@@ -145,11 +145,7 @@ function TeamSelectBody({
           disabled={disabled}
           organization={organization}
           team={team}
-          member={{
-            ...member,
-            orgRole: selectedOrgRole,
-            teamRoles: selectedTeamRoles,
-          }}
+          member={{...member, orgRole: selectedOrgRole, teamRoles: selectedTeamRoles}}
           onChangeTeamRole={onChangeTeamRole}
           onRemoveTeam={slug => onRemoveTeam(slug)}
         />

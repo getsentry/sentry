@@ -180,12 +180,7 @@ function Feature({
       customDisabledRender = override;
     }
   }
-  const renderProps = {
-    organization,
-    project,
-    features,
-    hasFeature: hasFeatureEnabled,
-  };
+  const renderProps = {organization, project, features, hasFeature: hasFeatureEnabled};
 
   if (!hasFeatureEnabled && customDisabledRender !== false) {
     return customDisabledRender({children, ...renderProps});

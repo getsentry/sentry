@@ -102,9 +102,7 @@ describe('ScmAlertFrequencySection', () => {
     // Querying the checkbox by the label text also asserts the label wraps the
     // input, so clicking the text toggles it.
     await userEvent.click(
-      screen.getByRole('checkbox', {
-        name: 'Integration (Slack, Discord, MS Teams, etc.)',
-      })
+      screen.getByRole('checkbox', {name: 'Integration (Slack, Discord, MS Teams, etc.)'})
     );
 
     expect(setActions).toHaveBeenCalledWith([
@@ -123,9 +121,7 @@ describe('ScmAlertFrequencySection', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Alert frequency'}));
     await userEvent.click(
-      screen.getByRole('checkbox', {
-        name: 'Integration (Slack, Discord, MS Teams, etc.)',
-      })
+      screen.getByRole('checkbox', {name: 'Integration (Slack, Discord, MS Teams, etc.)'})
     );
 
     expect(trackAnalyticsSpy).toHaveBeenCalledWith(

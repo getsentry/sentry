@@ -153,17 +153,13 @@ describe('FiltersBar', () => {
       value: 'browser.name:[Chrome]',
     };
     const newLocation = LocationFixture({
-      query: {
-        [DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify(urlFilter),
-      },
+      query: {[DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify(urlFilter)},
     });
 
     const onDashboardFilterChange = jest.fn();
     renderFilterBar({
       location: newLocation,
-      filters: {
-        [DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter],
-      },
+      filters: {[DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter]},
       onDashboardFilterChange,
     });
 
@@ -192,9 +188,7 @@ describe('FiltersBar', () => {
     const onDashboardFilterChange = jest.fn();
     const {rerender} = renderFilterBar({
       location: LocationFixture(),
-      filters: {
-        [DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter],
-      },
+      filters: {[DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter]},
       onDashboardFilterChange,
     });
 
@@ -234,16 +228,11 @@ describe('FiltersBar', () => {
       value: 'browser.name:[Chrome]',
     };
     const newLocation = LocationFixture({
-      query: {
-        [DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify(urlFilter),
-      },
+      query: {[DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify(urlFilter)},
     });
 
     const onDashboardFilterChange = jest.fn();
-    renderFilterBar({
-      location: newLocation,
-      onDashboardFilterChange,
-    });
+    renderFilterBar({location: newLocation, onDashboardFilterChange});
 
     // Wait for any effects to settle
     await waitFor(() => {
@@ -263,17 +252,13 @@ describe('FiltersBar', () => {
     };
     // Empty string simulates cleared filters (handleChangeFilter stores [''])
     const newLocation = LocationFixture({
-      query: {
-        [DashboardFilterKeys.GLOBAL_FILTER]: '',
-      },
+      query: {[DashboardFilterKeys.GLOBAL_FILTER]: ''},
     });
 
     const onDashboardFilterChange = jest.fn();
     renderFilterBar({
       location: newLocation,
-      filters: {
-        [DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter],
-      },
+      filters: {[DashboardFilterKeys.GLOBAL_FILTER]: [savedFilter]},
       onDashboardFilterChange,
     });
 
@@ -310,10 +295,7 @@ describe('FiltersBar', () => {
 });
 
 const mockNetworkRequests = () => {
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/members/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/releases/',
     body: [ReleaseFixture()],
@@ -325,12 +307,8 @@ const mockNetworkRequests = () => {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/measurements-meta/',
     body: {
-      'measurements.custom.measurement': {
-        functions: ['p99'],
-      },
-      'measurements.another.custom.measurement': {
-        functions: ['p99'],
-      },
+      'measurements.custom.measurement': {functions: ['p99']},
+      'measurements.another.custom.measurement': {functions: ['p99']},
     },
   });
   MockApiClient.addMockResponse({

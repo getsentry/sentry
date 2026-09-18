@@ -120,8 +120,5 @@ export function openOptimizeImagesModal(platform?: Platform) {
         ? t('Optimize Images (iOS)')
         : t('Optimize Images');
 
-  openInsightInfoModal({
-    title,
-    children: getOptimizeImagesContent(platform),
-  });
+  openInsightInfoModal({title, children: getOptimizeImagesContent(platform)});
 }

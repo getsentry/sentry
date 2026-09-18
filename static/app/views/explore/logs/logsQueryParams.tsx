@@ -150,21 +150,11 @@ export function getTargetWithReadableQueryParams(
 
 function defaultSortBys(fields: string[]) {
   if (fields.includes(OurLogKnownFieldKey.TIMESTAMP)) {
-    return [
-      {
-        field: OurLogKnownFieldKey.TIMESTAMP,
-        kind: 'desc' as const,
-      },
-    ];
+    return [{field: OurLogKnownFieldKey.TIMESTAMP, kind: 'desc' as const}];
   }
 
   if (fields.length) {
-    return [
-      {
-        field: fields[0]!,
-        kind: 'desc' as const,
-      },
-    ];
+    return [{field: fields[0]!, kind: 'desc' as const}];
   }
 
   return [];
@@ -234,23 +224,13 @@ function getLogsAggregateFieldsFromLocation(location: Location): AggregateField[
 export function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
   for (const aggregateField of aggregateFields) {
     if (isVisualize(aggregateField)) {
-      return [
-        {
-          field: aggregateField.yAxis,
-          kind: 'desc' as const,
-        },
-      ];
+      return [{field: aggregateField.yAxis, kind: 'desc' as const}];
     }
   }
 
   for (const aggregateField of aggregateFields) {
     if (isGroupBy(aggregateField)) {
-      return [
-        {
-          field: aggregateField.groupBy,
-          kind: 'desc' as const,
-        },
-      ];
+      return [{field: aggregateField.groupBy, kind: 'desc' as const}];
     }
   }
 

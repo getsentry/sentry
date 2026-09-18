@@ -161,13 +161,9 @@ export default function TeamNotificationSettings() {
       getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: params.teamId},
       }),
-      {
-        query: {expand: ['externalTeams']},
-      },
+      {query: {expand: ['externalTeams']}},
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   const {
@@ -180,13 +176,9 @@ export default function TeamNotificationSettings() {
       getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {includeConfig: '0'},
-      },
+      {query: {includeConfig: '0'}},
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   if (isTeamPending || isIntegrationsPending) {
@@ -217,9 +209,7 @@ export default function TeamNotificationSettings() {
             },
           }
         ),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
       addSuccessMessage(t('Deletion successful'));
     } catch {

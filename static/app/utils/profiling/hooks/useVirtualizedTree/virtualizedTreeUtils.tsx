@@ -124,9 +124,7 @@ export function markRowAsClicked(
  *
  * Credit: Joe Lambert (https://gist.github.com/joelambert/1002116#file-requesttimeout-js)
  */
-type AnimationTimeoutId = {
-  id: number;
-};
+type AnimationTimeoutId = {id: number};
 
 export function requestAnimationTimeout(
   callback: () => void,
@@ -150,9 +148,7 @@ export function requestAnimationTimeout(
     }
   };
 
-  const frame: AnimationTimeoutId = {
-    id: window.requestAnimationFrame(timeout),
-  };
+  const frame: AnimationTimeoutId = {id: window.requestAnimationFrame(timeout)};
 
   return frame;
 }

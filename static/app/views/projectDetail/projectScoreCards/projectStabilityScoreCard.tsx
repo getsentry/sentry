@@ -64,12 +64,7 @@ const useCrashFreeRate = (props: Props) => {
       getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          ...commonQuery,
-          ...normalizeDateTimeParams(datetime),
-        },
-      },
+      {query: {...commonQuery, ...normalizeDateTimeParams(datetime)}},
     ],
     {staleTime: Infinity, enabled: isEnabled}
   );
@@ -93,10 +88,7 @@ const useCrashFreeRate = (props: Props) => {
         },
       },
     ],
-    {
-      staleTime: Infinity,
-      enabled: isEnabled && isPreviousPeriodEnabled,
-    }
+    {staleTime: Infinity, enabled: isEnabled && isPreviousPeriodEnabled}
   );
 
   return {

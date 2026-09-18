@@ -16,9 +16,7 @@ export function useFinalizeRelease() {
       // releases. This strategy allows users to manually bucket releases by
       // finalized/un-finalized, if they want more precision then CI automation
       // is a better approach.
-      const payload = {
-        dateReleased: release.firstEvent ?? release.dateCreated,
-      };
+      const payload = {dateReleased: release.firstEvent ?? release.dateCreated};
 
       return fetchMutation({
         method: 'PUT',

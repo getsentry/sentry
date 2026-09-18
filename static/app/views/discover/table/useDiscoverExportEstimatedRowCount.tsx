@@ -53,8 +53,5 @@ export function useDiscoverExportEstimatedRowCount({
     ? loadedRowCount
     : Math.max(loadedRowCount, data?.count ?? 0);
 
-  return {
-    estimatedRowCount,
-    isPending: isLoading,
-  };
+  return {estimatedRowCount, isPending: isLoading};
 }

@@ -233,10 +233,7 @@ function getInstallStep(runtime: Runtime, params: Params) {
       },
       getInstallCodeBlock(
         suppressProfiling ? {...params, isProfilingSelected: false} : params,
-        {
-          packageName: '@sentry/hono',
-          additionalPackages: [config.peerDep],
-        }
+        {packageName: '@sentry/hono', additionalPackages: [config.peerDep]}
       ),
     ],
   };
@@ -274,11 +271,7 @@ function getVerifyStep(params: Params) {
         type: 'text' as const,
         text: t('Add a route that triggers an error to verify Sentry is working:'),
       },
-      {
-        type: 'code' as const,
-        language: 'javascript',
-        code: getVerifySnippet(params),
-      },
+      {type: 'code' as const, language: 'javascript', code: getVerifySnippet(params)},
     ],
   };
 }
@@ -316,11 +309,7 @@ const runtimeOnboarding: Record<Runtime, OnboardingConfig<PlatformOptions>> = {
               {code: <code />}
             ),
           },
-          {
-            type: 'code',
-            language: 'bash',
-            code: 'node --import ./instrument.mjs app.js',
-          },
+          {type: 'code', language: 'bash', code: 'node --import ./instrument.mjs app.js'},
           {
             type: 'text',
             text: tct(

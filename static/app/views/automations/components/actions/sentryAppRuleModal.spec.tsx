@@ -46,16 +46,8 @@ describe('SentryAppRuleModal', () => {
     uri: '/integration/test/',
     description: '',
     required_fields: [
-      {
-        type: 'text',
-        label: 'Alert Title',
-        name: 'title',
-      },
-      {
-        type: 'textarea',
-        label: 'Alert Description',
-        name: 'description',
-      },
+      {type: 'text', label: 'Alert Title', name: 'title'},
+      {type: 'textarea', label: 'Alert Description', name: 'description'},
       {
         type: 'select',
         label: 'Team Channel',
@@ -68,37 +60,16 @@ describe('SentryAppRuleModal', () => {
       },
     ],
     optional_fields: [
-      {
-        type: 'text',
-        label: 'Extra Details',
-        name: 'extra',
-      },
-      {
-        type: 'select',
-        label: 'Assignee',
-        name: 'assignee',
-        uri: '/link/assignee/',
-      },
-      {
-        type: 'select',
-        label: 'Workspace',
-        name: 'workspace',
-        uri: '/link/workspace/',
-      },
+      {type: 'text', label: 'Extra Details', name: 'extra'},
+      {type: 'select', label: 'Assignee', name: 'assignee', uri: '/link/assignee/'},
+      {type: 'select', label: 'Workspace', name: 'workspace', uri: '/link/workspace/'},
     ],
   };
 
   const resetValues = {
     settings: [
-      {
-        name: 'extra',
-        value: 'saved details from last edit',
-      },
-      {
-        name: 'assignee',
-        value: 'edna-mode',
-        label: 'Edna Mode',
-      },
+      {name: 'extra', value: 'saved details from last edit'},
+      {name: 'assignee', value: 'edna-mode', label: 'Edna Mode'},
     ],
   };
 
@@ -172,12 +143,7 @@ describe('SentryAppRuleModal', () => {
       const schema: SchemaFormConfig = {
         uri: '/api/sentry/issue-link/create/',
         required_fields: [
-          {
-            type: 'text',
-            label: 'Task Name',
-            name: 'title',
-            default: 'issue.title',
-          },
+          {type: 'text', label: 'Task Name', name: 'title', default: 'issue.title'},
         ],
         optional_fields: [
           {
@@ -194,14 +160,8 @@ describe('SentryAppRuleModal', () => {
       };
       const defaultValues = {
         settings: [
-          {
-            name: 'title',
-            value: 'poiggers',
-          },
-          {
-            name: 'complexity',
-            value: 'low',
-          },
+          {name: 'title', value: 'poiggers'},
+          {name: 'complexity', value: 'low'},
         ],
       };
 
@@ -226,13 +186,7 @@ describe('SentryAppRuleModal', () => {
 
       const schema: SchemaFormConfig = {
         uri: '/api/sentry/issue-link/create/',
-        required_fields: [
-          {
-            type: 'text',
-            label: 'Task Name',
-            name: 'title',
-          },
-        ],
+        required_fields: [{type: 'text', label: 'Task Name', name: 'title'}],
         optional_fields: [
           {
             type: 'select',
@@ -246,12 +200,7 @@ describe('SentryAppRuleModal', () => {
         ],
       };
       const defaultValues = {
-        settings: [
-          {
-            name: 'extra',
-            value: 'saved details from last edit',
-          },
-        ],
+        settings: [{name: 'extra', value: 'saved details from last edit'}],
       };
 
       createWrapper({config: schema, resetValues: defaultValues});
@@ -278,12 +227,7 @@ describe('SentryAppRuleModal', () => {
       const schema: SchemaFormConfig = {
         uri: '/api/sentry/issue-link/create/',
         required_fields: [
-          {
-            type: 'text',
-            label: 'Task Name',
-            name: 'title',
-            default: 'issue.title',
-          },
+          {type: 'text', label: 'Task Name', name: 'title', default: 'issue.title'},
           {
             type: 'select',
             label: "What's the status of this task?",
@@ -364,19 +308,9 @@ describe('SentryAppRuleModal', () => {
       };
       const defaultValues = {
         settings: [
-          {
-            name: 'extra',
-            value: 'saved details from last edit',
-          },
-          {
-            name: 'assignee',
-            value: 'edna-mode',
-            label: 'Edna Mode',
-          },
-          {
-            name: 'complexity',
-            value: 'low',
-          },
+          {name: 'extra', value: 'saved details from last edit'},
+          {name: 'assignee', value: 'edna-mode', label: 'Edna Mode'},
+          {name: 'complexity', value: 'low'},
         ],
       };
 
@@ -427,14 +361,7 @@ describe('SentryAppRuleModal', () => {
           },
         ],
       };
-      const defaultValues = {
-        settings: [
-          {
-            name: 'title',
-            value: 'yay',
-          },
-        ],
-      };
+      const defaultValues = {settings: [{name: 'title', value: 'yay'}]};
 
       createWrapper({config: schema, resetValues: defaultValues});
 
@@ -482,14 +409,7 @@ describe('SentryAppRuleModal', () => {
           },
         ],
       };
-      const defaultValues = {
-        settings: [
-          {
-            name: 'title',
-            value: 'yay',
-          },
-        ],
-      };
+      const defaultValues = {settings: [{name: 'title', value: 'yay'}]};
 
       createWrapper({config: schema, resetValues: defaultValues});
 
@@ -536,14 +456,7 @@ describe('SentryAppRuleModal', () => {
           },
         ],
       };
-      const defaultValues = {
-        settings: [
-          {
-            name: 'title',
-            value: 'yay',
-          },
-        ],
-      };
+      const defaultValues = {settings: [{name: 'title', value: 'yay'}]};
 
       createWrapper({config: schema, resetValues: defaultValues});
 

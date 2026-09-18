@@ -22,13 +22,7 @@ describe('useDisableRouteAnalytics', () => {
       return <div>hi</div>;
     }
     const getComponent = ({previousUrl = ''}: {previousUrl?: string} = {}) => (
-      <RouteAnalyticsContext
-        value={{
-          ...otherFns,
-          setDisableRouteAnalytics,
-          previousUrl,
-        }}
-      >
+      <RouteAnalyticsContext value={{...otherFns, setDisableRouteAnalytics, previousUrl}}>
         <TestComponent />
       </RouteAnalyticsContext>
     );
@@ -49,11 +43,7 @@ describe('useDisableRouteAnalytics', () => {
     }
     const getComponent = ({disabled}: {disabled: boolean}) => (
       <RouteAnalyticsContext
-        value={{
-          ...otherFns,
-          setDisableRouteAnalytics,
-          previousUrl: '',
-        }}
+        value={{...otherFns, setDisableRouteAnalytics, previousUrl: ''}}
       >
         <TestComponent disabled={disabled} />
       </RouteAnalyticsContext>

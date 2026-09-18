@@ -28,10 +28,7 @@ const getActiveDiscounts = (recurringCredits: RecurringCredit[]) =>
       !isExpired(credit.periodEnd)
   );
 
-type Props = {
-  displayType: 'data' | 'discount';
-  planDetails: Plan;
-};
+type Props = {displayType: 'data' | 'discount'; planDetails: Plan};
 
 export function RecurringCredits({displayType, planDetails}: Props) {
   const {recurringCredits, isLoading} = useRecurringCredits();
@@ -70,9 +67,7 @@ export function RecurringCredits({displayType, planDetails}: Props) {
     if (credit.type === 'discount' || credit.type === 'percent') {
       return (
         <Fragment>
-          {tct('[amount]/mo', {
-            amount: displayPrice({cents: credit.amount}),
-          })}
+          {tct('[amount]/mo', {amount: displayPrice({cents: credit.amount})})}
           <StyledQuestionTooltip title={getTooltipTitle(credit)} size="xs" />
         </Fragment>
       );

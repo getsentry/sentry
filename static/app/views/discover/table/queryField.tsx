@@ -148,10 +148,7 @@ class _QueryField extends Component<Props> {
         fieldValue = {kind: 'field', field: value.meta.name};
         break;
       case FieldValueKind.NUMERIC_METRICS:
-        fieldValue = {
-          kind: 'calculatedField',
-          field: value.meta.name,
-        };
+        fieldValue = {kind: 'calculatedField', field: value.meta.name};
         break;
       case FieldValueKind.FUNCTION:
         if (current.kind === 'function') {
@@ -177,11 +174,7 @@ class _QueryField extends Component<Props> {
         }
         break;
       case FieldValueKind.EQUATION:
-        fieldValue = {
-          kind: 'equation',
-          field: value.meta.name,
-          alias: value.meta.name,
-        };
+        fieldValue = {kind: 'equation', field: value.meta.name, alias: value.meta.name};
         break;
       default:
         throw new Error('Invalid field type found in column picker');
@@ -325,23 +318,12 @@ class _QueryField extends Component<Props> {
       if (name.startsWith('measurements.')) {
         return {
           kind: FieldValueKind.CUSTOM_MEASUREMENT,
-          meta: {
-            name,
-            dataType: 'number',
-            functions,
-          },
+          meta: {name, dataType: 'number', functions},
         };
       }
       // Likely a tag that was deleted but left behind in a saved query
       // Cook up a tag option so select control works.
-      return {
-        kind: FieldValueKind.TAG,
-        meta: {
-          name,
-          dataType: 'string',
-          unknown: true,
-        },
-      };
+      return {kind: FieldValueKind.TAG, meta: {name, dataType: 'string', unknown: true}};
     }
     return null;
   }
@@ -477,10 +459,7 @@ class _QueryField extends Component<Props> {
             onChange={this.handleFieldParameterChange}
             disabled={disabled || disableParameterSelector}
             menuPortalTarget={portalProps.menuPortalTarget}
-            styles={{
-              ...portalProps.styles,
-              ...this.FieldSelectStyles,
-            }}
+            styles={{...portalProps.styles, ...this.FieldSelectStyles}}
             components={this.FieldSelectComponents}
           />
         );
@@ -720,9 +699,7 @@ export class BufferedInput extends Component<BufferedInputProps, InputState> {
     this.input = createRef();
   }
 
-  state: InputState = {
-    value: this.props.value,
-  };
+  state: InputState = {value: this.props.value};
 
   private input: React.RefObject<HTMLInputElement | null>;
 

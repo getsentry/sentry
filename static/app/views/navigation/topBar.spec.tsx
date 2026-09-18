@@ -10,9 +10,7 @@ import {TopBar} from './topBar';
 
 const theme = ThemeFixture();
 
-jest.mock('sentry/utils/useFeedbackForm', () => ({
-  useFeedbackForm: () => jest.fn(),
-}));
+jest.mock('sentry/utils/useFeedbackForm', () => ({useFeedbackForm: () => jest.fn()}));
 
 jest.mock('sentry/views/seerExplorer/utils', () => ({
   ...jest.requireActual('sentry/views/seerExplorer/utils'),
@@ -32,9 +30,7 @@ function renderTopBar(width?: number) {
   );
 
   render(<Flex containerType="inline-size">{topBar}</Flex>, {
-    organization: OrganizationFixture({
-      features: ['gen-ai-features', 'seer-explorer'],
-    }),
+    organization: OrganizationFixture({features: ['gen-ai-features', 'seer-explorer']}),
   });
 }
 

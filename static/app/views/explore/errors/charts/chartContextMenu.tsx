@@ -8,10 +8,7 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DisabledText} from 'sentry/views/explore/components/chartContextMenu';
 
-type ChartContextMenuProps = {
-  setVisible: (visible: boolean) => void;
-  visible: boolean;
-};
+type ChartContextMenuProps = {setVisible: (visible: boolean) => void; visible: boolean};
 
 export function ChartContextMenu({visible, setVisible}: ChartContextMenuProps) {
   const organization = useOrganization();

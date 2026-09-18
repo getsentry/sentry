@@ -8,10 +8,7 @@ function getSubmitFormatRule(rule: Rule): PiiConfig {
     return {
       type: rule.type,
       pattern: rule.pattern,
-      redaction: {
-        method: rule.method,
-        text: rule?.placeholder,
-      },
+      redaction: {method: rule.method, text: rule?.placeholder},
       replaceGroups: rule.replaceCaptured ? [1] : undefined,
     };
   }
@@ -20,29 +17,16 @@ function getSubmitFormatRule(rule: Rule): PiiConfig {
     return {
       type: rule.type,
       pattern: rule.pattern,
-      redaction: {
-        method: rule.method,
-      },
+      redaction: {method: rule.method},
       replaceGroups: rule.replaceCaptured ? [1] : undefined,
     };
   }
 
   if (rule.method === MethodType.REPLACE) {
-    return {
-      type: rule.type,
-      redaction: {
-        method: rule.method,
-        text: rule?.placeholder,
-      },
-    };
+    return {type: rule.type, redaction: {method: rule.method, text: rule?.placeholder}};
   }
 
-  return {
-    type: rule.type,
-    redaction: {
-      method: rule.method,
-    },
-  };
+  return {type: rule.type, redaction: {method: rule.method}};
 }
 
 export function submitRules(api: Client, endpoint: string, rules: Rule[]) {

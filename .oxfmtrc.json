@@ -100,6 +100,7 @@
   "useTabs": false,
   "arrowParens": "avoid",
   "sortPackageJson": true,
+  "objectWrap": "collapse",
   "ignorePatterns": [
     ".devenv/bin/**/*",
     "src/**/templates/**/*.html",

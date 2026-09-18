@@ -98,11 +98,7 @@ function resolveResourceHref(href: string): ResolvedHref | null {
   }
 
   if (/^\/[^/]/.test(href)) {
-    return {
-      anchor: href,
-      absolute: window.location.origin + href,
-      isExternal: false,
-    };
+    return {anchor: href, absolute: window.location.origin + href, isExternal: false};
   }
 
   return null;

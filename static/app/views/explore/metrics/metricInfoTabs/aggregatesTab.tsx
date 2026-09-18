@@ -69,10 +69,7 @@ const METRIC_NAME_COLUMN: TableColumn<string> = {
   name: TraceMetricKnownFieldKey.METRIC_NAME,
   type: 'string',
   isSortable: false,
-  column: {
-    kind: 'field',
-    field: TraceMetricKnownFieldKey.METRIC_NAME,
-  },
+  column: {kind: 'field', field: TraceMetricKnownFieldKey.METRIC_NAME},
   width: COL_WIDTH_UNDEFINED,
 };
 

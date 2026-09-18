@@ -16,10 +16,7 @@ export function MergedIssuesSidebarSection() {
       <SidebarSectionTitle style={{margin: 0}}>{t('Merged Issues')}</SidebarSectionTitle>
       <ViewButton
         aria-label={t('View Merged Issues')}
-        to={{
-          pathname: `${baseUrl}${TabPaths[Tab.MERGED]}`,
-          query: location.query,
-        }}
+        to={{pathname: `${baseUrl}${TabPaths[Tab.MERGED]}`, query: location.query}}
         replace
         preventScrollReset
       >

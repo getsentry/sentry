@@ -10,9 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import {UpsellButton} from 'getsentry/components/upsellButton';
 
-type Props = {
-  organization: Organization;
-};
+type Props = {organization: Organization};
 
 export function DashboardBanner({organization}: Props) {
   // No upsell if the user can edit dashboards

@@ -64,9 +64,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock({additionalPackage: 'celery'}),
       ],
@@ -81,28 +79,17 @@ export const onboarding: OnboardingConfig = {
           text: [
             tct(
               'If you have the [code:celery] package in your dependencies, the Celery integration will be enabled automatically when you initialize the Sentry SDK.',
-              {
-                code: <code />,
-              }
+              {code: <code />}
             ),
             tct(
               'Make sure that the call to [code:init] is loaded on worker startup, and not only in the module where your tasks are defined. Otherwise, the initialization happens too late and events might end up not being reported.',
-              {
-                code: <code />,
-              }
+              {code: <code />}
             ),
           ],
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getSdkSetupSnippet(params),
-        },
+        {type: 'code', language: 'python', code: getSdkSetupSnippet(params)},
         alternativeProfiling(params),
-        {
-          type: 'subheader',
-          text: t('Standalone Setup'),
-        },
+        {type: 'subheader', text: t('Standalone Setup')},
         {
           type: 'text',
           text: t(
@@ -114,9 +101,7 @@ export const onboarding: OnboardingConfig = {
           items: [
             tct(
               "Initializing the SDK in the configuration file loaded with Celery's [code:--config] parameter",
-              {
-                code: <code />,
-              }
+              {code: <code />}
             ),
             tct(
               'Initializing the SDK by hooking it to either the [celerydInit: celeryd_init] or [workerInit: worker_init] signals:',
@@ -144,10 +129,7 @@ app = Celery("myapp")
 def init_sentry(**_kwargs):
     sentry_sdk.init(...)  # same as above`,
         },
-        {
-          type: 'subheader',
-          text: t('Setup With Django'),
-        },
+        {type: 'subheader', text: t('Setup With Django')},
         {
           type: 'text',
           text: tct(

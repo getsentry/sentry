@@ -62,13 +62,7 @@ describe('SnapshotSidebarContent', () => {
     renderSidebar([
       {
         type: DiffStatus.UNCHANGED,
-        groups: [
-          {
-            key: 'unchanged:components',
-            displayName: 'components',
-            count: 3,
-          },
-        ],
+        groups: [{key: 'unchanged:components', displayName: 'components', count: 3}],
       },
     ]);
 

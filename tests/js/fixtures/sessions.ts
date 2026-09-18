@@ -24,12 +24,8 @@ export function SessionsFieldFixture(field: string): SessionApiResponse {
     groups: [
       {
         by: {},
-        totals: {
-          [field]: 492,
-        },
-        series: {
-          [field]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 490],
-        },
+        totals: {[field]: 492},
+        series: {[field]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 490]},
       },
     ],
   };
@@ -58,9 +54,7 @@ export function SessionUserCountByStatusFixture(): SessionApiResponse {
     ],
     groups: [
       {
-        by: {
-          'session.status': 'crashed',
-        },
+        by: {'session.status': 'crashed'},
         totals: {
           'sum(session)': 492,
           'count_unique(user)': 92,
@@ -73,9 +67,7 @@ export function SessionUserCountByStatusFixture(): SessionApiResponse {
         },
       },
       {
-        by: {
-          'session.status': 'healthy',
-        },
+        by: {'session.status': 'healthy'},
         totals: {
           'sum(session)': 9260,
           'count_unique(user)': 260,
@@ -88,14 +80,8 @@ export function SessionUserCountByStatusFixture(): SessionApiResponse {
         },
       },
       {
-        by: {
-          'session.status': 'abnormal',
-        },
-        totals: {
-          'sum(session)': 0,
-          'count_unique(user)': 0,
-          'p50(session.duration)': 0,
-        },
+        by: {'session.status': 'abnormal'},
+        totals: {'sum(session)': 0, 'count_unique(user)': 0, 'p50(session.duration)': 0},
         series: {
           'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -103,9 +89,7 @@ export function SessionUserCountByStatusFixture(): SessionApiResponse {
         },
       },
       {
-        by: {
-          'session.status': 'errored',
-        },
+        by: {'session.status': 'errored'},
         totals: {
           'sum(session)': 99,
           'count_unique(user)': 9,
@@ -146,9 +130,7 @@ export function SessionUserCountByStatus2Fixture(): SessionApiResponse {
     ],
     groups: [
       {
-        by: {
-          'session.status': 'crashed',
-        },
+        by: {'session.status': 'crashed'},
         totals: {
           'sum(session)': 992,
           'count_unique(user)': 92,
@@ -161,14 +143,8 @@ export function SessionUserCountByStatus2Fixture(): SessionApiResponse {
         },
       },
       {
-        by: {
-          'session.status': 'abnormal',
-        },
-        totals: {
-          'sum(session)': 0,
-          'count_unique(user)': 0,
-          'p50(session.duration)': 0,
-        },
+        by: {'session.status': 'abnormal'},
+        totals: {'sum(session)': 0, 'count_unique(user)': 0, 'p50(session.duration)': 0},
         series: {
           'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -176,9 +152,7 @@ export function SessionUserCountByStatus2Fixture(): SessionApiResponse {
         },
       },
       {
-        by: {
-          'session.status': 'healthy',
-        },
+        by: {'session.status': 'healthy'},
         totals: {
           'sum(session)': 202136,
           'count_unique(user)': 99136,
@@ -191,9 +165,7 @@ export function SessionUserCountByStatus2Fixture(): SessionApiResponse {
         },
       },
       {
-        by: {
-          'session.status': 'errored',
-        },
+        by: {'session.status': 'errored'},
         totals: {
           'sum(session)': 1954,
           'count_unique(user)': 915,
@@ -331,34 +303,22 @@ export function SessionStatusCountByProjectInPeriodFixture(): SessionApiResponse
     ],
     groups: [
       {
-        by: {
-          project: 123,
-          'session.status': 'crashed',
-        },
+        by: {project: 123, 'session.status': 'crashed'},
         totals: {'sum(session)': 992},
         series: {'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 990]},
       },
       {
-        by: {
-          project: 123,
-          'session.status': 'healthy',
-        },
+        by: {project: 123, 'session.status': 'healthy'},
         totals: {'sum(session)': 9260},
         series: {'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9167, 93]},
       },
       {
-        by: {
-          project: 123,
-          'session.status': 'abnormal',
-        },
+        by: {project: 123, 'session.status': 'abnormal'},
         totals: {'sum(session)': 0},
         series: {'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]},
       },
       {
-        by: {
-          project: 123,
-          'session.status': 'errored',
-        },
+        by: {project: 123, 'session.status': 'errored'},
         totals: {'sum(session)': 99},
         series: {'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99, 0]},
       },

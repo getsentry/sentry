@@ -45,9 +45,7 @@ export function EmptyState({
           <IconSeer size="xl" />
           <Text>
             {errorStatusCode === 404
-              ? tct('Session not found (run_id=[runIdDisplay]).', {
-                  runIdDisplay,
-                })
+              ? tct('Session not found (run_id=[runIdDisplay]).', {runIdDisplay})
               : tct(`Error loading this session (run_id=[runIdDisplay]).`, {
                   runIdDisplay,
                 })}

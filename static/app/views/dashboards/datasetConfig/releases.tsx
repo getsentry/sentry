@@ -109,10 +109,7 @@ function disableSortOptions(widgetQuery: WidgetQuery) {
       disableSortReason: t('Sorting currently not supported with session.status'),
     };
   }
-  return {
-    disableSort: false,
-    disableSortDirection: false,
-  };
+  return {disableSort: false, disableSortDirection: false};
 }
 
 function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {

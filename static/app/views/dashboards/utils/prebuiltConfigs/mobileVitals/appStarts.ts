@@ -36,13 +36,7 @@ const AVG_COLD_STARTS_BIG_NUMBER_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 0,
-    y: 0,
-    w: 1,
-    minH: 1,
-  },
+  layout: {h: 1, x: 0, y: 0, w: 1, minH: 1},
 };
 
 const TOTAL_COLD_START_COUNT_BIG_NUMBER_WIDGET: PrebuiltWidget = {
@@ -63,13 +57,7 @@ const TOTAL_COLD_START_COUNT_BIG_NUMBER_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 1,
-    y: 0,
-    w: 1,
-    minH: 1,
-  },
+  layout: {h: 1, x: 1, y: 0, w: 1, minH: 1},
 };
 
 const AVG_WARM_STARTS_BIG_NUMBER_WIDGET: PrebuiltWidget = {
@@ -90,13 +78,7 @@ const AVG_WARM_STARTS_BIG_NUMBER_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 3,
-    y: 0,
-    w: 1,
-    minH: 1,
-  },
+  layout: {h: 1, x: 3, y: 0, w: 1, minH: 1},
 };
 
 const TOTAL_WARM_START_COUNT_BIG_NUMBER_WIDGET: PrebuiltWidget = {
@@ -117,13 +99,7 @@ const TOTAL_WARM_START_COUNT_BIG_NUMBER_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 4,
-    y: 0,
-    w: 1,
-    minH: 1,
-  },
+  layout: {h: 1, x: 4, y: 0, w: 1, minH: 1},
 };
 
 const AVG_COLD_START_LINE_WIDGET: PrebuiltWidget = {
@@ -145,13 +121,7 @@ const AVG_COLD_START_LINE_WIDGET: PrebuiltWidget = {
       orderby: `-${AVG_START_VALUE}`,
     },
   ],
-  layout: {
-    h: 2,
-    x: 0,
-    y: 1,
-    w: 3,
-    minH: 2,
-  },
+  layout: {h: 2, x: 0, y: 1, w: 3, minH: 2},
 };
 
 const AVG_WARM_START_LINE_WIDGET: PrebuiltWidget = {
@@ -173,13 +143,7 @@ const AVG_WARM_START_LINE_WIDGET: PrebuiltWidget = {
       orderby: `-${AVG_START_VALUE}`,
     },
   ],
-  layout: {
-    h: 2,
-    x: 3,
-    y: 1,
-    w: 3,
-    minH: 2,
-  },
+  layout: {h: 2, x: 3, y: 1, w: 3, minH: 2},
 };
 
 const COLD_START_DEVICE_DISTRIBUTION_WIDGET: PrebuiltWidget = {
@@ -200,13 +164,7 @@ const COLD_START_DEVICE_DISTRIBUTION_WIDGET: PrebuiltWidget = {
       orderby: SpanFields.DEVICE_CLASS,
     },
   ],
-  layout: {
-    h: 2,
-    x: 0,
-    y: 3,
-    w: 3,
-    minH: 2,
-  },
+  layout: {h: 2, x: 0, y: 3, w: 3, minH: 2},
 };
 
 const WARM_START_DEVICE_DISTRIBUTION_WIDGET: PrebuiltWidget = {
@@ -227,13 +185,7 @@ const WARM_START_DEVICE_DISTRIBUTION_WIDGET: PrebuiltWidget = {
       orderby: SpanFields.DEVICE_CLASS,
     },
   ],
-  layout: {
-    h: 2,
-    x: 3,
-    y: 3,
-    w: 3,
-    minH: 2,
-  },
+  layout: {h: 2, x: 3, y: 3, w: 3, minH: 2},
 };
 
 const COLD_OPERATIONS_TABLE: PrebuiltWidget = {
@@ -266,13 +218,7 @@ const COLD_OPERATIONS_TABLE: PrebuiltWidget = {
       orderby: '-avg(span.self_time)',
     },
   ],
-  layout: {
-    h: 6,
-    x: 0,
-    y: 5,
-    w: 3,
-    minH: 2,
-  },
+  layout: {h: 6, x: 0, y: 5, w: 3, minH: 2},
 };
 
 const WARM_OPERATIONS_TABLE: PrebuiltWidget = {
@@ -305,13 +251,7 @@ const WARM_OPERATIONS_TABLE: PrebuiltWidget = {
       orderby: '-avg(span.self_time)',
     },
   ],
-  layout: {
-    h: 6,
-    x: 3,
-    y: 5,
-    w: 3,
-    minH: 2,
-  },
+  layout: {h: 6, x: 3, y: 5, w: 3, minH: 2},
 };
 
 const HEADER_ROW_WIDGETS: PrebuiltWidget[] = [
@@ -346,11 +286,7 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: [
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'os.name',
-          name: 'os.name',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'os.name', name: 'os.name', kind: FieldKind.TAG},
         value: '',
       },
       {
@@ -373,11 +309,7 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'user.geo.region',
-          name: 'user.geo.region',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'user.geo.region', name: 'user.geo.region', kind: FieldKind.TAG},
         value: '',
       },
     ],

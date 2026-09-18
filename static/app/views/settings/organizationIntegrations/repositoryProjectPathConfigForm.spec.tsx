@@ -144,10 +144,7 @@ describe('RepositoryProjectPathConfigModal', () => {
 
     expect(analytics.trackAnalytics).toHaveBeenCalledWith(
       'integrations.stacktrace_submit_config',
-      expect.objectContaining({
-        setup_type: 'manual',
-        provider: integration.provider.key,
-      })
+      expect.objectContaining({setup_type: 'manual', provider: integration.provider.key})
     );
   });
 
@@ -190,9 +187,7 @@ describe('RepositoryProjectPathConfigModal', () => {
       expect(mockPut).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/code-mappings/99/`,
         expect.objectContaining({
-          data: expect.objectContaining({
-            defaultBranch: 'release',
-          }),
+          data: expect.objectContaining({defaultBranch: 'release'}),
           method: 'PUT',
         })
       );
@@ -202,9 +197,7 @@ describe('RepositoryProjectPathConfigModal', () => {
   it('auto-fills defaultBranch when repo is selected', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
-      body: {
-        repos: [{identifier: 'org/repo-one', defaultBranch: 'trunk'}],
-      },
+      body: {repos: [{identifier: 'org/repo-one', defaultBranch: 'trunk'}]},
       match: [MockApiClient.matchQuery({search: 'org/repo-one'})],
     });
 
@@ -273,9 +266,7 @@ describe('RepositoryProjectPathConfigModal', () => {
       expect(mockPost).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/code-mappings/`,
         expect.objectContaining({
-          data: expect.objectContaining({
-            defaultBranch: '',
-          }),
+          data: expect.objectContaining({defaultBranch: ''}),
           method: 'POST',
         })
       );
@@ -285,9 +276,7 @@ describe('RepositoryProjectPathConfigModal', () => {
   it('does not override manually changed branch when repo is selected', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
-      body: {
-        repos: [{identifier: 'org/repo-one', defaultBranch: 'trunk'}],
-      },
+      body: {repos: [{identifier: 'org/repo-one', defaultBranch: 'trunk'}]},
       match: [MockApiClient.matchQuery({search: 'org/repo-one'})],
     });
 

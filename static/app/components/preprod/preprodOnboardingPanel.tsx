@@ -113,12 +113,7 @@ export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
               src={PREPROD_ONBOARDING_ARCADE_URL}
               loading="lazy"
               allowFullScreen
-              style={{
-                width: '100%',
-                height: '360px',
-                border: 0,
-                colorScheme: 'auto',
-              }}
+              style={{width: '100%', height: '360px', border: 0, colorScheme: 'auto'}}
             />
           </Container>
         </Flex>

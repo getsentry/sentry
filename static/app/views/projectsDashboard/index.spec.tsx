@@ -145,11 +145,7 @@ describe('ProjectsDashboard', () => {
       const {router} = render(<ProjectsDashboard />, {
         organization: openOrg,
 
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/projects/',
-          },
-        },
+        initialRouterConfig: {location: {pathname: '/organizations/org-slug/projects/'}},
       });
       // Open My Teams dropdown
       await userEvent.click(await screen.findByText('My Teams'));
@@ -200,11 +196,7 @@ describe('ProjectsDashboard', () => {
       const {router} = render(<ProjectsDashboard />, {
         organization: openMembershipOrg,
 
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/projects/',
-          },
-        },
+        initialRouterConfig: {location: {pathname: '/organizations/org-slug/projects/'}},
       });
       // Open dropdown
       await userEvent.click(await screen.findByText('My Teams'));
@@ -250,10 +242,7 @@ describe('ProjectsDashboard', () => {
       render(<ProjectsDashboard />, {
         organization: closedOrg,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/projects/',
-            query: {team: ''},
-          },
+          location: {pathname: '/organizations/org-slug/projects/', query: {team: ''}},
         },
       });
       expect(await screen.findByText('All Teams')).toBeInTheDocument();
@@ -268,26 +257,15 @@ describe('ProjectsDashboard', () => {
         slug: 'teamC',
         isMember: true,
         projects: [
-          ProjectFixture({
-            id: '1',
-            slug: 'project1',
-          }),
-          ProjectFixture({
-            id: '2',
-            slug: 'project2',
-          }),
+          ProjectFixture({id: '1', slug: 'project1'}),
+          ProjectFixture({id: '2', slug: 'project2'}),
         ],
       });
       const teamD = TeamFixture({
         id: '2',
         slug: 'teamD',
         isMember: true,
-        projects: [
-          ProjectFixture({
-            id: '3',
-            slug: 'project3',
-          }),
-        ],
+        projects: [ProjectFixture({id: '3', slug: 'project3'})],
       });
 
       const teamsWithSpecificProjects = [teamC, teamD];
@@ -329,10 +307,7 @@ describe('ProjectsDashboard', () => {
 
       render(<ProjectsDashboard />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/projects/',
-            query: {team: '2'},
-          },
+          location: {pathname: '/organizations/org-slug/projects/', query: {team: '2'}},
         },
       });
 
@@ -380,42 +355,12 @@ describe('ProjectsDashboard', () => {
     it('renders bookmarked projects first in team list', async () => {
       const teamA = TeamFixture({slug: 'team1', isMember: true});
       const projects = [
-        ProjectFixture({
-          id: '11',
-          slug: 'm',
-          teams: [teamA],
-          isBookmarked: false,
-        }),
-        ProjectFixture({
-          id: '12',
-          slug: 'm-fave',
-          teams: [teamA],
-          isBookmarked: true,
-        }),
-        ProjectFixture({
-          id: '13',
-          slug: 'a-fave',
-          teams: [teamA],
-          isBookmarked: true,
-        }),
-        ProjectFixture({
-          id: '14',
-          slug: 'z-fave',
-          teams: [teamA],
-          isBookmarked: true,
-        }),
-        ProjectFixture({
-          id: '15',
-          slug: 'a',
-          teams: [teamA],
-          isBookmarked: false,
-        }),
-        ProjectFixture({
-          id: '16',
-          slug: 'z',
-          teams: [teamA],
-          isBookmarked: false,
-        }),
+        ProjectFixture({id: '11', slug: 'm', teams: [teamA], isBookmarked: false}),
+        ProjectFixture({id: '12', slug: 'm-fave', teams: [teamA], isBookmarked: true}),
+        ProjectFixture({id: '13', slug: 'a-fave', teams: [teamA], isBookmarked: true}),
+        ProjectFixture({id: '14', slug: 'z-fave', teams: [teamA], isBookmarked: true}),
+        ProjectFixture({id: '15', slug: 'a', teams: [teamA], isBookmarked: false}),
+        ProjectFixture({id: '16', slug: 'z', teams: [teamA], isBookmarked: false}),
       ];
 
       ProjectsStore.loadInitialData(projects);

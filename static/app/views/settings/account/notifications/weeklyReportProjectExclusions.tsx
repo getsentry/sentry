@@ -99,10 +99,7 @@ export function WeeklyReportProjectExclusions({
     ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
       path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
       host: organization?.links?.regionUrl,
-      query: {
-        all_projects: '1',
-        collapse: ['latestDeploys', 'unusedFeatures'],
-      },
+      query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
       staleTime: Infinity,
     }),
   });
@@ -117,9 +114,7 @@ export function WeeklyReportProjectExclusions({
     isPending: exclusionsPending,
     isError: exclusionsError,
     refetch: refetchExclusions,
-  } = useQuery({
-    ...exclusionsOpts,
-  });
+  } = useQuery({...exclusionsOpts});
 
   const excludedProjectIds = new Set((exclusions ?? []).map(exc => exc.projectId));
 
@@ -172,13 +167,7 @@ export function WeeklyReportProjectExclusions({
   };
 
   const handleOrgChange = (organizationId: string) => {
-    navigate(
-      {
-        ...location,
-        query: {organizationId},
-      },
-      {replace: true}
-    );
+    navigate({...location, query: {organizationId}}, {replace: true});
   };
 
   const userDefault = notificationOptions.find(

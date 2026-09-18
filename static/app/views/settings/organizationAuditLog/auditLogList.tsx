@@ -35,11 +35,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {retentionPrioritiesLabels} from 'sentry/views/settings/projectPerformance';
 import {projectDetectorSettingsId} from 'sentry/views/settings/projectPerformance/detectors/detectorFieldGroups';
 
-const avatarStyle = {
-  width: 36,
-  height: 36,
-  marginRight: 8,
-};
+const avatarStyle = {width: 36, height: 36, marginRight: 8};
 
 const AUDIT_LOG_COLUMNS: TableColumnConfig[] = [
   {key: 'member', width: 'auto'},
@@ -98,21 +94,12 @@ const getEventOptions = (eventTypes: string[] | null) =>
       // to filter.
       // See https://github.com/getsentry/sentry/issues/46997
       if (type.startsWith('rule.')) {
-        return {
-          label: type.replace('rule.', 'issue-alert.'),
-          value: type,
-        };
+        return {label: type.replace('rule.', 'issue-alert.'), value: type};
       }
       if (type.startsWith('alertrule.')) {
-        return {
-          label: type.replace('alertrule.', 'metric-alert.'),
-          value: type,
-        };
+        return {label: type.replace('alertrule.', 'metric-alert.'), value: type};
       }
-      return {
-        label: type,
-        value: type,
-      };
+      return {label: type, value: type};
     })
     .sort((a, b) => a.label.localeCompare(b.label));
 
@@ -329,10 +316,7 @@ export function AuditLogList({
         end={end}
         relative={statsPeriod || allTime}
         onChange={onDateSelect}
-        relativeOptions={{
-          allTime,
-          ...arbitraryRelativePeriods,
-        }}
+        relativeOptions={{allTime, ...arbitraryRelativePeriods}}
         utc={utc}
         maxPickableDays={getDaysSinceDate(organization.dateCreated)}
         trigger={triggerProps => (

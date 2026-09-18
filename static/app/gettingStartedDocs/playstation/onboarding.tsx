@@ -82,14 +82,8 @@ const onboardingRetail: OnboardingConfig = {
     {
       title: t('Allow list our IP Addresses'),
       content: [
-        {
-          type: 'text',
-          text: ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
-        },
-        {
-          type: 'custom',
-          content: <AllowListIPAddresses />,
-        },
+        {type: 'text', text: ALLOWLIST_IP_ADDRESSES_DESCRIPTION},
+        {type: 'custom', content: <AllowListIPAddresses />},
       ],
     },
     {
@@ -100,9 +94,7 @@ const onboardingRetail: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Enable [strong:Attach Dumps] to automatically include Prospero crash dumps for debugging and [strong:Attach Screenshots] to include crash screenshots when available.',
-            {
-              strong: <strong />,
-            }
+            {strong: <strong />}
           ),
         },
         {
@@ -133,11 +125,7 @@ const onboardingRetail: OnboardingConfig = {
             'Once you provided credentials, Sentry will make an initial request to verify the credentials are correct and the IPs are allowlisted, if either of these are not the case an error will be displayed in the UI. After that new crashes are pulled once every minute. Events generated from crashes can be filtered using:'
           ),
         },
-        {
-          type: 'code',
-          language: 'c',
-          code: 'os.name: PlayStation',
-        },
+        {type: 'code', language: 'c', code: 'os.name: PlayStation'},
       ],
     },
   ],
@@ -148,15 +136,8 @@ const onboardingDevkit: OnboardingConfig = {
     {
       title: t('Copy PlayStation Ingestion URL'),
       content: [
-        {
-          type: 'text',
-          text: t('This is the URL where your crash reports will be sent:'),
-        },
-        {
-          type: 'code',
-          language: 'bash',
-          code: params.dsn.playstation,
-        },
+        {type: 'text', text: t('This is the URL where your crash reports will be sent:')},
+        {type: 'code', language: 'bash', code: params.dsn.playstation},
       ],
     },
   ],

@@ -11,10 +11,7 @@ import {AssertionSuggestionsButton} from 'sentry/views/detectors/components/upti
 // since the test render wrapper uses it to render children.
 jest.mock('@sentry/scraps/drawer', () => {
   const actual = jest.requireActual('@sentry/scraps/drawer');
-  return {
-    ...actual,
-    useDrawer: jest.fn(),
-  };
+  return {...actual, useDrawer: jest.fn()};
 });
 
 const mockedUseDrawer = jest.mocked(useDrawer);

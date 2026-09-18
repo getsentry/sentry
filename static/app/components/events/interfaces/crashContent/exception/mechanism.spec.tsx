@@ -6,10 +6,7 @@ import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 describe('ExceptionMechanism', () => {
   describe('basic attributes', () => {
     it('should render the exception mechanism', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: true,
-      };
+      const mechanism: StackTraceMechanism = {type: 'generic', handled: true};
       render(<Mechanism data={mechanism} />);
     });
 
@@ -55,10 +52,7 @@ describe('ExceptionMechanism', () => {
     });
 
     it('should render the handled pill', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-      };
+      const mechanism: StackTraceMechanism = {type: 'generic', handled: false};
       render(<Mechanism data={mechanism} />);
     });
   });
@@ -156,11 +150,7 @@ describe('ExceptionMechanism', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: false,
-        data: {
-          a: {x: 11},
-          b: [4, 2],
-          c: new Date(),
-        },
+        data: {a: {x: 11}, b: [4, 2], c: new Date()},
       };
       render(<Mechanism data={mechanism} />);
     });

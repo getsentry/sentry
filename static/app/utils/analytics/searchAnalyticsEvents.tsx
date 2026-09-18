@@ -25,23 +25,15 @@ export type SearchEventParameters = {
     search_type: string;
     visibility: string;
   };
-  'projectselector.apply': ProjectSelectorEvent & {
-    count: number;
-    multi: boolean;
-  };
+  'projectselector.apply': ProjectSelectorEvent & {count: number; multi: boolean};
   'projectselector.cancel': ProjectSelectorEvent;
   'projectselector.clear': ProjectSelectorEvent;
   'projectselector.direct_selection': ProjectSelectorEvent;
   'projectselector.multi_button_clicked': ProjectSelectorEvent & {
     button_type: 'all' | 'my';
   };
-  'projectselector.toggle': ProjectSelectorEvent & {
-    action: 'added' | 'removed';
-  };
-  'projectselector.update': ProjectSelectorEvent & {
-    count: number;
-    multi: boolean;
-  };
+  'projectselector.toggle': ProjectSelectorEvent & {action: 'added' | 'removed'};
+  'projectselector.update': ProjectSelectorEvent & {count: number; multi: boolean};
   'search.docs_opened': SearchEventBase;
   'search.invalid_field': Omit<SearchEventBase, 'query'> & {attempted_field_name: string};
   'search.key_autocompleted': Omit<SearchEventBase, 'query'> & {
@@ -85,10 +77,7 @@ export type SearchEventParameters = {
   'search.saved_search_sidebar_toggle_clicked': {open: boolean};
   'search.search_with_invalid': SearchEventBase;
   'search.searched': SearchEventBase;
-  'search.searched_filter': SearchEventBase & {
-    key: string;
-    values: string[];
-  };
+  'search.searched_filter': SearchEventBase & {key: string; values: string[]};
   'search.shortcut_used': SearchEventBase & {
     shortcut_method: 'hotkey' | 'click';
     shortcut_type: ShortcutType;

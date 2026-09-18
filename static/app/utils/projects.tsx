@@ -248,9 +248,7 @@ class BaseProjects extends Component<Props, State> {
       return;
     }
 
-    this.setState({
-      fetching: true,
-    });
+    this.setState({fetching: true});
 
     let projects: Project[] = [];
     let fetchError = null;
@@ -296,9 +294,7 @@ class BaseProjects extends Component<Props, State> {
   loadAllProjects = async () => {
     const {api, orgId, limit, allProjects} = this.props;
 
-    this.setState({
-      fetching: true,
-    });
+    this.setState({fetching: true});
 
     try {
       const {results, hasMore, nextCursor} = await fetchProjects(api, orgId, {
@@ -356,10 +352,7 @@ class BaseProjects extends Component<Props, State> {
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      this.setState({
-        fetching: false,
-        fetchError: err as RequestError,
-      });
+      this.setState({fetching: false, fetchError: err as RequestError});
     }
   };
 
@@ -454,10 +447,7 @@ async function fetchProjects(
     const loading = ProjectsStore.isLoading();
     // If the projects store is loaded then return all projects from the store
     if (!loading) {
-      return {
-        results: projects,
-        hasMore: false,
-      };
+      return {results: projects, hasMore: false};
     }
     // Otherwise mark the query to fetch all projects from the API
     query.all_projects = 1;
@@ -469,10 +459,7 @@ async function fetchProjects(
     getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      includeAllArgs: true,
-      query,
-    }
+    {includeAllArgs: true, query}
   );
 
   const pageLinks = resp?.getResponseHeader('Link');
@@ -489,11 +476,7 @@ async function fetchProjects(
     ProjectsStore.loadInitialData(data);
   }
 
-  return {
-    results: data,
-    hasMore,
-    nextCursor,
-  };
+  return {results: data, hasMore, nextCursor};
 }
 
 interface ProjectAnalyticsData {

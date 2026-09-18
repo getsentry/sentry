@@ -144,9 +144,7 @@ export function usePipeline<
   const pipelineName = getBackendPipelineType(type);
   const apiUrl = getApiUrl(
     '/organizations/$organizationIdOrSlug/pipeline/$pipelineName/',
-    {
-      path: {organizationIdOrSlug: organization.slug, pipelineName},
-    }
+    {path: {organizationIdOrSlug: organization.slug, pipelineName}}
   );
 
   const definition = useMemo(
@@ -192,11 +190,7 @@ export function usePipeline<
     {generation: number}
   >({
     mutationFn: (data: Record<string, unknown>) =>
-      fetchMutation<PipelineAdvanceResponse>({
-        method: 'POST',
-        url: apiUrl,
-        data,
-      }),
+      fetchMutation<PipelineAdvanceResponse>({method: 'POST', url: apiUrl, data}),
     onMutate: () => ({generation: generationRef.current}),
     onSuccess: (response, _variables, context) => {
       if (context?.generation !== generationRef.current) {

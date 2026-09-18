@@ -37,10 +37,7 @@ function renderReleaseBundlesMockRequests({
         ],
   });
 
-  MockApiClient.addMockResponse({
-    url: `/organizations/${orgSlug}/releases/`,
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: `/organizations/${orgSlug}/releases/`, body: []});
 
   return {sourceMaps};
 }
@@ -92,9 +89,7 @@ describe('ProjectSourceMaps', () => {
         projectSlug: project.slug,
       });
 
-      render(<SourceMapsList project={project} {...routerProps} />, {
-        organization,
-      });
+      render(<SourceMapsList project={project} {...routerProps} />, {organization});
       expect(mockRequests.artifactBundles).toHaveBeenCalledTimes(1);
 
       // Search bar
@@ -157,9 +152,7 @@ describe('ProjectSourceMaps', () => {
         empty: true,
       });
 
-      render(<SourceMapsList project={project} {...routerProps} />, {
-        organization,
-      });
+      render(<SourceMapsList project={project} {...routerProps} />, {organization});
 
       expect(await screen.findByRole('link', {name: /read the docs/i})).toHaveAttribute(
         'href',
@@ -191,9 +184,7 @@ describe('ProjectSourceMaps', () => {
         empty: true,
       });
 
-      render(<SourceMapsList project={project} {...routerProps} />, {
-        organization,
-      });
+      render(<SourceMapsList project={project} {...routerProps} />, {organization});
 
       expect(await screen.findByText('No source maps uploaded')).toBeInTheDocument();
     });

@@ -61,14 +61,8 @@ const [
     data: {
       method: 'GET',
       statusCode: 200,
-      request: {
-        _meta: {warnings: []},
-        headers: {accept: 'application/json'},
-      },
-      response: {
-        _meta: {warnings: []},
-        headers: {'content-type': 'application/json'},
-      },
+      request: {_meta: {warnings: []}, headers: {accept: 'application/json'}},
+      response: {_meta: {warnings: []}, headers: {'content-type': 'application/json'}},
     },
   }),
   ReplayRequestFrameFixture({
@@ -79,14 +73,8 @@ const [
     data: {
       method: 'GET',
       statusCode: 200,
-      request: {
-        _meta: {},
-        headers: {accept: 'application/json'},
-      },
-      response: {
-        _meta: {},
-        headers: {'content-type': 'application/json'},
-      },
+      request: {_meta: {}, headers: {accept: 'application/json'}},
+      response: {_meta: {}, headers: {'content-type': 'application/json'}},
     },
   }),
   ReplayRequestFrameFixture({
@@ -97,10 +85,7 @@ const [
     data: {
       method: 'GET',
       statusCode: 200,
-      request: {
-        _meta: {},
-        headers: {accept: 'application/json'},
-      },
+      request: {_meta: {}, headers: {accept: 'application/json'}},
       response: {
         _meta: {},
         headers: {'content-type': 'application/json'},
@@ -113,10 +98,7 @@ const [
     startTimestamp: new Date(),
     endTimestamp: new Date(),
     description: '/api/0/organizations/1/issues/1234',
-    data: {
-      method: 'GET',
-      statusCode: 0,
-    },
+    data: {method: 'GET', statusCode: 0},
   }),
   ReplayRequestFrameFixture({
     op: 'resource.fetch',
@@ -144,10 +126,7 @@ const mockItems = {
 };
 
 function basicSectionProps() {
-  return {
-    projectId: '',
-    startTimestampMs: new Date('2023-12-24').getTime(),
-  };
+  return {projectId: '', startTimestampMs: new Date('2023-12-24').getTime()};
 }
 
 function queryScreenState() {

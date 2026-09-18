@@ -18,14 +18,8 @@ export const platformOptions = {
     label: t('Config Type'),
     defaultValue: AngularConfigType.APP,
     items: [
-      {
-        label: 'App Config',
-        value: AngularConfigType.APP,
-      },
-      {
-        label: 'NGModule Config',
-        value: AngularConfigType.MODULE,
-      },
+      {label: 'App Config', value: AngularConfigType.APP},
+      {label: 'NGModule Config', value: AngularConfigType.MODULE},
     ],
   },
 } satisfies BasePlatformOptions;
@@ -144,20 +138,8 @@ Sentry.init({
 export const installSnippetBlock: ContentBlock = {
   type: 'code',
   tabs: [
-    {
-      label: 'npm',
-      language: 'bash',
-      code: 'npm install --save @sentry/angular',
-    },
-    {
-      label: 'yarn',
-      language: 'bash',
-      code: 'yarn add @sentry/angular',
-    },
-    {
-      label: 'pnpm',
-      language: 'bash',
-      code: 'pnpm install @sentry/angular',
-    },
+    {label: 'npm', language: 'bash', code: 'npm install --save @sentry/angular'},
+    {label: 'yarn', language: 'bash', code: 'yarn add @sentry/angular'},
+    {label: 'pnpm', language: 'bash', code: 'pnpm install @sentry/angular'},
   ],
 };

@@ -39,16 +39,11 @@ describe('Discover > SaveQueryButtonGroup', () => {
   let organization: Organization;
   let errorsView: EventView;
   let errorsQuery: NewQuery;
-  const location = LocationFixture({
-    pathname: '/organization/eventsv2/',
-    query: {},
-  });
+  const location = LocationFixture({pathname: '/organization/eventsv2/', query: {}});
   const yAxis = ['count()', 'failure_count()'];
 
   beforeEach(() => {
-    organization = OrganizationFixture({
-      features: ['discover-query', 'dashboards-edit'],
-    });
+    organization = OrganizationFixture({features: ['discover-query', 'dashboards-edit']});
 
     errorsQuery = {
       ...getAllViews(organization).find(view => view.name === 'Errors by Title')!,

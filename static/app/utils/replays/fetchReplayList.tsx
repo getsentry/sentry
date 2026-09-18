@@ -81,17 +81,9 @@ export async function fetchReplayList({
     };
   } catch (error: any) {
     if (error.responseJSON?.detail) {
-      return {
-        fetchError: error.responseJSON.detail,
-        pageLinks: null,
-        replays: [],
-      };
+      return {fetchError: error.responseJSON.detail, pageLinks: null, replays: []};
     }
     Sentry.captureException(error);
-    return {
-      fetchError: error,
-      pageLinks: null,
-      replays: [],
-    };
+    return {fetchError: error, pageLinks: null, replays: []};
   }
 }

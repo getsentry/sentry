@@ -170,10 +170,7 @@ export default function AutofixIssuesDemo() {
               isLoading={isPending}
               data={issues}
               columnOrder={columnOrder}
-              grid={{
-                renderHeadCell: column => column.name,
-                renderBodyCell,
-              }}
+              grid={{renderHeadCell: column => column.name, renderBodyCell}}
               emptyMessage={t('No autofix issues found for this organization.')}
             />
             <Pagination pageLinks={pageLinks} />

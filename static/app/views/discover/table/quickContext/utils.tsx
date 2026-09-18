@@ -9,7 +9,4 @@ export enum ContextType {
   EVENT = 'event',
 }
 
-export type BaseContextProps = {
-  dataRow: EventData;
-  organization: Organization;
-};
+export type BaseContextProps = {dataRow: EventData; organization: Organization};

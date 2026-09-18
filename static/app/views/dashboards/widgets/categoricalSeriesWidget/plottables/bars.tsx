@@ -81,9 +81,7 @@ export class Bars
             : undefined,
         },
         animation: false,
-        itemStyle: {
-          opacity: 1,
-        },
+        itemStyle: {opacity: 1},
         data: this.categoricalSeries.values.map(item =>
           // This name must match with the `data` setting of the `xAxis` config
           // in ECharts. ECharts wants both a full list of the categories for

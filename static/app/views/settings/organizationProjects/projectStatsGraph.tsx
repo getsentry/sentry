@@ -5,9 +5,7 @@ import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {ProjectStats} from 'sentry/types/project';
 
-type Props = {
-  stats?: ProjectStats;
-};
+type Props = {stats?: ProjectStats};
 
 export function ProjectStatsGraph({stats}: Props) {
   const chartStats = stats ?? [];

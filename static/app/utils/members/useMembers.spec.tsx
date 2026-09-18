@@ -17,9 +17,7 @@ describe('useMembers', () => {
       body: mockUsers.map(user => ({user})),
     });
 
-    const {result} = renderHookWithProviders(useMembers, {
-      organization: org,
-    });
+    const {result} = renderHookWithProviders(useMembers, {organization: org});
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 

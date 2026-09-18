@@ -69,9 +69,7 @@ describe('ExternalIssueForm', () => {
 
   describe('create', () => {
     beforeEach(() => {
-      formConfig = {
-        createIssueConfig: [],
-      };
+      formConfig = {createIssueConfig: []};
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
         body: formConfig,
@@ -183,11 +181,7 @@ describe('ExternalIssueForm', () => {
       const labelsRequest = MockApiClient.addMockResponse({
         url: '/search',
         match: [
-          MockApiClient.matchQuery({
-            field: 'labels',
-            query: '',
-            repo: 'my-org/my-repo',
-          }),
+          MockApiClient.matchQuery({field: 'labels', query: '', repo: 'my-org/my-repo'}),
         ],
         body: [{value: 'bug', label: 'bug'}],
       });
@@ -387,14 +381,7 @@ describe('ExternalIssueForm', () => {
     });
 
     it('if we have an error fields, we should disable the create button', async () => {
-      formConfig = {
-        createIssueConfig: [
-          {
-            name: 'error',
-            type: 'blank',
-          },
-        ],
-      };
+      formConfig = {createIssueConfig: [{name: 'error', type: 'blank'}]};
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
         body: formConfig,
@@ -408,13 +395,7 @@ describe('ExternalIssueForm', () => {
     it('should not submit when required fields are empty', async () => {
       formConfig = {
         createIssueConfig: [
-          {
-            label: 'Title',
-            required: true,
-            type: 'string',
-            name: 'title',
-            default: '',
-          },
+          {label: 'Title', required: true, type: 'string', name: 'title', default: ''},
           {
             label: 'Repo',
             required: true,
@@ -520,12 +501,7 @@ describe('ExternalIssueForm', () => {
               name: 'project',
               updatesForm: true,
             },
-            {
-              label: 'Summary',
-              required: false,
-              type: 'text',
-              name: 'summary',
-            },
+            {label: 'Summary', required: false, type: 'text', name: 'summary'},
             {
               label: 'Reporter',
               required: true,
@@ -630,12 +606,7 @@ describe('ExternalIssueForm', () => {
               name: 'issuetype',
               updatesForm: true,
             },
-            {
-              label: 'Summary',
-              required: false,
-              type: 'text',
-              name: 'summary',
-            },
+            {label: 'Summary', required: false, type: 'text', name: 'summary'},
           ],
         },
       });
@@ -755,12 +726,7 @@ describe('ExternalIssueForm', () => {
       // Search results include a project not in initial choices
       MockApiClient.addMockResponse({
         url: '/extensions/jira/search/org-slug/5',
-        match: [
-          MockApiClient.matchQuery({
-            field: 'project',
-            query: 'Hidden',
-          }),
-        ],
+        match: [MockApiClient.matchQuery({field: 'project', query: 'Hidden'})],
         body: [
           {label: 'PROJ1 - Project 1', value: '1'},
           {label: 'HIDDEN - Hidden Project', value: '99'},
@@ -919,10 +885,7 @@ describe('ExternalIssueForm', () => {
     describe('options loaded', () => {
       it('fetches options when user types in async select', async () => {
         // Catch-all mock for /search to prevent unmocked request errors
-        MockApiClient.addMockResponse({
-          url: '/search',
-          body: [],
-        });
+        MockApiClient.addMockResponse({url: '/search', body: []});
 
         // The SelectAsyncField uses useDebouncedValue (250ms) internally
         // Dynamic field values (repo default) are included in the search URL
@@ -936,14 +899,8 @@ describe('ExternalIssueForm', () => {
             }),
           ],
           body: [
-            {
-              label: '#1337 ref(js): Convert Form to a FC',
-              value: 1337,
-            },
-            {
-              label: '#2345 perf: Make it faster',
-              value: 2345,
-            },
+            {label: '#1337 ref(js): Convert Form to a FC', value: 1337},
+            {label: '#2345 perf: Make it faster', value: 2345},
           ],
         });
 

@@ -23,9 +23,7 @@ export const replay: OnboardingConfig<PlatformOptions> = {
           type: 'text',
           text: tct(
             'You need a minimum version 7.27.0 of [code:@sentry/vue] in order to use Session Replay. You do not need to install any additional packages.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         installSnippetBlock,

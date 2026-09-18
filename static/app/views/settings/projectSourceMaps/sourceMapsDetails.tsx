@@ -104,10 +104,7 @@ function ArtifactsTableRow({
   );
 }
 
-type Props = {
-  bundleId: string;
-  project: Project;
-};
+type Props = {bundleId: string; project: Project};
 
 export function SourceMapsDetails({bundleId, project}: Props) {
   const api = useApi();
@@ -171,10 +168,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
   const {data: releasesData, isPending: releasesLoading} = useQuery({
     ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {
-        project: [project.id],
-        query: `release:[${releaseVersions?.join(',')}]`,
-      },
+      query: {project: [project.id], query: `release:[${releaseVersions?.join(',')}]`},
       staleTime: Infinity,
     }),
     retry: false,

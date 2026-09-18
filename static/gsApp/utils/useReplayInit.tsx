@@ -76,10 +76,7 @@ export function useReplayInit(): boolean {
 
         replayRef = replayIntegration({
           maskAllText: true,
-          _experiments: {
-            captureExceptions: true,
-            traceInternals: true,
-          },
+          _experiments: {captureExceptions: true, traceInternals: true},
           networkDetailAllowUrls: ['/api/0/'],
           networkDetailDenyUrls: [
             '/api/0/customers/',

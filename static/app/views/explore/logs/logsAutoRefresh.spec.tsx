@@ -201,10 +201,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
         ...routerConfig,
         location: {
           ...routerConfig.location,
-          query: {
-            ...routerConfig.location.query,
-            mode: 'aggregate',
-          },
+          query: {...routerConfig.location.query, mode: 'aggregate'},
         },
       },
       organization,
@@ -361,10 +358,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
       headers: {
         Link: '<http://localhost/api/0/organizations/test-org/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://localhost/api/0/organizations/test-org/events/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
-      body: {
-        data: baseFixtures.slice(0, 1),
-        meta: {fields: {}},
-      },
+      body: {data: baseFixtures.slice(0, 1), meta: {fields: {}}},
     });
     setupTotalPayloadMock();
 

@@ -63,19 +63,12 @@ describe('useSeerDashboardSession', () => {
   });
 
   it('returns session data when polling a completed session', async () => {
-    MockApiClient.addMockResponse({
-      url: apiUrl,
-      body: COMPLETED_SESSION,
-    });
+    MockApiClient.addMockResponse({url: apiUrl, body: COMPLETED_SESSION});
 
     const onDashboardUpdate = jest.fn();
 
     const {result} = renderHookWithProviders(
-      () =>
-        useSeerDashboardSession({
-          seerRunId: SEER_RUN_ID,
-          onDashboardUpdate,
-        }),
+      () => useSeerDashboardSession({seerRunId: SEER_RUN_ID, onDashboardUpdate}),
       {organization}
     );
 
@@ -86,10 +79,7 @@ describe('useSeerDashboardSession', () => {
   });
 
   it('sends follow-up messages to the Seer session', async () => {
-    MockApiClient.addMockResponse({
-      url: apiUrl,
-      body: COMPLETED_SESSION,
-    });
+    MockApiClient.addMockResponse({url: apiUrl, body: COMPLETED_SESSION});
 
     const postMock = MockApiClient.addMockResponse({
       url: apiUrl,
@@ -100,11 +90,7 @@ describe('useSeerDashboardSession', () => {
     const onDashboardUpdate = jest.fn();
 
     const {result} = renderHookWithProviders(
-      () =>
-        useSeerDashboardSession({
-          seerRunId: SEER_RUN_ID,
-          onDashboardUpdate,
-        }),
+      () => useSeerDashboardSession({seerRunId: SEER_RUN_ID, onDashboardUpdate}),
       {organization}
     );
 
@@ -114,10 +100,7 @@ describe('useSeerDashboardSession', () => {
 
     expect(postMock).toHaveBeenCalledWith(
       apiUrl,
-      expect.objectContaining({
-        method: 'POST',
-        data: {query: 'Add an error rate widget'},
-      })
+      expect.objectContaining({method: 'POST', data: {query: 'Add an error rate widget'}})
     );
   });
 
@@ -143,10 +126,7 @@ describe('useSeerDashboardSession', () => {
       ],
     };
 
-    MockApiClient.addMockResponse({
-      url: apiUrl,
-      body: COMPLETED_SESSION,
-    });
+    MockApiClient.addMockResponse({url: apiUrl, body: COMPLETED_SESSION});
 
     const postMock = MockApiClient.addMockResponse({
       url: apiUrl,
@@ -158,11 +138,7 @@ describe('useSeerDashboardSession', () => {
 
     const {result} = renderHookWithProviders(
       () =>
-        useSeerDashboardSession({
-          seerRunId: SEER_RUN_ID,
-          dashboard,
-          onDashboardUpdate,
-        }),
+        useSeerDashboardSession({seerRunId: SEER_RUN_ID, dashboard, onDashboardUpdate}),
       {organization}
     );
 
@@ -226,11 +202,7 @@ describe('useSeerDashboardSession', () => {
     const onDashboardUpdate = jest.fn();
 
     const {result} = renderHookWithProviders(
-      () =>
-        useSeerDashboardSession({
-          dashboard,
-          onDashboardUpdate,
-        }),
+      () => useSeerDashboardSession({dashboard, onDashboardUpdate}),
       {organization}
     );
 
@@ -244,10 +216,7 @@ describe('useSeerDashboardSession', () => {
         method: 'POST',
         data: {
           prompt: 'Add me another widget',
-          current_dashboard: {
-            title: 'My Dashboard',
-            widgets: dashboard.widgets,
-          },
+          current_dashboard: {title: 'My Dashboard', widgets: dashboard.widgets},
         },
       })
     );
@@ -261,10 +230,7 @@ describe('useSeerDashboardSession', () => {
     const onDashboardUpdate = jest.fn();
 
     const {result} = renderHookWithProviders(
-      () =>
-        useSeerDashboardSession({
-          onDashboardUpdate,
-        }),
+      () => useSeerDashboardSession({onDashboardUpdate}),
       {organization}
     );
 

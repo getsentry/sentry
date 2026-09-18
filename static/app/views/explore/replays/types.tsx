@@ -16,10 +16,7 @@ export type HydratedReplayRecord = {
    * Number that represents how much user activity happened in a replay.
    */
   activity: number;
-  browser: {
-    name: null | string;
-    version: null | string;
-  };
+  browser: {name: null | string; version: null | string};
   /**
    * The number of dead clicks associated with the replay.
    */
@@ -86,23 +83,13 @@ export type HydratedReplayRecord = {
    * but the record of the replay is not removed.
    */
   is_archived: false;
-  os: {
-    name: null | string;
-    version: null | string;
-  };
-  ota_updates: {
-    channel: string;
-    runtime_version: string;
-    update_id: string;
-  };
+  os: {name: null | string; version: null | string};
+  ota_updates: {channel: string; runtime_version: string; update_id: string};
   platform: string;
   project_id: string;
   releases: null | string[];
   replay_type: 'buffer' | 'session';
-  sdk: {
-    name: null | string;
-    version: null | string;
-  };
+  sdk: {name: null | string; version: null | string};
   /**
    * The **earliest** timestamp received as determined by the SDK.
    */
@@ -122,10 +109,7 @@ export type HydratedReplayRecord = {
 };
 type ArchivedReplayRecord = {
   activity: null;
-  browser: {
-    name: null;
-    version: null;
-  };
+  browser: {name: null; version: null};
   count_dead_clicks: null;
   count_errors: null;
   count_infos: null;
@@ -133,12 +117,7 @@ type ArchivedReplayRecord = {
   count_segments: null;
   count_urls: null;
   count_warnings: null;
-  device: {
-    brand: null;
-    family: null;
-    model_id: null;
-    name: null;
-  };
+  device: {brand: null; family: null; model_id: null; name: null};
   dist: null;
   duration: null;
   environment: null;
@@ -148,19 +127,13 @@ type ArchivedReplayRecord = {
   id: string;
   info_ids: never[];
   is_archived: true;
-  os: {
-    name: null;
-    version: null;
-  };
+  os: {name: null; version: null};
   ota_updates: Record<string, never>;
   platform: null;
   project_id: null;
   releases: never[];
   replay_type: null;
-  sdk: {
-    name: null;
-    version: null;
-  };
+  sdk: {name: null; version: null};
   started_at: null;
   tags: Record<string, string[]>;
   trace_ids: never[];
@@ -287,11 +260,7 @@ export type ReplayListRecord = Pick<
 
 export type DeadRageSelectorItem = {
   aria_label: string;
-  dom_element: {
-    fullSelector: string;
-    projectId: number;
-    selector: string;
-  };
+  dom_element: {fullSelector: string; projectId: number; selector: string};
   element: string;
   project_id: number;
   count_dead_clicks?: number;

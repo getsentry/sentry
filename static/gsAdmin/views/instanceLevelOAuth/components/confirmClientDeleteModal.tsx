@@ -10,10 +10,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-type Props = ModalRenderProps & {
-  clientID: string | null;
-  name: string | null;
-};
+type Props = ModalRenderProps & {clientID: string | null; name: string | null};
 
 export function ConfirmClientDeleteModal({Body, Header, clientID, name}: Props) {
   const api = useApi();

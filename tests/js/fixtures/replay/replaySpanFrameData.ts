@@ -65,9 +65,7 @@ export function ReplayNavigationPushFrameFixture(
 ): MockFrame<'navigation.push'> {
   return BaseFrame('navigation.push', {
     ...fields,
-    data: {
-      previous: fields.data?.previous ?? '/',
-    },
+    data: {previous: fields.data?.previous ?? '/'},
   });
 }
 

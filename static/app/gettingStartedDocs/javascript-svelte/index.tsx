@@ -32,7 +32,5 @@ export const docs: Docs = {
     docsPlatform: 'svelte',
     packageName: '@sentry/svelte',
   }),
-  agentMonitoringOnboarding: agentMonitoring({
-    packageName: '@sentry/svelte',
-  }),
+  agentMonitoringOnboarding: agentMonitoring({packageName: '@sentry/svelte'}),
 };

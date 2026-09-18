@@ -16,10 +16,7 @@ function showAlert(msg: string, type: 'error' | 'success') {
 
 type ChangeId = string;
 
-type Change = {
-  data: any;
-  itemIds: string[];
-};
+type Change = {data: any; itemIds: string[]};
 
 type Item = BaseGroup | Group;
 
@@ -153,10 +150,7 @@ const storeConfig: GroupStoreDefinition = {
     // Merge these items into the store and return a mapping of any that aren't already in the store
     this.items.forEach((item, itemIndex) => {
       if (itemsById[item.id]) {
-        this.items[itemIndex] = {
-          ...item,
-          ...itemsById[item.id],
-        };
+        this.items[itemIndex] = {...item, ...itemsById[item.id]};
         delete itemsById[item.id];
       }
     });
@@ -399,10 +393,7 @@ const storeConfig: GroupStoreDefinition = {
 
     this.items.forEach((item, idx) => {
       if (ids.includes(item.id)) {
-        this.items[idx] = {
-          ...item,
-          ...response,
-        };
+        this.items[idx] = {...item, ...response};
         this.clearStatus(item.id, 'update');
       }
     });
@@ -419,10 +410,7 @@ const storeConfig: GroupStoreDefinition = {
 
     this.items.forEach((item, idx) => {
       if (itemIds?.includes(item.id)) {
-        this.items[idx] = {
-          ...item,
-          ...groupStatsMap[item.id],
-        };
+        this.items[idx] = {...item, ...groupStatsMap[item.id]};
       }
     });
     this.updateItems(itemIds);

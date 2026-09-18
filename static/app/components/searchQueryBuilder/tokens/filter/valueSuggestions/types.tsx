@@ -12,10 +12,7 @@ export type SuggestionItem = {
   tag?: Tag;
 };
 
-export type SuggestionSection = {
-  sectionText: string;
-  suggestions: SuggestionItem[];
-};
+export type SuggestionSection = {sectionText: string; suggestions: SuggestionItem[]};
 
 export type SuggestionSectionItem = {
   items: Array<SelectOptionWithKey<string>>;

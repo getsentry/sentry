@@ -246,9 +246,7 @@ export function CustomerContractDetails() {
         path: {organizationIdOrSlug: orgId},
       }),
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   if (isPending) {

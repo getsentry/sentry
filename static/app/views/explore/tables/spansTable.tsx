@@ -168,11 +168,7 @@ export function SpansTable({
   }, [addedFields, lastResolvedTable, result.error, result.isError, setFields]);
 
   const meta = useMemo(
-    () =>
-      addValidatedFieldTypesToMeta({
-        meta: displayedMeta ?? {},
-        validatedFieldTypes,
-      }),
+    () => addValidatedFieldTypesToMeta({meta: displayedMeta ?? {}, validatedFieldTypes}),
     [displayedMeta, validatedFieldTypes]
   );
   const columnsFromEventView = useMemo(

@@ -183,9 +183,7 @@ export function AutoSaveForm<
       TFieldName,
       SchemaInput<TSchema>[TFieldName]
     >,
-    validators: {
-      onChange: schema.pick({[name]: true}) as never,
-    },
+    validators: {onChange: schema.pick({[name]: true}) as never},
     listeners: {
       onBlur: ({formApi, fieldApi}) => {
         if (!fieldApi.state.meta.isDefaultValue) {

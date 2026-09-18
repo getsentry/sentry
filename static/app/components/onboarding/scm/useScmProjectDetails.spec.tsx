@@ -247,10 +247,7 @@ describe('useScmProjectDetails', () => {
           MultipleCheckboxOptions.EMAIL,
           MultipleCheckboxOptions.INTEGRATION,
         ]);
-        result.current.notificationProps.setChannel({
-          label: '#eng',
-          value: '#eng',
-        });
+        result.current.notificationProps.setChannel({label: '#eng', value: '#eng'});
       });
 
       act(() => {
@@ -261,9 +258,7 @@ describe('useScmProjectDetails', () => {
 
       expect(projectRequest).toHaveBeenCalledWith(
         `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
-        expect.objectContaining({
-          data: expect.objectContaining({default_rules: false}),
-        })
+        expect.objectContaining({data: expect.objectContaining({default_rules: false})})
       );
       expect(workflowRequest).toHaveBeenCalledTimes(1);
       expect(workflowRequest).toHaveBeenCalledWith(

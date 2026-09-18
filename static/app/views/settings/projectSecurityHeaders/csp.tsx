@@ -100,10 +100,7 @@ export default function ProjectCspReports() {
   }
 
   const projectEndpoint = getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-    path: {
-      organizationIdOrSlug: organization.slug,
-      projectIdOrSlug: projectId,
-    },
+    path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
   });
   const projectQueryKey = makeDetailedProjectQueryKey({
     orgSlug: organization.slug,
@@ -221,9 +218,7 @@ export default function ProjectCspReports() {
               `To configure [csp:CSP] reports
               in Sentry, you'll need to send a header from your server describing your
               policy, as well specifying the authenticated Sentry endpoint.`,
-              {
-                csp: <abbr title="Content Security Policy" />,
-              }
+              {csp: <abbr title="Content Security Policy" />}
             )}
           </p>
 

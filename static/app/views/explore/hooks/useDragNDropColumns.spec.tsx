@@ -86,12 +86,7 @@ describe('useDragNDropColumns', () => {
 
     render(<TestPage />);
 
-    act(() =>
-      onDragEnd({
-        active: {id: 1},
-        over: {id: 3},
-      })
-    );
+    act(() => onDragEnd({active: {id: 1}, over: {id: 3}}));
 
     expect(columns).toEqual(['span_id', 'timestamp', 'span.op']);
   });
@@ -118,12 +113,7 @@ describe('useDragNDropColumns', () => {
 
     const uniqueIdsBefore = editableColumns.map(column => column.uniqueId);
 
-    act(() =>
-      onDragEnd({
-        active: {id: 1},
-        over: {id: 3},
-      })
-    );
+    act(() => onDragEnd({active: {id: 1}, over: {id: 3}}));
 
     expect(columns).toEqual(initialColumns);
     expect(editableColumns.map(column => column.uniqueId)).toEqual(uniqueIdsBefore);

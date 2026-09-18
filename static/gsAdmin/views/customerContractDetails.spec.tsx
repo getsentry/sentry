@@ -46,9 +46,7 @@ describe('CustomerContractDetails', () => {
       body: MOCK_CONTRACT,
     });
 
-    render(<CustomerContractDetails />, {
-      initialRouterConfig: ROUTER_CONFIG,
-    });
+    render(<CustomerContractDetails />, {initialRouterConfig: ROUTER_CONFIG});
 
     expect(await screen.findByText('Contract Overview')).toBeInTheDocument();
 
@@ -81,9 +79,7 @@ describe('CustomerContractDetails', () => {
       statusCode: 404,
     });
 
-    render(<CustomerContractDetails />, {
-      initialRouterConfig: ROUTER_CONFIG,
-    });
+    render(<CustomerContractDetails />, {initialRouterConfig: ROUTER_CONFIG});
 
     expect(
       await screen.findByText('There was an error loading data.')
@@ -110,9 +106,7 @@ describe('CustomerContractDetails', () => {
       body: contractWithBudgets,
     });
 
-    render(<CustomerContractDetails />, {
-      initialRouterConfig: ROUTER_CONFIG,
-    });
+    render(<CustomerContractDetails />, {initialRouterConfig: ROUTER_CONFIG});
 
     expect(await screen.findByText('Shared Budgets')).toBeInTheDocument();
     expect(screen.getByText('Errors, Transactions')).toBeInTheDocument();
@@ -121,20 +115,14 @@ describe('CustomerContractDetails', () => {
   });
 
   it('handles missing optional fields gracefully', async () => {
-    const minimalContract = {
-      metadata: {},
-      billingConfig: {},
-      pricingConfig: {},
-    };
+    const minimalContract = {metadata: {}, billingConfig: {}, pricingConfig: {}};
 
     MockApiClient.addMockResponse({
       url: '/_admin/customers/test-org/contract/',
       body: minimalContract,
     });
 
-    render(<CustomerContractDetails />, {
-      initialRouterConfig: ROUTER_CONFIG,
-    });
+    render(<CustomerContractDetails />, {initialRouterConfig: ROUTER_CONFIG});
 
     expect(await screen.findByText('Contract Overview')).toBeInTheDocument();
     expect(screen.getAllByText('N/A').length).toBeGreaterThan(0);

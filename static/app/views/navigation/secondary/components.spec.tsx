@@ -34,30 +34,18 @@ function setupMocks() {
   ConfigStore.set('user', UserFixture());
   ConfigStore.set('customerDomain', null);
 
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/broadcasts/',
-    body: [],
-  });
-  MockApiClient.addMockResponse({
-    url: '/assistant/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/broadcasts/', body: []});
+  MockApiClient.addMockResponse({url: '/assistant/', body: []});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/group-search-views/starred/',
     body: [GroupSearchViewFixture({name: 'Starred View 1'})],
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/issues-count/',
-    body: {},
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/issues-count/', body: {}});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/explore/saved/',
     body: [],
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/dashboards/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
 }
 
 describe('SecondarySidebar', () => {

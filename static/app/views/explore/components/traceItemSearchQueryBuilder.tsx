@@ -60,11 +60,7 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }
 
   return supportedAggregates.reduce<TagCollection>((acc, item) => {
-    acc[item] = {
-      key: item,
-      name: item,
-      kind: FieldKind.FUNCTION,
-    };
+    acc[item] = {key: item, name: item, kind: FieldKind.FUNCTION};
     return acc;
   }, {});
 };

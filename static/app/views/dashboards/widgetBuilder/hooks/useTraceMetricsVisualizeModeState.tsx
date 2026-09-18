@@ -122,14 +122,8 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
     seriesSnapshot.current = {fields: derivedFields, legendAlias: [], query: []};
     const actionType = getTraceMetricAggregateActionType(state.displayType);
     dispatch({type: actionType, payload: derivedFields});
-    dispatch({
-      type: BuilderStateAction.SET_QUERY,
-      payload: [],
-    });
-    dispatch({
-      type: BuilderStateAction.SET_LEGEND_ALIAS,
-      payload: [],
-    });
+    dispatch({type: BuilderStateAction.SET_QUERY, payload: []});
+    dispatch({type: BuilderStateAction.SET_LEGEND_ALIAS, payload: []});
   }, [state.displayType, dispatch]);
 
   const restoreEquationState = useCallback(() => {
@@ -191,14 +185,8 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         dispatch
       );
     }
-    dispatch({
-      type: BuilderStateAction.SET_QUERY,
-      payload: [selected.queryParams.query],
-    });
-    dispatch({
-      type: BuilderStateAction.SET_LEGEND_ALIAS,
-      payload: [],
-    });
+    dispatch({type: BuilderStateAction.SET_QUERY, payload: [selected.queryParams.query]});
+    dispatch({type: BuilderStateAction.SET_LEGEND_ALIAS, payload: []});
   }, [state.displayType, state.yAxis, state.fields, dispatch]);
 
   // Detect an equation yAxis and restore the cached equation mode if

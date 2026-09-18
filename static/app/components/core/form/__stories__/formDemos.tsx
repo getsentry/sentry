@@ -30,13 +30,8 @@ export function QuickStartDemo() {
   const {t} = useTranslation();
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      email: '',
-      name: '',
-    },
-    validators: {
-      onDynamic: quickStartSchema,
-    },
+    defaultValues: {email: '', name: ''},
+    validators: {onDynamic: quickStartSchema},
     onSubmit: async ({value}) => {
       await sleep(1000);
       // eslint-disable-next-line no-alert
@@ -136,10 +131,7 @@ export function CompactDemo() {
   );
 }
 
-const conditionalSchema = z.object({
-  plan: z.string(),
-  billingEmail: z.string(),
-});
+const conditionalSchema = z.object({plan: z.string(), billingEmail: z.string()});
 
 export function ConditionalDemo() {
   const {t} = useTranslation();
@@ -175,9 +167,7 @@ export function ConditionalDemo() {
             showBilling ? (
               <form.AppField
                 name="billingEmail"
-                validators={{
-                  onDynamic: z.email(t('Please enter a valid email')),
-                }}
+                validators={{onDynamic: z.email(t('Please enter a valid email'))}}
               >
                 {field => (
                   <field.Layout.Row label={t('Billing Email')} required>
@@ -207,9 +197,7 @@ export function BaseFieldDemo() {
     ...defaultFormOptions,
     defaultValues: {color: '#3c74dd'},
     validators: {
-      onDynamic: z.object({
-        color: z.string().min(1, 'Please select a color'),
-      }),
+      onDynamic: z.object({color: z.string().min(1, 'Please select a color')}),
     },
     onSubmit: ({value}) => {
       // eslint-disable-next-line no-alert

@@ -64,10 +64,7 @@ describe('OrganizationAuthTokensAuthTokenRow', () => {
       const props = {
         ...defaultProps,
         projectLastUsed: ProjectFixture(),
-        token: {
-          ...token,
-          dateLastUsed: new Date(),
-        },
+        token: {...token, dateLastUsed: new Date()},
       };
 
       render(
@@ -91,9 +88,7 @@ describe('OrganizationAuthTokensAuthTokenRow', () => {
       const props = {
         ...defaultProps,
         projectLastUsed: ProjectFixture(),
-        token: {
-          ...token,
-        },
+        token: {...token},
       };
 
       render(
@@ -112,13 +107,7 @@ describe('OrganizationAuthTokensAuthTokenRow', () => {
     });
 
     it('shows last used date only', () => {
-      const props = {
-        ...defaultProps,
-        token: {
-          ...token,
-          dateLastUsed: new Date(),
-        },
-      };
+      const props = {...defaultProps, token: {...token, dateLastUsed: new Date()}};
 
       render(
         <SimpleTable>
@@ -138,10 +127,7 @@ describe('OrganizationAuthTokensAuthTokenRow', () => {
 
   describe('revoking', () => {
     it('does not allow to revoke without access', () => {
-      const props = {
-        ...defaultProps,
-        revokeToken: undefined,
-      };
+      const props = {...defaultProps, revokeToken: undefined};
 
       render(
         <SimpleTable>
@@ -170,10 +156,7 @@ describe('OrganizationAuthTokensAuthTokenRow', () => {
     });
 
     it('does not allow to revoke while revoking in progress', () => {
-      const props = {
-        ...defaultProps,
-        isRevoking: true,
-      };
+      const props = {...defaultProps, isRevoking: true};
 
       render(
         <SimpleTable>

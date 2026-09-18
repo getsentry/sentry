@@ -19,9 +19,7 @@ describe('ProjectTeams', () => {
   let org: Organization;
   let project: Project;
 
-  const team1WithAdmin = TeamFixture({
-    access: ['team:read', 'team:write', 'team:admin'],
-  });
+  const team1WithAdmin = TeamFixture({access: ['team:read', 'team:write', 'team:admin']});
   const team2WithAdmin = TeamFixture({
     id: '2',
     slug: 'team-slug-2',
@@ -84,10 +82,7 @@ describe('ProjectTeams', () => {
       statusCode: 200,
     });
 
-    render(<ProjectTeams />, {
-      outletContext: {project},
-      organization: org,
-    });
+    render(<ProjectTeams />, {outletContext: {project}, organization: org});
 
     expect(await screen.findByText('#team-slug')).toBeInTheDocument();
 
@@ -102,9 +97,7 @@ describe('ProjectTeams', () => {
     await waitFor(() => {
       expect(mock1).toHaveBeenCalledWith(
         endpoint1,
-        expect.objectContaining({
-          method: 'DELETE',
-        })
+        expect.objectContaining({method: 'DELETE'})
       );
     });
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
@@ -115,9 +108,7 @@ describe('ProjectTeams', () => {
     await waitFor(() => {
       expect(mock2).toHaveBeenCalledWith(
         endpoint2,
-        expect.objectContaining({
-          method: 'DELETE',
-        })
+        expect.objectContaining({method: 'DELETE'})
       );
     });
   });
@@ -143,10 +134,7 @@ describe('ProjectTeams', () => {
       statusCode: 200,
     });
 
-    render(<ProjectTeams />, {
-      outletContext: {project},
-      organization: org,
-    });
+    render(<ProjectTeams />, {outletContext: {project}, organization: org});
 
     expect(await screen.findByText('#team-slug')).toBeInTheDocument();
 
@@ -157,9 +145,7 @@ describe('ProjectTeams', () => {
     await waitFor(() => {
       expect(mock1).toHaveBeenCalledWith(
         endpoint1,
-        expect.objectContaining({
-          method: 'DELETE',
-        })
+        expect.objectContaining({method: 'DELETE'})
       );
     });
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
@@ -177,16 +163,10 @@ describe('ProjectTeams', () => {
     });
 
     const endpoint1 = `/projects/${org.slug}/${project.slug}/teams/${team1WithAdmin.slug}/`;
-    const mock1 = MockApiClient.addMockResponse({
-      url: endpoint1,
-      method: 'DELETE',
-    });
+    const mock1 = MockApiClient.addMockResponse({url: endpoint1, method: 'DELETE'});
 
     const endpoint2 = `/projects/${org.slug}/${project.slug}/teams/${team2WithAdmin.slug}/`;
-    const mock2 = MockApiClient.addMockResponse({
-      url: endpoint2,
-      method: 'DELETE',
-    });
+    const mock2 = MockApiClient.addMockResponse({url: endpoint2, method: 'DELETE'});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
@@ -194,10 +174,7 @@ describe('ProjectTeams', () => {
       body: [team3NoAdmin],
     });
 
-    render(<ProjectTeams />, {
-      outletContext: {project},
-      organization: org,
-    });
+    render(<ProjectTeams />, {outletContext: {project}, organization: org});
 
     expect(await screen.findByText('#team-slug')).toBeInTheDocument();
 
@@ -210,9 +187,7 @@ describe('ProjectTeams', () => {
     await waitFor(() => {
       expect(mock1).toHaveBeenCalledWith(
         endpoint1,
-        expect.objectContaining({
-          method: 'DELETE',
-        })
+        expect.objectContaining({method: 'DELETE'})
       );
     });
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
@@ -229,9 +204,7 @@ describe('ProjectTeams', () => {
     await waitFor(() => {
       expect(mock2).toHaveBeenCalledWith(
         endpoint2,
-        expect.objectContaining({
-          method: 'DELETE',
-        })
+        expect.objectContaining({method: 'DELETE'})
       );
     });
   });
@@ -244,10 +217,7 @@ describe('ProjectTeams', () => {
       statusCode: 200,
     });
 
-    render(<ProjectTeams />, {
-      outletContext: {project},
-      organization: org,
-    });
+    render(<ProjectTeams />, {outletContext: {project}, organization: org});
 
     expect(await screen.findByText('#team-slug')).toBeInTheDocument();
 
@@ -260,22 +230,14 @@ describe('ProjectTeams', () => {
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(
         endpoint,
-        expect.objectContaining({
-          method: 'POST',
-        })
+        expect.objectContaining({method: 'POST'})
       );
     });
   });
 
   it('creates a new team adds it to current project using the "create team modal" in dropdown', async () => {
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/',
-      body: [org],
-    });
+    MockApiClient.addMockResponse({url: '/assistant/', body: {}});
+    MockApiClient.addMockResponse({url: '/organizations/', body: [org]});
     const addTeamToProject = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/new-team/`,
       method: 'POST',
@@ -286,10 +248,7 @@ describe('ProjectTeams', () => {
       body: TeamFixture({slug: 'new-team'}),
     });
 
-    render(<ProjectTeams />, {
-      outletContext: {project},
-      organization: org,
-    });
+    render(<ProjectTeams />, {outletContext: {project}, organization: org});
 
     expect(await screen.findByText('#team-slug')).toBeInTheDocument();
 
@@ -308,9 +267,7 @@ describe('ProjectTeams', () => {
 
     expect(createTeam).toHaveBeenCalledWith(
       '/organizations/org-slug/teams/',
-      expect.objectContaining({
-        data: {slug: 'new-team'},
-      })
+      expect.objectContaining({data: {slug: 'new-team'}})
     );
 
     expect(addTeamToProject).toHaveBeenCalledTimes(1);

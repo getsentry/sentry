@@ -49,11 +49,7 @@ export function SelectionKeyHandler({
 
     const text = e.clipboardData.getData('text/plain').replace('\n', '').trim();
 
-    dispatch({
-      type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
-      tokens: selectedTokens,
-      text,
-    });
+    dispatch({type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE', tokens: selectedTokens, text});
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -147,10 +143,7 @@ export function SelectionKeyHandler({
         if ((e.key === '(' || e.key === ')') && selectedTokens.length > 0) {
           e.preventDefault();
           e.stopPropagation();
-          dispatch({
-            type: 'WRAP_TOKENS_WITH_PARENTHESES',
-            tokens: selectedTokens,
-          });
+          dispatch({type: 'WRAP_TOKENS_WITH_PARENTHESES', tokens: selectedTokens});
           state.selectionManager.clearSelection();
           return;
         }

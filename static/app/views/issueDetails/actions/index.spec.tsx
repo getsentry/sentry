@@ -41,11 +41,7 @@ const project = ProjectFixture({
   teams: [TeamFixture({id: '3', slug: 'frontend', name: 'Frontend'})],
 });
 
-const group = GroupFixture({
-  id: '1337',
-  issueCategory: IssueCategory.ERROR,
-  project,
-});
+const group = GroupFixture({id: '1337', issueCategory: IssueCategory.ERROR, project});
 
 const issuePlatformGroup = GroupFixture({
   id: '1338',
@@ -53,10 +49,7 @@ const issuePlatformGroup = GroupFixture({
   project,
 });
 
-const organization = OrganizationFixture({
-  id: '4660',
-  slug: 'org',
-});
+const organization = OrganizationFixture({id: '4660', slug: 'org'});
 
 jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
   ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
@@ -127,9 +120,7 @@ describe('GroupActions', () => {
     it('renders correctly', async () => {
       render(
         <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {
-          organization,
-        }
+        {organization}
       );
       expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
     });
@@ -148,17 +139,13 @@ describe('GroupActions', () => {
     it('can subscribe', async () => {
       render(
         <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {
-          organization,
-        }
+        {organization}
       );
       await userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: {isSubscribed: true},
-        })
+        expect.objectContaining({data: {isSubscribed: true}})
       );
     });
   });
@@ -177,9 +164,7 @@ describe('GroupActions', () => {
     it('can bookmark', async () => {
       render(
         <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -189,24 +174,18 @@ describe('GroupActions', () => {
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: {isBookmarked: true},
-        })
+        expect.objectContaining({data: {isBookmarked: true}})
       );
     });
   });
 
   describe('reprocessing', () => {
     it('renders ReprocessAction component if org has native exception event', async () => {
-      const event = EventStacktraceExceptionFixture({
-        platform: 'native',
-      });
+      const event = EventStacktraceExceptionFixture({platform: 'native'});
 
       render(
         <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -216,15 +195,11 @@ describe('GroupActions', () => {
     });
 
     it('open dialog by clicking on the ReprocessAction component', async () => {
-      const event = EventStacktraceExceptionFixture({
-        platform: 'native',
-      });
+      const event = EventStacktraceExceptionFixture({platform: 'native'});
 
       render(
         <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
@@ -255,9 +230,7 @@ describe('GroupActions', () => {
         body: {},
       });
       const initialRouterConfig = {
-        location: {
-          pathname: `/organizations/${org.slug}/issues/${group.id}/`,
-        },
+        location: {pathname: `/organizations/${org.slug}/issues/${group.id}/`},
         route: '/organizations/:orgId/issues/:groupId/',
       };
       const {router} = render(
@@ -265,10 +238,7 @@ describe('GroupActions', () => {
           <GlobalModal />
           <GroupActions group={group} project={project} disabled={false} event={null} />
         </Fragment>,
-        {
-          organization: org,
-          initialRouterConfig,
-        }
+        {organization: org, initialRouterConfig}
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -359,10 +329,7 @@ describe('GroupActions', () => {
             event={null}
           />
         </Fragment>,
-        {
-          organization: org,
-          initialRouterConfig,
-        }
+        {organization: org, initialRouterConfig}
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -407,9 +374,7 @@ describe('GroupActions', () => {
     );
     expect(analyticsSpy).toHaveBeenCalledWith(
       'issue_details.action_clicked',
-      expect.objectContaining({
-        action_type: 'resolved',
-      })
+      expect.objectContaining({action_type: 'resolved'})
     );
 
     rerender(
@@ -501,9 +466,7 @@ describe('GroupActions', () => {
 
     render(
       <GroupActions group={group} project={project} disabled={false} event={null} />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));
@@ -591,9 +554,7 @@ describe('GroupActions', () => {
     });
 
     function renderWithCommandPalette(commandGroup: Group) {
-      const treeRef: {
-        current: Array<CollectionTreeNode<CMDKActionData>>;
-      } = {current: []};
+      const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
       render(
         <CommandPaletteProvider>
           <GroupActions

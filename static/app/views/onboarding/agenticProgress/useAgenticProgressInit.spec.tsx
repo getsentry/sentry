@@ -59,10 +59,7 @@ describe('useAgenticProgressInit', () => {
       method: 'POST',
       body: run,
     });
-    const options = {
-      organization,
-      additionalWrapper: OnboardingContextProvider,
-    };
+    const options = {organization, additionalWrapper: OnboardingContextProvider};
 
     const firstRender = renderHookWithProviders(
       () => useAgenticProgressInit({enabled: true}),
@@ -137,10 +134,7 @@ describe('useAgenticProgressInit', () => {
     expect(conflictRequest).toHaveBeenCalledWith(
       endpoint,
       expect.objectContaining({
-        data: {
-          clientRunId: staleClientRunId,
-          onboardingCode: staleOnboardingCode,
-        },
+        data: {clientRunId: staleClientRunId, onboardingCode: staleOnboardingCode},
       })
     );
     expect(replacementRequest).toHaveBeenCalledTimes(1);

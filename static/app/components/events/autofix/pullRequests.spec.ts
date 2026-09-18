@@ -72,11 +72,7 @@ describe('isCreatedPullRequestState', () => {
   it('is false for a failed create with no PR number', () => {
     expect(
       isCreatedPullRequestState(
-        makeRepoPRState({
-          pr_creation_status: 'error',
-          pr_number: null,
-          pr_url: null,
-        })
+        makeRepoPRState({pr_creation_status: 'error', pr_number: null, pr_url: null})
       )
     ).toBe(false);
   });

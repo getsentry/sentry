@@ -35,10 +35,7 @@ export function useActivateNavigationGroupOnHover({
   const {view} = useSecondaryNavigation();
   const location = useLocation();
 
-  const mouseAccelerationRef = useMouseMovement({
-    ref,
-    disabled: layout !== 'sidebar',
-  });
+  const mouseAccelerationRef = useMouseMovement({ref, disabled: layout !== 'sidebar'});
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const windowHeight = useWindowHeight();
 

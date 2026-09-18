@@ -16,17 +16,9 @@ export function getReactContextData({data}: {data: ReactContext}): KeyValueListD
   return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case ReactContextKeys.VERSION:
-        return {
-          key: ctxKey,
-          subject: t('Version'),
-          value: data.version,
-        };
+        return {key: ctxKey, subject: t('Version'), value: data.version};
       default:
-        return {
-          key: ctxKey,
-          subject: ctxKey,
-          value: data[ctxKey],
-        };
+        return {key: ctxKey, subject: ctxKey, value: data[ctxKey]};
     }
   });
 }

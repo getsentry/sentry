@@ -48,16 +48,8 @@ export function BillingHistoryFixture(
       csvPerProject:
         'https://sentry.io/organizations/acme/billing/history/625529670/export/per-project/',
     },
-    usage: {
-      errors: 0,
-      transactions: 0,
-      attachments: 0,
-    },
-    reserved: {
-      errors: 5_000,
-      transactions: 10_000,
-      attachments: 1,
-    },
+    usage: {errors: 0, transactions: 0, attachments: 0},
+    reserved: {errors: 5_000, transactions: 10_000, attachments: 1},
     hadCustomDynamicSampling: false,
     ...params,
   };

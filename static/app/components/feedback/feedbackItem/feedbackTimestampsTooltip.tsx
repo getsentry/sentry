@@ -7,9 +7,7 @@ import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useUser} from 'sentry/utils/useUser';
 
-type Props = {
-  feedbackItem: FeedbackIssue;
-};
+type Props = {feedbackItem: FeedbackIssue};
 
 export function FeedbackTimestampsTooltip({feedbackItem}: Props) {
   const user = useUser();

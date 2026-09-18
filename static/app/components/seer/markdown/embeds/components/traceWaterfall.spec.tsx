@@ -92,15 +92,11 @@ describe('traceWaterfall embed', () => {
     );
     expect(traceRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.not.objectContaining({limit: 5}),
-      })
+      expect.objectContaining({query: expect.not.objectContaining({limit: 5})})
     );
     expect(traceRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.not.objectContaining({statsPeriod: '90d'}),
-      })
+      expect.objectContaining({query: expect.not.objectContaining({statsPeriod: '90d'})})
     );
   });
 

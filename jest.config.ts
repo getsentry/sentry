@@ -7,26 +7,13 @@ import type {Options as SwcOptions} from '@swc/core';
 
 const swcConfig: SwcOptions = {
   isModule: true,
-  module: {
-    type: 'commonjs',
-  },
+  module: {type: 'commonjs'},
   sourceMaps: 'inline',
   jsc: {
     target: 'esnext',
-    parser: {
-      syntax: 'typescript',
-      tsx: true,
-      dynamicImport: true,
-    },
-    transform: {
-      react: {
-        runtime: 'automatic',
-        importSource: '@emotion/react',
-      },
-    },
-    experimental: {
-      plugins: [['@swc-contrib/mut-cjs-exports', {}]],
-    },
+    parser: {syntax: 'typescript', tsx: true, dynamicImport: true},
+    transform: {react: {runtime: 'automatic', importSource: '@emotion/react'}},
+    experimental: {plugins: [['@swc-contrib/mut-cjs-exports', {}]]},
   },
 };
 

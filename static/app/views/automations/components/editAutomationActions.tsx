@@ -41,11 +41,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
   const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
     updateAutomation(
-      {
-        id: automation.id,
-        name: automation.name,
-        enabled: newEnabled,
-      },
+      {id: automation.id, name: automation.name, enabled: newEnabled},
       {
         onSuccess: data => {
           addSuccessMessage(data.enabled ? t('Alert enabled') : t('Alert disabled'));

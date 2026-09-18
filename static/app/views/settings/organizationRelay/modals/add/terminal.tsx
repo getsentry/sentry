@@ -2,9 +2,7 @@ import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
-type Props = {
-  command: string;
-};
+type Props = {command: string};
 
 export function Terminal({command}: Props) {
   return <StyledCodeSnippet language="bash">{command}</StyledCodeSnippet>;

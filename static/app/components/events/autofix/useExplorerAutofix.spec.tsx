@@ -28,11 +28,7 @@ import type {Artifact, Block, ExplorerFilePatch} from 'sentry/views/seerExplorer
 jest.mock('sentry/actionCreators/indicator');
 
 function makeValidArtifact<T>(data: T): Artifact<T> {
-  return {
-    key: 'artifact-1',
-    reason: 'Found a root cause',
-    data,
-  };
+  return {key: 'artifact-1', reason: 'Found a root cause', data};
 }
 
 describe('getPollInterval', () => {
@@ -183,12 +179,7 @@ describe('isSolutionArtifact', () => {
 
   it('returns true when steps is an empty array', () => {
     expect(
-      isSolutionArtifact(
-        makeValidArtifact({
-          one_line_summary: 'Fix it',
-          steps: [],
-        })
-      )
+      isSolutionArtifact(makeValidArtifact({one_line_summary: 'Fix it', steps: []}))
     ).toBe(true);
   });
 });
@@ -470,11 +461,7 @@ describe('getOrderedAutofixSections', () => {
     return {
       id: `block-${blockId++}`,
       timestamp: '2026-01-01T00:00:00Z',
-      message: {
-        content: 'hello',
-        role: 'assistant',
-        ...message,
-      },
+      message: {content: 'hello', role: 'assistant', ...message},
       ...rest,
     };
   }
@@ -496,12 +483,7 @@ describe('getOrderedAutofixSections', () => {
   }
 
   function makeState(blocks: Block[]): ExplorerAutofixState {
-    return {
-      run_id: 1,
-      status: 'completed',
-      updated_at: '2026-01-01T00:00:00Z',
-      blocks,
-    };
+    return {run_id: 1, status: 'completed', updated_at: '2026-01-01T00:00:00Z', blocks};
   }
 
   it('returns an empty array for null state or no blocks', () => {
@@ -583,9 +565,7 @@ describe('getOrderedAutofixSections', () => {
           message: {metadata: {step: 'code_changes'}},
           merged_file_patches: [makePatch('org/repo', 'a.py', 'old')],
         }),
-        makeBlock({
-          merged_file_patches: [makePatch('org/repo', 'a.py', 'new')],
-        }),
+        makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py', 'new')]}),
       ])
     );
 
@@ -630,10 +610,7 @@ describe('getOrderedAutofixSections', () => {
     const sections = getOrderedAutofixSections({
       ...makeState([makeBlock({message: {metadata: {step: 'code_changes'}}})]),
       repo_pr_states: {
-        'org/repo': {
-          repo_name: 'org/repo',
-          pr_creation_status: 'creating',
-        } as any,
+        'org/repo': {repo_name: 'org/repo', pr_creation_status: 'creating'} as any,
       },
     });
 
@@ -678,20 +655,11 @@ describe('isLastStepPrIteration', () => {
     return {
       id: `block-${blockId++}`,
       timestamp: '2026-01-01T00:00:00Z',
-      message: {
-        content: 'hello',
-        role: 'assistant',
-        metadata: step ? {step} : undefined,
-      },
+      message: {content: 'hello', role: 'assistant', metadata: step ? {step} : undefined},
     };
   }
   function state(blocks: Block[]): ExplorerAutofixState {
-    return {
-      run_id: 1,
-      status: 'completed',
-      updated_at: '2026-01-01T00:00:00Z',
-      blocks,
-    };
+    return {run_id: 1, status: 'completed', updated_at: '2026-01-01T00:00:00Z', blocks};
   }
 
   it('is true when the last block carrying a step is pr_iteration', () => {
@@ -730,10 +698,7 @@ describe('hideErroredPrIteration', () => {
         content: 'hello',
         role: 'assistant',
         metadata: step
-          ? {
-              step,
-              ...(feedback ? {feedback: JSON.stringify(feedback)} : {}),
-            }
+          ? {step, ...(feedback ? {feedback: JSON.stringify(feedback)} : {})}
           : undefined,
       },
     };
@@ -742,12 +707,7 @@ describe('hideErroredPrIteration', () => {
     blocks: Block[],
     status: ExplorerAutofixState['status']
   ): ExplorerAutofixState {
-    return {
-      run_id: 1,
-      status,
-      updated_at: '2026-01-01T00:00:00Z',
-      blocks,
-    };
+    return {run_id: 1, status, updated_at: '2026-01-01T00:00:00Z', blocks};
   }
 
   it('leaves a failed bot-review pr_iteration untouched', () => {
@@ -1063,11 +1023,7 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
   });
 
   it('awaits the refetch so queued feedback is present once it resolves', async () => {
-    MockApiClient.addMockResponse({
-      url: AUTOFIX_URL,
-      method: 'POST',
-      body: {run_id: 42},
-    });
+    MockApiClient.addMockResponse({url: AUTOFIX_URL, method: 'POST', body: {run_id: 42}});
 
     const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 

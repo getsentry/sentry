@@ -19,9 +19,7 @@ describe('python onboarding docs', () => {
   });
 
   it('renders without tracing', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     // Does not render config option
     expect(
@@ -55,17 +53,9 @@ describe('python onboarding docs', () => {
   });
 
   it('renders continuous profiling', () => {
-    const organization = OrganizationFixture({
-      features: ['continuous-profiling'],
-    });
+    const organization = OrganizationFixture({features: ['continuous-profiling']});
 
-    renderWithOnboardingLayout(
-      docs,
-      {},
-      {
-        organization,
-      }
-    );
+    renderWithOnboardingLayout(docs, {}, {organization});
 
     // Does not render transaction profiling config
     expect(
@@ -85,9 +75,7 @@ describe('python onboarding docs', () => {
   });
 
   it('renders logs configuration when logs are selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.LOGS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     // Should render logs config option
     expect(
@@ -102,9 +90,7 @@ describe('python onboarding docs', () => {
   });
 
   it('renders without logs configuration when logs are not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     // Should not render logs config option
     expect(
@@ -113,9 +99,7 @@ describe('python onboarding docs', () => {
   });
 
   it('renders metrics configuration when metrics are selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.METRICS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.METRICS]});
 
     // Renders metrics verification steps
     expect(
@@ -126,9 +110,7 @@ describe('python onboarding docs', () => {
   });
 
   it('renders without metrics configuration when metrics are not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     // Does not render metrics verification steps
     expect(

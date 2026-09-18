@@ -16,9 +16,7 @@ export function useDeleteQuery() {
         getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
           path: {organizationIdOrSlug: organization.slug, id},
         }),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
       invalidateSavedQueries();
     },

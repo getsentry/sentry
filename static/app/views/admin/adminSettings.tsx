@@ -23,17 +23,12 @@ const optionsAvailable = [
 
 type Field = ReturnType<typeof getOption>;
 
-type FieldDef = {
-  field: Field;
-  value: string | undefined;
-};
+type FieldDef = {field: Field; value: string | undefined};
 
 export default function AdminSettings() {
   const {data, isPending, isError} = useApiQuery<Record<string, FieldDef>>(
     [getApiUrl('/internal/options/')],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   if (isError) {

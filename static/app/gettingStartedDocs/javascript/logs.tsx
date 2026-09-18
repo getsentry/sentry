@@ -26,10 +26,7 @@ export const logs = <PlatformOptions extends BasePlatformOptions = BasePlatformO
           type: 'text',
           text: tct(
             'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports logs is [code:9.41.0].',
-            {
-              code: <code />,
-              packageName: <code>{packageName}</code>,
-            }
+            {code: <code />, packageName: <code>{packageName}</code>}
           ),
         },
         installSnippetBlock,
@@ -149,10 +146,7 @@ export const logsFullStack = <
           type: 'text',
           text: tct(
             'To add logs make sure [packageName] is up-to-date. The minimum version of [packageName] that supports logs is [code:9.41.0].',
-            {
-              code: <code />,
-              packageName: <code>{packageName}</code>,
-            }
+            {code: <code />, packageName: <code>{packageName}</code>}
           ),
         },
         {

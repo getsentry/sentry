@@ -23,10 +23,7 @@ async function fetchOrg(api: Client, slug: string): Promise<Organization> {
     getApiUrl('/organizations/$organizationIdOrSlug/', {
       path: {organizationIdOrSlug: slug},
     }),
-    {
-      includeAllArgs: true,
-      query: {detailed: 0, include_feature_flags: 1},
-    }
+    {includeAllArgs: true, query: {detailed: 0, include_feature_flags: 1}}
   );
 
   if (!org) {
@@ -64,10 +61,7 @@ async function fetchProjectsAndTeams(
     }),
     {
       includeAllArgs: true,
-      query: {
-        all_projects: 1,
-        collapse: ['latestDeploys', 'unusedFeatures'],
-      },
+      query: {all_projects: 1, collapse: ['latestDeploys', 'unusedFeatures']},
     }
   );
 

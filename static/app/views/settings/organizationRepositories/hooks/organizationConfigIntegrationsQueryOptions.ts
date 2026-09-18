@@ -9,9 +9,6 @@ export function organizationConfigIntegrationsQueryOptions({
 }) {
   return apiOptions.as<{providers: IntegrationProvider[]}>()(
     '/organizations/$organizationIdOrSlug/config/integrations/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 60_000,
-    }
+    {path: {organizationIdOrSlug: organization.slug}, staleTime: 60_000}
   );
 }

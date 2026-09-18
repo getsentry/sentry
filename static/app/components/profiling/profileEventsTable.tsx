@@ -65,10 +65,7 @@ export function ProfileEventsTable<F extends FieldType>(
       }
       return {
         ...location,
-        query: {
-          ...location.query,
-          sort: dir === 'asc' ? column : `-${column}`,
-        },
+        query: {...location.query, sort: dir === 'asc' ? column : `-${column}`},
       };
     },
     [location, props.sort]
@@ -385,41 +382,17 @@ const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
 
 // TODO: add all the columns here
 const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
-  id: {
-    key: 'id',
-    name: t('Profile ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'profile.id': {
-    key: 'profile.id',
-    name: t('Profile ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'profiler.id': {
-    key: 'profiler.id',
-    name: t('Profiler ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'thread.id': {
-    key: 'thread.id',
-    name: t('Thread ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  transaction: {
-    key: 'transaction',
-    name: t('Transaction'),
-    width: COL_WIDTH_UNDEFINED,
-  },
+  id: {key: 'id', name: t('Profile ID'), width: COL_WIDTH_UNDEFINED},
+  'profile.id': {key: 'profile.id', name: t('Profile ID'), width: COL_WIDTH_UNDEFINED},
+  'profiler.id': {key: 'profiler.id', name: t('Profiler ID'), width: COL_WIDTH_UNDEFINED},
+  'thread.id': {key: 'thread.id', name: t('Thread ID'), width: COL_WIDTH_UNDEFINED},
+  transaction: {key: 'transaction', name: t('Transaction'), width: COL_WIDTH_UNDEFINED},
   'transaction.duration': {
     key: 'transaction.duration',
     name: t('Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
-  trace: {
-    key: 'trace',
-    name: t('Trace ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
+  trace: {key: 'trace', name: t('Trace ID'), width: COL_WIDTH_UNDEFINED},
   'trace.transaction': {
     key: 'trace.transaction',
     name: t('Transaction ID'),
@@ -440,36 +413,12 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
     name: t('Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
-  project: {
-    key: 'project',
-    name: t('Project'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'project.id': {
-    key: 'project.id',
-    name: t('Project'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'project.name': {
-    key: 'project.name',
-    name: t('Project'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  environment: {
-    key: 'environment',
-    name: t('Environment'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  timestamp: {
-    key: 'timestamp',
-    name: t('Timestamp'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  release: {
-    key: 'release',
-    name: t('Release'),
-    width: COL_WIDTH_UNDEFINED,
-  },
+  project: {key: 'project', name: t('Project'), width: COL_WIDTH_UNDEFINED},
+  'project.id': {key: 'project.id', name: t('Project'), width: COL_WIDTH_UNDEFINED},
+  'project.name': {key: 'project.name', name: t('Project'), width: COL_WIDTH_UNDEFINED},
+  environment: {key: 'environment', name: t('Environment'), width: COL_WIDTH_UNDEFINED},
+  timestamp: {key: 'timestamp', name: t('Timestamp'), width: COL_WIDTH_UNDEFINED},
+  release: {key: 'release', name: t('Release'), width: COL_WIDTH_UNDEFINED},
   'platform.name': {
     key: 'platform.name',
     name: t('Platform'),
@@ -500,56 +449,16 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
     name: t('Device Model'),
     width: COL_WIDTH_UNDEFINED,
   },
-  'os.build': {
-    key: 'os.build',
-    name: t('OS Build'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'os.name': {
-    key: 'os.name',
-    name: t('OS Name'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'os.version': {
-    key: 'os.version',
-    name: t('OS Version'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'last_seen()': {
-    key: 'last_seen()',
-    name: t('Last Seen'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'p50()': {
-    key: 'p50()',
-    name: t('P50()'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'p75()': {
-    key: 'p75()',
-    name: t('P75()'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'p95()': {
-    key: 'p95()',
-    name: t('P95()'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'p99()': {
-    key: 'p99()',
-    name: t('P99()'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'count()': {
-    key: 'count()',
-    name: t('Count()'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'user_misery()': {
-    key: 'user_misery()',
-    name: t('User Misery'),
-    width: 110,
-  },
+  'os.build': {key: 'os.build', name: t('OS Build'), width: COL_WIDTH_UNDEFINED},
+  'os.name': {key: 'os.name', name: t('OS Name'), width: COL_WIDTH_UNDEFINED},
+  'os.version': {key: 'os.version', name: t('OS Version'), width: COL_WIDTH_UNDEFINED},
+  'last_seen()': {key: 'last_seen()', name: t('Last Seen'), width: COL_WIDTH_UNDEFINED},
+  'p50()': {key: 'p50()', name: t('P50()'), width: COL_WIDTH_UNDEFINED},
+  'p75()': {key: 'p75()', name: t('P75()'), width: COL_WIDTH_UNDEFINED},
+  'p95()': {key: 'p95()', name: t('P95()'), width: COL_WIDTH_UNDEFINED},
+  'p99()': {key: 'p99()', name: t('P99()'), width: COL_WIDTH_UNDEFINED},
+  'count()': {key: 'count()', name: t('Count()'), width: COL_WIDTH_UNDEFINED},
+  'user_misery()': {key: 'user_misery()', name: t('User Misery'), width: 110},
 };
 
 function getColumnOrder<F extends FieldType>(field: F): GridColumnOrder<F> {
@@ -559,11 +468,7 @@ function getColumnOrder<F extends FieldType>(field: F): GridColumnOrder<F> {
     return COLUMN_ORDERS[field as string] as GridColumnOrder<F>;
   }
 
-  return {
-    key: field,
-    name: field,
-    width: COL_WIDTH_UNDEFINED,
-  };
+  return {key: field, name: field, width: COL_WIDTH_UNDEFINED};
 }
 
 function getRightAlignedColumns<F extends FieldType>(columns: readonly F[]): Set<F> {

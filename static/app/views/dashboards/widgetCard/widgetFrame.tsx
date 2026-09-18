@@ -38,13 +38,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
   const actions =
     (error
       ? props.onRetry
-        ? [
-            {
-              key: 'retry',
-              label: t('Retry'),
-              onAction: props.onRetry,
-            },
-          ]
+        ? [{key: 'retry', label: t('Retry'), onAction: props.onRetry}]
         : props.actions
       : props.actions) ?? [];
 

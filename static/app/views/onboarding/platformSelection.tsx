@@ -14,9 +14,7 @@ import type {StepProps} from './types';
 export function PlatformSelection(props: StepProps) {
   const organization = useOrganization();
 
-  const {configureSdk, isLoadingData} = useConfigureSdk({
-    onComplete: props.onComplete,
-  });
+  const {configureSdk, isLoadingData} = useConfigureSdk({onComplete: props.onComplete});
 
   return (
     <Wrapper>

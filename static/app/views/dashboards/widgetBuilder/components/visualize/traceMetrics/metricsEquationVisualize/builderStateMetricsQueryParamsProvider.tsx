@@ -53,10 +53,7 @@ export function BuilderStateMetricsQueryParamsProvider({
     (newQueryParams: ReadableQueryParams) => {
       metricQuery.setQueryParams(newQueryParams);
       if (isSelected) {
-        dispatch({
-          type: BuilderStateAction.SET_QUERY,
-          payload: [newQueryParams.query],
-        });
+        dispatch({type: BuilderStateAction.SET_QUERY, payload: [newQueryParams.query]});
         const yAxis = newQueryParams.visualizes[0]?.yAxis;
         if (yAxis) {
           dispatchYAxisUpdate(

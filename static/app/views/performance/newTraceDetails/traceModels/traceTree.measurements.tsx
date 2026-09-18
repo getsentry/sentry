@@ -134,13 +134,9 @@ export function collectTraceMeasurements(
         )
       : undefined;
 
-    vitals.get(node)!.push({
-      key: collectableMeasurement,
-      measurement,
-      node,
-      score,
-      timestamp,
-    });
+    vitals
+      .get(node)!
+      .push({key: collectableMeasurement, measurement, node, score, timestamp});
 
     if (timestamp === undefined) {
       continue;

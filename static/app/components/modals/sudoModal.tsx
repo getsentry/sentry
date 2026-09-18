@@ -43,16 +43,11 @@ type AuthPayload = {
   superuserReason?: string;
 };
 
-type AccessDetails = {
-  superuserAccessCategory: string;
-  superuserReason: string;
-};
+type AccessDetails = {superuserAccessCategory: string; superuserReason: string};
 
 type SuperuserStep = {step: 'access'} | {access: AccessDetails; step: 'webauthn'};
 
-type DefaultProps = {
-  closeButton?: boolean;
-};
+type DefaultProps = {closeButton?: boolean};
 
 type Props = DefaultProps &
   Pick<ModalRenderProps, 'Body' | 'Footer' | 'Header'> & {
@@ -68,9 +63,7 @@ type Props = DefaultProps &
     retryRequest?: () => Promise<any>;
   };
 
-const passwordSchema = z.object({
-  password: z.string(),
-});
+const passwordSchema = z.object({password: z.string()});
 
 const accessSchema = z.object({
   superuserAccessCategory: z.string().min(1, t('Select an access category')),
@@ -116,9 +109,7 @@ function SudoModal({
   const api = useApi();
 
   const [errorType, setErrorType] = useState<ErrorCodes>();
-  const [superuserStep, setSuperuserStep] = useState<SuperuserStep>({
-    step: 'access',
-  });
+  const [superuserStep, setSuperuserStep] = useState<SuperuserStep>({step: 'access'});
 
   const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
@@ -211,10 +202,7 @@ function SudoModal({
 
   const superuserForm = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      superuserAccessCategory: '',
-      superuserReason: '',
-    },
+    defaultValues: {superuserAccessCategory: '', superuserReason: ''},
     validators: {onDynamic: accessSchema},
     onSubmit: async ({value}) => {
       const access = accessSchema.parse(value);

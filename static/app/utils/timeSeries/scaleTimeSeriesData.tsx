@@ -69,15 +69,8 @@ export function scaleTimeSeriesData(
     ...timeSeries,
     values: timeSeries.values.map(datum => {
       const {value} = datum;
-      return {
-        ...datum,
-        value: value === null ? null : scaler(value),
-      };
+      return {...datum, value: value === null ? null : scaler(value)};
     }),
-    meta: {
-      ...timeSeries.meta,
-      valueType: sourceType,
-      valueUnit: destinationUnit,
-    },
+    meta: {...timeSeries.meta, valueType: sourceType, valueUnit: destinationUnit},
   };
 }

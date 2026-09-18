@@ -84,20 +84,14 @@ export function createStyledExtractor({
 
       const declaration: StyleDeclaration = {
         kind: 'styled',
-        property: {
-          name: normalizePropertyName(property),
-          node: precedingQuasi,
-        },
+        property: {name: normalizePropertyName(property), node: precedingQuasi},
         values,
         context: {
           file: ruleContext.filename,
           scopeId: themeTracker.getCurrentScopeId(),
           themeBinding: themeTracker.getActiveBinding(),
         },
-        raw: {
-          containerNode: templateNode,
-          sourceNode,
-        },
+        raw: {containerNode: templateNode, sourceNode},
       };
 
       collector.add(declaration);
@@ -136,20 +130,14 @@ export function createStyledExtractor({
 
       const declaration: StyleDeclaration = {
         kind: 'styled',
-        property: {
-          name: normalizePropertyName(propertyName),
-          node: prop.key,
-        },
+        property: {name: normalizePropertyName(propertyName), node: prop.key},
         values,
         context: {
           file: ruleContext.filename,
           scopeId: themeTracker.getCurrentScopeId(),
           themeBinding: themeTracker.getActiveBinding(),
         },
-        raw: {
-          containerNode: objNode,
-          sourceNode,
-        },
+        raw: {containerNode: objNode, sourceNode},
       };
 
       collector.add(declaration);

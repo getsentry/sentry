@@ -242,28 +242,19 @@ function SpanTabContentSectionInner({
     query,
     limit: SPANS_TABLE_LIMIT,
     enabled: isReady && queryType === 'aggregate',
-    queryExtras: {
-      caseInsensitive,
-      ...crossEventQueries,
-    },
+    queryExtras: {caseInsensitive, ...crossEventQueries},
   });
   const spansTableResult = useExploreSpansTable({
     query,
     limit: SPANS_TABLE_LIMIT,
     enabled: isReady && queryType === 'samples',
-    queryExtras: {
-      caseInsensitive,
-      ...crossEventQueries,
-    },
+    queryExtras: {caseInsensitive, ...crossEventQueries},
   });
   const tracesTableQuery = useQuery({
     ...useExploreTracesTableApiOptions({
       query,
       limit: SPANS_TABLE_LIMIT,
-      queryExtras: {
-        caseInsensitive,
-        ...crossEventQueries,
-      },
+      queryExtras: {caseInsensitive, ...crossEventQueries},
     }),
     select: selectJsonWithHeaders,
     enabled: isReady && queryType === 'traces',
@@ -280,10 +271,7 @@ function SpanTabContentSectionInner({
       includeAnnotations: organization.features.includes(
         'explore-data-fidelity-annotations'
       ),
-      queryExtras: {
-        caseInsensitive,
-        ...crossEventQueries,
-      },
+      queryExtras: {caseInsensitive, ...crossEventQueries},
     });
 
   const [interval] = useChartInterval();

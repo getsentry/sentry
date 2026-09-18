@@ -4,22 +4,13 @@ import Prism from 'prismjs';
 
 import {getPrismLanguage, loadPrismLanguage} from '@sentry/scraps/code';
 
-type PrismHighlightParams = {
-  code: string;
-  language: string;
-};
+type PrismHighlightParams = {code: string; language: string};
 
-type SyntaxHighlightToken = {
-  children: string;
-  className: string;
-};
+type SyntaxHighlightToken = {children: string; className: string};
 
 export type SyntaxHighlightLine = SyntaxHighlightToken[];
 
-type IntermediateToken = {
-  children: string;
-  types: Set<string>;
-};
+type IntermediateToken = {children: string; types: Set<string>};
 
 const useLoadPrismLanguage = (
   language: string,
@@ -117,10 +108,7 @@ export const breakTokensByLine = (
   const lines = splitMultipleTokensByLine(tokens);
 
   return lines.map(line =>
-    line.map(token => ({
-      children: token.children,
-      className: [...token.types].join(' '),
-    }))
+    line.map(token => ({children: token.children, className: [...token.types].join(' ')}))
   );
 };
 

@@ -23,10 +23,7 @@ interface Params<T extends BalancingItem> {
 export function balanceSampleRate<T extends BalancingItem>({
   targetSampleRate,
   items,
-}: Params<T>): {
-  balancedItems: T[];
-  usedBudget: number;
-} {
+}: Params<T>): {balancedItems: T[]; usedBudget: number} {
   // Sort the items ascending by count, so the available budget is distributed to the items with the lowest count first
   const sortedItems = items.toSorted((a, b) => a.count - b.count);
   const total = items.reduce((acc, item) => acc + item.count, 0);
@@ -64,10 +61,7 @@ export function balanceSampleRate<T extends BalancingItem>({
     usedBudget += used;
     minBudget -= used;
     numItems -= 1;
-    balancedItems.push({
-      ...item,
-      sampleRate: newSampleRate,
-    });
+    balancedItems.push({...item, sampleRate: newSampleRate});
   }
 
   return {balancedItems, usedBudget};

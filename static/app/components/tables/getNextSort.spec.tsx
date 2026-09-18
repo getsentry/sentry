@@ -41,9 +41,6 @@ describe('getNextSort', () => {
   });
 
   it('sorts descending when no column holds the sort', () => {
-    expect(getNextSort('duration', undefined)).toEqual({
-      field: 'duration',
-      kind: 'desc',
-    });
+    expect(getNextSort('duration', undefined)).toEqual({field: 'duration', kind: 'desc'});
   });
 });

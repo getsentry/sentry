@@ -85,10 +85,7 @@ function MetricAttributesSection({
   metricName: string;
   metricType: string;
 }) {
-  const traceMetricFilter = createTraceMetricFilter({
-    name: metricName,
-    type: metricType,
-  });
+  const traceMetricFilter = createTraceMetricFilter({name: metricName, type: metricType});
 
   const [debouncedTraceMetricFilter] = useDebouncedValue(traceMetricFilter, {
     wait: METRIC_ATTRIBUTES_DEBOUNCE_DURATION,

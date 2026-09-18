@@ -10,10 +10,7 @@ jest.mock('sentry/utils/analytics');
 describe('WhatsNew', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/broadcasts/',
-      method: 'PUT',
-    });
+    MockApiClient.addMockResponse({url: '/broadcasts/', method: 'PUT'});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/broadcasts/',
       match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
@@ -124,10 +121,7 @@ describe('WhatsNew', () => {
       ],
     });
 
-    const putMock = MockApiClient.addMockResponse({
-      url: '/broadcasts/',
-      method: 'PUT',
-    });
+    const putMock = MockApiClient.addMockResponse({url: '/broadcasts/', method: 'PUT'});
 
     render(<PrimaryNavigationWhatsNew />);
 
@@ -172,10 +166,7 @@ describe('WhatsNew', () => {
       ],
     });
 
-    const putMock = MockApiClient.addMockResponse({
-      url: '/broadcasts/',
-      method: 'PUT',
-    });
+    const putMock = MockApiClient.addMockResponse({url: '/broadcasts/', method: 'PUT'});
 
     render(<PrimaryNavigationWhatsNew />);
 
@@ -228,9 +219,7 @@ describe('WhatsNew', () => {
       expect(whatsNewButton.querySelector('[data-unread-indicator]')).toBeInTheDocument()
     );
 
-    await userEvent.click(whatsNewButton, {
-      delay: null,
-    });
+    await userEvent.click(whatsNewButton, {delay: null});
 
     await screen.findByText('Test Broadcast 1');
 
@@ -272,10 +261,7 @@ describe('WhatsNew', () => {
     await userEvent.click(titleLink);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'whats_new.link_clicked',
-      expect.objectContaining({
-        title: broadcast.title,
-        category: 'blog',
-      })
+      expect.objectContaining({title: broadcast.title, category: 'blog'})
     );
   });
 
@@ -312,10 +298,7 @@ describe('WhatsNew', () => {
       ],
     });
 
-    const putMock = MockApiClient.addMockResponse({
-      url: '/broadcasts/',
-      method: 'PUT',
-    });
+    const putMock = MockApiClient.addMockResponse({url: '/broadcasts/', method: 'PUT'});
 
     render(<PrimaryNavigationWhatsNew />);
 

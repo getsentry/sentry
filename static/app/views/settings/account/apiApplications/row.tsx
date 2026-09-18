@@ -20,10 +20,7 @@ import {useApi} from 'sentry/utils/useApi';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
-type Props = {
-  app: ApiApplication;
-  onRemove: (app: ApiApplication) => void;
-};
+type Props = {app: ApiApplication; onRemove: (app: ApiApplication) => void};
 
 export function Row({app, onRemove}: Props) {
   const api = useApi();
@@ -38,9 +35,7 @@ export function Row({app, onRemove}: Props) {
     addLoadingMessage();
 
     try {
-      await api.requestPromise(`/api-applications/${app.id}/`, {
-        method: 'DELETE',
-      });
+      await api.requestPromise(`/api-applications/${app.id}/`, {method: 'DELETE'});
 
       clearIndicators();
       onRemove(app);

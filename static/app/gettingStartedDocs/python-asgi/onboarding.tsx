@@ -86,9 +86,7 @@ export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
       'The ASGI middleware can be used to instrument any bare bones ASGI application. If you have a ASGI based web framework (like FastAPI, Starlette, or others), please use the specific integration for the framework.',
-      {
-        link: <ExternalLink href="https://asgi.readthedocs.io/en/latest/" />,
-      }
+      {link: <ExternalLink href="https://asgi.readthedocs.io/en/latest/" />}
     ),
   install: () => [
     {
@@ -96,9 +94,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock(),
       ],
@@ -115,11 +111,7 @@ export const onboarding: OnboardingConfig = {
             code: <code />,
           }),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getSdkSetupSnippet(params),
-        },
+        {type: 'code', language: 'python', code: getSdkSetupSnippet(params)},
         alternativeProfiling(params),
         {
           type: 'text',
@@ -136,21 +128,14 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('To verify that everything is working trigger an error on purpose:'),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'python', code: getVerifySnippet()},
         logsVerify(params),
         metricsVerify(params),
         {
           type: 'text',
           text: tct(
             'Run your ASGI app with uvicorn ([code:uvicorn main:app --port 8000]) and point your browser to [link:http://localhost:8000]. A transaction in the Performance section of Sentry will be created.',
-            {
-              code: <code />,
-              link: <ExternalLink href="http://localhost:8000" />,
-            }
+            {code: <code />, link: <ExternalLink href="http://localhost:8000" />}
           ),
         },
         {

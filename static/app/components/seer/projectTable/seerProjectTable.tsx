@@ -120,11 +120,7 @@ export function SeerProjectTable() {
   const queryOptions = infiniteQueryOptions({
     ...getInfiniteSeerProjectsSettingsQueryOptions({
       organization,
-      query: {
-        per_page: 25,
-        query: mutableSearch,
-        sortBy,
-      },
+      query: {per_page: 25, query: mutableSearch, sortBy},
     }),
     select: ({pages}) => pages.flatMap(page => page.json),
   });

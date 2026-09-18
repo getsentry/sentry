@@ -6,16 +6,11 @@ describe('UIFrames', () => {
       unit: 'nanoseconds',
       values: [{elapsed: 0, value: 1 * 1e6}],
     };
-    const frozenFrameRenders = {
-      unit: 'milliseconds',
-      values: [{elapsed: 0, value: 1}],
-    };
+    const frozenFrameRenders = {unit: 'milliseconds', values: [{elapsed: 0, value: 1}]};
 
     const tree = new UIFrames(
       {slow: slowFrameRenders, frozen: frozenFrameRenders},
-      {
-        unit: 'milliseconds',
-      }
+      {unit: 'milliseconds'}
     );
 
     expect(tree.frames[0]!.duration).toBe(tree.frames[1]!.duration);
@@ -39,15 +34,7 @@ describe('UIFrames', () => {
       slow: ConstructorParameters<typeof UIFrames>[0]['slow'],
       frozen: ConstructorParameters<typeof UIFrames>[0]['frozen']
     ) => {
-      expect(
-        () =>
-          new UIFrames(
-            {slow, frozen},
-            {
-              unit: 'milliseconds',
-            }
-          )
-      ).not.toThrow();
+      expect(() => new UIFrames({slow, frozen}, {unit: 'milliseconds'})).not.toThrow();
     }
   );
 });

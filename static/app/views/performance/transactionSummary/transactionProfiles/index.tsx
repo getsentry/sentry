@@ -78,11 +78,7 @@ function Profiles({transaction}: ProfilesProps) {
     (searchQuery: string) => {
       navigate({
         ...location,
-        query: {
-          ...location.query,
-          cursor: undefined,
-          query: searchQuery || undefined,
-        },
+        query: {...location.query, cursor: undefined, query: searchQuery || undefined},
       });
     },
     [location, navigate]

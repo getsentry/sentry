@@ -59,10 +59,7 @@ export function OwnershipRulesTable({
 
   const combinedRules = useMemo(() => {
     const codeownerRulesWithId = codeowners.flatMap<MixedOwnershipRule>(owners =>
-      (owners.schema?.rules ?? []).map(rule => ({
-        ...rule,
-        codeownersId: owners.id,
-      }))
+      (owners.schema?.rules ?? []).map(rule => ({...rule, codeownersId: owners.id}))
     );
 
     return [...codeownerRulesWithId, ...projectRules];

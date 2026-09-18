@@ -199,10 +199,7 @@ class ReleasesRequest extends Component<Props, State> {
       });
     } catch (error: any) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));
-      this.setState({
-        loading: false,
-        errored: true,
-      });
+      this.setState({loading: false, errored: true});
     }
   };
 

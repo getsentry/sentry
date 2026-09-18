@@ -32,10 +32,7 @@ describe('PolicyRevisionSchema', () => {
 
     it('rejects data: URLs with a protocol error', () => {
       expect(
-        validate({
-          id: 'url',
-          form: {url: 'data:text/html,<script>alert(1)</script>'},
-        })
+        validate({id: 'url', form: {url: 'data:text/html,<script>alert(1)</script>'}})
       ).toEqual([['url', 'URL must use http or https protocol']]);
     });
 

@@ -78,10 +78,7 @@ function isProjectArray(
 function getAttributeScopeHash([url, options]: ApiQueryKey) {
   return hashKey([
     url,
-    {
-      ...options,
-      query: {...options?.query, substringMatch: undefined},
-    },
+    {...options, query: {...options?.query, substringMatch: undefined}},
   ]);
 }
 
@@ -180,10 +177,7 @@ function useTraceItemAttributeConfig({
         .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.ARRAY}])
     );
 
-    return {
-      attributes: {...data?.arrayAttributes},
-      secondaryAliases,
-    };
+    return {attributes: {...data?.arrayAttributes}, secondaryAliases};
   }, [data?.arrayAttributes]);
 
   return useMemo(
@@ -283,11 +277,7 @@ export function useTraceItemDatasetAttributes(
   hiddenKeys?: string[]
 ): TraceItemAttributeResult {
   return useTraceItemAttributes(
-    {
-      traceItemType,
-      enabled: enabled ?? true,
-      ...rest,
-    },
+    {traceItemType, enabled: enabled ?? true, ...rest},
     type,
     hiddenKeys
   );

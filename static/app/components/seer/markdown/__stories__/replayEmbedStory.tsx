@@ -30,10 +30,7 @@ export function ReplayEmbedStory() {
         <EmbedVariant
           name="replay"
           label="Replay"
-          data={{
-            id: replay.id,
-            eventTimestamp: String(replay.started_at),
-          }}
+          data={{id: replay.id, eventTimestamp: String(replay.started_at)}}
         />
       ) : (
         <Text variant="muted">No replay is available for this organization.</Text>

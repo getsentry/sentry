@@ -16,18 +16,9 @@ export type AttributeBreakdownsComparison = {
   cohort2Total: number;
   rankedAttributes: Array<{
     attributeName: string;
-    cohort1: Array<{
-      label: string;
-      value: number;
-    }>;
-    cohort2: Array<{
-      label: string;
-      value: number;
-    }>;
-    order: {
-      rrf: number;
-      rrr: number | null;
-    };
+    cohort1: Array<{label: string; value: number}>;
+    cohort2: Array<{label: string; value: number}>;
+    order: {rrf: number; rrr: number | null};
   }>;
 };
 

@@ -45,9 +45,7 @@ export type TracePerformanceIssue = Omit<TraceError, 'issue' | 'span'> & {
   issue_short_id?: string;
 };
 
-type QuickTraceEvent = EventLite & {
-  errors?: TraceError[];
-};
+type QuickTraceEvent = EventLite & {errors?: TraceError[]};
 
 /**
  * The `events-trace` endpoint returns a tree structure that gives

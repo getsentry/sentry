@@ -43,9 +43,7 @@ type SeerExplorerChatResponse = {
   sentry_run_id?: string | null;
 };
 
-type SeerExplorerUpdateResponse = {
-  run_id: number;
-};
+type SeerExplorerUpdateResponse = {run_id: number};
 
 /**
  * Build the explorer-update endpoint URL. `runId` can originate from an
@@ -128,10 +126,7 @@ const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse =
     blocks: [
       {
         id: 'error',
-        message: {
-          role: 'assistant',
-          content: `Error: ${errorMessage}`,
-        },
+        message: {role: 'assistant', content: `Error: ${errorMessage}`},
         timestamp: new Date().toISOString(),
         loading: false,
       },
@@ -375,12 +370,7 @@ export const useSeerExplorer = () => {
       return fetchMutation({
         url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
         method: 'POST',
-        data: {
-          payload: {
-            type: 'create_pr',
-            repo_name: params.repoName,
-          },
-        },
+        data: {payload: {type: 'create_pr', repo_name: params.repoName}},
       });
     },
     onSuccess: (_, params) => {
@@ -405,21 +395,14 @@ export const useSeerExplorer = () => {
   const {mutate: interruptRunMutate} = useMutation<
     SeerExplorerUpdateResponse,
     RequestError,
-    {
-      orgSlug: string;
-      runId: SeerExplorerRunId | null;
-    }
+    {orgSlug: string; runId: SeerExplorerRunId | null}
   >({
     mutationFn: async params => {
       setHasSentInterrupt(true);
       return fetchMutation({
         url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
         method: 'POST',
-        data: {
-          payload: {
-            type: 'interrupt',
-          },
-        },
+        data: {payload: {type: 'interrupt'}},
       });
     },
     onError: () => {
@@ -724,10 +707,7 @@ export const useSeerExplorer = () => {
       updated_at: new Date().toISOString(),
     };
 
-    return {
-      ...baseSession,
-      blocks: visibleBlocks,
-    };
+    return {...baseSession, blocks: visibleBlocks};
   }, [rawSessionData, runId, lastSentMessage, isPolling, isSendingMessage, isTimedOut]);
 
   return {

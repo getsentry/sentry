@@ -29,9 +29,7 @@ describe('DetectorEdit', () => {
   const project = ProjectFixture({organization, environments: ['production']});
   const initialRouterConfig = {
     route: '/organizations/:orgId/monitors/new/settings/',
-    location: {
-      pathname: '/organizations/org-slug/monitors/new/settings/',
-    },
+    location: {pathname: '/organizations/org-slug/monitors/new/settings/'},
   };
 
   beforeEach(() => {
@@ -320,22 +318,12 @@ describe('DetectorEdit', () => {
               workflowIds: [],
               conditionGroup: {
                 conditions: [
-                  {
-                    comparison: 100,
-                    conditionResult: 75,
-                    type: 'gt',
-                  },
-                  {
-                    comparison: 100,
-                    conditionResult: 0,
-                    type: 'lte',
-                  },
+                  {comparison: 100, conditionResult: 75, type: 'gt'},
+                  {comparison: 100, conditionResult: 0, type: 'lte'},
                 ],
                 logicType: 'any',
               },
-              config: {
-                detectionType: 'static',
-              },
+              config: {detectionType: 'static'},
               dataSources: [
                 {
                   aggregate: 'count()',
@@ -461,16 +449,8 @@ describe('DetectorEdit', () => {
               workflowIds: [],
               conditionGroup: {
                 conditions: [
-                  {
-                    comparison: 100,
-                    conditionResult: 75,
-                    type: 'gt',
-                  },
-                  {
-                    comparison: 100,
-                    conditionResult: 0,
-                    type: 'lte',
-                  },
+                  {comparison: 100, conditionResult: 75, type: 'gt'},
+                  {comparison: 100, conditionResult: 0, type: 'lte'},
                 ],
                 logicType: 'any',
               },
@@ -605,17 +585,9 @@ describe('DetectorEdit', () => {
               logicType: 'any',
               conditions: [
                 // Main trigger condition at HIGH
-                {
-                  comparison: 100,
-                  conditionResult: 75,
-                  type: 'gt',
-                },
+                {comparison: 100, conditionResult: 75, type: 'gt'},
                 // Manual resolution condition at OK
-                {
-                  comparison: 80,
-                  conditionResult: 0,
-                  type: 'lte',
-                },
+                {comparison: 80, conditionResult: 0, type: 'lte'},
               ],
             },
           }),
@@ -663,23 +635,11 @@ describe('DetectorEdit', () => {
               logicType: 'any',
               conditions: [
                 // High priority condition
-                {
-                  comparison: 100,
-                  conditionResult: 75,
-                  type: 'gt',
-                },
+                {comparison: 100, conditionResult: 75, type: 'gt'},
                 // Medium priority condition
-                {
-                  comparison: 50,
-                  conditionResult: 50,
-                  type: 'gt',
-                },
+                {comparison: 50, conditionResult: 50, type: 'gt'},
                 // Default resolution condition uses MEDIUM threshold (50) with swapped operator
-                {
-                  comparison: 50,
-                  conditionResult: 0,
-                  type: 'lte',
-                },
+                {comparison: 50, conditionResult: 0, type: 'lte'},
               ],
             },
           }),
@@ -769,9 +729,7 @@ describe('DetectorEdit', () => {
                 ],
                 logicType: 'any',
               },
-              config: {
-                detectionType: 'dynamic',
-              },
+              config: {detectionType: 'dynamic'},
               dataSources: [
                 {
                   aggregate: 'count()',
@@ -837,22 +795,12 @@ describe('DetectorEdit', () => {
               workflowIds: [],
               conditionGroup: {
                 conditions: [
-                  {
-                    comparison: 100,
-                    conditionResult: 75,
-                    type: 'gt',
-                  },
-                  {
-                    comparison: 100,
-                    conditionResult: 0,
-                    type: 'lte',
-                  },
+                  {comparison: 100, conditionResult: 75, type: 'gt'},
+                  {comparison: 100, conditionResult: 0, type: 'lte'},
                 ],
                 logicType: 'any',
               },
-              config: {
-                detectionType: 'static',
-              },
+              config: {detectionType: 'static'},
               dataSources: [
                 {
                   aggregate: 'apdex(span.duration,100)',
@@ -1265,9 +1213,7 @@ describe('DetectorEdit', () => {
         url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         statusCode: 400,
-        body: {
-          dataSources: {slug: [errorMessage]},
-        },
+        body: {dataSources: {slug: [errorMessage]}},
       });
 
       render(<DetectorNewSettings />, {
@@ -1296,11 +1242,7 @@ describe('DetectorEdit', () => {
         url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         statusCode: 400,
-        body: {
-          dataSources: {
-            config: {schedule: [errorMessage]},
-          },
-        },
+        body: {dataSources: {config: {schedule: [errorMessage]}}},
       });
 
       render(<DetectorNewSettings />, {

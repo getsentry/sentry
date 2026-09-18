@@ -69,9 +69,7 @@ function ProjectSecurityHeaders() {
           <TextBlock style={{marginBottom: 20}}>
             {tct(
               'In addition to the [key_param] parameter, you may also pass the following within the querystring for the report URI:',
-              {
-                key_param: <code>sentry_key</code>,
-              }
+              {key_param: <code>sentry_key</code>}
             )}
           </TextBlock>
           <KeyValueTable margin>

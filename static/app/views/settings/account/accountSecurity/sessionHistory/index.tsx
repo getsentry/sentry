@@ -29,10 +29,7 @@ export default function SessionHistory() {
     isError,
   } = useApiQuery<IpListType>(
     [getApiUrl('/users/$userId/ips/', {path: {userId: 'me'}})],
-    {
-      staleTime: 0,
-      enabled: !isDemoModeActive(),
-    }
+    {staleTime: 0, enabled: !isDemoModeActive()}
   );
 
   if (isError) {

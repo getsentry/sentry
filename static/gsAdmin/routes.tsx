@@ -47,262 +47,109 @@ function buildRoutes() {
     path: '/_admin/',
     component: Layout,
     children: [
-      {
-        index: true,
-        component: Home,
-      },
+      {index: true, component: Home},
       {
         path: 'beacons/',
         children: [
-          {
-            index: true,
-            component: Beacons,
-          },
-          {
-            path: ':beaconId/',
-            component: BeaconDetails,
-          },
+          {index: true, component: Beacons},
+          {path: ':beaconId/', component: BeaconDetails},
         ],
       },
       {
         path: 'broadcasts/',
         children: [
-          {
-            index: true,
-            component: Broadcasts,
-          },
-          {
-            path: ':broadcastId/',
-            component: BroadcastDetails,
-          },
+          {index: true, component: Broadcasts},
+          {path: ':broadcastId/', component: BroadcastDetails},
         ],
       },
       {
         path: 'customers/',
         children: [
-          {
-            index: true,
-            component: Customers,
-          },
+          {index: true, component: Customers},
           {
             path: ':orgId/',
             children: [
-              {
-                index: true,
-                component: CustomerDetails,
-              },
-              {
-                path: 'contract/',
-                component: CustomerContractDetails,
-              },
-              {
-                path: 'projects/:projectId/',
-                component: ProjectDetails,
-              },
+              {index: true, component: CustomerDetails},
+              {path: 'contract/', component: CustomerContractDetails},
+              {path: 'projects/:projectId/', component: ProjectDetails},
             ],
           },
         ],
       },
-      {
-        path: 'invoices/:region/:invoiceId/',
-        component: InvoiceDetails,
-      },
+      {path: 'invoices/:region/:invoiceId/', component: InvoiceDetails},
       {
         path: 'doc-integrations/',
         children: [
-          {
-            index: true,
-            component: DocIntegrations,
-          },
-          {
-            path: ':docIntegrationSlug/',
-            component: DocIntegrationDetails,
-          },
+          {index: true, component: DocIntegrations},
+          {path: ':docIntegrationSlug/', component: DocIntegrationDetails},
         ],
       },
-      {
-        path: 'debugging-tools/',
-        children: [
-          {
-            index: true,
-            component: DebuggingTools,
-          },
-        ],
-      },
+      {path: 'debugging-tools/', children: [{index: true, component: DebuggingTools}]},
       {
         path: 'policies/',
         children: [
-          {
-            index: true,
-            component: Policies,
-          },
-          {
-            path: ':policySlug',
-            component: PolicyDetails,
-          },
+          {index: true, component: Policies},
+          {path: ':policySlug', component: PolicyDetails},
         ],
       },
-      {
-        path: 'private-apis/',
-        children: [
-          {
-            index: true,
-            component: PrivateAPIs,
-          },
-        ],
-      },
+      {path: 'private-apis/', children: [{index: true, component: PrivateAPIs}]},
       {
         path: 'relocations/',
         children: [
-          {
-            index: true,
-            component: Relocations,
-          },
-          {
-            path: 'new/',
-            component: RelocationCreate,
-          },
-          {
-            path: ':regionName/:relocationUuid/',
-            component: RelocationDetails,
-          },
+          {index: true, component: Relocations},
+          {path: 'new/', component: RelocationCreate},
+          {path: ':regionName/:relocationUuid/', component: RelocationDetails},
           {
             path: ':regionName/:relocationUuid/:artifactKind/:fileName/',
             component: RelocationArtifactDetails,
           },
         ],
       },
-      {
-        path: 'employees/',
-        children: [
-          {
-            index: true,
-            component: SentryEmployees,
-          },
-        ],
-      },
+      {path: 'employees/', children: [{index: true, component: SentryEmployees}]},
       {
         path: 'promocodes/',
         children: [
-          {
-            index: true,
-            component: PromoCodes,
-          },
-          {
-            path: ':codeId/',
-            component: PromoCodeDetails,
-          },
+          {index: true, component: PromoCodes},
+          {path: ':codeId/', component: PromoCodeDetails},
         ],
       },
       {
         path: 'sentry-apps/',
         children: [
-          {
-            index: true,
-            component: SentryApps,
-          },
-          {
-            path: ':sentryAppSlug/',
-            component: SentryAppDetails,
-          },
+          {index: true, component: SentryApps},
+          {path: ':sentryAppSlug/', component: SentryAppDetails},
         ],
       },
       {
         path: 'users/',
         children: [
-          {
-            index: true,
-            component: Users,
-          },
-          {
-            path: ':userId/',
-            component: UserDetails,
-          },
+          {index: true, component: Users},
+          {path: ':userId/', component: UserDetails},
         ],
       },
-      {
-        path: 'options/',
-        children: [
-          {
-            index: true,
-            component: Options,
-          },
-        ],
-      },
-      {
-        path: 'data-requests/',
-        component: DataRequests,
-      },
-      {
-        path: 'billingadmins/',
-        component: BillingAdmins,
-      },
-      {
-        path: 'billing-platform/',
-        component: BillingPlatform,
-      },
+      {path: 'options/', children: [{index: true, component: Options}]},
+      {path: 'data-requests/', component: DataRequests},
+      {path: 'billingadmins/', component: BillingAdmins},
+      {path: 'billing-platform/', component: BillingPlatform},
       {
         path: 'instance-level-oauth',
         children: [
-          {
-            index: true,
-            component: InstanceLevelOAuth,
-          },
-          {
-            path: ':clientID/',
-            component: InstanceLevelOAuthDetails,
-          },
+          {index: true, component: InstanceLevelOAuth},
+          {path: ':clientID/', component: InstanceLevelOAuthDetails},
         ],
       },
-      {
-        path: 'billing-plans/',
-        children: [
-          {
-            index: true,
-            component: BillingPlans,
-          },
-        ],
-      },
+      {path: 'billing-plans/', children: [{index: true, component: BillingPlans}]},
       {
         path: 'spike-projection-generation/',
-        children: [
-          {
-            index: true,
-            component: GenerateSpikeProjectionsForBatch,
-          },
-        ],
+        children: [{index: true, component: GenerateSpikeProjectionsForBatch}],
       },
       {
         path: 'gift-recurring-credits/',
-        children: [
-          {
-            index: true,
-            component: GiftRecurringCredits,
-          },
-        ],
+        children: [{index: true, component: GiftRecurringCredits}],
       },
-      {
-        path: 'launchpad/',
-        children: [
-          {
-            index: true,
-            component: LaunchpadAdminPage,
-          },
-        ],
-      },
-      {
-        path: 'seer/',
-        children: [
-          {
-            index: true,
-            component: SeerAdminPage,
-          },
-        ],
-      },
-      {
-        path: '*',
-        component: NotFound,
-      },
+      {path: 'launchpad/', children: [{index: true, component: LaunchpadAdminPage}]},
+      {path: 'seer/', children: [{index: true, component: SeerAdminPage}]},
+      {path: '*', component: NotFound},
     ],
   };
 

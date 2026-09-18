@@ -126,20 +126,9 @@ const getExtraMenuItems = ({
         referrer: VIEW_CONNECTED_TRACES_REFERRER,
         selection: {
           ...selection,
-          datetime: {
-            period: '24h',
-            start: null,
-            end: null,
-            utc: selection.datetime.utc,
-          },
+          datetime: {period: '24h', start: null, end: null, utc: selection.datetime.utc},
         },
-        crossEvents: [
-          {
-            type: 'metrics',
-            query: '',
-            metric,
-          },
-        ],
+        crossEvents: [{type: 'metrics', query: '', metric}],
       }),
     },
     {
@@ -245,10 +234,7 @@ function MetricDefaultCell({
   const isMetricValue = field === TraceMetricKnownFieldKey.METRIC_VALUE;
   const shouldRemoveAddFilter = source === 'issueDetails';
   const discoverColumn: TableColumn<keyof TableDataRow> = {
-    column: {
-      field,
-      kind: 'field',
-    },
+    column: {field, kind: 'field'},
     name: field,
     key: field,
     isSortable: true,
@@ -263,13 +249,7 @@ function MetricDefaultCell({
       data={row}
       unit={meta?.units?.[field]}
       meta={meta}
-      extraMenuItems={getExtraMenuItems({
-        field,
-        organization,
-        row,
-        selection,
-        source,
-      })}
+      extraMenuItems={getExtraMenuItems({field, organization, row, selection, source})}
       allowActions={shouldRemoveAddFilter ? ISSUE_DETAILS_CELL_ACTIONS : undefined}
     />
   );

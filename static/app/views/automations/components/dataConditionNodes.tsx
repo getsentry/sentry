@@ -129,52 +129,31 @@ type DataConditionNode = {
 export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNode>([
   [
     DataConditionType.FIRST_SEEN_EVENT,
-    {
-      label: t('A new issue is created'),
-      validate: undefined,
-    },
+    {label: t('A new issue is created'), validate: undefined},
   ],
   [
     DataConditionType.ISSUE_RESOLVED_TRIGGER,
-    {
-      label: t('An issue is resolved'),
-      validate: undefined,
-    },
+    {label: t('An issue is resolved'), validate: undefined},
   ],
   [
     DataConditionType.EVERY_EVENT,
-    {
-      label: t('An event or issue activity is captured'),
-      validate: undefined,
-    },
+    {label: t('An event or issue activity is captured'), validate: undefined},
   ],
   [
     DataConditionType.REGRESSION_EVENT,
-    {
-      label: t('A resolved issue regresses'),
-      validate: undefined,
-    },
+    {label: t('A resolved issue regresses'), validate: undefined},
   ],
   [
     DataConditionType.REAPPEARED_EVENT,
-    {
-      label: t('An issue escalates'),
-      validate: undefined,
-    },
+    {label: t('An issue escalates'), validate: undefined},
   ],
   [
     DataConditionType.NEW_HIGH_PRIORITY_ISSUE,
-    {
-      label: t('Sentry marks a new issue as high priority'),
-      validate: undefined,
-    },
+    {label: t('Sentry marks a new issue as high priority'), validate: undefined},
   ],
   [
     DataConditionType.EXISTING_HIGH_PRIORITY_ISSUE,
-    {
-      label: t('Sentry marks an existing issue as high priority'),
-      validate: undefined,
-    },
+    {label: t('Sentry marks an existing issue as high priority'), validate: undefined},
   ],
   [
     DataConditionType.SEER_ACTIVITY_TRIGGER,
@@ -289,10 +268,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Event attribute'),
       dataCondition: EventAttributeNode,
       details: EventAttributeDetails,
-      defaultComparison: {
-        attribute: Attribute.MESSAGE,
-        match: MatchType.CONTAINS,
-      },
+      defaultComparison: {attribute: Attribute.MESSAGE, match: MatchType.CONTAINS},
       validate: validateEventAttributeCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
@@ -303,9 +279,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Tagged event'),
       dataCondition: TaggedEventNode,
       details: TaggedEventDetails,
-      defaultComparison: {
-        match: MatchType.CONTAINS,
-      },
+      defaultComparison: {match: MatchType.CONTAINS},
       validate: validateTaggedEventCondition,
     },
   ],

@@ -17,14 +17,8 @@ type UpsellProvider = {
 } & HasSub;
 type Checkout = {plan: string; checkoutType?: CheckoutType} & HasSub;
 type BusinessLanding = HasSub & {source?: string};
-type AddEventCTA = HasSub & {
-  action: string;
-  source: string;
-  event_types?: string;
-};
-type BillingInfoUpdateEvent = {
-  referrer?: string;
-};
+type AddEventCTA = HasSub & {action: string; source: string; event_types?: string};
+type BillingInfoUpdateEvent = {referrer?: string};
 type ManualPaymentEvent = BillingInfoUpdateEvent;
 
 type OnDemandBudgetStrategy = 'per_category' | 'shared';
@@ -54,10 +48,7 @@ type GetsentryEventParameters = {
     has_permissions?: boolean;
     referrer?: string;
   };
-  'billing_failure.displayed_banner': {
-    has_permissions?: boolean;
-    referrer?: string;
-  };
+  'billing_failure.displayed_banner': {has_permissions?: boolean; referrer?: string};
   'billing_failure.paid_now': ManualPaymentEvent;
   'billing_failure.updated_cc': BillingInfoUpdateEvent;
   'business_landing.clicked': BusinessLanding & {type: string};
@@ -84,13 +75,7 @@ type GetsentryEventParameters = {
   'checkout.ondemand_changed': {cents: number} & Checkout;
   'checkout.payg_changed': {cents: number; method?: 'button' | 'textbox'} & Checkout;
   'checkout.product_select': Partial<
-    Record<
-      AddOnCategory,
-      {
-        enabled: boolean;
-        previously_enabled: boolean;
-      }
-    >
+    Record<AddOnCategory, {enabled: boolean; previously_enabled: boolean}>
   > &
     HasSub;
   'checkout.transactions_upgrade': {
@@ -105,10 +90,7 @@ type GetsentryEventParameters = {
     categories?: Partial<
       Record<
         DataCategory,
-        {
-          previous_reserved: number | undefined;
-          reserved: number | undefined;
-        }
+        {previous_reserved: number | undefined; reserved: number | undefined}
       >
     >;
   } & Partial<Record<DataCategory | `previous_${DataCategory}`, number | undefined>> &
@@ -122,32 +104,21 @@ type GetsentryEventParameters = {
   'disabled_member_view.clicked_upgrade_request': HasSub;
   'disabled_member_view.loaded': HasSub;
   'gen_ai_consent.in_drawer_clicked': Record<PropertyKey, unknown>;
-  'gen_ai_consent.settings_clicked': {
-    value: FieldValue;
-  };
+  'gen_ai_consent.settings_clicked': {value: FieldValue};
   'gen_ai_consent.view_in_settings_clicked': Record<PropertyKey, unknown>;
   'github.multi_org.upsell': {source?: string};
-  'growth.clicked_enter_sandbox': {
-    scenario: string;
-  };
+  'growth.clicked_enter_sandbox': {scenario: string};
   'growth.disabled_dashboard.viewed': Record<PropertyKey, unknown>;
   'growth.issue_open_in_discover_upsell_clicked': Record<PropertyKey, unknown>;
   'growth.metric_alert_banner.clicked': HasSub;
   'growth.metric_alert_banner.dismissed': HasSub;
-  'growth.onboarding_clicked_need_help': {
-    source?: string;
-  };
-  'growth.onboarding_clicked_upgrade': {
-    source?: string;
-  };
+  'growth.onboarding_clicked_need_help': {source?: string};
+  'growth.onboarding_clicked_upgrade': {source?: string};
   'growth.promo_modal_accept': {promo: string};
   'growth.promo_modal_decline': {promo: string};
   'growth.promo_reminder_modal_continue_downgrade': {promo: string};
   'growth.promo_reminder_modal_keep': {promo: string};
-  'growth.upgrade_or_trial.clicked': {
-    action: string;
-    source: string;
-  } & HasSub;
+  'growth.upgrade_or_trial.clicked': {action: string; source: string} & HasSub;
   'growth.upsell_feature.cancelled': UpsellProvider;
   'growth.upsell_feature.clicked': UpsellProvider;
   'growth.upsell_feature.confirmed': UpsellProvider;
@@ -176,9 +147,7 @@ type GetsentryEventParameters = {
     referrer: string;
     traceItemDataset: string;
   };
-  'power_icon.clicked': {
-    source?: string;
-  } & HasSub;
+  'power_icon.clicked': {source?: string} & HasSub;
   'product_trial.clicked_snooze': QuotaAlert;
   'product_unavailable_upsell_alert.viewed': ProductUnavailableUpsellAlert;
   'product_unavailable_upsell_alert_button.clicked': ProductUnavailableUpsellAlert;
@@ -189,14 +158,10 @@ type GetsentryEventParameters = {
   'quota_alert.clicked_unsnooze': QuotaAlert;
   'quota_alert.shown': QuotaAlert;
   'replay.list_page.manage_sub': UpdateProps;
-  'replay.list_page.open_modal': UpdateProps & {
-    has_price_change: undefined | boolean;
-  };
+  'replay.list_page.open_modal': UpdateProps & {has_price_change: undefined | boolean};
   'replay.list_page.sent_email': UpdateProps;
   'replay.list_page.viewed': UpdateProps;
-  'sales.contact_us_clicked': {
-    source: string;
-  } & HasSub;
+  'sales.contact_us_clicked': {source: string} & HasSub;
   'seer.onboarding.code_review_updated': {
     added_repositories: number;
     removed_repositories: number;
@@ -214,9 +179,7 @@ type GetsentryEventParameters = {
   'seer.onboarding.step_changed': {stepNumber: number};
   'spend_allocations.open_form': {create_or_edit: string} & HasSub;
   'spend_allocations.submit': {create_or_edit: string} & HasSub;
-  'subscription_page.display_mode.changed': {
-    display_mode: 'usage' | 'cost';
-  } & HasSub;
+  'subscription_page.display_mode.changed': {display_mode: 'usage' | 'cost'} & HasSub;
   'subscription_page.download_reports.clicked': {
     reportType: 'summary' | 'project_breakdown';
   };
@@ -225,15 +188,11 @@ type GetsentryEventParameters = {
     isOpen: boolean;
   } & HasSub;
   'subscription_page.usage_overview.row_clicked': (
-    | {
-        dataCategory: DataCategory;
-      }
+    | {dataCategory: DataCategory}
     | {addOnCategory: AddOnCategory}
   ) &
     HasSub;
-  'subscription_page.usage_overview.transform_changed': {
-    transform: string;
-  } & HasSub;
+  'subscription_page.usage_overview.transform_changed': {transform: string} & HasSub;
   'subscription_page.usagelog_filter.clicked': {selection: string};
   'trial_ended_notice.dismissed_understood': HasSub;
   'trial_reset_notification.modal_dismissed': HasSub;
@@ -243,12 +202,8 @@ type GetsentryEventParameters = {
   'upgrade_now.alert.viewed': UpdateProps;
   'upgrade_now.modal.manage_sub': UpdateProps;
   'upgrade_now.modal.sent_email': UpdateProps;
-  'upgrade_now.modal.update_now': UpdateProps & {
-    has_price_change: undefined | boolean;
-  };
-  'upgrade_now.modal.viewed': UpdateProps & {
-    has_price_change: undefined | boolean;
-  };
+  'upgrade_now.modal.update_now': UpdateProps & {has_price_change: undefined | boolean};
+  'upgrade_now.modal.viewed': UpdateProps & {has_price_change: undefined | boolean};
 };
 
 export type AM2UpdateSurfaces =

@@ -53,10 +53,7 @@ function OrganizationAuditLog() {
   const hasPermission = organization.access.includes('org:write') || isActiveSuperuser();
 
   const handleCursor: CursorHandler = resultsCursor => {
-    setState(prevState => ({
-      ...prevState,
-      currentCursor: resultsCursor,
-    }));
+    setState(prevState => ({...prevState, currentCursor: resultsCursor}));
   };
 
   useEffect(() => {
@@ -111,11 +108,7 @@ function OrganizationAuditLog() {
         getApiUrl('/organizations/$organizationIdOrSlug/audit-logs/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'GET',
-          includeAllArgs: true,
-          query: payload,
-        }
+        {method: 'GET', includeAllArgs: true, query: payload}
       );
       setState(prevState => ({
         ...prevState,
@@ -128,10 +121,7 @@ function OrganizationAuditLog() {
       if (err.status !== 401 && err.status !== 403) {
         Sentry.captureException(err);
       }
-      setState(prevState => ({
-        ...prevState,
-        isLoading: false,
-      }));
+      setState(prevState => ({...prevState, isLoading: false}));
       if (err.status !== 403) {
         addErrorMessage('Unable to load audit logs.');
       }
@@ -154,13 +144,8 @@ function OrganizationAuditLog() {
   }, [fetchAuditLogData]);
 
   const handleEventSelect = (value: string) => {
-    setState(prevState => ({
-      ...prevState,
-      eventType: value,
-    }));
-    navigate({
-      query: {...location.query, event: value},
-    });
+    setState(prevState => ({...prevState, eventType: value}));
+    navigate({query: {...location.query, event: value}});
   };
 
   const handleDateSelect = (data: ChangeData) => {
@@ -202,9 +187,7 @@ function OrganizationAuditLog() {
       newQuery.utc = data.utc ? 'true' : 'false';
     }
 
-    navigate({
-      query: newQuery,
-    });
+    navigate({query: newQuery});
   };
 
   return (

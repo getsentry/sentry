@@ -46,9 +46,7 @@ describe('useScmCreateProjectProductSync', () => {
 
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
-      {
-        organization: {features: ['onboarding-scm-project-creation']},
-      }
+      {organization: {features: ['onboarding-scm-project-creation']}}
     );
 
     expect(result.current).toBeInstanceOf(Function);
@@ -62,9 +60,7 @@ describe('useScmCreateProjectProductSync', () => {
 
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
-      {
-        organization: {features: ['onboarding-scm-project-creation']},
-      }
+      {organization: {features: ['onboarding-scm-project-creation']}}
     );
 
     act(() => {
@@ -89,9 +85,7 @@ describe('useScmCreateProjectProductSync', () => {
 
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
-      {
-        organization: {features: ['onboarding-scm-project-creation']},
-      }
+      {organization: {features: ['onboarding-scm-project-creation']}}
     );
 
     expect(result.current).toBeUndefined();
@@ -115,9 +109,7 @@ describe('useScmCreateProjectProductSync', () => {
     // No session seeded.
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
-      {
-        organization: {features: ['onboarding-scm-project-creation']},
-      }
+      {organization: {features: ['onboarding-scm-project-creation']}}
     );
 
     expect(result.current).toBeUndefined();

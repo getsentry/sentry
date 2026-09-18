@@ -14,10 +14,7 @@ function customEncodeURIComponent(str: string) {
   });
 }
 
-const project = ProjectFixture({
-  id: '1',
-  slug: 'foo',
-});
+const project = ProjectFixture({id: '1', slug: 'foo'});
 
 describe('ProfileEventsTable', () => {
   beforeEach(() => {
@@ -28,10 +25,7 @@ describe('ProfileEventsTable', () => {
     const {organization} = initializeOrg();
 
     const columns = ['count()' as const];
-    const sort = {
-      key: 'count()' as const,
-      order: 'desc' as const,
-    };
+    const sort = {key: 'count()' as const, order: 'desc' as const};
 
     render(
       <ProfileEventsTable
@@ -41,9 +35,7 @@ describe('ProfileEventsTable', () => {
         isLoading
         sort={sort}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -53,10 +45,7 @@ describe('ProfileEventsTable', () => {
     const {organization} = initializeOrg();
 
     const columns = ['count()' as const];
-    const sort = {
-      key: 'count()' as const,
-      order: 'desc' as const,
-    };
+    const sort = {key: 'count()' as const, order: 'desc' as const};
 
     render(
       <ProfileEventsTable
@@ -66,9 +55,7 @@ describe('ProfileEventsTable', () => {
         isLoading={false}
         sort={sort}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
@@ -78,10 +65,7 @@ describe('ProfileEventsTable', () => {
     const {organization} = initializeOrg();
 
     const columns = ['count()' as const];
-    const sort = {
-      key: 'count()' as const,
-      order: 'desc' as const,
-    };
+    const sort = {key: 'count()' as const, order: 'desc' as const};
 
     render(
       <ProfileEventsTable
@@ -92,9 +76,7 @@ describe('ProfileEventsTable', () => {
         sort={sort}
         sortableColumns={new Set(columns)}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     const link = screen.getByRole('link', {name: 'Count()'});
@@ -109,10 +91,7 @@ describe('ProfileEventsTable', () => {
     const {organization} = initializeOrg();
 
     const columns = ['count()' as const];
-    const sort = {
-      key: 'count()' as const,
-      order: 'asc' as const,
-    };
+    const sort = {key: 'count()' as const, order: 'asc' as const};
 
     render(
       <ProfileEventsTable
@@ -123,9 +102,7 @@ describe('ProfileEventsTable', () => {
         sort={sort}
         sortableColumns={new Set(columns)}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     const link = screen.getByRole('link', {name: 'Count()'});
@@ -183,10 +160,7 @@ describe('ProfileEventsTable', () => {
       },
     };
 
-    const sort = {
-      key: 'transaction' as const,
-      order: 'asc' as const,
-    };
+    const sort = {key: 'transaction' as const, order: 'asc' as const};
 
     render(
       <ProfileEventsTable
@@ -197,9 +171,7 @@ describe('ProfileEventsTable', () => {
         sort={sort}
         sortableColumns={new Set(columns)}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     // id

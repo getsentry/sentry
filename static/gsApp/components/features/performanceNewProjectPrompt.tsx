@@ -27,10 +27,7 @@ export function PerformanceNewProjectPrompt({organization}: Props) {
             variant="primary"
             icon={<IconBusiness />}
             onClick={() =>
-              openUpsellModal({
-                organization,
-                source: 'feature.performance_new_project',
-              })
+              openUpsellModal({organization, source: 'feature.performance_new_project'})
             }
           >
             {t('Learn More')}

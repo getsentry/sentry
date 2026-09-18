@@ -120,9 +120,7 @@ function PanelHeader({
           }}
           analyticsEventName="Subscription Settings: Product Link Clicked"
           analyticsEventKey="subscription_settings.product_link_clicked"
-          analyticsParams={{
-            product: selectedProduct,
-          }}
+          analyticsParams={{product: selectedProduct}}
         />
       )}
     </Flex>

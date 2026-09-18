@@ -143,12 +143,7 @@ function createBreakdownTableWidgetFromTimeSeriesWidget(widget: Widget): Widget 
         columns.push(orderbyField);
       }
     }
-    return {
-      ...query,
-      fields: [...columns, ...aggregates],
-      aggregates,
-      columns,
-    };
+    return {...query, fields: [...columns, ...aggregates], aggregates, columns};
   });
 
   return {
@@ -289,9 +284,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     // Call afterFetch callbacks with raw data
     if (isHeatmap) {
       // Heat maps have no afterFetch transforms; just surface the result.
-      onDataFetched?.({
-        heatmapResults: (hookResults as any).heatmapResults,
-      });
+      onDataFetched?.({heatmapResults: (hookResults as any).heatmapResults});
     } else if (isTimeSeriesData) {
       hookResults.rawData.forEach((data: any) => {
         afterFetchSeriesData?.(data as SeriesResponse);
@@ -330,10 +323,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   ]);
 
   // Return hook results, with a fallback for the loading state
-  const baseResults = hookResults ?? {
-    loading: true,
-    rawData: [],
-  };
+  const baseResults = hookResults ?? {loading: true, rawData: []};
 
   if (!needsBreakdownTable) {
     return baseResults;

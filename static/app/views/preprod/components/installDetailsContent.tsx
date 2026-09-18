@@ -94,12 +94,7 @@ export function InstallDetailsContent({
     [
       getApiUrl(
         '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/private-install-details/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            headArtifactId: artifactId,
-          },
-        }
+        {path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId}}
       ),
     ],
     {
@@ -175,9 +170,7 @@ export function InstallDetailsContent({
           <Text size="sm" variant="muted">
             {tct(
               'App was signed for the App Store using the [profileName] profile and cannot be installed directly. Re-upload with an enterprise, ad-hoc, or development profile to install this app.',
-              {
-                profileName: <strong>{installDetails.profile_name}</strong>,
-              }
+              {profileName: <strong>{installDetails.profile_name}</strong>}
             )}
           </Text>
         </CodeSignatureInfo>

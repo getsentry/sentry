@@ -88,9 +88,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
             to={`/settings/${organization.slug}/data-forwarding/`}
             icon={<IconArrow direction="left" />}
             onClick={() => {
-              trackAnalytics('data_forwarding.back_button_clicked', {
-                organization,
-              });
+              trackAnalytics('data_forwarding.back_button_clicked', {organization});
             }}
           >
             {t('Back')}

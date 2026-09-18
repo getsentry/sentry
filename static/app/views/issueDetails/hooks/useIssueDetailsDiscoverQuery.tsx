@@ -43,11 +43,7 @@ export function useIssueDetailsEventView({
       : defaultStatsPeriod;
 
   const interval = getInterval(
-    {
-      start: periodQuery?.start,
-      end: periodQuery?.end,
-      period: periodQuery?.statsPeriod,
-    },
+    {start: periodQuery?.start, end: periodQuery?.end, period: periodQuery?.statsPeriod},
     // Switch to low fidelity intervals on small screens
     isSmallContainer ? 'low' : 'issues'
   );
@@ -80,11 +76,7 @@ export function useIssueDetailsDiscoverQuery<T>({
   params: {eventView, route, referrer},
   options,
 }: {
-  params: {
-    eventView: EventView;
-    referrer: string;
-    route: string;
-  };
+  params: {eventView: EventView; referrer: string; route: string};
   options?: DiscoverQueryProps['options'];
 }) {
   const organization = useOrganization();

@@ -41,11 +41,7 @@ export default function CreateFromSeer() {
 
   const handleDashboardUpdate = useCallback(
     (data: {title: string; widgets: Widget[]}) => {
-      const newDashboard = {
-        ...EMPTY_DASHBOARD,
-        title: data.title,
-        widgets: data.widgets,
-      };
+      const newDashboard = {...EMPTY_DASHBOARD, title: data.title, widgets: data.widgets};
       setDashboard(newDashboard);
       reportedWidgetErrors.current.clear();
     },
@@ -100,10 +96,7 @@ export default function CreateFromSeer() {
         scope.setTag('seer.run_id', seerRunId);
         scope.setLevel('error');
         Sentry.captureMessage('Generated dashboard widget query error', {
-          extra: {
-            widget_title: widget.title,
-            error_message: errorMessage,
-          },
+          extra: {widget_title: widget.title, error_message: errorMessage},
         });
       });
     },
@@ -114,9 +107,7 @@ export default function CreateFromSeer() {
     if (sessionStatus === 'error' || isError) {
       addErrorMessage(t('Failed to generate dashboard'));
       Sentry.metrics.count('dashboards.seer.generation.session.error', 1, {
-        attributes: {
-          organization_slug: organization.slug,
-        },
+        attributes: {organization_slug: organization.slug},
       });
     }
   }, [sessionStatus, isError, organization.slug]);

@@ -49,11 +49,7 @@ function renderFrameworkModalMockRequests({
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/integrations/`,
-    body: [
-      OrganizationIntegrationsFixture({
-        name: "Moo Deng's Workspace",
-      }),
-    ],
+    body: [OrganizationIntegrationsFixture({name: "Moo Deng's Workspace"})],
     match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
   });
 
@@ -80,13 +76,9 @@ describe('CreateProject', () => {
     access: ['team:read'],
   });
 
-  const teamWithAccess = TeamFixture({
-    access: ['team:admin', 'team:write', 'team:read'],
-  });
+  const teamWithAccess = TeamFixture({access: ['team:admin', 'team:write', 'team:read']});
 
-  const integration = OrganizationIntegrationsFixture({
-    name: "Moo Deng's Workspace",
-  });
+  const integration = OrganizationIntegrationsFixture({name: "Moo Deng's Workspace"});
 
   beforeEach(() => {
     TeamStore.reset();
@@ -100,9 +92,7 @@ describe('CreateProject', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/integrations/${integration.id}/channels/`,
-      body: {
-        results: [],
-      },
+      body: {results: []},
     });
   });
 
@@ -116,10 +106,7 @@ describe('CreateProject', () => {
       access: ['project:read', 'project:write', 'project:admin'],
     });
     TeamStore.loadUserTeams([teamWithAccess]);
-    renderFrameworkModalMockRequests({
-      organization,
-      teamSlug: teamWithAccess.slug,
-    });
+    renderFrameworkModalMockRequests({organization, teamSlug: teamWithAccess.slug});
 
     const routeAnalytics = {
       previousUrl: '',
@@ -136,10 +123,7 @@ describe('CreateProject', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/projects/new/',
-            query,
-          },
+          location: {pathname: '/organizations/org-slug/projects/new/', query},
         },
       }
     );
@@ -176,9 +160,7 @@ describe('CreateProject', () => {
         canAdd: true,
         canDisable: false,
         features: ['alert-rule', 'chat-unfurl'],
-        aspects: {
-          alerts: [],
-        },
+        aspects: {alerts: []},
       },
     });
 
@@ -218,13 +200,7 @@ describe('CreateProject', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
-      body: [
-        {
-          id: '1',
-          slug: 'testProj',
-          name: 'Test Project',
-        },
-      ],
+      body: [{id: '1', slug: 'testProj', name: 'Test Project'}],
     });
 
     return {organization, messagingIntegration, projectCreationMockRequest};
@@ -233,11 +209,7 @@ describe('CreateProject', () => {
   async function createProjectWithChannel(channelLabel: string) {
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
     await userEvent.click(screen.getByText(/When there are more than/));
-    await userEvent.click(
-      screen.getByRole('checkbox', {
-        name: /Notify via integration/,
-      })
-    );
+    await userEvent.click(screen.getByRole('checkbox', {name: /Notify via integration/}));
     await selectEvent.select(screen.getByLabelText('channel'), channelLabel);
     await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
   }
@@ -316,9 +288,7 @@ describe('CreateProject', () => {
     renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
     TeamStore.loadUserTeams([TeamFixture({id: '2', slug: 'team-two', access: []})]);
 
-    render(<CreateProject />, {
-      organization,
-    });
+    render(<CreateProject />, {organization});
 
     renderGlobalModal();
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
@@ -328,11 +298,7 @@ describe('CreateProject', () => {
   });
 
   it('should only allow teams which the user is a team-admin', async () => {
-    const {organization} = initializeOrg({
-      organization: {
-        features: ['team-roles'],
-      },
-    });
+    const {organization} = initializeOrg({organization: {features: ['team-roles']}});
     renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
 
     OrganizationStore.onUpdate(organization);
@@ -341,9 +307,7 @@ describe('CreateProject', () => {
       TeamFixture({id: '2', slug: 'team-two', access: ['team:admin']}),
       TeamFixture({id: '3', slug: 'team-three', access: ['team:admin']}),
     ]);
-    render(<CreateProject />, {
-      organization,
-    });
+    render(<CreateProject />, {organization});
 
     await userEvent.type(screen.getByLabelText('Select a Team'), 'team');
     expect(screen.queryByText('#team-one')).not.toBeInTheDocument();
@@ -360,9 +324,7 @@ describe('CreateProject', () => {
       },
     });
 
-    render(<CreateProject />, {
-      organization,
-    });
+    render(<CreateProject />, {organization});
 
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
     expect(screen.getByPlaceholderText('project-slug')).toHaveValue('apple-ios');
@@ -501,11 +463,7 @@ describe('CreateProject', () => {
     // Step 1: Mount WITHOUT query params (simulates the browser POP navigation)
     const {router} = render(<CreateProject />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/projects/new/',
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/projects/new/'}},
     });
 
     // Step 2: Navigate WITH query params (simulates router.replace)
@@ -558,11 +516,7 @@ describe('CreateProject', () => {
 
     const {router} = render(<CreateProject />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/projects/new/',
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/projects/new/'}},
     });
 
     router.navigate('/projects/new/?referrer=getting-started&project=12345');
@@ -596,9 +550,7 @@ describe('CreateProject', () => {
     });
     TeamStore.loadUserTeams([teamWithAccess]);
 
-    const {router} = render(<CreateProject />, {
-      organization,
-    });
+    const {router} = render(<CreateProject />, {organization});
 
     renderGlobalModal();
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
@@ -635,9 +587,7 @@ describe('CreateProject', () => {
     );
     TeamStore.loadUserTeams([teamWithAccess]);
 
-    render(<CreateProject />, {
-      organization,
-    });
+    render(<CreateProject />, {organization});
 
     renderGlobalModal();
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
@@ -670,9 +620,7 @@ describe('CreateProject', () => {
       organization,
       teamSlug: teamNoAccess.slug,
     });
-    render(<CreateProject />, {
-      organization,
-    });
+    render(<CreateProject />, {organization});
 
     renderGlobalModal();
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
@@ -703,9 +651,7 @@ describe('CreateProject', () => {
     TeamStore.loadUserTeams([teamWithAccess]);
     OrganizationStore.onUpdate(organization, {replace: true});
 
-    render(<CreateProject />, {
-      organization,
-    });
+    render(<CreateProject />, {organization});
 
     // Select the React platform
     await userEvent.click(screen.getByTestId('platform-javascript-react'));
@@ -740,9 +686,7 @@ describe('CreateProject', () => {
     TeamStore.loadUserTeams([teamWithAccess]);
     OrganizationStore.onUpdate(organization, {replace: true});
 
-    render(<CreateProject />, {
-      organization,
-    });
+    render(<CreateProject />, {organization});
 
     // Select the JavaScript platform
     await userEvent.click(screen.getByTestId('platform-javascript'));
@@ -782,12 +726,7 @@ describe('CreateProject', () => {
     const {organization, projectCreationMockRequest} = mockMessagingProjectCreation({
       provider: {key: 'discord', name: 'Discord'},
       channels: [
-        {
-          id: '1437461639900303454',
-          name: 'general',
-          display: '#general',
-          type: 'text',
-        },
+        {id: '1437461639900303454', name: 'general', display: '#general', type: 'text'},
       ],
     });
 
@@ -888,11 +827,7 @@ describe('CreateProject', () => {
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
-        body: [
-          OrganizationIntegrationsFixture({
-            name: "Moo Deng's Workspace",
-          }),
-        ],
+        body: [OrganizationIntegrationsFixture({name: "Moo Deng's Workspace"})],
       });
     });
 
@@ -956,10 +891,7 @@ describe('CreateProject', () => {
     });
 
     it('fires alert_selected and alert_threshold_edited with variant=legacy', async () => {
-      renderFrameworkModalMockRequests({
-        organization,
-        teamSlug: teamWithAccess.slug,
-      });
+      renderFrameworkModalMockRequests({organization, teamSlug: teamWithAccess.slug});
       const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
       render(<CreateProject />, {organization});
@@ -981,10 +913,7 @@ describe('CreateProject', () => {
     });
 
     it('does not fire alert_threshold_edited unless custom alerts are selected', async () => {
-      renderFrameworkModalMockRequests({
-        organization,
-        teamSlug: teamWithAccess.slug,
-      });
+      renderFrameworkModalMockRequests({organization, teamSlug: teamWithAccess.slug});
       const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
       render(<CreateProject />, {organization});
@@ -1005,10 +934,7 @@ describe('CreateProject', () => {
     });
 
     it('should disable submit button when channel validation fails and integration is selected', async () => {
-      renderFrameworkModalMockRequests({
-        organization,
-        teamSlug: teamWithAccess.slug,
-      });
+      renderFrameworkModalMockRequests({organization, teamSlug: teamWithAccess.slug});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/${integration.id}/channel-validate/`,
@@ -1020,9 +946,7 @@ describe('CreateProject', () => {
       await userEvent.click(screen.getByTestId('platform-apple-ios'));
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
       await userEvent.click(
-        screen.getByRole('checkbox', {
-          name: /Notify via integration/,
-        })
+        screen.getByRole('checkbox', {name: /Notify via integration/})
       );
       await selectEvent.create(screen.getByLabelText('channel'), '#custom-channel', {
         waitForElement: false,
@@ -1042,10 +966,7 @@ describe('CreateProject', () => {
     });
 
     it('should NOT disable submit button when channel validation fails but integration is unchecked', async () => {
-      renderFrameworkModalMockRequests({
-        organization,
-        teamSlug: teamWithAccess.slug,
-      });
+      renderFrameworkModalMockRequests({organization, teamSlug: teamWithAccess.slug});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/${integration.id}/channel-validate/`,
@@ -1056,9 +977,7 @@ describe('CreateProject', () => {
 
       await userEvent.click(screen.getByTestId('platform-apple-ios'));
       await userEvent.click(
-        screen.getByRole('checkbox', {
-          name: /Notify via integration/,
-        })
+        screen.getByRole('checkbox', {name: /Notify via integration/})
       );
       await selectEvent.create(screen.getByLabelText('channel'), '#custom-channel', {
         waitForElement: false,
@@ -1067,9 +986,7 @@ describe('CreateProject', () => {
       expect(await screen.findByText('Channel not found')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled();
       await userEvent.click(
-        screen.getByRole('checkbox', {
-          name: /Notify via integration/,
-        })
+        screen.getByRole('checkbox', {name: /Notify via integration/})
       );
       await waitFor(() => {
         expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
@@ -1077,10 +994,7 @@ describe('CreateProject', () => {
     });
 
     it('should show validating tooltip and disable button while validating channel', async () => {
-      renderFrameworkModalMockRequests({
-        organization,
-        teamSlug: teamWithAccess.slug,
-      });
+      renderFrameworkModalMockRequests({organization, teamSlug: teamWithAccess.slug});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/${integration.id}/channel-validate/`,
@@ -1090,9 +1004,7 @@ describe('CreateProject', () => {
       render(<CreateProject />, {organization});
       await userEvent.click(screen.getByTestId('platform-apple-ios'));
       await userEvent.click(
-        screen.getByRole('checkbox', {
-          name: /Notify via integration/,
-        })
+        screen.getByRole('checkbox', {name: /Notify via integration/})
       );
       await selectEvent.create(screen.getByLabelText('channel'), '#custom-channel', {
         waitForElement: false,

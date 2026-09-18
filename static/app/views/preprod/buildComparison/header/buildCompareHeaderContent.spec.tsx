@@ -40,9 +40,7 @@ describe('BuildCompareHeaderContent', () => {
       }
     );
 
-    render(<BuildCompareHeaderContent buildDetails={buildDetails} />, {
-      organization,
-    });
+    render(<BuildCompareHeaderContent buildDetails={buildDetails} />, {organization});
 
     const releasesLink = screen.getByRole('link', {name: 'Releases'});
     expect(releasesLink).toHaveAttribute(
@@ -88,9 +86,7 @@ describe('BuildCompareHeaderContent', () => {
       }
     );
 
-    render(<BuildCompareHeaderContent buildDetails={buildDetails} />, {
-      organization,
-    });
+    render(<BuildCompareHeaderContent buildDetails={buildDetails} />, {organization});
 
     const releasesLink = screen.getByRole('link', {name: 'Releases'});
     expect(releasesLink).toHaveAttribute(

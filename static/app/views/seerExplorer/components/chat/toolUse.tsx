@@ -516,10 +516,7 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
           })
           // Reported rather than deleted — a row should never disappear for want of wording — but
           // given a generic label, since a raw route reads worse than no row at all.
-          .map(row => ({
-            ...row,
-            label: row.label ?? fallbackCallLabel(row.record),
-          }));
+          .map(row => ({...row, label: row.label ?? fallbackCallLabel(row.record)}));
 
         const residualNavItems = navItems.filter(
           item => !claimedLinkKinds.has(item.kind)
@@ -746,12 +743,7 @@ function CodeModeCallRow({
       status={callRecordStatus(record, settled)}
       reference={
         url && !isFailure
-          ? {
-              value: linkLabel ?? t('Open'),
-              to: url,
-              icon: <Icon />,
-              onClick: onLinkClick,
-            }
+          ? {value: linkLabel ?? t('Open'), to: url, icon: <Icon />, onClick: onLinkClick}
           : undefined
       }
       failureLabel={isFailure && record.status ? String(record.status) : undefined}

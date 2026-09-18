@@ -47,10 +47,7 @@ export function withDomainRequired(WrappedComponent: React.ComponentType<any>) {
       return null;
     }
 
-    const newParams = {
-      ...params,
-      orgId: customerDomain.subdomain,
-    };
+    const newParams = {...params, orgId: customerDomain.subdomain};
 
     return <WrappedComponent {...props} params={newParams} />;
   };

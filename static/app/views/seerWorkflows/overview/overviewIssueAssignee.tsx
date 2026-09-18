@@ -64,10 +64,7 @@ export function OverviewIssueAssignee({
       id: groupId,
       assignedTo: assignedTo ?? null,
       owners,
-      project: {
-        id: projectId,
-        slug: projectSlug,
-      },
+      project: {id: projectId, slug: projectSlug},
     }),
     [assignedTo, groupId, owners, projectId, projectSlug]
   );

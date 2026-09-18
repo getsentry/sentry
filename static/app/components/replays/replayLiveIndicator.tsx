@@ -123,9 +123,7 @@ export function useLiveBadge({startedAt, finishedAt}: UseLiveBadgeParams) {
     startTimeout(getLiveDurationMs(finishedAt));
   }, [startTimeout, finishedAt]);
 
-  return {
-    isLive,
-  };
+  return {isLive};
 }
 
 /**
@@ -194,8 +192,5 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
   const prevSegments = replay?.count_segments ?? 0;
   const shouldShowRefreshButton = polledCountSegments > prevSegments;
 
-  return {
-    shouldShowRefreshButton,
-    doRefresh,
-  };
+  return {shouldShowRefreshButton, doRefresh};
 }

@@ -16,9 +16,7 @@ export type TourStep = {
   image?: React.ReactNode;
 };
 
-type ChildProps = {
-  showModal: () => void;
-};
+type ChildProps = {showModal: () => void};
 
 type Props = {
   children: (props: ChildProps) => React.ReactNode;
@@ -58,9 +56,7 @@ type State = {
   openedAt: number;
 };
 
-const defaultProps = {
-  doneText: t('Done'),
-};
+const defaultProps = {doneText: t('Done')};
 
 /**
  * Provide a showModal action to the child function that lets
@@ -75,10 +71,7 @@ const defaultProps = {
 export class FeatureTourModal extends Component<Props, State> {
   static defaultProps = defaultProps;
 
-  state: State = {
-    openedAt: 0,
-    current: 0,
-  };
+  state: State = {openedAt: 0, current: 0};
 
   // Record the step change and call the callback this component was given.
   handleAdvance = (current: number, duration: number) => {
@@ -126,18 +119,12 @@ type ContentsProps = ModalRenderProps &
   Pick<Props, 'steps' | 'doneText' | 'doneUrl' | 'onAdvance'> &
   Pick<State, 'openedAt'>;
 
-type ContentsState = {
-  current: number;
-  openedAt: number;
-};
+type ContentsState = {current: number; openedAt: number};
 
 class ModalContents extends Component<ContentsProps, ContentsState> {
   static defaultProps = defaultProps;
 
-  state: ContentsState = {
-    current: 0,
-    openedAt: Date.now(),
-  };
+  state: ContentsState = {current: 0, openedAt: Date.now()};
 
   handleAdvance = () => {
     const {onAdvance, openedAt} = this.props;

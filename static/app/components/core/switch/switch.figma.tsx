@@ -15,10 +15,7 @@ figma.connect(
   'https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=3277-4566&m=draw&t=ITviPfKTjIMGFJOi-11',
   {
     props: {
-      size: figma.enum('size', {
-        sm: 'sm',
-        lg: 'lg',
-      }),
+      size: figma.enum('size', {sm: 'sm', lg: 'lg'}),
       checked: figma.boolean('checked'),
     },
     example: props => <Switch size={props.size} checked={props.checked} />,

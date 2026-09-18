@@ -20,18 +20,13 @@ import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames'
 import {useIssueStreamDetectorContext} from 'sentry/views/detectors/components/detectorListTable/issueStreamDetectorContext';
 import {useIssueStreamDetectorsForProject} from 'sentry/views/detectors/utils/useIssueStreamDetectorsForProject';
 
-type DetectorListConnectedAutomationsProps = {
-  automationIds: string[];
-  projectId: string;
-};
+type DetectorListConnectedAutomationsProps = {automationIds: string[]; projectId: string};
 
 function ConnectedAutomationsHoverBody({automationIds}: {automationIds: string[]}) {
   const organization = useOrganization();
   const shownAutomations = automationIds.slice(0, 5);
   const {data, isPending, isError} = useQuery(
-    automationsApiOptions(organization, {
-      ids: automationIds.slice(0, 5),
-    })
+    automationsApiOptions(organization, {ids: automationIds.slice(0, 5)})
   );
   const hasMore = automationIds.length > 5;
   const hasMoreText = hasMore ? (

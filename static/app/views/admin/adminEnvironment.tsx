@@ -14,19 +14,14 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Data = {
   config: Array<[key: string, value: string]>;
-  environment: {
-    config: string;
-    start_date: string;
-  };
+  environment: {config: string; start_date: string};
   pythonVersion: string;
 };
 
 export default function AdminEnvironment() {
   const {data, isPending, isError} = useApiQuery<Data>(
     [getApiUrl('/internal/environment/')],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   if (isError) {

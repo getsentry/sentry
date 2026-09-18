@@ -6,10 +6,7 @@ import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl'
 
 describe('useEventLogsUrl', () => {
   it('returns null when there is no context trace_id', () => {
-    const event = EventFixture({
-      contexts: {},
-      dateCreated: '12-21-2024',
-    });
+    const event = EventFixture({contexts: {}, dateCreated: '12-21-2024'});
 
     const {result} = renderHookWithProviders(() => useEventLogsUrl(event));
 
@@ -18,11 +15,7 @@ describe('useEventLogsUrl', () => {
 
   it('returns null when there is no dateCreated or dateReceived', () => {
     const event = EventFixture({
-      contexts: {
-        trace: {
-          trace_id: 'trace-abc-123',
-        },
-      },
+      contexts: {trace: {trace_id: 'trace-abc-123'}},
       dateCreated: null,
       dateReceived: null,
     });
@@ -34,11 +27,7 @@ describe('useEventLogsUrl', () => {
 
   it('returns the logs url scoped to all projects with empty environment when the environment does not exist', () => {
     const event = EventFixture({
-      contexts: {
-        trace: {
-          trace_id: 'trace-abc-123',
-        },
-      },
+      contexts: {trace: {trace_id: 'trace-abc-123'}},
       dateCreated: '12-21-2024',
     });
 
@@ -51,18 +40,9 @@ describe('useEventLogsUrl', () => {
 
   it('returns the logs url without an environment filter even when the event has an environment', () => {
     const event = EventFixture({
-      contexts: {
-        trace: {
-          trace_id: 'trace-abc-123',
-        },
-      },
+      contexts: {trace: {trace_id: 'trace-abc-123'}},
       dateCreated: '12-21-2024',
-      tags: [
-        {
-          key: 'environment',
-          value: 'environment-abc-123',
-        },
-      ],
+      tags: [{key: 'environment', value: 'environment-abc-123'}],
     });
 
     const {result} = renderHookWithProviders(() => useEventLogsUrl(event));

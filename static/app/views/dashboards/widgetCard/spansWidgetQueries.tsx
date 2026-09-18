@@ -95,12 +95,7 @@ export function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
         seriesConfidence = combineConfidenceForSeries(series);
         seriesIsSampled = calculatedIsSampled;
       }
-      return {
-        seriesDataScanned,
-        seriesConfidence,
-        seriesSampleCount,
-        seriesIsSampled,
-      };
+      return {seriesDataScanned, seriesConfidence, seriesSampleCount, seriesIsSampled};
     },
     [props.widget.queries]
   );
@@ -164,13 +159,7 @@ function SpansWidgetQueriesSingleRequestImpl({
   });
 
   return getDynamicText({
-    value: children({
-      ...props,
-      dataScanned,
-      confidence,
-      sampleCount,
-      isSampled,
-    }),
+    value: children({...props, dataScanned, confidence, sampleCount, isSampled}),
     fixed: <div />,
   });
 }

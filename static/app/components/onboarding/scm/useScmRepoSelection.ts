@@ -121,9 +121,5 @@ export function useScmRepoSelection({
     onSelect(undefined);
   };
 
-  return {
-    busy,
-    handleSelect,
-    handleRemove,
-  };
+  return {busy, handleSelect, handleRemove};
 }

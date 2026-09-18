@@ -161,9 +161,7 @@ describe('IssueListActions', () => {
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
-            query: {
-              project: [1],
-            },
+            query: {project: [1]},
             data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
         );
@@ -196,12 +194,7 @@ describe('IssueListActions', () => {
 
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            query: {
-              project: [1],
-            },
-            data: {priority: 'high'},
-          })
+          expect.objectContaining({query: {project: [1]}, data: {priority: 'high'}})
         );
       });
     });
@@ -243,9 +236,7 @@ describe('IssueListActions', () => {
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
-            query: {
-              project: [1],
-            },
+            query: {project: [1]},
             data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
         );
@@ -270,10 +261,7 @@ describe('IssueListActions', () => {
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
-            query: {
-              id: ['1'],
-              project: [1],
-            },
+            query: {id: ['1'], project: [1]},
             data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
         );
@@ -294,10 +282,7 @@ describe('IssueListActions', () => {
     expect(apiMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {
-          id: ['1'],
-          project: [1],
-        },
+        query: {id: ['1'], project: [1]},
         data: {priority: 'high'},
       })
     );
@@ -316,10 +301,7 @@ describe('IssueListActions', () => {
     expect(apiMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {
-          id: ['1'],
-          project: [1],
-        },
+        query: {id: ['1'], project: [1]},
         data: {
           status: 'ignored',
           statusDetails: {},
@@ -330,9 +312,7 @@ describe('IssueListActions', () => {
 
     expect(analyticsSpy).toHaveBeenCalledWith(
       'issues_stream.archived',
-      expect.objectContaining({
-        action_substatus: 'archived_until_escalating',
-      })
+      expect.objectContaining({action_substatus: 'archived_until_escalating'})
     );
   });
 
@@ -343,9 +323,7 @@ describe('IssueListActions', () => {
     });
     render(
       <WrappedComponent {...defaultProps} query="is:archived" selectedIds={['1']} />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Unarchive'}));
@@ -406,12 +384,7 @@ describe('IssueListActions', () => {
     await waitFor(() => {
       expect(apiMock).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          query: {
-            id: ['1'],
-            project: ['123'],
-          },
-        })
+        expect.objectContaining({query: {id: ['1'], project: ['123']}})
       );
     });
   });
@@ -466,13 +439,9 @@ describe('IssueListActions', () => {
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
         switch (id) {
           case '1':
-            return GroupFixture({
-              issueCategory: IssueCategory.ERROR,
-            });
+            return GroupFixture({issueCategory: IssueCategory.ERROR});
           default:
-            return GroupFixture({
-              issueCategory: IssueCategory.PERFORMANCE,
-            });
+            return GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
         }
       });
 

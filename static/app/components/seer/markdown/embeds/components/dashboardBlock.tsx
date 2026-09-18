@@ -175,10 +175,7 @@ function DashboardPreview({
     () => getDashboardWidgetInterval(selection),
     [selection]
   );
-  const widgetLegendState = useLocalWidgetLegendSelectionState({
-    dashboard,
-    organization,
-  });
+  const widgetLegendState = useLocalWidgetLegendSelectionState({dashboard, organization});
 
   if (dashboard.widgets.length === 0) {
     return <Text variant="muted">{t('This dashboard has no widgets.')}</Text>;

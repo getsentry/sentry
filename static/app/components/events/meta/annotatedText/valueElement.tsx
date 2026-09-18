@@ -5,10 +5,7 @@ import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 import {Redaction} from './redaction';
 
-type Props = {
-  value: React.ReactNode;
-  meta?: Record<any, any>;
-};
+type Props = {value: React.ReactNode; meta?: Record<any, any>};
 
 // If you find yourself modifying this component to fix some tooltip bug,
 // consider that `meta` is not properly passed into this component in the

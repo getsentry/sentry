@@ -198,14 +198,6 @@ export const categoryList = [
   {id: 'mobile', name: t('Mobile'), platforms: mobile},
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
   {id: 'serverless', name: t('Serverless'), platforms: serverless},
-  {
-    id: 'gaming',
-    name: t('Gaming'),
-    platforms: gaming,
-  },
-  {
-    id: 'all',
-    name: t('All'),
-    platforms: createablePlatforms,
-  },
+  {id: 'gaming', name: t('Gaming'), platforms: gaming},
+  {id: 'all', name: t('All'), platforms: createablePlatforms},
 ];

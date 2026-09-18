@@ -6,25 +6,13 @@ declare namespace Profiling {
   type SymbolicatorStatus =
     import('sentry/components/events/interfaces/types').SymbolicatorStatus;
 
-  type MeasurementValue = {
-    elapsed_since_start_ns: number;
-    value: number;
-  };
+  type MeasurementValue = {elapsed_since_start_ns: number; value: number};
 
-  type ContinuousMeasurementValue = {
-    timestamp: number;
-    value: number;
-  };
+  type ContinuousMeasurementValue = {timestamp: number; value: number};
 
-  type Measurement = {
-    unit: string;
-    values: MeasurementValue[];
-  };
+  type Measurement = {unit: string; values: MeasurementValue[]};
 
-  type ContinuousMeasurement = {
-    unit: string;
-    values: ContinuousMeasurementValue[];
-  };
+  type ContinuousMeasurement = {unit: string; values: ContinuousMeasurementValue[]};
 
   type Measurements = {
     cpu_usage?: Measurement;
@@ -88,11 +76,7 @@ declare namespace Profiling {
     event_id: string;
     project_id: number;
     version: string;
-    os: {
-      name: string;
-      version: string;
-      build_number: string;
-    };
+    os: {name: string; version: string; build_number: string};
     device: {
       architecture: string;
       is_emulator?: boolean;
@@ -100,18 +84,13 @@ declare namespace Profiling {
       manufacturer?: string;
       model?: string;
     };
-    runtime?: {
-      name: string;
-      version: string;
-    };
+    runtime?: {name: string; version: string};
     received: string;
     timestamp: string;
     release: Release | null;
     platform: 'node' | 'javascript' | string;
     environment?: string;
-    debug_meta?: {
-      images: Image[];
-    };
+    debug_meta?: {images: Image[]};
     profile: {
       samples: SentrySampledProfileSample[];
       stacks: SentrySampledProfileStack[];
@@ -133,9 +112,7 @@ declare namespace Profiling {
     retention_days: number;
     project_id: string;
     version: '2';
-    debug_meta?: {
-      images: Image[];
-    };
+    debug_meta?: {images: Image[]};
     platform: string;
     measurements?: ContinuousMeasurements;
     profile: ContinuousProfile;

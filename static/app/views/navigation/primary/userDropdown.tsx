@@ -103,22 +103,14 @@ export function UserDropdown() {
           ),
           textValue: t('User Summary'),
           children: [
-            {
-              key: 'user-settings',
-              label: t('User Settings'),
-              to: '/settings/account/',
-            },
+            {key: 'user-settings', label: t('User Settings'), to: '/settings/account/'},
             {
               key: 'admin',
               label: t('Admin'),
               to: '/manage/',
               hidden: !isActiveSuperuser(),
             },
-            {
-              key: 'signout',
-              label: t('Sign Out'),
-              onAction: handleLogout,
-            },
+            {key: 'signout', label: t('Sign Out'), onAction: handleLogout},
           ],
         },
       ]}

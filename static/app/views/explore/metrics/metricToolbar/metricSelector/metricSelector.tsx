@@ -98,11 +98,7 @@ export function MetricSelector({
   traceMetric: TraceMetric;
   environments?: string[];
   // A field option is a special option that is injected and used to select a field from the dataset.
-  fieldOption?: {
-    isSelected: boolean;
-    onSelect: () => void;
-    disabledReason?: string;
-  };
+  fieldOption?: {isSelected: boolean; onSelect: () => void; disabledReason?: string};
   // Returns a tooltip explaining why a metric option should be disabled, or
   // undefined to leave it enabled. Lets callers constrain the selectable
   // metrics to those their context supports (e.g. only distributions for heat
@@ -681,9 +677,7 @@ export function MetricSelector({
                             paddingLeft="2xs"
                             align="center"
                             justify="center"
-                            style={{
-                              transform: 'translateY(1px) translateX(1px)',
-                            }}
+                            style={{transform: 'translateY(1px) translateX(1px)'}}
                           >
                             <IconSearch size="xs" variant="muted" />
                           </Flex>

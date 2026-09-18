@@ -44,10 +44,7 @@ const schema = z.object({
   secret: z.string().min(1, t('Secret is required')).max(100),
 });
 
-const defaultValues: z.input<typeof schema> = {
-  provider: null,
-  secret: '',
-};
+const defaultValues: z.input<typeof schema> = {provider: null, secret: ''};
 
 type CreateSecretData = z.output<typeof schema>;
 
@@ -84,10 +81,7 @@ export function NewProviderForm({
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: {
-          provider: provider.toLowerCase(),
-          secret,
-        },
+        data: {provider: provider.toLowerCase(), secret},
       });
     },
     onSuccess: (_response, {secret, provider}) => {

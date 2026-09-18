@@ -37,9 +37,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('renders when given an invalid relative period', async () => {
-    render(<TimeRangeSelector relative="1y" />, {
-      organization,
-    });
+    render(<TimeRangeSelector relative="1y" />, {organization});
     expect(
       await screen.findByRole('button', {name: 'Invalid Period'})
     ).toBeInTheDocument();

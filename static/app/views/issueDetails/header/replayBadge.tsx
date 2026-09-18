@@ -17,14 +17,10 @@ import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRou
 export function ReplayBadge({group, project}: {group: Group; project: Project}) {
   const {baseUrl} = useGroupDetailsRoute();
   const issueTypeConfig = getConfigForIssueType(group, project);
-  const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
-  });
+  const {getReplayCountForIssue} = useReplayCountForIssues({statsPeriod: '90d'});
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
 
-  useRouteAnalyticsParams({
-    group_has_replay: replaysCount > 0,
-  });
+  useRouteAnalyticsParams({group_has_replay: replaysCount > 0});
 
   if (!issueTypeConfig.pages.replays.enabled || replaysCount <= 0) {
     return null;
@@ -37,9 +33,7 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
         type="button"
         variant="link"
         icon={<IconPlay size="xs" />}
-        to={{
-          pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
-        }}
+        to={{pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`}}
         replace
         aria-label={t("View this issue's replays")}
       >

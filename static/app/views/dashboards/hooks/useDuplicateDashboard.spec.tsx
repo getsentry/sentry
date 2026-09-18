@@ -65,10 +65,7 @@ describe('useDuplicateDashboard', () => {
 
     await act(async () => {
       await result.current(
-        DashboardListItemFixture({
-          id: '-1',
-          prebuiltId: PrebuiltDashboardId.WEB_VITALS,
-        }),
+        DashboardListItemFixture({id: '-1', prebuiltId: PrebuiltDashboardId.WEB_VITALS}),
         'table'
       );
     });
@@ -197,10 +194,7 @@ describe('useDuplicateDashboard', () => {
 
     await act(async () => {
       await result.current(
-        DashboardListItemFixture({
-          id: '77',
-          prebuiltId: PrebuiltDashboardId.WEB_VITALS,
-        }),
+        DashboardListItemFixture({id: '77', prebuiltId: PrebuiltDashboardId.WEB_VITALS}),
         'table'
       );
     });

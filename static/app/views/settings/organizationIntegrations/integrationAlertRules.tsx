@@ -29,10 +29,7 @@ export function IntegrationAlertRules() {
           <ProjectItem key={project.slug}>
             <ProjectBadge project={project} avatarSize={16} />
             <LinkButton
-              to={makeAlertsPathname({
-                path: `/${project.slug}/wizard/`,
-                organization,
-              })}
+              to={makeAlertsPathname({path: `/${project.slug}/wizard/`, organization})}
               size="xs"
             >
               {t('Add Alert Rule')}

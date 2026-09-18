@@ -22,9 +22,7 @@ export function deriveUpdatedManagedFields(
 ): DerivedUpdatedManagedFields {
   // null means to clear it, when this happens we should stop managing all fields
   if (writableQueryParams.fields === null) {
-    return {
-      updatedManagedFields: new Set(),
-    };
+    return {updatedManagedFields: new Set()};
   }
 
   const {readableRefs, writableRefs} = findAllFieldRefs(
@@ -106,10 +104,7 @@ type Counter = Map<string, number>;
 function findAllFieldRefs(
   readableQueryParams: ReadableQueryParams,
   writableQueryParams: WritableQueryParams
-): {
-  readableRefs: Counter;
-  writableRefs: Counter;
-} {
+): {readableRefs: Counter; writableRefs: Counter} {
   const readableRefs = new Map();
   const writableRefs = new Map();
 
@@ -185,10 +180,7 @@ function getVisualizeFields(visualize: Visualize): string[] {
 function findChangedFields(
   readableQueryParams: ReadableQueryParams,
   writableQueryParams: WritableQueryParams
-): {
-  addedFields: Set<string>;
-  removedFields: Set<string>;
-} {
+): {addedFields: Set<string>; removedFields: Set<string>} {
   const addedFields = new Set<string>();
   const removedFields = new Set<string>();
 
@@ -223,8 +215,5 @@ function findChangedFields(
     });
   }
 
-  return {
-    addedFields,
-    removedFields,
-  };
+  return {addedFields, removedFields};
 }

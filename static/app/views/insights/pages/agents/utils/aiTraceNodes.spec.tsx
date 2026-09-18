@@ -16,11 +16,7 @@ function makeNode({
   errorCount = 0,
   spanStatus,
   status,
-}: {
-  errorCount?: number;
-  spanStatus?: unknown;
-  status?: unknown;
-} = {}): AITraceSpanNode {
+}: {errorCount?: number; spanStatus?: unknown; status?: unknown} = {}): AITraceSpanNode {
   const attributes: Record<string, unknown> = {};
 
   if (spanStatus !== undefined) {

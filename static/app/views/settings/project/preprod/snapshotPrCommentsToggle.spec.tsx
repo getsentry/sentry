@@ -8,9 +8,7 @@ import {SnapshotPrCommentsToggle} from 'sentry/views/settings/project/preprod/sn
 describe('SnapshotPrCommentsToggle', () => {
   const {organization} = initializeOrg();
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/projects/test-project/snapshots/`,
-    },
+    location: {pathname: `/settings/projects/test-project/snapshots/`},
     route: '/settings/projects/:projectId/snapshots/',
   };
 
@@ -109,10 +107,7 @@ describe('SnapshotPrCommentsToggle', () => {
       preprodSnapshotPrCommentsEnabled: true,
     });
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-    MockApiClient.addMockResponse({
-      url: projectEndpoint,
-      body: project,
-    });
+    MockApiClient.addMockResponse({url: projectEndpoint, body: project});
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -146,10 +141,7 @@ describe('SnapshotPrCommentsToggle', () => {
       preprodSnapshotPrCommentsEnabled: true,
     });
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-    MockApiClient.addMockResponse({
-      url: projectEndpoint,
-      body: project,
-    });
+    MockApiClient.addMockResponse({url: projectEndpoint, body: project});
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -183,10 +175,7 @@ describe('SnapshotPrCommentsToggle', () => {
       preprodSnapshotPrCommentsEnabled: true,
     });
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-    MockApiClient.addMockResponse({
-      url: projectEndpoint,
-      body: project,
-    });
+    MockApiClient.addMockResponse({url: projectEndpoint, body: project});
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',

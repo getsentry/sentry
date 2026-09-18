@@ -6,10 +6,7 @@ import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
-type Props = {
-  disabled: boolean;
-  onRefresh: () => void;
-};
+type Props = {disabled: boolean; onRefresh: () => void};
 
 export function WaitingActivity({onRefresh, disabled}: Props) {
   return (

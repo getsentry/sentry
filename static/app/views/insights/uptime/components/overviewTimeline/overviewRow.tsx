@@ -43,9 +43,7 @@ interface Props {
 
 export function OverviewRow({uptimeDetector, timeWindowConfig, single}: Props) {
   const organization = useOrganization();
-  const project = useProjectFromId({
-    project_id: uptimeDetector.projectId,
-  });
+  const project = useProjectFromId({project_id: uptimeDetector.projectId});
 
   const location = useLocation();
   const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);

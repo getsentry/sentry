@@ -82,10 +82,7 @@ describe('hono onboarding docs', () => {
         ...docs,
         platformOptions: {
           ...docs.platformOptions,
-          runtime: {
-            ...docs.platformOptions!.runtime,
-            defaultValue: Runtime.NODE,
-          },
+          runtime: {...docs.platformOptions!.runtime, defaultValue: Runtime.NODE},
         },
       };
     });
@@ -150,17 +147,9 @@ describe('hono onboarding docs', () => {
     });
 
     it('continuous profiling', () => {
-      const organization = OrganizationFixture({
-        features: ['continuous-profiling'],
-      });
+      const organization = OrganizationFixture({features: ['continuous-profiling']});
 
-      renderWithOnboardingLayout(
-        nodeDocs,
-        {},
-        {
-          organization,
-        }
-      );
+      renderWithOnboardingLayout(nodeDocs, {}, {organization});
 
       expect(
         screen.getByText(textWithMarkupMatcher(/profileLifecycle: 'trace'/))
@@ -194,10 +183,7 @@ describe('hono onboarding docs', () => {
         ...docs,
         platformOptions: {
           ...docs.platformOptions,
-          runtime: {
-            ...docs.platformOptions!.runtime,
-            defaultValue: Runtime.BUN,
-          },
+          runtime: {...docs.platformOptions!.runtime, defaultValue: Runtime.BUN},
         },
       };
     });
@@ -258,10 +244,7 @@ describe('hono onboarding docs', () => {
         ...docs,
         platformOptions: {
           ...docs.platformOptions,
-          runtime: {
-            ...docs.platformOptions!.runtime,
-            defaultValue: Runtime.DENO,
-          },
+          runtime: {...docs.platformOptions!.runtime, defaultValue: Runtime.DENO},
         },
       };
     });

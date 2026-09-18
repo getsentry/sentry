@@ -8,26 +8,15 @@ import {
 } from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {TagCollection} from 'sentry/types/group';
 
-const FILTER_KEYS: TagCollection = {
-  lastSeen: {
-    key: 'lastSeen',
-    name: 'Last Seen',
-  },
-};
+const FILTER_KEYS: TagCollection = {lastSeen: {key: 'lastSeen', name: 'Last Seen'}};
 
 jest.mock('sentry/components/searchQueryBuilder/context', () => ({
-  useSearchQueryBuilderConfig: () => ({
-    getFieldDefinition: () => null,
-  }),
-  useSearchQueryBuilderLayout: () => ({
-    size: 'normal',
-  }),
+  useSearchQueryBuilderConfig: () => ({getFieldDefinition: () => null}),
+  useSearchQueryBuilderLayout: () => ({size: 'normal'}),
 }));
 
 describe('FormattedQuery', () => {
-  const defaultProps: Partial<FormattedQueryProps> = {
-    filterKeys: FILTER_KEYS,
-  };
+  const defaultProps: Partial<FormattedQueryProps> = {filterKeys: FILTER_KEYS};
 
   it('renders aggregate filters correctly', () => {
     render(<FormattedQuery {...defaultProps} query="count():>1" />);

@@ -16,14 +16,8 @@ export function useAM2ProfilingUpsellModal({
   const organization = useOrganization();
 
   const handleShowModal = useCallback(() => {
-    openAM2ProfilingUpsellModal({
-      organization,
-      subscription,
-      onComplete,
-    });
+    openAM2ProfilingUpsellModal({organization, subscription, onComplete});
   }, [organization, subscription, onComplete]);
 
-  return {
-    showModal: handleShowModal,
-  };
+  return {showModal: handleShowModal};
 }

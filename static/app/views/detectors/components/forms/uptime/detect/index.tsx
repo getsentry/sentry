@@ -119,10 +119,7 @@ export function UptimeDetectorFormDetectSection({step}: {step?: number}) {
             name="method"
             label={t('Method')}
             defaultValue="GET"
-            options={HTTP_METHOD_OPTIONS.map(option => ({
-              value: option,
-              label: option,
-            }))}
+            options={HTTP_METHOD_OPTIONS.map(option => ({value: option, label: option}))}
             flexibleControlStateSize
             required
           />

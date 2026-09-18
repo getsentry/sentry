@@ -89,11 +89,7 @@ describe('useUpdateCustomRepositoriesMutation', () => {
   });
 
   it('restores the detailed project cache when the request fails', async () => {
-    MockApiClient.addMockResponse({
-      url: projectEndpoint,
-      method: 'PUT',
-      statusCode: 500,
-    });
+    MockApiClient.addMockResponse({url: projectEndpoint, method: 'PUT', statusCode: 500});
     const errorMessageSpy = jest.spyOn(indicators, 'addErrorMessage');
     const {queryClient, queryKey, result} = renderMutation();
 

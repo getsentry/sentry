@@ -68,9 +68,7 @@ export function PolicyRevisions({policy, onUpdate}: Props) {
         <th key="actions" style={{width: 50}} />,
       ]}
       columnsForRow={row => getRow({row, policy, onUpdate})}
-      defaultParams={{
-        per_page: 10,
-      }}
+      defaultParams={{per_page: 10}}
       useQueryString={false}
     />
   );

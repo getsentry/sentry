@@ -77,9 +77,7 @@ export default function PreprodBuilds() {
     }
   }, [debouncedLocalSearchQuery, urlSearchQuery, location, navigate]);
 
-  const queryParams: Record<string, any> = {
-    per_page: 25,
-  };
+  const queryParams: Record<string, any> = {per_page: 25};
 
   if (cursor) {
     queryParams.cursor = cursor;

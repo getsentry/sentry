@@ -68,9 +68,7 @@ type RouteOverrides = {
   'routes:subscription-settings': RouteObjectOverride;
 };
 
-type AiSetupDataConsentProps = {
-  groupId: string;
-};
+type AiSetupDataConsentProps = {groupId: string};
 
 /**
  * Component specific overrides for DateRange and SelectorItems
@@ -80,10 +78,7 @@ type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
 
-type MemberListHeaderProps = {
-  members: Member[];
-  organization: Organization;
-};
+type MemberListHeaderProps = {members: Member[]; organization: Organization};
 
 type DisabledCustomSymbolSources = {
   children: React.ReactNode;
@@ -95,34 +90,22 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 type DashboardHeadersProps = {organization: Organization};
 
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
-type ReplayOnboardingCTAProps = {
-  children: React.ReactNode;
-  organization: Organization;
-};
+type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
 type ProductUnavailableCTAProps = {organization: Organization};
 
 export type SuperuserAccessCategoryProps = {
   RadioItem: React.ComponentType<{children: React.ReactNode; value: string}>;
 };
 
-type ContinuousProfilingBillingRequirementBannerProps = {
-  project: Project;
-};
+type ContinuousProfilingBillingRequirementBannerProps = {project: Project};
 
-type CronsBillingBannerProps = {
-  organization: Organization;
-};
+type CronsBillingBannerProps = {organization: Organization};
 
-type OrganizationHeaderProps = {
-  organization: Organization;
-};
+type OrganizationHeaderProps = {organization: Organization};
 
 type ProductSelectionAvailabilityProps = Omit<ProductSelectionProps, 'disabledProducts'>;
 
-type DateRangeQueryLimitFooterProps = {
-  description: string;
-  source: string;
-};
+type DateRangeQueryLimitFooterProps = {description: string; source: string};
 
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
@@ -139,9 +122,7 @@ export type ScmGithubMultiOrgInstallProps = {
   popupBlockedNotice?: React.ReactNode;
 };
 
-type FirstPartyIntegrationAdditionalCTAProps = {
-  integrations: Integration[];
-};
+type FirstPartyIntegrationAdditionalCTAProps = {integrations: Integration[]};
 
 type AttemptCloseAttemptProps = {
   handleRemoveAccount: () => void;
@@ -188,9 +169,7 @@ type ComponentOverrides = {
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:dashboards-limit-provider': () => React.ComponentType<DashboardLimitProviderProps>;
-  'component:data-consent-banner': () => React.ComponentType<{
-    source: string;
-  }> | null;
+  'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType;

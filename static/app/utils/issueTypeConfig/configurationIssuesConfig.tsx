@@ -34,10 +34,7 @@ export const configurationIssuesConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     defaultTimePeriod: {sinceFirstSeen: false},
-    customCopy: {
-      resolution: t('Auto-resolved'),
-      eventUnits: t('Open Periods'),
-    },
+    customCopy: {resolution: t('Auto-resolved'), eventUnits: t('Open Periods')},
     usesIssuePlatform: true,
     useOpenPeriodChecks: true,
     evidence: {title: t('Details')},

@@ -40,9 +40,7 @@ export function groupQueryKey(params: GroupQueryKeyParameters) {
 
 interface UseGroupOptions {
   groupId: string;
-  options?: {
-    enabled?: boolean;
-  };
+  options?: {enabled?: boolean};
 }
 
 /**

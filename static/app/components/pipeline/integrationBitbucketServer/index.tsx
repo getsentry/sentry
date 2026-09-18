@@ -46,12 +46,7 @@ function InstallationConfigStep({
 }: PipelineStepProps<Record<string, never>, InstallationConfigAdvanceData>) {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      url: '',
-      consumerKey: '',
-      privateKey: '',
-      verifySsl: true,
-    },
+    defaultValues: {url: '', consumerKey: '', privateKey: '', verifySsl: true},
     validators: {onDynamic: installationConfigSchema},
     onSubmit: ({value}) => {
       advance(installationConfigSchema.parse(value));

@@ -84,9 +84,7 @@ describe('Pagination', () => {
 
   it('navigates with the cursor merged into the current query by default', async () => {
     const {router} = render(<Pagination pageLinks={pageLinks} />, {
-      initialRouterConfig: {
-        location: {pathname: '/items/', query: {foo: 'bar'}},
-      },
+      initialRouterConfig: {location: {pathname: '/items/', query: {foo: 'bar'}}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
@@ -98,9 +96,7 @@ describe('Pagination', () => {
   it('calls custom onCursor with (cursor, path, query, delta)', async () => {
     const onCursor = jest.fn();
     render(<Pagination pageLinks={pageLinks} onCursor={onCursor} />, {
-      initialRouterConfig: {
-        location: {pathname: '/items/', query: {foo: 'bar'}},
-      },
+      initialRouterConfig: {location: {pathname: '/items/', query: {foo: 'bar'}}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));

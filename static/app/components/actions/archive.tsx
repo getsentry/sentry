@@ -64,9 +64,7 @@ const ARCHIVE_FOREVER: GroupStatusResolution = {
 type GetArchiveActionsProps = Pick<
   ArchiveActionProps,
   'shouldConfirm' | 'confirmMessage' | 'onUpdate' | 'confirmLabel'
-> & {
-  disableArchiveUntilOccurrence?: boolean;
-};
+> & {disableArchiveUntilOccurrence?: boolean};
 
 function getArchiveActions({
   shouldConfirm,
@@ -153,11 +151,7 @@ function getArchiveActions({
       details: t('When events exceed their weekly forecast'),
       onAction: () => onArchive(ARCHIVE_UNTIL_ESCALATING),
     },
-    {
-      key: 'forever',
-      label: t('Forever'),
-      onAction: () => onArchive(ARCHIVE_FOREVER),
-    },
+    {key: 'forever', label: t('Forever'), onAction: () => onArchive(ARCHIVE_FOREVER)},
     {
       key: 'for',
       label: t('For\u2026'),
@@ -196,11 +190,7 @@ function getArchiveActions({
             ...IGNORE_WINDOWS.map(({value, label}) => ({
               key: `until-reoccur-${count}-times-from-${label}`,
               label,
-              onAction: () =>
-                onIgnore({
-                  ignoreCount: count,
-                  ignoreWindow: value,
-                }),
+              onAction: () => onIgnore({ignoreCount: count, ignoreWindow: value}),
             })),
           ],
         })),
@@ -232,11 +222,7 @@ function getArchiveActions({
             ...IGNORE_WINDOWS.map(({value, label}) => ({
               key: `until-affect-${count}-users-from-${label}`,
               label,
-              onAction: () =>
-                onIgnore({
-                  ignoreUserCount: count,
-                  ignoreUserWindow: value,
-                }),
+              onAction: () => onIgnore({ignoreUserCount: count, ignoreUserWindow: value}),
             })),
           ],
         })),

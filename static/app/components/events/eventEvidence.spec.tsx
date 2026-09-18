@@ -49,9 +49,7 @@ describe('EventEvidence', () => {
 
     expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
     expect(
-      screen.getByRole('cell', {
-        name: '/api/0/transaction-test-endpoint/',
-      })
+      screen.getByRole('cell', {name: '/api/0/transaction-test-endpoint/'})
     ).toBeInTheDocument();
   });
 });

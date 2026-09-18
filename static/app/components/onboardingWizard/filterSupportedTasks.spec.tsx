@@ -37,9 +37,9 @@ describe('filterSupportedTasks', () => {
   ];
 
   it('filters out nothing if any supported platform', () => {
-    const supportedProject = ProjectFixture({
-      platform: 'javascript-react',
-    }) as Project & {platform: PlatformKey};
+    const supportedProject = ProjectFixture({platform: 'javascript-react'}) as Project & {
+      platform: PlatformKey;
+    };
     const unsupportedProject = ProjectFixture({
       platform: 'nintendo-switch',
     }) as Project & {platform: PlatformKey};

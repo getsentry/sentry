@@ -7,10 +7,7 @@ import {SlowestFunctionsWidget} from 'sentry/views/explore/profiling/landing/slo
 
 describe('SlowestFunctionsWidget', () => {
   beforeEach(() => {
-    const project = ProjectFixture({
-      id: '1',
-      slug: 'proj-slug',
-    });
+    const project = ProjectFixture({id: '1', slug: 'proj-slug'});
 
     ProjectsStore.loadInitialData([project]);
   });
@@ -39,9 +36,7 @@ describe('SlowestFunctionsWidget', () => {
     // for the slowest functions query
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-      },
+      body: {data: []},
       match: [
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',

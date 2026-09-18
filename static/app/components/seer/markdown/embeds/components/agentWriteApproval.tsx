@@ -66,11 +66,7 @@ export function AgentWriteApprovalProvider({
 const APPROVAL_STATUS_LABELS: Record<
   EmbedOutput<'agentWriteApproval'>['status'],
   string
-> = {
-  pending: t('pending'),
-  approved: t('approved'),
-  rejected: t('rejected'),
-};
+> = {pending: t('pending'), approved: t('approved'), rejected: t('rejected')};
 
 export const AgentWriteApprovalEmbed = defineSeerEmbed({
   name: 'agentWriteApproval',

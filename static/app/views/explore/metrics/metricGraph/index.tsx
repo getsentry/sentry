@@ -178,11 +178,7 @@ function Graph({
           // using the shared formatter to preserve "(no value)" and release formatting.
           // Clear groupBy so formatTimeSeriesLabel uses yAxis instead
           const groupByLabel = formatTimeSeriesLabel(s);
-          return {
-            ...s,
-            yAxis: `${groupByLabel} : ${parsed.name}`,
-            groupBy: undefined,
-          };
+          return {...s, yAxis: `${groupByLabel} : ${parsed.name}`, groupBy: undefined};
         }
 
         return {...s, yAxis: parsed.name};

@@ -127,12 +127,8 @@ describe('ArithmeticBuilder', () => {
 
     const tokens = [freeTextTokens[0]!, functionTokens[0]!, freeTextTokens[1]!];
 
-    const secondArgToken = screen.queryAllByRole('combobox', {
-      name: 'Select an option',
-    });
-    const thirdArgToken = screen.queryAllByRole('textbox', {
-      name: 'Add a value',
-    });
+    const secondArgToken = screen.queryAllByRole('combobox', {name: 'Select an option'});
+    const thirdArgToken = screen.queryAllByRole('textbox', {name: 'Add a value'});
     const argTokens = [functionTokens[0]!, secondArgToken[0]!, thirdArgToken[0]!];
 
     const focus = (i: number) => expect(tokens[i]).toHaveFocus();
@@ -180,9 +176,7 @@ describe('ArithmeticBuilder', () => {
     const addOpToken = screen.queryByRole('gridcell', {name: 'Delete +'});
 
     // the combobox inside the function tokens will get the focus
-    const functionTokens = screen.getAllByRole('combobox', {
-      name: 'Select an attribute',
-    });
+    const functionTokens = screen.getAllByRole('combobox', {name: 'Select an attribute'});
     expect(functionTokens).toHaveLength(2);
 
     const tokens = [

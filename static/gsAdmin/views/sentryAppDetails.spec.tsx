@@ -107,10 +107,7 @@ describe('SentryAppDetails', () => {
   });
 
   it('refreshes the app details after updating them', async () => {
-    const sentryApp = renderSentryAppDetails({
-      popularity: 10,
-      featureData: [],
-    });
+    const sentryApp = renderSentryAppDetails({popularity: 10, featureData: []});
     MockApiClient.addMockResponse({url: '/integration-features/', body: []});
 
     await userEvent.click(
@@ -130,9 +127,7 @@ describe('SentryAppDetails', () => {
       body: updatedSentryApp,
     });
 
-    const popularity = await screen.findByRole('spinbutton', {
-      name: 'New popularity',
-    });
+    const popularity = await screen.findByRole('spinbutton', {name: 'New popularity'});
     await userEvent.clear(popularity);
     await userEvent.type(popularity, '20');
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));

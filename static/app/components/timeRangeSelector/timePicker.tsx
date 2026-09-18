@@ -14,15 +14,11 @@ type Props = {
   start?: string;
 };
 
-type State = {
-  focused: boolean;
-};
+type State = {focused: boolean};
 
 export const TimePicker = styled(
   class TimePickerImpl extends Component<Props, State> {
-    state: State = {
-      focused: false,
-    };
+    state: State = {focused: false};
 
     shouldComponentUpdate() {
       // This is necessary because when a change event happens,

@@ -95,12 +95,8 @@ export function AutofixRepositoriesItem({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      branchOverrides: repository.branchOverrides,
-    },
-    validators: {
-      onDynamic: repoSchema,
-    },
+    defaultValues: {branchOverrides: repository.branchOverrides},
+    validators: {onDynamic: repoSchema},
     listeners: {
       onChangeDebounceMs: 1000,
       onChange: ({formApi}) => formApi.handleSubmit(),

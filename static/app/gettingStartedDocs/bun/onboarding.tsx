@@ -38,11 +38,7 @@ export const onboarding: OnboardingConfig = {
             "Sentry captures data by using an SDK within your application's runtime."
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'bun add @sentry/bun',
-        },
+        {type: 'code', language: 'bash', code: 'bun add @sentry/bun'},
       ],
     },
   ],
@@ -56,11 +52,7 @@ export const onboarding: OnboardingConfig = {
             "Initialize Sentry as early as possible in your application's lifecycle."
           ),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'javascript', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -74,11 +66,7 @@ export const onboarding: OnboardingConfig = {
             "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
           ),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'javascript', code: getVerifySnippet()},
       ],
     },
   ],

@@ -61,13 +61,7 @@ export function useProfileTopEventsStats<F extends string>({
     [yAxes, data, dataset]
   );
 
-  return {
-    data: transformed,
-    isPending,
-    isLoading,
-    isError,
-    error,
-  };
+  return {data: transformed, isPending, isLoading, isError, error};
 }
 
 function transformTopEventsStatsResponse<F extends string>(
@@ -78,23 +72,11 @@ function transformTopEventsStatsResponse<F extends string>(
   // the events stats endpoint has a legacy response format so here we transform it
   // into the proposed update for forward compatibility and ease of use
   if (!rawData || yAxes.length === 0) {
-    return {
-      data: [],
-      meta: {
-        dataset,
-        end: 0,
-        start: 0,
-      },
-      timestamps: [],
-    };
+    return {data: [], meta: {dataset, end: 0, start: 0}, timestamps: []};
   }
 
   const data: EventsStatsSeries<F>['data'] = [];
-  let meta: EventsStatsSeries<F>['meta'] = {
-    dataset,
-    end: -1,
-    start: -1,
-  };
+  let meta: EventsStatsSeries<F>['meta'] = {dataset, end: -1, start: -1};
   let timestamps: EventsStatsSeries<F>['timestamps'] = [];
 
   let firstSeries = true;
@@ -132,9 +114,5 @@ function transformTopEventsStatsResponse<F extends string>(
     }
   }
 
-  return {
-    data,
-    meta,
-    timestamps,
-  };
+  return {data, meta, timestamps};
 }

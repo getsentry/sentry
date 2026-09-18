@@ -33,10 +33,7 @@ type Opts = {
 
 type Result =
   | undefined
-  | {
-      offsetMs: number;
-      highlight?: Parameters<typeof highlightNode>[1];
-    };
+  | {offsetMs: number; highlight?: Parameters<typeof highlightNode>[1]};
 
 const ZERO_OFFSET = {offsetMs: 0};
 
@@ -129,11 +126,7 @@ async function fromListPageQuery({
     const nodeId = firstResult.node_id;
     const firstTimestmpMs = new Date(firstTimestamp).getTime();
     return {
-      highlight: {
-        annotation: undefined,
-        nodeIds: [nodeId],
-        spotlight: true,
-      },
+      highlight: {annotation: undefined, nodeIds: [nodeId], spotlight: true},
       offsetMs: firstTimestmpMs - replayStartTimestampMs,
     };
   } catch {

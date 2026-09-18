@@ -53,10 +53,7 @@ type ConditionType =
   | 'log_message'
   | 'release';
 
-type CustomInboundFilterCondition = {
-  type: ConditionType;
-  value: string[];
-};
+type CustomInboundFilterCondition = {type: ConditionType; value: string[]};
 
 // Shape returned by the custom inbound filters API.
 type CustomInboundFilter = {
@@ -81,10 +78,7 @@ type DataTypeOption = {label: string; value: FilterDataType};
 
 // A single editable condition row in the modal. The API stores a list of
 // values per condition; the row edits them as one text with a value per line.
-type ConditionFormValue = {
-  property: ConditionType;
-  value: string;
-};
+type ConditionFormValue = {property: ConditionType; value: string};
 
 type FilterFormValues = {
   conditions: ConditionFormValue[];
@@ -469,10 +463,7 @@ function CustomFilterModal({
                         conditions.map(condition =>
                           condition.property === 'release'
                             ? condition
-                            : {
-                                ...condition,
-                                property: getDefaultProperty(value),
-                              }
+                            : {...condition, property: getDefaultProperty(value)}
                         )
                       );
                     }}
@@ -628,10 +619,7 @@ const OUTCOMES_REASON_PREFIX = 'custom-inbound-filter:';
 // metrics, and each of those counts under its own category in ingest outcomes.
 type SeriesByCategory = Map<string, number[]>;
 
-type FilteredStats = {
-  intervals: string[];
-  seriesByReason: Map<string, SeriesByCategory>;
-};
+type FilteredStats = {intervals: string[]; seriesByReason: Map<string, SeriesByCategory>};
 
 // One request covers the whole table, so index the outcomes by the reason a row
 // reports under before the table reads them.
@@ -757,12 +745,7 @@ function FilteredVolumeCells({
         markLine: index === 0 && peak > 0 ? markLine : undefined,
         data: intervals.map((name, i) => ({name, value: values[i] ?? 0})),
       }))
-    : [
-        {
-          seriesName: t('Filtered'),
-          data: intervals.map(name => ({name, value: 0})),
-        },
-      ];
+    : [{seriesName: t('Filtered'), data: intervals.map(name => ({name, value: 0}))}];
 
   return (
     <Fragment>
@@ -820,19 +803,13 @@ export function CustomFilters({project}: {project: Project}) {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
 
-  const hasWriteAccess = hasEveryAccess(['project:write'], {
-    organization,
-    project,
-  });
+  const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const dataTypeOptions = getAvailableDataTypeOptions(organization);
 
   const queryOptions = apiOptions.as<CustomInboundFilter[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/',
     {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: project.slug,
-      },
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       staleTime: 0,
     }
   );
@@ -840,12 +817,7 @@ export function CustomFilters({project}: {project: Project}) {
 
   const listUrl = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: project.slug,
-      },
-    }
+    {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
   );
   const detailUrl = (filterId: string) =>
     getApiUrl(
@@ -913,12 +885,7 @@ export function CustomFilters({project}: {project: Project}) {
         Pick<CustomInboundFilter, 'name' | 'active' | 'dataType' | 'conditions'>
       >;
       id: string;
-    }) =>
-      fetchMutation<CustomInboundFilter>({
-        method: 'PUT',
-        url: detailUrl(id),
-        data,
-      }),
+    }) => fetchMutation<CustomInboundFilter>({method: 'PUT', url: detailUrl(id), data}),
     onSuccess: () => invalidate(),
     onError: error => {
       addErrorMessage(getErrorDetail(error, t('Unable to update filter')));
@@ -926,11 +893,7 @@ export function CustomFilters({project}: {project: Project}) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      fetchMutation({
-        method: 'DELETE',
-        url: detailUrl(id),
-      }),
+    mutationFn: (id: string) => fetchMutation({method: 'DELETE', url: detailUrl(id)}),
     onSuccess: () => {
       addSuccessMessage(t('Filter deleted'));
       invalidate();

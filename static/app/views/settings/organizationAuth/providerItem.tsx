@@ -29,10 +29,7 @@ type LockedFeatureProps = {
   className?: string;
 };
 
-type Props = {
-  active: boolean;
-  provider: AuthProvider;
-};
+type Props = {active: boolean; provider: AuthProvider};
 
 export function ProviderItem({provider, active}: Props) {
   const renderDisabledLock = (p: LockedFeatureProps) => (

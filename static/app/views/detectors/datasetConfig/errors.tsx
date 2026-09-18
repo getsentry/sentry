@@ -31,13 +31,7 @@ type ErrorsSeriesResponse = EventsStats;
 const AGGREGATE_OPTIONS: Record<string, SelectValue<FieldValue>> = {
   'function:count': {
     label: 'count',
-    value: {
-      kind: FieldValueKind.FUNCTION,
-      meta: {
-        name: 'count',
-        parameters: [],
-      },
-    },
+    value: {kind: FieldValueKind.FUNCTION, meta: {name: 'count', parameters: []}},
   },
   'function:count_unique': {
     label: 'count_unique',
@@ -58,13 +52,7 @@ const AGGREGATE_OPTIONS: Record<string, SelectValue<FieldValue>> = {
   },
   'field:user': {
     label: 'user',
-    value: {
-      kind: FieldValueKind.FIELD,
-      meta: {
-        name: FieldKey.USER,
-        dataType: 'string',
-      },
-    },
+    value: {kind: FieldValueKind.FIELD, meta: {name: FieldKey.USER, dataType: 'string'}},
   },
 };
 

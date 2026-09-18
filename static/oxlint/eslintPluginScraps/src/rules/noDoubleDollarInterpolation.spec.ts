@@ -6,26 +6,11 @@ const ruleTester = new RuleTester();
 
 ruleTester.run('no-double-dollar-interpolation', noDoubleDollarInterpolation, {
   valid: [
-    {
-      code: 'const C = styled.div`gap: ${p => p.theme.space.md};`;',
-      filename: 'file.tsx',
-    },
-    {
-      code: 'const c = css`color: ${p => p.theme.red};`;',
-      filename: 'file.tsx',
-    },
-    {
-      code: 'const C = styled(Base)`padding: ${gap} ${other};`;',
-      filename: 'file.tsx',
-    },
-    {
-      code: 'const price = `$${amount}`;',
-      filename: 'file.tsx',
-    },
-    {
-      code: 'const C = styled.div`content: "\\$"${x};`;',
-      filename: 'file.tsx',
-    },
+    {code: 'const C = styled.div`gap: ${p => p.theme.space.md};`;', filename: 'file.tsx'},
+    {code: 'const c = css`color: ${p => p.theme.red};`;', filename: 'file.tsx'},
+    {code: 'const C = styled(Base)`padding: ${gap} ${other};`;', filename: 'file.tsx'},
+    {code: 'const price = `$${amount}`;', filename: 'file.tsx'},
+    {code: 'const C = styled.div`content: "\\$"${x};`;', filename: 'file.tsx'},
   ],
 
   invalid: [

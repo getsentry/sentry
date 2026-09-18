@@ -124,10 +124,7 @@ export interface Monitor {
   slug: string;
   status: ObjectStatus;
   alertRule?: {
-    targets: Array<{
-      targetIdentifier: number;
-      targetType: 'Member' | 'Team';
-    }>;
+    targets: Array<{targetIdentifier: number; targetType: 'Member' | 'Team'}>;
     environment?: string;
   };
 }

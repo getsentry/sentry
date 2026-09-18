@@ -21,10 +21,7 @@ export function useReplayExists({start, end}: {end?: string; start?: string} = {
   });
 
   return useMemo(
-    () => ({
-      replayExists: hasOne,
-      replaysExist: hasMany,
-    }),
+    () => ({replayExists: hasOne, replaysExist: hasMany}),
     [hasMany, hasOne]
   );
 }

@@ -9,10 +9,7 @@ import {TextField} from 'sentry/components/forms/fields/textField';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 
-type Section = {
-  key: string;
-  heading?: string;
-};
+type Section = {key: string; heading?: string};
 
 // TODO(epurkhiser): This should really use the types from the form system, but
 // they're still pretty bad so that's difficult I guess?
@@ -36,21 +33,10 @@ export type Field = {
 
 // This are ordered based on their display order visually
 const sections: Section[] = [
-  {
-    key: 'system',
-  },
-  {
-    key: 'mail',
-    heading: t('Outbound email'),
-  },
-  {
-    key: 'auth',
-    heading: t('Authentication'),
-  },
-  {
-    key: 'beacon',
-    heading: t('Beacon'),
-  },
+  {key: 'system'},
+  {key: 'mail', heading: t('Outbound email')},
+  {key: 'auth', heading: t('Authentication')},
+  {key: 'beacon', heading: t('Beacon')},
 ];
 
 // This are ordered based on their display order visually
@@ -131,9 +117,7 @@ const definitions: Field[] = [
     ],
     help: tct(
       'If enabled, any stats reported to sentry.io will exclude identifying information (such as your administrative email address). By anonymizing your installation the Sentry team will be unable to contact you about security updates. For more information on what data is sent to Sentry, see the [link:documentation]. Note: This is separate from error-reporting for the self-hosted installer. The data reported to the beacon only includes usage stats from your running self-hosted instance.',
-      {
-        link: <ExternalLink href="https://develop.sentry.dev/self-hosted/" />,
-      }
+      {link: <ExternalLink href="https://develop.sentry.dev/self-hosted/" />}
     ),
   },
   {
@@ -169,17 +153,8 @@ const definitions: Field[] = [
     placeholder: 'localhost',
     defaultValue: () => 'localhost',
   },
-  {
-    key: 'mail.port',
-    label: t('SMTP Port'),
-    placeholder: '25',
-    defaultValue: () => '25',
-  },
-  {
-    key: 'mail.username',
-    label: t('SMTP Username'),
-    defaultValue: () => '',
-  },
+  {key: 'mail.port', label: t('SMTP Port'), placeholder: '25', defaultValue: () => '25'},
+  {key: 'mail.username', label: t('SMTP Username'), defaultValue: () => ''},
   {
     key: 'mail.password',
     label: t('SMTP Password'),

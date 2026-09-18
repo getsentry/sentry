@@ -33,7 +33,5 @@ export const docs: Docs<PlatformOptions> = {
     docsPlatform: 'angular',
     packageName: '@sentry/angular',
   }),
-  agentMonitoringOnboarding: agentMonitoring({
-    packageName: '@sentry/angular',
-  }),
+  agentMonitoringOnboarding: agentMonitoring({packageName: '@sentry/angular'}),
 };

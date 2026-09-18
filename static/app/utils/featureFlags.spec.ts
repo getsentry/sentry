@@ -10,9 +10,7 @@ describe('addOrganizationFeaturesHandler', () => {
   let organization: any;
 
   beforeEach(() => {
-    organization = OrganizationFixture({
-      features: ['enable-issues', 'enable-replay'],
-    });
+    organization = OrganizationFixture({features: ['enable-issues', 'enable-replay']});
   });
 
   it('should pass the flag name and result to the handler on each evaluation', () => {
@@ -41,9 +39,7 @@ describe('addProjectFeaturesHandler', () => {
   let project: any;
 
   beforeEach(() => {
-    project = ProjectFixture({
-      features: ['enable-issues', 'enable-replay'],
-    });
+    project = ProjectFixture({features: ['enable-issues', 'enable-replay']});
   });
 
   it('should pass the flag name and result to the handler on each evaluation', () => {

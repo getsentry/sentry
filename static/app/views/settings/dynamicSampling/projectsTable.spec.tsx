@@ -11,9 +11,7 @@ import {ProjectsTable} from './projectsTable';
 mockElementSize({height: 400});
 
 describe('ProjectsTable', () => {
-  const organization = OrganizationFixture({
-    access: ['org:write'],
-  });
+  const organization = OrganizationFixture({access: ['org:write']});
 
   const project = ProjectFixture();
 
@@ -39,33 +37,25 @@ describe('ProjectsTable', () => {
       access: [], // No org:write access
     });
 
-    render(<ProjectsTable {...defaultProps} canEdit />, {
-      organization: orgWithoutAccess,
-    });
+    render(<ProjectsTable {...defaultProps} canEdit />, {organization: orgWithoutAccess});
 
     expect(screen.getByRole('spinbutton')).toBeDisabled();
   });
 
   it('enables input when user has access and canEdit is true', () => {
-    render(<ProjectsTable {...defaultProps} canEdit />, {
-      organization,
-    });
+    render(<ProjectsTable {...defaultProps} canEdit />, {organization});
 
     expect(screen.getByRole('spinbutton')).toBeEnabled();
   });
 
   it('disables input when canEdit is false, regardless of access', () => {
-    render(<ProjectsTable {...defaultProps} canEdit={false} />, {
-      organization,
-    });
+    render(<ProjectsTable {...defaultProps} canEdit={false} />, {organization});
 
     expect(screen.getByRole('spinbutton')).toBeDisabled();
   });
 
   it('does not show settings button when user does not have project:write access', () => {
-    render(<ProjectsTable {...defaultProps} />, {
-      organization,
-    });
+    render(<ProjectsTable {...defaultProps} />, {organization});
 
     expect(
       screen.queryByRole('button', {name: 'Open Project Settings'})
@@ -77,9 +67,7 @@ describe('ProjectsTable', () => {
       access: ['org:write', 'project:write'],
     });
 
-    render(<ProjectsTable {...defaultProps} />, {
-      organization: orgWithProjectAccess,
-    });
+    render(<ProjectsTable {...defaultProps} />, {organization: orgWithProjectAccess});
 
     expect(
       screen.getByRole('button', {name: 'Open Project Settings'})

@@ -85,12 +85,7 @@ export function ConversationTraceLink({
       to: getTraceUrl(organization.slug, traceId, spanId),
       onAction: trackClick,
     })),
-    {
-      key: 'view-all',
-      label: t('View all'),
-      to: viewAllUrl,
-      onAction: trackClick,
-    },
+    {key: 'view-all', label: t('View all'), to: viewAllUrl, onAction: trackClick},
   ];
 
   return (

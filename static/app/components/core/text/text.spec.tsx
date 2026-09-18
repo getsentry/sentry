@@ -234,9 +234,7 @@ describe('Text', () => {
     });
 
     it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
-      const props: TextPropsWithRenderFunction = {
-        children: () => {},
-      };
+      const props: TextPropsWithRenderFunction = {children: () => {}};
       expectTypeOf(props.children).toEqualTypeOf<
         (props: {className: string}) => React.ReactNode | undefined
       >();

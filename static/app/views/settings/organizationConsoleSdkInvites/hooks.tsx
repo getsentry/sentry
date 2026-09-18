@@ -37,9 +37,7 @@ export function useConsoleSdkInvites(orgSlug: string) {
         path: {organizationIdOrSlug: orgSlug},
       }),
     ],
-    {
-      staleTime: 5000,
-    }
+    {staleTime: 5000}
   );
 }
 

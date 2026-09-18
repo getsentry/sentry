@@ -8,10 +8,7 @@ import {transformSessionsResponseToSeries} from 'sentry/views/dashboards/utils/t
 
 describe('transformSessionsResponseToSeries', () => {
   it('transforms sessions into series', () => {
-    const widgetQuery = WidgetQueryFixture({
-      aggregates: [],
-      orderby: '',
-    });
+    const widgetQuery = WidgetQueryFixture({aggregates: [], orderby: ''});
 
     expect(
       transformSessionsResponseToSeries(
@@ -1114,10 +1111,7 @@ describe('transformSessionsResponseToSeries', () => {
   });
 
   it('returns a single series with 0 as values when there are no groups returned', () => {
-    const widgetQuery = WidgetQueryFixture({
-      aggregates: [],
-      orderby: '',
-    });
+    const widgetQuery = WidgetQueryFixture({aggregates: [], orderby: ''});
     expect(
       transformSessionsResponseToSeries(SessionEmptyGroupedResponseFixture(), widgetQuery)
     ).toEqual([
@@ -1144,21 +1138,13 @@ describe('transformSessionsResponseToSeries', () => {
   });
 
   it('supports legend aliases', () => {
-    const widgetQuery = WidgetQueryFixture({
-      name: 'Lorem',
-      aggregates: [],
-      orderby: '',
-    });
+    const widgetQuery = WidgetQueryFixture({name: 'Lorem', aggregates: [], orderby: ''});
 
     expect(
       transformSessionsResponseToSeries(
         SessionUserCountByStatusByReleaseFixture(),
         widgetQuery
       )[0]
-    ).toEqual(
-      expect.objectContaining({
-        seriesName: 'Lorem > crashed, 1 : sum(session)',
-      })
-    );
+    ).toEqual(expect.objectContaining({seriesName: 'Lorem > crashed, 1 : sum(session)'}));
   });
 });

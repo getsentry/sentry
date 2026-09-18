@@ -39,9 +39,7 @@ export default function OrganizationGeneralSettings() {
       <TextBlock>
         {tct(
           'Removing the organization, [name] is permanent and cannot be undone! Are you sure you want to continue?',
-          {
-            name: organization && <strong>{organization.name}</strong>,
-          }
+          {name: organization && <strong>{organization.name}</strong>}
         )}
       </TextBlock>
 

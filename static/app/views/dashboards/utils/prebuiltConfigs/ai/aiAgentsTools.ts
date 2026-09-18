@@ -96,13 +96,7 @@ const TOOLS_TABLE: PrebuiltWidget = {
       orderby: '-count()',
     },
   ],
-  layout: {
-    x: 0,
-    y: 3,
-    w: 6,
-    h: 4,
-    minH: 2,
-  },
+  layout: {x: 0, y: 3, w: 6, h: 4, minH: 2},
 };
 
 export const AI_AGENTS_TOOLS_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -114,11 +108,7 @@ export const AI_AGENTS_TOOLS_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: [
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'gen_ai.tool.name',
-          name: 'gen_ai.tool.name',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'gen_ai.tool.name', name: 'gen_ai.tool.name', kind: FieldKind.TAG},
         value: '',
       },
     ],

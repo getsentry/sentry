@@ -73,12 +73,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     isPending,
     refetch,
   } = useStacktraceLink(
-    {
-      event,
-      frame,
-      orgSlug: organization.slug,
-      projectSlug: project?.slug,
-    },
+    {event, frame, orgSlug: organization.slug, projectSlug: project?.slug},
     {
       enabled: isQueryEnabled, // The query will not run until `isQueryEnabled` is true
     }

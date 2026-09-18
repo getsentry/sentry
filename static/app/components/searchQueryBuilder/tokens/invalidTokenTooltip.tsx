@@ -78,9 +78,7 @@ export function InvalidTokenTooltip({
   );
 }
 
-type GridInvalidTokenTooltipProps = InvalidTokenTooltipProps & {
-  columnCount: number;
-};
+type GridInvalidTokenTooltipProps = InvalidTokenTooltipProps & {columnCount: number};
 
 export function GridInvalidTokenTooltip({
   children,

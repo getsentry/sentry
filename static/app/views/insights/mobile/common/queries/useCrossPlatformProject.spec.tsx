@@ -11,12 +11,7 @@ import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queri
 function initializePageFilters(projects: number[]) {
   PageFiltersStore.onInitializeUrlState(
     PageFiltersFixture({
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '10d', start: null, end: null, utc: false},
       projects,
     })
   );

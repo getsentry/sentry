@@ -11,11 +11,7 @@ import {docs} from '.';
 describe('apple-macos onboarding docs', () => {
   it('renders docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.cocoa': {
-          version: '1.99.9',
-        },
-      },
+      releaseRegistry: {'sentry.cocoa': {version: '1.99.9'}},
     });
 
     // Renders main headings
@@ -61,17 +57,9 @@ describe('apple-macos onboarding docs', () => {
   });
 
   it('renders continuous profiling', () => {
-    const organization = OrganizationFixture({
-      features: ['continuous-profiling'],
-    });
+    const organization = OrganizationFixture({features: ['continuous-profiling']});
 
-    renderWithOnboardingLayout(
-      docs,
-      {},
-      {
-        organization,
-      }
-    );
+    renderWithOnboardingLayout(docs, {}, {organization});
 
     // Does not render transaction profiling config
     expect(

@@ -43,24 +43,17 @@ export const inputStyles = ({
 
     borderRadius: theme.form[size].borderRadius,
 
-    '&::placeholder': {
-      color: theme.tokens.content.secondary,
-      opacity: 1,
-    },
+    '&::placeholder': {color: theme.tokens.content.secondary, opacity: 1},
 
     "&[disabled], &[aria-disabled='true']": {
       color: theme.tokens.content.disabled,
       cursor: 'not-allowed',
       opacity: '60%',
 
-      '&::placeholder': {
-        color: theme.tokens.content.disabled,
-      },
+      '&::placeholder': {color: theme.tokens.content.disabled},
     },
 
-    '&:focus, &:focus-visible, :focus-within': {
-      ...theme.focusRing(boxShadow),
-    },
+    '&:focus, &:focus-visible, :focus-within': {...theme.focusRing(boxShadow)},
     "&[type='number']": {
       appearance: 'textfield',
       MozAppearance: 'textfield',

@@ -41,9 +41,7 @@ export type SeerAgenticTriageRunIssue = {
 };
 
 // A Seer run dispatched by an agentic triage run, openable in Explorer.
-type SeerAgenticTriageSeerRun = {
-  seerRunId: string | null;
-};
+type SeerAgenticTriageSeerRun = {seerRunId: string | null};
 
 type SeerAgenticTriageRunOptions = {
   dry_run?: boolean;
@@ -72,9 +70,7 @@ export type SeerAgenticTriageRun = SeerWorkflowRunBase & {
 
 export type WorkflowStrategy = SeerWorkflowRun['strategy'];
 
-export type WorkflowRunCreateRequest = {
-  strategy: WorkflowStrategy;
-};
+export type WorkflowRunCreateRequest = {strategy: WorkflowStrategy};
 
 export type SeerWorkflowResult = {
   extras: unknown;
@@ -99,10 +95,7 @@ const monitorCleanupResourceSchema = z.object({
 export const monitorCleanupOutputSchema = z.object({
   projectId: z.string(),
   projectSlug: z.string(),
-  scan: z.object({
-    status: z.string(),
-    monitorsScanned: z.number().int().nonnegative(),
-  }),
+  scan: z.object({status: z.string(), monitorsScanned: z.number().int().nonnegative()}),
   findings: z.array(
     z.object({
       kind: z.string(),

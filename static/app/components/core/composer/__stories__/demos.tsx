@@ -46,10 +46,7 @@ const SOURCES = [
   },
 ] satisfies ReadonlyArray<ComposerSource<Suggestion>>;
 
-const MENTION_PLUGIN: ComposerPlugin = {
-  id: 'mentions',
-  getSources: () => SOURCES,
-};
+const MENTION_PLUGIN: ComposerPlugin = {id: 'mentions', getSources: () => SOURCES};
 
 const RESTORED_TEXT = 'Continue with @Alice Example on the checkout regression.';
 const RESTORED_MENTION_TEXT = '@Alice Example';

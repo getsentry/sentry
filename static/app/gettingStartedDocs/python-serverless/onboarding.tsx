@@ -92,9 +92,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock(),
       ],
@@ -111,11 +109,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getSdkSetupSnippet(params),
-        },
+        {type: 'code', language: 'python', code: getSdkSetupSnippet(params)},
         alternativeProfiling(params),
       ],
     },
@@ -128,16 +122,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Wrap a functions with the [code:serverless_function] that triggers an error:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'python', code: getVerifySnippet()},
         logsVerify(params),
         metricsVerify(params),
         {

@@ -44,9 +44,7 @@ def tell_the_world(msg):
       <div>
         {tct(
           '[installLink:Install and configure] the Sentry Python SDK (min v1.17.0), then instrument your monitor:',
-          {
-            installLink: <ExternalLink href="https://docs.sentry.io/platforms/python/" />,
-          }
+          {installLink: <ExternalLink href="https://docs.sentry.io/platforms/python/" />}
         )}
       </div>
       <CodeBlock language="python">{code}</CodeBlock>
@@ -109,9 +107,7 @@ sentry-cli monitors run ${slug} -- python path/to/file`;
       <div>
         {tct(
           'Make sure to [installLink:install the Sentry CLI] (min v2.16.1), then instrument your monitor:',
-          {
-            installLink: <ExternalLink href="https://docs.sentry.io/cli/installation/" />,
-          }
+          {installLink: <ExternalLink href="https://docs.sentry.io/cli/installation/" />}
         )}
       </div>
       <CodeBlock language="bash">{script}</CodeBlock>
@@ -177,9 +173,7 @@ $checkInId = \\Sentry\\captureCheckIn(
       <div>
         {tct(
           '[installLink:Install and configure] the Sentry PHP SDK (min v3.16.0), then instrument your monitor:',
-          {
-            installLink: <ExternalLink href="https://docs.sentry.io/platforms/php/" />,
-          }
+          {installLink: <ExternalLink href="https://docs.sentry.io/platforms/php/" />}
         )}
       </div>
       <CodeBlock language="php">{checkInSuccessCode}</CodeBlock>
@@ -301,9 +295,7 @@ sentry.CaptureCheckIn(
       <div>
         {tct(
           '[installLink:Install and configure] the Sentry Go SDK (min v0.23.0), then instrument your monitor:',
-          {
-            installLink: <ExternalLink href="https://docs.sentry.io/platforms/go/" />,
-          }
+          {installLink: <ExternalLink href="https://docs.sentry.io/platforms/go/" />}
         )}
       </div>
       <CodeBlock language="go">{checkInSuccessCode}</CodeBlock>
@@ -328,9 +320,7 @@ String result = CheckInUtils.withCheckIn("${slug}", () -> {
       <div>
         {tct(
           '[installLink:Install and configure] the Sentry Java SDK (min v6.30.0), then instrument your monitor:',
-          {
-            installLink: <ExternalLink href="https://docs.sentry.io/platforms/java/" />,
-          }
+          {installLink: <ExternalLink href="https://docs.sentry.io/platforms/java/" />}
         )}
       </div>
       <CodeBlock language="java">{checkInSuccessCode}</CodeBlock>
@@ -420,9 +410,7 @@ Sentry.capture_check_in('${slug}', :error, check_in_id: check_in_id)`;
       <div>
         {tct(
           '[installLink:Install and configure] the Sentry Ruby SDK (min v5.12.0), then instrument your monitor:',
-          {
-            installLink: <ExternalLink href="https://docs.sentry.io/platforms/ruby/" />,
-          }
+          {installLink: <ExternalLink href="https://docs.sentry.io/platforms/ruby/" />}
         )}
       </div>
       <CodeBlock language="ruby">{checkInSuccessCode}</CodeBlock>
@@ -530,9 +518,7 @@ SentrySdk.CaptureCheckIn("${slug}", CheckInStatus.Error, checkInId);`;
       <div>
         {tct(
           '[installLink:Install and configure] the Sentry .NET SDK (min v4.2.0), then instrument your monitor:',
-          {
-            installLink: <ExternalLink href="https://docs.sentry.io/platforms/dotnet/" />,
-          }
+          {installLink: <ExternalLink href="https://docs.sentry.io/platforms/dotnet/" />}
         )}
       </div>
       <CodeBlock language="csharp">{checkInSuccessCode}</CodeBlock>
@@ -568,9 +554,7 @@ public class PricingUpdateWorker
       <div>
         {tct(
           '[installLink:Install and configure] the Sentry .NET SDK, add the Sentry.Hangfire package, then instrument your monitor:',
-          {
-            installLink: <ExternalLink href="https://docs.sentry.io/platforms/dotnet/" />,
-          }
+          {installLink: <ExternalLink href="https://docs.sentry.io/platforms/dotnet/" />}
         )}
       </div>
       <CodeBlock language="csharp">{code}</CodeBlock>

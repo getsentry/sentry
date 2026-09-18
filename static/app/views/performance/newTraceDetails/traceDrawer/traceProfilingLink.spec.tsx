@@ -27,9 +27,7 @@ const organization = OrganizationFixture({slug: 'sentry'});
 
 describe('traceProfilingLink', () => {
   describe('required params', () => {
-    const node = new TransactionNode(null, makeTransaction(), {
-      organization,
-    });
+    const node = new TransactionNode(null, makeTransaction(), {organization});
 
     it('requires projectSlug', () => {
       const event = makeTransaction();
@@ -74,9 +72,7 @@ describe('traceProfilingLink', () => {
         timestamp: timestamp / 1e3,
         event_id: 'event',
       }),
-      {
-        organization,
-      }
+      {organization}
     );
 
     const link = makeTraceContinuousProfilingLink(node, 'profiler', {

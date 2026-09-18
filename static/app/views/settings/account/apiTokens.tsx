@@ -129,9 +129,7 @@ function ApiTokens() {
             <div>
               {tct(
                 'For more information on how to use the web API, see our [link:documentation].',
-                {
-                  link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                }
+                {link: <ExternalLink href="https://docs.sentry.io/api/" />}
               )}
             </div>
           </Stack>

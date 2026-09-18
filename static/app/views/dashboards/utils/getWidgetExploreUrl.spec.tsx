@@ -61,9 +61,7 @@ describe('getWidgetExploreUrl', () => {
       ],
     });
 
-    const widgetSelection = PageFiltersFixture({
-      projects: [17762],
-    });
+    const widgetSelection = PageFiltersFixture({projects: [17762]});
 
     const url = getWidgetExploreUrl(widget, undefined, widgetSelection, organization);
 
@@ -299,9 +297,7 @@ describe('getWidgetExploreUrl', () => {
 
     const url = getWidgetExploreUrl(
       widget,
-      {
-        release: ['1.0.0', '2.0.0'],
-      },
+      {release: ['1.0.0', '2.0.0']},
       selection,
       organization
     );
@@ -551,9 +547,7 @@ describe('getWidgetTableRowExploreUrlFunction', () => {
       widget,
       organization
     );
-    const url = urlGenerator({
-      'browser.name': 'Chrome',
-    });
+    const url = urlGenerator({'browser.name': 'Chrome'});
 
     expectUrl(url).toMatch({
       path: '/organizations/org-slug/explore/traces/',

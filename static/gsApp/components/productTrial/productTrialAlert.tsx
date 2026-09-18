@@ -82,10 +82,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
         organization={organization}
         source="alert-product-trials"
         requestData={{
-          productTrial: {
-            category: trial.category,
-            reasonCode: trial.reasonCode,
-          },
+          productTrial: {category: trial.category, reasonCode: trial.reasonCode},
         }}
         aria-label={t('Start trial')}
         variant="primary"
@@ -131,11 +128,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
           action={
             hasBillingRole ? UsageAction.ADD_EVENTS : UsageAction.REQUEST_ADD_EVENTS
           }
-          buttonProps={{
-            variant: 'secondary',
-            size: 'xs',
-            style: {marginBlock: '-2px'},
-          }}
+          buttonProps={{variant: 'secondary', size: 'xs', style: {marginBlock: '-2px'}}}
           eventTypes={eventTypes}
           referrer={`product-trial-alert-${eventTypes.join('-')}`}
           source="product-trial-alert"

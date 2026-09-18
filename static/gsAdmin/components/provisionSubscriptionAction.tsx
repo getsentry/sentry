@@ -196,10 +196,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         }, {})
       : {};
 
-    this.setState(state => ({
-      ...state,
-      provisionablePlans,
-    }));
+    this.setState(state => ({...state, provisionablePlans}));
 
     const existingPlanWithoutSuffix = subscription.plan.endsWith('_auf')
       ? subscription.plan.slice(0, -4)
@@ -451,10 +448,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       // clear corresponding state
       this.setState(state => ({
         ...state,
-        data: {
-          ...state.data,
-          onDemandInvoicedManual: null,
-        },
+        data: {...state.data, onDemandInvoicedManual: null},
       }));
     }
 
@@ -463,13 +457,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       Object.keys(postData).forEach(key => {
         if (key.startsWith('softCapType')) {
           postData[key] = null;
-          this.setState(state => ({
-            ...state,
-            data: {
-              ...state.data,
-              [key]: null,
-            },
-          }));
+          this.setState(state => ({...state, data: {...state.data, [key]: null}}));
         }
       });
     } else {
@@ -576,9 +564,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         this.props.closeModal();
       },
       error: error => {
-        this.onSubmitError({
-          responseJSON: error.responseJSON,
-        });
+        this.onSubmitError({responseJSON: error.responseJSON});
       },
     });
   };
@@ -633,11 +619,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                         }, {});
                       this.setState(state => ({
                         ...state,
-                        data: {
-                          ...state.data,
-                          plan: v,
-                          ...nextReservedCpes,
-                        },
+                        data: {...state.data, plan: v, ...nextReservedCpes},
                       }));
                     }}
                     value={this.state.data.plan}
@@ -716,10 +698,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                       const v = option?.value;
                       this.setState(state => ({
                         ...state,
-                        data: {
-                          ...this.state.data,
-                          billingInterval: v,
-                        },
+                        data: {...this.state.data, billingInterval: v},
                       }));
                     }}
                   />
@@ -820,10 +799,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                         const v = e.target.checked;
                         this.setState(state => ({
                           ...state,
-                          data: {
-                            ...state.data,
-                            retainOnDemandBudget: v,
-                          },
+                          data: {...state.data, retainOnDemandBudget: v},
                         }));
                       }}
                     />
@@ -956,10 +932,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
 
                                       return {
                                         ...state,
-                                        data: {
-                                          ...state.data,
-                                          ...updates,
-                                        },
+                                        data: {...state.data, ...updates},
                                       };
                                     });
                                   }}

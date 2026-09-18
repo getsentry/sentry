@@ -6,10 +6,7 @@ import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBui
 import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
-type Props = {
-  equation: string;
-  onUpdate: (value: string) => void;
-};
+type Props = {equation: string; onUpdate: (value: string) => void};
 
 export function ExploreArithmeticBuilder({equation, onUpdate}: Props) {
   const expression = stripEquationPrefix(equation);

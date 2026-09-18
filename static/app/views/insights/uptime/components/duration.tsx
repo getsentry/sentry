@@ -4,10 +4,7 @@ import type {TextProps} from '@sentry/scraps/text';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import type {UptimeSummary} from 'sentry/views/detectors/components/uptime/types';
 
-type UptimeDurationProps = {
-  summary: UptimeSummary;
-  size?: TextProps<'span'>['size'];
-};
+type UptimeDurationProps = {summary: UptimeSummary; size?: TextProps<'span'>['size']};
 
 export function UptimeDuration({summary, size}: UptimeDurationProps) {
   const avgDurationSeconds = summary.avgDurationUs / 1000000;

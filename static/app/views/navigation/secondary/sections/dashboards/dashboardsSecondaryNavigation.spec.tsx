@@ -23,14 +23,8 @@ describe('DashboardsSecondaryNavigation', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/dashboards/`,
       body: [
-        DashboardListItemFixture({
-          id: '9999',
-          title: 'Dashboard 9999',
-        }),
-        DashboardListItemFixture({
-          id: '1',
-          title: 'Dashboard 1',
-        }),
+        DashboardListItemFixture({id: '9999', title: 'Dashboard 9999'}),
+        DashboardListItemFixture({id: '1', title: 'Dashboard 1'}),
       ],
       match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
     });

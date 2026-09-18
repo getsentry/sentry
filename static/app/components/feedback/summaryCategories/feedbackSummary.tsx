@@ -23,17 +23,11 @@ export function FeedbackSummary() {
       return;
     }
     if (isError) {
-      trackAnalytics('feedback.summary.summary-error', {
-        organization,
-      });
+      trackAnalytics('feedback.summary.summary-error', {organization});
     } else if (tooFewFeedbacks) {
-      trackAnalytics('feedback.summary.summary-too-few-feedbacks', {
-        organization,
-      });
+      trackAnalytics('feedback.summary.summary-too-few-feedbacks', {organization});
     } else {
-      trackAnalytics('feedback.summary.summary-rendered', {
-        organization,
-      });
+      trackAnalytics('feedback.summary.summary-rendered', {organization});
     }
   }, [organization, isError, tooFewFeedbacks, isPending, isOrgSeerSetupPending]);
 

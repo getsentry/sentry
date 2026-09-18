@@ -12,14 +12,8 @@ describe('Grouping Variant', () => {
       {
         type: 'spans',
         data: [
-          {
-            span_id: '1',
-            hash: 'hash1',
-          },
-          {
-            span_id: '2',
-            hash: 'hash2',
-          },
+          {span_id: '1', hash: 'hash1'},
+          {span_id: '2', hash: 'hash2'},
         ],
       },
     ],

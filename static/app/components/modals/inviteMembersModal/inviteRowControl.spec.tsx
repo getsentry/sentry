@@ -14,25 +14,12 @@ import type {DetailedTeam} from 'sentry/types/organization';
 
 describe('InviteRowControlNew', () => {
   const teamData = [
-    {
-      id: '1',
-      slug: 'moo-deng',
-      name: "Moo Deng's Team",
-      isMember: true,
-    },
-    {
-      id: '2',
-      slug: 'moo-waan',
-      name: "Moo Waan's Team",
-      isMember: false,
-    },
+    {id: '1', slug: 'moo-deng', name: "Moo Deng's Team", isMember: true},
+    {id: '2', slug: 'moo-waan', name: "Moo Waan's Team", isMember: false},
   ];
   const teams: DetailedTeam[] = teamData.map(data => TeamFixture(data));
 
-  const billingProps = {
-    ...defaultInviteProps,
-    isOverMemberLimit: true,
-  };
+  const billingProps = {...defaultInviteProps, isOverMemberLimit: true};
 
   const getComponent = (props: InviteMembersContextValue) => (
     <InviteMembersContext value={props}>
@@ -127,10 +114,7 @@ describe('InviteRowControlNew', () => {
     render(
       getComponent({
         ...defaultInviteProps,
-        pendingInvites: {
-          ...defaultInviteProps.pendingInvites,
-          role: 'billing',
-        },
+        pendingInvites: {...defaultInviteProps.pendingInvites, role: 'billing'},
       })
     );
     const teamInput = screen.getByRole('textbox', {name: 'Add to Team'});
@@ -142,10 +126,7 @@ describe('InviteRowControlNew', () => {
     render(
       getComponent({
         ...defaultInviteProps,
-        pendingInvites: {
-          ...defaultInviteProps.pendingInvites,
-          role: 'member',
-        },
+        pendingInvites: {...defaultInviteProps.pendingInvites, role: 'member'},
         setTeams: mockSetTeams,
       })
     );

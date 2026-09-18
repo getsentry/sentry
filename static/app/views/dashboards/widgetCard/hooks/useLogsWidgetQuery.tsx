@@ -89,10 +89,7 @@ export function useLogsSeriesQuery(
         ...restParams
       } = requestData;
 
-      const queryParams = {
-        ...restParams,
-        ...(period ? {statsPeriod: period} : {}),
-      };
+      const queryParams = {...restParams, ...(period ? {statsPeriod: period} : {})};
 
       if (queryParams.start) {
         queryParams.start = getUtcDateString(queryParams.start);
@@ -138,11 +135,7 @@ export function useLogsSeriesQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: Series[] = [];
@@ -284,11 +277,7 @@ export function useLogsTableQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const tableResults: TableDataWithTitle[] = [];

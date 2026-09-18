@@ -714,11 +714,7 @@ describe('search links', () => {
         'Querying issues for unresolved issues related to logs page in the last 7 days',
       url: {
         pathname: '/organizations/org-slug/issues/',
-        query: {
-          query: 'is:unresolved logs',
-          project: null,
-          statsPeriod: '7d',
-        },
+        query: {query: 'is:unresolved logs', project: null, statsPeriod: '7d'},
       },
     });
   });

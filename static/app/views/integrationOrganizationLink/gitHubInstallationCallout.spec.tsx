@@ -37,10 +37,7 @@ describe('GitHubInstallationCallout', () => {
 
   it('renders the warning callout and surfaces an error toast when the lookup fails', async () => {
     const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
-    MockApiClient.addMockResponse({
-      url: INSTALLATION_URL,
-      statusCode: 500,
-    });
+    MockApiClient.addMockResponse({url: INSTALLATION_URL, statusCode: 500});
 
     render(<GitHubInstallationCallout installationId={INSTALLATION_ID} />);
 

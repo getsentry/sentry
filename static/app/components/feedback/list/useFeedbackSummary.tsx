@@ -26,22 +26,11 @@ export function useFeedbackSummary(): {
   const {data, isPending, isError} = useApiQuery<FeedbackSummaryResponse>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/feedback-summary/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
+        path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          ...normalizedDateRange,
-          project: selection.projects,
-        },
-      },
+      {query: {...normalizedDateRange, project: selection.projects}},
     ],
-    {
-      staleTime: 5000,
-      enabled: Boolean(normalizedDateRange),
-      retry: 1,
-    }
+    {staleTime: 5000, enabled: Boolean(normalizedDateRange), retry: 1}
   );
 
   if (isPending) {

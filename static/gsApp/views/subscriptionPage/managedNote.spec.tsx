@@ -10,10 +10,7 @@ describe('ManagedNote', () => {
   const organization = OrganizationFixture();
 
   it('renders nothing when subscription can self-serve', () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      canSelfServe: true,
-    });
+    const subscription = SubscriptionFixture({organization, canSelfServe: true});
 
     const {container} = render(<ManagedNote subscription={subscription} />);
     expect(container).toBeEmptyDOMElement();
@@ -26,11 +23,7 @@ describe('ManagedNote', () => {
       partner: {
         externalId: 'x123x',
         name: 'Org',
-        partnership: {
-          id: 'VC',
-          displayName: 'XX',
-          supportNote: '',
-        },
+        partnership: {id: 'VC', displayName: 'XX', supportNote: ''},
         isActive: true,
       },
     });
@@ -74,11 +67,7 @@ describe('ManagedNote', () => {
       partner: {
         externalId: 'x123x',
         name: 'GitHub Org',
-        partnership: {
-          id: 'GH',
-          displayName: 'GitHub',
-          supportNote: '',
-        },
+        partnership: {id: 'GH', displayName: 'GitHub', supportNote: ''},
         isActive: true,
       },
     });
@@ -100,11 +89,7 @@ describe('ManagedNote', () => {
       partner: {
         externalId: 'x123x',
         name: 'Heroku Org',
-        partnership: {
-          id: 'HK',
-          displayName: 'Heroku',
-          supportNote: '',
-        },
+        partnership: {id: 'HK', displayName: 'Heroku', supportNote: ''},
         isActive: true,
       },
     });
@@ -120,10 +105,7 @@ describe('ManagedNote', () => {
   });
 
   it('renders default support message for other cases', () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      canSelfServe: false,
-    });
+    const subscription = SubscriptionFixture({organization, canSelfServe: false});
 
     render(<ManagedNote subscription={subscription} />);
     expect(screen.getByRole('link')).toHaveAttribute('href', 'mailto:support@sentry.io');

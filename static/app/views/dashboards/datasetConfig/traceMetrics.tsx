@@ -106,28 +106,19 @@ function TraceMetricsSearchBar({
     );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {
-        query: attributeQuery,
-        enabled: defined(traceMetrics[0]),
-      },
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
       'number',
       HiddenTraceMetricSearchFields
     );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {
-        query: attributeQuery,
-        enabled: defined(traceMetrics[0]),
-      },
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
       'boolean',
       HiddenTraceMetricSearchFields
     );
   const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
     useTraceMetricItemAttributes(
-      {
-        query: attributeQuery,
-        enabled: defined(traceMetrics[0]) && supportsArrays,
-      },
+      {query: attributeQuery, enabled: defined(traceMetrics[0]) && supportsArrays},
       'array',
       HiddenTraceMetricSearchFields
     );
@@ -323,16 +314,10 @@ export const TraceMetricsConfig: DatasetConfig<
   getTableSortOptions: (organization, widgetQuery) =>
     getTableSortOptions(organization, widgetQuery).map(({value, label}) => {
       if (isEquationAlias(value)) {
-        return {
-          label: `ƒ${getEquationAliasIndex(value) + 1}`,
-          value,
-        };
+        return {label: `ƒ${getEquationAliasIndex(value) + 1}`, value};
       }
 
-      return {
-        label,
-        value,
-      };
+      return {label, value};
     }),
   getGroupByFieldOptions,
   supportedDisplayTypes: [
@@ -374,10 +359,7 @@ export const TraceMetricsConfig: DatasetConfig<
           value: value.value ?? 0,
         })),
 
-        seriesName: formatMetricsTimeseriesLabel({
-          widgetQuery,
-          timeSeries,
-        }),
+        seriesName: formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
       };
     });
   },

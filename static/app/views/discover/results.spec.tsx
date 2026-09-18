@@ -22,41 +22,25 @@ import {
 } from 'sentry/views/discover/results/data';
 
 const FIELDS = [
-  {
-    field: 'title',
-  },
-  {
-    field: 'timestamp',
-  },
-  {
-    field: 'user',
-  },
-  {
-    field: 'count()',
-  },
+  {field: 'title'},
+  {field: 'timestamp'},
+  {field: 'user'},
+  {field: 'count()'},
 ];
 
-const generateFields = () => ({
-  field: FIELDS.map(i => i.field),
-});
+const generateFields = () => ({field: FIELDS.map(i => i.field)});
 
 const eventTitle = 'Oh no something bad';
 
 function renderMockRequests() {
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/projects/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/projects-count/',
     body: {myProjects: 10, allProjects: 300},
   });
 
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/tags/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
 
   const eventsStatsMock = MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events-stats/',
@@ -106,9 +90,7 @@ function renderMockRequests() {
 
   const eventsMetaMock = MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events-meta/',
-    body: {
-      count: 2,
-    },
+    body: {count: 2},
   });
 
   MockApiClient.addMockResponse({
@@ -121,13 +103,7 @@ function renderMockRequests() {
       title: 'Oh no something bad',
       message: 'It was not good',
       dateCreated: '2019-05-23T22:12:48+00:00',
-      entries: [
-        {
-          type: 'message',
-          message: 'bad stuff',
-          data: {},
-        },
-      ],
+      entries: [{type: 'message', message: 'bad stuff', data: {}}],
       tags: [{key: 'browser', value: 'Firefox'}],
     },
   });
@@ -135,10 +111,7 @@ function renderMockRequests() {
   const eventFacetsMock = MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events-facets/',
     body: [
-      {
-        key: 'release',
-        topValues: [{count: 3, value: 'abcd123', name: 'abcd123'}],
-      },
+      {key: 'release', topValues: [{count: 3, value: 'abcd123', name: 'abcd123'}]},
       {
         key: 'environment',
         topValues: [
@@ -175,9 +148,7 @@ function renderMockRequests() {
       expired: false,
       dateCreated: '2021-04-08T17:53:25.195782Z',
       dateUpdated: '2021-04-09T12:13:18.567264Z',
-      createdBy: {
-        id: '2',
-      },
+      createdBy: {id: '2'},
       environment: [],
       fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
       widths: ['-1', '-1', '-1', '-1', '-1'],
@@ -199,9 +170,7 @@ function renderMockRequests() {
       expired: false,
       dateCreated: '2021-04-08T17:53:25.195782Z',
       dateUpdated: '2021-04-09T12:13:18.567264Z',
-      createdBy: {
-        id: '2',
-      },
+      createdBy: {id: '2'},
       environment: [],
       fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
       widths: ['-1', '-1', '-1', '-1', '-1'],
@@ -236,9 +205,7 @@ describe('Results', () => {
   describe('Events', () => {
     const features = ['discover-basic'];
     it('loads data when moving from an invalid to valid EventView', async () => {
-      const organization = OrganizationFixture({
-        features,
-      });
+      const organization = OrganizationFixture({features});
 
       const mockRequests = renderMockRequests();
 
@@ -262,18 +229,14 @@ describe('Results', () => {
         `/organizations/${organization.slug}/explore/discover/results/`
       );
       expect(router.location.query).toEqual(
-        expect.objectContaining({
-          query: 'tag:value',
-        })
+        expect.objectContaining({query: 'tag:value'})
       );
 
       expect(mockRequests.eventsStatsMock).toHaveBeenCalled();
     });
 
     it('pagination cursor should be cleared when making a search', async () => {
-      const organization = OrganizationFixture({
-        features,
-      });
+      const organization = OrganizationFixture({features});
 
       const mockRequests = renderMockRequests();
 
@@ -283,10 +246,7 @@ describe('Results', () => {
         initialRouterConfig: {
           location: {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
-            query: {
-              ...generateFields(),
-              cursor: '0%3A50%3A0',
-            },
+            query: {...generateFields(), cursor: '0%3A50%3A0'},
           },
           route: '/organizations/:orgId/explore/discover/results/',
         },
@@ -295,10 +255,7 @@ describe('Results', () => {
 
       // ensure cursor query string is initially present in the location
       expect(router.location.query).toEqual(
-        expect.objectContaining({
-          ...generateFields(),
-          cursor: '0%3A50%3A0',
-        })
+        expect.objectContaining({...generateFields(), cursor: '0%3A50%3A0'})
       );
 
       await waitFor(() =>
@@ -331,9 +288,7 @@ describe('Results', () => {
     });
 
     it('renders a y-axis selector', async () => {
-      const organization = OrganizationFixture({
-        features,
-      });
+      const organization = OrganizationFixture({features});
 
       renderMockRequests();
 
@@ -358,9 +313,7 @@ describe('Results', () => {
     });
 
     it('renders a display selector', async () => {
-      const organization = OrganizationFixture({
-        features,
-      });
+      const organization = OrganizationFixture({features});
 
       renderMockRequests();
 
@@ -385,9 +338,7 @@ describe('Results', () => {
     });
 
     it('excludes top5 options when plan does not include discover-query', async () => {
-      const organization = OrganizationFixture({
-        features: ['discover-basic'],
-      });
+      const organization = OrganizationFixture({features: ['discover-basic']});
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
@@ -411,9 +362,7 @@ describe('Results', () => {
     });
 
     it('needs confirmation on long queries', async () => {
-      const organization = OrganizationFixture({
-        features: ['discover-basic'],
-      });
+      const organization = OrganizationFixture({features: ['discover-basic']});
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
@@ -435,9 +384,7 @@ describe('Results', () => {
     });
 
     it('needs confirmation on long query with explicit projects', async () => {
-      const organization = OrganizationFixture({
-        features: ['discover-basic'],
-      });
+      const organization = OrganizationFixture({features: ['discover-basic']});
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
@@ -463,9 +410,7 @@ describe('Results', () => {
     });
 
     it('does not need confirmation on short queries', async () => {
-      const organization = OrganizationFixture({
-        features: ['discover-basic'],
-      });
+      const organization = OrganizationFixture({features: ['discover-basic']});
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
@@ -488,9 +433,7 @@ describe('Results', () => {
     });
 
     it('does not need confirmation with too few projects', async () => {
-      const organization = OrganizationFixture({
-        features: ['discover-basic'],
-      });
+      const organization = OrganizationFixture({features: ['discover-basic']});
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
@@ -517,10 +460,7 @@ describe('Results', () => {
     });
 
     it('creates event view from saved query', async () => {
-      const organization = OrganizationFixture({
-        features,
-        slug: 'org-slug',
-      });
+      const organization = OrganizationFixture({features, slug: 'org-slug'});
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
@@ -567,10 +507,7 @@ describe('Results', () => {
     });
 
     it('overrides saved query params with location query params', async () => {
-      const organization = OrganizationFixture({
-        features,
-        slug: 'org-slug',
-      });
+      const organization = OrganizationFixture({features, slug: 'org-slug'});
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
@@ -605,9 +542,7 @@ describe('Results', () => {
     });
 
     it('updates chart whenever yAxis parameter changes', async () => {
-      const organization = OrganizationFixture({
-        features,
-      });
+      const organization = OrganizationFixture({features});
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
@@ -630,10 +565,7 @@ describe('Results', () => {
         1,
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            statsPeriod: '14d',
-            yAxis: ['count()'],
-          }),
+          query: expect.objectContaining({statsPeriod: '14d', yAxis: ['count()']}),
         })
       );
 
@@ -660,9 +592,7 @@ describe('Results', () => {
     });
 
     it('updates chart whenever display parameter changes', async () => {
-      const organization = OrganizationFixture({
-        features,
-      });
+      const organization = OrganizationFixture({features});
 
       const {eventsStatsMock} = renderMockRequests();
 
@@ -685,10 +615,7 @@ describe('Results', () => {
         1,
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            statsPeriod: '14d',
-            yAxis: ['count()'],
-          }),
+          query: expect.objectContaining({statsPeriod: '14d', yAxis: ['count()']}),
         })
       );
 
@@ -707,18 +634,13 @@ describe('Results', () => {
         2,
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            statsPeriod: '28d',
-            yAxis: ['count()'],
-          }),
+          query: expect.objectContaining({statsPeriod: '28d', yAxis: ['count()']}),
         })
       );
     });
 
     it('updates chart whenever display and yAxis parameters change', async () => {
-      const organization = OrganizationFixture({
-        features,
-      });
+      const organization = OrganizationFixture({features});
 
       const {eventsStatsMock} = renderMockRequests();
 
@@ -741,10 +663,7 @@ describe('Results', () => {
         1,
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            statsPeriod: '14d',
-            yAxis: ['count()'],
-          }),
+          query: expect.objectContaining({statsPeriod: '14d', yAxis: ['count()']}),
         })
       );
 
@@ -772,9 +691,7 @@ describe('Results', () => {
     });
 
     it('appends tag value to existing query when clicked', async () => {
-      const organization = OrganizationFixture({
-        features,
-      });
+      const organization = OrganizationFixture({features});
 
       const mockRequests = renderMockRequests();
 
@@ -814,23 +731,23 @@ describe('Results', () => {
     });
 
     it('respects pinned filters for prebuilt queries', async () => {
-      const organization = OrganizationFixture({
-        features: [...features],
-      });
+      const organization = OrganizationFixture({features: [...features]});
 
       renderMockRequests();
 
-      jest.spyOn(PageFilterPersistence, 'getPageFilterStorage').mockReturnValue({
-        state: {
-          project: [1],
-          environment: [],
-          start: null,
-          end: null,
-          period: '14d',
-          utc: null,
-        },
-        pinnedFilters: new Set(['projects']),
-      });
+      jest
+        .spyOn(PageFilterPersistence, 'getPageFilterStorage')
+        .mockReturnValue({
+          state: {
+            project: [1],
+            environment: [],
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          pinnedFilters: new Set(['projects']),
+        });
 
       ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'Pinned Project'})]);
 
@@ -855,18 +772,10 @@ describe('Results', () => {
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
-        body: {
-          meta: {
-            fields: {},
-            tips: {query: 'this is a tip'},
-          },
-          data: [],
-        },
+        body: {meta: {fields: {}, tips: {query: 'this is a tip'}}, data: []},
       });
 
-      const organization = OrganizationFixture({
-        features,
-      });
+      const organization = OrganizationFixture({features});
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
@@ -887,9 +796,7 @@ describe('Results', () => {
     });
 
     it('renders unparameterized data banner', async () => {
-      const organization = OrganizationFixture({
-        features: ['discover-basic'],
-      });
+      const organization = OrganizationFixture({features: ['discover-basic']});
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
@@ -947,9 +854,7 @@ describe('Results', () => {
       expect(mockHomepageUpdate).toHaveBeenCalledWith(
         '/organizations/org-slug/discover/homepage/',
         expect.objectContaining({
-          data: expect.objectContaining({
-            fields: ['title', 'user'],
-          }),
+          data: expect.objectContaining({fields: ['title', 'user']}),
         })
       );
     });
@@ -962,9 +867,7 @@ describe('Results', () => {
         statusCode: 404,
       });
 
-      const organization = OrganizationFixture({
-        features: ['discover-basic'],
-      });
+      const organization = OrganizationFixture({features: ['discover-basic']});
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
@@ -998,9 +901,7 @@ describe('Results', () => {
           expired: false,
           dateCreated: '2021-04-08T17:53:25.195782Z',
           dateUpdated: '2021-04-09T12:13:18.567264Z',
-          createdBy: {
-            id: '2',
-          },
+          createdBy: {id: '2'},
           environment: [],
           fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
           widths: ['-1', '-1', '-1', '-1', '-1'],
@@ -1296,9 +1197,7 @@ describe('Results', () => {
           expired: false,
           dateCreated: '2021-04-08T17:53:25.195782Z',
           dateUpdated: '2021-04-09T12:13:18.567264Z',
-          createdBy: {
-            id: '2',
-          },
+          createdBy: {id: '2'},
           environment: [],
           fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
           widths: ['-1', '-1', '-1', '-1', '-1'],
@@ -1330,29 +1229,17 @@ describe('Results', () => {
 
       expect(mockRequests.eventsStatsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            dataset: 'errors',
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({dataset: 'errors'})})
       );
 
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            dataset: 'errors',
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({dataset: 'errors'})})
       );
 
       expect(mockRequests.eventsMetaMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events-meta/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            dataset: 'errors',
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({dataset: 'errors'})})
       );
     });
 
@@ -1367,11 +1254,7 @@ describe('Results', () => {
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/recent-searches/',
-        body: [
-          {
-            query: 'event.type:error',
-          },
-        ],
+        body: [{query: 'event.type:error'}],
         match: [
           (_url, options) => {
             return options.query?.type === SavedSearchType.ERROR;
@@ -1381,11 +1264,7 @@ describe('Results', () => {
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/recent-searches/',
-        body: [
-          {
-            query: 'transaction.status:ok',
-          },
-        ],
+        body: [{query: 'transaction.status:ok'}],
         match: [
           (_url, options) => {
             return options.query?.type === SavedSearchType.TRANSACTION;
@@ -1405,9 +1284,7 @@ describe('Results', () => {
           expired: false,
           dateCreated: '2021-04-08T17:53:25.195782Z',
           dateUpdated: '2021-04-09T12:13:18.567264Z',
-          createdBy: {
-            id: '2',
-          },
+          createdBy: {id: '2'},
           environment: [],
           fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
           widths: ['-1', '-1', '-1', '-1', '-1'],
@@ -1450,11 +1327,7 @@ describe('Results', () => {
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/recent-searches/',
-        body: [
-          {
-            query: 'event.type:error',
-          },
-        ],
+        body: [{query: 'event.type:error'}],
         match: [
           (_url, options) => {
             return options.query?.type === SavedSearchType.ERROR;
@@ -1464,11 +1337,7 @@ describe('Results', () => {
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/recent-searches/',
-        body: [
-          {
-            query: 'transaction.status:ok',
-          },
-        ],
+        body: [{query: 'transaction.status:ok'}],
         match: [
           (_url, options) => {
             return options.query?.type === SavedSearchType.TRANSACTION;
@@ -1514,9 +1383,7 @@ describe('Results', () => {
           expired: false,
           dateCreated: '2021-04-08T17:53:25.195782Z',
           dateUpdated: '2021-04-09T12:13:18.567264Z',
-          createdBy: {
-            id: '2',
-          },
+          createdBy: {id: '2'},
           environment: [],
           fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
           widths: ['-1', '-1', '-1', '-1', '-1'],

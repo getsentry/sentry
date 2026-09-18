@@ -23,9 +23,7 @@ describe('CronDetectorsList', () => {
   const organization = OrganizationFixture();
 
   const initialRouterConfig: RouterConfig = {
-    location: {
-      pathname: `/organizations/${organization.slug}/detectors/crons/`,
-    },
+    location: {pathname: `/organizations/${organization.slug}/detectors/crons/`},
   };
 
   afterEach(() => {
@@ -33,15 +31,9 @@ describe('CronDetectorsList', () => {
   });
 
   beforeEach(() => {
-    ConfigStore.set('statuspage', {
-      id: 'sentry',
-      api_host: 'status.sentry.io',
-    });
+    ConfigStore.set('statuspage', {id: 'sentry', api_host: 'status.sentry.io'});
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
       body: UserFixture(),
@@ -77,10 +69,7 @@ describe('CronDetectorsList', () => {
   });
 
   it('displays empty state when no cron monitors are found', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/detectors/', body: []});
 
     render(<CronDetectorsList />, {organization, initialRouterConfig});
 

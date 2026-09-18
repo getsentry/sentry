@@ -29,10 +29,7 @@ describe('saved issue view embed', () => {
       url: '/organizations/org-slug/group-search-views/77/',
       body: view,
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
     const issuesRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [issue],
@@ -77,10 +74,7 @@ describe('saved issue view embed', () => {
       url: '/organizations/org-slug/group-search-views/77/',
       body: view,
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       statusCode: 400,
@@ -111,10 +105,7 @@ describe('saved issue view embed', () => {
       url: '/organizations/org-slug/group-search-views/77/',
       body: view,
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [issue],

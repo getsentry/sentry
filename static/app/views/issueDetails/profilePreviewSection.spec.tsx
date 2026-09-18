@@ -62,9 +62,7 @@ describe('ProfilePreviewSection', () => {
 
     const {container} = render(
       <ProfilePreviewSection event={event} project={project} />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -77,11 +75,7 @@ describe('ProfilePreviewSection', () => {
       statusCode: 500,
     });
     const event = EventFixture({
-      contexts: {
-        profile: {
-          profiler_id: 'profiler-id',
-        },
-      },
+      contexts: {profile: {profiler_id: 'profiler-id'}},
       dateCreated: '2024-01-24T09:09:01+00:00',
       tags: [{key: 'mechanism', value: 'ANR'}],
     });
@@ -112,11 +106,7 @@ describe('ProfilePreviewSection', () => {
       body: {chunk: {}},
     });
     const event = EventFixture({
-      contexts: {
-        profile: {
-          profiler_id: 'profiler-id',
-        },
-      },
+      contexts: {profile: {profiler_id: 'profiler-id'}},
       dateCreated: '2024-01-24T09:09:01+00:00',
       tags: [{key: 'mechanism', value: 'ANR'}],
     });
@@ -126,9 +116,7 @@ describe('ProfilePreviewSection', () => {
     expect(screen.getByText('ANR Profile')).toBeInTheDocument();
     expect(await screen.findByTestId('flamegraph-preview')).toBeInTheDocument();
     expect(
-      await screen.findByRole('button', {
-        name: 'Open in Profiling',
-      })
+      await screen.findByRole('button', {name: 'Open in Profiling'})
     ).toBeInTheDocument();
   });
 
@@ -141,11 +129,7 @@ describe('ProfilePreviewSection', () => {
     });
 
     const event = EventFixture({
-      contexts: {
-        profile: {
-          profiler_id: 'profiler-id',
-        },
-      },
+      contexts: {profile: {profiler_id: 'profiler-id'}},
       dateCreated: '2024-01-24T09:09:01+00:00',
       tags: [{key: 'mechanism', value: 'AppHang'}],
     });

@@ -11,12 +11,10 @@ export type CodingAgentIntegration = {
 };
 
 export function organizationIntegrationsCodingAgents(organization: Organization) {
-  return apiOptions.as<{
-    integrations: CodingAgentIntegration[];
-  }>()('/organizations/$organizationIdOrSlug/integrations/coding-agents/', {
-    path: {organizationIdOrSlug: organization.slug},
-    staleTime: 5 * 60 * 1000,
-  });
+  return apiOptions.as<{integrations: CodingAgentIntegration[]}>()(
+    '/organizations/$organizationIdOrSlug/integrations/coding-agents/',
+    {path: {organizationIdOrSlug: organization.slug}, staleTime: 5 * 60 * 1000}
+  );
 }
 
 export function needsGitHubAuth(error: RequestError): boolean {

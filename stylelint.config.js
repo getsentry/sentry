@@ -28,9 +28,7 @@ export default {
       // Prefer `gap` over `grid-gap`, it does the same thing
       'grid-gap',
       // Can't set per-property custom messages.. so try and bring them here
-      {
-        message: 'Disallowed property. (See `stylelint.config.js` as to why)',
-      },
+      {message: 'Disallowed property. (See `stylelint.config.js` as to why)'},
     ],
 
     // Disable no invalid media query, doesn't like our theme values

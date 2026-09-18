@@ -16,12 +16,7 @@ describe('useWidgetRawCounts', () => {
     const selection = PageFiltersFixture({
       projects: [2],
       environments: ['prod'],
-      datetime: {
-        start: null,
-        end: null,
-        period: '7d',
-        utc: null,
-      },
+      datetime: {start: null, end: null, period: '7d', utc: null},
     });
     const widget = WidgetFixture({
       widgetType: WidgetType.SPANS,
@@ -73,9 +68,7 @@ describe('useWidgetRawCounts', () => {
       ],
     });
 
-    renderHookWithProviders(useWidgetRawCounts, {
-      initialProps: {selection, widget},
-    });
+    renderHookWithProviders(useWidgetRawCounts, {initialProps: {selection, widget}});
 
     await waitFor(() => expect(normalRequest).toHaveBeenCalled());
     await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
@@ -140,9 +133,7 @@ describe('useWidgetRawCounts', () => {
       ],
     });
 
-    renderHookWithProviders(useWidgetRawCounts, {
-      initialProps: {selection, widget},
-    });
+    renderHookWithProviders(useWidgetRawCounts, {initialProps: {selection, widget}});
 
     await waitFor(() => expect(normalRequest).toHaveBeenCalled());
     await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
@@ -211,9 +202,7 @@ describe('useWidgetRawCounts', () => {
       ],
     });
 
-    renderHookWithProviders(useWidgetRawCounts, {
-      initialProps: {selection, widget},
-    });
+    renderHookWithProviders(useWidgetRawCounts, {initialProps: {selection, widget}});
 
     await waitFor(() => expect(normalRequest).toHaveBeenCalled());
     await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
@@ -237,9 +226,7 @@ describe('useWidgetRawCounts', () => {
       match: [MockApiClient.matchQuery({sampling: 'HIGHEST_ACCURACY', dataset: 'spans'})],
     });
 
-    renderHookWithProviders(useWidgetRawCounts, {
-      initialProps: {selection, widget},
-    });
+    renderHookWithProviders(useWidgetRawCounts, {initialProps: {selection, widget}});
 
     await waitFor(() => expect(normalRequest).not.toHaveBeenCalled());
     await waitFor(() => expect(highAccuracyRequest).not.toHaveBeenCalled());

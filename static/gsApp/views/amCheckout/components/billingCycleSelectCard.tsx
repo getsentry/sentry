@@ -48,9 +48,7 @@ export function BillingCycleSelectCard({
       : moment(subscription.billingPeriodEnd).add(1, 'day');
 
   const onCycleSelect = () => {
-    const data: Partial<CheckoutFormData> = {
-      plan: plan.id,
-    };
+    const data: Partial<CheckoutFormData> = {plan: plan.id};
     onUpdate(data);
   };
 

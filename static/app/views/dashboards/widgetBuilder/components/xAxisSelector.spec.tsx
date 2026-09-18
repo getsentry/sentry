@@ -45,10 +45,7 @@ describe('WidgetBuilderXAxisSelector', () => {
       initialRouterConfig: {
         location: {
           pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-          query: {
-            dataset: WidgetType.SPANS,
-            displayType: DisplayType.CATEGORICAL_BAR,
-          },
+          query: {dataset: WidgetType.SPANS, displayType: DisplayType.CATEGORICAL_BAR},
         },
         route: DASHBOARD_WIDGET_BUILDER_ROUTE,
       },

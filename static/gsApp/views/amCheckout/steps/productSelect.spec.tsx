@@ -39,9 +39,7 @@ describe('ProductSelect', () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
-      body: {
-        invoiceItems: [],
-      },
+      body: {invoiceItems: []},
     });
     MockApiClient.addMockResponse({
       method: 'POST',
@@ -75,9 +73,7 @@ describe('ProductSelect', () => {
   });
 
   it('does not render products if unavailable', async () => {
-    const unavailableSubscription = SubscriptionFixture({
-      organization,
-    });
+    const unavailableSubscription = SubscriptionFixture({organization});
     unavailableSubscription.addOns = {
       ...unavailableSubscription.addOns,
       [AddOnCategory.SEER]: {
@@ -108,10 +104,7 @@ describe('ProductSelect', () => {
   });
 
   it('renders with correct annual price and monthly credits for products', async () => {
-    const annualSubscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team_auf',
-    });
+    const annualSubscription = SubscriptionFixture({organization, plan: 'am3_team_auf'});
     SubscriptionStore.set(organization.slug, annualSubscription);
 
     render(

@@ -128,18 +128,11 @@ function itemMaxDiff(item: SidebarItem): number {
 export default function SnapshotsPage() {
   const organization = useOrganization();
   const theme = useTheme();
-  const {snapshotId} = useParams<{
-    snapshotId: string;
-  }>();
+  const {snapshotId} = useParams<{snapshotId: string}>();
 
   const snapshotApiUrl = getApiUrl(
     '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        snapshotId,
-      },
-    }
+    {path: {organizationIdOrSlug: organization.slug, snapshotId}}
   );
 
   const {data, isPending, isError} = useApiQuery<SnapshotDetailsApiResponse>(

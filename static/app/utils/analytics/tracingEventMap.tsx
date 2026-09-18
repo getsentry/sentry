@@ -6,22 +6,14 @@ import type {TraceTreeSource} from 'sentry/views/performance/newTraceDetails/tra
 import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export type TracingEventParameters = {
-  'compare_queries.add_query': {
-    num_queries: number;
-  };
-  'trace.configurations_docs_link_clicked': {
-    title: string;
-  };
-  'trace.explorer.cross_event_added': {
-    type: CrossEventType;
-  };
+  'compare_queries.add_query': {num_queries: number};
+  'trace.configurations_docs_link_clicked': {title: string};
+  'trace.explorer.cross_event_added': {type: CrossEventType};
   'trace.explorer.cross_event_changed': {
     new_type: CrossEventType;
     old_type: CrossEventType;
   };
-  'trace.explorer.cross_event_removed': {
-    type: CrossEventType;
-  };
+  'trace.explorer.cross_event_removed': {type: CrossEventType};
   'trace.explorer.metadata': {
     columns: readonly string[];
     columns_count: number;
@@ -55,13 +47,8 @@ export type TracingEventParameters = {
     num_results: number;
     type: 'samples' | 'traces' | 'aggregates';
   };
-  'trace.explorer.table_tab_changed': {
-    organization: Organization;
-    tab: string;
-  };
-  'trace.load.empty_state': {
-    source: TraceTreeSource;
-  };
+  'trace.explorer.table_tab_changed': {organization: Organization; tab: string};
+  'trace.load.empty_state': {source: TraceTreeSource};
   'trace.load.error_state': {
     error_status: number | null;
     source: TraceTreeSource;
@@ -80,35 +67,21 @@ export type TracingEventParameters = {
     trace_age: string;
     trace_duration_seconds: number;
   };
-  'trace.preferences.autogrouping_change': {
-    enabled: boolean;
-  };
-  'trace.preferences.compressed_timeline_change': {
-    enabled: boolean;
-  };
-  'trace.preferences.missing_instrumentation_change': {
-    enabled: boolean;
-  };
+  'trace.preferences.autogrouping_change': {enabled: boolean};
+  'trace.preferences.compressed_timeline_change': {enabled: boolean};
+  'trace.preferences.missing_instrumentation_change': {enabled: boolean};
   'trace.quality.missing_spans.doc_link_clicked': Record<string, unknown>;
   'trace.quality.performance_setup.banner_loaded': Record<string, unknown>;
   'trace.quality.performance_setup.checklist_triggered': Record<string, unknown>;
   'trace.quality.performance_setup.learn_more_clicked': Record<string, unknown>;
-  'trace.quality.quota_exceeded.banner_loaded': {
-    traceType: string;
-  };
-  'trace.quality.quota_exceeded.increase_budget_clicked': {
-    traceType: string;
-  };
-  'trace.quality.quota_exceeded.learn_more_clicked': {
-    traceType: string;
-  };
+  'trace.quality.quota_exceeded.banner_loaded': {traceType: string};
+  'trace.quality.quota_exceeded.increase_budget_clicked': {traceType: string};
+  'trace.quality.quota_exceeded.learn_more_clicked': {traceType: string};
   'trace.trace_drawer_details.eap_span_has_details': {
     has_logs_details: boolean;
     has_profile_details: boolean;
   };
-  'trace.trace_drawer_details.gen_ai_span_details_viewed': {
-    operation_type: string;
-  };
+  'trace.trace_drawer_details.gen_ai_span_details_viewed': {operation_type: string};
   'trace.trace_drawer_explore_search': {
     key: string;
     kind: TraceDrawerActionKind;
@@ -116,20 +89,13 @@ export type TracingEventParameters = {
     value: string | number;
   };
   'trace.trace_layout.ai_tab_clicked': Record<string, unknown>;
-  'trace.trace_layout.attribute_pin_changed': {
-    action: 'added' | 'removed';
-  };
-  'trace.trace_layout.change': {
-    layout: string;
-  };
+  'trace.trace_layout.attribute_pin_changed': {action: 'added' | 'removed'};
+  'trace.trace_layout.change': {layout: string};
   'trace.trace_layout.drawer_minimize': Record<string, unknown>;
   'trace.trace_layout.reset_zoom': Record<string, unknown>;
   'trace.trace_layout.search_clear': Record<string, unknown>;
   'trace.trace_layout.search_focus': Record<string, unknown>;
-  'trace.trace_layout.search_match_navigate': {
-    direction: string;
-    interaction: string;
-  };
+  'trace.trace_layout.search_match_navigate': {direction: string; interaction: string};
   'trace.trace_layout.show_in_view': Record<string, unknown>;
   'trace.trace_layout.span_row_click': {
     num_children: number;
@@ -137,36 +103,21 @@ export type TracingEventParameters = {
     type: string;
   };
   'trace.trace_layout.tab_pin': Record<string, unknown>;
-  'trace.trace_layout.tab_view': {
-    tab: string;
-  };
+  'trace.trace_layout.tab_view': {tab: string};
   'trace.trace_layout.view_event_json': Record<string, unknown>;
-  'trace.trace_layout.view_in_insight_module': {
-    module: string;
-  };
+  'trace.trace_layout.view_in_insight_module': {module: string};
   'trace.trace_layout.view_shortcuts': Record<string, unknown>;
-  'trace.trace_layout.view_similar_spans': {
-    module: string;
-    source: string;
-  };
-  'trace.trace_layout.view_span_summary': {
-    module: string;
-  };
+  'trace.trace_layout.view_similar_spans': {module: string; source: string};
+  'trace.trace_layout.view_span_summary': {module: string};
   'trace.trace_layout.zoom_to_fill': Record<string, unknown>;
-  'trace.trace_warning_type': {
-    type: string;
-  };
+  'trace.trace_warning_type': {type: string};
   'trace.tracing_onboarding': {
     platform: PlatformKey;
     supports_onboarding_checklist: boolean;
     supports_performance: boolean;
   };
-  'trace.tracing_onboarding_performance_docs_viewed': {
-    platform: string;
-  };
-  'trace.tracing_onboarding_platform_docs_viewed': {
-    platform: string;
-  };
+  'trace.tracing_onboarding_performance_docs_viewed': {platform: string};
+  'trace.tracing_onboarding_platform_docs_viewed': {platform: string};
   'trace_explorer.add_span_condition': Record<string, unknown>;
   'trace_explorer.compare_queries': Record<string, unknown>;
   'trace_explorer.delete_query': Record<string, unknown>;
@@ -176,12 +127,8 @@ export type TracingEventParameters = {
     query_name: string;
     dataset?: string;
   };
-  'trace_explorer.open_trace': {
-    source: 'trace explorer' | 'new explore';
-  };
-  'trace_explorer.open_trace_span': {
-    source: 'trace explorer' | 'new explore';
-  };
+  'trace_explorer.open_trace': {source: 'trace explorer' | 'new explore'};
+  'trace_explorer.open_trace_span': {source: 'trace explorer' | 'new explore'};
   'trace_explorer.remove_span_condition': Record<string, unknown>;
   'trace_explorer.save_as': {
     save_type: 'alert' | 'dashboard' | 'update_query';
@@ -192,13 +139,8 @@ export type TracingEventParameters = {
     save_type: 'save_new_query' | 'rename_query';
     ui_source: 'toolbar' | 'table';
   };
-  'trace_explorer.search_failure': {
-    error: string;
-    queries: string[];
-  };
-  'trace_explorer.search_request': {
-    queries: string[];
-  };
+  'trace_explorer.search_failure': {error: string; queries: string[]};
+  'trace_explorer.search_request': {queries: string[]};
 
   'trace_explorer.search_success': {
     has_data: boolean;
@@ -211,9 +153,7 @@ export type TracingEventParameters = {
     save_type: 'star_query' | 'unstar_query';
     ui_source: 'table' | 'explorer';
   };
-  'trace_explorer.toggle_span_details': {
-    expanded: boolean;
-  };
+  'trace_explorer.toggle_span_details': {expanded: boolean};
   'trace_explorer.toggle_trace_details': {
     expanded: boolean;
     source: 'trace explorer' | 'new explore';

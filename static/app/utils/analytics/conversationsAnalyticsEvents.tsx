@@ -8,10 +8,7 @@ export type ConversationsEventParameters = {
   'conversations.detail.expand-tool-calls': {expanded: boolean};
   'conversations.detail.page-view': Record<string, unknown>;
   'conversations.detail.select-span': Record<string, unknown>;
-  'conversations.detail.tab-switch': {
-    fromTab: string;
-    toTab: string;
-  };
+  'conversations.detail.tab-switch': {fromTab: string; toTab: string};
   'conversations.message.click': Record<string, unknown>;
   'conversations.message.click-tool-call': Record<string, unknown>;
   'conversations.onboarding.interaction': {
@@ -31,18 +28,14 @@ export type ConversationsEventParameters = {
   };
   'conversations.onboarding.page-view': Record<string, unknown>;
   'conversations.page-view': Record<string, unknown>;
-  'conversations.save_as': {
-    save_type: 'alert' | 'dashboard';
-  };
+  'conversations.save_as': {save_type: 'alert' | 'dashboard'};
   'conversations.save_query_modal': {
     action: 'open' | 'submit';
     save_type?: 'save_new_query' | 'rename_query';
     ui_source?: 'table';
   };
   'conversations.table.page-view': Record<string, unknown>;
-  'conversations.table.paginate': {
-    direction: 'next' | 'previous';
-  };
+  'conversations.table.paginate': {direction: 'next' | 'previous'};
 };
 
 export const conversationsEventMap: Record<keyof ConversationsEventParameters, string> = {

@@ -87,10 +87,7 @@ describe('EventEmbedStory', () => {
   });
 
   it('falls back to a message when the organization has no error events', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
 
     render(<EventEmbedStory />);
 

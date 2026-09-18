@@ -23,10 +23,7 @@ describe('ScmMessagingIntegrationAlertRule', () => {
     channel: {label: 'channel', value: 'channel'},
     integration: slackIntegrations[0],
     provider: 'slack',
-    providersToIntegrations: {
-      slack: slackIntegrations,
-      discord: discordIntegrations,
-    },
+    providersToIntegrations: {slack: slackIntegrations, discord: discordIntegrations},
     queryError: false,
     querySuccess: true,
     shouldRenderSetupButton: false,

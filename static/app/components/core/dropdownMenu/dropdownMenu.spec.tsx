@@ -11,17 +11,8 @@ describe('DropdownMenu', () => {
     render(
       <DropdownMenu
         items={[
-          {
-            key: 'item1',
-            label: 'Item One',
-            details: 'This is the first item',
-            onAction,
-          },
-          {
-            key: 'item2',
-            label: 'Item Two',
-            details: 'Another description here',
-          },
+          {key: 'item1', label: 'Item One', details: 'This is the first item', onAction},
+          {key: 'item2', label: 'Item Two', details: 'Another description here'},
         ]}
         triggerLabel="This is a Menu"
       />
@@ -61,14 +52,7 @@ describe('DropdownMenu', () => {
 
     render(
       <DropdownMenu
-        items={[
-          {
-            key: 'item1',
-            label: 'Item One',
-            disabled: true,
-            onAction,
-          },
-        ]}
+        items={[{key: 'item1', label: 'Item One', disabled: true, onAction}]}
         triggerLabel="Menu"
       />
     );
@@ -144,18 +128,9 @@ describe('DropdownMenu', () => {
             key: 'item1',
             label: 'Item',
             submenu: true,
-            children: [
-              {
-                key: 'subitem',
-                label: 'Sub Item',
-                onAction,
-              },
-            ],
+            children: [{key: 'subitem', label: 'Sub Item', onAction}],
           },
-          {
-            key: 'item2',
-            label: 'Item Two',
-          },
+          {key: 'item2', label: 'Item Two'},
         ]}
         triggerLabel="Menu"
         onOpenChange={onOpenChange}
@@ -238,18 +213,9 @@ describe('DropdownMenu', () => {
             key: 'item1',
             label: 'Item',
             submenu: true,
-            children: [
-              {
-                key: 'subitem',
-                label: 'Sub Item',
-                onAction,
-              },
-            ],
+            children: [{key: 'subitem', label: 'Sub Item', onAction}],
           },
-          {
-            key: 'item2',
-            label: 'Item Two',
-          },
+          {key: 'item2', label: 'Item Two'},
         ]}
         triggerLabel="Menu"
       />

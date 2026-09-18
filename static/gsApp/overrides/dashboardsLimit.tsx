@@ -51,9 +51,7 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
   const limitMessage = hasReachedDashboardLimit
     ? tct(
         'You have reached the maximum number of Dashboards available on your plan. To add more, [link:upgrade your plan]',
-        {
-          link: <Link to="/checkout/?referrer=dashboards-limit-upsell" />,
-        }
+        {link: <Link to="/checkout/?referrer=dashboards-limit-upsell" />}
       )
     : null;
 

@@ -119,13 +119,7 @@ const PROMPTS_TABLE: PrebuiltWidget = {
       orderby: '-count()',
     },
   ],
-  layout: {
-    x: 0,
-    y: 3,
-    w: 6,
-    h: 4,
-    minH: 2,
-  },
+  layout: {x: 0, y: 3, w: 6, h: 4, minH: 2},
 };
 
 export const MCP_PROMPTS_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -137,11 +131,7 @@ export const MCP_PROMPTS_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: [
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'gen_ai.prompt.name',
-          name: 'gen_ai.prompt.name',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'gen_ai.prompt.name', name: 'gen_ai.prompt.name', kind: FieldKind.TAG},
         value: '',
       },
     ],

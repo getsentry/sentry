@@ -118,12 +118,7 @@ function SidebarContent() {
         };
       });
 
-    return [
-      {
-        label: t('Supported'),
-        options: supportedProjectItems,
-      },
-    ];
+    return [{label: t('Supported'), options: supportedProjectItems}];
   }, [allProjects]);
 
   if (!currentProject) {

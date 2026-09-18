@@ -51,10 +51,7 @@ export function TraceSpanLinks({
   const navigate = useNavigate();
 
   function closeSpanDetailsDrawer() {
-    traceDispatch({
-      type: 'minimize drawer',
-      payload: true,
-    });
+    traceDispatch({type: 'minimize drawer', payload: true});
   }
 
   // Render the span links an a single attribute tree. For each link, give it a
@@ -70,12 +67,7 @@ export function TraceSpanLinks({
   const traceIdRenderer = getFieldRenderer('trace', {});
   const spanIdRenderer = getFieldRenderer('span_id', {});
 
-  const renderBaggage = {
-    organization,
-    location,
-    navigate,
-    theme,
-  };
+  const renderBaggage = {organization, location, navigate, theme};
 
   const linksAsAttributes: TraceItemResponseAttribute[] = links.flatMap(
     (link, linkIndex) => {
@@ -139,16 +131,8 @@ export function TraceSpanLinks({
       };
 
       return [
-        {
-          name: `${prefix}.trace_id`,
-          type: 'str',
-          value: link.traceId,
-        },
-        {
-          name: `${prefix}.span_id`,
-          type: 'str',
-          value: link.itemId,
-        },
+        {name: `${prefix}.trace_id`, type: 'str', value: link.traceId},
+        {name: `${prefix}.span_id`, type: 'str', value: link.itemId},
         ...(link.attributes || []).map(attribute => ({
           ...attribute,
           name: `${prefix}.attributes.${attribute.name}`,
@@ -173,15 +157,8 @@ export function TraceSpanLinks({
       <AttributesTree
         attributes={linksAsAttributes}
         columnCount={1}
-        config={{
-          disableActions: true,
-        }}
-        rendererExtra={{
-          theme,
-          location,
-          navigate,
-          organization,
-        }}
+        config={{disableActions: true}}
+        rendererExtra={{theme, location, navigate, organization}}
         renderers={customRenderers}
       />
     </FoldSection>

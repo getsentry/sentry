@@ -33,31 +33,20 @@ describe('groupDetails', () => {
   let hasSeenMock!: jest.Mock;
 
   const initialRouterConfig = {
-    location: {
-      pathname: `/organizations/org-slug/issues/${group.id}/`,
-    },
+    location: {pathname: `/organizations/org-slug/issues/${group.id}/`},
     route: '/organizations/:orgId/issues/:groupId/',
   };
 
   const defaultInit = initializeOrg<{groupId: string}>({});
 
   const recommendedUser = UserFixture({
-    options: {
-      ...UserFixture().options,
-      defaultIssueEvent: 'recommended',
-    },
+    options: {...UserFixture().options, defaultIssueEvent: 'recommended'},
   });
   const latestUser = UserFixture({
-    options: {
-      ...UserFixture().options,
-      defaultIssueEvent: 'latest',
-    },
+    options: {...UserFixture().options, defaultIssueEvent: 'latest'},
   });
   const oldestUser = UserFixture({
-    options: {
-      ...UserFixture().options,
-      defaultIssueEvent: 'oldest',
-    },
+    options: {...UserFixture().options, defaultIssueEvent: 'oldest'},
   });
 
   function MockComponent() {
@@ -74,10 +63,7 @@ describe('groupDetails', () => {
       <GroupDetails>
         <MockComponent />
       </GroupDetails>,
-      {
-        organization,
-        initialRouterConfig: routerConfig,
-      }
+      {organization, initialRouterConfig: routerConfig}
     );
   };
 
@@ -86,14 +72,8 @@ describe('groupDetails', () => {
     OrganizationStore.onUpdate(defaultInit.organization);
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
+    MockApiClient.addMockResponse({url: '/assistant/', body: []});
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {...group},
@@ -101,16 +81,12 @@ describe('groupDetails', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       statusCode: 200,
-      body: {
-        ...event,
-      },
+      body: {...event},
     });
     hasSeenMock = MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/issues/`,
       method: 'PUT',
-      body: {
-        hasSeen: false,
-      },
+      body: {hasSeen: false},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -123,13 +99,7 @@ describe('groupDetails', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/events/`,
       statusCode: 200,
-      body: {
-        data: [
-          {
-            'count()': 1,
-          },
-        ],
-      },
+      body: {data: [{'count()': 1}]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/environments/`,
@@ -206,10 +176,7 @@ describe('groupDetails', () => {
     });
     MockApiClient.addMockResponse({
       url: `/projects/${defaultInit.organization.slug}/${project.slug}/events/${event.id}/owners/`,
-      body: {
-        owners: [],
-        rules: [],
-      },
+      body: {owners: [], rules: []},
     });
     MockApiClient.addMockResponse({
       url: `/projects/${defaultInit.organization.slug}/${project.slug}/events/${event.id}/actionable-items/`,
@@ -380,12 +347,7 @@ describe('groupDetails', () => {
   it('renders substatus badge', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
-      body: {
-        ...group,
-        inbox: null,
-        status: 'unresolved',
-        substatus: 'ongoing',
-      },
+      body: {...group, inbox: null, status: 'unresolved', substatus: 'ongoing'},
     });
     createWrapper();
     expect(await screen.findByText('Ongoing')).toBeInTheDocument();
@@ -478,19 +440,12 @@ describe('groupDetails', () => {
   });
 
   it('does not send hasSeen request when user is not a project member', async () => {
-    const nonMemberProject = ProjectFixture({
-      teams: [TeamFixture()],
-      isMember: false,
-    });
+    const nonMemberProject = ProjectFixture({teams: [TeamFixture()], isMember: false});
 
     // Mock the group to belong to the non-member project
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
-      body: {
-        ...group,
-        project: nonMemberProject,
-        hasSeen: false,
-      },
+      body: {...group, project: nonMemberProject, hasSeen: false},
     });
 
     act(() => ProjectsStore.loadInitialData([nonMemberProject]));

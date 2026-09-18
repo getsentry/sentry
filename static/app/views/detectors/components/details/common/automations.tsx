@@ -35,9 +35,7 @@ import {useIssueStreamDetectorsForProject} from 'sentry/views/detectors/utils/us
 
 const AUTOMATIONS_PER_PAGE = 5;
 
-type Props = {
-  detector: Detector;
-};
+type Props = {detector: Detector};
 
 interface AutomationsTableProps {
   detectorId: string;
@@ -172,10 +170,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
     (newWorkflowIds: string[]) => {
       addLoadingMessage();
       updateDetector(
-        {
-          detectorId: detector.id,
-          workflowIds: newWorkflowIds,
-        },
+        {detectorId: detector.id, workflowIds: newWorkflowIds},
         {
           onSuccess: () => {
             addSuccessMessage(t('Connected alerts updated'));

@@ -98,12 +98,7 @@ export function useReleaseMenuItems({
         projectSlug,
         releaseVersion: release.version,
       });
-      navigate(
-        makeReleasesPathname({
-          organization,
-          path: '/',
-        })
-      );
+      navigate(makeReleasesPathname({organization, path: '/'}));
     } catch {
       // do nothing, action creator is already displaying error message
     }

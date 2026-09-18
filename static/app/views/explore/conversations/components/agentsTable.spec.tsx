@@ -69,9 +69,7 @@ describe('AgentsTable', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/explore/agents/`,
-          },
+          location: {pathname: `/organizations/${organization.slug}/explore/agents/`},
         },
       }
     );

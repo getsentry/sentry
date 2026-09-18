@@ -25,9 +25,7 @@ function createThresholdMarkLine(lineColor: string, threshold: number) {
     silent: true,
     lineStyle: {color: lineColor, type: 'dashed', width: 1},
     data: [{yAxis: threshold}],
-    label: {
-      show: false,
-    },
+    label: {show: false},
     animation: false,
   });
 }
@@ -35,9 +33,7 @@ function createThresholdMarkLine(lineColor: string, threshold: number) {
 function createThresholdMarkArea(areaColor: string, threshold: number, isAbove: boolean) {
   return MarkArea({
     silent: true,
-    itemStyle: {
-      color: color(areaColor).alpha(0.1).rgb().string(),
-    },
+    itemStyle: {color: color(areaColor).alpha(0.1).rgb().string()},
     data: [
       // Highlight the "safe" area - opposite of the alert condition
       isAbove
@@ -54,10 +50,7 @@ function createPercentThresholdSeries(
   seriesName: string
 ): Series {
   if (!comparisonSeries.length || !comparisonSeries[0]?.data.length) {
-    return {
-      seriesName,
-      data: [],
-    };
+    return {seriesName, data: []};
   }
 
   const comparisonData = comparisonSeries[0].data;
@@ -71,16 +64,10 @@ function createPercentThresholdSeries(
     // Clamp to 0 to avoid negative values
     const thresholdValue = Math.max(comparisonValue * multiplier, 0);
 
-    return {
-      name: point.name,
-      value: thresholdValue,
-    };
+    return {name: point.name, value: thresholdValue};
   });
 
-  return {
-    seriesName,
-    data: thresholdData,
-  };
+  return {seriesName, data: thresholdData};
 }
 
 /**
@@ -222,11 +209,7 @@ export function useMetricDetectorThresholdSeries({
         return createLineSeries({
           name: seriesName,
           data: series.data.map(({name, value}) => [name, value]),
-          lineStyle: {
-            color: lineColor,
-            type: 'dashed',
-            width: 2,
-          },
+          lineStyle: {color: lineColor, type: 'dashed', width: 2},
           areaStyle: {
             color: lineColor,
             opacity: 0.2,

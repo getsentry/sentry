@@ -72,15 +72,7 @@ export function SizeRulesPanel({config: panelConfig}: Props) {
 
   const updateExpandedInUrl = useCallback(
     (expandedIds: string[]) => {
-      navigate(
-        {
-          query: {
-            ...location.query,
-            expanded: expandedIds,
-          },
-        },
-        {replace: true}
-      );
+      navigate({query: {...location.query, expanded: expandedIds}}, {replace: true});
     },
     [location.query, navigate]
   );

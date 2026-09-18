@@ -66,10 +66,7 @@ function getClientSideConfig({
   configFileName?: string;
 }): ContentBlock[] {
   const initConfig: ContentBlock[] = [
-    {
-      type: 'text',
-      text: t('Import and initialize the Sentry SDK:'),
-    },
+    {type: 'text', text: t('Import and initialize the Sentry SDK:')},
     {
       type: 'code',
       tabs: [
@@ -95,10 +92,7 @@ Sentry.init({
 
   if (integration === AgentIntegration.LANGGRAPH) {
     return [
-      ...getMetaFrameworkAlert({
-        params,
-        functionName: 'instrumentLangGraph',
-      }),
+      ...getMetaFrameworkAlert({params, functionName: 'instrumentLangGraph'}),
       ...initConfig,
       {
         type: 'text',
@@ -152,10 +146,7 @@ const text = lastMessage.content;
 
   if (integration === AgentIntegration.LANGCHAIN) {
     return [
-      ...getMetaFrameworkAlert({
-        params,
-        functionName: 'createLangChainCallbackHandler',
-      }),
+      ...getMetaFrameworkAlert({params, functionName: 'createLangChainCallbackHandler'}),
       ...initConfig,
       {
         type: 'text',
@@ -210,10 +201,7 @@ const text = response.content;
 
   if (integration === AgentIntegration.GOOGLE_GENAI) {
     return [
-      ...getMetaFrameworkAlert({
-        params,
-        functionName: 'instrumentGoogleGenAIClient',
-      }),
+      ...getMetaFrameworkAlert({params, functionName: 'instrumentGoogleGenAIClient'}),
       ...initConfig,
       {
         type: 'text',
@@ -258,10 +246,7 @@ console.log(response.text);
 
   if (integration === AgentIntegration.ANTHROPIC) {
     return [
-      ...getMetaFrameworkAlert({
-        params,
-        functionName: 'instrumentAnthropicAiClient',
-      }),
+      ...getMetaFrameworkAlert({params, functionName: 'instrumentAnthropicAiClient'}),
       ...initConfig,
       {
         type: 'text',
@@ -305,10 +290,7 @@ const msg = await client.messages.create({
 
   if (integration === AgentIntegration.OPENAI) {
     return [
-      ...getMetaFrameworkAlert({
-        params,
-        functionName: 'instrumentOpenAiClient',
-      }),
+      ...getMetaFrameworkAlert({params, functionName: 'instrumentOpenAiClient'}),
       ...initConfig,
       {
         type: 'text',
@@ -380,10 +362,7 @@ export function agentMonitoring({
       />
     ),
     install: params =>
-      getInstallStep(params, {
-        packageName,
-        minVersion: MIN_REQUIRED_VERSION,
-      }),
+      getInstallStep(params, {packageName, minVersion: MIN_REQUIRED_VERSION}),
     configure: params => {
       const selected = getAgentIntegration(params);
 

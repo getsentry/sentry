@@ -138,20 +138,8 @@ export function getConfigureStep(params: DocsParams): OnboardingStep {
 export const installSnippetBlock: ContentBlock = {
   type: 'code',
   tabs: [
-    {
-      label: 'npm',
-      language: 'bash',
-      code: 'npm install --save @sentry/gatsby',
-    },
-    {
-      label: 'yarn',
-      language: 'bash',
-      code: 'yarn add @sentry/gatsby',
-    },
-    {
-      label: 'pnpm',
-      language: 'bash',
-      code: 'pnpm add @sentry/gatsby',
-    },
+    {label: 'npm', language: 'bash', code: 'npm install --save @sentry/gatsby'},
+    {label: 'yarn', language: 'bash', code: 'yarn add @sentry/gatsby'},
+    {label: 'pnpm', language: 'bash', code: 'pnpm add @sentry/gatsby'},
   ],
 };

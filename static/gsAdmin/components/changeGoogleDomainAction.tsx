@@ -12,10 +12,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
-type Props = {
-  onUpdated: (data: any) => void;
-  orgId: string;
-};
+type Props = {onUpdated: (data: any) => void; orgId: string};
 
 const CHANGE_CHOICES = [
   {value: 'swap', label: 'Swap'},
@@ -45,10 +42,7 @@ function ChangeGoogleDomainModal({
 
   const mutation = useMutation({
     mutationFn: async (data: {append: 'add' | 'swap'; newDomain: string}) => {
-      const result: {
-        dryrun_info: string[];
-        new_domain: string;
-      } = await fetchMutation({
+      const result: {dryrun_info: string[]; new_domain: string} = await fetchMutation({
         url: getApiUrl('/customers/$organizationIdOrSlug/migrate-google-domain/', {
           path: {organizationIdOrSlug: orgId},
         }),

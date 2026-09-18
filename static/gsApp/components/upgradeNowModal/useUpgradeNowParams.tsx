@@ -11,16 +11,9 @@ import {getBucket} from 'getsentry/views/amCheckout/utils';
 
 import type {Reservations} from './types';
 
-type Opts = {
-  organization: Organization;
-  subscription: Subscription;
-  enabled?: boolean;
-};
+type Opts = {organization: Organization; subscription: Subscription; enabled?: boolean};
 
-type State = {
-  plan: undefined | Plan;
-  reservations: undefined | Reservations;
-};
+type State = {plan: undefined | Plan; reservations: undefined | Reservations};
 
 const DEFAULT_STATE: State = {plan: undefined, reservations: undefined};
 
@@ -39,11 +32,7 @@ export function useUpgradeNowParams({organization, subscription, enabled = true}
       getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          tier: BillingConfigTier.UPSELL,
-        },
-      },
+      {query: {tier: BillingConfigTier.UPSELL}},
     ],
     {staleTime: 0, enabled}
   );

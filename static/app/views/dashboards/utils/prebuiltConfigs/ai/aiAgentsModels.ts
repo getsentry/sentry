@@ -152,13 +152,7 @@ const MODELS_TABLE: PrebuiltWidget = {
       orderby: '-count()',
     },
   ],
-  layout: {
-    x: 0,
-    y: 3,
-    w: 6,
-    h: 4,
-    minH: 2,
-  },
+  layout: {x: 0, y: 3, w: 6, h: 4, minH: 2},
 };
 
 export const AI_AGENTS_MODELS_PREBUILT_CONFIG: PrebuiltDashboard = {

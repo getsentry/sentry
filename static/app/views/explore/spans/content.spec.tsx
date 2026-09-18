@@ -27,9 +27,7 @@ function TopBarWrapper({children}: {children: ReactNode}) {
 
 describe('ExploreContent', () => {
   const {organization, project} = initializeOrg({
-    organization: {
-      features: ['gen-ai-features'],
-    },
+    organization: {features: ['gen-ai-features']},
   });
   const {organization: highRangeOrganization, project: highRangeProject} = initializeOrg({
     organization: {
@@ -111,9 +109,7 @@ describe('ExploreContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/events-timeseries/`,
       method: 'GET',
-      body: {
-        timeSeries: [],
-      },
+      body: {timeSeries: []},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/traces/`,
@@ -129,13 +125,7 @@ describe('ExploreContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/trace-items/attributes/`,
       method: 'GET',
-      body: [
-        {
-          key: 'project',
-          name: 'project',
-          attributeSource: {source_type: 'sentry'},
-        },
-      ],
+      body: [{key: 'project', name: 'project', attributeSource: {source_type: 'sentry'}}],
       match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
     MockApiClient.addMockResponse({
@@ -155,19 +145,12 @@ describe('ExploreContent', () => {
     PageFiltersStore.init();
     OrganizationStore.onUpdate(organization, {replace: true});
 
-    addExploreMockResponses({
-      organizationBody: organization,
-      projectBody: project,
-    });
+    addExploreMockResponses({organizationBody: organization, projectBody: project});
     addExploreMockResponses({
       organizationBody: highRangeOrganization,
       projectBody: highRangeProject,
     });
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/assistant/', method: 'GET', body: []});
   });
 
   afterEach(() => {
@@ -332,9 +315,7 @@ describe('ExploreContent', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              crossEvents: JSON.stringify([{query: '', type: 'spans'}]),
-            },
+            query: {crossEvents: JSON.stringify([{query: '', type: 'spans'}])},
           },
         },
       });
@@ -361,9 +342,7 @@ describe('ExploreContent', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              statsPeriod: '14d',
-            },
+            query: {statsPeriod: '14d'},
           },
         },
       });

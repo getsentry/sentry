@@ -51,12 +51,7 @@ export function coaleseStoppingPoint(
  */
 export function useStoppingPointSelectOptions() {
   const organization = useOrganization();
-  return useMemo<
-    Array<{
-      label: string;
-      value: SeerAutofixStoppingPoint;
-    }>
-  >(() => {
+  return useMemo<Array<{label: string; value: SeerAutofixStoppingPoint}>>(() => {
     if (organization.features.includes('seer-added')) {
       return [
         {value: 'off', label: t('No Automation')},

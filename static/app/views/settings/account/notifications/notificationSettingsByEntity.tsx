@@ -81,10 +81,7 @@ export function NotificationSettingsByEntity({
     ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
       path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
       host: organization?.links?.regionUrl,
-      query: {
-        all_projects: '1',
-        collapse: ['latestDeploys', 'unusedFeatures'],
-      },
+      query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
       staleTime: Infinity,
     }),
   });
@@ -95,13 +92,7 @@ export function NotificationSettingsByEntity({
   const entityById = keyBy<OrganizationSummary | Project>(entities, 'id');
 
   const handleOrgChange = (organizationId: string) => {
-    navigate(
-      {
-        ...location,
-        query: {organizationId},
-      },
-      {replace: true}
-    );
+    navigate({...location, query: {organizationId}}, {replace: true});
   };
 
   const handleAdd = () => {
@@ -155,10 +146,7 @@ export function NotificationSettingsByEntity({
             name={`${entity.id}-value`}
             choices={valueOptions}
             onChange={({value}: {value: string}) => {
-              handleEditNotificationOption({
-                ...option,
-                value: value as Value,
-              });
+              handleEditNotificationOption({...option, value: value as Value});
             }}
           />
           <RemoveButtonWrapper>

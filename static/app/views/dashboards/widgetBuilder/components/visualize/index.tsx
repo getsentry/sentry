@@ -1036,20 +1036,14 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                     const newFields = cloneDeep(fields);
                                     newFields[index]!.alias = e.target.value;
                                     dispatch(
-                                      {
-                                        type: updateAction,
-                                        payload: newFields,
-                                      },
+                                      {type: updateAction, payload: newFields},
                                       {debounceUrl: true}
                                     );
                                   }}
                                   onBlur={e => {
                                     const newFields = cloneDeep(fields);
                                     newFields[index]!.alias = e.target.value;
-                                    dispatch({
-                                      type: updateAction,
-                                      payload: newFields,
-                                    });
+                                    dispatch({type: updateAction, payload: newFields});
                                     trackAnalytics(
                                       'dashboards_views.widget_builder.change',
                                       {

@@ -13,9 +13,7 @@ export const docs: Docs = {
   onboarding,
   crashReportOnboarding: crashReport,
   profilingOnboarding: profiling,
-  featureFlagOnboarding: featureFlag({
-    packageName: '@sentry/google-cloud-serverless',
-  }),
+  featureFlagOnboarding: featureFlag({packageName: '@sentry/google-cloud-serverless'}),
   logsOnboarding: logs,
   agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/google-cloud-serverless',

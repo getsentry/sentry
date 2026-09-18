@@ -22,10 +22,7 @@ type Props = {
   subscription: Subscription;
 } & AdminConfirmRenderProps;
 
-type State = {
-  addSeerTrial: boolean;
-  applyImmediately: boolean;
-};
+type State = {addSeerTrial: boolean; applyImmediately: boolean};
 
 /**
  * Rendered as part of an openAdminConfirmModal call.
@@ -33,10 +30,7 @@ type State = {
  * organization off legacy Seer reserved budgets.
  */
 class MigrateLegacySeerAction extends Component<Props, State> {
-  state: State = {
-    applyImmediately: true,
-    addSeerTrial: true,
-  };
+  state: State = {applyImmediately: true, addSeerTrial: true};
 
   componentDidMount() {
     this.props.setConfirmCallback(this.handleConfirm);

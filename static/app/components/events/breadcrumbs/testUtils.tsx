@@ -52,19 +52,11 @@ export const MOCK_BREADCRUMBS = [
 ] as const;
 const MOCK_BREADCRUMB_ENTRY = {
   type: EntryType.BREADCRUMBS,
-  data: {
-    values: MOCK_BREADCRUMBS,
-  },
+  data: {values: MOCK_BREADCRUMBS},
 };
 export const MOCK_EXCEPTION_ENTRY = {
   type: EntryType.EXCEPTION,
-  data: {
-    values: [
-      {
-        value: 'Error',
-      },
-    ],
-  },
+  data: {values: [{value: 'Error'}]},
 };
 export const MOCK_DATA_SECTION_PROPS = {
   event: EventFixture({

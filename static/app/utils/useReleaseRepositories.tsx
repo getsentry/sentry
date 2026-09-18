@@ -40,14 +40,7 @@ export function useReleaseRepositories({
   options,
 }: UseReleaseReposProps) {
   return useApiQuery<Repository[]>(
-    getReleaseRepositoriesQueryKey({
-      orgSlug,
-      projectSlug,
-      release,
-    }),
-    {
-      staleTime: Infinity,
-      ...options,
-    }
+    getReleaseRepositoriesQueryKey({orgSlug, projectSlug, release}),
+    {staleTime: Infinity, ...options}
   );
 }

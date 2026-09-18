@@ -177,12 +177,7 @@ describe('ScmRepoSelector', () => {
             name: 'relay',
             isInstalled: false,
           },
-          {
-            externalId: '5',
-            identifier: 'getsentry/cli',
-            name: 'cli',
-            isInstalled: false,
-          },
+          {externalId: '5', identifier: 'getsentry/cli', name: 'cli', isInstalled: false},
           {
             externalId: '6',
             identifier: 'getsentry/clickhouse-backup',
@@ -272,9 +267,7 @@ describe('ScmRepoSelector', () => {
       maxHeight: '296px',
     });
     expect(screen.getByRole('menuitemradio', {name: 'repo-7'}).parentElement).toHaveStyle(
-      {
-        transform: 'translateY(256px)',
-      }
+      {transform: 'translateY(256px)'}
     );
 
     mockScrollToIndex.mockClear();
@@ -331,10 +324,7 @@ describe('ScmRepoSelector', () => {
     const reposLookup = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
       body: [
-        RepositoryFixture({
-          name: 'getsentry/sentry',
-          externalSlug: 'getsentry/sentry',
-        }),
+        RepositoryFixture({name: 'getsentry/sentry', externalSlug: 'getsentry/sentry'}),
       ],
     });
 

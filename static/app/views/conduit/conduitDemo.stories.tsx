@@ -9,9 +9,7 @@ import * as Storybook from 'sentry/stories';
 import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Message = {
-  value: string;
-};
+type Message = {value: string};
 
 export default Storybook.story('Conduit Demo', story => {
   story('Streaming Demo', () => {
@@ -21,12 +19,7 @@ export default Storybook.story('Conduit Demo', story => {
 
     const streamUrl = `/api/0/organizations/${organization.slug}/conduit-demo/`;
 
-    const streamHeaders = useMemo(
-      () => ({
-        'X-CSRFToken': getCsrfToken(),
-      }),
-      []
-    );
+    const streamHeaders = useMemo(() => ({'X-CSRFToken': getCsrfToken()}), []);
 
     const {error, isConnected} = useStream({
       enabled: isEnabled,

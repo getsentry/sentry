@@ -38,9 +38,7 @@ export const openSentryAppIssueModal = ({
   recordInteraction(
     sentryAppComponent.sentryApp.slug,
     'sentry_app_component_interacted',
-    {
-      componentType: 'issue-link',
-    }
+    {componentType: 'issue-link'}
   );
 
   openModal(

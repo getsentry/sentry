@@ -26,15 +26,9 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-type BufferEntry = {
-  bucketIndex: number;
-  count: number;
-};
+type BufferEntry = {bucketIndex: number; count: number};
 
-type BufferedTimeseriesGroup = {
-  stableIndex: number;
-  values: BufferEntry[];
-};
+type BufferedTimeseriesGroup = {stableIndex: number; values: BufferEntry[]};
 
 /**
  * Streaming Timeseries Result
@@ -175,10 +169,7 @@ export function useStreamingTimeseriesResult(
       timeseriesLastBucketIndex
     );
 
-    return {
-      ...timeseriesResult,
-      data: mergedData,
-    };
+    return {...timeseriesResult, data: mergedData};
   }, [
     timeseriesResult,
     groupBuffers,

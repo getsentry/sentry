@@ -76,10 +76,7 @@ function useUpdateOverlayPositionOnContentChange({
     update?.();
   }, [update]);
 
-  useResizeObserver({
-    ref,
-    onResize,
-  });
+  useResizeObserver({ref, onResize});
 
   return ref;
 }
@@ -99,10 +96,7 @@ function HovercardContent({
     <PositionWrapper zIndex={theme.zIndex.hovercard} {...overlayProps}>
       <StyledHovercard
         animated={animated}
-        arrowProps={{
-          ...arrowProps,
-          size: 20,
-        }}
+        arrowProps={{...arrowProps, size: 20}}
         originPoint={arrowData}
         placement={placement}
         className={className}
@@ -137,11 +131,7 @@ function Hovercard({
   });
 
   const contextValue = useMemo<HovercardProviderValue>(
-    () => ({
-      isOpen,
-      reset: hoverOverlayState.reset,
-      update: hoverOverlayState.update,
-    }),
+    () => ({isOpen, reset: hoverOverlayState.reset, update: hoverOverlayState.update}),
     [isOpen, hoverOverlayState.reset, hoverOverlayState.update]
   );
   // Nothing to render if no header or body. Be consistent with wrapping the

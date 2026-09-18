@@ -17,10 +17,7 @@ import {TransactionNodeDetails} from './index';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 describe('TransactionNodeDetails', () => {
   beforeEach(() => {
@@ -53,11 +50,7 @@ describe('TransactionNodeDetails', () => {
         eventID: transactionValue.event_id,
         projectSlug: project.slug,
         title: 'GET /api/users',
-        contexts: {
-          trace: {
-            op: 'http.server',
-          },
-        },
+        contexts: {trace: {op: 'http.server'}},
       }),
     });
 

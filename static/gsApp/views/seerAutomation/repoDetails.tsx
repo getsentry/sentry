@@ -41,10 +41,7 @@ export default function SeerRepoDetails() {
     refetch,
   } = useApiQuery<RepositoryWithSettings>(
     getRepositoryWithSettingsQueryKey(organization, repoId ?? ''),
-    {
-      staleTime: 0,
-      enabled: !!repoId && hasCodeReviewAccess,
-    }
+    {staleTime: 0, enabled: !!repoId && hasCodeReviewAccess}
   );
 
   useEffect(() => {
@@ -89,10 +86,7 @@ export default function SeerRepoDetails() {
         drawerKey: 'repo-details-drawer',
         resizable: true,
         onClose: () => {
-          navigate({
-            pathname: `/settings/${organization.slug}/seer/repos/`,
-            query,
-          });
+          navigate({pathname: `/settings/${organization.slug}/seer/repos/`, query});
         },
         shouldCloseOnLocationChange: nextLocation =>
           !nextLocation.pathname.endsWith(`/seer/repos/${repoId}/`),

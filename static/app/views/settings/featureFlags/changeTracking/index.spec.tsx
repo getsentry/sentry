@@ -22,15 +22,8 @@ describe('OrganizationFeatureFlagsIndex', () => {
   const {organization} = initializeOrg();
 
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/1234/',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: LOGS_ENDPOINT,
-      method: 'GET',
-      body: {data: []},
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/1234/', body: {}});
+    MockApiClient.addMockResponse({url: LOGS_ENDPOINT, method: 'GET', body: {data: []}});
     OrganizationsStore.addOrReplace(organization);
   });
 
@@ -160,9 +153,7 @@ describe('OrganizationFeatureFlagsIndex', () => {
       expect(deleteMock).toHaveBeenCalledTimes(1);
     });
     it('does not allow to remove without permission', async () => {
-      const org = OrganizationFixture({
-        access: ['org:integrations'],
-      });
+      const org = OrganizationFixture({access: ['org:integrations']});
 
       const secrets: Secret[] = [
         SecretFixture(),

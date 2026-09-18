@@ -39,9 +39,7 @@ import {
 export const TRACE_ATTRIBUTE_PINNING_FEATURE = 'trace-waterfall-attribute-pinning';
 const PINNED_ATTRIBUTE_PARAM = 'pinnedAttribute';
 
-type PinnedAttributeResponse = {
-  data: Array<{[key: string]: unknown; span_id: string}>;
-};
+type PinnedAttributeResponse = {data: Array<{[key: string]: unknown; span_id: string}>};
 
 type PinnedAttributeState = {
   attribute: string | null;

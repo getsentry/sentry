@@ -64,9 +64,7 @@ class SpikeProtectionUsageChart extends Component<SpikeProtectionUsageChartProps
       data: seriesData,
       legendHoverLink: false,
       zlevel: 2,
-      tooltip: {
-        show: false,
-      },
+      tooltip: {show: false},
     });
   }
 

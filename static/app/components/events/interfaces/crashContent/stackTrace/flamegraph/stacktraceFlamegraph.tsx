@@ -61,10 +61,7 @@ export function StacktraceFlamegraph({frames}: StacktraceFlamegraphProps) {
     });
 
     // Create flamegraph model with left-heavy sorting
-    return new Flamegraph(profile, {
-      inverted: false,
-      sort: 'left heavy',
-    });
+    return new Flamegraph(profile, {inverted: false, sort: 'left heavy'});
   }, [frames]);
 
   // Calculate duration for preview

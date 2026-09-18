@@ -9,9 +9,7 @@ describe('formatSeriesName', () => {
       ['apdex(200)', 'apdex(200)'],
       ['p75(span.duration)', 'p75(span.duration)'],
     ])('Formats %s as %s', (name, result) => {
-      const timeSeries = TimeSeriesFixture({
-        yAxis: name,
-      });
+      const timeSeries = TimeSeriesFixture({yAxis: name});
 
       expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
     });
@@ -23,9 +21,7 @@ describe('formatSeriesName', () => {
       ['android@5.3.1', '5.3.1'],
       ['ios@5.3.1-rc1', '5.3.1-rc1'],
     ])('Formats %s as %s', (name, result) => {
-      const timeSeries = TimeSeriesFixture({
-        yAxis: name,
-      });
+      const timeSeries = TimeSeriesFixture({yAxis: name});
 
       expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
     });
@@ -36,9 +32,7 @@ describe('formatSeriesName', () => {
       ['p75(measurements.lcp)', 'p75(measurements.lcp)'],
       ['p50(measurements.lcp)', 'p50(measurements.lcp)'],
     ])('Formats %s as %s', (name, result) => {
-      const timeSeries = TimeSeriesFixture({
-        yAxis: name,
-      });
+      const timeSeries = TimeSeriesFixture({yAxis: name});
 
       expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
     });
@@ -49,9 +43,7 @@ describe('formatSeriesName', () => {
       ['equation|p75(measurements.cls) + 1', 'p75(measurements.cls) + 1'],
       ['equation|p75(measurements.cls)', 'p75(measurements.cls)'],
     ])('Formats %s as %s', (name, result) => {
-      const timeSeries = TimeSeriesFixture({
-        yAxis: name,
-      });
+      const timeSeries = TimeSeriesFixture({yAxis: name});
 
       expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
     });
@@ -110,10 +102,7 @@ describe('formatSeriesName', () => {
         '[null,null,null]',
       ],
     ])('Formats %s with groupBy %s as %s', (name, groupBy, result) => {
-      const timeSeries = TimeSeriesFixture({
-        yAxis: name,
-        groupBy,
-      });
+      const timeSeries = TimeSeriesFixture({yAxis: name, groupBy});
 
       expect(formatTimeSeriesLabel(timeSeries)).toEqual(result);
     });
@@ -122,10 +111,7 @@ describe('formatSeriesName', () => {
   describe('other', () => {
     it('Formats "Other"', () => {
       const timeSeries = TimeSeriesFixture();
-      timeSeries.meta = {
-        ...timeSeries.meta,
-        isOther: true,
-      };
+      timeSeries.meta = {...timeSeries.meta, isOther: true};
 
       expect(formatTimeSeriesLabel(timeSeries)).toBe('Other');
     });

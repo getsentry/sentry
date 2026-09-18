@@ -15,33 +15,21 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
-type UpdateParams = {
-  orgId: string;
-  projectId: string;
-  data?: Record<string, any>;
-};
+type UpdateParams = {orgId: string; projectId: string; data?: Record<string, any>};
 
 export function update(api: Client, params: UpdateParams) {
   const endpoint = getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-    path: {
-      organizationIdOrSlug: params.orgId,
-      projectIdOrSlug: params.projectId,
-    },
+    path: {organizationIdOrSlug: params.orgId, projectIdOrSlug: params.projectId},
   });
-  return api
-    .requestPromise(endpoint, {
-      method: 'PUT',
-      data: params.data,
-    })
-    .then(
-      data => {
-        ProjectsStore.onUpdateSuccess(data);
-        return data;
-      },
-      (err: Error) => {
-        throw err;
-      }
-    );
+  return api.requestPromise(endpoint, {method: 'PUT', data: params.data}).then(
+    data => {
+      ProjectsStore.onUpdateSuccess(data);
+      return data;
+    },
+    (err: Error) => {
+      throw err;
+    }
+  );
 }
 
 export function transferProject(
@@ -52,51 +40,35 @@ export function transferProject(
 ) {
   const endpoint = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/transfer/',
-    {
-      path: {organizationIdOrSlug: orgId, projectIdOrSlug: project.slug},
-    }
+    {path: {organizationIdOrSlug: orgId, projectIdOrSlug: project.slug}}
   );
 
-  return api
-    .requestPromise(endpoint, {
-      method: 'POST',
-      data: {
-        email,
-      },
-    })
-    .then(
-      () => {
-        addSuccessMessage(
-          tct('A request was sent to move [project] to a different organization', {
-            project: project.slug,
-          })
-        );
-      },
-      (err: RequestError) => {
-        let message = '';
-        // Handle errors with known failures
-        if (err.status && err.status >= 400 && err.status < 500 && err.responseJSON) {
-          message = err.responseJSON.detail as string;
-        }
-
-        if (message) {
-          addErrorMessage(
-            tct('Error transferring [project]. [message]', {
-              project: project.slug,
-              message,
-            })
-          );
-        } else {
-          addErrorMessage(
-            tct('Error transferring [project]', {
-              project: project.slug,
-            })
-          );
-        }
-
-        throw err;
+  return api.requestPromise(endpoint, {method: 'POST', data: {email}}).then(
+    () => {
+      addSuccessMessage(
+        tct('A request was sent to move [project] to a different organization', {
+          project: project.slug,
+        })
+      );
+    },
+    (err: RequestError) => {
+      let message = '';
+      // Handle errors with known failures
+      if (err.status && err.status >= 400 && err.status < 500 && err.responseJSON) {
+        message = err.responseJSON.detail as string;
       }
-    );
+
+      if (message) {
+        addErrorMessage(
+          tct('Error transferring [project]. [message]', {project: project.slug, message})
+        );
+      } else {
+        addErrorMessage(tct('Error transferring [project]', {project: project.slug}));
+      }
+
+      throw err;
+    }
+  );
 }
 
 /**
@@ -121,31 +93,27 @@ export function addTeamToProject(
 
   addLoadingMessage();
 
-  return api
-    .requestPromise(endpoint, {
-      method: 'POST',
-    })
-    .then(
-      project => {
-        addSuccessMessage(
-          tct('[team] has been added to the [project] project', {
-            team: `#${team.slug}`,
-            project: projectSlug,
-          })
-        );
-        ProjectsStore.onAddTeam(team, projectSlug);
-        ProjectsStore.onUpdateSuccess(project);
-      },
-      err => {
-        addErrorMessage(
-          tct('Unable to add [team] to the [project] project', {
-            team: `#${team.slug}`,
-            project: projectSlug,
-          })
-        );
-        throw err;
-      }
-    );
+  return api.requestPromise(endpoint, {method: 'POST'}).then(
+    project => {
+      addSuccessMessage(
+        tct('[team] has been added to the [project] project', {
+          team: `#${team.slug}`,
+          project: projectSlug,
+        })
+      );
+      ProjectsStore.onAddTeam(team, projectSlug);
+      ProjectsStore.onUpdateSuccess(project);
+    },
+    err => {
+      addErrorMessage(
+        tct('Unable to add [team] to the [project] project', {
+          team: `#${team.slug}`,
+          project: projectSlug,
+        })
+      );
+      throw err;
+    }
+  );
 }
 
 /**
@@ -170,31 +138,27 @@ function removeTeamFromProject(
 
   addLoadingMessage();
 
-  return api
-    .requestPromise(endpoint, {
-      method: 'DELETE',
-    })
-    .then(
-      project => {
-        addSuccessMessage(
-          tct('[team] has been removed from the [project] project', {
-            team: `#${teamSlug}`,
-            project: projectSlug,
-          })
-        );
-        ProjectsStore.onRemoveTeam(teamSlug, projectSlug);
-        ProjectsStore.onUpdateSuccess(project);
-      },
-      err => {
-        addErrorMessage(
-          tct('Unable to remove [team] from the [project] project', {
-            team: `#${teamSlug}`,
-            project: projectSlug,
-          })
-        );
-        throw err;
-      }
-    );
+  return api.requestPromise(endpoint, {method: 'DELETE'}).then(
+    project => {
+      addSuccessMessage(
+        tct('[team] has been removed from the [project] project', {
+          team: `#${teamSlug}`,
+          project: projectSlug,
+        })
+      );
+      ProjectsStore.onRemoveTeam(teamSlug, projectSlug);
+      ProjectsStore.onUpdateSuccess(project);
+    },
+    err => {
+      addErrorMessage(
+        tct('Unable to remove [team] from the [project] project', {
+          team: `#${teamSlug}`,
+          project: projectSlug,
+        })
+      );
+      throw err;
+    }
+  );
 }
 
 /**
@@ -222,10 +186,7 @@ export async function removeProject({
     getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
       path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
     }),
-    {
-      method: 'DELETE',
-      data: {origin},
-    }
+    {method: 'DELETE', data: {origin}}
   );
   ProjectsStore.onDeleteProject(projectSlug);
 

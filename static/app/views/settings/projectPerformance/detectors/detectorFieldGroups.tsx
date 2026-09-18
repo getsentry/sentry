@@ -37,10 +37,7 @@ export const allowedSizeValues: number[] = [
 export const allowedCountValues: number[] = [5, 10, 20, 50, 100];
 
 export const projectDetectorSettingsId = 'detector-threshold-settings';
-type DetectorDefinition = {
-  disabled?: boolean;
-  disabledReason?: string | null;
-};
+type DetectorDefinition = {disabled?: boolean; disabledReason?: string | null};
 
 export type DetectorFieldGroup = {
   fields: React.ReactNode[];

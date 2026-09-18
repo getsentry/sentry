@@ -57,12 +57,7 @@ const useApdex = (props: Props) => {
       getApiUrl('/organizations/$organizationIdOrSlug/events/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          ...commonQuery,
-          ...normalizeDateTimeParams(datetime),
-        },
-      },
+      {query: {...commonQuery, ...normalizeDateTimeParams(datetime)}},
     ],
     {staleTime: Infinity, enabled: isEnabled}
   );
@@ -86,10 +81,7 @@ const useApdex = (props: Props) => {
         },
       },
     ],
-    {
-      staleTime: Infinity,
-      enabled: isEnabled && isPreviousPeriodEnabled,
-    }
+    {staleTime: Infinity, enabled: isEnabled && isPreviousPeriodEnabled}
   );
 
   return {

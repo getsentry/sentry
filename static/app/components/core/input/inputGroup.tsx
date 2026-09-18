@@ -42,11 +42,10 @@ const InputItemsWrap = styled('div')`
   bottom: 0;
 `;
 
-const itemsPadding = {
-  md: 8,
-  sm: 6,
-  xs: 4,
-} satisfies Record<NonNullable<InputStyleProps['size']>, number>;
+const itemsPadding = {md: 8, sm: 6, xs: 4} satisfies Record<
+  NonNullable<InputStyleProps['size']>,
+  number
+>;
 
 const inputStyles = ({
   leadingWidth,

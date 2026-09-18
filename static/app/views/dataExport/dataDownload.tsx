@@ -46,11 +46,7 @@ type BaseDownload = {
   dateCreated: string;
   id: number;
   status: DownloadStatus;
-  user: {
-    email: string;
-    id: number;
-    username: string;
-  };
+  user: {email: string; id: number; username: string};
   dateExpired?: string;
   dateFinished?: string;
   export_format?: 'csv' | 'jsonl';
@@ -93,9 +89,7 @@ export default function DataDownload() {
         path: {organizationIdOrSlug: orgSlug, dataExportId},
       }),
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   const navigate = useNavigate();
@@ -286,11 +280,7 @@ export default function DataDownload() {
       field: [],
     };
 
-    const samplesInfo = {
-      mode,
-      aggregateField: [],
-      field: fields,
-    };
+    const samplesInfo = {mode, aggregateField: [], field: fields};
 
     const to = {
       pathname: `/organizations/${orgSlug}/explore/traces/`,

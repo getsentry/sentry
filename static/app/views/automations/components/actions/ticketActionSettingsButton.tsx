@@ -44,9 +44,7 @@ export function TicketActionSettingsButton() {
 
     const {dynamic_form_fields, ...additionalFields} = formData;
 
-    onUpdate({
-      data: {dynamic_form_fields, additional_fields: additionalFields},
-    });
+    onUpdate({data: {dynamic_form_fields, additional_fields: additionalFields}});
   };
 
   // Find saved action data from the API response

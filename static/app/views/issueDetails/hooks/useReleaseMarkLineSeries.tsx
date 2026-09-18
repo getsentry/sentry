@@ -32,14 +32,8 @@ export function useReleaseMarkLineSeries({
 
   const markLine = createMarkLine({
     animation: false,
-    lineStyle: {
-      color: theme.tokens.graphics.accent.vibrant,
-      opacity: 0.3,
-      type: 'solid',
-    },
-    label: {
-      show: false,
-    },
+    lineStyle: {color: theme.tokens.graphics.accent.vibrant, opacity: 0.3, type: 'solid'},
+    label: {show: false},
     data: releases.map(release => ({
       xAxis: +new Date(release.date),
       name: formatVersion(release.version, true),
@@ -56,9 +50,7 @@ export function useReleaseMarkLineSeries({
           })
         );
       },
-      label: {
-        formatter: () => formatVersion(release.version, true),
-      },
+      label: {formatter: () => formatVersion(release.version, true)},
     })),
     tooltip: {
       trigger: 'item',
@@ -66,9 +58,7 @@ export function useReleaseMarkLineSeries({
         const time = getFormattedDate(
           data.value,
           getFormat({timeZone: true, year: true}),
-          {
-            local: !eventView.utc,
-          }
+          {local: !eventView.utc}
         );
         const version = escape(formatVersion(data.name, true));
         return [

@@ -152,10 +152,7 @@ export function InvestigationCell({
           priority: 'danger',
           confirmText: t('Delete'),
           onConfirm: () =>
-            deleteMutation.mutate({
-              block,
-              investigationVersion: investigation.version,
-            }),
+            deleteMutation.mutate({block, investigationVersion: investigation.version}),
         }),
     },
   ];
@@ -606,9 +603,7 @@ function RefinementPanel({
   const stopMutation = useStopInvestigationExecutionMutation(
     organizationSlug,
     investigation.id,
-    {
-      onError: () => addErrorMessage(t('Unable to stop this Seer run.')),
-    }
+    {onError: () => addErrorMessage(t('Unable to stop this Seer run.'))}
   );
   const resumeMutation = useResumeInvestigationExecutionMutation(
     organizationSlug,
@@ -1195,10 +1190,7 @@ function getChartMetadata(chart: ReturnType<typeof getRenderableChart>) {
     return totalMetadata;
   }
 
-  const formatter = new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-  });
+  const formatter = new Intl.DateTimeFormat(undefined, {month: 'short', day: 'numeric'});
   const start = formatter.format(new Date(Math.min(...timestamps)));
   const end = formatter.format(new Date(Math.max(...timestamps)));
   const range = start === end ? start : `${start}–${end}`;

@@ -36,9 +36,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
         name: categoryInfo.displayName,
         value: size,
         category,
-        itemStyle: {
-          color: categoryInfo.color,
-        },
+        itemStyle: {color: categoryInfo.color},
       };
     })
     .sort((a, b) => b.value - a.value); // Sort by size descending
@@ -50,11 +48,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
       radius: ['40%', '70%'],
       center: ['50%', '50%'],
       avoidLabelOverlap: false,
-      itemStyle: {
-        borderRadius: 6,
-        borderColor: theme.colors.surface200,
-        borderWidth: 2,
-      },
+      itemStyle: {borderRadius: 6, borderColor: theme.colors.surface200, borderWidth: 2},
       label: {
         show: true,
         position: 'outside',
@@ -63,23 +57,10 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
         fontFamily: 'Rubik',
         color: theme.tokens.content.primary,
       },
-      labelLine: {
-        show: true,
-        lineStyle: {
-          color: theme.tokens.border.primary,
-        },
-      },
+      labelLine: {show: true, lineStyle: {color: theme.tokens.border.primary}},
       emphasis: {
-        label: {
-          show: true,
-          fontSize: 14,
-          fontWeight: 'bold',
-        },
-        itemStyle: {
-          shadowBlur: 10,
-          shadowOffsetX: 0,
-          shadowColor: theme.colors.gray100,
-        },
+        label: {show: true, fontSize: 14, fontWeight: 'bold'},
+        itemStyle: {shadowBlur: 10, shadowOffsetX: 0, shadowColor: theme.colors.gray100},
       },
       data: pieData,
     },
@@ -93,10 +74,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
     transitionDuration: 0,
     padding: 12,
     extraCssText: 'border-radius: 6px;',
-    textStyle: {
-      color: theme.tokens.content.primary,
-      fontFamily: 'Rubik',
-    },
+    textStyle: {color: theme.tokens.content.primary, fontFamily: 'Rubik'},
     formatter: function (params: any) {
       const value = typeof params.value === 'number' ? params.value : 0;
       const percent = ((value / totalSize) * 100).toFixed(2);

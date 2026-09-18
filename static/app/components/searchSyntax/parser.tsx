@@ -418,11 +418,7 @@ type AggregateFilterType =
  */
 type FilterResult = FilterMap[FilterType];
 
-type TokenConverterOpts = {
-  config: SearchConfig;
-  location: LocationFn;
-  text: TextFn;
-};
+type TokenConverterOpts = {config: SearchConfig; location: LocationFn; text: TextFn};
 
 /**
  * Used to construct token results via the token grammar
@@ -462,10 +458,7 @@ export class TokenConverter {
    * Creates shared `text` and `location` keys.
    */
   get defaultTokenFields() {
-    return {
-      text: this.text(),
-      location: this.location(),
-    };
+    return {text: this.text(), location: this.location()};
   }
 
   tokenSpaces = (value: string) => ({
@@ -498,10 +491,7 @@ export class TokenConverter {
       warning: this.checkFilterWarning(key),
     } as FilterResult;
 
-    return {
-      ...this.defaultTokenFields,
-      ...filterToken,
-    };
+    return {...this.defaultTokenFields, ...filterToken};
   };
 
   tokenLParen = (value: '(') => ({
@@ -532,11 +522,7 @@ export class TokenConverter {
       | ReturnType<TokenConverter['tokenFilter']>
       | ReturnType<TokenConverter['tokenFreeText']>
     >
-  ) => ({
-    ...this.defaultTokenFields,
-    type: Token.LOGIC_GROUP as const,
-    inner,
-  });
+  ) => ({...this.defaultTokenFields, type: Token.LOGIC_GROUP as const, inner});
 
   tokenLogicBoolean = (bool: BooleanOperator) => ({
     ...this.defaultTokenFields,
@@ -585,12 +571,7 @@ export class TokenConverter {
   tokenKeyExplicitTag = (
     prefix: string,
     key: ReturnType<TokenConverter['tokenKeySimple']>
-  ) => ({
-    ...this.defaultTokenFields,
-    type: Token.KEY_EXPLICIT_TAG as const,
-    prefix,
-    key,
-  });
+  ) => ({...this.defaultTokenFields, type: Token.KEY_EXPLICIT_TAG as const, prefix, key});
 
   tokenKeyExplicitStringTag = (
     prefix: string,
@@ -794,12 +775,7 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.VALUE_TEXT as const,
-      value,
-      quoted,
-    };
+    return {...this.defaultTokenFields, type: Token.VALUE_TEXT as const, value, quoted};
   };
 
   /**
@@ -1238,9 +1214,7 @@ function parseDuration(
       throw new Error('Invalid unit');
   }
 
-  return {
-    value: number,
-  };
+  return {value: number};
 }
 function parseNumber(
   input: string,
@@ -1576,12 +1550,7 @@ export function parseSearch(
     ? mergeSearchConfigWithDefaults(defaultConfig, additionalConfig)
     : defaultConfig;
 
-  return tryParseSearch(query, {
-    config,
-    TokenConverter,
-    TermOperator,
-    FilterType,
-  });
+  return tryParseSearch(query, {config, TokenConverter, TermOperator, FilterType});
 }
 
 /**

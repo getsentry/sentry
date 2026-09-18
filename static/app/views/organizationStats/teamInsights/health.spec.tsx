@@ -14,9 +14,7 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 import TeamStatsHealth from 'sentry/views/organizationStats/teamInsights/health';
 
 jest.mock('sentry/utils/localStorage');
-jest.mock('sentry/utils/isActiveSuperuser', () => ({
-  isActiveSuperuser: jest.fn(),
-}));
+jest.mock('sentry/utils/isActiveSuperuser', () => ({isActiveSuperuser: jest.fn()}));
 
 describe('TeamStatsHealth', () => {
   const project1 = ProjectFixture({id: '2', name: 'js', slug: 'js'});
@@ -167,10 +165,7 @@ describe('TeamStatsHealth', () => {
     return render(<TeamStatsHealth />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/stats/team/health/',
-          query: {},
-        },
+        location: {pathname: '/organizations/org-slug/stats/team/health/', query: {}},
         route: '/organizations/:orgSlug/stats/team/health/',
       },
     });
@@ -228,10 +223,7 @@ describe('TeamStatsHealth', () => {
   });
 
   it('shows users with no teams the join team button', () => {
-    createWrapper({
-      projects: [{...project1, isMember: false}],
-      teams: [],
-    });
+    createWrapper({projects: [{...project1, isMember: false}], teams: []});
 
     expect(screen.getByText('Join a Team')).toBeInTheDocument();
   });

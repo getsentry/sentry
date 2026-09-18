@@ -25,19 +25,14 @@ function makeConfig(
     label: 'Vercel Projects',
     help: 'Map Vercel projects to Sentry projects',
     iconType: 'vercel',
-    mappedDropdown: {
-      items: VERCEL_PROJECTS,
-      placeholder: 'Vercel project\u2026',
-    },
+    mappedDropdown: {items: VERCEL_PROJECTS, placeholder: 'Vercel project\u2026'},
     sentryProjects: SENTRY_PROJECTS,
     ...overrides,
   };
 }
 
 const org = OrganizationFixture();
-const mutationOptions = {
-  mutationFn: jest.fn().mockResolvedValue({}),
-};
+const mutationOptions = {mutationFn: jest.fn().mockResolvedValue({})};
 
 describe('ProjectMapperAdapter', () => {
   it('renders empty state with two dropdowns and disabled Add button', () => {
@@ -133,9 +128,7 @@ describe('ProjectMapperAdapter', () => {
 
     await waitFor(() => {
       expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
-        {
-          project_mappings: [[101, 'proj-1']],
-        },
+        {project_mappings: [[101, 'proj-1']]},
         expect.anything()
       );
     });
@@ -160,9 +153,7 @@ describe('ProjectMapperAdapter', () => {
 
     await waitFor(() => {
       expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
-        {
-          project_mappings: [[102, 'proj-2']],
-        },
+        {project_mappings: [[102, 'proj-2']]},
         expect.anything()
       );
     });

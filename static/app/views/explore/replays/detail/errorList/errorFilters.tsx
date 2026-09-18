@@ -31,14 +31,8 @@ export function ErrorFilters({
         multiple
         onChange={setFilters as (selection: Array<SelectOption<string>>) => void}
         options={[
-          {
-            label: t('Project'),
-            options: projectOptions,
-          },
-          {
-            label: t('Level'),
-            options: levelOptions,
-          },
+          {label: t('Project'), options: projectOptions},
+          {label: t('Level'), options: levelOptions},
         ]}
         size="sm"
         trigger={triggerProps => (

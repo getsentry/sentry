@@ -23,10 +23,7 @@ import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 describe('EditHighlightsModal', () => {
   const organization = OrganizationFixture();
   const project = DetailedProjectFixture();
-  const event = EventFixture({
-    contexts: TEST_EVENT_CONTEXTS,
-    tags: TEST_EVENT_TAGS,
-  });
+  const event = EventFixture({contexts: TEST_EVENT_CONTEXTS, tags: TEST_EVENT_TAGS});
   const url = `/projects/${organization.slug}/${project.slug}/`;
   const highlightTags = ['release', 'url', 'missingTag'];
   const highlightContext = {
@@ -226,9 +223,7 @@ describe('EditHighlightsModal', () => {
         expect(previewTagItem).not.toBeInTheDocument();
         await userEvent.click(addButton);
       }
-      const previewTagItem = within(previewSection).getByText(tag.key, {
-        selector: 'div',
-      });
+      const previewTagItem = within(previewSection).getByText(tag.key, {selector: 'div'});
       const removeButton = previewTagItem?.closest(
         "div[data-test-id='highlights-preview-tag']"
       )?.previousSibling;

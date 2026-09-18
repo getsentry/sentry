@@ -26,9 +26,7 @@ interface TooltipContextProps {
   container: Element | DocumentFragment | null;
 }
 
-export const TooltipContext = createContext<TooltipContextProps>({
-  container: null,
-});
+export const TooltipContext = createContext<TooltipContextProps>({container: null});
 
 export interface TooltipProps extends UseHoverOverlayProps {
   /**
@@ -145,9 +143,9 @@ function stopPropagation(e: React.SyntheticEvent) {
   e.stopPropagation();
 }
 
-const TooltipContent = styled(Overlay, {
-  shouldForwardProp: prop => prop !== 'maxWidth',
-})<{maxWidth?: number}>`
+const TooltipContent = styled(Overlay, {shouldForwardProp: prop => prop !== 'maxWidth'})<{
+  maxWidth?: number;
+}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 
   /*

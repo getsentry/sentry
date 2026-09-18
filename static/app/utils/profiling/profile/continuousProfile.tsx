@@ -6,9 +6,7 @@ import type {createContinuousProfileFrameIndex} from 'sentry/utils/profiling/pro
 import {Profile} from './profile';
 import {sortProfileSamples} from './utils';
 
-type WeightedSample = Profiling.ContinuousProfile['samples'][number] & {
-  weight: number;
-};
+type WeightedSample = Profiling.ContinuousProfile['samples'][number] & {weight: number};
 
 export class ContinuousProfile extends Profile {
   static FromProfile(

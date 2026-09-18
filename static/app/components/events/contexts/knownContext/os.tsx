@@ -42,29 +42,13 @@ export function getOperatingSystemContextData({
   return getContextKeys({data, hiddenKeys: ['os']}).map(ctxKey => {
     switch (ctxKey) {
       case OperatingSystemContextKeys.NAME:
-        return {
-          key: ctxKey,
-          subject: t('Name'),
-          value: data.name,
-        };
+        return {key: ctxKey, subject: t('Name'), value: data.name};
       case OperatingSystemContextKeys.VERSION:
-        return {
-          key: ctxKey,
-          subject: t('Version'),
-          value: data.version,
-        };
+        return {key: ctxKey, subject: t('Version'), value: data.version};
       case OperatingSystemContextKeys.BUILD:
-        return {
-          key: ctxKey,
-          subject: t('Build'),
-          value: data.build,
-        };
+        return {key: ctxKey, subject: t('Build'), value: data.build};
       case OperatingSystemContextKeys.KERNEL_VERSION:
-        return {
-          key: ctxKey,
-          subject: t('Kernel Version'),
-          value: data.kernel_version,
-        };
+        return {key: ctxKey, subject: t('Kernel Version'), value: data.kernel_version};
       case OperatingSystemContextKeys.ROOTED:
         return {
           key: ctxKey,
@@ -72,17 +56,9 @@ export function getOperatingSystemContextData({
           value: defined(data.rooted) ? (data.rooted ? t('yes') : t('no')) : null,
         };
       case OperatingSystemContextKeys.THEME:
-        return {
-          key: ctxKey,
-          subject: t('Theme'),
-          value: data.theme,
-        };
+        return {key: ctxKey, subject: t('Theme'), value: data.theme};
       case OperatingSystemContextKeys.RAW_DESCRIPTION:
-        return {
-          key: ctxKey,
-          subject: t('Raw Description'),
-          value: data.raw_description,
-        };
+        return {key: ctxKey, subject: t('Raw Description'), value: data.raw_description};
       case OperatingSystemContextKeys.DISTRIBUTION:
         return {
           key: ctxKey,

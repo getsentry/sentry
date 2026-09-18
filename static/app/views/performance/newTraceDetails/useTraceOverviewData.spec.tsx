@@ -71,15 +71,8 @@ describe('useTraceOverviewData', () => {
       isRepresentativeLoading: false,
       isTabLoading: false,
       projectIds: [],
-      logs: {
-        availability: 'present',
-        count: 2,
-        representative: undefined,
-      },
-      metrics: {
-        availability: 'present',
-        count: 3,
-      },
+      logs: {availability: 'present', count: 2, representative: undefined},
+      metrics: {availability: 'present', count: 3},
     });
     expect(eventsRequest).not.toHaveBeenCalled();
     expect(traceLogsRequest).not.toHaveBeenCalled();
@@ -211,10 +204,7 @@ describe('useTraceOverviewData', () => {
     });
 
     expect(result.current.projectIds).toEqual(['2', '3']);
-    expect(result.current.metrics).toEqual({
-      availability: 'present',
-      count: 2,
-    });
+    expect(result.current.metrics).toEqual({availability: 'present', count: 2});
     expect(metricProjectsRequest.mock.calls[0]?.[1]?.query).toEqual(
       expect.objectContaining({
         field: ['project.id', 'count(metric.name)'],
@@ -261,10 +251,7 @@ describe('useTraceOverviewData', () => {
       url: `/organizations/${organization.slug}/trace-logs/`,
       body: {
         data: [
-          {
-            [OurLogKnownFieldKey.ID]: 'log-id',
-            [OurLogKnownFieldKey.PROJECT_ID]: '1',
-          },
+          {[OurLogKnownFieldKey.ID]: 'log-id', [OurLogKnownFieldKey.PROJECT_ID]: '1'},
         ],
       },
     });

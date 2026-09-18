@@ -124,9 +124,7 @@ export function TransactionHeader({
   );
 
   function handleCreateAlertSuccess() {
-    trackAnalytics('performance_views.summary.create_alert_clicked', {
-      organization,
-    });
+    trackAnalytics('performance_views.summary.create_alert_clicked', {organization});
   }
 
   const project = projects.find(p => p.id === projectId);
@@ -149,11 +147,7 @@ export function TransactionHeader({
   });
 
   const tabList = (
-    <TabList
-      outerWrapStyles={{
-        gridColumn: '1 / -1',
-      }}
-    >
+    <TabList outerWrapStyles={{gridColumn: '1 / -1'}}>
       <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
       <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
       <TabList.Item key={Tab.REPLAYS} textValue={t('Replays')} hidden={!hasSessionReplay}>
@@ -184,18 +178,11 @@ export function TransactionHeader({
         </Fragment>
       ),
       hideDefaultTabs: true,
-      tabs: {
-        onTabChange,
-        tabList,
-        value: currentTab,
-      },
+      tabs: {onTabChange, tabList, value: currentTab},
       breadcrumbs: getTabCrumbs({
         location,
         organization,
-        transaction: {
-          name: transactionName,
-          project: projectId,
-        },
+        transaction: {name: transactionName, project: projectId},
         view,
       }),
       headerActions: (
@@ -269,11 +256,7 @@ export function TransactionHeader({
           {null}
         </FeedbackButton>
       </TopBar.Slot>
-      <TabList
-        outerWrapStyles={{
-          gridColumn: '1 / -1',
-        }}
-      >
+      <TabList outerWrapStyles={{gridColumn: '1 / -1'}}>
         <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
         <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
         <TabList.Item

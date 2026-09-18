@@ -19,10 +19,7 @@ jest.mock('sentry/constants', () => {
   };
 });
 
-type RouteMetadata = {
-  leadingPath: string;
-  route: RouteObject;
-};
+type RouteMetadata = {leadingPath: string; route: RouteObject};
 
 function extractRoutes(rootRoute: RouteObject[]): Set<string> {
   const routes = new Set<string>();
@@ -39,10 +36,7 @@ function extractRoutes(rootRoute: RouteObject[]): Set<string> {
     const currentPath = `${leading}${current.route.path ?? ''}`.replace('//', '/');
     if (current.route.children) {
       for (const childRoute of current.route.children ?? []) {
-        visitQueue.push({
-          leadingPath: currentPath,
-          route: childRoute,
-        });
+        visitQueue.push({leadingPath: currentPath, route: childRoute});
       }
     }
 

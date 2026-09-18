@@ -21,12 +21,7 @@ export function useDeleteIntegration({onSuccess}: UseDeleteIntegrationOptions = 
         method: 'DELETE',
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              integrationId: integration.id,
-            },
-          }
+          {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
         ),
       }),
     onSuccess: (_data, integration) => {

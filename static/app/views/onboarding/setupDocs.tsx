@@ -94,10 +94,7 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
           navigate(
             normalizeUrl({
               pathname: `/organizations/${organization.slug}/issues/`,
-              query: {
-                project: project.id,
-                referrer: 'onboarding-setup-docs',
-              },
+              query: {project: project.id, referrer: 'onboarding-setup-docs'},
             })
           );
         }}

@@ -53,11 +53,7 @@ export function SetupTitle({project}: {project: Project}) {
 
 function WaitingIndicator({project}: {project: Project}) {
   const organization = useOrganization();
-  const firstIssue = useEventWaiter({
-    eventType: 'error',
-    organization,
-    project,
-  });
+  const firstIssue = useEventWaiter({eventType: 'error', organization, project});
 
   if (!firstIssue) {
     return <EventWaitingIndicator />;
@@ -134,10 +130,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     isPerformanceSelected: false,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: {installationMode: 'auto'},
     replayOptions: {block: true, mask: true},
     isSelfHosted,
@@ -145,10 +138,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   };
 
   if (currentPlatformKey === 'java' || currentPlatformKey === 'java-spring-boot') {
-    docParams.platformOptions = {
-      ...docParams.platformOptions,
-      packageManager: 'gradle',
-    };
+    docParams.platformOptions = {...docParams.platformOptions, packageManager: 'gradle'};
   }
 
   if (currentPlatformKey === 'javascript') {
@@ -187,10 +177,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 onStepChange={step => {
                   navigate({
                     pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      guidedStep: step,
-                    },
+                    query: {...location.query, guidedStep: step},
                   });
                 }}
               >

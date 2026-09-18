@@ -12,12 +12,7 @@ jest.mock('sentry/components/pageFilters/actions');
 
 const pageFilterSelection = PageFiltersFixture({
   projects: [],
-  datetime: {
-    period: '14d',
-    start: null,
-    end: null,
-    utc: false,
-  },
+  datetime: {period: '14d', start: null, end: null, utc: false},
 });
 
 describe('useDefaultToAllProjects', () => {
@@ -34,9 +29,7 @@ describe('useDefaultToAllProjects', () => {
     const nonMemberProject = ProjectFixture({isMember: false});
     ProjectsStore.loadInitialData([nonMemberProject]);
     renderHook(useDefaultToAllProjects);
-    expect(updateProjects).toHaveBeenCalledWith([-1], undefined, undefined, {
-      save: true,
-    });
+    expect(updateProjects).toHaveBeenCalledWith([-1], undefined, undefined, {save: true});
   });
 
   it('should not update projects when there are no projects selected and user has team projects', () => {
@@ -47,10 +40,7 @@ describe('useDefaultToAllProjects', () => {
 
   it('should not update projects when there are projects selected', () => {
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        ...pageFilterSelection,
-        projects: [1, 2],
-      })
+      PageFiltersFixture({...pageFilterSelection, projects: [1, 2]})
     );
     renderHook(useDefaultToAllProjects);
     expect(updateProjects).not.toHaveBeenCalled();

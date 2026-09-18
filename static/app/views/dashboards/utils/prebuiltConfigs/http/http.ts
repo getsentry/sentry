@@ -122,24 +122,14 @@ const DOMAIN_TABLE: PrebuiltWidget = {
         DataTitles.timeSpent,
       ],
       linkedDashboards: [
-        {
-          dashboardId: '-1',
-          field: SpanFields.SPAN_DOMAIN,
-          staticDashboardId: 5,
-        },
+        {dashboardId: '-1', field: SpanFields.SPAN_DOMAIN, staticDashboardId: 5},
       ],
       conditions: FILTER_STRING,
       name: '',
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 2,
-    minH: TABLE_MIN_HEIGHT,
-    h: 4,
-    w: 6,
-  },
+  layout: {x: 0, y: 2, minH: TABLE_MIN_HEIGHT, h: 4, w: 6},
 };
 
 export const HTTP_PREBUILT_CONFIG: PrebuiltDashboard = {

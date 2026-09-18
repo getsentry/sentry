@@ -17,15 +17,17 @@ export function mockElementSize({
   jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(height);
 
   // Keep component layout reads consistent with the dimensions seen by the virtualizer.
-  jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-    width,
-    height,
-    top: 0,
-    left: 0,
-    bottom: height,
-    right: width,
-    x: 0,
-    y: 0,
-    toJSON: () => {},
-  });
+  jest
+    .spyOn(Element.prototype, 'getBoundingClientRect')
+    .mockReturnValue({
+      width,
+      height,
+      top: 0,
+      left: 0,
+      bottom: height,
+      right: width,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    });
 }

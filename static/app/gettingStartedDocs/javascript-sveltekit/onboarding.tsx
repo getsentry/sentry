@@ -9,10 +9,7 @@ import {getConfigStep} from './utils';
 
 export const onboarding: OnboardingConfig = {
   install: params => [
-    {
-      title: t('Automatic Configuration (Recommended)'),
-      content: getConfigStep(params),
-    },
+    {title: t('Automatic Configuration (Recommended)'), content: getConfigStep(params)},
   ],
   configure: params => [
     {
@@ -42,9 +39,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Start your development server and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -56,11 +51,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'Javascript',
-              language: 'javascript',
-              code: 'myUndefinedFunction();',
-            },
+            {label: 'Javascript', language: 'javascript', code: 'myUndefinedFunction();'},
           ],
         },
         {

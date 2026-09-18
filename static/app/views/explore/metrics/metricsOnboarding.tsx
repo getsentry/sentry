@@ -51,10 +51,7 @@ import {
 const METRICS_GH_DISCUSSION_LINK =
   'https://github.com/getsentry/sentry/discussions/102275';
 
-type OnboardingProps = {
-  organization: Organization;
-  project: Project;
-};
+type OnboardingProps = {organization: Organization; project: Project};
 
 function OnboardingPanel({
   project,
@@ -229,10 +226,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     isPerformanceSelected: false,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: [ProductSolution.METRICS],
     feedbackOptions: {},
     urlPrefix,
@@ -253,10 +247,7 @@ function Onboarding({organization, project}: OnboardingProps) {
         onStepChange={step => {
           navigate({
             pathname: location.pathname,
-            query: {
-              ...location.query,
-              guidedStep: step,
-            },
+            query: {...location.query, guidedStep: step},
           });
         }}
       >

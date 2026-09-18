@@ -22,9 +22,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import type {DeprecatedApiKey} from './types';
 
-type RouteParams = {
-  apiKey: string;
-};
+type RouteParams = {apiKey: string};
 
 const scopeListSchema = z.array(z.string());
 const apiKeySchema = z.object({

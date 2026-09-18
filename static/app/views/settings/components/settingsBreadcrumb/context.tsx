@@ -10,10 +10,7 @@ import {useMatches, type UIMatch} from 'react-router-dom';
 
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
-type ExplicitTitleProps = {
-  matches: UIMatch[];
-  title: string;
-};
+type ExplicitTitleProps = {matches: UIMatch[]; title: string};
 
 type PathMap = Record<string, string>;
 
@@ -33,9 +30,7 @@ type Context = {
 
 const BreadcrumbContext = createContext<Context | undefined>(undefined);
 
-type ProviderProps = {
-  children: React.ReactNode;
-};
+type ProviderProps = {children: React.ReactNode};
 
 function BreadcrumbProvider({children}: ProviderProps) {
   const matches = useMatches();
@@ -82,10 +77,7 @@ function BreadcrumbProvider({children}: ProviderProps) {
     [setExplicitPathMap]
   );
 
-  const ctx: Context = {
-    pathMap: {...pathMap, ...explicitPathMap},
-    setExplicitTitle,
-  };
+  const ctx: Context = {pathMap: {...pathMap, ...explicitPathMap}, setExplicitTitle};
 
   return <BreadcrumbContext value={ctx}>{children}</BreadcrumbContext>;
 }

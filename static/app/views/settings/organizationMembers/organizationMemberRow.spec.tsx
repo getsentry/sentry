@@ -23,11 +23,7 @@ describe('OrganizationMemberRow', () => {
       'partnership:restricted': false,
       'sso:invalid': false,
     },
-    user: UserFixture({
-      id: '',
-      has2fa: false,
-      name: 'sentry@test.com',
-    }),
+    user: UserFixture({id: '', has2fa: false, name: 'sentry@test.com'}),
   });
 
   const currentUser = UserFixture({
@@ -86,10 +82,7 @@ describe('OrganizationMemberRow', () => {
       render(
         <OrganizationMemberRow
           {...defaultProps}
-          member={{
-            ...member,
-            user: UserFixture({...member.user, has2fa: false}),
-          }}
+          member={{...member, user: UserFixture({...member.user, has2fa: false})}}
         />
       );
 
@@ -99,10 +92,7 @@ describe('OrganizationMemberRow', () => {
   });
 
   describe('Pending user', () => {
-    const props = {
-      ...defaultProps,
-      member: {...member, pending: true},
-    };
+    const props = {...defaultProps, member: {...member, pending: true}};
 
     it('has "Invited" status, no "Resend Invite"', () => {
       render(<OrganizationMemberRow {...props} />);
@@ -119,9 +109,7 @@ describe('OrganizationMemberRow', () => {
     });
 
     it('has "Resend Invite" button if invite was sent from curr user and feature is on', () => {
-      const org = OrganizationFixture({
-        access: ['member:invite'],
-      });
+      const org = OrganizationFixture({access: ['member:invite']});
       render(<OrganizationMemberRow {...props} organization={org} />);
 
       expect(screen.getByTestId('member-role')).toHaveTextContent('Invited Member');
@@ -129,9 +117,7 @@ describe('OrganizationMemberRow', () => {
     });
 
     it('does not have "Resend Invite" button if invite was sent from other user and feature is on', () => {
-      const org = OrganizationFixture({
-        access: ['member:invite'],
-      });
+      const org = OrganizationFixture({access: ['member:invite']});
       render(
         <OrganizationMemberRow
           {...props}
@@ -172,18 +158,14 @@ describe('OrganizationMemberRow', () => {
     });
 
     it('has Remove button if invite was sent from curr user and feature is on', () => {
-      const org = OrganizationFixture({
-        access: ['member:invite'],
-      });
+      const org = OrganizationFixture({access: ['member:invite']});
       render(<OrganizationMemberRow {...props} organization={org} />);
 
       expect(removeButton()).toBeEnabled();
     });
 
     it('has disabled Remove button if invite was sent from other user and feature is on', () => {
-      const org = OrganizationFixture({
-        access: ['member:invite'],
-      });
+      const org = OrganizationFixture({access: ['member:invite']});
       render(
         <OrganizationMemberRow
           {...props}
@@ -212,11 +194,7 @@ describe('OrganizationMemberRow', () => {
   });
 
   describe('Requires SSO Link', () => {
-    const props = {
-      ...defaultProps,
-      flags: {'sso:link': false},
-      requireLink: true,
-    };
+    const props = {...defaultProps, flags: {'sso:link': false}, requireLink: true};
 
     it('shows "Invited" status if user has not registered and not linked', () => {
       render(
@@ -269,10 +247,7 @@ describe('OrganizationMemberRow', () => {
   });
 
   describe('Is Current User', () => {
-    const props = {
-      ...defaultProps,
-      member: {...member, email: 'currentUser@email.com'},
-    };
+    const props = {...defaultProps, member: {...member, email: 'currentUser@email.com'}};
 
     it('has button to leave organization and no button to remove', () => {
       render(<OrganizationMemberRow {...props} memberCanLeave />);
@@ -315,9 +290,7 @@ describe('OrganizationMemberRow', () => {
   });
 
   describe('Not Current User', () => {
-    const props = {
-      ...defaultProps,
-    };
+    const props = {...defaultProps};
 
     it('does not have Leave button', () => {
       render(<OrganizationMemberRow {...props} memberCanLeave />);

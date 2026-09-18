@@ -151,9 +151,7 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
   `;
 
   const selectTool = () => {
-    trackAnalytics('conversations.message.click-tool-call', {
-      organization,
-    });
+    trackAnalytics('conversations.message.click-tool-call', {organization});
     if (node) {
       onSelectNode(node);
     }
@@ -172,10 +170,7 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
       data-selected={isSelected}
       style={
         isSelected
-          ? {
-              outline: `2px solid ${theme.tokens.focus.default}`,
-              outlineOffset: '-2px',
-            }
+          ? {outline: `2px solid ${theme.tokens.focus.default}`, outlineOffset: '-2px'}
           : undefined
       }
       onClick={(e: React.MouseEvent) => {

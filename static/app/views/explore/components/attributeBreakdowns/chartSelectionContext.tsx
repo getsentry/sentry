@@ -9,10 +9,7 @@ export type ChartSelectionQueryParam = {
   range: [number, number];
 };
 
-type ChartSelectionState = {
-  chartIndex: number;
-  selection: Selection;
-} | null;
+type ChartSelectionState = {chartIndex: number; selection: Selection} | null;
 
 type ChartSelectionContextValue = {
   chartSelection: ChartSelectionState;
@@ -42,10 +39,7 @@ const parseAsChartSelection = createParser<ChartSelectionState>({
       ) {
         return {
           chartIndex: parsed.chartIndex,
-          selection: {
-            range: parsed.range as [number, number],
-            panelId: parsed.panelId,
-          },
+          selection: {range: parsed.range as [number, number], panelId: parsed.panelId},
         };
       }
     } catch {
@@ -76,10 +70,7 @@ export function ChartSelectionProvider({children}: ChartSelectionProviderProps) 
   );
 
   const value = useMemo<ChartSelectionContextValue>(
-    () => ({
-      chartSelection,
-      setChartSelection,
-    }),
+    () => ({chartSelection, setChartSelection}),
     [chartSelection, setChartSelection]
   );
 

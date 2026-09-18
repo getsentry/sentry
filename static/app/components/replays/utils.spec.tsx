@@ -75,25 +75,13 @@ describe('getFramesByColumn', () => {
   const {
     errorFrames: [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5],
   } = hydrateErrors(
-    ReplayRecordFixture({
-      started_at: new Date('2022-04-14T14:19:47.326000Z'),
-    }),
+    ReplayRecordFixture({started_at: new Date('2022-04-14T14:19:47.326000Z')}),
     [
-      RawReplayErrorFixture({
-        timestamp: new Date('2022-04-14T14:19:47.326000Z'),
-      }),
-      RawReplayErrorFixture({
-        timestamp: new Date('2022-04-14T14:19:49.249000Z'),
-      }),
-      RawReplayErrorFixture({
-        timestamp: new Date('2022-04-14T14:19:51.512000Z'),
-      }),
-      RawReplayErrorFixture({
-        timestamp: new Date('2022-04-14T14:19:57.326000Z'),
-      }),
-      RawReplayErrorFixture({
-        timestamp: new Date('2022-04-14T14:20:13.036000Z'),
-      }),
+      RawReplayErrorFixture({timestamp: new Date('2022-04-14T14:19:47.326000Z')}),
+      RawReplayErrorFixture({timestamp: new Date('2022-04-14T14:19:49.249000Z')}),
+      RawReplayErrorFixture({timestamp: new Date('2022-04-14T14:19:51.512000Z')}),
+      RawReplayErrorFixture({timestamp: new Date('2022-04-14T14:19:57.326000Z')}),
+      RawReplayErrorFixture({timestamp: new Date('2022-04-14T14:20:13.036000Z')}),
     ]
   );
 
@@ -134,39 +122,15 @@ describe('getFramesByColumn', () => {
 
 describe('findVideoSegmentIndex', () => {
   const segments = [
-    {
-      id: 0,
-      timestamp: 0,
-      duration: 5000,
-    },
+    {id: 0, timestamp: 0, duration: 5000},
     // no gap
-    {
-      id: 1,
-      timestamp: 5000,
-      duration: 5000,
-    },
-    {
-      id: 2,
-      timestamp: 10_001,
-      duration: 5000,
-    },
+    {id: 1, timestamp: 5000, duration: 5000},
+    {id: 2, timestamp: 10_001, duration: 5000},
     // 5 second gap
-    {
-      id: 3,
-      timestamp: 20_000,
-      duration: 5000,
-    },
+    {id: 3, timestamp: 20_000, duration: 5000},
     // 5 second gap
-    {
-      id: 4,
-      timestamp: 30_000,
-      duration: 5000,
-    },
-    {
-      id: 5,
-      timestamp: 35_002,
-      duration: 5000,
-    },
+    {id: 4, timestamp: 30_000, duration: 5000},
+    {id: 5, timestamp: 35_002, duration: 5000},
   ];
   const trackList = segments.map(
     ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
@@ -194,13 +158,7 @@ describe('findVideoSegmentIndex', () => {
   );
 
   it('returns first segment if target timestamp is before the first segment when there is only a single attachment', () => {
-    const segments2 = [
-      {
-        id: 0,
-        timestamp: 5000,
-        duration: 5000,
-      },
-    ];
+    const segments2 = [{id: 0, timestamp: 5000, duration: 5000}];
     const trackList2 = segments2.map(
       ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
     );
@@ -209,26 +167,10 @@ describe('findVideoSegmentIndex', () => {
 
   it('returns first segment if target timestamp is before the first segment', () => {
     const segments2 = [
-      {
-        id: 0,
-        timestamp: 5000,
-        duration: 5000,
-      },
-      {
-        id: 1,
-        timestamp: 10000,
-        duration: 5000,
-      },
-      {
-        id: 2,
-        timestamp: 15000,
-        duration: 5000,
-      },
-      {
-        id: 3,
-        timestamp: 25000,
-        duration: 5000,
-      },
+      {id: 0, timestamp: 5000, duration: 5000},
+      {id: 1, timestamp: 10000, duration: 5000},
+      {id: 2, timestamp: 15000, duration: 5000},
+      {id: 3, timestamp: 25000, duration: 5000},
     ];
     const trackList2 = segments2.map(
       ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]

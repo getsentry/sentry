@@ -82,11 +82,7 @@ export function InnerIntentForm({
             </Button>
           )
         }
-        footerStyle={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginLeft: 0,
-        }}
+        footerStyle={{display: 'flex', justifyContent: 'space-between', marginLeft: 0}}
       >
         <Stack gap="xl">
           {stripeIsLoading && <LoadingIndicator />}

@@ -14,9 +14,7 @@ import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
   const organization = useOrganization();
-  const api = useApi({
-    persistInFlight: false,
-  });
+  const api = useApi({persistInFlight: false});
   const navigate = useNavigate();
   const {query: locationQuery} = useLocation();
 
@@ -28,19 +26,12 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
         addLoadingMessage(t('Updating feedback...'));
         bulkDelete(
           api,
-          {
-            orgId: organization.slug,
-            projectId,
-            itemIds: feedbackIds,
-          },
+          {orgId: organization.slug, projectId, itemIds: feedbackIds},
           {
             success: () => {
               navigate(
                 normalizeUrl({
-                  pathname: makeFeedbackPathname({
-                    path: '/',
-                    organization,
-                  }),
+                  pathname: makeFeedbackPathname({path: '/', organization}),
                   query: {
                     mailbox: locationQuery.mailbox,
                     project: locationQuery.project,

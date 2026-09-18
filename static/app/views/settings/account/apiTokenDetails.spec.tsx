@@ -8,9 +8,7 @@ import ApiTokenDetails from 'sentry/views/settings/account/apiTokenDetails';
 const ROUTER_CONFIG = {
   initialRouterConfig: {
     route: '/api/auth-tokens/:tokenId/',
-    location: {
-      pathname: '/api/auth-tokens/1/',
-    },
+    location: {pathname: '/api/auth-tokens/1/'},
   },
 };
 
@@ -77,9 +75,7 @@ describe('ApiTokenDetails', () => {
         '/api-tokens/1/',
         expect.objectContaining({
           method: 'PUT',
-          data: expect.objectContaining({
-            name: 'token1 new',
-          }),
+          data: expect.objectContaining({name: 'token1 new'}),
         })
       )
     );
@@ -115,9 +111,7 @@ describe('ApiTokenDetails', () => {
         '/api-tokens/1/',
         expect.objectContaining({
           method: 'PUT',
-          data: expect.objectContaining({
-            name: '',
-          }),
+          data: expect.objectContaining({name: ''}),
         })
       )
     );

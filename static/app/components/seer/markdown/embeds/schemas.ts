@@ -5,12 +5,7 @@ import {API_ACCESS_SCOPES} from 'sentry/constants/apiAccessScopes';
 const isoTimestampSchema = z.iso.datetime({offset: true});
 
 const chartSeriesDataSchema = z
-  .array(
-    z.object({
-      x: z.union([z.string(), z.number()]),
-      y: z.number(),
-    })
-  )
+  .array(z.object({x: z.union([z.string(), z.number()]), y: z.number()}))
   .min(1)
   .max(200);
 
@@ -144,16 +139,8 @@ export const SEER_EMBED_SCHEMAS = {
       'the widget titles, queries, visualizations, or values as text. ' +
       'Never use a markdown link for dashboard references.',
     level: ['inline', 'block'],
-    schema: z.object({
-      id: z.string().min(1),
-      title: z.string().min(1).optional(),
-    }),
-    examples: [
-      {
-        label: 'Dashboard',
-        data: {id: '123', title: 'Application health'},
-      },
-    ],
+    schema: z.object({id: z.string().min(1), title: z.string().min(1).optional()}),
+    examples: [{label: 'Dashboard', data: {id: '123', title: 'Application health'}}],
   },
   dsn: {
     description:
@@ -162,10 +149,7 @@ export const SEER_EMBED_SCHEMAS = {
     level: ['block'],
     schema: z.object({value: z.string()}),
     examples: [
-      {
-        label: 'DSN',
-        data: {value: 'https://examplePublicKey@o0.ingest.sentry.io/0'},
-      },
+      {label: 'DSN', data: {value: 'https://examplePublicKey@o0.ingest.sentry.io/0'}},
     ],
   },
   user: {
@@ -173,11 +157,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Mention a Sentry user or team inline. Renders an avatar and display name. ' +
       'Use the actor type ("user" or "team") and the actor\'s ID and name.',
     level: ['inline'],
-    schema: z.object({
-      id: z.string(),
-      type: z.enum(['user', 'team']),
-      name: z.string(),
-    }),
+    schema: z.object({id: z.string(), type: z.enum(['user', 'team']), name: z.string()}),
     examples: [
       {label: 'User', data: {id: '1', type: 'user', name: 'Jane Doe'}},
       {label: 'Team', data: {id: '2', type: 'team', name: 'platform'}},
@@ -219,18 +199,12 @@ export const SEER_EMBED_SCHEMAS = {
       {
         label: 'Inline',
         level: 'inline',
-        data: {
-          id: '4c1f2e3d1234567890',
-          eventTimestamp: '2026-08-25T16:37:12Z',
-        },
+        data: {id: '4c1f2e3d1234567890', eventTimestamp: '2026-08-25T16:37:12Z'},
       },
       {
         label: 'Block',
         level: 'block',
-        data: {
-          id: '4c1f2e3d1234567890',
-          eventTimestamp: '2026-08-25T16:37:12Z',
-        },
+        data: {id: '4c1f2e3d1234567890', eventTimestamp: '2026-08-25T16:37:12Z'},
       },
     ],
   },
@@ -244,16 +218,8 @@ export const SEER_EMBED_SCHEMAS = {
       'and recent deploys. Do not duplicate that data as text. ' +
       'Never use a markdown link for release references.',
     level: ['inline', 'block'],
-    schema: z.object({
-      version: z.string().min(1),
-      projectId: idString.optional(),
-    }),
-    examples: [
-      {
-        label: 'Release',
-        data: {version: 'example-app@1.2.3', projectId: '1'},
-      },
-    ],
+    schema: z.object({version: z.string().min(1), projectId: idString.optional()}),
+    examples: [{label: 'Release', data: {version: 'example-app@1.2.3', projectId: '1'}}],
   },
   chart: {
     description:
@@ -441,10 +407,7 @@ export const SEER_EMBED_SCHEMAS = {
         label: 'Uptime alert',
         data: {id: '774', kind: 'uptime', name: 'Checkout availability'},
       },
-      {
-        label: 'Cron alert',
-        data: {id: '9931', kind: 'cron', name: 'nightly-sync'},
-      },
+      {label: 'Cron alert', data: {id: '9931', kind: 'cron', name: 'nightly-sync'}},
     ],
   },
   monitor: {
@@ -458,16 +421,8 @@ export const SEER_EMBED_SCHEMAS = {
       'Block: loads the live monitor and renders its type-specific configuration/rules. ' +
       'Never use a markdown link for monitor references.',
     level: ['inline', 'block'],
-    schema: z.object({
-      id: z.string().min(1),
-      name: z.string().min(1).optional(),
-    }),
-    examples: [
-      {
-        label: 'Monitor',
-        data: {id: '9931', name: 'nightly-billing-sync'},
-      },
-    ],
+    schema: z.object({id: z.string().min(1), name: z.string().min(1).optional()}),
+    examples: [{label: 'Monitor', data: {id: '9931', name: 'nightly-billing-sync'}}],
   },
   savedIssueView: {
     description:
@@ -479,10 +434,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Do not duplicate the issue titles, event counts, priorities, or assignees as text. ' +
       'Never use a markdown link for issue view references.',
     level: ['inline', 'block'],
-    schema: z.object({
-      id: z.string().min(1),
-      name: z.string().min(1).optional(),
-    }),
+    schema: z.object({id: z.string().min(1), name: z.string().min(1).optional()}),
     examples: [
       {label: 'Saved issue view', data: {id: '77', name: 'Unresolved in checkout'}},
     ],
@@ -582,10 +534,7 @@ export const SEER_EMBED_SCHEMAS = {
       'do NOT duplicate any of that data as text. ' +
       'Never use a markdown link for profile references.',
     level: ['inline', 'block'],
-    schema: z.object({
-      projectSlug: z.string().min(1),
-      profileId: z.string().min(1),
-    }),
+    schema: z.object({projectSlug: z.string().min(1), profileId: z.string().min(1)}),
     examples: [
       {
         label: 'Inline',

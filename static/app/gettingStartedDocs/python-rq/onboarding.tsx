@@ -98,9 +98,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock({additionalPackage: 'rq'}),
       ],
@@ -114,18 +112,14 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'If you have the [codeRq:rq] package in your dependencies, the RQ integration will be enabled automatically when you initialize the Sentry SDK.',
-            {
-              codeRq: <code />,
-            }
+            {codeRq: <code />}
           ),
         },
         {
           type: 'text',
           text: tct(
             'Create a file called [code:mysettings.py] with the following content:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -138,15 +132,8 @@ export const onboarding: OnboardingConfig = {
             },
           ],
         },
-        {
-          type: 'text',
-          text: t('Start your worker with:'),
-        },
-        {
-          type: 'code',
-          language: 'shell',
-          code: getStartWorkerSnippet(),
-        },
+        {type: 'text', text: t('Start your worker with:')},
+        {type: 'code', language: 'shell', code: getStartWorkerSnippet()},
         {
           type: 'text',
           text: tct(
@@ -166,29 +153,15 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To verify, create a simple job and a [code:main.py] script that enqueues the job in RQ, then start an RQ worker to run the job:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'subheader',
-          text: t('Job definition'),
-        },
+        {type: 'subheader', text: t('Job definition')},
         {
           type: 'code',
-          tabs: [
-            {
-              language: 'python',
-              label: 'jobs.py',
-              code: getJobDefinitionSnippet(),
-            },
-          ],
+          tabs: [{language: 'python', label: 'jobs.py', code: getJobDefinitionSnippet()}],
         },
-        {
-          type: 'subheader',
-          text: t('Settings for worker'),
-        },
+        {type: 'subheader', text: t('Settings for worker')},
         {
           type: 'code',
           tabs: [
@@ -199,10 +172,7 @@ export const onboarding: OnboardingConfig = {
             },
           ],
         },
-        {
-          type: 'subheader',
-          text: t('Main Python Script'),
-        },
+        {type: 'subheader', text: t('Main Python Script')},
         {
           type: 'code',
           tabs: [
@@ -219,15 +189,11 @@ export const onboarding: OnboardingConfig = {
           text: [
             tct(
               'When you run [code:python main.py] a transaction named [code:testing_sentry] in the Performance section of Sentry will be created.',
-              {
-                code: <code />,
-              }
+              {code: <code />}
             ),
             tct(
               'If you run the RQ worker with [code:rq worker -c mysettings] a transaction for the execution of [code:hello()] will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction.',
-              {
-                code: <code />,
-              }
+              {code: <code />}
             ),
             t('It takes a couple of moments for the data to appear in Sentry.'),
           ],

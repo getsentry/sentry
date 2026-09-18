@@ -43,14 +43,7 @@ const MOCK_DEVICE_CONTEXT: DeviceContext = {
   thermal_state: 'nominal',
 };
 
-const MOCK_REDACTION = {
-  name: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 25,
-    },
-  },
-};
+const MOCK_REDACTION = {name: {'': {rem: [['organization:0', 's', 0, 0]], len: 25}}};
 
 describe('DeviceContext', () => {
   it('returns values and according to the parameters', () => {
@@ -59,30 +52,14 @@ describe('DeviceContext', () => {
       getDeviceContextData({data: MOCK_DEVICE_CONTEXT, event: EventFixture()})
     ).toEqual([
       {key: 'name', subject: 'Name', value: ''},
-      {
-        key: 'screen_resolution',
-        subject: 'Screen Resolution',
-        value: '1136x768',
-      },
+      {key: 'screen_resolution', subject: 'Screen Resolution', value: '1136x768'},
       {key: 'orientation', subject: 'Orientation', value: 'portrait'},
       {key: 'family', subject: 'Family', value: 'Android'},
       {key: 'battery_level', subject: 'Battery Level', value: '100%'},
-      {
-        key: 'battery_temperature',
-        subject: 'Battery Temperature (°C)',
-        value: 45,
-      },
+      {key: 'battery_temperature', subject: 'Battery Temperature (°C)', value: 45},
       {key: 'screen_dpi', subject: 'Screen DPI', value: 480},
-      {
-        key: 'memory_size',
-        subject: 'Memory Size',
-        value: expect.anything(),
-      },
-      {
-        key: 'timezone',
-        subject: 'Timezone',
-        value: 'America/Los_Angeles',
-      },
+      {key: 'memory_size', subject: 'Memory Size', value: expect.anything()},
+      {key: 'timezone', subject: 'Timezone', value: 'America/Los_Angeles'},
       {
         key: 'external_storage_size',
         subject: 'External Storage Size',
@@ -93,50 +70,22 @@ describe('DeviceContext', () => {
         subject: 'External Free Storage',
         value: expect.anything(),
       },
-      {
-        key: 'screen_width_pixels',
-        subject: 'Screen Width Pixels',
-        value: 768,
-      },
+      {key: 'screen_width_pixels', subject: 'Screen Width Pixels', value: 768},
       {key: 'low_memory', subject: 'Low Memory', value: false},
       {key: 'simulator', subject: 'Simulator', value: true},
-      {
-        key: 'screen_height_pixels',
-        subject: 'Screen Height Pixels',
-        value: 1136,
-      },
-      {
-        key: 'free_memory',
-        subject: 'Free Memory',
-        value: expect.anything(),
-      },
+      {key: 'screen_height_pixels', subject: 'Screen Height Pixels', value: 1136},
+      {key: 'free_memory', subject: 'Free Memory', value: expect.anything()},
       {key: 'online', subject: 'Online', value: true},
       {key: 'screen_density', subject: 'Screen Density', value: 3},
       {key: 'charging', subject: 'Charging', value: true},
       {key: 'model_id', subject: 'Model Id', value: 'NYC'},
       {key: 'brand', subject: 'Brand', value: 'google'},
-      {
-        key: 'storage_size',
-        subject: 'Storage Size',
-        value: expect.anything(),
-      },
-      {
-        key: 'boot_time',
-        subject: 'Boot Time',
-        value: expect.anything(),
-      },
+      {key: 'storage_size', subject: 'Storage Size', value: expect.anything()},
+      {key: 'boot_time', subject: 'Boot Time', value: expect.anything()},
       {key: 'arch', subject: 'Architecture', value: 'x86'},
       {key: 'manufacturer', subject: 'Manufacturer', value: 'Google'},
-      {
-        key: 'free_storage',
-        subject: 'Free Storage',
-        value: expect.anything(),
-      },
-      {
-        key: 'model',
-        subject: 'Model',
-        value: expect.anything(),
-      },
+      {key: 'free_storage', subject: 'Free Storage', value: expect.anything()},
+      {key: 'model', subject: 'Model', value: expect.anything()},
       {key: 'locale', subject: 'Locale', value: 'en_US'},
       {key: 'archs', subject: 'Architectures', value: ['arm64-v8a']},
       {key: 'chipset', subject: 'Chipset', value: 'AOSP ranchu'},
@@ -147,9 +96,7 @@ describe('DeviceContext', () => {
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {device: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {device: MOCK_REDACTION}}});
 
     render(
       <ContextCard

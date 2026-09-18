@@ -32,10 +32,7 @@ function FlamegraphOptionsMenu({
 
   const onColorChange = useCallback(
     (opt: SelectOption<any>) => {
-      dispatch({
-        type: 'set color coding',
-        payload: opt.value,
-      });
+      dispatch({type: 'set color coding', payload: opt.value});
     },
     [dispatch]
   );

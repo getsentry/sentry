@@ -43,11 +43,5 @@ export function hydrateFrames(attachments: unknown[]) {
     }
   });
 
-  return {
-    breadcrumbFrames,
-    optionFrame,
-    rrwebFrames,
-    spanFrames,
-    videoFrames,
-  };
+  return {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames, videoFrames};
 }

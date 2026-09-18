@@ -70,30 +70,15 @@ type IntervalOption = {
 };
 
 const INTERVAL_OPTIONS: IntervalOption[] = [
-  {
-    rangeStart: 90 * 24,
-    min: 1,
-    default: '4h',
-    options: ['1h', '4h', '1d', '5d'],
-  },
+  {rangeStart: 90 * 24, min: 1, default: '4h', options: ['1h', '4h', '1d', '5d']},
   {
     rangeStart: 30 * 24,
     min: 0.5,
     default: '1h',
     options: ['30m', '1h', '4h', '1d', '5d'],
   },
-  {
-    rangeStart: 14 * 24,
-    min: 1 / 6,
-    default: '30m',
-    options: ['30m', '1h', '4h', '1d'],
-  },
-  {
-    rangeStart: 7 * 24,
-    min: 1 / 20,
-    default: '30m',
-    options: ['30m', '1h', '4h', '1d'],
-  },
+  {rangeStart: 14 * 24, min: 1 / 6, default: '30m', options: ['30m', '1h', '4h', '1d']},
+  {rangeStart: 7 * 24, min: 1 / 20, default: '30m', options: ['30m', '1h', '4h', '1d']},
   {
     rangeStart: 1 * 24, // 1 day
     min: 1 / 60,
@@ -199,10 +184,7 @@ export function IntervalSelector({displayMode, eventView, onIntervalChange}: Pro
       );
     }
 
-    return filteredResults.map(option => ({
-      ...option,
-      textValue: option.value,
-    }));
+    return filteredResults.map(option => ({...option, textValue: option.value}));
   };
 
   if (!INTERVAL_DISPLAY_MODES.includes(displayMode)) {

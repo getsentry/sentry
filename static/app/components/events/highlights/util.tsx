@@ -37,10 +37,7 @@ function getFuzzyHighlightContext(
   const highlightContextSets: Record<ContextData['type'], Set<string>> = Object.entries(
     highlightContext
   ).reduce(
-    (hcSets, [ctxType, contextKeys]) => ({
-      ...hcSets,
-      [ctxType]: new Set(contextKeys),
-    }),
+    (hcSets, [ctxType, contextKeys]) => ({...hcSets, [ctxType]: new Set(contextKeys)}),
     {}
   );
   const title = getContextTitle({alias, type: contextType, value});
@@ -54,10 +51,7 @@ function getFuzzyHighlightContext(
   }
 
   if (!defined(highlightKey)) {
-    return {
-      highlightKey,
-      highlightItems: [],
-    };
+    return {highlightKey, highlightItems: []};
   }
 
   const highlightContextKeys = highlightContextSets[highlightKey]!;
@@ -67,10 +61,7 @@ function getFuzzyHighlightContext(
       highlightContextKeys.has(key) || highlightContextKeys.has(subject)
   );
 
-  return {
-    highlightKey,
-    highlightItems,
-  };
+  return {highlightKey, highlightItems};
 }
 
 export function getHighlightContextData({

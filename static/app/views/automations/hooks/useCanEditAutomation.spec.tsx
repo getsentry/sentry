@@ -10,9 +10,7 @@ import {
 } from 'sentry/views/automations/hooks/useCanEditAutomation';
 
 describe('useCanEditAutomation', () => {
-  const organization = OrganizationFixture({
-    access: ['org:read', 'alerts:read'],
-  });
+  const organization = OrganizationFixture({access: ['org:read', 'alerts:read']});
   const writableProject = ProjectFixture({
     id: '1',
     access: ['project:read', 'alerts:write'],

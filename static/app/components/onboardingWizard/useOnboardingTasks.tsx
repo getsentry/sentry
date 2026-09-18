@@ -45,10 +45,9 @@ export function useOnboardingTasks({disabled = false}: {disabled?: boolean} = {}
 } {
   const organization = useOrganization();
   const {projects} = useProjects();
-  const supportedTasks = getMergedTasks({
-    organization,
-    projects,
-  }).filter(task => task.display);
+  const supportedTasks = getMergedTasks({organization, projects}).filter(
+    task => task.display
+  );
 
   const allTasksDone = supportedTasks.every(findCompleteTasks);
 
@@ -57,9 +56,7 @@ export function useOnboardingTasks({disabled = false}: {disabled?: boolean} = {}
   }>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/onboarding-tasks/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
+        path: {organizationIdOrSlug: organization.slug},
       }),
     ],
     {

@@ -9,11 +9,7 @@ import {docs} from './index';
 describe('gcpfunctions onboarding docs', () => {
   it('renders docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dotnet.google-cloud-function': {
-          version: '1.99.9',
-        },
-      },
+      releaseRegistry: {'sentry.dotnet.google-cloud-function': {version: '1.99.9'}},
       selectedProducts: [ProductSolution.LOGS, ProductSolution.METRICS],
     });
 
@@ -41,9 +37,7 @@ describe('gcpfunctions onboarding docs', () => {
   });
 
   it('renders logs onboarding docs correctly', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.LOGS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/EnableLogs/))

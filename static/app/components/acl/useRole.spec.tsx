@@ -32,10 +32,7 @@ describe('useRole', () => {
   });
 
   it('has an insufficient role', () => {
-    const org = OrganizationFixture({
-      ...organization,
-      orgRole: 'member',
-    });
+    const org = OrganizationFixture({...organization, orgRole: 'member'});
     OrganizationStore.onUpdate(org, {replace: true});
     const {result} = renderHookWithProviders(() => useRole({role: 'attachmentsRole'}), {
       organization: org,

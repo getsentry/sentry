@@ -10,9 +10,7 @@ export function useReleaseMeta({release}: {release: string}) {
       getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/meta/', {
         path: {organizationIdOrSlug: organization.slug, version: release},
       }),
-      {
-        query: {},
-      },
+      {query: {}},
     ],
     {staleTime: 0}
   );

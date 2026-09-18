@@ -151,9 +151,7 @@ function OurlogsSectionContent({
   const onOpenLogsDrawer = useCallback(
     (e: React.MouseEvent, expandedLogId?: string) => {
       e.stopPropagation();
-      trackAnalytics('logs.issue_details.drawer_opened', {
-        organization,
-      });
+      trackAnalytics('logs.issue_details.drawer_opened', {organization});
 
       navigate(
         {
@@ -200,10 +198,7 @@ function OurlogsSectionContent({
                 embeddedOptions={
                   expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
                 }
-                additionalData={{
-                  event,
-                  scrollToDisabled: !!expandedLogId,
-                }}
+                additionalData={{event, scrollToDisabled: !!expandedLogId}}
               />
             </LogsPageDataProvider>
           </LogsQueryParamsProvider>

@@ -21,10 +21,7 @@ import {SubscriptionUpsellBanner} from './subscriptionUpsellBanner';
 import {TrialAlert} from './trialAlert';
 import {hasPermissions} from './utils';
 
-type Props = {
-  organization: Organization;
-  subscription: Subscription;
-};
+type Props = {organization: Organization; subscription: Subscription};
 
 /**
  * Header and Tab navigation common across subscription views.

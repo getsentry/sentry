@@ -120,10 +120,7 @@ describe('useMetricDetectorThresholdSeries', () => {
   describe('percent detection with non-session aggregates', () => {
     it('computes correct delta for count() (comparison=110 → 10% higher)', () => {
       const comparisonSeries = [
-        {
-          seriesName: 'Previous count()',
-          data: [{name: 1609459200000, value: 100}],
-        },
+        {seriesName: 'Previous count()', data: [{name: 1609459200000, value: 100}]},
       ];
 
       const conditions = makeConditions([

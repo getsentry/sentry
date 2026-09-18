@@ -30,10 +30,7 @@ describe('OrganizationFeatureFlagsProviderRow', () => {
   };
 
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/1234/',
-      body: {},
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/1234/', body: {}});
     OrganizationsStore.addOrReplace(organization);
   });
 
@@ -54,10 +51,7 @@ describe('OrganizationFeatureFlagsProviderRow', () => {
 
   describe('removing', () => {
     it('does not allow to remove without access', () => {
-      const props = {
-        ...defaultProps,
-        removeSecret: undefined,
-      };
+      const props = {...defaultProps, removeSecret: undefined};
 
       render(
         <SimpleTable>
@@ -92,10 +86,7 @@ describe('OrganizationFeatureFlagsProviderRow', () => {
     });
 
     it('does not allow to remove while removing in progress', () => {
-      const props = {
-        ...defaultProps,
-        isRemoving: true,
-      };
+      const props = {...defaultProps, isRemoving: true};
 
       render(
         <SimpleTable>

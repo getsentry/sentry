@@ -93,14 +93,7 @@ export function MemoryChart({
 
     const echarts = chartRef.current.getEchartsInstance();
     echarts.setOption({
-      series: [
-        {
-          id: 'currentTime',
-          markLine: {
-            data: [{xAxis: currentTime}],
-          },
-        },
-      ],
+      series: [{id: 'currentTime', markLine: {data: [{xAxis: currentTime}]}}],
     });
   }, [currentTime]);
 
@@ -114,9 +107,7 @@ export function MemoryChart({
       series: [
         {
           id: 'hoverTime',
-          markLine: {
-            data: currentHoverTime ? [{xAxis: currentHoverTime}] : [],
-          },
+          markLine: {data: currentHoverTime ? [{xAxis: currentHoverTime}] : []},
         },
       ],
     });
@@ -144,10 +135,7 @@ const MemoryChartSeries = memo(function MemoryChartSeriesComponent({
     () => ({
       autoHeightResize: true,
       height: 'auto',
-      grid: createGridOptions({
-        left: theme.space.md,
-        right: theme.space.md,
-      }),
+      grid: createGridOptions({left: theme.space.md, right: theme.space.md}),
       tooltip: computeChartTooltip(
         {
           appendToBody: true,
@@ -189,11 +177,7 @@ const MemoryChartSeries = memo(function MemoryChartSeriesComponent({
         type: 'time',
         axisLabel: {
           formatter: (time: number) =>
-            formatDuration({
-              duration: [time, 'ms'],
-              precision: 'sec',
-              style: 'hh:mm:ss',
-            }),
+            formatDuration({duration: [time, 'ms'], precision: 'sec', style: 'hh:mm:ss'}),
         },
         theme,
       }),

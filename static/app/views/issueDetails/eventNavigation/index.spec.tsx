@@ -67,19 +67,21 @@ describe('EventNavigation', () => {
         handle: {path: TabPaths[Tab.EVENTS]},
       },
     ]);
-    jest.mocked(useIssueDetails).mockReturnValue({
-      sectionData: {
-        highlights: {key: SectionKey.HIGHLIGHTS},
-        tags: {key: SectionKey.TAGS},
-        replay: {key: SectionKey.REPLAY},
-      },
-      detectorDetails: {},
-      eventCount: 0,
-      eventNavigationHeight: 0,
-      isSidebarOpen: true,
-      navScrollMargin: 0,
-      dispatch: jest.fn(),
-    });
+    jest
+      .mocked(useIssueDetails)
+      .mockReturnValue({
+        sectionData: {
+          highlights: {key: SectionKey.HIGHLIGHTS},
+          tags: {key: SectionKey.TAGS},
+          replay: {key: SectionKey.REPLAY},
+        },
+        detectorDetails: {},
+        eventCount: 0,
+        eventNavigationHeight: 0,
+        isSidebarOpen: true,
+        navScrollMargin: 0,
+        dispatch: jest.fn(),
+      });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: [],
@@ -100,10 +102,7 @@ describe('EventNavigation', () => {
         <GroupDataContextProvider group={group} project={group.project}>
           <IssueEventNavigation {...defaultProps} />
         </GroupDataContextProvider>,
-        {
-          initialRouterConfig,
-          organization,
-        }
+        {initialRouterConfig, organization}
       );
 
       const discoverButton = screen.getByLabelText('Open in Discover');
@@ -128,10 +127,7 @@ describe('EventNavigation', () => {
         <GroupDataContextProvider group={group} project={group.project}>
           <IssueEventNavigation {...defaultProps} />
         </GroupDataContextProvider>,
-        {
-          initialRouterConfig,
-          organization,
-        }
+        {initialRouterConfig, organization}
       );
 
       const discoverButton = screen.getByLabelText('Open in Discover');
@@ -151,10 +147,7 @@ describe('EventNavigation', () => {
         {
           initialRouterConfig: {
             ...initialRouterConfig,
-            location: {
-              ...initialRouterConfig.location,
-              query: {sort: '-title'},
-            },
+            location: {...initialRouterConfig.location, query: {sort: '-title'}},
           },
           organization,
         }

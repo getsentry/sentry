@@ -260,11 +260,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
 
     bulkDelete(
       api,
-      {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-      },
+      {orgId: organization.slug, projectId: project.slug, itemIds: [group.id]},
       {
         success: () => {
           clearIndicators();
@@ -287,12 +283,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
 
     bulkUpdate(
       api,
-      {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-        data,
-      },
+      {orgId: organization.slug, projectId: project.slug, itemIds: [group.id], data},
       {
         success: () => {
           clearIndicators();
@@ -332,9 +323,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const onTogglePublicShare = () => {
     const newIsPublic = !group.isPublic;
     if (newIsPublic) {
-      trackAnalytics('issue.shared_publicly', {
-        organization,
-      });
+      trackAnalytics('issue.shared_publicly', {organization});
     }
     trackIssueAction('shared');
   };
@@ -359,11 +348,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
 
   const onDiscard = () => {
     trackIssueAction('discarded');
-    discardIssue({
-      groupId: group.id,
-      orgSlug: organization.slug,
-      projectId: project.id,
-    });
+    discardIssue({groupId: group.id, orgSlug: organization.slug, projectId: project.id});
   };
 
   const renderDiscardModal = ({Body, Footer, closeModal}: ModalRenderProps) => {
@@ -467,10 +452,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           >
             {resolveCap.enabled && !isResolved && !isIgnored && (
               <CMDKAction
-                display={{
-                  label: t('Resolve'),
-                  icon: <IconCheckmark />,
-                }}
+                display={{label: t('Resolve'), icon: <IconCheckmark />}}
                 onAction={() =>
                   onUpdate({
                     status: GroupStatus.RESOLVED,
@@ -518,10 +500,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             )}
             {stacktraceBody && (
               <CMDKAction
-                display={{
-                  label: t('Copy Stack Trace'),
-                  icon: <IconCopy />,
-                }}
+                display={{label: t('Copy Stack Trace'), icon: <IconCopy />}}
                 keywords={['stacktrace', 'exception', 'error', 'trace', 'copy']}
                 onAction={() => copyToClipboard(stacktraceBody)}
               />
@@ -606,11 +585,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
               onAction: () => onUpdate({inbox: false}),
             },
-            {
-              key: bookmarkKey,
-              label: bookmarkTitle,
-              onAction: onToggleBookmark,
-            },
+            {key: bookmarkKey, label: bookmarkTitle, onAction: onToggleBookmark},
             {
               key: 'reprocess',
               label: t('Reprocess events'),

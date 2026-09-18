@@ -34,10 +34,7 @@ import {
   parseOnDemandBudgetsFromSubscription,
 } from 'getsentry/views/spendLimits/utils';
 
-type Props = {
-  organization: Organization;
-  subscription: Subscription;
-};
+type Props = {organization: Organization; subscription: Subscription};
 
 export function PendingChanges({organization, subscription}: Props) {
   const {pendingChanges} = subscription;
@@ -82,9 +79,7 @@ export function PendingChanges({organization, subscription}: Props) {
             tct(
               '[budgetType] budget change from [currentOnDemandBudgets] to [nextOnDemandBudgets]',
               {
-                budgetType: displayBudgetName(pendingChanges.planDetails, {
-                  title: true,
-                }),
+                budgetType: displayBudgetName(pendingChanges.planDetails, {title: true}),
                 currentOnDemandBudgets: formatOnDemandBudget(
                   subscription.planDetails,
                   currentOnDemandBudgets,
@@ -128,11 +123,7 @@ export function PendingChanges({organization, subscription}: Props) {
     }
 
     if (hasChange('plan')) {
-      results.push(
-        tct('Plan change to [name]', {
-          name: pendingChanges.planDetails.name,
-        })
-      );
+      results.push(tct('Plan change to [name]', {name: pendingChanges.planDetails.name}));
     }
 
     if (hasPerformance(subscription.pendingChanges?.planDetails)) {
@@ -289,10 +280,7 @@ export function PendingChanges({organization, subscription}: Props) {
           );
         } else {
           results.push(
-            tct('[budgetName] change to [newAmount]', {
-              budgetName,
-              newAmount,
-            })
+            tct('[budgetName] change to [newAmount]', {budgetName, newAmount})
           );
         }
       }

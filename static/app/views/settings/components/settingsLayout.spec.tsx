@@ -17,14 +17,9 @@ describe('SettingsLayout', () => {
       url: '/organizations/org-slug/',
       method: 'DELETE',
       statusCode: 401,
-      body: {
-        sudoRequired: true,
-      },
+      body: {sudoRequired: true},
     });
-    MockApiClient.addMockResponse({
-      url: '/authenticators/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/authenticators/', body: []});
   });
 
   it('renders', () => {

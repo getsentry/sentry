@@ -22,15 +22,9 @@ export const profiling: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install the [code:sentry/sentry-symfony] bundle:', {
-            code: <code />,
-          }),
+          text: tct('Install the [code:sentry/sentry-symfony] bundle:', {code: <code />}),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'composer require sentry/sentry-symfony',
-        },
+        {type: 'code', language: 'bash', code: 'composer require sentry/sentry-symfony'},
         ...getExcimerInstallSteps(params),
       ],
     },

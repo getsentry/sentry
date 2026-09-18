@@ -44,12 +44,7 @@ export function ConnectProviderDropdown({providers, onAddIntegration}: Props) {
       textValue: provider.name,
       leadingItems: getIntegrationIcon(provider.key, 'sm'),
       disabled: !provider.canAdd,
-      onAction: () =>
-        startFlow({
-          provider,
-          organization,
-          onInstall: onAddIntegration,
-        }),
+      onAction: () => startFlow({provider, organization, onInstall: onAddIntegration}),
     };
   });
 

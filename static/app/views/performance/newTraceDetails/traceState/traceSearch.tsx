@@ -8,11 +8,7 @@ type TraceSearchAction =
   | {type: 'go to last match'}
   | {type: 'go to next match'}
   | {type: 'go to previous match'}
-  | {
-      resultIndex: number;
-      resultIteratorIndex: number;
-      type: 'set search iterator index';
-    }
+  | {resultIndex: number; resultIteratorIndex: number; type: 'set search iterator index'}
   | {type: 'clear search iterator index'}
   | {type: 'clear query'}
   | {
@@ -154,11 +150,7 @@ export function traceSearchReducer(
       };
     }
     case 'set query': {
-      return {
-        ...state,
-        status: [performance.now(), 'loading'],
-        query: action.query,
-      };
+      return {...state, status: [performance.now(), 'loading'], query: action.query};
     }
 
     case 'set search iterator index': {
@@ -171,12 +163,7 @@ export function traceSearchReducer(
     }
 
     case 'clear search iterator index':
-      return {
-        ...state,
-        resultIteratorIndex: null,
-        resultIndex: null,
-        node: null,
-      };
+      return {...state, resultIteratorIndex: null, resultIndex: null, node: null};
 
     default: {
       traceReducerExhaustiveActionCheck(action);

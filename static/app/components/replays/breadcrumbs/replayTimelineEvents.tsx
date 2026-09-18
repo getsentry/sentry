@@ -237,10 +237,7 @@ const getBackgroundGradient = ({
     );`;
 };
 
-const IconNode = styled('button')<{
-  colorTokens: GraphicsVariantTrio;
-  frameCount: number;
-}>`
+const IconNode = styled('button')<{colorTokens: GraphicsVariantTrio; frameCount: number}>`
   padding: 0;
   border: none;
   grid-column: 1;

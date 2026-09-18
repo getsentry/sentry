@@ -156,13 +156,7 @@ const PRODUCER_TABLE: PrebuiltWidget = {
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 7,
-    w: 6,
-    h: 3,
-    minH: 3,
-  },
+  layout: {x: 0, y: 7, w: 6, h: 3, minH: 3},
 };
 
 const CONSUMER_TABLE: PrebuiltWidget = {
@@ -202,13 +196,7 @@ const CONSUMER_TABLE: PrebuiltWidget = {
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 4,
-    w: 6,
-    h: 3,
-    minH: 3,
-  },
+  layout: {x: 0, y: 4, w: 6, h: 3, minH: 3},
 };
 
 export const QUEUE_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {

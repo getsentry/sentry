@@ -39,10 +39,7 @@ export const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Add the Sentry Node SDK as a dependency:'),
-        },
+        {type: 'text', text: t('Add the Sentry Node SDK as a dependency:')},
         getInstallCodeBlock(params),
       ],
     },
@@ -115,11 +112,7 @@ export const onboarding: OnboardingConfig = {
             "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
           ),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: getVerifySnippet(params),
-        },
+        {type: 'code', language: 'javascript', code: getVerifySnippet(params)},
       ],
     },
   ],

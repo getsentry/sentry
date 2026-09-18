@@ -66,16 +66,8 @@ export function IssueDetailsEventNavigation({
   );
 
   const eventNavPresets = [
-    {
-      key: 'oldest',
-      label: t('First'),
-      tooltip: t('Earliest event matching filters'),
-    },
-    {
-      key: 'latest',
-      label: t('Latest'),
-      tooltip: t('Newest event matching filters'),
-    },
+    {key: 'oldest', label: t('First'), tooltip: t('Earliest event matching filters')},
+    {key: 'latest', label: t('Latest'), tooltip: t('Newest event matching filters')},
     {
       key: 'recommended',
       label: isSmallNav ? t('Rec.') : t('Recommended'),

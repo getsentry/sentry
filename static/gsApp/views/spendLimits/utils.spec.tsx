@@ -109,10 +109,7 @@ describe('parseOnDemandBudgetsFromSubscription', () => {
     });
 
     // missing onDemandBudgets and onDemandMaxSpend
-    subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_business',
-    });
+    subscription = SubscriptionFixture({organization, plan: 'am1_business'});
 
     ondemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
     expect(ondemandBudgets).toEqual({
@@ -283,10 +280,7 @@ describe('getTotalBudget', () => {
     expect(actualTotalBudget).toBe(0);
 
     // missing onDemandBudgets and onDemandMaxSpend
-    subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_business',
-    });
+    subscription = SubscriptionFixture({organization, plan: 'am1_business'});
 
     actualTotalBudget = getTotalBudget(
       parseOnDemandBudgetsFromSubscription(subscription)
@@ -591,9 +585,7 @@ describe('trackOnDemandBudgetAnalytics', () => {
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
       'ondemand_budget_modal.ondemand_budget.turned_off',
-      {
-        organization,
-      }
+      {organization}
     );
   });
 
@@ -605,9 +597,7 @@ describe('trackOnDemandBudgetAnalytics', () => {
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
       'ondemand_budget_modal.ondemand_budget.turned_off',
-      {
-        organization,
-      }
+      {organization}
     );
   });
 });

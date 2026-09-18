@@ -20,11 +20,7 @@ interface Props {
 }
 
 function defaultInvite(): InviteRow {
-  return {
-    emails: new Set<string>(),
-    teams: new Set<string>(),
-    role: 'member',
-  };
+  return {emails: new Set<string>(), teams: new Set<string>(), role: 'member'};
 }
 
 function canInvite(organization: Organization) {
@@ -70,18 +66,13 @@ export function useInviteModal({organization, initialData, source}: Props) {
         path: {organizationIdOrSlug: organization.slug, memberId: 'me'},
       }),
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   const [state, setState] = useState(() => {
     return {
       pendingInvites: initialData
-        ? initialData.map(initial => ({
-            ...defaultInvite(),
-            ...initial,
-          }))
+        ? initialData.map(initial => ({...defaultInvite(), ...initial}))
         : [defaultInvite()],
       inviteStatus: {},
       complete: false,
@@ -116,18 +107,11 @@ export function useInviteModal({organization, initialData, source}: Props) {
 
   const sendInvite = useCallback(
     async (invite: NormalizedInvite) => {
-      const data = {
-        email: invite.email,
-        teams: [...invite.teams],
-        role: invite.role,
-      };
+      const data = {email: invite.email, teams: [...invite.teams], role: invite.role};
 
       setState(prev => ({
         ...prev,
-        inviteStatus: {
-          ...prev.inviteStatus,
-          [invite.email]: {sent: false},
-        },
+        inviteStatus: {...prev.inviteStatus, [invite.email]: {sent: false}},
       }));
 
       const endpoint = willInvite
@@ -180,12 +164,7 @@ export function useInviteModal({organization, initialData, source}: Props) {
       );
       return {
         ...prev,
-        pendingInvites: [
-          {
-            ...prev.pendingInvites[0]!,
-            emails: new Set(filteredEmails),
-          },
-        ],
+        pendingInvites: [{...prev.pendingInvites[0]!, emails: new Set(filteredEmails)}],
       };
     });
   }, []);
@@ -200,10 +179,7 @@ export function useInviteModal({organization, initialData, source}: Props) {
     }
     trackAnalytics(
       willInvite ? 'invite_modal.invites_sent' : 'invite_modal.requests_sent',
-      {
-        organization,
-        modal_session: sessionId.current,
-      }
+      {organization, modal_session: sessionId.current}
     );
   }, [organization, state.inviteStatus, state.sendingInvites, willInvite]);
 

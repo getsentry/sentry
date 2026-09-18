@@ -114,10 +114,7 @@ export function DatasetSelectorTabs(props: Props) {
     'discover-saved-queries-deprecation'
   );
 
-  const tracesUrl = getExploreUrl({
-    organization,
-    query: 'is_transaction:true',
-  });
+  const tracesUrl = getExploreUrl({organization, query: 'is_transaction:true'});
 
   const options = [
     {
@@ -128,9 +125,7 @@ export function DatasetSelectorTabs(props: Props) {
       value: SavedQueryDatasets.TRANSACTIONS,
       label: DATASET_LABEL_MAP[SavedQueryDatasets.TRANSACTIONS],
       tooltip: deprecatingTransactionsDataset
-        ? {
-            title: getTransactionDeprecationMessage(tracesUrl),
-          }
+        ? {title: getTransactionDeprecationMessage(tracesUrl)}
         : undefined,
     },
   ];

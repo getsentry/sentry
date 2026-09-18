@@ -43,9 +43,7 @@ export function legend(
         lineHeight: 14,
       },
       inactiveColor: theme.tokens.content.secondary,
-      pageTextStyle: {
-        color: theme.tokens.content.primary,
-      },
+      pageTextStyle: {color: theme.tokens.content.primary},
       pageIconColor: theme.tokens.content.primary,
       pageIconInactiveColor: theme.tokens.content.disabled,
       pageIconSize: 8.75,

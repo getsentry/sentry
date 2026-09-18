@@ -34,18 +34,10 @@ export default function BuildComparison() {
     [
       getApiUrl(
         '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            headArtifactId: headArtifactId!,
-          },
-        }
+        {path: {organizationIdOrSlug: organization.slug, headArtifactId: headArtifactId!}}
       ),
     ],
-    {
-      staleTime: 0,
-      enabled: !!headArtifactId,
-    }
+    {staleTime: 0, enabled: !!headArtifactId}
   );
 
   const compareUrl = getCompareApiUrl({

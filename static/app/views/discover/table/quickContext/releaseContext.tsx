@@ -37,10 +37,7 @@ export function ReleaseContext(props: BaseContextProps) {
     apiOptions.as<ReleaseWithHealth>()(
       '/organizations/$organizationIdOrSlug/releases/$version/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          version: dataRow.release,
-        },
+        path: {organizationIdOrSlug: organization.slug, version: dataRow.release},
         staleTime: tenSecondInMs,
       }
     )
@@ -50,11 +47,7 @@ export function ReleaseContext(props: BaseContextProps) {
     () =>
       data?.authors.map<Actor | User>(author =>
         // Add a unique id if missing
-        ({
-          ...author,
-          type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
-        })
+        ({...author, type: 'user', id: 'id' in author ? author.id : uniqueId()})
       ),
     [data?.authors]
   );
@@ -85,12 +78,8 @@ export function ReleaseContext(props: BaseContextProps) {
         : commitCount === 1
           ? authorsCount === 1
             ? t('1 commit by you and 1 other')
-            : tct('1 commit by you and [authorsCount] others', {
-                authorsCount,
-              })
-          : tct('[commitCount] commits by you and 1 other', {
-              commitCount,
-            });
+            : tct('1 commit by you and [authorsCount] others', {authorsCount})
+          : tct('[commitCount] commits by you and 1 other', {commitCount});
     }
 
     return (
@@ -103,12 +92,8 @@ export function ReleaseContext(props: BaseContextProps) {
         : commitCount === 1
           ? authorsCount === 1
             ? t('1 commit by 1 author')
-            : tct('1 commit by [authorsCount] authors', {
-                authorsCount,
-              })
-          : tct('[commitCount] commits by 1 author', {
-              commitCount,
-            }))
+            : tct('1 commit by [authorsCount] authors', {authorsCount})
+          : tct('[commitCount] commits by 1 author', {commitCount}))
     );
   };
 

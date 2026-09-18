@@ -8,10 +8,7 @@ import {
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-type StarTransactionParams = {
-  project_id?: string;
-  segment_name?: string;
-};
+type StarTransactionParams = {project_id?: string; segment_name?: string};
 
 const URL_PREFIX = '/insights/starred-segments/';
 
@@ -33,10 +30,7 @@ export function useStarredSegment({
   const isMutating = useIsMutating({mutationKey: starredSegmentMutationKey});
 
   const url = `/organizations/${organization.slug}${URL_PREFIX}`;
-  const data: StarTransactionParams = {
-    project_id: projectId,
-    segment_name: segmentName,
-  };
+  const data: StarTransactionParams = {project_id: projectId, segment_name: segmentName};
 
   const onError = (message: string) => {
     addErrorMessage(message);
@@ -75,8 +69,5 @@ export function useStarredSegment({
     }
   };
 
-  return {
-    setStarredSegment,
-    isPending: isMutating > 0,
-  };
+  return {setStarredSegment, isPending: isMutating > 0};
 }

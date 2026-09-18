@@ -72,10 +72,7 @@ function getAggregateOptions(
       label: 'apdex',
       value: {
         kind: FieldValueKind.FUNCTION,
-        meta: {
-          name: 'apdex',
-          parameters: convertedParameters,
-        },
+        meta: {name: 'apdex', parameters: convertedParameters},
       },
     };
   }

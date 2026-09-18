@@ -3,9 +3,10 @@ import {t} from 'sentry/locale';
 import {FiltersGrid} from 'sentry/views/explore/replays/detail/filtersGrid';
 import type {useTagFilters} from 'sentry/views/explore/replays/detail/tagPanel/useTagFilters';
 
-type Props = {
-  tags: undefined | Record<string, string[]>;
-} & Omit<ReturnType<typeof useTagFilters>, 'items'>;
+type Props = {tags: undefined | Record<string, string[]>} & Omit<
+  ReturnType<typeof useTagFilters>,
+  'items'
+>;
 
 export function TagFilters({tags, searchTerm, setSearchTerm}: Props) {
   return (

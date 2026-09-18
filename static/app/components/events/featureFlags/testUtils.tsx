@@ -5,117 +5,36 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import type {FeatureFlag} from 'sentry/types/event';
 
 export const MOCK_FLAGS: Array<Required<FeatureFlag>> = [
-  {
-    flag: 'mobile-replay-ui',
-    result: false,
-  },
-  {
-    flag: 'web-vitals-ui',
-    result: true,
-  },
-  {
-    flag: 'enable-replay',
-    result: true,
-  },
-  {
-    flag: 'secret-feature',
-    result: false,
-  },
+  {flag: 'mobile-replay-ui', result: false},
+  {flag: 'web-vitals-ui', result: true},
+  {flag: 'enable-replay', result: true},
+  {flag: 'secret-feature', result: false},
 ];
 
 const MOCK_FLAGS_MANY: Array<Required<FeatureFlag>> = [
-  {
-    flag: 'mobile-replay-ui',
-    result: false,
-  },
-  {
-    flag: 'web-vitals-ui',
-    result: true,
-  },
-  {
-    flag: 'enable-replay',
-    result: true,
-  },
-  {
-    flag: 'secret-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
-  {
-    flag: 'test-feature',
-    result: false,
-  },
+  {flag: 'mobile-replay-ui', result: false},
+  {flag: 'web-vitals-ui', result: true},
+  {flag: 'enable-replay', result: true},
+  {flag: 'secret-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
+  {flag: 'test-feature', result: false},
 ];
 
 export const MOCK_DATA_SECTION_PROPS = {
@@ -146,10 +65,7 @@ export const MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG = {
 };
 
 export const EMPTY_STATE_SECTION_PROPS = {
-  event: EventFixture({
-    id: 'abc123def456ghi789jkl',
-    contexts: {flags: {values: []}},
-  }),
+  event: EventFixture({id: 'abc123def456ghi789jkl', contexts: {flags: {values: []}}}),
   project: ProjectFixture({hasFlags: true}),
   group: GroupFixture(),
 };

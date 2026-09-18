@@ -9,9 +9,7 @@ import type {Project} from 'sentry/types/project';
 import type {InputFieldProps} from './inputField';
 import {SelectField} from './selectField';
 
-const OVERRIDE_COMPONENTS = {
-  MultiValueLabel: SelectedProjectMultiValueLabel,
-};
+const OVERRIDE_COMPONENTS = {MultiValueLabel: SelectedProjectMultiValueLabel};
 
 /**
  * Function used to group projects by returning the key of the group

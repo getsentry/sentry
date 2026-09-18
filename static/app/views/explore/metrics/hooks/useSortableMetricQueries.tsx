@@ -24,21 +24,13 @@ export function useSortableMetricQueries({
     return metricQueries.flatMap((metricQuery, index) =>
       predicate?.(metricQuery) === false
         ? []
-        : [
-            {
-              id: metricQuery.label ?? String(index),
-              metricQuery,
-              index,
-            },
-          ]
+        : [{id: metricQuery.label ?? String(index), metricQuery, index}]
     );
   }, [metricQueries, predicate]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(KeyboardSensor, {coordinateGetter: sortableKeyboardCoordinates})
   );
 
   const onDragStart = useCallback(() => {

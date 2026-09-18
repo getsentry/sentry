@@ -2,9 +2,7 @@ import {Tag, type TagProps} from '@sentry/scraps/badge';
 
 import type {Relocation} from 'admin/types';
 
-type Props = {
-  data: Relocation;
-};
+type Props = {data: Relocation};
 
 export function RelocationBadge({data}: Props) {
   let text = '';

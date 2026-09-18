@@ -80,9 +80,7 @@ describe('FlagDetailsDrawerContent', () => {
     await waitFor(() => {
       expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
     });
-    expect(router.location.query).toEqual({
-      query: 'flags[test-flag-key]:"true"',
-    });
+    expect(router.location.query).toEqual({query: 'flags[test-flag-key]:"true"'});
   });
 
   it('renders an error message if flag values request fails', async () => {

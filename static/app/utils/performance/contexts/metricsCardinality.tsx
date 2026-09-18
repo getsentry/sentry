@@ -46,12 +46,7 @@ export function MetricsCardinalityProvider(props: {
   if (!isUsingMetrics) {
     return (
       <MetricsCardinalityCtx
-        value={{
-          isLoading: false,
-          outcome: {
-            forceTransactionsOnly: true,
-          },
-        }}
+        value={{isLoading: false, outcome: {forceTransactionsOnly: true}}}
       >
         {props.children}
       </MetricsCardinalityCtx>
@@ -80,21 +75,13 @@ export function MetricsCardinalityProvider(props: {
                   ? undefined
                   : getMetricsOutcome(
                       compatabilityResult.tableData && sumsResult.tableData
-                        ? {
-                            ...compatabilityResult.tableData,
-                            ...sumsResult.tableData,
-                          }
+                        ? {...compatabilityResult.tableData, ...sumsResult.tableData}
                         : null,
                       !!compatabilityResult.error && !!sumsResult.error
                     );
 
               return (
-                <MetricsCardinalityCtx
-                  value={{
-                    isLoading,
-                    outcome,
-                  }}
-                >
+                <MetricsCardinalityCtx value={{isLoading, outcome}}>
                   {props.children}
                 </MetricsCardinalityCtx>
               );
@@ -117,12 +104,8 @@ function getMetricsOutcome(
   dataCounts: MergedMetricsData | null,
   hasOtherFallbackCondition: boolean
 ) {
-  const fallbackOutcome: MetricDataSwitcherOutcome = {
-    forceTransactionsOnly: true,
-  };
-  const successOutcome: MetricDataSwitcherOutcome = {
-    forceTransactionsOnly: false,
-  };
+  const fallbackOutcome: MetricDataSwitcherOutcome = {forceTransactionsOnly: true};
+  const successOutcome: MetricDataSwitcherOutcome = {forceTransactionsOnly: false};
 
   if (!dataCounts) {
     return fallbackOutcome;
@@ -206,17 +189,9 @@ function normalizeCounts({sum}: MergedMetricsData) {
     const metricsCount = Number(sum.metrics);
     const unparamCount = Number(sum.metrics_unparam);
     const nullCount = Number(sum.metrics_null);
-    return {
-      metricsCount,
-      unparamCount,
-      nullCount,
-    };
+    return {metricsCount, unparamCount, nullCount};
   } catch (_) {
-    return {
-      metricsCount: 0,
-      unparamCount: 0,
-      nullCount: 0,
-    };
+    return {metricsCount: 0, unparamCount: 0, nullCount: 0};
   }
 }
 

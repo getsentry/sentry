@@ -72,18 +72,11 @@ function useAiSpanWaiter(project: Project) {
       fields: ['id'],
       limit: 1,
       enabled: !!project,
-      useQueryOptions: {
-        refetchInterval: shouldRefetch ? 5000 : undefined,
-      },
+      useQueryOptions: {refetchInterval: shouldRefetch ? 5000 : undefined},
       pageFilters: {
         ...selection,
         projects: [Number(project.id)],
-        datetime: {
-          period: '6h',
-          utc: true,
-          start: null,
-          end: null,
-        },
+        datetime: {period: '6h', utc: true, start: null, end: null},
       },
     },
     Referrer.ONBOARDING
@@ -316,10 +309,7 @@ export function Onboarding() {
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: selectedPlatformOptions,
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     urlPrefix,

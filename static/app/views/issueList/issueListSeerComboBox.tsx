@@ -121,10 +121,7 @@ export function IssueListSeerComboBox({className}: {className?: string}) {
       }
 
       navigate(
-        {
-          pathname: location.pathname,
-          query: queryParams,
-        },
+        {pathname: location.pathname, query: queryParams},
         {replace: true, preventScrollReset: true}
       );
     },

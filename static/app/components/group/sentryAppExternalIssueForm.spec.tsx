@@ -168,12 +168,7 @@ describe('SentryAppExternalIssueForm', () => {
       expect(externalIssueRequest).toHaveBeenCalledWith(
         submitUrl,
         expect.objectContaining({
-          data: {
-            action: 'link',
-            groupId: '1',
-            issue: 'my issue',
-            uri: '',
-          },
+          data: {action: 'link', groupId: '1', issue: 'my issue', uri: ''},
           method: 'POST',
         })
       );

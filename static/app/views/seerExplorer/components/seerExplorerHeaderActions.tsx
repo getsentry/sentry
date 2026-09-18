@@ -94,9 +94,7 @@ function ChatHistorySelect({
       strategy="fixed"
       position="bottom-end"
       offset={[100, 8]}
-      preventOverflowOptions={{
-        boundary: document.body,
-      }}
+      preventOverflowOptions={{boundary: document.body}}
       size="xs"
       menuWidth={320}
       trigger={triggerProps => (
@@ -202,9 +200,7 @@ export function SeerExplorerHeaderActions({
           position="bottom-end"
           menuTitle={t('Dock position')}
           triggerProps={{
-            tooltipProps: {
-              title: t('Dock position'),
-            },
+            tooltipProps: {title: t('Dock position')},
             'aria-label': t('Dock position'),
             icon: <IconPanel direction={POSITION_ICON_DIRECTION[sidebarPosition]} />,
             showChevron: false,

@@ -86,9 +86,7 @@ const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
 function makeSubscriptionQueryKey(orgId: string): ApiQueryKey {
   return [
-    getApiUrl('/customers/$organizationIdOrSlug/', {
-      path: {organizationIdOrSlug: orgId},
-    }),
+    getApiUrl('/customers/$organizationIdOrSlug/', {path: {organizationIdOrSlug: orgId}}),
   ];
 }
 
@@ -139,10 +137,7 @@ export function CustomerDetails() {
 
   const onUpdateMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
-      api.requestPromise(`/customers/${orgId}/`, {
-        method: 'PUT',
-        data: params,
-      }),
+      api.requestPromise(`/customers/${orgId}/`, {method: 'PUT', data: params}),
     onMutate: () => addLoadingMessage('Saving changes\u2026'),
     onSuccess: (data, variables, _) => {
       addSuccessMessage(
@@ -198,9 +193,7 @@ export function CustomerDetails() {
       fetchMutation({
         url: getApiUrl(
           '/_admin/customers/$organizationIdOrSlug/billing-platform-migration/',
-          {
-            path: {organizationIdOrSlug: orgId},
-          }
+          {path: {organizationIdOrSlug: orgId}}
         ),
         method: 'POST',
         data: params,
@@ -296,10 +289,7 @@ export function CustomerDetails() {
   };
 
   const handleStatsTypeChange = (dataType: DataCategoryExact) => {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, dataType},
-    });
+    navigate({pathname: location.pathname, query: {...location.query, dataType}});
   };
 
   const onForkCustomer = (params: Record<string, any>) => {
@@ -466,11 +456,7 @@ export function CustomerDetails() {
             help: 'Add or remove credit from this account.',
             skipConfirmModal: true, // ZD ticket fields added in component rendered by triggerChangeBalanceModal
             onAction: () =>
-              triggerChangeBalanceModal({
-                orgId,
-                subscription,
-                onSuccess: reloadData,
-              }),
+              triggerChangeBalanceModal({orgId, subscription, onSuccess: reloadData}),
             ...actionRequiresBillingAdmin,
           },
           {
@@ -614,11 +600,7 @@ export function CustomerDetails() {
             skipConfirmModal: true,
             visible: hasAdminTestFeatures,
             onAction: () =>
-              triggerChangeDatesModal({
-                orgId,
-                subscription,
-                onSuccess: reloadData,
-              }),
+              triggerChangeDatesModal({orgId, subscription, onSuccess: reloadData}),
           },
           {
             key: 'endPeriodEarly',
@@ -627,11 +609,7 @@ export function CustomerDetails() {
             skipConfirmModal: true,
             visible: hasAdminTestFeatures,
             onAction: () =>
-              triggerEndPeriodEarlyModal({
-                orgId,
-                subscription,
-                onSuccess: reloadData,
-              }),
+              triggerEndPeriodEarlyModal({orgId, subscription, onSuccess: reloadData}),
           },
           {
             key: 'changePlan',
@@ -802,11 +780,7 @@ export function CustomerDetails() {
               some(subscription.reservedBudgets, budget => budget.reservedBudget > 0),
             skipConfirmModal: true,
             onAction: () => {
-              addGiftBudgetAction({
-                onSuccess: reloadData,
-                organization,
-                subscription,
-              });
+              addGiftBudgetAction({onSuccess: reloadData, organization, subscription});
             },
           },
           {
@@ -816,10 +790,7 @@ export function CustomerDetails() {
             skipConfirmModal: true,
             visible: hasAdminDeleteBillingMetricHistory,
             onAction: () =>
-              deleteBillingMetricHistory({
-                onSuccess: reloadData,
-                organization,
-              }),
+              deleteBillingMetricHistory({onSuccess: reloadData, organization}),
           },
           {
             key: 'refundVercel',
@@ -827,11 +798,7 @@ export function CustomerDetails() {
             help: 'Send request to Vercel to initiate a refund for a given invoice.',
             skipConfirmModal: true,
             visible: subscription.isSelfServePartner && hasActiveVCFeature(organization),
-            onAction: () =>
-              refundVercelRequest({
-                onSuccess: reloadData,
-                subscription,
-              }),
+            onAction: () => refundVercelRequest({onSuccess: reloadData, subscription}),
           },
           {
             key: 'toggleConsolePlatforms',
@@ -937,26 +904,11 @@ export function CustomerDetails() {
               />
             ),
           },
-          {
-            noPanel: true,
-            content: <CustomerMembers orgId={orgId} />,
-          },
-          {
-            noPanel: true,
-            content: <CustomerProjects orgId={orgId} />,
-          },
-          {
-            noPanel: true,
-            content: <CustomerIntegrationDebugDetails orgId={orgId} />,
-          },
-          {
-            noPanel: true,
-            content: billingDetails,
-          },
-          {
-            noPanel: true,
-            content: <CustomerPolicies orgId={orgId} />,
-          },
+          {noPanel: true, content: <CustomerMembers orgId={orgId} />},
+          {noPanel: true, content: <CustomerProjects orgId={orgId} />},
+          {noPanel: true, content: <CustomerIntegrationDebugDetails orgId={orgId} />},
+          {noPanel: true, content: billingDetails},
+          {noPanel: true, content: <CustomerPolicies orgId={orgId} />},
           {
             name: 'Contract',
             content: (

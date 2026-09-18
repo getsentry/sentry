@@ -52,13 +52,7 @@ function renderMockRequests({
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/projects/',
     method: 'GET',
-    body: [
-      {
-        id: '4',
-        slug: 'foo',
-        name: 'foo',
-      },
-    ],
+    body: [{id: '4', slug: 'foo', name: 'foo'}],
   });
 }
 

@@ -6,10 +6,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
 
-type Props = ModalRenderProps & {
-  featureName: string;
-  features: string | string[];
-};
+type Props = ModalRenderProps & {featureName: string; features: string | string[]};
 
 export function FeatureDisabledModal({
   Body,

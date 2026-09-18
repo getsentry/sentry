@@ -27,10 +27,7 @@ interface Props {
   replayId: string;
 }
 
-const REPLAY_CLIP_OFFSETS = {
-  durationAfterMs: 5_000,
-  durationBeforeMs: 5_000,
-};
+const REPLAY_CLIP_OFFSETS = {durationAfterMs: 5_000, durationBeforeMs: 5_000};
 
 const ReplayClipPreview = lazy(() => import('./replayClipPreview'));
 
@@ -47,9 +44,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
   const allReplaysButton = (
     <LinkButton
       size="xs"
-      to={{
-        pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
-      }}
+      to={{pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`}}
       analyticsEventKey="issue_details.replay_player.clicked_see_all_replays"
       analyticsEventName="Issue Details: Replay Player Clicked See All Replays"
     >

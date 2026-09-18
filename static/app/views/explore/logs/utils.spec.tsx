@@ -75,13 +75,8 @@ describe('getLogsUrlFromSavedQueryUrl', () => {
             orderby: '-timestamp',
             groupby: ['severity'],
             visualize: [
-              {
-                yAxes: ['count(message)'],
-              },
-              {
-                yAxes: ['p75(foo)', 'p90(foo)'],
-                chartType: 1,
-              },
+              {yAxes: ['count(message)']},
+              {yAxes: ['p75(foo)', 'p90(foo)'], chartType: 1},
             ],
           },
         ],
@@ -115,13 +110,8 @@ describe('getLogsUrlFromSavedQueryUrl', () => {
             orderby: '-timestamp',
             aggregateField: [
               {groupBy: 'severity'},
-              {
-                yAxes: ['count(message)'],
-              },
-              {
-                yAxes: ['p75(foo)', 'p90(foo)'],
-                chartType: 1,
-              },
+              {yAxes: ['count(message)']},
+              {yAxes: ['p75(foo)', 'p90(foo)'], chartType: 1},
             ],
           },
         ],
@@ -256,9 +246,7 @@ describe('compareLogRowsBySortBys', () => {
   });
 
   it('does not throw when timestamp_precise is not an integer', () => {
-    const invalid = logRow('invalid', {
-      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.5,
-    });
+    const invalid = logRow('invalid', {[OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.5});
 
     expect(() =>
       sortedIds([invalid, older], [{field: OurLogKnownFieldKey.TIMESTAMP, kind: 'desc'}])

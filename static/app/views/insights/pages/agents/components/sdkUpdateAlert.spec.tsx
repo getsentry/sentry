@@ -20,9 +20,7 @@ function renderMockSdkUpdateRequest({
         sdkVersion: string;
         suggestions?: Array<{type: string; newSdkVersion?: string}>;
       }>
-    | {
-        detail: string;
-      };
+    | {detail: string};
   organization: Organization;
   statusCode?: number;
 }) {
@@ -45,13 +43,7 @@ describe('SdkUpdateAlert', () => {
   it('does not render when SDK version is above minimum', async () => {
     renderMockSdkUpdateRequest({
       organization,
-      body: [
-        {
-          projectId: project.id,
-          sdkName: 'sentry.python',
-          sdkVersion: '3.0.0',
-        },
-      ],
+      body: [{projectId: project.id, sdkName: 'sentry.python', sdkVersion: '3.0.0'}],
     });
 
     const {container} = render(
@@ -272,11 +264,7 @@ describe('SdkUpdateAlert', () => {
           sdkVersion: '1.0.0',
           suggestions: [{type: 'updateSdk', newSdkVersion: '2.5.0'}],
         },
-        {
-          projectId: project.id,
-          sdkName: 'sentry.javascript.node',
-          sdkVersion: '10.0.0',
-        },
+        {projectId: project.id, sdkName: 'sentry.javascript.node', sdkVersion: '10.0.0'},
       ],
     });
 
@@ -305,13 +293,7 @@ describe('SdkUpdateAlert', () => {
   it('renders alert with minVersion when suggestions are not available', async () => {
     renderMockSdkUpdateRequest({
       organization,
-      body: [
-        {
-          projectId: project.id,
-          sdkName: 'sentry.python',
-          sdkVersion: '1.0.0',
-        },
-      ],
+      body: [{projectId: project.id, sdkName: 'sentry.python', sdkVersion: '1.0.0'}],
     });
 
     render(

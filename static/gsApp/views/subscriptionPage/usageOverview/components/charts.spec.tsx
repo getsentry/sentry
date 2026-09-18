@@ -37,28 +37,15 @@ describe('UsageCharts', () => {
   }
 
   it('renders', async () => {
-    const subscription = SubscriptionFixture({
-      organization,
-    });
-    subscription.categories.errors = {
-      ...subscription.categories.errors!,
-      usage: 50,
-    };
+    const subscription = SubscriptionFixture({organization});
+    subscription.categories.errors = {...subscription.categories.errors!, usage: 50};
     SubscriptionStore.set(organization.slug, subscription);
     const usageData = CustomerUsageFixture({
-      totals: {
-        [DataCategory.ERRORS]: totals,
-      },
-      stats: {
-        [DataCategory.ERRORS]: stats,
-      },
+      totals: {[DataCategory.ERRORS]: totals},
+      stats: {[DataCategory.ERRORS]: stats},
     });
     await act(async () => {
-      renderComponent({
-        subscription,
-        usageData,
-        selectedProduct: DataCategory.ERRORS,
-      });
+      renderComponent({subscription, usageData, selectedProduct: DataCategory.ERRORS});
 
       // filter values are asynchronously persisted
       await tick();
@@ -74,10 +61,7 @@ describe('UsageCharts', () => {
   });
 
   it('renders event breakdown', async () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_team',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am2_team'});
     organization.features.push('profiling-billing');
     subscription.categories.transactions = {
       ...subscription.categories.transactions!,
@@ -85,14 +69,8 @@ describe('UsageCharts', () => {
     };
     SubscriptionStore.set(organization.slug, subscription);
     const usageData = CustomerUsageFixture({
-      totals: {
-        [DataCategory.TRANSACTIONS]: totals,
-        [DataCategory.PROFILES]: totals,
-      },
-      stats: {
-        [DataCategory.TRANSACTIONS]: stats,
-        [DataCategory.PROFILES]: stats,
-      },
+      totals: {[DataCategory.TRANSACTIONS]: totals, [DataCategory.PROFILES]: totals},
+      stats: {[DataCategory.TRANSACTIONS]: stats, [DataCategory.PROFILES]: stats},
       eventTotals: {
         [DataCategory.TRANSACTIONS]: {
           [DataCategory.TRANSACTIONS]: totals,

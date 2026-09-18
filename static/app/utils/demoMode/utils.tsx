@@ -41,10 +41,7 @@ async function captureEmail(api: Client) {
   try {
     await api.requestPromise('/internal/demo/email-capture/', {
       method: 'POST',
-      data: {
-        ...utmState.data,
-        email,
-      },
+      data: {...utmState.data, email},
     });
 
     openDemoSignupModal();

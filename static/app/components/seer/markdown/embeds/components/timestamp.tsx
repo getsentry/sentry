@@ -17,12 +17,14 @@ function AbsoluteTimestampMarkdown({value}: {value: EmbedOutput<'timestamp'>['va
   const clockDisplay = useClockDisplay();
   const timeZone = useTimezone();
 
-  return moment.tz(value, timeZone).format(
-    getFormat({
-      year: moment.tz(timeZone).year() !== moment.tz(value, timeZone).year(),
-      clock24Hours: clockDisplay === '24',
-    })
-  );
+  return moment
+    .tz(value, timeZone)
+    .format(
+      getFormat({
+        year: moment.tz(timeZone).year() !== moment.tz(value, timeZone).year(),
+        clock24Hours: clockDisplay === '24',
+      })
+    );
 }
 
 export const Timestamp = defineSeerEmbed({

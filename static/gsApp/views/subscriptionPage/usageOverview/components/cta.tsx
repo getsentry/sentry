@@ -382,9 +382,7 @@ function SetupCta({
           variant="primary"
           analyticsEventName="Subscription Settings: Set Up Button Clicked"
           analyticsEventKey="subscription_settings.set_up_button_clicked"
-          analyticsParams={{
-            product: selectedProduct,
-          }}
+          analyticsParams={{product: selectedProduct}}
         >
           {t('Set Up Seer')}
         </LinkButton>

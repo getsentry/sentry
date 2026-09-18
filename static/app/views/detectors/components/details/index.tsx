@@ -15,10 +15,7 @@ import {detectorToLLMContext} from 'sentry/views/detectors/utils/detectorLLMCont
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-type DetectorDetailsContentProps = {
-  detector: Detector;
-  project: Project;
-};
+type DetectorDetailsContentProps = {detector: Detector; project: Project};
 
 /**
  * Only the facts the node's own data cannot state. The monitor's type and

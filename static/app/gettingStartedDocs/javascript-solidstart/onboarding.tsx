@@ -119,9 +119,7 @@ export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
       "In this quick guide you'll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:",
-      {
-        strong: <strong />,
-      }
+      {strong: <strong />}
     ),
   install: () => [
     {
@@ -131,9 +129,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Add the Sentry SDK as a dependency using [code:npm], [code:yarn] or [code:pnpm]:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         installSnippetBlock,
@@ -262,21 +258,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Add an [code:--import] flag to the [code:NODE_OPTIONS] environment variable wherever you run your application to import [code:public/instrument.server.mjs]. For example, update your [code:scripts] entry in [code:package.json]',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JSON',
-              language: 'json',
-              code: getSdkRun(),
-            },
-          ],
-        },
+        {type: 'code', tabs: [{label: 'JSON', language: 'json', code: getSdkRun()}]},
       ],
     },
     getUploadSourceMapsStep({
@@ -304,11 +289,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: getVerifySnippet(params),
-            },
+            {label: 'JavaScript', language: 'javascript', code: getVerifySnippet(params)},
           ],
         },
       ],

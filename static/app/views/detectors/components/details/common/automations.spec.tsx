@@ -52,12 +52,7 @@ describe('DetectorDetailsAutomations', () => {
       url: '/organizations/org-slug/detectors/',
       method: 'GET',
       body: [issueStreamDetector],
-      match: [
-        MockApiClient.matchQuery({
-          query: 'type:issue_stream',
-          project: [1],
-        }),
-      ],
+      match: [MockApiClient.matchQuery({query: 'type:issue_stream', project: [1]})],
     });
 
     MockApiClient.addMockResponse({
@@ -70,10 +65,7 @@ describe('DetectorDetailsAutomations', () => {
         }),
       ],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/data-conditions/',
       match: [
@@ -90,9 +82,7 @@ describe('DetectorDetailsAutomations', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/data-conditions/',
       match: [
-        MockApiClient.matchQuery({
-          group: DataConditionHandlerGroupType.WORKFLOW_TRIGGER,
-        }),
+        MockApiClient.matchQuery({group: DataConditionHandlerGroupType.WORKFLOW_TRIGGER}),
       ],
       body: [
         DataConditionHandlerFixture({
@@ -108,10 +98,7 @@ describe('DetectorDetailsAutomations', () => {
       url: '/organizations/org-slug/members/',
       body: [mockMember],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       body: [],
@@ -120,9 +107,7 @@ describe('DetectorDetailsAutomations', () => {
   });
 
   it('renders connected alerts list', async () => {
-    const detector = UptimeDetectorFixture({
-      workflowIds: [automation1.id],
-    });
+    const detector = UptimeDetectorFixture({workflowIds: [automation1.id]});
 
     const workflowsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
@@ -153,19 +138,13 @@ describe('DetectorDetailsAutomations', () => {
 
     expect(workflowsMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          detector: [detector.id],
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({detector: [detector.id]})})
     );
   });
 
   it('renders project alerts section', async () => {
     const projectAutomation = AutomationFixture({id: '3', name: 'Project Alert'});
-    const detector = UptimeDetectorFixture({
-      workflowIds: [automation1.id],
-    });
+    const detector = UptimeDetectorFixture({workflowIds: [automation1.id]});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
@@ -197,9 +176,7 @@ describe('DetectorDetailsAutomations', () => {
   });
 
   it('renders empty state when no alerts are connected', async () => {
-    const detector = UptimeDetectorFixture({
-      workflowIds: [],
-    });
+    const detector = UptimeDetectorFixture({workflowIds: []});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
@@ -275,10 +252,7 @@ describe('DetectorDetailsAutomations', () => {
   });
 
   it('can connect a new automation from drawer', async () => {
-    const detector = UptimeDetectorFixture({
-      id: 'detector-123',
-      workflowIds: [],
-    });
+    const detector = UptimeDetectorFixture({id: 'detector-123', workflowIds: []});
 
     // Mock the table query (has detector param) to return empty
     MockApiClient.addMockResponse({
@@ -446,13 +420,8 @@ describe('DetectorDetailsAutomations', () => {
     });
 
     it('disables edit button when user lacks alerts:write permission', async () => {
-      const orgWithoutAlertsWrite = OrganizationFixture({
-        access: [],
-      });
-      const projectWithoutAlertsWrite = ProjectFixture({
-        id: '1',
-        access: [],
-      });
+      const orgWithoutAlertsWrite = OrganizationFixture({access: []});
+      const projectWithoutAlertsWrite = ProjectFixture({id: '1', access: []});
       const detector = UptimeDetectorFixture({
         projectId: '1',
         workflowIds: [automation1.id],
@@ -469,24 +438,14 @@ describe('DetectorDetailsAutomations', () => {
         organization: orgWithoutAlertsWrite,
       });
 
-      const editButton = await screen.findByRole('button', {
-        name: 'Edit Alerts',
-      });
+      const editButton = await screen.findByRole('button', {name: 'Edit Alerts'});
       expect(editButton).toBeDisabled();
     });
 
     it('disables connect and create buttons in empty state when user lacks permission', async () => {
-      const orgWithoutAlertsWrite = OrganizationFixture({
-        access: [],
-      });
-      const projectWithoutAlertsWrite = ProjectFixture({
-        id: '1',
-        access: [],
-      });
-      const detector = UptimeDetectorFixture({
-        projectId: '1',
-        workflowIds: [],
-      });
+      const orgWithoutAlertsWrite = OrganizationFixture({access: []});
+      const projectWithoutAlertsWrite = ProjectFixture({id: '1', access: []});
+      const detector = UptimeDetectorFixture({projectId: '1', workflowIds: []});
 
       act(() => ProjectsStore.loadInitialData([projectWithoutAlertsWrite]));
 

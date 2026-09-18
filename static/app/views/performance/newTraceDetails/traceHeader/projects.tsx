@@ -4,20 +4,14 @@ import styled from '@emotion/styled';
 import {ProjectsRenderer} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-type Props = {
-  projectSlugs: string[];
-};
+type Props = {projectSlugs: string[]};
 
 export function Projects({projectSlugs}: Props) {
   const dispatch = useTraceStateDispatch();
 
   const onProjectClick = useCallback(
     (projectSlug: string) => {
-      dispatch({
-        type: 'set query',
-        query: `project:${projectSlug}`,
-        source: 'external',
-      });
+      dispatch({type: 'set query', query: `project:${projectSlug}`, source: 'external'});
     },
     [dispatch]
   );

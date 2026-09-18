@@ -1,8 +1,6 @@
 import {Markdown} from '@sentry/scraps/markdown';
 
-type Props = {
-  text: string;
-};
+type Props = {text: string};
 
 function NoteBody({text}: Props) {
   return (

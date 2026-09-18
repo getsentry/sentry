@@ -52,9 +52,7 @@ export function UsageStatsPerMin({
         },
       },
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   if (isPending || isError || !orgStats || orgStats.intervals.length === 0) {

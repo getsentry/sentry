@@ -7,22 +7,12 @@ import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer'
 describe('useArithmeticBuilderAction', () => {
   it('returns initial state', () => {
     const {result} = renderHook(
-      ({initialExpression}) =>
-        useArithmeticBuilderAction({
-          initialExpression,
-        }),
-      {
-        initialProps: {
-          initialExpression: 'initial expression',
-        },
-      }
+      ({initialExpression}) => useArithmeticBuilderAction({initialExpression}),
+      {initialProps: {initialExpression: 'initial expression'}}
     );
     expect(result.current).toEqual({
       dispatch: expect.any(Function),
-      state: {
-        expression: new Expression('initial expression'),
-        focusOverride: null,
-      },
+      state: {expression: new Expression('initial expression'), focusOverride: null},
     });
   });
 
@@ -32,15 +22,8 @@ describe('useArithmeticBuilderAction', () => {
     const tokens = tokenizeExpression(expression);
 
     const {result} = renderHook(
-      ({initialExpression}) =>
-        useArithmeticBuilderAction({
-          initialExpression,
-        }),
-      {
-        initialProps: {
-          initialExpression: expression,
-        },
-      }
+      ({initialExpression}) => useArithmeticBuilderAction({initialExpression}),
+      {initialProps: {initialExpression: expression}}
     );
 
     act(() =>
@@ -56,24 +39,15 @@ describe('useArithmeticBuilderAction', () => {
       dispatch: expect.any(Function),
       state: {
         expression: new Expression('( sum(span.duration) )'),
-        focusOverride: {
-          itemKey: 'foo',
-        },
+        focusOverride: {itemKey: 'foo'},
       },
     });
 
-    act(() =>
-      result.current.dispatch({
-        type: 'RESET_FOCUS_OVERRIDE',
-      })
-    );
+    act(() => result.current.dispatch({type: 'RESET_FOCUS_OVERRIDE'}));
 
     expect(result.current).toEqual({
       dispatch: expect.any(Function),
-      state: {
-        expression: new Expression('( sum(span.duration) )'),
-        focusOverride: null,
-      },
+      state: {expression: new Expression('( sum(span.duration) )'), focusOverride: null},
     });
   });
 
@@ -83,30 +57,15 @@ describe('useArithmeticBuilderAction', () => {
     const tokens = tokenizeExpression(expression);
 
     const {result} = renderHook(
-      ({initialExpression}) =>
-        useArithmeticBuilderAction({
-          initialExpression,
-        }),
-      {
-        initialProps: {
-          initialExpression: expression,
-        },
-      }
+      ({initialExpression}) => useArithmeticBuilderAction({initialExpression}),
+      {initialProps: {initialExpression: expression}}
     );
 
-    act(() =>
-      result.current.dispatch({
-        type: 'DELETE_TOKEN',
-        token: tokens[3]!,
-      })
-    );
+    act(() => result.current.dispatch({type: 'DELETE_TOKEN', token: tokens[3]!}));
 
     expect(result.current).toEqual({
       dispatch: expect.any(Function),
-      state: {
-        expression: new Expression('( )'),
-        focusOverride: null,
-      },
+      state: {expression: new Expression('( )'), focusOverride: null},
     });
   });
 
@@ -116,15 +75,8 @@ describe('useArithmeticBuilderAction', () => {
     const tokens = tokenizeExpression(expression);
 
     const {result} = renderHook(
-      ({initialExpression}) =>
-        useArithmeticBuilderAction({
-          initialExpression,
-        }),
-      {
-        initialProps: {
-          initialExpression: expression,
-        },
-      }
+      ({initialExpression}) => useArithmeticBuilderAction({initialExpression}),
+      {initialProps: {initialExpression: expression}}
     );
 
     act(() =>
@@ -137,24 +89,14 @@ describe('useArithmeticBuilderAction', () => {
 
     expect(result.current).toEqual({
       dispatch: expect.any(Function),
-      state: {
-        expression: new Expression('( sum(span.duration) )'),
-        focusOverride: null,
-      },
+      state: {expression: new Expression('( sum(span.duration) )'), focusOverride: null},
     });
   });
 
   it('resets expression when initialExpression prop changes', () => {
     const {result, rerender} = renderHook(
-      ({initialExpression}) =>
-        useArithmeticBuilderAction({
-          initialExpression,
-        }),
-      {
-        initialProps: {
-          initialExpression: 'A + B',
-        },
-      }
+      ({initialExpression}) => useArithmeticBuilderAction({initialExpression}),
+      {initialProps: {initialExpression: 'A + B'}}
     );
 
     expect(result.current.state.expression).toEqual(new Expression('A + B'));
@@ -168,23 +110,12 @@ describe('useArithmeticBuilderAction', () => {
     const tokens = tokenizeExpression('A + B');
 
     const {result, rerender} = renderHook(
-      ({initialExpression}) =>
-        useArithmeticBuilderAction({
-          initialExpression,
-        }),
-      {
-        initialProps: {
-          initialExpression: 'A + B',
-        },
-      }
+      ({initialExpression}) => useArithmeticBuilderAction({initialExpression}),
+      {initialProps: {initialExpression: 'A + B'}}
     );
 
     act(() =>
-      result.current.dispatch({
-        type: 'REPLACE_TOKEN',
-        token: tokens[0]!,
-        text: 'X',
-      })
+      result.current.dispatch({type: 'REPLACE_TOKEN', token: tokens[0]!, text: 'X'})
     );
 
     expect(result.current.state.expression).toEqual(new Expression('X + B'));

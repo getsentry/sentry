@@ -25,9 +25,7 @@ describe('useDashboardsLimit', () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
-        ...SubscriptionFixture({
-          organization: mockOrganization,
-        }).planDetails,
+        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
         dashboardLimit: -1, // Unlimited
       },
     });
@@ -89,9 +87,7 @@ describe('useDashboardsLimit', () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
-        ...SubscriptionFixture({
-          organization: mockOrganization,
-        }).planDetails,
+        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
         dashboardLimit: 10,
       },
     });
@@ -130,9 +126,7 @@ describe('useDashboardsLimit', () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
-        ...SubscriptionFixture({
-          organization: mockOrganization,
-        }).planDetails,
+        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
         dashboardLimit: 3,
       },
     });
@@ -177,9 +171,7 @@ describe('useDashboardsLimit', () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
-        ...SubscriptionFixture({
-          organization: mockOrganization,
-        }).planDetails,
+        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
         dashboardLimit: 2,
       },
     });
@@ -223,9 +215,7 @@ describe('useDashboardsLimit', () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
-        ...SubscriptionFixture({
-          organization: mockOrganization,
-        }).planDetails,
+        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
         dashboardLimit: 10,
       },
     });
@@ -257,9 +247,7 @@ describe('useDashboardsLimit', () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
-        ...SubscriptionFixture({
-          organization: mockOrganization,
-        }).planDetails,
+        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
         dashboardLimit: 10,
       },
     });

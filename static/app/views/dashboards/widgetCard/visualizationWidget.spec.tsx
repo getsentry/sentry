@@ -11,9 +11,7 @@ import {WidgetCardDataLoader} from 'sentry/views/dashboards/widgetCard/widgetCar
 jest.mock('sentry/views/dashboards/widgetCard/widgetCardDataLoader');
 jest.mock(
   'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization',
-  () => ({
-    TimeSeriesWidgetVisualization: jest.fn(() => <div data-testid="chart" />),
-  })
+  () => ({TimeSeriesWidgetVisualization: jest.fn(() => <div data-testid="chart" />)})
 );
 
 const spansBreakdownWidget = {
@@ -61,18 +59,20 @@ beforeEach(() => {
     url: '/organizations/org-slug/releases/stats/',
     body: [],
   });
-  jest.mocked(WidgetCardDataLoader).mockImplementation(({children}: any) =>
-    children({
-      timeseriesResults,
-      tableResults,
-      loading: false,
-      errorMessage: undefined,
-      confidence: undefined,
-      dataScanned: undefined,
-      isSampled: undefined,
-      sampleCount: undefined,
-    })
-  );
+  jest
+    .mocked(WidgetCardDataLoader)
+    .mockImplementation(({children}: any) =>
+      children({
+        timeseriesResults,
+        tableResults,
+        loading: false,
+        errorMessage: undefined,
+        confidence: undefined,
+        dataScanned: undefined,
+        isSampled: undefined,
+        sampleCount: undefined,
+      })
+    );
 });
 
 afterEach(() => {

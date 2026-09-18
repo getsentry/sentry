@@ -83,10 +83,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     gravatarId: organization.avatar.avatarUrl,
                     ...letterAvatarProps,
                   }
-                : {
-                    type: 'letter_avatar',
-                    ...letterAvatarProps,
-                  }
+                : {type: 'letter_avatar', ...letterAvatarProps}
           }
           size={size}
           aria-label={t('Toggle organization menu')}

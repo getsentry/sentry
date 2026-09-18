@@ -72,10 +72,7 @@ describe('normalizeCompareQueryParts', () => {
         query: 'span.status:ok',
         yAxes: ['count(span.duration)'],
       })
-    ).toEqual({
-      query: 'span.status:ok',
-      yAxes: ['count(span.duration)'],
-    });
+    ).toEqual({query: 'span.status:ok', yAxes: ['count(span.duration)']});
   });
 
   it('parenthesizes an _if filter that contains OR so base AND binds correctly', () => {

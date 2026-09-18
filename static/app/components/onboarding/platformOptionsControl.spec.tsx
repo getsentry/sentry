@@ -33,10 +33,7 @@ describe('Onboarding Product Selection', () => {
       initialRouterConfig: {
         location: {
           pathname: '/mock-pathname/',
-          query: {
-            springBoot: 'v3',
-            packageManager: 'something-else',
-          },
+          query: {springBoot: 'v3', packageManager: 'something-else'},
         },
         route: '/mock-pathname/',
       },
@@ -77,10 +74,7 @@ describe('Onboarding Product Selection', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              springBoot: 'v3',
-              packageManager: 'gradle',
-            },
+            query: {springBoot: 'v3', packageManager: 'gradle'},
           },
           route: '/mock-pathname/',
         },
@@ -98,12 +92,7 @@ describe('Onboarding Product Selection', () => {
     await userEvent.click(springBootV2);
 
     expect(router.location).toEqual(
-      expect.objectContaining({
-        query: {
-          springBoot: 'v2',
-          packageManager: 'gradle',
-        },
-      })
+      expect.objectContaining({query: {springBoot: 'v2', packageManager: 'gradle'}})
     );
   });
 
@@ -119,10 +108,7 @@ describe('Onboarding Product Selection', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname',
-            query: {
-              springBoot: 'v3',
-              packageManager: 'gradle',
-            },
+            query: {springBoot: 'v3', packageManager: 'gradle'},
           },
           route: '/mock-pathname/',
         },

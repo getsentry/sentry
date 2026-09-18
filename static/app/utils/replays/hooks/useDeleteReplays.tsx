@@ -93,11 +93,7 @@ export function useDeleteReplays({projectSlug}: Props) {
     [project?.environments]
   );
 
-  return {
-    bulkDelete: mutate,
-    hasAccess,
-    queryOptionsToPayload,
-  };
+  return {bulkDelete: mutate, hasAccess, queryOptionsToPayload};
 }
 
 function collectErrorStrings(value: unknown, field?: string): string[] {

@@ -27,10 +27,7 @@ export const agentMonitoring: OnboardingConfig = {
       {
         type: StepType.INSTALL,
         content: [
-          {
-            type: 'text',
-            text: t('Install our Python SDK:'),
-          },
+          {type: 'text', text: t('Install our Python SDK:')},
           getPythonInstallCodeBlock({minimumVersion: MIN_REQUIRED_VERSION}),
         ],
       },

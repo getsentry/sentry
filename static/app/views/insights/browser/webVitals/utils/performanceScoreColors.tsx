@@ -4,11 +4,7 @@ export type PerformanceScore = 'good' | 'needsImprovement' | 'bad' | 'none';
 
 type PerformanceScoreColors = Record<
   PerformanceScore,
-  {
-    border: string;
-    light: string;
-    normal: string;
-  }
+  {border: string; light: string; normal: string}
 >;
 
 export const makePerformanceScoreColors = (theme: Theme): PerformanceScoreColors => {

@@ -45,19 +45,14 @@ describe('Tags', () => {
   });
 
   const initialRouterConfig = {
-    location: {
-      pathname: '/organizations/org-slug/discover/results/',
-    },
+    location: {pathname: '/organizations/org-slug/discover/results/'},
   };
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,
       body: [
-        {
-          key: 'release',
-          topValues: [{count: 30, value: '123abcd', name: '123abcd'}],
-        },
+        {key: 'release', topValues: [{count: 30, value: '123abcd', name: '123abcd'}]},
         {
           key: 'environment',
           topValues: [
@@ -101,9 +96,7 @@ describe('Tags', () => {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      {
-        initialRouterConfig,
-      }
+      {initialRouterConfig}
     );
 
     // component is in loading state
@@ -133,9 +126,7 @@ describe('Tags', () => {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      {
-        initialRouterConfig,
-      }
+      {initialRouterConfig}
     );
 
     // component has loaded
@@ -171,9 +162,7 @@ describe('Tags', () => {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      {
-        initialRouterConfig,
-      }
+      {initialRouterConfig}
     );
 
     await waitForElementToBeRemoved(
@@ -208,9 +197,7 @@ describe('Tags', () => {
       />,
       {
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/discover/homepage/',
-          },
+          location: {pathname: '/organizations/org-slug/discover/homepage/'},
         },
       }
     );
@@ -241,10 +228,7 @@ describe('Tags', () => {
           '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
       },
       body: [
-        {
-          key: 'release',
-          topValues: [{count: 30, value: '123abcd', name: '123abcd'}],
-        },
+        {key: 'release', topValues: [{count: 30, value: '123abcd', name: '123abcd'}]},
       ],
     });
 
@@ -276,9 +260,7 @@ describe('Tags', () => {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      {
-        initialRouterConfig,
-      }
+      {initialRouterConfig}
     );
 
     await waitForElementToBeRemoved(

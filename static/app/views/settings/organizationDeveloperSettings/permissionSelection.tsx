@@ -111,10 +111,7 @@ type Props = {
   hasContinuousIntegration?: boolean;
 };
 
-type State = {
-  hasContinuousIntegration: boolean;
-  permissions: Permissions;
-};
+type State = {hasContinuousIntegration: boolean; permissions: Permissions};
 
 type SpecialPermissionFieldProps = {
   disabled: boolean;
@@ -246,12 +243,7 @@ export function PermissionSelection({
   };
 
   const handleChange = (resource: PermissionResource, choice: PermissionValue) => {
-    save({
-      permissions: {
-        ...state.permissions,
-        [resource]: choice,
-      },
-    });
+    save({permissions: {...state.permissions, [resource]: choice}});
   };
 
   const handleContinuousIntegrationChange = (hasContinuousIntegration: boolean) => {

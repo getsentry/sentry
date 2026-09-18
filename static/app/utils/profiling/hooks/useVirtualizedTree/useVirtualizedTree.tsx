@@ -442,9 +442,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       });
     }
 
-    const options = {
-      passive: true,
-    };
+    const options = {passive: true};
     addListenerToContainer(container, 'mouseleave', onMouseLeave, options);
 
     return () => {
@@ -564,9 +562,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex]!,
           !latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex]!
             .expanded,
-          {
-            expandChildren: event.metaKey || event.ctrlKey,
-          }
+          {expandChildren: event.metaKey || event.ctrlKey}
         );
       }
 
@@ -574,9 +570,7 @@ export function useVirtualizedTree<T extends TreeLike>(
         handleExpandTreeNode(
           latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex]!,
           event.key === 'ArrowLeft' ? false : true,
-          {
-            expandChildren: event.metaKey || event.ctrlKey,
-          }
+          {expandChildren: event.metaKey || event.ctrlKey}
         );
       }
 
@@ -801,24 +795,17 @@ export function useVirtualizedTree<T extends TreeLike>(
 
       if (Array.isArray(props.scrollContainer)) {
         props.scrollContainer.forEach(container => {
-          container.scrollTo({
-            top: newScrollTop,
-          });
+          container.scrollTo({top: newScrollTop});
         });
       } else {
-        props.scrollContainer.scrollTo({
-          top: newScrollTop,
-        });
+        props.scrollContainer.scrollTo({top: newScrollTop});
       }
 
       if (onScrollToNode) {
         onScrollToNode(
           latestItemsRef.current.find(item => item.key === newlyVisibleIndex),
           props.scrollContainer,
-          {
-            top: newScrollTop,
-            depth: node.depth,
-          }
+          {top: newScrollTop, depth: node.depth}
         );
       }
     },

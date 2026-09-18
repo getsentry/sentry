@@ -72,9 +72,7 @@ describe('Project Ownership Input', () => {
     expect(put).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/ownership/`,
       expect.objectContaining({
-        data: {
-          raw: 'url:src @dummy@example.com' + '\n' + 'path:file.js bob@example.com',
-        },
+        data: {raw: 'url:src @dummy@example.com' + '\n' + 'path:file.js bob@example.com'},
       })
     );
   });

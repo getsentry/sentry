@@ -20,10 +20,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 
-type TransferDetails = {
-  organizations: Organization[];
-  project: Project;
-};
+type TransferDetails = {organizations: Organization[]; project: Project};
 
 const schema = z.object({
   organization: z
@@ -95,9 +92,7 @@ function AcceptProjectTransferForm({
   });
 
   // z.input accepts null; z.output (after refine) does not
-  const defaultValues: z.input<typeof schema> = {
-    organization: options[0]?.value ?? null,
-  };
+  const defaultValues: z.input<typeof schema> = {organization: options[0]?.value ?? null};
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -143,9 +138,7 @@ function AcceptProjectTransfer() {
     refetch,
   } = useApiQuery<TransferDetails>(
     [getApiUrl('/accept-transfer/'), {query: location.query, host: getRegionHost()}],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   if (isPending) {

@@ -109,9 +109,7 @@ describe('EventFeatureFlagList', () => {
     expect(
       screen.getByRole('complementary', {name: 'Feature flags drawer'})
     ).toBeInTheDocument();
-    const drawerControl = screen.getByRole('textbox', {
-      name: 'Search Flags',
-    });
+    const drawerControl = screen.getByRole('textbox', {name: 'Search Flags'});
     expect(drawerControl).toBeInTheDocument();
     expect(drawerControl).toHaveFocus();
   });
@@ -178,9 +176,7 @@ describe('EventFeatureFlagList', () => {
         .compareDocumentPosition(screen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
-    const sortControl = screen.getByRole('button', {
-      name: 'Sort Flags',
-    });
+    const sortControl = screen.getByRole('button', {name: 'Sort Flags'});
     await userEvent.click(sortControl);
     await userEvent.click(screen.getByRole('option', {name: 'Oldest First'}));
     await userEvent.click(sortControl); // close dropdown
@@ -247,9 +243,7 @@ describe('EventFeatureFlagList', () => {
       >
         <EventFeatureFlagSection {...NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS} />
       </GroupDataContextProvider>,
-      {
-        organization: org,
-      }
+      {organization: org}
     );
 
     const control = screen.queryByRole('button', {name: 'Sort Flags'});
@@ -274,9 +268,7 @@ describe('EventFeatureFlagList', () => {
       >
         <EventFeatureFlagSection {...NO_FLAG_CONTEXT_SECTION_PROPS} />
       </GroupDataContextProvider>,
-      {
-        organization: org,
-      }
+      {organization: org}
     );
 
     const control = screen.queryByRole('button', {name: 'Sort Flags'});

@@ -66,12 +66,7 @@ describe('JsonForm', () => {
         {
           title: 'Hidden Form',
           fields: [
-            {
-              name: 'hiddenField',
-              type: 'string',
-              label: 'Hidden Field',
-              visible: false,
-            },
+            {name: 'hiddenField', type: 'string', label: 'Hidden Field', visible: false},
           ],
         },
       ];
@@ -93,12 +88,7 @@ describe('JsonForm', () => {
         {
           title: 'Form With Header',
           fields: [
-            {
-              name: 'hiddenField',
-              type: 'string',
-              label: 'Hidden Field',
-              visible: false,
-            },
+            {name: 'hiddenField', type: 'string', label: 'Hidden Field', visible: false},
           ],
         },
       ];

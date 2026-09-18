@@ -92,11 +92,7 @@ const traceWithOrphanError = makeTrace({
 
 const outOfOrderTrace = makeTrace({
   transactions: [
-    makeTransaction({
-      start_timestamp: 1,
-      transaction: 'last',
-      children: [],
-    }),
+    makeTransaction({start_timestamp: 1, transaction: 'last', children: []}),
     makeTransaction({start_timestamp: 0, transaction: 'first'}),
   ],
 });
@@ -141,18 +137,8 @@ const parentAutogroupSpans = [
 
 const parentAutogroupSpansWithTailChildren = [
   makeSpan({op: 'db', description: 'redis', span_id: '0000'}),
-  makeSpan({
-    op: 'db',
-    description: 'redis',
-    span_id: '0001',
-    parent_span_id: '0000',
-  }),
-  makeSpan({
-    op: 'http',
-    description: 'request',
-    span_id: '0002',
-    parent_span_id: '0001',
-  }),
+  makeSpan({op: 'db', description: 'redis', span_id: '0001', parent_span_id: '0000'}),
+  makeSpan({op: 'http', description: 'request', span_id: '0002', parent_span_id: '0001'}),
 ];
 
 const eapTraceWithErrors = makeEAPTrace([
@@ -203,13 +189,7 @@ describe('TraceTree', () => {
   describe('aggreagate node properties', () => {
     it('adds errors to node', () => {
       const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [
-            makeTransaction({
-              errors: [makeTraceError()],
-            }),
-          ],
-        }),
+        makeTrace({transactions: [makeTransaction({errors: [makeTraceError()]})]}),
         traceOptions
       );
       expect(tree.root.children[0]!.errors.size).toBe(1);
@@ -217,9 +197,7 @@ describe('TraceTree', () => {
 
     it('stores trace error as error on node', () => {
       const tree = TraceTree.FromTrace(
-        makeTrace({
-          orphan_errors: [makeTraceError()],
-        }),
+        makeTrace({orphan_errors: [makeTraceError()]}),
         traceOptions
       );
       expect(tree.root.children[0]!.children[0]!.errors.size).toBe(1);
@@ -229,9 +207,7 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
           transactions: [
-            makeTransaction({
-              performance_issues: [makeTracePerformanceIssue()],
-            }),
+            makeTransaction({performance_issues: [makeTracePerformanceIssue()]}),
           ],
         }),
         traceOptions
@@ -241,13 +217,7 @@ describe('TraceTree', () => {
 
     it('adds transaction profile to node', () => {
       const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [
-            makeTransaction({
-              profile_id: 'profile-id',
-            }),
-          ],
-        }),
+        makeTrace({transactions: [makeTransaction({profile_id: 'profile-id'})]}),
         traceOptions
       );
       expect(tree.root.children[0]!.children[0]!.profileId).toBe('profile-id');
@@ -256,12 +226,7 @@ describe('TraceTree', () => {
     it('adds continuous profile to node', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
-          transactions: [
-            makeTransaction({
-              profiler_id: 'profile-id',
-              children: [],
-            }),
-          ],
+          transactions: [makeTransaction({profiler_id: 'profile-id', children: []})],
         }),
         traceOptions
       );
@@ -295,11 +260,7 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
           transactions: [
-            makeTransaction({
-              start_timestamp: start,
-              timestamp: start + 1,
-              children: [],
-            }),
+            makeTransaction({start_timestamp: start, timestamp: start + 1, children: []}),
             makeTransaction({
               start_timestamp: start - 1,
               timestamp: start + 2,
@@ -318,18 +279,9 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
           transactions: [
-            makeTransaction({
-              start_timestamp: start,
-              timestamp: start + 1,
-              children: [],
-            }),
+            makeTransaction({start_timestamp: start, timestamp: start + 1, children: []}),
           ],
-          orphan_errors: [
-            makeTraceError({
-              level: 'error',
-              timestamp: start + 5,
-            }),
-          ],
+          orphan_errors: [makeTraceError({level: 'error', timestamp: start + 5})],
         }),
         traceOptions
       );
@@ -373,14 +325,8 @@ describe('TraceTree', () => {
               timestamp: start + 1,
               children: [],
               measurements: {
-                ttfb: {
-                  unit: 'millisecond',
-                  value: -5000,
-                },
-                lcp: {
-                  unit: 'millisecond',
-                  value: 5000,
-                },
+                ttfb: {unit: 'millisecond', value: -5000},
+                lcp: {unit: 'millisecond', value: 5000},
               },
             }),
           ],
@@ -401,9 +347,7 @@ describe('TraceTree', () => {
         measurements: {ttfb: {value: measurementValue, unit: 'millisecond'}},
       });
       const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [transaction],
-        }),
+        makeTrace({transactions: [transaction]}),
         traceOptions
       );
       expect(tree.indicators).toHaveLength(1);
@@ -533,10 +477,7 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
           transactions: [
-            makeTransaction({
-              event_id: 'transaction',
-              children: [],
-            }),
+            makeTransaction({event_id: 'transaction', children: []}),
             makeTransaction({event_id: 'no-span-count-transaction'}),
             makeTransaction({event_id: 'no-spans-transaction', children: []}),
           ],
@@ -575,12 +516,7 @@ describe('TraceTree', () => {
     it('initializes canFetch to true if no spanChildrenCount', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
-          transactions: [
-            makeTransaction({
-              event_id: 'transaction',
-              children: [],
-            }),
-          ],
+          transactions: [makeTransaction({event_id: 'transaction', children: []})],
         }),
         {meta: null, replay: null, organization}
       );
@@ -885,10 +821,7 @@ describe('TraceTree', () => {
             start_timestamp: start,
             end_timestamp: start + 2,
             is_transaction: true,
-            measurements: {
-              'measurements.fcp': 100,
-              'measurements.lcp': 200,
-            },
+            measurements: {'measurements.fcp': 100, 'measurements.lcp': 200},
             children: [
               makeEAPSpan({
                 event_id: 'eap-span-2',
@@ -937,12 +870,8 @@ describe('TraceTree', () => {
             start_timestamp: start,
             end_timestamp: start + 2,
             is_transaction: true,
-            measurements: {
-              'measurements.lcp': 0,
-            },
-            browser_web_vital: {
-              'browser.web_vital.lcp.value': 200,
-            },
+            measurements: {'measurements.lcp': 0},
+            browser_web_vital: {'browser.web_vital.lcp.value': 200},
             children: [],
           }),
         ]),
@@ -986,14 +915,8 @@ describe('TraceTree', () => {
       const span1 = tree.root.findChild(n => n.id === 'eap-span-1');
       expect(tree.vitals.get(span1!)).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({
-            key: 'app_start_cold',
-            measurement: {value: 1600},
-          }),
-          expect.objectContaining({
-            key: 'app_start_warm',
-            measurement: {value: 400},
-          }),
+          expect.objectContaining({key: 'app_start_cold', measurement: {value: 1600}}),
+          expect.objectContaining({key: 'app_start_warm', measurement: {value: 400}}),
           expect.objectContaining({
             key: 'time_to_initial_display',
             measurement: {value: 1200},
@@ -1017,9 +940,7 @@ describe('TraceTree', () => {
             start_timestamp: start,
             end_timestamp: start + 2,
             is_transaction: true,
-            measurements: {
-              'measurements.lcp': 500,
-            },
+            measurements: {'measurements.lcp': 500},
             children: [],
           }),
           makeEAPSpan({
@@ -1028,9 +949,7 @@ describe('TraceTree', () => {
             start_timestamp: standaloneStart,
             end_timestamp: standaloneStart + 0.1,
             is_transaction: false,
-            measurements: {
-              'measurements.lcp': 500,
-            },
+            measurements: {'measurements.lcp': 500},
             children: [],
           }),
         ]),
@@ -1048,15 +967,11 @@ describe('TraceTree', () => {
       attributeName: string;
     }>([
       {
-        additionalAttributes: {
-          'tags[browser.performance.time_origin,number]': start,
-        },
+        additionalAttributes: {'tags[browser.performance.time_origin,number]': start},
         attributeName: 'replacement',
       },
       {
-        additionalAttributes: {
-          'tags[performance.timeOrigin,number]': start,
-        },
+        additionalAttributes: {'tags[performance.timeOrigin,number]': start},
         attributeName: 'deprecated',
       },
     ])(
@@ -1071,9 +986,7 @@ describe('TraceTree', () => {
               end_timestamp: start + 2,
               is_transaction: true,
               additional_attributes: additionalAttributes,
-              measurements: {
-                'measurements.lcp': 500,
-              },
+              measurements: {'measurements.lcp': 500},
               children: [],
             }),
             makeEAPSpan({
@@ -1082,9 +995,7 @@ describe('TraceTree', () => {
               start_timestamp: start + 1.5,
               end_timestamp: start + 1.6,
               is_transaction: false,
-              measurements: {
-                'measurements.lcp': 1240,
-              },
+              measurements: {'measurements.lcp': 1240},
               children: [],
             }),
           ]),
@@ -1194,10 +1105,7 @@ describe('TraceTree', () => {
         'event-id'
       );
 
-      await tree.fetchNodeSubTree(true, txn, {
-        api: new MockApiClient(),
-        organization,
-      });
+      await tree.fetchNodeSubTree(true, txn, {api: new MockApiClient(), organization});
 
       expect(JSON.stringify(txn.space)).toEqual(transactionSpaceBounds);
       expect(listener).toHaveBeenCalledWith([start * 1e3, 1200]);
@@ -1753,9 +1661,7 @@ describe('TraceTree', () => {
   describe('HasVisibleChildren', () => {
     it('true when transaction has children', () => {
       const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [makeTransaction({children: [makeTransaction()]})],
-        }),
+        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
         traceOptions
       );
       expect(tree.root.children[0]!.hasVisibleChildren()).toBe(true);
@@ -1955,9 +1861,7 @@ describe('TraceTree', () => {
   describe('HasDirectVisibleChildren', () => {
     it('true when transaction has children', () => {
       const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [makeTransaction({children: [makeTransaction()]})],
-        }),
+        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
         traceOptions
       );
       expect(tree.root.children[0]!.hasDirectVisibleChildren()).toBe(true);
@@ -2157,18 +2061,14 @@ describe('TraceTree', () => {
   describe('IsLastChild', () => {
     it('returns false if node is not last child', () => {
       const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [makeTransaction(), makeTransaction()],
-        }),
+        makeTrace({transactions: [makeTransaction(), makeTransaction()]}),
         traceOptions
       );
       expect(tree.root.children[0]!.children[0]!.isLastChild()).toBe(false);
     });
     it('returns true if node is last child', () => {
       const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [makeTransaction(), makeTransaction()],
-        }),
+        makeTrace({transactions: [makeTransaction(), makeTransaction()]}),
         traceOptions
       );
       expect(tree.root.children[0]!.children[1]!.isLastChild()).toBe(true);
@@ -2279,10 +2179,7 @@ describe('TraceTree', () => {
       )!;
 
       mockSpansResponse([makeSpan({span_id: 'span-id'})], 'project', 'child-event-id');
-      await tree.fetchNodeSubTree(true, child, {
-        api: new MockApiClient(),
-        organization,
-      });
+      await tree.fetchNodeSubTree(true, child, {api: new MockApiClient(), organization});
 
       const span = tree.root.findChild(node => node instanceof SpanNode)!;
       const path = span.pathToNode();
@@ -2453,10 +2350,7 @@ describe('TraceTree', () => {
         node => isTransactionNode(node) && node.value.transaction === 'child'
       )!;
       mockSpansResponse(missingInstrumentationSpans, 'project', 'child-event-id');
-      await tree.fetchNodeSubTree(true, child, {
-        api: new MockApiClient(),
-        organization,
-      });
+      await tree.fetchNodeSubTree(true, child, {api: new MockApiClient(), organization});
       TraceTree.DetectMissingInstrumentation(tree.root);
 
       const missingInstrumentationNode = tree.root.findChild(node =>
@@ -2535,15 +2429,10 @@ describe('TraceTree', () => {
       const prefetchSpan = makeSpan({
         op: 'http',
         description: 'GET /api/users',
-        data: {
-          'http.request.prefetch': true,
-        },
+        data: {'http.request.prefetch': true},
       });
 
-      const regularSpan = makeSpan({
-        op: 'http',
-        description: 'GET /api/users',
-      });
+      const regularSpan = makeSpan({op: 'http', description: 'GET /api/users'});
 
       mockSpansResponse([prefetchSpan, regularSpan], 'project', 'event-id');
       await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
@@ -2561,9 +2450,7 @@ describe('TraceTree', () => {
       const falsePrefetchSpan = makeSpan({
         op: 'http',
         description: 'GET /api/users',
-        data: {
-          'http.request.prefetch': false,
-        },
+        data: {'http.request.prefetch': false},
       });
 
       mockSpansResponse([falsePrefetchSpan], 'project', 'event-id');
@@ -2677,13 +2564,7 @@ describe('TraceTree', () => {
       });
 
       const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [
-            makeTransaction({
-              children: [uptimeCheck as any],
-            }),
-          ],
-        }),
+        makeTrace({transactions: [makeTransaction({children: [uptimeCheck as any]})]}),
         traceOptions
       );
 
@@ -2706,10 +2587,7 @@ describe('TraceTree', () => {
     describe('regular traces', () => {
       it('returns EMPTY_TRACE when trace has no transactions or errors', () => {
         const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [],
-            orphan_errors: [],
-          }),
+          makeTrace({transactions: [], orphan_errors: []}),
           traceOptions
         );
 
@@ -2720,14 +2598,8 @@ describe('TraceTree', () => {
         const tree = TraceTree.FromTrace(
           makeTrace({
             transactions: [
-              makeTransaction({
-                parent_span_id: 'some-parent-id',
-                children: [],
-              }),
-              makeTransaction({
-                parent_span_id: 'another-parent-id',
-                children: [],
-              }),
+              makeTransaction({parent_span_id: 'some-parent-id', children: []}),
+              makeTransaction({parent_span_id: 'another-parent-id', children: []}),
             ],
             orphan_errors: [],
           }),
@@ -2739,10 +2611,7 @@ describe('TraceTree', () => {
 
       it('returns ONLY_ERRORS when trace has only orphan errors', () => {
         const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [],
-            orphan_errors: [makeTraceError()],
-          }),
+          makeTrace({transactions: [], orphan_errors: [makeTraceError()]}),
           traceOptions
         );
 
@@ -2752,12 +2621,7 @@ describe('TraceTree', () => {
       it('returns ONE_ROOT when trace has exactly one root transaction', () => {
         const tree = TraceTree.FromTrace(
           makeTrace({
-            transactions: [
-              makeTransaction({
-                parent_span_id: null,
-                children: [],
-              }),
-            ],
+            transactions: [makeTransaction({parent_span_id: null, children: []})],
             orphan_errors: [],
           }),
           traceOptions
@@ -2770,14 +2634,8 @@ describe('TraceTree', () => {
         const tree = TraceTree.FromTrace(
           makeTrace({
             transactions: [
-              makeTransaction({
-                parent_span_id: null,
-                children: [],
-              }),
-              makeTransaction({
-                parent_span_id: 'non-existent-parent',
-                children: [],
-              }),
+              makeTransaction({parent_span_id: null, children: []}),
+              makeTransaction({parent_span_id: 'non-existent-parent', children: []}),
             ],
             orphan_errors: [],
           }),
@@ -2872,14 +2730,8 @@ describe('TraceTree', () => {
       it('returns ONLY_ERRORS for EAP trace with only errors', () => {
         const tree = TraceTree.FromTrace(
           makeEAPTrace([
-            makeEAPError({
-              event_id: 'error-1',
-              description: 'Test error',
-            }),
-            makeEAPError({
-              event_id: 'error-2',
-              description: 'Another error',
-            }),
+            makeEAPError({event_id: 'error-1', description: 'Test error'}),
+            makeEAPError({event_id: 'error-2', description: 'Another error'}),
           ]),
           traceOptions
         );
@@ -2890,14 +2742,8 @@ describe('TraceTree', () => {
       it('returns NO_ROOT for EAP trace with only non-root spans', () => {
         const tree = TraceTree.FromTrace(
           makeEAPTrace([
-            makeEAPSpan({
-              parent_span_id: 'some-parent',
-              is_transaction: false,
-            }),
-            makeEAPSpan({
-              parent_span_id: 'another-parent',
-              is_transaction: false,
-            }),
+            makeEAPSpan({parent_span_id: 'some-parent', is_transaction: false}),
+            makeEAPSpan({parent_span_id: 'another-parent', is_transaction: false}),
           ]),
           traceOptions
         );
@@ -2912,10 +2758,7 @@ describe('TraceTree', () => {
               parent_span_id: null,
               is_transaction: true,
               children: [
-                makeEAPSpan({
-                  parent_span_id: 'root-span-id',
-                  is_transaction: false,
-                }),
+                makeEAPSpan({parent_span_id: 'root-span-id', is_transaction: false}),
               ],
             }),
           ]),
@@ -2928,14 +2771,8 @@ describe('TraceTree', () => {
       it('returns BROKEN_SUBTRACES for EAP trace with root and orphan spans', () => {
         const tree = TraceTree.FromTrace(
           makeEAPTrace([
-            makeEAPSpan({
-              parent_span_id: null,
-              is_transaction: true,
-            }),
-            makeEAPSpan({
-              parent_span_id: 'non-existent-parent',
-              is_transaction: false,
-            }),
+            makeEAPSpan({parent_span_id: null, is_transaction: true}),
+            makeEAPSpan({parent_span_id: 'non-existent-parent', is_transaction: false}),
           ]),
           traceOptions
         );
@@ -2991,15 +2828,8 @@ describe('TraceTree', () => {
       it('handles mixed EAP trace with spans and errors correctly', () => {
         const tree = TraceTree.FromTrace(
           makeEAPTrace([
-            makeEAPSpan({
-              parent_span_id: null,
-              is_transaction: true,
-              children: [],
-            }),
-            makeEAPError({
-              event_id: 'error-1',
-              description: 'Orphan error',
-            }),
+            makeEAPSpan({parent_span_id: null, is_transaction: true, children: []}),
+            makeEAPError({event_id: 'error-1', description: 'Orphan error'}),
           ]),
           traceOptions
         );
@@ -3034,11 +2864,7 @@ describe('TraceTree', () => {
           const tree = TraceTree.FromTrace(
             makeTrace({
               transactions: [
-                makeTransaction({
-                  parent_span_id: null,
-                  sdk_name: sdkName,
-                  children: [],
-                }),
+                makeTransaction({parent_span_id: null, sdk_name: sdkName, children: []}),
                 makeTransaction({
                   parent_span_id: null,
                   sdk_name: 'sentry.python',

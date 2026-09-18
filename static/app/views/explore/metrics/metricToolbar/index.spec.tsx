@@ -101,11 +101,7 @@ function makeValidationBody(fields: EventValidationData['field']): EventValidati
     field: fields,
     orderby: [],
     projects: [],
-    query: {
-      error: null,
-      fields: [],
-      valid: true,
-    },
+    query: {error: null, fields: [], valid: true},
     valid: fields.every(field => field.valid),
   };
 }
@@ -118,10 +114,7 @@ describe('MetricToolbar', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/events/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
@@ -133,9 +126,7 @@ describe('MetricToolbar', () => {
   });
 
   it('renders group by selector for equation visualizations', async () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
@@ -179,9 +170,7 @@ describe('MetricToolbar', () => {
   });
 
   it('renders group by selector for function visualizations', async () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
@@ -222,9 +211,7 @@ describe('MetricToolbar', () => {
       asyncDelay: 50,
     });
 
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
@@ -266,12 +253,7 @@ describe('MetricToolbar', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/validate/',
       body: makeValidationBody([
-        {
-          attrType: 'number',
-          error: null,
-          name: 'custom.measurement',
-          valid: true,
-        },
+        {attrType: 'number', error: null, name: 'custom.measurement', valid: true},
       ]),
     });
 
@@ -383,12 +365,7 @@ describe('MetricToolbar', () => {
         (_url, options) => JSON.stringify(options.query?.field).includes('valid.first'),
       ],
       body: makeValidationBody([
-        {
-          attrType: 'string',
-          error: null,
-          name: 'valid.first',
-          valid: true,
-        },
+        {attrType: 'string', error: null, name: 'valid.first', valid: true},
         {
           attrType: null,
           error: 'Invalid attribute',
@@ -551,10 +528,7 @@ describe('Filter', () => {
       ],
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/events/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
@@ -569,9 +543,7 @@ describe('Filter', () => {
     });
 
     render(<Filter traceMetric={{name: 'pending_metric', type: 'distribution'}} />, {
-      organization: OrganizationFixture({
-        features: ['tracemetrics-enabled'],
-      }),
+      organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
       additionalWrapper: ({children}: {children: ReactNode}) => (
         <Wrapper queryParams={queryParams}>{children}</Wrapper>
       ),
@@ -592,9 +564,7 @@ describe('Filter', () => {
 
   it('disables the search bar when the trace metric filter is unavailable', () => {
     render(<Filter traceMetric={{name: '', type: 'distribution'}} />, {
-      organization: OrganizationFixture({
-        features: ['tracemetrics-enabled'],
-      }),
+      organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
       additionalWrapper: ({children}: {children: ReactNode}) => (
         <Wrapper queryParams={queryParams}>{children}</Wrapper>
       ),
@@ -634,12 +604,7 @@ describe('Filter', () => {
         query: {
           error: 'Unknown attribute',
           fields: [
-            {
-              attrType: 'number',
-              error: null,
-              name: 'custom.duration',
-              valid: true,
-            },
+            {attrType: 'number', error: null, name: 'custom.duration', valid: true},
             {
               attrType: null,
               error: 'Unknown attribute',
@@ -658,9 +623,7 @@ describe('Filter', () => {
     });
 
     render(<Filter traceMetric={{name: 'test_metric', type: 'distribution'}} />, {
-      organization: OrganizationFixture({
-        features: ['tracemetrics-enabled'],
-      }),
+      organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
       additionalWrapper: ({children}: {children: ReactNode}) => (
         <Wrapper queryParams={queryParams}>{children}</Wrapper>
       ),
@@ -720,9 +683,7 @@ describe('Filter', () => {
     });
 
     render(<Filter traceMetric={{name: 'test_metric', type: 'distribution'}} />, {
-      organization: OrganizationFixture({
-        features: ['tracemetrics-enabled'],
-      }),
+      organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
       additionalWrapper: ({children}: {children: ReactNode}) => (
         <Wrapper queryParams={queryParams}>{children}</Wrapper>
       ),

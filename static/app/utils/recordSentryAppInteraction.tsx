@@ -12,9 +12,6 @@ export const recordInteraction = async (
 
   return await api.requestPromise(endpoint, {
     method: 'POST',
-    data: {
-      tsdbField: field,
-      ...data,
-    },
+    data: {tsdbField: field, ...data},
   });
 };

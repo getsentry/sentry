@@ -67,9 +67,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock({additionalPackage: 'quart'}),
       ],
@@ -129,9 +127,7 @@ app.run()
           text: [
             tct(
               'When you point your browser to [link:http://localhost:5000/] a trace will be created.',
-              {
-                link: <ExternalLink href="http://localhost:5000/" />,
-              }
+              {link: <ExternalLink href="http://localhost:5000/" />}
             ),
             t(
               'Additionally, an error event will be sent to Sentry and will be connected to the trace.'

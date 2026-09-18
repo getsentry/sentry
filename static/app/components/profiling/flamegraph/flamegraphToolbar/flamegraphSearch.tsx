@@ -36,10 +36,7 @@ export function searchFrameFzf(
     return match;
   }
 
-  matches.set(getFlamegraphFrameSearchId(frame), {
-    frame,
-    match: match.matches,
-  });
+  matches.set(getFlamegraphFrameSearchId(frame), {frame, match: match.matches});
   return match;
 }
 
@@ -54,10 +51,7 @@ function searchSpanFzf(
     return match;
   }
 
-  matches.set(span.node.span[SpanFields.SPAN_ID], {
-    span,
-    match: match.matches,
-  });
+  matches.set(span.node.span[SpanFields.SPAN_ID], {span, match: match.matches});
   return match;
 }
 
@@ -80,10 +74,7 @@ export function searchFrameRegExp(
     return match;
   }
 
-  matches.set(getFlamegraphFrameSearchId(frame), {
-    frame,
-    match: [match],
-  });
+  matches.set(getFlamegraphFrameSearchId(frame), {frame, match: [match]});
   return match;
 }
 
@@ -106,10 +97,7 @@ function searchSpanRegExp(
     return match;
   }
 
-  matches.set(span.node.span[SpanFields.SPAN_ID], {
-    span,
-    match: [match],
-  });
+  matches.set(span.node.span[SpanFields.SPAN_ID], {span, match: [match]});
   return match;
 }
 
@@ -344,13 +332,7 @@ function FlamegraphSearch({
         allSpanChartNodes,
         allFlamegraphFrames,
         results => {
-          dispatch({
-            type: 'set search results',
-            payload: {
-              results,
-              query,
-            },
-          });
+          dispatch({type: 'set search results', payload: {results, query}});
         }
       );
     },

@@ -422,10 +422,7 @@ function MyComponent() {
   const projects = useProjects(); // Expensive fetch
 
   const {options: projectOptions} = useCompactSelectOptionsCache(
-    projects.map(p => ({
-      value: p.id,
-      label: p.name,
-    }))
+    projects.map(p => ({value: p.id, label: p.name}))
   );
 
   return (
@@ -478,16 +475,8 @@ This hook prevents unnecessary re-renders and option recomputations when the par
   clearable
   trigger={props => <OverlayTrigger.Button {...props} prefix="Filter" />}
   options={[
-    {
-      key: 'status',
-      label: 'Status',
-      options: statusOptions,
-    },
-    {
-      key: 'priority',
-      label: 'Priority',
-      options: priorityOptions,
-    },
+    {key: 'status', label: 'Status', options: statusOptions},
+    {key: 'priority', label: 'Priority', options: priorityOptions},
   ]}
 />
 ```

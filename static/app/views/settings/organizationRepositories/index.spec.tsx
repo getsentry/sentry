@@ -45,10 +45,7 @@ function setupDefaultMocks() {
     url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/`,
     body: GITHUB_INTEGRATION,
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/repos/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/repos/', body: []});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/code-mappings/',
     body: [],
@@ -77,10 +74,7 @@ describe('OrganizationRepositories', () => {
       url: '/organizations/org-slug/integrations/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/repos/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/repos/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/code-mappings/',
       body: [],
@@ -228,10 +222,7 @@ describe('OrganizationRepositories', () => {
       body: GITHUB_INTEGRATION,
       asyncDelay: 10_000,
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/repos/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/repos/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/code-mappings/',
       body: [],

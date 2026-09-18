@@ -187,17 +187,11 @@ export function NativeFrame({
 
   function getFunctionName() {
     if (functionNameHiddenDetails && fullFunctionName && frame.rawFunction) {
-      return {
-        value: frame.rawFunction,
-        meta: frameMeta?.rawFunction?.[''],
-      };
+      return {value: frame.rawFunction, meta: frameMeta?.rawFunction?.['']};
     }
 
     if (frame.function) {
-      return {
-        value: frame.function,
-        meta: frameMeta?.function?.[''],
-      };
+      return {value: frame.function, meta: frameMeta?.function?.['']};
     }
 
     return;

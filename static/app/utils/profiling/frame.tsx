@@ -32,11 +32,7 @@ export class Frame {
   readonly totalCallDuration?: number;
   readonly averageCallDuration?: number;
 
-  static Root = new Frame({
-    key: ROOT_KEY,
-    name: ROOT_KEY,
-    is_application: false,
-  });
+  static Root = new Frame({key: ROOT_KEY, name: ROOT_KEY, is_application: false});
 
   constructor(
     frame: Profiling.Frame,

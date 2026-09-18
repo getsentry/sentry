@@ -8,9 +8,7 @@ import type {Project} from 'sentry/types/project';
 
 import GettingStarted from './gettingStarted';
 
-type ProjectWithBadPlatform = Omit<Project, 'platform'> & {
-  platform: string;
-};
+type ProjectWithBadPlatform = Omit<Project, 'platform'> & {platform: string};
 
 function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatform>) {
   MockApiClient.addMockResponse({
@@ -37,10 +35,7 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
     body: {},
   });
 
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/sdks/',
-    body: {},
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/sdks/', body: {}});
 }
 
 describe('ProjectInstallPlatform', () => {
@@ -61,9 +56,7 @@ describe('ProjectInstallPlatform', () => {
     });
 
     expect(
-      await screen.findByRole('heading', {
-        name: 'Configure Browser JavaScript SDK',
-      })
+      await screen.findByRole('heading', {name: 'Configure Browser JavaScript SDK'})
     ).toBeInTheDocument();
 
     expect(screen.getByText('Take me to Issues')).toBeInTheDocument();

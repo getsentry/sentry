@@ -17,9 +17,7 @@ describe('tryton onboarding docs', () => {
   });
 
   it('renders without tracing', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     // Does not render config option
     expect(
@@ -50,17 +48,9 @@ describe('tryton onboarding docs', () => {
   });
 
   it('renders continuous profiling', () => {
-    const organization = OrganizationFixture({
-      features: ['continuous-profiling'],
-    });
+    const organization = OrganizationFixture({features: ['continuous-profiling']});
 
-    renderWithOnboardingLayout(
-      docs,
-      {},
-      {
-        organization,
-      }
-    );
+    renderWithOnboardingLayout(docs, {}, {organization});
 
     // Does not render transaction profiling config
     expect(
@@ -77,9 +67,7 @@ describe('tryton onboarding docs', () => {
   });
 
   it('renders with logs', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.LOGS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     expect(
       screen.getByText(textWithMarkupMatcher(/enable_logs=True,/))
@@ -87,9 +75,7 @@ describe('tryton onboarding docs', () => {
   });
 
   it('renders without logs', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     expect(
       screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
@@ -97,9 +83,7 @@ describe('tryton onboarding docs', () => {
   });
 
   it('renders metrics configuration when metrics are selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.METRICS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.METRICS]});
 
     // Renders metrics verification steps
     expect(
@@ -110,9 +94,7 @@ describe('tryton onboarding docs', () => {
   });
 
   it('renders without metrics configuration when metrics are not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     // Does not render metrics verification steps
     expect(

@@ -82,11 +82,7 @@ export function ProjectPageFilter({
   } = usePageFilters();
 
   const committedSelectionIntent = useMemo(
-    () =>
-      urlSelectionToIntent({
-        projects,
-        urlSelection: urlProjectSelection,
-      }),
+    () => urlSelectionToIntent({projects, urlSelection: urlProjectSelection}),
     [urlProjectSelection, projects]
   );
 
@@ -108,10 +104,7 @@ export function ProjectPageFilter({
   const [stagedValue, setStagedValue] = useState(committedSelectionIntent.ids);
 
   const options = useMemo<Array<SelectOption<number>>>(() => {
-    const optionSelectionIntent = selectionToIntent({
-      projects,
-      selection: stagedValue,
-    });
+    const optionSelectionIntent = selectionToIntent({projects, selection: stagedValue});
 
     const getProjectItem = (project: Project) => {
       return {
@@ -169,10 +162,8 @@ export function ProjectPageFilter({
                     aria-label={t('Open Project Details')}
                     tooltipProps={{title: t('Open Project Details'), delay: 400}}
                     to={
-                      makeProjectsPathname({
-                        path: `/${project.slug}/`,
-                        organization,
-                      }) + `?project=${project.id}`
+                      makeProjectsPathname({path: `/${project.slug}/`, organization}) +
+                      `?project=${project.id}`
                     }
                   />
                   <LinkButton
@@ -313,10 +304,7 @@ export function ProjectPageFilter({
                       }
                       if (optionSelectionIntent.kind === 'my') {
                         // Deselect My Projects
-                        dispatchRef.current?.({
-                          type: 'set staged',
-                          value: [],
-                        });
+                        dispatchRef.current?.({type: 'set staged', value: []});
                         return;
                       }
                       // For 'custom' or 'none': select My Projects
@@ -377,10 +365,7 @@ export function ProjectPageFilter({
 
   // Selection staging and commit behavior
   const selectionLimitExceeded = useMemo(() => {
-    const stagedSelectionIntent = selectionToIntent({
-      projects,
-      selection: stagedValue,
-    });
+    const stagedSelectionIntent = selectionToIntent({projects, selection: stagedValue});
 
     if (stagedSelectionIntent.kind === 'my') {
       return false;
@@ -411,10 +396,7 @@ export function ProjectPageFilter({
   };
 
   const onReplace = () => {
-    trackAnalytics('projectselector.direct_selection', {
-      path: routePath,
-      organization,
-    });
+    trackAnalytics('projectselector.direct_selection', {path: routePath, organization});
   };
 
   const commitSelection = (newValue: number[]) => {
@@ -497,17 +479,11 @@ export function ProjectPageFilter({
     clearDraftSelectionState();
     commitSelection(memberProjectIds(projects));
 
-    trackAnalytics('projectselector.clear', {
-      path: routePath,
-      organization,
-    });
+    trackAnalytics('projectselector.clear', {path: routePath, organization});
   };
 
   const handleCancel = () => {
-    trackAnalytics('projectselector.cancel', {
-      path: routePath,
-      organization,
-    });
+    trackAnalytics('projectselector.cancel', {path: routePath, organization});
     clearDraftSelectionState();
   };
 
@@ -543,10 +519,7 @@ export function ProjectPageFilter({
           <MenuComponents.Alert variant="warning">
             {tct(
               "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
-              {
-                limit: SELECTION_COUNT_LIMIT,
-                count: stagedSelect.value.length,
-              }
+              {limit: SELECTION_COUNT_LIMIT, count: stagedSelect.value.length}
             )}
           </MenuComponents.Alert>
         )}
@@ -669,10 +642,7 @@ function urlSelectionToIntent({
     return {kind: 'my', ids: memberProjectIds(projects)};
   }
 
-  return selectionToIntent({
-    projects,
-    selection: urlSelection,
-  });
+  return selectionToIntent({projects, selection: urlSelection});
 }
 
 /**

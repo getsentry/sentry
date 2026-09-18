@@ -17,9 +17,7 @@ export function BuilderBreadCrumbs({title, organization}: Props) {
       label: t('Monitors'),
       preservePageFilters: true,
     },
-    {
-      label: title,
-    },
+    {label: title},
   ];
 
   return <Breadcrumbs crumbs={crumbs} />;

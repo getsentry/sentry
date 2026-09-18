@@ -33,12 +33,7 @@ describe('useMetricDetectorAnomalyThresholds', () => {
       body: {data: []},
     });
 
-    const series = [
-      {
-        seriesName: 'count()',
-        data: [{name: 1609459200000, value: 100}],
-      },
-    ];
+    const series = [{seriesName: 'count()', data: [{name: 1609459200000, value: 100}]}];
 
     renderHookWithProviders(
       () =>
@@ -73,12 +68,7 @@ describe('useMetricDetectorAnomalyThresholds', () => {
       body: {data: mockData},
     });
 
-    const series = [
-      {
-        seriesName: 'count()',
-        data: [{name: 1609459200000, value: 100}],
-      },
-    ];
+    const series = [{seriesName: 'count()', data: [{name: 1609459200000, value: 100}]}];
 
     renderHookWithProviders(
       () =>
@@ -105,12 +95,7 @@ describe('useMetricDetectorAnomalyThresholds', () => {
       body: {data: []},
     });
 
-    const series = [
-      {
-        seriesName: 'count()',
-        data: [{name: 1609459200000, value: 100}],
-      },
-    ];
+    const series = [{seriesName: 'count()', data: [{name: 1609459200000, value: 100}]}];
 
     renderHookWithProviders(
       () =>

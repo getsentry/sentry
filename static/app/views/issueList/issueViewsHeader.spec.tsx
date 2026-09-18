@@ -33,21 +33,15 @@ describe('IssueViewsHeader', () => {
     onRealtimeChange: jest.fn(),
   };
 
-  const organization = OrganizationFixture({
-    access: ['org:read'],
-  });
+  const organization = OrganizationFixture({access: ['org:read']});
 
   const onIssueViewRouterConfig = {
-    location: {
-      pathname: '/organizations/org-slug/issues/views/123/',
-    },
+    location: {pathname: '/organizations/org-slug/issues/views/123/'},
     route: '/organizations/:orgId/issues/views/:viewId/',
   };
 
   const onIssueFeedRouterConfig = {
-    location: {
-      pathname: '/organizations/org-slug/issues/',
-    },
+    location: {pathname: '/organizations/org-slug/issues/'},
     route: '/organizations/:orgId/issues/',
   };
 
@@ -86,9 +80,7 @@ describe('IssueViewsHeader', () => {
 
       const confirmButton = await within(screen.getByRole('dialog')).findByRole(
         'button',
-        {
-          name: 'Delete View',
-        }
+        {name: 'Delete View'}
       );
 
       await userEvent.click(confirmButton);

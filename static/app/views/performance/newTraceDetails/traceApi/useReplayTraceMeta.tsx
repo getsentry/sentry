@@ -77,10 +77,7 @@ export function useReplayTraceMeta(
           : {},
       },
     ],
-    {
-      staleTime: Infinity,
-      enabled: !!eventView && !!replayRecord,
-    }
+    {staleTime: Infinity, enabled: !!eventView && !!replayRecord}
   );
 
   const replayTraces = useMemo(() => {

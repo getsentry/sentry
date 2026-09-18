@@ -101,10 +101,7 @@ describe('usePipeline', () => {
     MockApiClient.addMockResponse({
       url: API_URL,
       method: 'POST',
-      body: {
-        status: 'complete',
-        data: {result: 'success'},
-      },
+      body: {status: 'complete', data: {result: 'success'}},
     });
 
     // Complete the pipeline
@@ -135,10 +132,7 @@ describe('usePipeline', () => {
     MockApiClient.addMockResponse({
       url: API_URL,
       method: 'POST',
-      body: {
-        status: 'stay',
-        data: {redirectUrl: 'https://example.com/auth'},
-      },
+      body: {status: 'stay', data: {redirectUrl: 'https://example.com/auth'}},
       match: [MockApiClient.matchData({name: 'Test'})],
     });
 
@@ -173,10 +167,7 @@ describe('usePipeline', () => {
       url: API_URL,
       method: 'POST',
       statusCode: 400,
-      body: {
-        status: 'error',
-        data: {detail: 'Something went wrong'},
-      },
+      body: {status: 'error', data: {detail: 'Something went wrong'}},
       match: [MockApiClient.matchData({name: 'Test'})],
     });
 
@@ -374,10 +365,7 @@ describe('usePipeline', () => {
     MockApiClient.addMockResponse({
       url: API_URL,
       method: 'POST',
-      body: {
-        status: 'complete',
-        data: {result: 'Pipeline finished successfully'},
-      },
+      body: {status: 'complete', data: {result: 'Pipeline finished successfully'}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Finish'}));

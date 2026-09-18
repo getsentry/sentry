@@ -9,12 +9,7 @@ describe('groupIntoBuckets', () => {
 
   it('collapses annotations sharing a (start, end) and sums eventCount', () => {
     const buckets = groupIntoBuckets([
-      AnnotationFixture({
-        start: 0,
-        end: 60_000,
-        eventCount: 10,
-        reason: 'rate_limited',
-      }),
+      AnnotationFixture({start: 0, end: 60_000, eventCount: 10, reason: 'rate_limited'}),
       AnnotationFixture({start: 0, end: 60_000, eventCount: 5, reason: 'quota'}),
     ]);
 

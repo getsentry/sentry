@@ -11,9 +11,7 @@ import type {ErrorMessage} from 'sentry/components/events/interfaces/crashConten
 
 jest.mock(
   'sentry/components/events/interfaces/crashContent/exception/useActionableItems',
-  () => ({
-    useActionableItemsWithProguardErrors: jest.fn(),
-  })
+  () => ({useActionableItemsWithProguardErrors: jest.fn()})
 );
 
 const {useActionableItemsWithProguardErrors} = jest.requireMock(

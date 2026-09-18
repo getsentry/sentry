@@ -3,11 +3,7 @@ import {t} from 'sentry/locale';
 export const MAX_REPOS_LIMIT = 8;
 
 export const SEER_THRESHOLD_OPTIONS = [
-  {
-    value: 'off',
-    label: t('Off'),
-    details: t('Seer only runs when you click Start.'),
-  },
+  {value: 'off', label: t('Off'), details: t('Seer only runs when you click Start.')},
   {
     value: 'super_low',
     label: t('Only the Most Actionable Issues'),

@@ -18,10 +18,7 @@ export function transformEventsStatsToSeries(
   seriesName: string
 ): Series {
   if (!stats?.data?.length) {
-    return {
-      seriesName,
-      data: [],
-    };
+    return {seriesName, data: []};
   }
 
   return {
@@ -47,10 +44,7 @@ export function transformEventsStatsComparisonSeries(
   );
 
   if (!hasComparisonData || !stats?.data?.length) {
-    return {
-      seriesName: 'Comparison',
-      data: [],
-    };
+    return {seriesName: 'Comparison', data: []};
   }
 
   return {
@@ -89,9 +83,7 @@ interface DiscoverSeriesQueryOptions {
   /**
    * Extra query parameters to pass
    */
-  extra?: {
-    useOnDemandMetrics: 'true';
-  };
+  extra?: {useOnDemandMetrics: 'true'};
   extrapolationMode?: ExtrapolationMode;
   start?: string | null;
   /**

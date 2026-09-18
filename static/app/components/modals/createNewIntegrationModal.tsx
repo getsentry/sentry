@@ -263,10 +263,7 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
                 option === 'public'
                   ? PlatformEvents.CHOSE_PUBLIC
                   : PlatformEvents.CHOSE_INTERNAL,
-                {
-                  organization,
-                  view: analyticsView,
-                }
+                {organization, view: analyticsView}
               );
             }}
           >

@@ -42,9 +42,7 @@ describe('ExternalIssueList', () => {
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });
-    render(<ExternalIssueList group={group} event={event} />, {
-      organization,
-    });
+    render(<ExternalIssueList group={group} event={event} />, {organization});
     expect(await screen.findByText(setupCTA)).toBeInTheDocument();
   });
 
@@ -59,14 +57,10 @@ describe('ExternalIssueList', () => {
     });
     const component = SentryAppComponentFixture();
     SentryAppInstallationStore.load([
-      SentryAppInstallationFixture({
-        app: component.sentryApp,
-      }),
+      SentryAppInstallationFixture({app: component.sentryApp}),
     ]);
     mockUseSentryAppComponentsStore.mockReturnValue([component]);
-    render(<ExternalIssueList group={group} event={event} />, {
-      organization,
-    });
+    render(<ExternalIssueList group={group} event={event} />, {organization});
     expect(await screen.findByRole('button', {name: 'Foo'})).toBeInTheDocument();
     expect(screen.queryByText(setupCTA)).not.toBeInTheDocument();
   });
@@ -97,9 +91,7 @@ describe('ExternalIssueList', () => {
     });
     const component = SentryAppComponentFixture();
     mockUseSentryAppComponentsStore.mockReturnValue([component]);
-    render(<ExternalIssueList group={group} event={event} />, {
-      organization,
-    });
+    render(<ExternalIssueList group={group} event={event} />, {organization});
     expect(
       await screen.findByRole('link', {name: 'Test-Sentry/github-test#13'})
     ).toBeInTheDocument();

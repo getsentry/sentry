@@ -8,9 +8,7 @@ import {ThemeProvider, useTheme} from '@emotion/react';
  * should be 4px. `smallerBorderRadii` overrides the default 6px and enforces
  * the 4px version on these panel descendants.
  */
-const smallerBorderRadii = {
-  borderRadius: '4px',
-};
+const smallerBorderRadii = {borderRadius: '4px'};
 
 /**
  * Nested theme provider that automatically adjusts the styles of descendants

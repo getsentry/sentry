@@ -218,11 +218,7 @@ describe('useCrossEventQueries', () => {
   it('matches both !has:metric.unit and metric.unit:none when unit is absent', () => {
     const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([
-        {
-          type: 'metrics',
-          query: '',
-          metric: {name: 'my_metric', type: 'counter'},
-        },
+        {type: 'metrics', query: '', metric: {name: 'my_metric', type: 'counter'}},
       ]),
       initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });

@@ -6,10 +6,7 @@ import {eventHasSyntheticTrace} from 'sentry/components/events/interfaces/perfor
 import type {Event, EventContexts as EventContextValues} from 'sentry/types/event';
 import {useProjects} from 'sentry/utils/useProjects';
 
-type Props = {
-  event: Event;
-  disableCollapsePersistence?: boolean;
-};
+type Props = {event: Event; disableCollapsePersistence?: boolean};
 
 interface UnknownContextValue {
   [key: string]: any;

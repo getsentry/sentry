@@ -71,9 +71,7 @@ export function ChartContent({
               value: normalizeValue(point.y, yAxisUnit),
             })),
           };
-          return new CategoricalBars(categoricalSeries, {
-            alias: getSeriesLabel(item),
-          });
+          return new CategoricalBars(categoricalSeries, {alias: getSeriesLabel(item)});
         })}
       />
     ) : (
@@ -120,10 +118,7 @@ export function ChartContent({
             return createPlottableFromTimeSeries(
               DISPLAY_TYPES[visualization],
               timeSeries,
-              {
-                alias: getSeriesLabel(item),
-                name: `seer-chart-series-${index}`,
-              }
+              {alias: getSeriesLabel(item), name: `seer-chart-series-${index}`}
             );
           })
           .filter((plottable): plottable is Plottable => plottable !== null)}

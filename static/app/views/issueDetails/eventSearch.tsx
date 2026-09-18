@@ -42,16 +42,8 @@ function getFilterKeySections(tags: TagCollection): FilterKeySection[] {
   ).map(tag => tag.key);
 
   return [
-    {
-      value: FieldKind.EVENT_FIELD,
-      label: t('Event Filters'),
-      children: eventFields,
-    },
-    {
-      value: FieldKind.TAG,
-      label: t('Event Tags'),
-      children: eventTags,
-    },
+    {value: FieldKind.EVENT_FIELD, label: t('Event Filters'), children: eventFields},
+    {value: FieldKind.TAG, label: t('Event Tags'), children: eventTags},
   ];
 }
 

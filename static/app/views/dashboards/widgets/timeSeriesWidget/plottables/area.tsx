@@ -64,13 +64,8 @@ export class Area extends ContinuousTimeSeries implements Plottable {
             data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
               timeSeriesItemToEChartsDataPoint
             ),
-            lineStyle: {
-              type: 'dotted',
-            },
-            areaStyle: {
-              color,
-              opacity: 0.8,
-            },
+            lineStyle: {type: 'dotted'},
+            areaStyle: {color, opacity: 0.8},
             silent: true,
           })
         );
@@ -81,10 +76,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
           createLineSeries({
             ...commonOptions,
             stack: `complete-${index}`,
-            areaStyle: {
-              color,
-              opacity: 1,
-            },
+            areaStyle: {color, opacity: 1},
             data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
               timeSeriesItemToEChartsDataPoint
             ),

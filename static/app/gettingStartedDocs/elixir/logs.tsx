@@ -46,11 +46,7 @@ export const logs: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'elixir',
-          code: getInstallSnippet(),
-        },
+        {type: 'code', language: 'elixir', code: getInstallSnippet()},
         {
           type: 'text',
           text: tct('Then fetch the updated dependency: [code:mix deps.get]', {
@@ -71,18 +67,12 @@ export const logs: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'elixir',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'elixir', code: getConfigureSnippet(params)},
         {
           type: 'text',
           text: tct(
             'For more configuration options, see the [link:Elixir Logs documentation].',
-            {
-              link: <ExternalLink href="https://docs.sentry.io/platforms/elixir/logs/" />,
-            }
+            {link: <ExternalLink href="https://docs.sentry.io/platforms/elixir/logs/" />}
           ),
         },
       ],
@@ -98,11 +88,7 @@ export const logs: OnboardingConfig = {
             'Verify that logging is working by sending a few log messages via the Elixir Logger:'
           ),
         },
-        {
-          type: 'code',
-          language: 'elixir',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'elixir', code: getVerifySnippet()},
         {
           type: 'text',
           text: t(

@@ -156,9 +156,7 @@ export function groupMergedReducer(
         fingerprintState: setFingerprintState(
           state.fingerprintState,
           action.fingerprintIds,
-          {
-            collapsed: !state.unmergeLastCollapsed,
-          }
+          {collapsed: !state.unmergeLastCollapsed}
         ),
         unmergeLastCollapsed: !state.unmergeLastCollapsed,
       };
@@ -236,11 +234,7 @@ export function useGroupMergedHashes({
       '/organizations/$organizationIdOrSlug/issues/$issueId/hashes/',
       {
         path: {organizationIdOrSlug: organization.slug, issueId: groupId},
-        query: {
-          cursor: cursor ?? undefined,
-          full: '0',
-          per_page: MERGED_HASH_LIMIT,
-        },
+        query: {cursor: cursor ?? undefined, full: '0', per_page: MERGED_HASH_LIMIT},
         staleTime: 30_000,
       }
     ),

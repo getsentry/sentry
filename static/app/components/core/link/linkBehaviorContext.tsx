@@ -12,10 +12,7 @@ type LinkBehavior<T extends LinkProps> = {
 const LinkBehaviorContext = createContext<LinkBehavior<LinkProps> | null>(null);
 
 const defaultLinkBehavior = <T extends LinkProps>() =>
-  ({
-    component: RouterLink,
-    behavior: props => props,
-  }) satisfies LinkBehavior<T>;
+  ({component: RouterLink, behavior: props => props}) satisfies LinkBehavior<T>;
 
 export const LinkBehaviorContextProvider = LinkBehaviorContext.Provider;
 

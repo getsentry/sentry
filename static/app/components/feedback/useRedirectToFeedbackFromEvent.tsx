@@ -25,23 +25,15 @@ export function useRedirectToFeedbackFromEvent() {
         },
       }),
     ],
-    {
-      staleTime: Infinity,
-      enabled: Boolean(eventId) && Boolean(projectSlug),
-    }
+    {staleTime: Infinity, enabled: Boolean(eventId) && Boolean(projectSlug)}
   );
 
   useEffect(() => {
     if (projectSlug && event?.groupID) {
       navigate(
         {
-          pathname: makeFeedbackPathname({
-            path: '/',
-            organization,
-          }),
-          query: {
-            feedbackSlug: `${projectSlug}:${event.groupID}`,
-          },
+          pathname: makeFeedbackPathname({path: '/', organization}),
+          query: {feedbackSlug: `${projectSlug}:${event.groupID}`},
         },
         {replace: true}
       );

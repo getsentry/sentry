@@ -14,11 +14,7 @@ export enum DebugFileFeature {
 type Secret = {'hidden-secret': boolean};
 
 type CustomRepoMetadata = {
-  filters?: {
-    filetypes?: string[];
-    path_patterns?: string[];
-    requires_checksum?: boolean;
-  };
+  filters?: {filetypes?: string[]; path_patterns?: string[]; requires_checksum?: boolean};
   has_index?: boolean;
   is_public?: boolean;
   platforms?: string[];
@@ -88,10 +84,7 @@ export type CustomRepoGCS = CustomRepoMetadata & {
 
 export type CustomRepo = CustomRepoHttp | CustomRepoS3 | CustomRepoGCS;
 
-type FlattenedLayout = {
-  'layout.casing': string;
-  'layout.type': string;
-};
+type FlattenedLayout = {'layout.casing': string; 'layout.type': string};
 
 export type CustomRepoFormData =
   | (Omit<CustomRepoHttp, 'layout' | 'password'> &

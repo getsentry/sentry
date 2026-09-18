@@ -83,9 +83,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock(),
       ],
@@ -99,19 +97,13 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To configure the SDK, initialize it with the integration in a custom [code:wsgi.py] script:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
           type: 'code',
           tabs: [
-            {
-              label: 'wsgi.py',
-              language: 'python',
-              code: getSdkSetupSnippet(params),
-            },
+            {label: 'wsgi.py', language: 'python', code: getSdkSetupSnippet(params)},
           ],
         },
         {
@@ -122,22 +114,11 @@ export const onboarding: OnboardingConfig = {
         },
         {
           type: 'code',
-          tabs: [
-            {
-              label: 'wsgi.py',
-              language: 'python',
-              code: getErrorHandlerSnippet(),
-            },
-          ],
+          tabs: [{label: 'wsgi.py', language: 'python', code: getErrorHandlerSnippet()}],
         },
         alternativeProfiling(params),
       ],
     },
   ],
-  verify: params => [
-    {
-      type: StepType.VERIFY,
-      content: [metricsVerify(params)],
-    },
-  ],
+  verify: params => [{type: StepType.VERIFY, content: [metricsVerify(params)]}],
 };

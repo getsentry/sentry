@@ -141,9 +141,7 @@ describe('LogsTabContent', () => {
           datasetReason: 'unchanged',
           dataset: 'ourlogs',
           dataScanned: 'full',
-          accuracy: {
-            confidence: [{}, {}],
-          },
+          accuracy: {confidence: [{}, {}]},
         },
         confidence: [{}, {}],
       },
@@ -152,9 +150,7 @@ describe('LogsTabContent', () => {
     eventsTimeSeriesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
+      body: {timeSeries: [TimeSeriesFixture()]},
     });
 
     MockApiClient.addMockResponse({
@@ -509,11 +505,7 @@ describe('LogsTabContent', () => {
   it('leaves the aggregate fields alone when switching to aggregates while ungrouped', async () => {
     const {router} = render(
       <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
-      {
-        initialRouterConfig,
-        organization,
-        additionalWrapper: ProviderWrapper,
-      }
+      {initialRouterConfig, organization, additionalWrapper: ProviderWrapper}
     );
 
     await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
@@ -583,9 +575,7 @@ describe('LogsTabContent', () => {
 
     expect(eventTableMock).toHaveBeenCalled();
 
-    const caseInsensitiveBtn = await screen.findByRole('button', {
-      name: 'Ignore case',
-    });
+    const caseInsensitiveBtn = await screen.findByRole('button', {name: 'Ignore case'});
     await userEvent.click(caseInsensitiveBtn);
 
     expect(eventTableMock).toHaveBeenCalledWith(

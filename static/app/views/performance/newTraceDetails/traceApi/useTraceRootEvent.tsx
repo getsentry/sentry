@@ -58,11 +58,7 @@ export function useTraceRootEvent({
           },
         }
       ),
-      {
-        query: {
-          referrer: 'trace-details-summary',
-        },
-      },
+      {query: {referrer: 'trace-details-summary'}},
     ],
     {
       // 10 minutes

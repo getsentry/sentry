@@ -1,10 +1,6 @@
 import {createContext, useContext, useMemo} from 'react';
 
-type Props = {
-  children: React.ReactNode;
-  eventId?: string;
-  groupId?: string;
-};
+type Props = {children: React.ReactNode; eventId?: string; groupId?: string};
 
 type BreadcrumbCustomizationContextType = Omit<Props, 'children'>;
 

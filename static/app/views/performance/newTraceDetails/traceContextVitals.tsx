@@ -34,10 +34,7 @@ import {
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
-type Props = {
-  rootEventResults: TraceRootEventQueryResults;
-  tree: TraceTree;
-};
+type Props = {rootEventResults: TraceRootEventQueryResults; tree: TraceTree};
 
 export function TraceContextVitals({rootEventResults, tree}: Props) {
   const location = useLocation();
@@ -114,9 +111,7 @@ export function TraceContextVitals({rootEventResults, tree}: Props) {
             onClick={
               vital
                 ? () => {
-                    trackAnalytics('trace.trace_layout.zoom_to_fill', {
-                      organization,
-                    });
+                    trackAnalytics('trace.trace_layout.zoom_to_fill', {organization});
                     navigate(
                       {
                         pathname: location.pathname,

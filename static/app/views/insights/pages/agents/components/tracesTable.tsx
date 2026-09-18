@@ -153,12 +153,7 @@ export function TracesTable({
   const {cursor, setCursor} = useTableCursor();
 
   const tracesRequest = useQuery({
-    ...useTracesApiOptions({
-      query: combinedQuery,
-      sort: '-timestamp',
-      cursor,
-      limit,
-    }),
+    ...useTracesApiOptions({query: combinedQuery, sort: '-timestamp', cursor, limit}),
     select: selectJsonWithHeaders,
     placeholderData: keepPreviousData,
   });
@@ -318,10 +313,7 @@ export function TracesTable({
       data={tableData}
       stickyHeader
       columnOrder={columnOrder}
-      grid={{
-        renderBodyCell,
-        renderHeadCell,
-      }}
+      grid={{renderBodyCell, renderHeadCell}}
       {...additionalGridProps}
     />
   );
@@ -360,10 +352,7 @@ const BodyCell = memo(function BodyCellImpl({
         traceSlug: dataRow.traceId,
         dateSelection: normalizeDateTimeParams(selection.datetime),
         timestamp: dataRow.timestamp / 1000,
-        location: {
-          ...location,
-          query: {},
-        },
+        location: {...location, query: {}},
         source: TraceViewSources.AGENT_MONITORING,
         tab: TraceLayoutTabKeys.AI_SPANS,
       });

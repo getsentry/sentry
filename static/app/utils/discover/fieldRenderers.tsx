@@ -131,9 +131,7 @@ export type RenderFunctionBaggage = {
   unit?: string;
 };
 
-type RenderFunctionOptions = {
-  enableOnClick?: boolean;
-};
+type RenderFunctionOptions = {enableOnClick?: boolean};
 
 type FieldFormatterRenderFunction = (
   field: string,
@@ -146,10 +144,7 @@ export type FieldFormatterRenderFunctionPartial = (
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
 
-type FieldFormatter = {
-  isSortable: boolean;
-  renderFunc: FieldFormatterRenderFunction;
-};
+type FieldFormatter = {isSortable: boolean; renderFunc: FieldFormatterRenderFunction};
 
 type FieldFormatters = {
   array: FieldFormatter;
@@ -422,10 +417,7 @@ type SpecialFieldRenderFunc = (
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
 
-type SpecialField = {
-  renderFunc: SpecialFieldRenderFunc;
-  sortField: string | null;
-};
+type SpecialField = {renderFunc: SpecialFieldRenderFunc; sortField: string | null};
 
 const DownloadCount = styled('span')`
   padding-left: ${p => p.theme.space.sm};
@@ -690,9 +682,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         );
       }
 
-      const target = {
-        pathname: `/organizations/${organization.slug}/issues/${issueID}/`,
-      };
+      const target = {pathname: `/organizations/${organization.slug}/issues/${issueID}/`};
 
       return (
         <QuickContextHoverWrapper
@@ -764,13 +754,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => {
       if (data.user?.split) {
         const [key, value] = data.user.split(':');
-        const userObj = {
-          id: '',
-          name: '',
-          email: '',
-          username: '',
-          ip_address: '',
-        };
+        const userObj = {id: '', name: '', email: '', username: '', ip_address: ''};
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         userObj[key] = value;
 
@@ -1362,10 +1346,7 @@ export const spanOperationRelativeBreakdownRenderer = (
                   });
                   navigate({
                     pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      ...filterToLocationQuery(filter),
-                    },
+                    query: {...location.query, ...filterToLocationQuery(filter)},
                   });
                 }}
               />
@@ -1415,10 +1396,7 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 function renderReplayIdAsLink(replayId: string, {organization}: RenderFunctionBaggage) {
-  const target = makeReplaysPathname({
-    path: `/${replayId}/`,
-    organization,
-  });
+  const target = makeReplaysPathname({path: `/${replayId}/`, organization});
 
   return (
     <Container>

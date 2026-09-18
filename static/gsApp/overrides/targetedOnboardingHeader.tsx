@@ -14,10 +14,7 @@ import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = {
-  source: string;
-  subscription: Subscription;
-};
+type Props = {source: string; subscription: Subscription};
 
 function TargetedOnboardingHeader({source, subscription}: Props) {
   const organization = useOrganization();
@@ -28,10 +25,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
       source,
     });
   const trackClickUpgrade = () => {
-    trackGetsentryAnalytics('growth.onboarding_clicked_upgrade', {
-      source,
-      organization,
-    });
+    trackGetsentryAnalytics('growth.onboarding_clicked_upgrade', {source, organization});
   };
 
   // if trial is active, show info on that
@@ -73,9 +67,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
   );
 }
 
-export default withSubscription(TargetedOnboardingHeader, {
-  noLoader: true,
-});
+export default withSubscription(TargetedOnboardingHeader, {noLoader: true});
 
 const HeaderActionBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />

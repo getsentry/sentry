@@ -287,10 +287,7 @@ export function getLabelAndOperatorFromToken(token: TokenResult<Token.FILTER>) {
 
   const label = OP_LABELS[operator] ?? operator;
 
-  return {
-    label,
-    operator,
-  };
+  return {label, operator};
 }
 
 /**

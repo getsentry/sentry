@@ -29,9 +29,7 @@ export function IntegrationServerlessFunctions({
   const queryKey: ApiQueryKey = [
     getApiUrl(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/',
-      {
-        path: {organizationIdOrSlug: organization.slug, integrationId: integration.id},
-      }
+      {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
     ),
   ];
   const {data: serverlessFunctions = [], isSuccess} = useApiQuery<ServerlessFunction[]>(
@@ -81,10 +79,7 @@ export function IntegrationServerlessFunctions({
                       return;
                     }
                     const newServerlessFunctions = [...existingServerlessFunctions];
-                    const updatedFunction = {
-                      ...newServerlessFunctions[i]!,
-                      ...update,
-                    };
+                    const updatedFunction = {...newServerlessFunctions[i]!, ...update};
                     newServerlessFunctions[i] = updatedFunction;
                     return newServerlessFunctions;
                   }

@@ -205,10 +205,7 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
                   ...components,
                 }}
                 styles={{
-                  control: (provided: any) => ({
-                    ...provided,
-                    height: 'auto',
-                  }),
+                  control: (provided: any) => ({...provided, height: 'auto'}),
                   ...props.styles,
                 }}
                 onChange={(val: any) => {

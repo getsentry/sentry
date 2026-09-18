@@ -32,18 +32,12 @@ jest
 describe('IssueUptimeCheckTimeline', () => {
   const detectorId = '123';
   const organization = OrganizationFixture();
-  const project = ProjectFixture({
-    environments: ['production'],
-  });
+  const project = ProjectFixture({environments: ['production']});
   const group = GroupFixture({
     issueCategory: IssueCategory.UPTIME,
     issueType: IssueType.UPTIME_DOMAIN_FAILURE,
   });
-  const event = EventFixture({
-    occurrence: {
-      evidenceData: {detectorId},
-    },
-  });
+  const event = EventFixture({occurrence: {evidenceData: {detectorId}}});
 
   beforeEach(() => {
     GroupStore.init();
@@ -64,9 +58,7 @@ describe('IssueUptimeCheckTimeline', () => {
   it('renders the uptime check timeline with a legend and data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-stats/`,
-      query: {
-        uptimeDetectorId: [detectorId],
-      },
+      query: {uptimeDetectorId: [detectorId]},
       body: {
         [detectorId]: [
           [
@@ -120,17 +112,12 @@ describe('IssueUptimeCheckTimeline', () => {
   it('hides missed status from legend if not present in data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-stats/`,
-      query: {
-        uptimeDetectorId: [detectorId],
-      },
+      query: {uptimeDetectorId: [detectorId]},
       body: {
         [detectorId]: [
           [
             startTime.getTime() / 1000,
-            {
-              [CheckStatus.SUCCESS]: 1,
-              [CheckStatus.FAILURE]: 1,
-            },
+            {[CheckStatus.SUCCESS]: 1, [CheckStatus.FAILURE]: 1},
           ],
         ],
       },

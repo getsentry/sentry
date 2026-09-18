@@ -55,12 +55,7 @@ export function ChartActionDropdown({
   const exploreUrl = getExploreUrl({
     selection,
     organization,
-    visualize: [
-      {
-        chartType,
-        yAxes,
-      },
-    ],
+    visualize: [{chartType, yAxes}],
     mode: Mode.AGGREGATE,
     title: title ?? yAxes[0],
     query: search?.formatString(),
@@ -132,10 +127,7 @@ export function BaseChartActionDropdown({
       label: t('Open in Explore'),
       to: exploreUrl,
       onAction: () => {
-        trackAnalytics('insights.open_in_explore', {
-          organization,
-          referrer,
-        });
+        trackAnalytics('insights.open_in_explore', {organization, referrer});
       },
     });
   }
@@ -184,10 +176,7 @@ export function BaseChartActionDropdown({
         ...option,
         onAction: () => {
           option.onAction?.();
-          trackAnalytics('insights.create_alert', {
-            organization,
-            referrer,
-          });
+          trackAnalytics('insights.create_alert', {organization, referrer});
         },
       })),
     });

@@ -16,26 +16,15 @@ import {
 
 const theme = ThemeFixture();
 
-type Data = {
-  features?: string[];
-};
+type Data = {features?: string[]};
 
 function initializeData({features: additionalFeatures = []}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const organization = OrganizationFixture({
-    features,
-  });
-  const initialData = initializeOrg({
-    organization,
-    projects: [],
-  });
+  const organization = OrganizationFixture({features});
+  const initialData = initializeOrg({organization, projects: []});
   const router = RouterFixture({
     location: {
-      query: {
-        transaction: '/performance',
-        project: '1',
-        transactionCursor: '1:0:0',
-      },
+      query: {transaction: '/performance', project: '1', transactionCursor: '1:0:0'},
     },
   });
   ProjectsStore.loadInitialData(initialData.projects);
@@ -60,10 +49,7 @@ describe('Performance GridEditable Table', () => {
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
 
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
@@ -86,14 +72,7 @@ describe('Performance GridEditable Table', () => {
           '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
           '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
       },
-      body: {
-        meta: {
-          fields: {
-            'count()': 'integer',
-          },
-        },
-        data: [{'count()': 100}],
-      },
+      body: {meta: {fields: {'count()': 'integer'}}, data: [{'count()': 100}]},
       match: [
         (_url, options) => {
           return options.query?.field?.includes('count()');

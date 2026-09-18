@@ -23,14 +23,8 @@ interface Props {
 }
 
 const statusIconColorMap: Record<MonitorStatus, StatusNotice> = {
-  ok: {
-    icon: <IconCheckmark variant="success" />,
-    variant: 'success',
-  },
-  error: {
-    icon: <IconFire variant="danger" />,
-    variant: 'danger',
-  },
+  ok: {icon: <IconCheckmark variant="success" />, variant: 'success'},
+  error: {icon: <IconFire variant="danger" />, variant: 'danger'},
   active: {
     icon: <IconTimer variant="muted" />,
     variant: 'muted',

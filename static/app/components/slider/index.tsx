@@ -323,11 +323,7 @@ const SliderLabelOutput = styled('output')`
 const SliderTrack = styled('div', {
   shouldForwardProp: prop =>
     prop !== 'disabled' && typeof prop === 'string' && isPropValid(prop),
-})<{
-  disabled: boolean;
-  hasThumbLabels: boolean;
-  hasTickLabels: boolean;
-}>`
+})<{disabled: boolean; hasThumbLabels: boolean; hasTickLabels: boolean}>`
   position: relative;
   width: calc(100% - 2px);
   height: 3px;

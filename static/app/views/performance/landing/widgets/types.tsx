@@ -112,15 +112,11 @@ type Visualization<T> = {
 
 type Visualizations<T extends WidgetDataConstraint> = ReadonlyArray<Visualization<T>>; // Readonly because of index being used for React key.
 
-type HeaderActions<T> = React.ComponentType<{
-  widgetData: T;
-}>;
+type HeaderActions<T> = React.ComponentType<{widgetData: T}>;
 
 type InteractiveTitle<T> = React.ComponentType<{widgetData: T}>;
 
-type Subtitle<T> = React.ComponentType<{
-  widgetData: T;
-}>;
+type Subtitle<T> = React.ComponentType<{widgetData: T}>;
 
 export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   Queries: Queries<T>;

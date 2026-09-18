@@ -34,10 +34,7 @@ export interface TraceMetadataHeaderProps {
 
 const traceViewFeedbackOptions = {
   messagePlaceholder: t('How can we make the trace view better for you?'),
-  tags: {
-    'feedback.source': 'trace-view',
-    'feedback.owner': 'performance',
-  },
+  tags: {'feedback.source': 'trace-view', 'feedback.owner': 'performance'},
 };
 
 export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {

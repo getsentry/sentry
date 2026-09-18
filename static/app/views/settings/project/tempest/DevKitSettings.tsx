@@ -38,10 +38,7 @@ export function DevKitSettings({organization, project}: Props) {
   const [expandedAccordionIndex, setExpandedAccordionIndex] = useState(-1);
 
   const {data: projectKeys, isPending: isLoadingKeys} = useQuery({
-    ...projectKeysApiOptions({
-      orgSlug: organization.slug,
-      projSlug: project.slug,
-    }),
+    ...projectKeysApiOptions({orgSlug: organization.slug, projSlug: project.slug}),
     staleTime: Infinity,
     retry: false,
   });
@@ -73,12 +70,7 @@ export function DevKitSettings({organization, project}: Props) {
                 <GuidedSteps
                   initialStep={decodeInteger(location.query.guidedStep)}
                   onStepChange={step => {
-                    navigate({
-                      query: {
-                        ...location.query,
-                        guidedStep: step,
-                      },
-                    });
+                    navigate({query: {...location.query, guidedStep: step}});
                   }}
                 >
                   <GuidedSteps.Step
@@ -215,9 +207,7 @@ export function DevKitSettings({organization, project}: Props) {
                         onClick={() => {
                           navigate({
                             pathname: `/organizations/${organization.slug}/issues/`,
-                            query: {
-                              query: 'os.name:PlayStation',
-                            },
+                            query: {query: 'os.name:PlayStation'},
                           });
                         }}
                       >

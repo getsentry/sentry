@@ -53,9 +53,7 @@ export function ConversationViewContent({
   const {nodes, nodeTraceMap, isLoading, error} = useConversation(conversation);
 
   const [detailState, setDetailState] = useQueryStates(
-    {
-      detailTab: parseAsStringLiteral(CONVERSATION_SPAN_DETAIL_TABS).withDefault('input'),
-    },
+    {detailTab: parseAsStringLiteral(CONVERSATION_SPAN_DETAIL_TABS).withDefault('input')},
     {history: 'replace'}
   );
 

@@ -69,10 +69,7 @@ export function TemplateSection({step}: {step?: number}) {
       .map(([dataset, templates]) => ({
         key: dataset as DetectorDataset,
         label: DATASET_LABELS[dataset as DetectorDataset] ?? dataset,
-        options: templates.map(opt => ({
-          label: opt.label,
-          value: opt.key,
-        })),
+        options: templates.map(opt => ({label: opt.label, value: opt.key})),
       }));
   }, [templateMetaByKey]);
 

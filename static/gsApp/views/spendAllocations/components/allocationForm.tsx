@@ -368,9 +368,7 @@ export function AllocationForm({
                       {t('Available Unconsumed Spend')}
                     </Text>
                     <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
-                      {displayPrice({
-                        cents: costPerItem * availableUnconsumedEvents,
-                      })}
+                      {displayPrice({cents: costPerItem * availableUnconsumedEvents})}
                     </Text>
                   </HalvedGrid>
                   <HalvedGrid>

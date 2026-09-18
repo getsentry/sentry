@@ -67,10 +67,7 @@ function BasePlayerRoot({
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
 
-  const [windowDimensions, setWindowDimensions] = useState({
-    width: 0,
-    height: 0,
-  });
+  const [windowDimensions, setWindowDimensions] = useState({width: 0, height: 0});
 
   // Sets the parent element where the player
   // instance will use as root (i.e. where it will

@@ -61,10 +61,7 @@ export function IssueTraceWaterfallOverlay({
         organization,
         {
           ...location,
-          query: {
-            ...(groupId ? {groupId} : {}),
-            referrer: location.query.referrer,
-          },
+          query: {...(groupId ? {groupId} : {}), referrer: location.query.referrer},
         },
         source === 'feedback'
           ? TraceViewSources.FEEDBACK_DETAILS
@@ -123,9 +120,7 @@ export function IssueTraceWaterfallOverlay({
   }, [viewManager, containerRef, tree]);
 
   const handleLinkClick = useCallback(() => {
-    trackAnalytics('issue_details.view_full_trace_waterfall_clicked', {
-      organization,
-    });
+    trackAnalytics('issue_details.view_full_trace_waterfall_clicked', {organization});
   }, [organization]);
 
   // Link to an offender span in the trace view if the event includes an occurrence.

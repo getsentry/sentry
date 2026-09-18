@@ -44,8 +44,5 @@ export function useMonitorProcessingErrors({
     [api, organization.slug, projectId, monitorSlug, refetchErrors]
   );
 
-  return {
-    checkinErrors,
-    handleDismissError,
-  };
+  return {checkinErrors, handleDismissError};
 }

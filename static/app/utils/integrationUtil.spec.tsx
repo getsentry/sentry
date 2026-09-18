@@ -74,11 +74,7 @@ describe('getAlertText()', () => {
   it('returns the Slack message for an outdated slack integration', () => {
     const integration = GitHubIntegrationFixture({
       outOfDate: true,
-      provider: {
-        ...GitHubIntegrationFixture().provider,
-        key: 'slack',
-        name: 'Slack',
-      },
+      provider: {...GitHubIntegrationFixture().provider, key: 'slack', name: 'Slack'},
     });
     expect(getAlertText([integration])).toBe(
       'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app on your workspace to get started.'
@@ -88,11 +84,7 @@ describe('getAlertText()', () => {
   it('returns undefined for an outdated integration of another provider', () => {
     const integration = GitHubIntegrationFixture({
       outOfDate: true,
-      provider: {
-        ...GitHubIntegrationFixture().provider,
-        key: 'jira',
-        name: 'Jira',
-      },
+      provider: {...GitHubIntegrationFixture().provider, key: 'jira', name: 'Jira'},
     });
     expect(getAlertText([integration])).toBeUndefined();
   });

@@ -43,9 +43,7 @@ Sentry.showFeedbackWidget();`,
           type: 'text',
           text: tct(
             'You may also use the [code:showFeedbackButton] and [code:hideFeedbackButton] to show and hide a button that opens the Feedback Widget.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

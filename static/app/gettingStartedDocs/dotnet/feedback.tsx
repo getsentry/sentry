@@ -14,10 +14,7 @@ export const feedback: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: getCrashReportInstallDescription(),
-        },
+        {type: 'text', text: getCrashReportInstallDescription()},
         {
           type: 'code',
           tabs: [
@@ -41,10 +38,7 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
             },
           ],
         },
-        {
-          type: 'custom',
-          content: altCrashReportCallout(),
-        },
+        {type: 'custom', content: altCrashReportCallout()},
       ],
     },
   ],

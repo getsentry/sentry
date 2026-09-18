@@ -92,10 +92,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{}],
-        meta: {},
-      },
+      body: {data: [{}], meta: {}},
       match: [(...args) => !issuesPredicate(...args)],
     });
     issuesListMock = MockApiClient.addMockResponse({
@@ -171,9 +168,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     });
 
     // Change eventView statsperiod
-    const modifiedData = initializeData({
-      statsPeriod: '14d',
-    });
+    const modifiedData = initializeData({statsPeriod: '14d'});
 
     wrapper.rerender(
       <WrappedComponent
@@ -234,9 +229,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     });
 
     // Change eventView statsperiod
-    const modifiedData = initializeData({
-      statsPeriod: '14d',
-    });
+    const modifiedData = initializeData({statsPeriod: '14d'});
 
     wrapper.rerender(
       <MEPSettingProvider forceTransactions>
@@ -282,17 +275,13 @@ describe('Performance > Widgets > WidgetContainer', () => {
       method: 'GET',
       url: '/organizations/org-slug/events-stats/',
       statusCode: 400,
-      body: {
-        detail: 'Request did not work :(',
-      },
+      body: {detail: 'Request did not work :('},
     });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events-timeseries/',
       statusCode: 400,
-      body: {
-        detail: 'Request did not work :(',
-      },
+      body: {detail: 'Request did not work :('},
     });
 
     wrapper = render(
@@ -891,12 +880,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
   });
 
   it('Most slow frames widget - MEP', async () => {
-    const data = initializeData(
-      {},
-      {
-        features: ['dynamic-sampling'],
-      }
-    );
+    const data = initializeData({}, {features: ['dynamic-sampling']});
 
     wrapper = render(
       <WrappedComponent

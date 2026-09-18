@@ -43,9 +43,7 @@ export const rules = {
 };
 
 const sentryPlugin = definePlugin({
-  meta: {
-    name: '@sentry-internal/eslint-plugin-sentry',
-  },
+  meta: {name: '@sentry-internal/eslint-plugin-sentry'},
   rules,
 });
 

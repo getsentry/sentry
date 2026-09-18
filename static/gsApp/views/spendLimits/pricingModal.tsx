@@ -40,9 +40,7 @@ function SpendLimitsPricingModal({
       <Text variant="muted">
         {tct(
           "[budgetTerm] lets you go beyond what's included in your plan. It applies across all products on a first-come, first-served basis, and you're only charged for what you use -- if your monthly usage stays within your plan, you won't pay extra.",
-          {
-            budgetTerm: displayBudgetName(subscription.planDetails, {title: true}),
-          }
+          {budgetTerm: displayBudgetName(subscription.planDetails, {title: true})}
         )}
       </Text>
       <SharedSpendLimitPriceTable
@@ -72,9 +70,7 @@ export function openSpendLimitsPricingModal({
         subscription={subscription}
       />
     ),
-    {
-      modalCss: modalCss(theme),
-    }
+    {modalCss: modalCss(theme)}
   );
 }
 

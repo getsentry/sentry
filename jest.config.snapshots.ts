@@ -10,33 +10,16 @@ const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
 const swcConfig: SwcOptions = {
   isModule: true,
-  module: {
-    type: 'commonjs',
-  },
+  module: {type: 'commonjs'},
   sourceMaps: 'inline',
   jsc: {
     target: 'esnext',
-    parser: {
-      syntax: 'typescript',
-      tsx: true,
-      dynamicImport: true,
-    },
-    transform: {
-      react: {
-        runtime: 'automatic',
-        importSource: '@emotion/react',
-      },
-    },
+    parser: {syntax: 'typescript', tsx: true, dynamicImport: true},
+    transform: {react: {runtime: 'automatic', importSource: '@emotion/react'}},
     experimental: {
       plugins: [
         ['@swc-contrib/mut-cjs-exports', {}],
-        [
-          '@swc/plugin-emotion',
-          {
-            sourceMap: false,
-            autoLabel: 'never',
-          },
-        ],
+        ['@swc/plugin-emotion', {sourceMap: false, autoLabel: 'never'}],
       ],
     },
   },

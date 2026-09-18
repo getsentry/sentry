@@ -122,11 +122,7 @@ export function AccountNotificationFineTuning() {
     isError: isErrorProjects,
   } = useQuery({
     ...apiOptions.as<Project[]>()('/projects/', {
-      query: {
-        organizationId,
-        cursor,
-        query,
-      },
+      query: {organizationId, cursor, query},
       staleTime: 0,
     }),
     enabled: Boolean(organizationId),
@@ -140,9 +136,7 @@ export function AccountNotificationFineTuning() {
     isError: isErrorEmails,
   } = useApiQuery<UserEmail[]>(
     [getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}})],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
   const {
     data: emailsByProject,
@@ -151,10 +145,7 @@ export function AccountNotificationFineTuning() {
     refetch: refetchEmailsByProject,
   } = useApiQuery<Record<string, any>>(
     [getApiUrl('/users/$userId/notifications/email/', {path: {userId: 'me'}})],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-    }
+    {staleTime: 0, placeholderData: keepPreviousData}
   );
 
   const field = ACCOUNT_NOTIFICATION_FIELDS.email!;

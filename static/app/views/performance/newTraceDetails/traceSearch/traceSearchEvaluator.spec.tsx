@@ -37,11 +37,7 @@ describe('TraceSearchEvaluator', () => {
         ],
         orphan_errors: [],
       },
-      {
-        meta: null,
-        replay: null,
-        organization,
-      }
+      {meta: null, replay: null, organization}
     );
 
     const cb = jest.fn();
@@ -72,11 +68,7 @@ describe('TraceSearchEvaluator', () => {
         ],
         orphan_errors: [],
       },
-      {
-        meta: null,
-        replay: null,
-        organization,
-      }
+      {meta: null, replay: null, organization}
     );
 
     const cb = jest.fn();
@@ -98,11 +90,7 @@ describe('TraceSearchEvaluator', () => {
         ],
         orphan_errors: [],
       },
-      {
-        meta: null,
-        replay: null,
-        organization,
-      }
+      {meta: null, replay: null, organization}
     );
     tree.build();
 
@@ -126,11 +114,7 @@ describe('TraceSearchEvaluator', () => {
         ],
         orphan_errors: [],
       },
-      {
-        meta: null,
-        replay: null,
-        organization,
-      }
+      {meta: null, replay: null, organization}
     );
     tree.build();
 
@@ -156,11 +140,7 @@ describe('TraceSearchEvaluator', () => {
         ],
         orphan_errors: [],
       },
-      {
-        meta: null,
-        replay: null,
-        organization,
-      }
+      {meta: null, replay: null, organization}
     );
     tree.build();
 
@@ -191,11 +171,7 @@ describe('TraceSearchEvaluator', () => {
           ],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -208,15 +184,8 @@ describe('TraceSearchEvaluator', () => {
 
     it('text filter with prefix', async () => {
       const tree = TraceTree.FromTrace(
-        {
-          transactions: [makeTransaction({transaction: 'operation'})],
-          orphan_errors: [],
-        },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {transactions: [makeTransaction({transaction: 'operation'})], orphan_errors: []},
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -236,11 +205,7 @@ describe('TraceSearchEvaluator', () => {
           ],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -260,11 +225,7 @@ describe('TraceSearchEvaluator', () => {
           ],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -284,11 +245,7 @@ describe('TraceSearchEvaluator', () => {
           ],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -315,11 +272,7 @@ describe('TraceSearchEvaluator', () => {
           ],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       mockSpansResponse(
@@ -354,11 +307,7 @@ describe('TraceSearchEvaluator', () => {
           ],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
       mockSpansResponse(
         [makeSpan({op: 'db'}), makeSpan({op: 'http'})],
@@ -391,11 +340,7 @@ describe('TraceSearchEvaluator', () => {
           ],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
       mockSpansResponse(
         [
@@ -431,11 +376,7 @@ describe('TraceSearchEvaluator', () => {
           ],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
       mockSpansResponse(
         [
@@ -471,11 +412,7 @@ describe('TraceSearchEvaluator', () => {
           ],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
       mockSpansResponse(
         [
@@ -510,11 +447,7 @@ describe('TraceSearchEvaluator', () => {
           ],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
       mockSpansResponse(
         [makeSpan({exclusive_time: 1000}), makeSpan({exclusive_time: 500})],
@@ -546,11 +479,7 @@ describe('TraceSearchEvaluator', () => {
           ],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
       mockSpansResponse(
         [makeSpan({exclusive_time: 1000}), makeSpan({exclusive_time: 500})],
@@ -582,11 +511,7 @@ describe('TraceSearchEvaluator', () => {
           ],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
       mockSpansResponse(
         [makeSpan({exclusive_time: 1000}), makeSpan({exclusive_time: 500})],
@@ -613,11 +538,7 @@ describe('TraceSearchEvaluator', () => {
     it('text filter', async () => {
       const tree = TraceTree.FromTrace(
         [makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'})],
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -631,11 +552,7 @@ describe('TraceSearchEvaluator', () => {
     it('text filter with prefix', async () => {
       const tree = TraceTree.FromTrace(
         [makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'})],
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -652,11 +569,7 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({start_timestamp: 0, end_timestamp: 1}),
           makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
         ],
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -673,11 +586,7 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({start_timestamp: 0, end_timestamp: 1}),
           makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
         ],
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -694,11 +603,7 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({start_timestamp: 0, end_timestamp: 1}),
           makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
         ],
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -712,11 +617,7 @@ describe('TraceSearchEvaluator', () => {
     it('name filter', async () => {
       const tree = TraceTree.FromTrace(
         [makeEAPSpan({name: 'authentication'}), makeEAPSpan({name: 'database'})],
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -730,11 +631,7 @@ describe('TraceSearchEvaluator', () => {
     it('name filter with prefix', async () => {
       const tree = TraceTree.FromTrace(
         [makeEAPSpan({name: 'authentication'}), makeEAPSpan({name: 'database'})],
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -751,11 +648,7 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({name: 'user_authentication_service', op: 'http'}),
           makeEAPSpan({name: 'database_query', op: 'db'}),
         ],
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -773,18 +666,12 @@ describe('TraceSearchEvaluator', () => {
         const tree = TraceTree.FromTrace(
           {
             transactions: [
-              makeTransaction({
-                errors: [makeTraceError()],
-              }),
+              makeTransaction({errors: [makeTraceError()]}),
               makeTransaction({errors: []}),
             ],
             orphan_errors: [],
           },
-          {
-            meta: null,
-            replay: null,
-            organization,
-          }
+          {meta: null, replay: null, organization}
         );
         tree.build();
 
@@ -802,18 +689,12 @@ describe('TraceSearchEvaluator', () => {
         const tree = TraceTree.FromTrace(
           {
             transactions: [
-              makeTransaction({
-                errors: [makeTraceError()],
-              }),
+              makeTransaction({errors: [makeTraceError()]}),
               makeTransaction({errors: []}),
             ],
             orphan_errors: [],
           },
-          {
-            meta: null,
-            replay: null,
-            organization,
-          }
+          {meta: null, replay: null, organization}
         );
         tree.build();
 
@@ -832,18 +713,12 @@ describe('TraceSearchEvaluator', () => {
         const tree = TraceTree.FromTrace(
           {
             transactions: [
-              makeTransaction({
-                performance_issues: [makeTracePerformanceIssue()],
-              }),
+              makeTransaction({performance_issues: [makeTracePerformanceIssue()]}),
               makeTransaction({errors: []}),
             ],
             orphan_errors: [],
           },
-          {
-            meta: null,
-            replay: null,
-            organization,
-          }
+          {meta: null, replay: null, organization}
         );
         tree.build();
 
@@ -861,18 +736,12 @@ describe('TraceSearchEvaluator', () => {
         const tree = TraceTree.FromTrace(
           {
             transactions: [
-              makeTransaction({
-                profile_id: 'profile',
-              }),
+              makeTransaction({profile_id: 'profile'}),
               makeTransaction({errors: []}),
             ],
             orphan_errors: [],
           },
-          {
-            meta: null,
-            replay: null,
-            organization,
-          }
+          {meta: null, replay: null, organization}
         );
         tree.build();
 
@@ -893,11 +762,7 @@ describe('TraceSearchEvaluator', () => {
           transactions: [makeTransaction({project_slug: 'test_project'})],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
       tree.build();
 
@@ -914,11 +779,7 @@ describe('TraceSearchEvaluator', () => {
           transactions: [makeTransaction({project_slug: 'test_project'})],
           orphan_errors: [],
         },
-        {
-          meta: null,
-          replay: null,
-          organization,
-        }
+        {meta: null, replay: null, organization}
       );
 
       const cb = jest.fn();

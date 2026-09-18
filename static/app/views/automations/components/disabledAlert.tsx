@@ -11,9 +11,7 @@ import {
   useCanEditAutomation,
 } from 'sentry/views/automations/hooks/useCanEditAutomation';
 
-type DisabledAlertProps = {
-  automation: Automation;
-};
+type DisabledAlertProps = {automation: Automation};
 
 /**
  * Alert banner for users to quickly understand that an automation is
@@ -30,11 +28,7 @@ export function DisabledAlert({automation}: DisabledAlertProps) {
   }
 
   const handleEnable = () => {
-    updateAutomation({
-      id: automation.id,
-      name: automation.name,
-      enabled: true,
-    });
+    updateAutomation({id: automation.id, name: automation.name, enabled: true});
   };
 
   const permissionTooltipText = getNoAlertWritePermissionTooltip();

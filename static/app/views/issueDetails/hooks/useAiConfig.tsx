@@ -26,9 +26,7 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
     hasAutofixQuota,
     refetch: refetchAutofixSetup,
     seerReposLinked,
-  } = useAutofixSetup({
-    groupId: group.id,
-  });
+  } = useAutofixSetup({groupId: group.id});
 
   const isSampleError = useIsSampleEvent();
 

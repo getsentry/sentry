@@ -68,9 +68,7 @@ function makeQueryResult(
 const HAS_MORE_ROWS_LINK = '<https://sentry.io/fake/next>; rel="next"; results="true"';
 
 describe('TracesExportModalButton', () => {
-  const {organization} = initializeOrg({
-    organization: {features: ['discover-query']},
-  });
+  const {organization} = initializeOrg({organization: {features: ['discover-query']}});
 
   const eventView = EventView.fromNewQueryWithLocation(
     {name: 'Traces', fields: ['span.description'], version: 2, query: ''},
@@ -239,10 +237,7 @@ describe('TracesExportModalButton', () => {
     const completeAggregatePage: AggregatesTableResult = {
       ...aggregatesTableResult,
       result: makeQueryResult(
-        Array.from({length: 50}, (_, i) => ({
-          id: String(i),
-          'span.description': 'GET /',
-        }))
+        Array.from({length: 50}, (_, i) => ({id: String(i), 'span.description': 'GET /'}))
       ),
     };
 

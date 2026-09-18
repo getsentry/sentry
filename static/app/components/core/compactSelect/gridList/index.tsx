@@ -110,11 +110,7 @@ function GridList<T extends ListItemBase>({
     [listState.collection, hiddenOptions]
   );
 
-  const virtualizer = useVirtualizedItems({
-    listItems,
-    virtualized,
-    size,
-  });
+  const virtualizer = useVirtualizedItems({listItems, virtualized, size});
 
   const mergedProps = mergeProps(gridProps, props);
 

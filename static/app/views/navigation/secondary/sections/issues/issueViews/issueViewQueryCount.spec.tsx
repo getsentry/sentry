@@ -14,12 +14,7 @@ describe('IssueViewQueryCount', () => {
       querySort: IssueSortOptions.DATE,
       environments: ['37'],
       projects: [73],
-      timeFilters: {
-        period: '1d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      timeFilters: {period: '1d', start: null, end: null, utc: null},
       lastVisited: null,
     }),
     label: 'Test View',
@@ -33,9 +28,7 @@ describe('IssueViewQueryCount', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-count/',
       method: 'GET',
-      body: {
-        'is:unresolved': 71,
-      },
+      body: {'is:unresolved': 71},
     });
 
     render(<IssueViewQueryCount view={mockView} isActive />);
@@ -47,9 +40,7 @@ describe('IssueViewQueryCount', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-count/',
       method: 'GET',
-      body: {
-        'is:unresolved': 101,
-      },
+      body: {'is:unresolved': 101},
     });
 
     render(<IssueViewQueryCount view={mockView} isActive />);

@@ -21,9 +21,7 @@ export const feedback: OnboardingConfig = {
           type: 'text',
           text: tct(
             'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/remix]) installed, minimum version 7.85.0.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         ...getInstallContent(params),

@@ -44,10 +44,7 @@ describe('LinkedPullRequests', () => {
               repository,
               externalUrl: 'https://github.com/example/widget-app/pull/124',
             }),
-            attribution: {
-              type: 'seer',
-              id: 'seer',
-            },
+            attribution: {type: 'seer', id: 'seer'},
             dateLinked: '2026-06-08T23:10:32.000000Z',
             status: 'closed',
           },
@@ -55,9 +52,7 @@ describe('LinkedPullRequests', () => {
       },
     });
 
-    render(<LinkedPullRequests group={group} />, {
-      organization,
-    });
+    render(<LinkedPullRequests group={group} />, {organization});
 
     const list = await screen.findByRole('list', {name: 'Linked pull requests'});
     const linkedPullRequest = within(list).getByRole('link', {
@@ -242,9 +237,7 @@ describe('LinkedPullRequests', () => {
       organization,
     });
 
-    const pullRequests = await screen.findByRole('list', {
-      name: 'Linked pull requests',
-    });
+    const pullRequests = await screen.findByRole('list', {name: 'Linked pull requests'});
     expect(
       within(pullRequests).getByRole('link', {name: /Pull request #122/})
     ).toBeInTheDocument();
@@ -260,18 +253,14 @@ describe('LinkedPullRequests', () => {
           type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
           id: 'activity-1',
           dateCreated: '2026-06-08T23:11:32.000000Z',
-          data: {
-            pullRequest: PullRequestFixture({id: '123'}),
-          },
+          data: {pullRequest: PullRequestFixture({id: '123'})},
           user: null,
         },
         {
           type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
           id: 'activity-2',
           dateCreated: '2026-06-08T23:12:32.000000Z',
-          data: {
-            pullRequest: PullRequestFixture({id: '123'}),
-          },
+          data: {pullRequest: PullRequestFixture({id: '123'})},
           user: null,
         },
       ],

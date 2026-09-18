@@ -24,9 +24,7 @@ describe('OrganizationJoinRequest', () => {
   it('renders', () => {
     render(<OrganizationJoinRequest />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/join-request/${org.slug}/`,
-        },
+        location: {pathname: `/join-request/${org.slug}/`},
         route: '/join-request/:orgId/',
       },
     });
@@ -37,16 +35,11 @@ describe('OrganizationJoinRequest', () => {
   });
 
   it('submits', async () => {
-    const postMock = MockApiClient.addMockResponse({
-      url: endpoint,
-      method: 'POST',
-    });
+    const postMock = MockApiClient.addMockResponse({url: endpoint, method: 'POST'});
 
     render(<OrganizationJoinRequest />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/join-request/${org.slug}/`,
-        },
+        location: {pathname: `/join-request/${org.slug}/`},
         route: '/join-request/:orgId/',
       },
     });
@@ -68,16 +61,11 @@ describe('OrganizationJoinRequest', () => {
   });
 
   it('shows validation error for invalid email', async () => {
-    const postMock = MockApiClient.addMockResponse({
-      url: endpoint,
-      method: 'POST',
-    });
+    const postMock = MockApiClient.addMockResponse({url: endpoint, method: 'POST'});
 
     render(<OrganizationJoinRequest />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/join-request/${org.slug}/`,
-        },
+        location: {pathname: `/join-request/${org.slug}/`},
         route: '/join-request/:orgId/',
       },
     });
@@ -102,9 +90,7 @@ describe('OrganizationJoinRequest', () => {
 
     render(<OrganizationJoinRequest />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/join-request/${org.slug}/`,
-        },
+        location: {pathname: `/join-request/${org.slug}/`},
         route: '/join-request/:orgId/',
       },
     });
@@ -125,9 +111,7 @@ describe('OrganizationJoinRequest', () => {
   it('cancels', async () => {
     render(<OrganizationJoinRequest />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/join-request/${org.slug}/`,
-        },
+        location: {pathname: `/join-request/${org.slug}/`},
         route: '/join-request/:orgId/',
       },
     });

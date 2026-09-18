@@ -17,10 +17,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
-type Props = ModalRenderProps & {
-  onAction: (data: any) => void;
-  userId: string;
-};
+type Props = ModalRenderProps & {onAction: (data: any) => void; userId: string};
 
 export function MergeAccountsModal(props: Props) {
   const {userId, onAction, closeModal, Header, Body, Footer} = props;
@@ -30,9 +27,7 @@ export function MergeAccountsModal(props: Props) {
   const queryClient = useQueryClient();
 
   const makeMergeAccountsQueryKey = (): ApiQueryKey => [
-    getApiUrl('/users/$userId/merge-accounts/', {
-      path: {userId},
-    }),
+    getApiUrl('/users/$userId/merge-accounts/', {path: {userId}}),
   ];
 
   const {
@@ -55,10 +50,7 @@ export function MergeAccountsModal(props: Props) {
         makeMergeAccountsQueryKey(),
         (prev: {users: User[]} | undefined) => {
           const users = prev?.users || [];
-          return {
-            ...prev,
-            users: [...users, data.user],
-          };
+          return {...prev, users: [...users, data.user]};
         }
       );
     } catch {

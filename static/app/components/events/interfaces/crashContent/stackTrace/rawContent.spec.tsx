@@ -64,12 +64,7 @@ describe('RawStacktraceContent', () => {
 
       expect(
         displayRawContent({
-          data: {
-            hasSystemFrames: false,
-            framesOmitted: null,
-            registers: {},
-            frames: [],
-          },
+          data: {hasSystemFrames: false, framesOmitted: null, registers: {}, frames: []},
           platform: 'java',
           exception,
         })
@@ -88,12 +83,7 @@ describe('RawStacktraceContent', () => {
 
       expect(
         displayRawContent({
-          data: {
-            hasSystemFrames: false,
-            framesOmitted: null,
-            registers: {},
-            frames: [],
-          },
+          data: {hasSystemFrames: false, framesOmitted: null, registers: {}, frames: []},
           platform: 'java',
           exception,
           isMinified: true,
@@ -110,12 +100,7 @@ describe('RawStacktraceContent', () => {
 
       expect(
         displayRawContent({
-          data: {
-            hasSystemFrames: false,
-            framesOmitted: null,
-            registers: {},
-            frames: [],
-          },
+          data: {hasSystemFrames: false, framesOmitted: null, registers: {}, frames: []},
           platform: 'java',
           exception,
           isMinified: true,
@@ -133,12 +118,7 @@ describe('RawStacktraceContent', () => {
 
       expect(
         displayRawContent({
-          data: {
-            hasSystemFrames: false,
-            framesOmitted: null,
-            registers: {},
-            frames: [],
-          },
+          data: {hasSystemFrames: false, framesOmitted: null, registers: {}, frames: []},
           platform: 'javascript',
           exception,
           isMinified: true,
@@ -155,12 +135,7 @@ describe('RawStacktraceContent', () => {
 
       expect(
         displayRawContent({
-          data: {
-            hasSystemFrames: false,
-            framesOmitted: null,
-            registers: {},
-            frames: [],
-          },
+          data: {hasSystemFrames: false, framesOmitted: null, registers: {}, frames: []},
           platform: 'java',
           exception,
         })
@@ -226,13 +201,7 @@ describe('RawStacktraceContent', () => {
     });
 
     it('renders javascript example - rawTrace, newestFirst', () => {
-      expect(
-        displayRawContent({
-          data,
-          platform: 'javascript',
-          exception,
-        })
-      ).toBe(
+      expect(displayRawContent({data, platform: 'javascript', exception})).toBe(
         `Error: an error occurred
     at doThing3 (example.application:12:24)
     at ? (src/application.code:1:6)
@@ -243,12 +212,7 @@ describe('RawStacktraceContent', () => {
 
     it('renders javascript example - !rawTrace, newestFirst', () => {
       expect(
-        displayRawContent({
-          data,
-          platform: 'javascript',
-          exception,
-          rawTrace: false,
-        })
+        displayRawContent({data, platform: 'javascript', exception, rawTrace: false})
       ).toBe(
         `Error: an error occurred
     at doThing3 (example.application:12:24)
@@ -260,12 +224,7 @@ describe('RawStacktraceContent', () => {
 
     it('renders javascript example - rawTrace, !newestFirst', () => {
       expect(
-        displayRawContent({
-          data,
-          platform: 'javascript',
-          exception,
-          newestFirst: false,
-        })
+        displayRawContent({data, platform: 'javascript', exception, newestFirst: false})
       ).toBe(
         `Error: an error occurred
     at doThing3 (example.application:12:24)
@@ -336,13 +295,7 @@ Error: an error occurred`
     });
 
     it('renders python example - rawTrace, newestFirst', () => {
-      expect(
-        displayRawContent({
-          data,
-          platform: 'python',
-          exception,
-        })
-      ).toBe(
+      expect(displayRawContent({data, platform: 'python', exception})).toBe(
         `Traceback (most recent call last):
   File "src/application.code", line 1, in main
   File "src/application.code", line 5, in doThing1
@@ -354,12 +307,7 @@ Error: an error occurred`
 
     it('renders python example - !rawTrace, newestFirst', () => {
       expect(
-        displayRawContent({
-          data,
-          platform: 'python',
-          exception,
-          rawTrace: false,
-        })
+        displayRawContent({data, platform: 'python', exception, rawTrace: false})
       ).toBe(
         `Traceback (most recent call first):
 Error: an error occurred
@@ -372,12 +320,7 @@ Error: an error occurred
 
     it('renders python example - rawTrace, !newestFirst', () => {
       expect(
-        displayRawContent({
-          data,
-          platform: 'python',
-          exception,
-          newestFirst: false,
-        })
+        displayRawContent({data, platform: 'python', exception, newestFirst: false})
       ).toBe(
         `Traceback (most recent call last):
   File "src/application.code", line 1, in main

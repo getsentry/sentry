@@ -12,9 +12,7 @@ import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/se
 
 import type {HeatMapPlottable, PlottableTimeSeriesValueType} from './heatMapPlottable';
 
-type HeatMapPlottingOptions = {
-  theme: Theme;
-};
+type HeatMapPlottingOptions = {theme: Theme};
 
 export class HeatMap implements HeatMapPlottable {
   readonly heatMapSeries: Readonly<HeatMapSeries>;

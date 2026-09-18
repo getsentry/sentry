@@ -63,10 +63,6 @@ export function useMonitorsScheduleSampleBuckets({
       }),
       {query},
     ],
-    {
-      staleTime: 0,
-      enabled: !!(start && end && interval),
-      retry: false,
-    }
+    {staleTime: 0, enabled: !!(start && end && interval), retry: false}
   );
 }

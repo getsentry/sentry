@@ -5,9 +5,7 @@ const TRANSLATION_FNS = ['t', 'tn', 'tct'];
 export const noDynamicTranslations = defineRule({
   meta: {
     type: 'problem',
-    docs: {
-      description: 'Disallow non-literal strings in t(), tn(), and tct()',
-    },
+    docs: {description: 'Disallow non-literal strings in t(), tn(), and tct()'},
     schema: [],
     messages: {
       interpolation:

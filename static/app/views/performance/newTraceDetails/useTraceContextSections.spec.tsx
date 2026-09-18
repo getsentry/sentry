@@ -10,9 +10,7 @@ import {useTraceContextSections} from './useTraceContextSections';
 function makeTree(overrides: Partial<TraceTree> = {}): TraceTree {
   return {
     type: 'empty',
-    root: {
-      findChild: () => null,
-    },
+    root: {findChild: () => null},
     vitals: new Map(),
     profiled_events: new Set(),
     ...overrides,
@@ -59,9 +57,7 @@ describe('useTraceContextSections', () => {
     const {result} = renderHook(() =>
       useTraceContextSections({
         tree: makeTree({
-          root: {
-            findChild: () => ({}) as BaseNode,
-          } as unknown as TraceTree['root'],
+          root: {findChild: () => ({}) as BaseNode} as unknown as TraceTree['root'],
         }),
         logs: [{}] as unknown as OurLogsResponseItem[],
         metrics: {count: 1},
@@ -107,9 +103,7 @@ describe('useTraceContextSections', () => {
     const {result} = renderHook(() =>
       useTraceContextSections({
         tree: makeTree({
-          root: {
-            findChild: () => ({}) as BaseNode,
-          } as unknown as TraceTree['root'],
+          root: {findChild: () => ({}) as BaseNode} as unknown as TraceTree['root'],
         }),
         logs: undefined,
         metrics: undefined,
@@ -126,10 +120,7 @@ describe('useTraceContextSections', () => {
         tree: makeTree(),
         logs: [{}] as unknown as OurLogsResponseItem[],
         metrics: {count: 1},
-        meta: makeEapMeta({
-          logsCount: 2,
-          metricsCount: 3,
-        }),
+        meta: makeEapMeta({logsCount: 2, metricsCount: 3}),
         logsEnabled: false,
         metricsEnabled: false,
       })

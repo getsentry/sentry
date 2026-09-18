@@ -10,9 +10,7 @@ import {
 import {SpanNode} from './spanNode';
 import {TransactionNode} from './transactionNode';
 
-const createMockExtra = () => ({
-  organization: OrganizationFixture(),
-});
+const createMockExtra = () => ({organization: OrganizationFixture()});
 
 describe('SpanNode', () => {
   describe('constructor', () => {
@@ -34,10 +32,7 @@ describe('SpanNode', () => {
     });
 
     it('should collapse Android HTTP client spans by default', () => {
-      const span = makeSpan({
-        op: 'http.client',
-        origin: 'auto.http.okhttp',
-      });
+      const span = makeSpan({op: 'http.client', origin: 'auto.http.okhttp'});
 
       const node = new SpanNode(null, span, createMockExtra());
 
@@ -45,10 +40,7 @@ describe('SpanNode', () => {
     });
 
     it('should expand non-Android HTTP client spans by default', () => {
-      const span = makeSpan({
-        op: 'http.client',
-        origin: 'manual',
-      });
+      const span = makeSpan({op: 'http.client', origin: 'manual'});
 
       const node = new SpanNode(null, span, createMockExtra());
 
@@ -58,24 +50,17 @@ describe('SpanNode', () => {
 
   describe('getter methods', () => {
     it('should return span_id as id', () => {
-      const span = makeSpan({
-        span_id: 'test-span-id',
-      });
+      const span = makeSpan({span_id: 'test-span-id'});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.id).toBe('test-span-id');
     });
 
     it('should return sdk_name as sdkName', () => {
-      const span = makeSpan({
-        span_id: 'test-span-id',
-      });
+      const span = makeSpan({span_id: 'test-span-id'});
       const node = new SpanNode(null, span, createMockExtra());
       const event = makeEventTransaction({
-        sdk: {
-          name: 'sentry.javascript.browser',
-          version: '1.0.0',
-        },
+        sdk: {name: 'sentry.javascript.browser', version: '1.0.0'},
       });
       node.event = event;
 
@@ -83,27 +68,21 @@ describe('SpanNode', () => {
     });
 
     it('should return description from span', () => {
-      const span = makeSpan({
-        description: 'SELECT * FROM users',
-      });
+      const span = makeSpan({description: 'SELECT * FROM users'});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.description).toBe('SELECT * FROM users');
     });
 
     it('should return timestamp as endTimestamp', () => {
-      const span = makeSpan({
-        timestamp: 2500,
-      });
+      const span = makeSpan({timestamp: 2500});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.endTimestamp).toBe(2500);
     });
 
     it('should return start_timestamp as startTimestamp', () => {
-      const span = makeSpan({
-        start_timestamp: 1500,
-      });
+      const span = makeSpan({start_timestamp: 1500});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.startTimestamp).toBe(1500);
@@ -112,20 +91,14 @@ describe('SpanNode', () => {
 
   describe('drawerTabsTitle', () => {
     it('should combine op and description', () => {
-      const span = makeSpan({
-        op: 'http.client',
-        description: 'GET /api/users',
-      });
+      const span = makeSpan({op: 'http.client', description: 'GET /api/users'});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.drawerTabsTitle).toBe('http.client - GET /api/users');
     });
 
     it('should return op only when no description', () => {
-      const span = makeSpan({
-        op: 'db.query',
-        description: undefined,
-      });
+      const span = makeSpan({op: 'db.query', description: undefined});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.drawerTabsTitle).toBe('db.query');
@@ -134,10 +107,7 @@ describe('SpanNode', () => {
 
   describe('traceHeaderTitle', () => {
     it('should return op as title and description as subtitle', () => {
-      const span = makeSpan({
-        op: 'http.client',
-        description: 'POST /api/submit',
-      });
+      const span = makeSpan({op: 'http.client', description: 'POST /api/submit'});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.traceHeaderTitle).toEqual({
@@ -147,10 +117,7 @@ describe('SpanNode', () => {
     });
 
     it('should return "Trace" as fallback title when op is missing', () => {
-      const span = makeSpan({
-        op: '',
-        description: 'Some description',
-      });
+      const span = makeSpan({op: '', description: 'Some description'});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.traceHeaderTitle.title).toBe('Trace');
@@ -160,9 +127,7 @@ describe('SpanNode', () => {
 
   describe('makeBarColor', () => {
     it('should return color based on operation', () => {
-      const span = makeSpan({
-        op: 'http.client',
-      });
+      const span = makeSpan({op: 'http.client'});
       const node = new SpanNode(null, span, createMockExtra());
 
       const color = node.makeBarColor(ThemeFixture());
@@ -174,14 +139,10 @@ describe('SpanNode', () => {
 
   describe('pathToNode', () => {
     it('should include transaction in path when parent transaction exists', () => {
-      const transaction = makeTransaction({
-        event_id: 'txn-abc-123',
-      });
+      const transaction = makeTransaction({event_id: 'txn-abc-123'});
       const transactionNode = new TransactionNode(null, transaction, createMockExtra());
 
-      const span = makeSpan({
-        span_id: 'span-def-456',
-      });
+      const span = makeSpan({span_id: 'span-def-456'});
       const spanNode = new SpanNode(transactionNode, span, createMockExtra());
 
       const path = spanNode.pathToNode();
@@ -190,9 +151,7 @@ describe('SpanNode', () => {
     });
 
     it('should return only span path when no parent transaction', () => {
-      const span = makeSpan({
-        span_id: 'orphan-span-123',
-      });
+      const span = makeSpan({span_id: 'orphan-span-123'});
       const node = new SpanNode(null, span, createMockExtra());
 
       const path = node.pathToNode();
@@ -212,30 +171,21 @@ describe('SpanNode', () => {
 
   describe('printNode', () => {
     it('should format with op and description', () => {
-      const span = makeSpan({
-        op: 'http.client',
-        description: 'GET /api/users',
-      });
+      const span = makeSpan({op: 'http.client', description: 'GET /api/users'});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.printNode()).toBe('http.client - GET /api/users');
     });
 
     it('should handle missing op with fallback', () => {
-      const span = makeSpan({
-        op: undefined,
-        description: 'Some description',
-      });
+      const span = makeSpan({op: undefined, description: 'Some description'});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.printNode()).toBe('unknown span - Some description');
     });
 
     it('should handle missing description with fallback', () => {
-      const span = makeSpan({
-        op: 'db.query',
-        description: undefined,
-      });
+      const span = makeSpan({op: 'db.query', description: undefined});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.printNode()).toBe('db.query - unknown description');
@@ -245,9 +195,7 @@ describe('SpanNode', () => {
       const span = makeSpan({
         op: 'http.client',
         description: 'GET /prefetch-data',
-        data: {
-          'http.request.prefetch': true,
-        },
+        data: {'http.request.prefetch': true},
       });
       const node = new SpanNode(null, span, createMockExtra());
 
@@ -305,9 +253,7 @@ describe('SpanNode', () => {
 
   describe('abstract method implementations', () => {
     it('should implement matchByPath', () => {
-      const span = makeSpan({
-        span_id: '123',
-      });
+      const span = makeSpan({span_id: '123'});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.matchByPath('span-123')).toBe(true);
@@ -334,9 +280,7 @@ describe('SpanNode', () => {
     });
 
     it('should return undefined when span has no data', () => {
-      const span = makeSpan({
-        data: undefined,
-      });
+      const span = makeSpan({data: undefined});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.attributes).toBeUndefined();
@@ -345,9 +289,7 @@ describe('SpanNode', () => {
 
   describe('resolveValueFromSearchKey', () => {
     it('should resolve span.self_time to exclusive_time', () => {
-      const span = makeSpan({
-        exclusive_time: 150,
-      });
+      const span = makeSpan({exclusive_time: 150});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.resolveValueFromSearchKey('span.self_time')).toBe(150);
@@ -355,10 +297,7 @@ describe('SpanNode', () => {
     });
 
     it('should resolve duration aliases to span duration', () => {
-      const span = makeSpan({
-        start_timestamp: 1000,
-        timestamp: 1500,
-      });
+      const span = makeSpan({start_timestamp: 1000, timestamp: 1500});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.resolveValueFromSearchKey('duration')).toBe(500 * 1e3);
@@ -367,10 +306,7 @@ describe('SpanNode', () => {
     });
 
     it('should resolve span-prefixed keys to value properties', () => {
-      const span = makeSpan({
-        op: 'db.query',
-        description: 'SELECT * FROM users',
-      });
+      const span = makeSpan({op: 'db.query', description: 'SELECT * FROM users'});
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.resolveValueFromSearchKey('span.op')).toBe('db.query');

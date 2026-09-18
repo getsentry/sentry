@@ -95,12 +95,7 @@ export function LogsWidgetQueries(props: LogsWidgetQueriesProps) {
         seriesIsSampled = calculatedIsSampled;
       }
 
-      return {
-        seriesDataScanned,
-        seriesConfidence,
-        seriesSampleCount,
-        seriesIsSampled,
-      };
+      return {seriesDataScanned, seriesConfidence, seriesSampleCount, seriesIsSampled};
     },
     [props.widget.queries]
   );
@@ -164,13 +159,7 @@ function LogsWidgetQueriesSingleRequestImpl({
   });
 
   return getDynamicText({
-    value: children({
-      ...props,
-      dataScanned,
-      confidence,
-      sampleCount,
-      isSampled,
-    }),
+    value: children({...props, dataScanned, confidence, sampleCount, isSampled}),
     fixed: <div />,
   });
 }

@@ -219,9 +219,7 @@ describe('AutomationNewSettings', () => {
 
     const {router} = render(<AutomationNewSettings />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {connectedIds: '123'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {connectedIds: '123'}}},
     });
 
     // Add an action filter (tagged event)
@@ -348,9 +346,7 @@ describe('AutomationNewSettings', () => {
 
     render(<AutomationNewSettings />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {connectedIds: '123'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {connectedIds: '123'}}},
     });
 
     const addAction = async (label: string) => {
@@ -367,9 +363,7 @@ describe('AutomationNewSettings', () => {
       const stagingTargets = screen.getAllByRole('textbox', {name: 'Target'});
       const stagingTarget = stagingTargets.at(-1);
       expect(stagingTarget).toBeDefined();
-      await userEvent.type(stagingTarget!, '#staging-alerts', {
-        delay: null,
-      });
+      await userEvent.type(stagingTarget!, '#staging-alerts', {delay: null});
     }
 
     await addAction('Discord');
@@ -406,20 +400,12 @@ describe('AutomationNewSettings', () => {
       slack: {
         type: 'slack',
         integrationId: 'slack-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: '',
-          targetDisplay: '#alerts',
-        },
+        config: {targetType: 'specific', targetIdentifier: '', targetDisplay: '#alerts'},
       },
       discord: {
         type: 'discord',
         integrationId: 'discord-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: '123',
-          targetDisplay: null,
-        },
+        config: {targetType: 'specific', targetIdentifier: '123', targetDisplay: null},
       },
       msteams: {
         type: 'msteams',
@@ -452,11 +438,7 @@ describe('AutomationNewSettings', () => {
       },
       email: {
         type: 'email',
-        config: {
-          targetType: 'user',
-          targetIdentifier: '1',
-          targetDisplay: null,
-        },
+        config: {targetType: 'user', targetIdentifier: '1', targetDisplay: null},
         data: {},
       },
       webhook: {
@@ -478,47 +460,27 @@ describe('AutomationNewSettings', () => {
       github: {
         type: 'github',
         integrationId: 'github-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: null,
-          targetDisplay: null,
-        },
+        config: {targetType: 'specific', targetIdentifier: null, targetDisplay: null},
       },
       github_enterprise: {
         type: 'github_enterprise',
         integrationId: 'github-enterprise-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: null,
-          targetDisplay: null,
-        },
+        config: {targetType: 'specific', targetIdentifier: null, targetDisplay: null},
       },
       jira: {
         type: 'jira',
         integrationId: 'jira-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: null,
-          targetDisplay: null,
-        },
+        config: {targetType: 'specific', targetIdentifier: null, targetDisplay: null},
       },
       jira_server: {
         type: 'jira_server',
         integrationId: 'jira-server-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: null,
-          targetDisplay: null,
-        },
+        config: {targetType: 'specific', targetIdentifier: null, targetDisplay: null},
       },
       vsts: {
         type: 'vsts',
         integrationId: 'azure-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: null,
-          targetDisplay: null,
-        },
+        config: {targetType: 'specific', targetIdentifier: null, targetDisplay: null},
       },
       slack_staging: {
         type: 'slack_staging',
@@ -705,9 +667,7 @@ describe('AutomationNewSettings', () => {
 
     render(<AutomationNewSettings />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {connectedIds: '123'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {connectedIds: '123'}}},
     });
 
     // Add an action so builder validation passes
@@ -730,9 +690,7 @@ describe('AutomationNewSettings', () => {
       url: `/organizations/${organization.slug}/test-fire-actions/`,
       method: 'POST',
       statusCode: 400,
-      body: {
-        actions: [{repo: 'Repository is required'}],
-      },
+      body: {actions: [{repo: 'Repository is required'}]},
     });
 
     render(<AutomationNewSettings />, {organization});

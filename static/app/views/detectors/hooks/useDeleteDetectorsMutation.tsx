@@ -26,18 +26,12 @@ export function useDeleteDetectorsMutation() {
         }),
         {
           method: 'DELETE',
-          query: {
-            id: params.ids,
-            query: params.query,
-            project: params.projects,
-          },
+          query: {id: params.ids, query: params.query, project: params.projects},
         }
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: allDetectorListsQueryKey(org),
-      });
+      queryClient.invalidateQueries({queryKey: allDetectorListsQueryKey(org)});
       addSuccessMessage(t('Monitors deleted'));
     },
     onError: () => {

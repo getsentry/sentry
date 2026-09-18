@@ -26,10 +26,7 @@ export function useDismissable(bannerKey: string) {
   return [value === 'true', dismiss] as const;
 }
 
-type BannerWrapperProps = {
-  backgroundComponent?: React.ReactNode;
-  backgroundImg?: string;
-};
+type BannerWrapperProps = {backgroundComponent?: React.ReactNode; backgroundImg?: string};
 
 type Props = BannerWrapperProps & {
   children?: React.ReactNode;

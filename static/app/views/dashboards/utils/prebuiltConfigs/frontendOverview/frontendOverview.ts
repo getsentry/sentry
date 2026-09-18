@@ -234,13 +234,7 @@ const TRANSACTIONS_TABLE: PrebuiltWidget = {
       orderby: `-equation|sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 7,
-    w: 6,
-    h: 6,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {x: 0, y: 7, w: 6, h: 6, minH: TABLE_MIN_HEIGHT},
 };
 
 export const FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {

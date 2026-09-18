@@ -24,9 +24,7 @@ function TaggedSticky({ref, topOffset = 0, ...props}: StickyProps) {
   const mergedRef = useMemo(() => mergeRefs(elementRef, ref), [ref]);
   const stickyTopOffset = (Number.parseInt(pageContentTop, 10) || 0) + topOffset;
 
-  const isStuck = useIsStuck(elementRef, {
-    offset: stickyTopOffset,
-  });
+  const isStuck = useIsStuck(elementRef, {offset: stickyTopOffset});
 
   const stuckProps = isStuck ? {'data-stuck': ''} : {};
 

@@ -17,9 +17,7 @@ export const documentation = import('!!type-loader!@sentry/scraps/button').then(
   module => {
     const buttonDocumentation = module.default;
     return {
-      props: {
-        ButtonBar: buttonDocumentation.props?.ButtonBar,
-      },
+      props: {ButtonBar: buttonDocumentation.props?.ButtonBar},
       exports: {
         module: buttonDocumentation.exports?.module,
         exports: {

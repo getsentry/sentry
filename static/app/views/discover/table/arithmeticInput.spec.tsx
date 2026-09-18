@@ -129,9 +129,7 @@ describe('ArithmeticInput', () => {
       await userEvent.keyboard('{ArrowUp}');
       expect(
         screen.getByRole('listitem', {name: generateFieldAsString(column)})
-      ).toHaveClass('active', {
-        exact: false,
-      });
+      ).toHaveClass('active', {exact: false});
     }
 
     // the update is buffered until blur happens

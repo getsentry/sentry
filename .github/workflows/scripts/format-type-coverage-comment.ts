@@ -4,20 +4,9 @@ const COMMENT_MARKER = '<!-- TYPE_COVERAGE_DIFF -->';
 const MAX_ITEMS_PER_CATEGORY = 15;
 const MAX_BODY_LENGTH = 65_000;
 
-type Summary = {
-  coverage: number;
-  filesScanned: number;
-  total: number;
-  typed: number;
-};
+type Summary = {coverage: number; filesScanned: number; total: number; typed: number};
 
-type AnySymbol = {
-  column: number;
-  file: string;
-  kind: string;
-  line: number;
-  name: string;
-};
+type AnySymbol = {column: number; file: string; kind: string; line: number; name: string};
 
 type Assertion = {
   code: string;

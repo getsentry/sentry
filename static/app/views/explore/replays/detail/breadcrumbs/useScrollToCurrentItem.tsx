@@ -18,11 +18,7 @@ export function useScrollToCurrentItem({
   virtualizer,
 }: Opts) {
   const currentItem = useMemo(
-    () =>
-      getPrevReplayFrame({
-        frames: frames || [],
-        targetOffsetMs: currentTime,
-      }),
+    () => getPrevReplayFrame({frames: frames || [], targetOffsetMs: currentTime}),
     [frames, currentTime]
   );
 

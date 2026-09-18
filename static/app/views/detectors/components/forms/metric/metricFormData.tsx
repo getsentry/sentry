@@ -372,15 +372,11 @@ export function metricDetectorFormDataToEndpointPayload(
       };
       break;
     case 'dynamic':
-      config = {
-        detectionType: 'dynamic',
-      };
+      config = {detectionType: 'dynamic'};
       break;
     case 'static':
     default:
-      config = {
-        detectionType: 'static',
-      };
+      config = {detectionType: 'static'};
       break;
   }
 
@@ -390,10 +386,7 @@ export function metricDetectorFormDataToEndpointPayload(
     projectId: data.projectId,
     owner: data.owner || null,
     description: data.description || null,
-    conditionGroup: {
-      logicType: DataConditionGroupLogicType.ANY,
-      conditions,
-    },
+    conditionGroup: {logicType: DataConditionGroupLogicType.ANY, conditions},
     config,
     dataSources: [dataSource],
     workflowIds: data.workflowIds,

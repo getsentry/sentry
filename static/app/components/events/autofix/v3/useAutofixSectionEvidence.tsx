@@ -49,12 +49,7 @@ export function useAutofixSectionEvidence({section}: UseAutofixSectionEvidence) 
           continue;
         }
 
-        evidence.push({
-          evidenceButtonProps,
-          toolCall,
-          toolLink,
-          toolResult,
-        });
+        evidence.push({evidenceButtonProps, toolCall, toolLink, toolResult});
       }
 
       return evidence;

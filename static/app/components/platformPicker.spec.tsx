@@ -7,11 +7,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 jest.mock('sentry/utils/analytics');
 
 describe('PlatformPicker', () => {
-  const baseProps = {
-    platform: '',
-    setPlatform: () => {},
-    location: {query: {}},
-  };
+  const baseProps = {platform: '', setPlatform: () => {}, location: {query: {}}};
 
   it('should only render Mobile platforms under Mobile tab', () => {
     render(<PlatformPicker {...baseProps} defaultCategory="mobile" />);
@@ -50,9 +46,7 @@ describe('PlatformPicker', () => {
     await userEvent.click(screen.getByText('All'));
     expect(trackAnalytics).toHaveBeenCalledWith(
       'growth.platformpicker_category',
-      expect.objectContaining({
-        category: 'all',
-      })
+      expect.objectContaining({category: 'all'})
     );
   });
 
@@ -63,19 +57,12 @@ describe('PlatformPicker', () => {
 
     expect(trackAnalytics).toHaveBeenCalledWith(
       'growth.select_platform',
-      expect.objectContaining({
-        platform_id: 'python',
-        selection_source: 'manual',
-      })
+      expect.objectContaining({platform_id: 'python', selection_source: 'manual'})
     );
   });
 
   it('should clear the platform when clear is clicked', async () => {
-    const props = {
-      ...baseProps,
-      platform: 'javascript-react',
-      setPlatform: jest.fn(),
-    };
+    const props = {...baseProps, platform: 'javascript-react', setPlatform: jest.fn()};
 
     render(<PlatformPicker noAutoFilter {...props} />);
 

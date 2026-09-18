@@ -341,10 +341,7 @@ const makeCollapsedSecondaryWrapperAnimationProps = (
   return {
     initial: 'hidden',
     animate: open ? 'visible' : 'hidden',
-    variants: {
-      visible: {x: 0},
-      hidden: {x: -left - 10},
-    },
+    variants: {visible: {x: 0}, hidden: {x: -left - 10}},
     transition: {
       type: 'spring',
       damping: 50,

@@ -38,12 +38,7 @@ export function useSortNetwork({items}: Opts) {
   );
 
   const sortConfig = useMemo(
-    () =>
-      ({
-        asc: sortAsc,
-        by: sortBy,
-        getValue: SortStrategies[sortBy],
-      }) as SortConfig,
+    () => ({asc: sortAsc, by: sortBy, getValue: SortStrategies[sortBy]}) as SortConfig,
     [sortAsc, sortBy]
   );
 
@@ -62,11 +57,7 @@ export function useSortNetwork({items}: Opts) {
     [sortConfig, setSortAsc, setSortBy, setDetailRow]
   );
 
-  return {
-    handleSort,
-    items: sortedItems,
-    sortConfig,
-  };
+  return {handleSort, items: sortedItems, sortConfig};
 }
 
 function sortNetwork(network: SpanFrame[], sortConfig: SortConfig): SpanFrame[] {

@@ -88,9 +88,7 @@ export default function ProjectUserFeedback() {
             `Don't rely on stack traces and graphs alone to understand
             the cause and impact of errors. Enable the User Feedback Widget to collect
             your users' comments at anytime, or enable the Crash Report Modal to collect additional context only when an error occurs. [link:Read the Docs]`,
-            {
-              link: <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />,
-            }
+            {link: <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />}
           )}
         />
         <ProjectPermissionAlert project={project} />
@@ -167,9 +165,7 @@ export default function ProjectUserFeedback() {
                       label={t('Enable Spam Detection')}
                       hintText={tct(
                         'Toggles whether or not to enable auto spam detection in User Feedback. [privacyNotice]',
-                        {
-                          privacyNotice: <AiPrivacyNotice />,
-                        }
+                        {privacyNotice: <AiPrivacyNotice />}
                       )}
                     >
                       <field.Switch

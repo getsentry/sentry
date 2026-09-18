@@ -12,10 +12,6 @@ export function useUserFromId({id}: {id: number | undefined}) {
         path: {organizationIdOrSlug: organization.slug, userId: id!},
       }),
     ],
-    {
-      staleTime: Infinity,
-      retry: false,
-      enabled: typeof id === 'number',
-    }
+    {staleTime: Infinity, retry: false, enabled: typeof id === 'number'}
   );
 }

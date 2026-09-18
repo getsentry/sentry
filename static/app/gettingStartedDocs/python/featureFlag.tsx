@@ -130,10 +130,7 @@ export const featureFlag: OnboardingConfig = {
       {
         type: StepType.INSTALL,
         content: [
-          {
-            type: 'text',
-            text: t('Install the Sentry SDK.'),
-          },
+          {type: 'text', text: t('Install the Sentry SDK.')},
           getPythonInstallCodeBlock(),
         ],
       },
@@ -149,11 +146,7 @@ export const featureFlag: OnboardingConfig = {
                     name: <code>{integrationName}</code>,
                   }),
           },
-          {
-            type: 'code',
-            language: 'python',
-            code: makeConfigureCode(dsn.public),
-          },
+          {type: 'code', language: 'python', code: makeConfigureCode(dsn.public)},
         ],
       },
       {
@@ -165,11 +158,7 @@ export const featureFlag: OnboardingConfig = {
               'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
             ),
           },
-          {
-            type: 'code',
-            language: 'python',
-            code: makeVerifyCode(),
-          },
+          {type: 'code', language: 'python', code: makeVerifyCode()},
         ],
       },
     ];

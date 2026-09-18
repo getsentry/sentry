@@ -19,10 +19,7 @@ describe('User Details', () => {
     // with TanStack Query's default setTimeout-based batching
     notifyManager.setScheduler(cb => cb());
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/users/${mockUser.id}/`,
-      body: mockUser,
-    });
+    MockApiClient.addMockResponse({url: `/users/${mockUser.id}/`, body: mockUser});
 
     MockApiClient.addMockResponse({
       url: `/_admin/cells/us/users/${mockUser.id}/customers/`,
@@ -57,9 +54,7 @@ describe('User Details', () => {
     it('renders correct sections', async () => {
       render(<UserDetails />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/admin/users/${mockUser.id}/`,
-          },
+          location: {pathname: `/admin/users/${mockUser.id}/`},
           route: '/admin/users/:userId/',
         },
       });
@@ -72,9 +67,7 @@ describe('User Details', () => {
     it('renders correct dropdown options for active account', async () => {
       render(<UserDetails />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/admin/users/${mockUser.id}/`,
-          },
+          location: {pathname: `/admin/users/${mockUser.id}/`},
           route: '/admin/users/:userId/',
         },
       });
@@ -89,9 +82,7 @@ describe('User Details', () => {
     it('renders correct UserOverview', async () => {
       render(<UserDetails />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/admin/users/${mockUser.id}/`,
-          },
+          location: {pathname: `/admin/users/${mockUser.id}/`},
           route: '/admin/users/:userId/',
         },
       });
@@ -106,9 +97,7 @@ describe('User Details', () => {
     it('shows Suspend Account action for active users', async () => {
       render(<UserDetails />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/admin/users/${mockUser.id}/`,
-          },
+          location: {pathname: `/admin/users/${mockUser.id}/`},
           route: '/admin/users/:userId/',
         },
       });
@@ -121,10 +110,7 @@ describe('User Details', () => {
     });
 
     it('shows Unsuspend Account action and Suspended badge for suspended users', async () => {
-      const suspendedUser = UserFixture({
-        ...mockUser,
-        isSuspended: true,
-      });
+      const suspendedUser = UserFixture({...mockUser, isSuspended: true});
       MockApiClient.addMockResponse({
         url: `/users/${suspendedUser.id}/`,
         body: suspendedUser,
@@ -132,9 +118,7 @@ describe('User Details', () => {
 
       render(<UserDetails />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/admin/users/${suspendedUser.id}/`,
-          },
+          location: {pathname: `/admin/users/${suspendedUser.id}/`},
           route: '/admin/users/:userId/',
         },
       });
@@ -160,9 +144,7 @@ describe('User Details', () => {
 
       render(<UserDetails />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/admin/users/${suspendedInactiveUser.id}/`,
-          },
+          location: {pathname: `/admin/users/${suspendedInactiveUser.id}/`},
           route: '/admin/users/:userId/',
         },
       });
@@ -175,10 +157,7 @@ describe('User Details', () => {
     });
 
     it('shows Suspended status in user overview', async () => {
-      const suspendedUser = UserFixture({
-        ...mockUser,
-        isSuspended: true,
-      });
+      const suspendedUser = UserFixture({...mockUser, isSuspended: true});
       MockApiClient.addMockResponse({
         url: `/users/${suspendedUser.id}/`,
         body: suspendedUser,
@@ -186,9 +165,7 @@ describe('User Details', () => {
 
       render(<UserDetails />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/admin/users/${suspendedUser.id}/`,
-          },
+          location: {pathname: `/admin/users/${suspendedUser.id}/`},
           route: '/admin/users/:userId/',
         },
       });

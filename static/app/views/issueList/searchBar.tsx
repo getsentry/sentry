@@ -113,21 +113,9 @@ export function useIssueListSearchBarDataProvider(
     ).map(tag => tag.key);
 
     const sections = [
-      {
-        value: FieldKind.ISSUE_FIELD,
-        label: t('Issues'),
-        children: issueFields,
-      },
-      {
-        value: FieldKind.EVENT_FIELD,
-        label: t('Event Filters'),
-        children: eventFields,
-      },
-      {
-        value: FieldKind.TAG,
-        label: t('Event Tags'),
-        children: eventTags,
-      },
+      {value: FieldKind.ISSUE_FIELD, label: t('Issues'), children: issueFields},
+      {value: FieldKind.EVENT_FIELD, label: t('Event Filters'), children: eventFields},
+      {value: FieldKind.TAG, label: t('Event Tags'), children: eventTags},
     ];
 
     if (eventFeatureFlags.length > 0) {
@@ -172,21 +160,12 @@ export function useIssueListSearchBarDataProvider(
 
       // For now feature flags are treated like tags, but the api query is slightly different.
       if (filterKeys[key]?.kind === FieldKind.FEATURE_FLAG) {
-        return await fetchFeatureFlagValues({
-          ...fetchTagValuesPayload,
-          organization,
-        });
+        return await fetchFeatureFlagValues({...fetchTagValuesPayload, organization});
       }
 
       const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
-        fetchTagValues({
-          ...fetchTagValuesPayload,
-          dataset: Dataset.ERRORS,
-        }),
-        fetchTagValues({
-          ...fetchTagValuesPayload,
-          dataset: Dataset.ISSUE_PLATFORM,
-        }),
+        fetchTagValues({...fetchTagValuesPayload, dataset: Dataset.ERRORS}),
+        fetchTagValues({...fetchTagValuesPayload, dataset: Dataset.ISSUE_PLATFORM}),
       ]);
 
       return mergeAndSortTagValues(

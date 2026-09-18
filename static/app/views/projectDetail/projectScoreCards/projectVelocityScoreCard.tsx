@@ -33,23 +33,14 @@ const useReleaseCount = (props: Props) => {
     {shouldDoublePeriod: true}
   ).statsPeriod;
 
-  const commonQuery = {
-    environment: environments,
-    project: projects[0],
-    query,
-  };
+  const commonQuery = {environment: environments, project: projects[0], query};
 
   const currentQuery = useApiQuery<Release[]>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          ...commonQuery,
-          ...normalizeDateTimeParams(datetime),
-        },
-      },
+      {query: {...commonQuery, ...normalizeDateTimeParams(datetime)}},
     ],
     {staleTime: Infinity, enabled: isEnabled}
   );
@@ -73,10 +64,7 @@ const useReleaseCount = (props: Props) => {
         },
       },
     ],
-    {
-      staleTime: Infinity,
-      enabled: isEnabled && isPreviousPeriodEnabled,
-    }
+    {staleTime: Infinity, enabled: isEnabled && isPreviousPeriodEnabled}
   );
 
   const allReleases = [...(currentQuery.data ?? []), ...(previousQuery.data ?? [])];
@@ -93,18 +81,9 @@ const useReleaseCount = (props: Props) => {
       getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          ...commonQuery,
-          statsPeriod: '90d',
-          per_page: 1,
-        },
-      },
+      {query: {...commonQuery, statsPeriod: '90d', per_page: 1}},
     ],
-    {
-      staleTime: Infinity,
-      enabled: isEnabled && isAllTimePeriodEnabled,
-    }
+    {staleTime: Infinity, enabled: isEnabled && isAllTimePeriodEnabled}
   );
 
   return {

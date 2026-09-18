@@ -37,10 +37,7 @@ type PreviewableDetector = MetricDetector | UptimeDetector | CronDetector;
 function detectorAlertApiOptions(organizationSlug: string, detectorId: string) {
   return apiOptions.as<Detector>()(
     '/organizations/$organizationIdOrSlug/detectors/$detectorId/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, detectorId},
-      staleTime: 30_000,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, detectorId}, staleTime: 30_000}
   );
 }
 
@@ -86,12 +83,7 @@ function DetectorAlertActions({detectorId}: {detectorId: string}) {
     data: automations,
     isError,
     isPending,
-  } = useQuery(
-    automationsApiOptions(organization, {
-      detector: [detectorId],
-      limit: 3,
-    })
-  );
+  } = useQuery(automationsApiOptions(organization, {detector: [detectorId], limit: 3}));
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -157,10 +149,7 @@ export function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
     data: detector,
     isError,
     isPending,
-  } = useQuery({
-    ...detectorAlertApiOptions(organization.slug, id),
-    retry: false,
-  });
+  } = useQuery({...detectorAlertApiOptions(organization.slug, id), retry: false});
   const Icon = getDetectorAlertIcon(kind as DetectorAlertKind);
 
   return (

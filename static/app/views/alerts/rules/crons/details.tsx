@@ -51,9 +51,7 @@ export default function MonitorDetails() {
     organization,
     params.projectId,
     params.monitorSlug,
-    {
-      environment: location.query.environment,
-    }
+    {environment: location.query.environment}
   );
 
   const {data: monitor, isError} = useApiQuery<Monitor>(queryKey, {

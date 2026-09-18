@@ -180,10 +180,7 @@ describe('useBootstrapProjectsQuery', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/projects/`,
       body: mockProjects,
-      query: {
-        all_projects: 1,
-        collapse: ['latestDeploys', 'unusedFeatures'],
-      },
+      query: {all_projects: 1, collapse: ['latestDeploys', 'unusedFeatures']},
     });
 
     const {result} = renderHookWithProviders(() => useBootstrapProjectsQuery(orgSlug));

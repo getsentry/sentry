@@ -17,10 +17,7 @@ function UpgradeLink({children}: {children?: React.ReactNode}) {
     <Button
       variant="link"
       onClick={() => {
-        openUpsellModal({
-          organization,
-          source: 'metric-alert-quota',
-        });
+        openUpsellModal({organization, source: 'metric-alert-quota'});
       }}
     >
       {children}

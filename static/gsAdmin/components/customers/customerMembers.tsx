@@ -9,9 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconMail} from 'sentry/icons';
 
-type Props = {
-  orgId: string;
-};
+type Props = {orgId: string};
 
 const getRow = (row: any) => [
   <td key="name">

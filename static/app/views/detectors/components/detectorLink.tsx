@@ -37,11 +37,7 @@ import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetect
 import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
-type DetectorLinkProps = {
-  detector: Detector;
-  className?: string;
-  openInNewTab?: boolean;
-};
+type DetectorLinkProps = {detector: Detector; className?: string; openInNewTab?: boolean};
 
 function formatConditionType(condition: MetricCondition) {
   switch (condition.type) {
@@ -266,10 +262,7 @@ export function DetectorLink({detector, className, openInNewTab}: DetectorLinkPr
   const detectorLink =
     detector.type === 'issue_stream'
       ? null
-      : {
-          pathname: makeMonitorDetailsPathname(org.slug, detector.id),
-          query,
-        };
+      : {pathname: makeMonitorDetailsPathname(org.slug, detector.id), query};
 
   return (
     <TitleCell

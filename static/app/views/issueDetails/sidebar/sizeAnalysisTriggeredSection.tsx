@@ -23,11 +23,7 @@ import type {
 
 interface SizeAnalysisEvidenceData {
   conditions: MetricCondition[];
-  config: {
-    measurement: MetricType;
-    thresholdType: MeasurementType;
-    query?: string;
-  };
+  config: {measurement: MetricType; thresholdType: MeasurementType; query?: string};
   detectorId: number;
   headArtifactId: number;
   value: number;
@@ -143,19 +139,9 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
             value: getMeasurementLabel(config.thresholdType),
             subject: t('Threshold Type'),
           },
-          {
-            key: 'measurement',
-            value: measurementLabel,
-            subject: t('Measurement'),
-          },
+          {key: 'measurement', value: measurementLabel, subject: t('Measurement')},
           ...(config.query
-            ? [
-                {
-                  key: 'query',
-                  value: config.query,
-                  subject: t('Query'),
-                },
-              ]
+            ? [{key: 'query', value: config.query, subject: t('Query')}]
             : []),
           ...(triggeredCondition
             ? [

@@ -64,9 +64,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock({additionalPackage: 'starlette'}),
       ],
@@ -80,9 +78,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'If you have the [codeStarlette:starlette] package in your dependencies, the Starlette integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
-            {
-              codeStarlette: <code />,
-            }
+            {codeStarlette: <code />}
           ),
         },
         {
@@ -127,9 +123,7 @@ app = Starlette(routes=[
           text: [
             tct(
               'When you point your browser to [link:http://localhost:8000/sentry-debug/] a transaction in the Performance section of Sentry will be created.',
-              {
-                link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
-              }
+              {link: <ExternalLink href="http://localhost:8000/sentry-debug/" />}
             ),
             t(
               'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'

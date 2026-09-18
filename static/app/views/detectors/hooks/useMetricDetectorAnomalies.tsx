@@ -104,10 +104,7 @@ export function useMetricDetectorAnomalies({
       getApiUrl('/organizations/$organizationIdOrSlug/events/anomalies/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        method: 'POST',
-        data: payload,
-      },
+      {method: 'POST', data: payload},
     ],
     {
       staleTime: Infinity,
@@ -115,10 +112,5 @@ export function useMetricDetectorAnomalies({
     }
   );
 
-  return {
-    data,
-    isLoading,
-    error,
-    refetch,
-  };
+  return {data, isLoading, error, refetch};
 }

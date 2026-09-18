@@ -54,9 +54,7 @@ export function useBuildDetailsActions({
       return fetchMutation({
         url: getApiUrl('/internal/preprod-artifact/rerun-analysis/'),
         method: 'POST',
-        data: {
-          preprod_artifact_id: artifactId,
-        },
+        data: {preprod_artifact_id: artifactId},
       });
     },
     onSuccess: () => {
@@ -95,9 +93,7 @@ export function useBuildDetailsActions({
           {path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId}}
         ),
         method: 'POST',
-        data: {
-          check_types: ['size'],
-        },
+        data: {check_types: ['size']},
       });
     },
     onSuccess: () => {

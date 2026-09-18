@@ -34,10 +34,7 @@ describe('TransactionsList', () => {
   };
 
   beforeEach(() => {
-    location = {
-      pathname: '/',
-      query: {},
-    };
+    location = {pathname: '/', query: {}};
   });
 
   describe('Basic', () => {
@@ -53,11 +50,7 @@ describe('TransactionsList', () => {
         projects: [project.id],
       });
       options = [
-        {
-          sort: {kind: 'asc', field: 'transaction'},
-          value: 'name',
-          label: 'Transactions',
-        },
+        {sort: {kind: 'asc', field: 'transaction'}, value: 'name', label: 'Transactions'},
         {
           sort: {kind: 'desc', field: 'count'},
           value: 'count',
@@ -160,11 +153,7 @@ describe('TransactionsList', () => {
       );
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {
-          name: 'Open in Discover',
-        })
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
 
       expect(screen.getAllByRole('columnheader')).toHaveLength(2);
       expect(
@@ -272,9 +261,7 @@ describe('TransactionsList', () => {
       ]);
 
       expect(
-        screen.queryByRole('button', {
-          name: 'Open in Discover',
-        })
+        screen.queryByRole('button', {name: 'Open in Discover'})
       ).not.toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
@@ -357,9 +344,7 @@ describe('TransactionsList', () => {
       const gridCells = await screen.findAllByTestId('grid-cell');
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
 
-      const filterDropdown = screen.getByRole('button', {
-        name: 'Filter Transactions',
-      });
+      const filterDropdown = screen.getByRole('button', {name: 'Filter Transactions'});
       expect(filterDropdown).toBeInTheDocument();
       await userEvent.click(filterDropdown);
 

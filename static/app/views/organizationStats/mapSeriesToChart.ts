@@ -143,11 +143,7 @@ export function mapSeriesToChart({
               existingSubLabel.data.push(dataObject);
             }
           } else {
-            chartSubLabels.push({
-              parentLabel,
-              label,
-              data: [dataObject],
-            });
+            chartSubLabels.push({parentLabel, label, data: [dataObject]});
           }
         };
 
@@ -208,10 +204,7 @@ export function mapSeriesToChart({
 
       // Chart Data
       const chartData = [
-        {
-          key: 'accepted',
-          value: stat.accepted,
-        },
+        {key: 'accepted', value: stat.accepted},
         ...(isSampled ? [{key: 'accepted_stored', value: stat.accepted_stored}] : []),
         {key: 'filtered', value: stat.filtered},
         {key: 'rateLimited', value: stat.rateLimited},

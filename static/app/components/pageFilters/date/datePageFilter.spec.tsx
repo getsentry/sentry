@@ -17,21 +17,14 @@ describe('DatePageFilter', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [],
       environments: [],
-      datetime: {
-        period: '7d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '7d', start: null, end: null, utc: false},
     });
   });
 
   it('can change period', async () => {
     const {router} = render(<DatePageFilter />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/test', query: {}},
-      },
+      initialRouterConfig: {location: {pathname: '/test', query: {}}},
     });
 
     // Open time period dropdown
@@ -51,12 +44,7 @@ describe('DatePageFilter', () => {
       adjustments: {},
       pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       selection: {
-        datetime: {
-          period: '30d',
-          end: undefined,
-          start: undefined,
-          utc: false,
-        },
+        datetime: {period: '30d', end: undefined, start: undefined, utc: false},
         environments: [],
         projects: [],
       },
@@ -66,9 +54,7 @@ describe('DatePageFilter', () => {
   it('can change absolute range', async () => {
     const {router} = render(<DatePageFilter />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/test', query: {}},
-      },
+      initialRouterConfig: {location: {pathname: '/test', query: {}}},
     });
 
     // Open time period dropdown
@@ -89,10 +75,7 @@ describe('DatePageFilter', () => {
       await screen.findByRole('button', {name: 'Oct 3 – Oct 4', expanded: false})
     ).toBeInTheDocument();
     expect(router.location.query).toEqual(
-      expect.objectContaining({
-        start: '2017-10-03T00:00:00',
-        end: '2017-10-04T23:59:59',
-      })
+      expect.objectContaining({start: '2017-10-03T00:00:00', end: '2017-10-04T23:59:59'})
     );
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,

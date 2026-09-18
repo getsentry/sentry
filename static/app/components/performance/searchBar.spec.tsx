@@ -40,9 +40,7 @@ describe('SearchBar', () => {
     async () => {
       eventsMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
-        body: {
-          data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}],
-        },
+        body: {data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}]},
       });
 
       render(<SearchBar {...testProps} />);
@@ -154,9 +152,7 @@ describe('SearchBar', () => {
     const onSearch = jest.fn();
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [{transaction: 'GET /my-endpoint'}],
-      },
+      body: {data: [{transaction: 'GET /my-endpoint'}]},
     });
 
     render(<SearchBar {...testProps} onSearch={onSearch} />);
@@ -174,9 +170,7 @@ describe('SearchBar', () => {
   it('appends additional filters', async () => {
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}],
-      },
+      body: {data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}]},
     });
 
     render(<SearchBar {...testProps} />);

@@ -7,10 +7,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 interface ProjectKeysParameters {
   orgSlug: Organization['slug'];
   projSlug?: Project['slug'];
-  query?: {
-    cursor?: string;
-    per_page?: number;
-  };
+  query?: {cursor?: string; per_page?: number};
 }
 
 export function projectKeysApiOptions(params: ProjectKeysParameters) {
@@ -18,10 +15,7 @@ export function projectKeysApiOptions(params: ProjectKeysParameters) {
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/',
     {
       path: params.projSlug
-        ? {
-            organizationIdOrSlug: params.orgSlug,
-            projectIdOrSlug: params.projSlug,
-          }
+        ? {organizationIdOrSlug: params.orgSlug, projectIdOrSlug: params.projSlug}
         : skipToken,
       query: params.query,
       staleTime: 0,

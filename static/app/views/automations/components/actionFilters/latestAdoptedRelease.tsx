@@ -80,10 +80,7 @@ function EnvironmentField() {
   const {removeError} = useAutomationBuilderErrorContext();
 
   const {environments} = useOrganizationEnvironments();
-  const environmentOptions = environments.map(({name}) => ({
-    value: name,
-    label: name,
-  }));
+  const environmentOptions = environments.map(({name}) => ({value: name, label: name}));
 
   return (
     <AutomationBuilderSelect
@@ -111,9 +108,7 @@ function useOrganizationEnvironments() {
       }),
       {query: {visibility: 'visible'}},
     ],
-    {
-      staleTime: 30_000,
-    }
+    {staleTime: 30_000}
   );
   return {environments, isLoading};
 }

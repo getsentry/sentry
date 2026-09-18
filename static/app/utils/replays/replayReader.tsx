@@ -351,14 +351,8 @@ export class ReplayReader {
       frame => frame.type === EventType.FullSnapshot
     );
     if (firstMeta && firstSnapshot && firstMeta.timestamp > startTimestampMs) {
-      this._sortedRRWebEvents.unshift({
-        ...firstSnapshot,
-        timestamp: startTimestampMs,
-      });
-      this._sortedRRWebEvents.unshift({
-        ...firstMeta,
-        timestamp: startTimestampMs,
-      });
+      this._sortedRRWebEvents.unshift({...firstSnapshot, timestamp: startTimestampMs});
+      this._sortedRRWebEvents.unshift({...firstMeta, timestamp: startTimestampMs});
     }
 
     this._sortedRRWebEvents.push(recordingEndFrame(this._replayRecord));
@@ -472,10 +466,7 @@ export class ReplayReader {
       const updateVideoFrameOffsets = <T extends {offsetMs: number}>(frames: T[]) => {
         const offset = clipStartTimestampMs - this._replayRecord.started_at.getTime();
 
-        return frames.map(frame => ({
-          ...frame,
-          offsetMs: frame.offsetMs - offset,
-        }));
+        return frames.map(frame => ({...frame, offsetMs: frame.offsetMs - offset}));
       };
 
       this._errors = updateVideoFrameOffsets(
@@ -673,18 +664,13 @@ export class ReplayReader {
                   type: NodeType.Element,
                   id: 2,
                   tagName: 'html',
-                  attributes: {
-                    lang: 'en',
-                  },
+                  attributes: {lang: 'en'},
                   childNodes: [],
                 },
               ],
               id: 0,
             },
-            initialOffset: {
-              top: 0,
-              left: 0,
-            },
+            initialOffset: {top: 0, left: 0},
           },
           timestamp: e.timestamp,
         });
@@ -719,24 +705,11 @@ export class ReplayReader {
               ...e.data,
               adds: e.data.adds.map(add => {
                 if (add.node.type === 3 && add.node.isStyle) {
-                  return {
-                    ...add,
-                    node: {
-                      ...add.node,
-                      textContent: '',
-                    },
-                  };
+                  return {...add, node: {...add.node, textContent: ''}};
                 }
 
                 if (add.node.type === 2 && add.node.tagName === 'style') {
-                  return {
-                    ...add,
-                    node: {
-                      ...add.node,
-                      attributes: {},
-                      childNodes: [],
-                    },
-                  };
+                  return {...add, node: {...add.node, attributes: {}, childNodes: []}};
                 }
 
                 return add;

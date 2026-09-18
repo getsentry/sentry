@@ -100,11 +100,7 @@ async function fetchTeams(
   orgId: string,
   {slugs, search, limit, lastSearch, cursor}: FetchTeamOptions = {}
 ) {
-  const query: {
-    cursor?: typeof cursor;
-    per_page?: number;
-    query?: string;
-  } = {};
+  const query: {cursor?: typeof cursor; per_page?: number; query?: string} = {};
 
   if (slugs !== undefined && slugs.length > 0) {
     query.query = slugs.map(slug => `slug:${slug}`).join(' ');
@@ -130,10 +126,7 @@ async function fetchTeams(
     getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      includeAllArgs: true,
-      query,
-    }
+    {includeAllArgs: true, query}
   );
 
   const pageLinks = resp?.getResponseHeader('Link');

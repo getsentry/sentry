@@ -6,9 +6,7 @@ import {DomainViewHeader} from 'sentry/views/insights/pages/domainViewHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
 describe('DomainViewHeader', () => {
-  const organization = OrganizationFixture({
-    features: ['insight-modules'],
-  });
+  const organization = OrganizationFixture({features: ['insight-modules']});
 
   const baseRouterConfig = {
     location: {
@@ -80,10 +78,7 @@ describe('DomainViewHeader', () => {
         modules={[ModuleName.HTTP]}
         selectedModule={undefined}
       />,
-      {
-        organization: organizationWithoutFeatures,
-        initialRouterConfig: baseRouterConfig,
-      }
+      {organization: organizationWithoutFeatures, initialRouterConfig: baseRouterConfig}
     );
 
     expect(screen.getByText('domainTitle')).toBeInTheDocument();

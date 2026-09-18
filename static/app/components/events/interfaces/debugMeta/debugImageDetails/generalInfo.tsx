@@ -7,9 +7,7 @@ import {NotAvailable} from 'sentry/components/notAvailable';
 import {t} from 'sentry/locale';
 import type {Image} from 'sentry/types/debugImage';
 
-type Props = {
-  image?: Image;
-};
+type Props = {image?: Image};
 
 export function GeneralInfo({image}: Props) {
   const {debug_id, debug_file, code_id, code_file, arch, unwind_status, debug_status} =

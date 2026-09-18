@@ -16,13 +16,9 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 
-type OrganizationProps = {
-  organization: Organization;
-};
+type OrganizationProps = {organization: Organization};
 
-type BodyProps = {
-  children: React.ReactNode;
-};
+type BodyProps = {children: React.ReactNode};
 
 function DeletionInProgress({organization}: OrganizationProps) {
   return (
@@ -51,9 +47,7 @@ function DeletionInProgress({organization}: OrganizationProps) {
           <Text as="p" size="lg">
             {tct(
               'The [organization] organization is currently in the process of being deleted from Sentry.',
-              {
-                organization: <strong>{organization.slug}</strong>,
-              }
+              {organization: <strong>{organization.slug}</strong>}
             )}
           </Text>
           <Text as="p" size="sm" variant="muted">
@@ -80,10 +74,7 @@ function DeletionPending({organization}: OrganizationProps) {
         getApiUrl('/organizations/$organizationIdOrSlug/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'PUT',
-          data: {cancelDeletion: true},
-        }
+        {method: 'PUT', data: {cancelDeletion: true}}
       );
       testableWindowLocation.reload();
     } catch {

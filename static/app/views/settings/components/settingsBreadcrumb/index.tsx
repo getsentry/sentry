@@ -46,9 +46,7 @@ function getMenuForRoute(path: string | undefined, routes: RouteWithName[]) {
   }
 }
 
-type Props = {
-  params: Record<string, string | undefined>;
-};
+type Props = {params: Record<string, string | undefined>};
 
 export function SettingsBreadcrumb({params}: Props) {
   const routes = useRoutes() as RouteWithName[];

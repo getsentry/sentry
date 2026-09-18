@@ -63,19 +63,13 @@ describe('SavedQueriesTable', () => {
     expect(getSavedQueriesMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/explore/saved/`,
       expect.objectContaining({
-        query: expect.objectContaining({
-          query: 'Query Name',
-          exclude: 'shared',
-        }),
+        query: expect.objectContaining({query: 'Query Name', exclude: 'shared'}),
       })
     );
     expect(getSavedQueriesMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/explore/saved/`,
       expect.objectContaining({
-        query: expect.objectContaining({
-          query: 'Query Name',
-          exclude: 'owned',
-        }),
+        query: expect.objectContaining({query: 'Query Name', exclude: 'owned'}),
       })
     );
   });

@@ -71,11 +71,7 @@ function makeLeadingItemAnimation(theme: Theme, instant = false) {
     initial: {scale: 0.95, opacity: 0},
     animate: {scale: 1, opacity: 1},
     exit: {scale: 0.95, opacity: 0, transition: theme.motion.framer.exit.fast},
-    enter: {
-      scale: 1,
-      opacity: 1,
-      transition: theme.motion.framer.enter.slow,
-    },
+    enter: {scale: 1, opacity: 1, transition: theme.motion.framer.enter.slow},
   };
 }
 
@@ -387,10 +383,7 @@ export function CommandPalette({
     disallowTypeAhead: true,
   });
   const collectionKeyDown = collectionProps.onKeyDown;
-  const mergedCollectionProps = {
-    ...collectionProps,
-    onKeyDown: undefined,
-  };
+  const mergedCollectionProps = {...collectionProps, onKeyDown: undefined};
   // oxlint-disable-next-line react/refs
   const inputCollectionProps = mergeProps(mergedCollectionProps, {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -425,9 +418,7 @@ export function CommandPalette({
         e.preventDefault();
         dispatch({type: 'trigger action'});
         closeModal?.();
-        openSeerExplorer({
-          initialQuery: state.query.trim() || undefined,
-        });
+        openSeerExplorer({initialQuery: state.query.trim() || undefined});
         return;
       }
 
@@ -467,12 +458,7 @@ export function CommandPalette({
   }) as React.ComponentProps<typeof StyledInputGroupInput>;
 
   const onActionSelection = useCallback(
-    (
-      key: string | number | null,
-      options?: {
-        modifierKeys?: {shiftKey: boolean};
-      }
-    ) => {
+    (key: string | number | null, options?: {modifierKeys?: {shiftKey: boolean}}) => {
       const action = actions.find(a => a.key === key);
       if (!action) {
         return;
@@ -704,9 +690,7 @@ export function CommandPalette({
               mouseLeftResultsRef.current = true;
             }}
             onAction={key => {
-              onActionSelection(key, {
-                modifierKeys: modifierKeysRef.current,
-              });
+              onActionSelection(key, {modifierKeys: modifierKeysRef.current});
             }}
           />
         </ResultsList>
@@ -1079,19 +1063,12 @@ function makeSeeMoreAction(node: CollectionTreeNode<CMDKActionData>): CMDKFlatIt
     limit: node.limit,
     ref: node.ref,
     keywords: node.keywords,
-    display: {
-      details: node.display.details,
-      label: t('See all'),
-    },
+    display: {details: node.display.details, label: t('See all')},
   };
 }
 
 function makeSectionAction(node: CollectionTreeNode<CMDKActionData>): CMDKFlatItem {
-  return {
-    ...node,
-    key: `${node.key}:header`,
-    listItemType: 'section',
-  };
+  return {...node, key: `${node.key}:header`, listItemType: 'section'};
 }
 
 function getSourceAction(
@@ -1259,11 +1236,7 @@ function CommandPaletteNoResults() {
         <Container paddingTop="xl">
           <FeedbackButton
             variant="primary"
-            feedbackOptions={{
-              tags: {
-                'feedback.source': 'command_palette',
-              },
-            }}
+            feedbackOptions={{tags: {'feedback.source': 'command_palette'}}}
           />
         </Container>
       </Stack>

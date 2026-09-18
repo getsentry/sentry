@@ -47,9 +47,7 @@ export function useFeatureFilter({
     (query: string) => {
       addLoadingMessage(t('Saving...'));
       updateProject.mutate(
-        {
-          [queryWriteKey]: query === '' ? null : query,
-        },
+        {[queryWriteKey]: query === '' ? null : query},
         {
           onSuccess: () => {
             addSuccessMessage(successMessage);
@@ -67,9 +65,7 @@ export function useFeatureFilter({
     (newEnabled: boolean) => {
       addLoadingMessage(t('Saving...'));
       updateProject.mutate(
-        {
-          [enabledWriteKey]: newEnabled,
-        },
+        {[enabledWriteKey]: newEnabled},
         {
           onSuccess: () => {
             addSuccessMessage(successMessage);

@@ -37,12 +37,7 @@ function savedQuery(metricName: string): ReadableSavedQuery {
         orderby: '',
         query: '',
         metric: {name: metricName, type: 'gauge', unit: 'none'},
-        aggregateField: [
-          {
-            yAxes: [`max(value,${metricName},gauge,none)`],
-            chartType: 1,
-          },
-        ],
+        aggregateField: [{yAxes: [`max(value,${metricName},gauge,none)`], chartType: 1}],
       },
     ],
     dateAdded: '2024-01-01T00:00:00.000Z',
@@ -100,10 +95,7 @@ describe('useSaveMetricsMultiQuery', () => {
       body: [],
     });
     const {result} = renderHookWithProviders(
-      () => ({
-        ...useSaveMetricsMultiQuery(),
-        queries: useGetSavedQueries({}),
-      }),
+      () => ({...useSaveMetricsMultiQuery(), queries: useGetSavedQueries({})}),
       {organization, additionalWrapper: Wrapper}
     );
     await waitFor(() => expect(result.current.queries.data).toEqual([]));
@@ -150,10 +142,7 @@ describe('useSaveMetricsMultiQuery', () => {
         body: {detail: 'Unable to save query'},
       });
       const {result} = renderHookWithProviders(
-        () => ({
-          ...useSaveMetricsMultiQuery(),
-          queries: useGetSavedQueries({}),
-        }),
+        () => ({...useSaveMetricsMultiQuery(), queries: useGetSavedQueries({})}),
         {
           organization,
           additionalWrapper: Wrapper,

@@ -32,14 +32,8 @@ describe('hookIntegrationFeatures', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     const features = [
-      {
-        description: 'Some non-plan feature',
-        featureGate: 'non-plan-feature',
-      },
-      {
-        description: 'Another non-plan feature',
-        featureGate: 'non-plan-feature2',
-      },
+      {description: 'Some non-plan feature', featureGate: 'non-plan-feature'},
+      {description: 'Another non-plan feature', featureGate: 'non-plan-feature2'},
     ];
 
     const renderCallback = jest.fn(() => <Fragment />);
@@ -65,14 +59,8 @@ describe('hookIntegrationFeatures', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     const features = [
-      {
-        description: 'Some non-plan feature',
-        featureGate: 'integrations-issue-basic',
-      },
-      {
-        description: 'Another non-plan feature',
-        featureGate: 'integrations-event-hooks',
-      },
+      {description: 'Some non-plan feature', featureGate: 'integrations-issue-basic'},
+      {description: 'Another non-plan feature', featureGate: 'integrations-event-hooks'},
     ];
 
     const renderCallback = jest.fn(() => <Fragment />);
@@ -124,18 +112,9 @@ describe('hookIntegrationFeatures', () => {
     });
 
     const features = [
-      {
-        description: 'Some non-plan feature',
-        featureGate: 'non-plan-feature',
-      },
-      {
-        description: 'Issue basic plan feature',
-        featureGate: 'integrations-issue-basic',
-      },
-      {
-        description: 'Event hooks plan feature',
-        featureGate: 'integrations-event-hooks',
-      },
+      {description: 'Some non-plan feature', featureGate: 'non-plan-feature'},
+      {description: 'Issue basic plan feature', featureGate: 'integrations-issue-basic'},
+      {description: 'Event hooks plan feature', featureGate: 'integrations-event-hooks'},
     ];
 
     it('renders with the correct callback', async () => {

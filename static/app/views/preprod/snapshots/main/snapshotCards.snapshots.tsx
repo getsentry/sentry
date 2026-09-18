@@ -102,10 +102,7 @@ jest.mock('./imageDisplay/useD3Zoom', () => {
     zoomOut: noop,
   });
 
-  return {
-    useD3Zoom: createZoom,
-    useSyncedD3Zoom: () => [createZoom(), createZoom()],
-  };
+  return {useD3Zoom: createZoom, useSyncedD3Zoom: () => [createZoom(), createZoom()]};
 });
 
 const themes = {light: lightTheme, dark: darkTheme};
@@ -126,14 +123,9 @@ function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
   };
 }
 
-const baseImage = image({
-  display_name: 'Button / light',
-  key: 'base-button-light',
-});
+const baseImage = image({display_name: 'Button / light', key: 'base-button-light'});
 
-const headImage = image({
-  key: 'head-button-light',
-});
+const headImage = image({key: 'head-button-light'});
 
 const changedPair: SnapshotDiffPair = {
   base_image: baseImage,

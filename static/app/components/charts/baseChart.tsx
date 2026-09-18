@@ -488,14 +488,9 @@ export function BaseChart({
                   ? undefined
                   : markLine({
                       silent: true,
-                      lineStyle: {
-                        type: 'solid',
-                        width: 1.5,
-                      },
+                      lineStyle: {type: 'solid', width: 1.5},
                       data: [{yAxis: (s?.data?.[0] as any)?.[1]}],
-                      label: {
-                        show: false,
-                      },
+                      label: {show: false},
                     }),
             }))
           : series) ?? [];

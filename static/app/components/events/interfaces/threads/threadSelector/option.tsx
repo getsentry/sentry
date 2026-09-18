@@ -18,11 +18,7 @@ type Props = {
   thread: Thread;
 };
 
-type ThreadInfo = {
-  filename?: string;
-  label?: string;
-  state?: ThreadStates;
-};
+type ThreadInfo = {filename?: string; label?: string; state?: ThreadStates};
 
 export function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
   const label = details.label ?? `<${t('unknown')}>`;
@@ -76,10 +72,7 @@ export function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
   );
 }
 
-const InnerCell = styled('div')<{
-  isBold?: boolean;
-  isCentered?: boolean;
-}>`
+const InnerCell = styled('div')<{isBold?: boolean; isCentered?: boolean}>`
   width: 100%;
   white-space: nowrap;
   overflow: hidden;

@@ -143,10 +143,7 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
 
   function getDiscoverUrl() {
     return {
-      pathname: makeDiscoverPathname({
-        path: '/results/',
-        organization,
-      }),
+      pathname: makeDiscoverPathname({path: '/results/', organization}),
       query: {
         name: t('Frequent Unhandled Issues'),
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
@@ -175,10 +172,7 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
     sort: 'freq',
   };
 
-  const issueSearch = {
-    pathname: endpointPath,
-    query: queryParams,
-  };
+  const issueSearch = {pathname: endpointPath, query: queryParams};
 
   function renderEmptyMessage() {
     const selectedTimePeriod = location.query.start
@@ -222,11 +216,7 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
       label: t('Regressed'),
       issueCount: issuesCount.regressed,
     },
-    {
-      value: IssuesType.RESOLVED,
-      label: t('Resolved'),
-      issueCount: issuesCount.resolved,
-    },
+    {value: IssuesType.RESOLVED, label: t('Resolved'), issueCount: issuesCount.resolved},
   ];
 
   return (

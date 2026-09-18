@@ -414,10 +414,7 @@ export class FormModel {
     const endpoint = this.options.apiEndpoint || '';
     const method = this.options.apiMethod;
 
-    return this.api.requestPromise(endpoint, {
-      method,
-      data,
-    });
+    return this.api.requestPromise(endpoint, {method, data});
   }
 
   /**
@@ -497,9 +494,7 @@ export class FormModel {
 
     let saveSnapshot: SaveSnapshot = this.createSnapshot();
 
-    const request = this.doApiRequest({
-      data: this.getTransformedData(),
-    });
+    const request = this.doApiRequest({data: this.getTransformedData()});
 
     this.setFormSaving();
     request
@@ -727,10 +722,7 @@ export class FormModel {
   }
 
   setFieldState(id: string, key: string, value: FieldValue) {
-    const state = {
-      ...this.fieldState.get(id),
-      [key]: value,
-    };
+    const state = {...this.fieldState.get(id), [key]: value};
     this.fieldState.set(id, state);
   }
 
@@ -867,9 +859,7 @@ export class MockModel {
   constructor(props: any) {
     this.props = props;
 
-    this.initialData = {
-      [props.name]: props.value,
-    };
+    this.initialData = {[props.name]: props.value};
   }
 
   setValue() {}

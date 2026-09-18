@@ -52,10 +52,7 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from './utils';
 
-type ColumnTitle = {
-  title: string | ReactNode;
-  tooltip?: string | ReactNode;
-};
+type ColumnTitle = {title: string | ReactNode; tooltip?: string | ReactNode};
 
 const COLUMN_TITLES_OPTIONAL_TOOLTIP = COLUMN_TITLES.map(title => {
   return {title};
@@ -111,10 +108,7 @@ function TrackHasDataAnalytics({
   return children;
 }
 
-type TransactionData = {
-  name: string;
-  threshold: number;
-};
+type TransactionData = {name: string; threshold: number};
 
 export function Table({
   columnTitles = COLUMN_TITLES_OPTIONAL_TOOLTIP,
@@ -138,9 +132,7 @@ export function Table({
 
   useEffect(() => {
     if (!tableMetricSet) {
-      trackAnalytics('performance_views.landing.table.seen', {
-        organization,
-      });
+      trackAnalytics('performance_views.landing.table.seen', {organization});
       // oxlint-disable-next-line react/set-state-in-effect
       setTableMetricSet(true);
     }
@@ -187,10 +179,7 @@ export function Table({
     dataRow: TableDataRow
   ) => {
     return (action: Actions, value: string | number) => {
-      trackAnalytics('performance_views.overview.cellaction', {
-        organization,
-        action,
-      });
+      trackAnalytics('performance_views.overview.cellaction', {organization, action});
 
       if (action === Actions.EDIT_THRESHOLD) {
         const project_threshold = dataRow.project_threshold_config!;
@@ -216,15 +205,10 @@ export function Table({
                   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   metric !== project_threshold[0]
                 ) {
-                  setTransactionData({
-                    name: transactionName,
-                    threshold,
-                  });
+                  setTransactionData({name: transactionName, threshold});
                 }
                 addSuccessMessage(
-                  tct('[transactionName] updated successfully', {
-                    transactionName,
-                  })
+                  tct('[transactionName] updated successfully', {transactionName})
                 );
               }}
             />
@@ -318,10 +302,7 @@ export function Table({
       const {isInDomainView, view} = domainViewFilters ?? {};
 
       const target = isUnparameterizedRow
-        ? createUnnamedTransactionsDiscoverTarget({
-            organization,
-            location,
-          })
+        ? createUnnamedTransactionsDiscoverTarget({organization, location})
         : transactionSummaryRouteWithQuery({
             organization,
             transaction: String(dataRow.transaction) || '',
@@ -537,10 +518,7 @@ export function Table({
 
   function getSortedEventView() {
     return eventView.withSorts([
-      {
-        field: 'team_key_transaction',
-        kind: 'desc',
-      },
+      {field: 'team_key_transaction', kind: 'desc'},
       ...eventView.sorts,
     ]);
   }

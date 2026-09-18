@@ -171,10 +171,7 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
     : undefined;
 
   const result = useGenericDiscoverQuery<
-    {
-      data: any[];
-      meta: MetaType;
-    },
+    {data: any[]; meta: MetaType},
     DiscoverQueryProps
   >({
     route: overriddenRoute ?? 'events-stats',
@@ -224,12 +221,7 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
 
   const pageLinks = result.response?.getResponseHeader('Link') ?? undefined;
 
-  return {
-    ...result,
-    pageLinks,
-    data,
-    meta: result.data?.meta,
-  };
+  return {...result, pageLinks, data, meta: result.data?.meta};
 }
 
 function useWrappedDiscoverTimeseriesQuery<T>(
@@ -291,9 +283,7 @@ function useWrappedDiscoverQueryBase<T>({
   spanQuery,
   extrapolationMode,
   staleTime,
-}: WrappedDiscoverQueryProps<T> & {
-  pageFiltersReady: boolean;
-}) {
+}: WrappedDiscoverQueryProps<T> & {pageFiltersReady: boolean}) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -361,11 +351,7 @@ function useWrappedDiscoverQueryBase<T>({
   const data =
     result.isPending && initialData ? initialData : (result.data?.data as T | undefined);
 
-  return {
-    ...result,
-    data,
-    meta,
-  };
+  return {...result, data, meta};
 }
 
 export function useWrappedDiscoverQuery<T>(props: WrappedDiscoverQueryProps<T>) {
@@ -458,11 +444,7 @@ function processSingleDiscoverTimeseriesResult(result: any, key: string, group?:
       return;
     }
 
-    intervals.push({
-      interval: timestamp,
-      [key]: value,
-      group,
-    });
+    intervals.push({interval: timestamp, [key]: value, group});
   });
 
   return intervals;

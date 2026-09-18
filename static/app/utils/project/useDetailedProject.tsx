@@ -36,9 +36,5 @@ export function useDetailedProject(
   params: DetailedProjectParameters,
   options: DetailedProjectOptions = {}
 ) {
-  return useQuery({
-    ...makeDetailedProjectApiOptions(params),
-    retry: false,
-    ...options,
-  });
+  return useQuery({...makeDetailedProjectApiOptions(params), retry: false, ...options});
 }

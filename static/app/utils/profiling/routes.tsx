@@ -45,10 +45,7 @@ export function generateProfilingRouteWithQuery({
   query?: Location['query'];
 }): LocationDescriptor {
   const pathname = generateProfilingRoute({organization});
-  return {
-    pathname,
-    query,
-  };
+  return {pathname, query};
 }
 
 export function generateProfileFlamechartRouteWithQuery({
@@ -62,15 +59,8 @@ export function generateProfileFlamechartRouteWithQuery({
   projectSlug: Project['slug'];
   query?: Location['query'];
 }): LocationDescriptor {
-  const pathname = generateProfileFlamechartRoute({
-    organization,
-    projectSlug,
-    profileId,
-  });
-  return {
-    pathname,
-    query,
-  };
+  const pathname = generateProfileFlamechartRoute({organization, projectSlug, profileId});
+  return {pathname, query};
 }
 
 export function generateContinuousProfileFlamechartRouteWithQuery({
@@ -92,21 +82,11 @@ export function generateContinuousProfileFlamechartRouteWithQuery({
   framePackage?: string | undefined;
   query?: Location['query'];
 }): LocationDescriptor {
-  const pathname = generateContinuousProfileFlamechartRoute({
-    organization,
-    projectSlug,
-  });
+  const pathname = generateContinuousProfileFlamechartRoute({organization, projectSlug});
 
   return {
     pathname,
-    query: dropUndefinedKeys({
-      profilerId,
-      start,
-      end,
-      frameName,
-      framePackage,
-      ...query,
-    }),
+    query: dropUndefinedKeys({profilerId, start, end, frameName, framePackage, ...query}),
   };
 }
 
@@ -129,11 +109,7 @@ export function generateProfileFlamechartRouteWithHighlightFrame({
     organization,
     projectSlug,
     profileId,
-    query: {
-      ...query,
-      frameName,
-      framePackage,
-    },
+    query: {...query, frameName, framePackage},
   });
 }
 
@@ -155,10 +131,7 @@ export function generateProfileRouteFromProfileReference({
       organization,
       projectSlug,
       profileId: reference,
-      query: {
-        frameName,
-        framePackage,
-      },
+      query: {frameName, framePackage},
     });
   }
 

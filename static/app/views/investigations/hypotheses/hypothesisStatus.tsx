@@ -17,10 +17,7 @@ function hasRun(step: InvestigationVerificationStep): boolean {
   return Boolean(step.result) || Boolean(step.error);
 }
 
-type HypothesisStatusDisplay = {
-  label: string;
-  variant: TagProps['variant'];
-};
+type HypothesisStatusDisplay = {label: string; variant: TagProps['variant']};
 
 /**
  * The label and colour of the tag beside the hypothesis number.
@@ -143,9 +140,7 @@ export function getVerificationStepStatusLabel(
   }
 }
 
-type HypothesisStatusProps = {
-  hypothesis: InvestigationHypothesis;
-};
+type HypothesisStatusProps = {hypothesis: InvestigationHypothesis};
 
 export function HypothesisStatus({hypothesis}: HypothesisStatusProps) {
   const {label, variant} = getHypothesisStatusDisplay(hypothesis);

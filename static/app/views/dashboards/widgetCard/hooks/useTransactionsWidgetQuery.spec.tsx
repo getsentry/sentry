@@ -46,18 +46,11 @@ describe('useTransactionsSeriesQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [],
-      },
+      body: {data: []},
     });
 
     renderHookWithProviders(() =>
-      useTransactionsSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useTransactionsSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -103,28 +96,17 @@ describe('useTransactionsTableQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-      },
+      body: {data: []},
     });
 
     renderHookWithProviders(() =>
-      useTransactionsTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useTransactionsTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            dataset: 'spans',
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({dataset: 'spans'})})
       );
     });
   });

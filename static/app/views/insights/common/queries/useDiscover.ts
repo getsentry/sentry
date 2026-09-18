@@ -105,11 +105,7 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
   const data = (result?.data ?? []) as Array<Pick<ResponseType, T[number]>>;
 
-  return {
-    ...result,
-    data,
-    isEnabled: options.enabled,
-  };
+  return {...result, data, isEnabled: options.enabled};
 };
 
 export function getEventView(
@@ -123,13 +119,7 @@ export function getEventView(
   const query = typeof search === 'string' ? search : (search?.formatString() ?? '');
 
   const eventView = EventView.fromNewQueryWithPageFilters(
-    {
-      name: '',
-      query,
-      fields,
-      dataset,
-      version: 2,
-    },
+    {name: '', query, fields, dataset, version: 2},
     pageFilters
   );
 

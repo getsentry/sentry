@@ -177,10 +177,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
               })
             }
             to={{
-              pathname: makeDiscoverPathname({
-                organization,
-                path: '/homepage/',
-              }),
+              pathname: makeDiscoverPathname({organization, path: '/homepage/'}),
               query: {
                 project: [project.id],
                 start: decodeScalar(spike.start),

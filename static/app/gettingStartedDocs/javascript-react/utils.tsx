@@ -93,20 +93,8 @@ root.render(<App />);
 export const installSnippetBlock: ContentBlock = {
   type: 'code',
   tabs: [
-    {
-      label: 'npm',
-      language: 'bash',
-      code: 'npm install --save @sentry/react',
-    },
-    {
-      label: 'yarn',
-      language: 'bash',
-      code: 'yarn add @sentry/react',
-    },
-    {
-      label: 'pnpm',
-      language: 'bash',
-      code: 'pnpm add @sentry/react',
-    },
+    {label: 'npm', language: 'bash', code: 'npm install --save @sentry/react'},
+    {label: 'yarn', language: 'bash', code: 'yarn add @sentry/react'},
+    {label: 'pnpm', language: 'bash', code: 'pnpm add @sentry/react'},
   ],
 };

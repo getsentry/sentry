@@ -144,11 +144,7 @@ function useTimelineCursor<E extends HTMLElement>({
             animate="animate"
             exit="exit"
             transition={{duration: 0.1}}
-            variants={{
-              initial: {opacity: 0},
-              animate: {opacity: 1},
-              exit: {opacity: 0},
-            }}
+            variants={{initial: {opacity: 0}, animate: {opacity: 1}, exit: {opacity: 0}}}
             role="presentation"
           />
           {cursorLabel}

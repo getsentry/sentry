@@ -25,9 +25,7 @@ describe('SpansConfig', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    organization = OrganizationFixture({
-      features: ['performance-view'],
-    });
+    organization = OrganizationFixture({features: ['performance-view']});
   });
 
   it('returns all of the EAP aggregations as primary options', () => {
@@ -56,13 +54,7 @@ describe('SpansConfig', () => {
 
     expect(options[`field:${combinator}`]).toEqual({
       label: combinator,
-      value: {
-        kind: 'field',
-        meta: {
-          dataType: 'number',
-          name: combinator,
-        },
-      },
+      value: {kind: 'field', meta: {dataType: 'number', name: combinator}},
     });
   });
 
@@ -214,10 +206,7 @@ describe('SpansConfig', () => {
           location,
           navigate: jest.fn(),
           theme,
-          eventView: new EventView({
-            ...baseEventViewOptions,
-            fields: [{field}],
-          }),
+          eventView: new EventView({...baseEventViewOptions, fields: [{field}]}),
         }
       ) as React.ReactElement<any, any>
     );

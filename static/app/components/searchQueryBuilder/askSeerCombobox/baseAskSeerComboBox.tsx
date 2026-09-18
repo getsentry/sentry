@@ -138,11 +138,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   const analyticsArea = useAnalyticsArea();
 
   const items = useMemo(
-    () =>
-      queries.map((query, index) => ({
-        ...query,
-        key: `${index}-${query.query}`,
-      })),
+    () => queries.map((query, index) => ({...query, key: `${index}-${query.query}`})),
     [queries]
   );
 

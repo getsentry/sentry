@@ -81,10 +81,5 @@ export function useReplaysFromIssue({
     fetchReplayIds();
   }, [fetchReplayIds]);
 
-  return {
-    eventView,
-    fetchError,
-    isFetching: replayIds === undefined,
-    pageLinks: null,
-  };
+  return {eventView, fetchError, isFetching: replayIds === undefined, pageLinks: null};
 }

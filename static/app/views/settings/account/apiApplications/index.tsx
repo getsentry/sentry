@@ -61,10 +61,7 @@ export default function ApiApplications() {
     addLoadingMessage();
 
     try {
-      const app = await api.requestPromise(ENDPOINT, {
-        method: 'POST',
-        data: {isPublic},
-      });
+      const app = await api.requestPromise(ENDPOINT, {method: 'POST', data: {isPublic}});
 
       addSuccessMessage(t('Created a new API Application'));
       navigate(`${ROUTE_PREFIX}applications/${app.id}/`);

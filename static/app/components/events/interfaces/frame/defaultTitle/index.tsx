@@ -65,11 +65,7 @@ export function DefaultTitle({
 
   const getModule = (): GetPathNameOutput | undefined => {
     if (frame.module) {
-      return {
-        key: 'module',
-        value: frame.module,
-        meta: meta?.module?.[''],
-      };
+      return {key: 'module', value: frame.module, meta: meta?.module?.['']};
     }
 
     return undefined;
@@ -83,21 +79,13 @@ export function DefaultTitle({
         return getModule();
       }
       if (frame.filename) {
-        return {
-          key: 'filename',
-          value: frame.filename,
-          meta: meta?.filename?.[''],
-        };
+        return {key: 'filename', value: frame.filename, meta: meta?.filename?.['']};
       }
       return undefined;
     }
 
     if (frame.filename) {
-      return {
-        key: 'filename',
-        value: frame.filename,
-        meta: meta?.filename?.[''],
-      };
+      return {key: 'filename', value: frame.filename, meta: meta?.filename?.['']};
     }
 
     if (frame.module) {

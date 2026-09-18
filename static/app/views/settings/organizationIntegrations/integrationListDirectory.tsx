@@ -101,9 +101,7 @@ function useIntegrationList() {
     data: config = {providers: []},
     isPending: isConfigPending,
     isError: isConfigError,
-  } = useApiQuery<{
-    providers: IntegrationProvider[];
-  }>(
+  } = useApiQuery<{providers: IntegrationProvider[]}>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
@@ -256,9 +254,7 @@ export default function IntegrationListDirectory() {
   const onCategoryChange = useCallback(
     ({value: newCategory}: SelectOption<string>) => {
       navigate(
-        {
-          query: {...location.query, category: newCategory ? newCategory : undefined},
-        },
+        {query: {...location.query, category: newCategory ? newCategory : undefined}},
         {replace: true}
       );
       if (newCategory) {
@@ -275,9 +271,7 @@ export default function IntegrationListDirectory() {
   const onSearchChange = useCallback(
     (newSearch: string) => {
       navigate(
-        {
-          query: {...location.query, search: newSearch ? newSearch : undefined},
-        },
+        {query: {...location.query, search: newSearch ? newSearch : undefined}},
         {replace: true}
       );
       if (newSearch) {

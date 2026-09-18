@@ -13,14 +13,7 @@ import GroupCheckIns from 'sentry/views/issueDetails/groupCheckIns';
 
 describe('GroupCheckIns', () => {
   const monitorId = 'f75a223c-aae1-47e4-8f77-6c72243cb76e';
-  const event = EventFixture({
-    tags: [
-      {
-        key: 'monitor.id',
-        value: monitorId,
-      },
-    ],
-  });
+  const event = EventFixture({tags: [{key: 'monitor.id', value: monitorId}]});
   const project = ProjectFixture();
   const group = GroupFixture({
     issueCategory: IssueCategory.CRON,
@@ -55,10 +48,7 @@ describe('GroupCheckIns', () => {
       body: [],
     });
 
-    render(<GroupCheckIns />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<GroupCheckIns />, {organization, initialRouterConfig});
     expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
     expect(
       await screen.findByText('No check-ins have been recorded for this time period.')
@@ -72,10 +62,7 @@ describe('GroupCheckIns', () => {
       body: [check],
     });
 
-    render(<GroupCheckIns />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<GroupCheckIns />, {organization, initialRouterConfig});
     expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
     expect(screen.queryByText('No matching check-ins found')).not.toBeInTheDocument();
     expect(await screen.findByText('Showing 1-1 matching check-ins')).toBeInTheDocument();

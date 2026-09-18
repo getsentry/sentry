@@ -37,9 +37,7 @@ function OrganizationFeatureFlagsNewSecret() {
   // get existing secrets so we can check if the provider is already configured
   const {data: secretList} = useApiQuery<FetchSecretResponse>(
     makeFetchSecretQueryKey({orgSlug: organization.slug}),
-    {
-      staleTime: Infinity,
-    }
+    {staleTime: Infinity}
   );
 
   const handleGoBack = useCallback(() => {

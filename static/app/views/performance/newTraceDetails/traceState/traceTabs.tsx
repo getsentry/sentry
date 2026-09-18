@@ -1,10 +1,7 @@
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
-type Tab = {
-  node: BaseNode | 'trace' | 'profiles' | 'vitals';
-  label?: string;
-};
+type Tab = {node: BaseNode | 'trace' | 'profiles' | 'vitals'; label?: string};
 
 export type TraceTabsReducerState = {
   current_tab: Tab | null;
@@ -14,11 +11,7 @@ export type TraceTabsReducerState = {
 
 type TraceTabsReducerAction =
   | {payload: TraceTabsReducerState; type: 'initialize tabs reducer'}
-  | {
-      payload: Tab['node'] | number;
-      type: 'activate tab';
-      pin_previous?: boolean;
-    }
+  | {payload: Tab['node'] | number; type: 'activate tab'; pin_previous?: boolean}
   | {type: 'pin tab'}
   | {payload: number; type: 'unpin tab'}
   | {type: 'clear clicked tab'};
@@ -45,11 +38,7 @@ export function traceTabsReducer(
       // doesnt seem like a usable feature anyways
       for (const tab of state.tabs) {
         if (tab.node === action.payload) {
-          return {
-            ...state,
-            current_tab: tab,
-            last_clicked_tab: state.last_clicked_tab,
-          };
+          return {...state, current_tab: tab, last_clicked_tab: state.last_clicked_tab};
         }
       }
 
@@ -73,11 +62,7 @@ export function traceTabsReducer(
         };
       }
 
-      return {
-        ...state,
-        current_tab: tab,
-        last_clicked_tab: tab,
-      };
+      return {...state, current_tab: tab, last_clicked_tab: tab};
     }
 
     case 'pin tab': {
@@ -106,12 +91,7 @@ export function traceTabsReducer(
           ? (state.last_clicked_tab ?? state.current_tab)
           : newTabs[newTabs.length - 1]!;
 
-        return {
-          ...state,
-          current_tab: nextTab,
-          last_clicked_tab: nextTab,
-          tabs: newTabs,
-        };
+        return {...state, current_tab: nextTab, last_clicked_tab: nextTab, tabs: newTabs};
       }
 
       if (state.current_tab?.node === state.tabs[action.payload]!.node) {
@@ -125,12 +105,7 @@ export function traceTabsReducer(
 
       const next = state.last_clicked_tab ?? newTabs[newTabs.length - 1]!;
 
-      return {
-        ...state,
-        current_tab: next,
-        last_clicked_tab: next,
-        tabs: newTabs,
-      };
+      return {...state, current_tab: next, last_clicked_tab: next, tabs: newTabs};
     }
 
     case 'clear clicked tab': {
@@ -138,11 +113,7 @@ export function traceTabsReducer(
         state.last_clicked_tab === state.current_tab
           ? state.tabs[state.tabs.length - 1]!
           : state.current_tab!;
-      return {
-        ...state,
-        current_tab: next,
-        last_clicked_tab: null,
-      };
+      return {...state, current_tab: next, last_clicked_tab: null};
     }
 
     default: {

@@ -227,11 +227,7 @@ export function PrimaryNavigationHelpMenu({
             </MenuIcon>
           ),
           onAction() {
-            openForm?.({
-              tags: {
-                'feedback.source': 'navigation_sidebar',
-              },
-            });
+            openForm?.({tags: {'feedback.source': 'navigation_sidebar'}});
           },
           hidden: !openForm,
         },
@@ -293,10 +289,7 @@ function getContactSupportItem(organization: Organization): MenuItemProps | null
     key: 'support',
     label: t('Contact Support'),
     async onAction() {
-      trackAnalytics('intercom_link.clicked', {
-        organization,
-        source: 'sidebar',
-      });
+      trackAnalytics('intercom_link.clicked', {organization, source: 'sidebar'});
       try {
         await showIntercom(organization.slug);
       } catch {

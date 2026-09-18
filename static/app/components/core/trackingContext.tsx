@@ -25,9 +25,7 @@ export interface AnalyticsProps {
 type ClickTrackingType = 'button' | 'link';
 
 export type TrackingProps = AnalyticsProps &
-  Record<string, unknown> & {
-    clickType: ClickTrackingType;
-  };
+  Record<string, unknown> & {clickType: ClickTrackingType};
 
 const TrackingContext = createContext<(props: TrackingProps) => void>(() => {});
 

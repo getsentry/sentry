@@ -39,10 +39,7 @@ const COLUMNS: Array<{
     ),
   },
   {field: 'description', label: t('Path')},
-  {
-    field: 'op',
-    label: t('Type'),
-  },
+  {field: 'op', label: t('Type')},
   {
     field: 'size',
     label: t('Size'),

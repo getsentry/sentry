@@ -21,9 +21,7 @@ import {List} from './list';
 import {processSimilarItem} from './types';
 import type {SimilarApiResponse} from './types';
 
-type Props = {
-  project: Project;
-};
+type Props = {project: Project};
 
 const DataConsentBanner = OverrideOrDefault({
   overrideName: 'component:data-consent-banner',

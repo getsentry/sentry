@@ -49,13 +49,7 @@ export class FlamegraphChart {
   timelineFormatter: (value: number) => string;
   series: Series[];
   status: 'no metrics' | 'empty metrics' | 'insufficient data' | 'ok' = 'no metrics';
-  domains: {
-    x: [number, number];
-    y: [number, number];
-  } = {
-    x: [0, 0],
-    y: [0, 0],
-  };
+  domains: {x: [number, number]; y: [number, number]} = {x: [0, 0], y: [0, 0]};
 
   static MIN_RENDERABLE_POINTS = 2;
   static Empty = new FlamegraphChart(Rect.empty(), [], [[0, 0, 0, 0]]);

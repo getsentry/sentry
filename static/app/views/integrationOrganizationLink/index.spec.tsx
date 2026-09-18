@@ -29,10 +29,7 @@ function setupConfigStore(organization: Organization) {
       organizationUrl: `https://${organization.slug}.sentry.io`,
       sentryUrl: 'https://sentry.io',
     },
-    links: {
-      ...defaultConfig.links,
-      sentryUrl: 'https://sentry.io',
-    },
+    links: {...defaultConfig.links, sentryUrl: 'https://sentry.io'},
   };
   ConfigStore.loadInitialData(window.__initialData);
 }
@@ -43,20 +40,12 @@ function teardownConfigStore() {
 }
 
 describe('IntegrationOrganizationLink', () => {
-  const org1 = OrganizationFixture({
-    slug: 'org1',
-    name: 'Organization 1',
-  });
-  const org2 = OrganizationFixture({
-    slug: 'org2',
-    name: 'Organization 2',
-  });
+  const org1 = OrganizationFixture({slug: 'org1', name: 'Organization 1'});
+  const org2 = OrganizationFixture({slug: 'org2', name: 'Organization 2'});
   let getOrgsMock: jest.Mock;
 
   const initialRouterConfig = {
-    location: {
-      pathname: '/extensions/vercel/link/',
-    },
+    location: {pathname: '/extensions/vercel/link/'},
     route: '/extensions/:integrationSlug/link/',
   };
 
@@ -91,9 +80,7 @@ describe('IntegrationOrganizationLink', () => {
       body: {providers: [VercelProviderFixture()]},
     });
 
-    render(<IntegrationOrganizationLink />, {
-      initialRouterConfig,
-    });
+    render(<IntegrationOrganizationLink />, {initialRouterConfig});
     expect(getOrgsMock).toHaveBeenCalled();
     expect(getOrgMock).toHaveBeenCalled();
 
@@ -118,9 +105,7 @@ describe('IntegrationOrganizationLink', () => {
       body: org2,
     });
 
-    render(<IntegrationOrganizationLink />, {
-      initialRouterConfig,
-    });
+    render(<IntegrationOrganizationLink />, {initialRouterConfig});
     // Select the same organization as the domain
     await selectEvent.select(await screen.findByRole('textbox'), org2.name);
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
@@ -215,9 +200,7 @@ describe('IntegrationOrganizationLink', () => {
 
     render(<IntegrationOrganizationLink />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/extensions/generic-provider/link/',
-        },
+        location: {pathname: '/extensions/generic-provider/link/'},
         route: '/extensions/:integrationSlug/link/',
       },
     });

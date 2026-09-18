@@ -52,10 +52,7 @@ describe('transformLegacySeriesToTimeSeries', () => {
   });
 
   it('sets isOther to true for "Other" series', () => {
-    const otherSeries = {
-      seriesName: 'Other',
-      data: [{name: 1729796400000, value: 100}],
-    };
+    const otherSeries = {seriesName: 'Other', data: [{name: 1729796400000, value: 100}]};
     const aliasedOtherSeries = {
       seriesName: 'count() : Other',
       data: [{name: 1729796400000, value: 100}],
@@ -129,10 +126,7 @@ describe('transformLegacySeriesToTimeSeries', () => {
   });
 
   it('returns null groupBy when no groupByFields provided', () => {
-    const series = {
-      seriesName: 'count()',
-      data: [{name: 1729796400000, value: 100}],
-    };
+    const series = {seriesName: 'count()', data: [{name: 1729796400000, value: 100}]};
 
     const timeSeries = transformLegacySeriesToTimeSeries(
       series,

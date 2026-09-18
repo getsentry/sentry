@@ -4,10 +4,7 @@ import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface OrganizationSeerSetupResponse {
-  billing: {
-    hasAutofixQuota: boolean;
-    hasScannerQuota: boolean;
-  };
+  billing: {hasAutofixQuota: boolean; hasScannerQuota: boolean};
   hasFreeAutofixAccess: boolean;
 }
 
@@ -29,11 +26,7 @@ export function useOrganizationSeerSetup(
 
   const queryData = useApiQuery<OrganizationSeerSetupResponse>(
     makeOrganizationSeerSetupQueryKey(orgSlug),
-    {
-      staleTime: 0,
-      retry: false,
-      ...options,
-    }
+    {staleTime: 0, retry: false, ...options}
   );
 
   return {

@@ -17,9 +17,7 @@ jest.mock('sentry/components/events/autofix/useOrganizationSeerSetup');
 const mockUseOrganizationSeerSetup = jest.mocked(useOrganizationSeerSetup);
 
 describe('FeedbackCategories', () => {
-  const mockOrganization = OrganizationFixture({
-    slug: 'org-slug',
-  });
+  const mockOrganization = OrganizationFixture({slug: 'org-slug'});
 
   const mockCategories = [
     {
@@ -39,19 +37,12 @@ describe('FeedbackCategories', () => {
     },
   ];
 
-  const initialRouterConfig = {
-    location: {
-      pathname: '/test',
-      query: {query: ''},
-    },
-  };
+  const initialRouterConfig = {location: {pathname: '/test', query: {query: ''}}};
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockUseOrganizationSeerSetup.mockReturnValue({
-      isPending: false,
-    } as any);
+    mockUseOrganizationSeerSetup.mockReturnValue({isPending: false} as any);
   });
 
   describe('Component Rendering', () => {
@@ -75,11 +66,7 @@ describe('FeedbackCategories', () => {
       // Mock API to return too few feedbacks
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/feedback-categories/',
-        body: {
-          categories: [],
-          numFeedbacksContext: 0,
-          success: false,
-        },
+        body: {categories: [], numFeedbacksContext: 0, success: false},
         statusCode: 200,
       });
 
@@ -97,11 +84,7 @@ describe('FeedbackCategories', () => {
       // Mock API to return empty categories
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/feedback-categories/',
-        body: {
-          categories: [],
-          numFeedbacksContext: 15,
-          success: true,
-        },
+        body: {categories: [], numFeedbacksContext: 15, success: true},
         statusCode: 200,
       });
 
@@ -119,11 +102,7 @@ describe('FeedbackCategories', () => {
       // Mock API to return categories
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/feedback-categories/',
-        body: {
-          categories: mockCategories,
-          numFeedbacksContext: 35,
-          success: true,
-        },
+        body: {categories: mockCategories, numFeedbacksContext: 35, success: true},
         statusCode: 200,
       });
 
@@ -143,11 +122,7 @@ describe('FeedbackCategories', () => {
       // Mock API to return categories
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/feedback-categories/',
-        body: {
-          categories: mockCategories,
-          numFeedbacksContext: 35,
-          success: true,
-        },
+        body: {categories: mockCategories, numFeedbacksContext: 35, success: true},
         statusCode: 200,
       });
 
@@ -169,11 +144,7 @@ describe('FeedbackCategories', () => {
       // Mock API to return categories
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/feedback-categories/',
-        body: {
-          categories: mockCategories,
-          numFeedbacksContext: 35,
-          success: true,
-        },
+        body: {categories: mockCategories, numFeedbacksContext: 35, success: true},
         statusCode: 200,
       });
 
@@ -181,10 +152,7 @@ describe('FeedbackCategories', () => {
         organization: mockOrganization,
         initialRouterConfig: {
           ...initialRouterConfig,
-          location: {
-            ...initialRouterConfig.location,
-            query: {query: initialQuery},
-          },
+          location: {...initialRouterConfig.location, query: {query: initialQuery}},
         },
       });
 
@@ -202,11 +170,7 @@ describe('FeedbackCategories', () => {
       // Mock API to return categories
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/feedback-categories/',
-        body: {
-          categories: mockCategories,
-          numFeedbacksContext: 35,
-          success: true,
-        },
+        body: {categories: mockCategories, numFeedbacksContext: 35, success: true},
         statusCode: 200,
       });
 
@@ -214,10 +178,7 @@ describe('FeedbackCategories', () => {
         organization: mockOrganization,
         initialRouterConfig: {
           ...initialRouterConfig,
-          location: {
-            ...initialRouterConfig.location,
-            query: {query: initialQuery},
-          },
+          location: {...initialRouterConfig.location, query: {query: initialQuery}},
         },
       });
 
@@ -291,11 +252,7 @@ describe('FeedbackCategories', () => {
       // Mock API to return categories
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/feedback-categories/',
-        body: {
-          categories: categoriesWithQuotes,
-          numFeedbacksContext: 15,
-          success: true,
-        },
+        body: {categories: categoriesWithQuotes, numFeedbacksContext: 15, success: true},
         statusCode: 200,
       });
 
@@ -354,11 +311,7 @@ describe('FeedbackCategories', () => {
 
     it('handles empty associated labels correctly', async () => {
       const categoriesWithNoAssociatedLabels = [
-        {
-          primaryLabel: 'Standalone* "Category"',
-          associatedLabels: [],
-          feedbackCount: 5,
-        },
+        {primaryLabel: 'Standalone* "Category"', associatedLabels: [], feedbackCount: 5},
       ];
 
       // Mock API to return categories
@@ -397,11 +350,7 @@ describe('FeedbackCategories', () => {
       // Mock API to return categories
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/feedback-categories/',
-        body: {
-          categories: testCategories,
-          numFeedbacksContext: 10,
-          success: true,
-        },
+        body: {categories: testCategories, numFeedbacksContext: 10, success: true},
         statusCode: 200,
       });
 

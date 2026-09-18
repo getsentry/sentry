@@ -29,9 +29,7 @@ export default function AccountSecurityWrapper() {
   const {refetch: refetchOrganizations} = orgRequest;
   const emailsRequest = useApiQuery<UserEmail[]>(
     [getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}})],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
   const authenticatorsRequest = useApiQuery<Authenticator[]>([ENDPOINT], {staleTime: 0});
 
@@ -63,9 +61,7 @@ export default function AccountSecurityWrapper() {
         return;
       }
 
-      await api.requestPromise(`${ENDPOINT}${authId}/`, {
-        method: 'PUT',
-      });
+      await api.requestPromise(`${ENDPOINT}${authId}/`, {method: 'PUT'});
     },
     onSuccess: () => {
       handleRefresh();

@@ -21,22 +21,10 @@ describe('extractSlug', () => {
     {hostname: 'localhost', slug: '', domain: 'localhost'},
     {hostname: 'localhost:7999', slug: '', domain: 'localhost:7999'},
     {hostname: 'acme.localhost', slug: 'acme', domain: 'localhost'},
-    {
-      hostname: 'acme.localhost:7999',
-      slug: 'acme',
-      domain: 'localhost:7999',
-    },
+    {hostname: 'acme.localhost:7999', slug: 'acme', domain: 'localhost:7999'},
     {hostname: 'dev.getsentry.net', slug: '', domain: 'dev.getsentry.net'},
-    {
-      hostname: 'dev.getsentry.net:7999',
-      slug: '',
-      domain: 'dev.getsentry.net:7999',
-    },
-    {
-      hostname: 'acme.dev.getsentry.net',
-      slug: 'acme',
-      domain: 'dev.getsentry.net',
-    },
+    {hostname: 'dev.getsentry.net:7999', slug: '', domain: 'dev.getsentry.net:7999'},
+    {hostname: 'acme.dev.getsentry.net', slug: 'acme', domain: 'dev.getsentry.net'},
     {
       hostname: 'acme.sentry-inst123.dev.getsentry.net',
       slug: 'acme',
@@ -55,11 +43,7 @@ describe('extractSlug', () => {
       slug: 'acme',
       domain: 'sentry-inst123.sentry.dev',
     },
-    {
-      hostname: 'acme.sentry.dev:7999',
-      slug: 'acme',
-      domain: 'sentry.dev:7999',
-    },
+    {hostname: 'acme.sentry.dev:7999', slug: 'acme', domain: 'sentry.dev:7999'},
     {
       hostname: 'acme.sentry-inst123.sentry.dev:7999',
       slug: 'acme',

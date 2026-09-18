@@ -40,9 +40,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock({additionalPackage: 'sanic'}),
         ...getPythonAiocontextvarsCodeBlocks(),
@@ -57,9 +55,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'If you have the [codeSanic:sanic] package in your dependencies, the Sanic integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
-            {
-              codeSanic: <code />,
-            }
+            {codeSanic: <code />}
           ),
         },
         {
@@ -100,9 +96,7 @@ async def hello_world(request):
           type: 'text',
           text: tct(
             'When you point your browser to [link:http://localhost:8000/] an error will be sent to Sentry.',
-            {
-              link: <ExternalLink href="http://localhost:8000/" />,
-            }
+            {link: <ExternalLink href="http://localhost:8000/" />}
           ),
         },
       ],

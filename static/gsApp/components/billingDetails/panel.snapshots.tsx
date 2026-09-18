@@ -30,10 +30,7 @@ const emptyDetails: BillingDetails = {
   taxNumber: null,
 };
 
-type Scenario = {
-  details: BillingDetails;
-  subscription: Subscription;
-};
+type Scenario = {details: BillingDetails; subscription: Subscription};
 
 const SCENARIOS: Record<string, Scenario> = {
   empty: {

@@ -43,19 +43,9 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('disables the button for org-member', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...DEFAULT_EVENT_VIEW,
-    });
-    const noAccessOrg = {
-      ...organization,
-      access: [],
-    };
-    const projects = [
-      {
-        ...ProjectFixture(),
-        access: [],
-      },
-    ];
+    const eventView = EventView.fromSavedQuery({...DEFAULT_EVENT_VIEW});
+    const noAccessOrg = {...organization, access: []};
+    const projects = [{...ProjectFixture(), access: []}];
     ProjectsStore.loadInitialData(projects);
 
     render(
@@ -65,9 +55,7 @@ describe('CreateAlertFromViewButton', () => {
         projects={projects}
         onClick={onClickMock}
       />,
-      {
-        organization: noAccessOrg,
-      }
+      {organization: noAccessOrg}
     );
 
     expect(screen.getByRole('button', {name: 'Create Monitor'})).toHaveAttribute(
@@ -77,15 +65,8 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('enables the button for org-owner/manager', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...DEFAULT_EVENT_VIEW,
-    });
-    const projects = [
-      {
-        ...ProjectFixture(),
-        access: [],
-      },
-    ];
+    const eventView = EventView.fromSavedQuery({...DEFAULT_EVENT_VIEW});
+    const projects = [{...ProjectFixture(), access: []}];
     ProjectsStore.loadInitialData(projects);
 
     render(
@@ -95,22 +76,15 @@ describe('CreateAlertFromViewButton', () => {
         projects={projects}
         onClick={onClickMock}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(screen.getByRole('button', {name: 'Create Monitor'})).toBeEnabled();
   });
 
   it('enables the button for team-admin', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...DEFAULT_EVENT_VIEW,
-    });
-    const noAccessOrg = {
-      ...organization,
-      access: [],
-    };
+    const eventView = EventView.fromSavedQuery({...DEFAULT_EVENT_VIEW});
+    const noAccessOrg = {...organization, access: []};
     const projects = [
       {
         ...ProjectFixture(),
@@ -134,9 +108,7 @@ describe('CreateAlertFromViewButton', () => {
         projects={projects}
         onClick={onClickMock}
       />,
-      {
-        organization: noAccessOrg,
-      }
+      {organization: noAccessOrg}
     );
 
     expect(screen.getByRole('button', {name: 'Create Monitor'})).toBeEnabled();
@@ -148,9 +120,7 @@ describe('CreateAlertFromViewButton', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/alerts/wizard/',
-          },
+          location: {pathname: '/organizations/org-slug/issues/alerts/wizard/'},
           route: '/organizations/:orgId/issues/alerts/wizard/',
         },
       }
@@ -171,9 +141,7 @@ describe('CreateAlertFromViewButton', () => {
         organization={organization}
         projectSlug="proj-slug"
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(screen.getByRole('button')).toHaveAttribute(

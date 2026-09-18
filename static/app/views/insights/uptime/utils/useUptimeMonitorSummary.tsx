@@ -22,14 +22,8 @@ export function useUptimeMonitorSummaries({detectorIds}: Options) {
       getApiUrl('/organizations/$organizationIdOrSlug/uptime-summary/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          uptimeDetectorId: detectorIds,
-        },
-      },
+      {query: {uptimeDetectorId: detectorIds}},
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 }

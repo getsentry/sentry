@@ -14,10 +14,7 @@ describe('StatusBanner', () => {
   it('renders the activity resolved presentation', () => {
     render(
       <StatusBanner
-        group={GroupFixture({
-          status: GroupStatus.RESOLVED,
-          statusDetails: {},
-        })}
+        group={GroupFixture({status: GroupStatus.RESOLVED, statusDetails: {}})}
         project={project}
       />
     );

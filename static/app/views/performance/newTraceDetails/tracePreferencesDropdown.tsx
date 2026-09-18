@@ -63,9 +63,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       value: 'no-instrumentation',
       details: tct(
         'Shows when there is more than 100ms of unaccounted elapsed time between two spans.[link: Go to docs to instrument more.]',
-        {
-          link: <ExternalLink href={getCustomInstrumentationLink(traceProject)} />,
-        }
+        {link: <ExternalLink href={getCustomInstrumentationLink(traceProject)} />}
       ),
     },
   ];

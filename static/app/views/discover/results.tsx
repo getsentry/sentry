@@ -215,10 +215,7 @@ export class Results extends Component<Props, State> {
       // oxlint-disable-next-line react/no-did-mount-set-state -- Legacy class lifecycle.
       this.setState({showUnparameterizedBanner: true});
       navigate(
-        {
-          ...location,
-          query: {...location.query, [SHOW_UNPARAM_BANNER]: undefined},
-        },
+        {...location, query: {...location.query, [SHOW_UNPARAM_BANNER]: undefined}},
         {replace: true}
       );
     }
@@ -239,10 +236,7 @@ export class Results extends Component<Props, State> {
       // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({showQueryIncompatibleWithDataset: true});
       this.props.navigate(
-        {
-          ...location,
-          query: {...location.query, incompatible: undefined},
-        },
+        {...location, query: {...location.query, incompatible: undefined}},
         {replace: true}
       );
     }
@@ -480,10 +474,7 @@ export class Results extends Component<Props, State> {
   }
 
   handleCursor: CursorHandler = (cursor, path, query, _direction) => {
-    this.props.navigate({
-      pathname: path,
-      query: {...query, cursor},
-    });
+    this.props.navigate({pathname: path, query: {...query, cursor}});
     // Treat pagination like the user already confirmed the query
     if (!this.state.needConfirmation) {
       this.handleConfirmed();
@@ -492,9 +483,7 @@ export class Results extends Component<Props, State> {
 
   handleChangeShowTags = () => {
     const {organization} = this.props;
-    trackAnalytics('discover_v2.results.toggle_tag_facets', {
-      organization,
-    });
+    trackAnalytics('discover_v2.results.toggle_tag_facets', {organization});
     this.setState(state => {
       const newValue = !state.showTags;
       localStorageWrapper.setItem(SHOW_TAGS_STORAGE_KEY, newValue ? '1' : '0');
@@ -505,18 +494,12 @@ export class Results extends Component<Props, State> {
   handleSearch = (query: string) => {
     const {location, navigate} = this.props;
 
-    const queryParams = normalizeDateTimeParams({
-      ...location.query,
-      query,
-    });
+    const queryParams = normalizeDateTimeParams({...location.query, query});
 
     // do not propagate pagination when making a new search
     const searchQueryParams = omit(queryParams, 'cursor');
 
-    navigate({
-      pathname: location.pathname,
-      query: searchQueryParams,
-    });
+    navigate({pathname: location.pathname, query: searchQueryParams});
   };
 
   handleYAxisChange = (value: string[]) => {
@@ -537,10 +520,7 @@ export class Results extends Component<Props, State> {
           : location.query.display,
     };
 
-    navigate({
-      pathname: location.pathname,
-      query: newQuery,
-    });
+    navigate({pathname: location.pathname, query: newQuery});
 
     // Treat axis changing like the user already confirmed the query
     if (!this.state.needConfirmation) {
@@ -556,15 +536,9 @@ export class Results extends Component<Props, State> {
   handleDisplayChange = (value: string) => {
     const {navigate, location} = this.props;
 
-    const newQuery = {
-      ...location.query,
-      display: value,
-    };
+    const newQuery = {...location.query, display: value};
 
-    navigate({
-      pathname: location.pathname,
-      query: newQuery,
-    });
+    navigate({pathname: location.pathname, query: newQuery});
 
     // Treat display changing like the user already confirmed the query
     if (!this.state.needConfirmation) {
@@ -575,16 +549,10 @@ export class Results extends Component<Props, State> {
   handleIntervalChange = (value: string | undefined) => {
     const {navigate, location} = this.props;
 
-    const newQuery = {
-      ...location.query,
-      interval: value,
-    };
+    const newQuery = {...location.query, interval: value};
 
     if (location.query.interval !== value) {
-      navigate({
-        pathname: location.pathname,
-        query: newQuery,
-      });
+      navigate({pathname: location.pathname, query: newQuery});
 
       // Treat display changing like the user already confirmed the query
       if (!this.state.needConfirmation) {
@@ -596,15 +564,9 @@ export class Results extends Component<Props, State> {
   handleTopEventsChange = (value: string) => {
     const {navigate, location} = this.props;
 
-    const newQuery = {
-      ...location.query,
-      topEvents: value,
-    };
+    const newQuery = {...location.query, topEvents: value};
 
-    navigate({
-      pathname: location.pathname,
-      query: newQuery,
-    });
+    navigate({pathname: location.pathname, query: newQuery});
 
     // Treat display changing like the user already confirmed the query
     if (!this.state.needConfirmation) {
@@ -831,10 +793,7 @@ export class Results extends Component<Props, State> {
                       [dayLimit:over more than 30 days] for [projectLimit:more than 10 projects].
                       A lot has happened during that time, so this might take awhile.
                       Are you sure you want to do this?`,
-                    {
-                      dayLimit: <strong />,
-                      projectLimit: <strong />,
-                    }
+                    {dayLimit: <strong />, projectLimit: <strong />}
                   )}
                 </p>
               }
@@ -940,9 +899,7 @@ function TransactionsDatasetDeprecationBanner({
         <Alert variant="warning">
           {tct(
             'This query has been migrated to Explore, the fancy new UI that will soon replace Discover. Try it out in [explore:Explore] instead.',
-            {
-              explore: <Link to={exploreUrl} />,
-            }
+            {explore: <Link to={exploreUrl} />}
           )}
         </Alert>
       </Alert.Container>
@@ -1059,10 +1016,7 @@ function TagsTable({
         isHomepage,
         hasDatasetSelector(organization) ? savedQueryDataset : undefined
       );
-      url.query = generateQueryWithTag(url.query, {
-        key: formatTagKey(key),
-        value,
-      });
+      url.query = generateQueryWithTag(url.query, {key: formatTagKey(key), value});
       return url;
     },
     [eventView, organization, isHomepage, savedQueryDataset]
@@ -1441,9 +1395,7 @@ function DiscoverPageFilters({
 }) {
   const {projects} = useProjects();
   // use the same data category as spans so the time period options across discover and traces are the same
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.ERRORS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.ERRORS]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
@@ -1558,10 +1510,7 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
   );
   const {data, isError, isFetching, refetch} = useApiQuery<SavedQuery | undefined>(
     queryKey,
-    {
-      enabled: Boolean(location.query.id),
-      staleTime: 0,
-    }
+    {enabled: Boolean(location.query.id), staleTime: 0}
   );
 
   const setSavedQuery = useCallback(
@@ -1600,9 +1549,7 @@ export default function ResultsContainer() {
   const location = useLocation();
   const navigate = useNavigate();
   const {addAlert} = useGlobalAlerts();
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.ERRORS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.ERRORS]});
 
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API

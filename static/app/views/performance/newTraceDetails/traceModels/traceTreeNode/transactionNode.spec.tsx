@@ -10,9 +10,7 @@ import {
 
 import {TransactionNode} from './transactionNode';
 
-const createMockExtra = () => ({
-  organization: OrganizationFixture(),
-});
+const createMockExtra = () => ({organization: OrganizationFixture()});
 
 describe('TransactionNode', () => {
   describe('constructor', () => {
@@ -39,9 +37,7 @@ describe('TransactionNode', () => {
         event_id: 'perf-event-123',
       });
 
-      const transaction = makeTransaction({
-        performance_issues: [performanceIssue],
-      });
+      const transaction = makeTransaction({performance_issues: [performanceIssue]});
 
       const node = new TransactionNode(null, transaction, createMockExtra());
 
@@ -68,54 +64,42 @@ describe('TransactionNode', () => {
 
   describe('getter methods', () => {
     it('should return event_id as id', () => {
-      const transaction = makeTransaction({
-        event_id: 'test-event-id',
-      });
+      const transaction = makeTransaction({event_id: 'test-event-id'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.id).toBe('test-event-id');
     });
 
     it('should return project_slug as projectSlug', () => {
-      const transaction = makeTransaction({
-        project_slug: 'test-project',
-      });
+      const transaction = makeTransaction({project_slug: 'test-project'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.projectSlug).toBe('test-project');
     });
 
     it('should return transaction.op as op', () => {
-      const transaction = makeTransaction({
-        'transaction.op': 'http.server',
-      });
+      const transaction = makeTransaction({'transaction.op': 'http.server'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.op).toBe('http.server');
     });
 
     it('should return transaction as description', () => {
-      const transaction = makeTransaction({
-        transaction: '/api/users',
-      });
+      const transaction = makeTransaction({transaction: '/api/users'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.description).toBe('/api/users');
     });
 
     it('should return start_timestamp as startTimestamp', () => {
-      const transaction = makeTransaction({
-        start_timestamp: 1500,
-      });
+      const transaction = makeTransaction({start_timestamp: 1500});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.startTimestamp).toBe(1500);
     });
 
     it('should return timestamp as endTimestamp', () => {
-      const transaction = makeTransaction({
-        timestamp: 2500,
-      });
+      const transaction = makeTransaction({timestamp: 2500});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.endTimestamp).toBe(2500);
@@ -171,27 +155,21 @@ describe('TransactionNode', () => {
 
   describe('matchById', () => {
     it('should match by path', () => {
-      const transaction = makeTransaction({
-        event_id: '123',
-      });
+      const transaction = makeTransaction({event_id: '123'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchByPath('txn-123')).toBe(true);
       expect(node.matchByPath('txn-456')).toBe(false);
     });
     it('should match by event_id', () => {
-      const transaction = makeTransaction({
-        event_id: 'txn-123',
-      });
+      const transaction = makeTransaction({event_id: 'txn-123'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchById('txn-123')).toBe(true);
     });
 
     it('should match by span_id', () => {
-      const transaction = makeTransaction({
-        span_id: 'span-456',
-      });
+      const transaction = makeTransaction({span_id: 'span-456'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchById('span-456')).toBe(true);
@@ -199,18 +177,14 @@ describe('TransactionNode', () => {
 
     it('should match by error event_id', () => {
       const error = makeTraceError({event_id: 'error-123'});
-      const transaction = makeTransaction({
-        errors: [error],
-      });
+      const transaction = makeTransaction({errors: [error]});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchById('error-123')).toBe(true);
     });
 
     it('should not match unrelated id', () => {
-      const transaction = makeTransaction({
-        event_id: 'txn-123',
-      });
+      const transaction = makeTransaction({event_id: 'txn-123'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchById('unrelated-id')).toBe(false);
@@ -219,9 +193,7 @@ describe('TransactionNode', () => {
 
   describe('matchWithFreeText', () => {
     it('should match by operation', () => {
-      const transaction = makeTransaction({
-        'transaction.op': 'http.server',
-      });
+      const transaction = makeTransaction({'transaction.op': 'http.server'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchWithFreeText('http')).toBe(true);
@@ -229,9 +201,7 @@ describe('TransactionNode', () => {
     });
 
     it('should match by transaction name', () => {
-      const transaction = makeTransaction({
-        transaction: '/api/users/profile',
-      });
+      const transaction = makeTransaction({transaction: '/api/users/profile'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchWithFreeText('api')).toBe(true);
@@ -239,9 +209,7 @@ describe('TransactionNode', () => {
     });
 
     it('should match by exact event_id', () => {
-      const transaction = makeTransaction({
-        event_id: 'event-abc-123',
-      });
+      const transaction = makeTransaction({event_id: 'event-abc-123'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchWithFreeText('event-abc-123')).toBe(true);
@@ -284,9 +252,7 @@ describe('TransactionNode', () => {
         createMockExtra()
       );
 
-      const mockTree = {
-        list: [node, child1],
-      };
+      const mockTree = {list: [node, child1]};
 
       // Should be expanded by default
       expect(node.expanded).toBe(true);
@@ -382,10 +348,7 @@ describe('TransactionNode', () => {
 
   describe('resolveValueFromSearchKey', () => {
     it('should resolve duration aliases to transaction duration', () => {
-      const transaction = makeTransaction({
-        start_timestamp: 1000,
-        timestamp: 2500,
-      });
+      const transaction = makeTransaction({start_timestamp: 1000, timestamp: 2500});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.resolveValueFromSearchKey('duration')).toBe(1500 * 1e3);
@@ -415,10 +378,7 @@ describe('TransactionNode', () => {
 
   describe('appendSpans cycle detection', () => {
     it('should handle simple cycle (A -> B -> A) without infinite loop', () => {
-      const transaction = makeTransaction({
-        event_id: 'txn-1',
-        span_id: 'root-span',
-      });
+      const transaction = makeTransaction({event_id: 'txn-1', span_id: 'root-span'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       // Create spans with a cycle: A's parent is B, B's parent is A
@@ -446,10 +406,7 @@ describe('TransactionNode', () => {
     });
 
     it('should handle longer cycle (A -> B -> C -> A) without infinite loop', () => {
-      const transaction = makeTransaction({
-        event_id: 'txn-1',
-        span_id: 'root-span',
-      });
+      const transaction = makeTransaction({event_id: 'txn-1', span_id: 'root-span'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       // Create spans with a longer cycle: A -> B -> C -> A
@@ -475,10 +432,7 @@ describe('TransactionNode', () => {
     });
 
     it('should still build valid tree when no cycles exist', () => {
-      const transaction = makeTransaction({
-        event_id: 'txn-1',
-        span_id: 'root-span',
-      });
+      const transaction = makeTransaction({event_id: 'txn-1', span_id: 'root-span'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       // Create normal span hierarchy without cycles
@@ -504,10 +458,7 @@ describe('TransactionNode', () => {
     });
 
     it('should handle self-referencing span', () => {
-      const transaction = makeTransaction({
-        event_id: 'txn-1',
-        span_id: 'root-span',
-      });
+      const transaction = makeTransaction({event_id: 'txn-1', span_id: 'root-span'});
       const node = new TransactionNode(null, transaction, createMockExtra());
 
       // Create a span that references itself as parent

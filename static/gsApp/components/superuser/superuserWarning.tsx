@@ -36,9 +36,7 @@ export function shouldExcludeOrg(organization?: Organization | null) {
 
 function handleExitSuperuser(api: Client) {
   api
-    .requestPromise('/staff-auth/', {
-      method: 'DELETE',
-    })
+    .requestPromise('/staff-auth/', {method: 'DELETE'})
     .then(() => window.location.reload());
 }
 
@@ -47,10 +45,7 @@ function ExitSuperuserButton() {
   const api = useApi({persistInFlight: true});
   return (
     <Button
-      style={{
-        top: theme.space.xs,
-        bottom: theme.space.sm,
-      }}
+      style={{top: theme.space.xs, bottom: theme.space.sm}}
       size="sm"
       variant="primary"
       onClick={() => {
@@ -62,10 +57,7 @@ function ExitSuperuserButton() {
   );
 }
 
-type Props = {
-  className?: string;
-  organization?: Organization;
-};
+type Props = {className?: string; organization?: Organization};
 
 export function SuperuserWarning({organization}: Props) {
   const {addAlert} = useGlobalAlerts();

@@ -87,10 +87,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                   {
                     type: 'link',
                     label: t('Issues'),
-                    to: {
-                      pathname: `/organizations/${organization.slug}/issues/`,
-                      query,
-                    },
+                    to: {pathname: `/organizations/${organization.slug}/issues/`, query},
                   },
                 ]}
               />

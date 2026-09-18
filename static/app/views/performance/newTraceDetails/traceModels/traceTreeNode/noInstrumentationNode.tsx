@@ -44,13 +44,8 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     return t('No Instrumentation');
   }
 
-  get traceHeaderTitle(): {
-    title: string;
-    subtitle?: string;
-  } {
-    return {
-      title: t('Trace'),
-    };
+  get traceHeaderTitle(): {title: string; subtitle?: string} {
+    return {title: t('Trace')};
   }
 
   analyticsName(): string {

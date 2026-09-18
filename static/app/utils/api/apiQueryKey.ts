@@ -24,11 +24,7 @@ const markerSchema = z.object({infinite: z.boolean()});
 
 const queryKeySchema = z
   .tuple([apiUrlSchema, optionsSchema, markerSchema])
-  .transform(([url, options, marker]) => ({
-    url,
-    options,
-    isInfinite: marker.infinite,
-  }));
+  .transform(([url, options, marker]) => ({url, options, isInfinite: marker.infinite}));
 
 export type CanonicalApiQueryKey = readonly [
   ApiUrl,

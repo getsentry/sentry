@@ -62,12 +62,8 @@ function getLegend(trendFunction: string): LegendComponentOption {
         name: 'Baseline',
         icon: 'path://M180 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z, M810 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40zm, M1440 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z',
       },
-      {
-        name: 'Releases',
-      },
-      {
-        name: trendFunction,
-      },
+      {name: 'Releases'},
+      {name: trendFunction},
     ],
   };
 }
@@ -96,17 +92,12 @@ export function Chart({
     const {selected} = legendChange;
     const unselected = Object.keys(selected).filter(key => !selected[key]);
 
-    const query = {
-      ...location.query,
-    };
+    const query = {...location.query};
 
     const queryKey = getUnselectedSeries(trendChangeType);
     query[queryKey] = unselected;
 
-    const to = {
-      ...location,
-      query,
-    };
+    const to = {...location, query};
     navigate(to);
   };
 
@@ -148,10 +139,7 @@ export function Chart({
   }, {});
   const legend: LegendComponentOption = disableLegend
     ? {show: false}
-    : {
-        ...getLegend(chartLabel),
-        selected: seriesSelection,
-      };
+    : {...getLegend(chartLabel), selected: seriesSelection};
 
   const loading = isLoading;
   const reloading = isLoading;
@@ -169,13 +157,7 @@ export function Chart({
 
   const smoothedSeries = smoothedResults
     ? smoothedResults.map(values => {
-        return {
-          ...values,
-          color: lineColor.default,
-          lineStyle: {
-            opacity: 1,
-          },
-        };
+        return {...values, color: lineColor.default, lineStyle: {opacity: 1}};
       })
     : [];
 
@@ -227,21 +209,10 @@ export function Chart({
                   {...chartOptions}
                   onLegendSelectChanged={handleLegendSelectChanged}
                   series={series}
-                  seriesOptions={{
-                    showSymbol: false,
-                  }}
+                  seriesOptions={{showSymbol: false}}
                   legend={legend}
-                  toolBox={{
-                    show: false,
-                  }}
-                  grid={
-                    grid ?? {
-                      left: '10px',
-                      right: '10px',
-                      top: '40px',
-                      bottom: '0px',
-                    }
-                  }
+                  toolBox={{show: false}}
+                  grid={grid ?? {left: '10px', right: '10px', top: '40px', bottom: '0px'}}
                   xAxis={disableXAxis ? {show: false} : undefined}
                 />
               ),

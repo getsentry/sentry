@@ -51,10 +51,7 @@ type AvatarModel =
   | DocIntegration
   | SimpleAvatar;
 
-type DefaultChoice = {
-  description?: React.ReactNode;
-  label?: string;
-};
+type DefaultChoice = {description?: React.ReactNode; label?: string};
 
 interface AvatarChooserBaseProps {
   endpoint: string;
@@ -67,21 +64,9 @@ interface AvatarChooserBaseProps {
 
 type AvatarChooserProps = AvatarChooserBaseProps &
   (
-    | {
-        model: AvatarUser;
-        type: 'user';
-        onSave?: (model: AvatarUser) => void;
-      }
-    | {
-        model: Team;
-        type: 'team';
-        onSave?: (model: Team) => void;
-      }
-    | {
-        model: Organization;
-        type: 'organization';
-        onSave?: (model: Organization) => void;
-      }
+    | {model: AvatarUser; type: 'user'; onSave?: (model: AvatarUser) => void}
+    | {model: Team; type: 'team'; onSave?: (model: Team) => void}
+    | {model: Organization; type: 'organization'; onSave?: (model: Organization) => void}
     | {
         model: SentryApp;
         type: 'sentryAppColor' | 'sentryAppSimple';
@@ -203,10 +188,7 @@ export function AvatarChooser({
     }
 
     try {
-      const resp = await api.requestPromise(endpoint, {
-        method: 'PUT',
-        data,
-      });
+      const resp = await api.requestPromise(endpoint, {method: 'PUT', data});
       setModel(resp);
       onSave?.(resp);
       addSuccessMessage(t('Successfully saved avatar preferences'));
@@ -259,9 +241,7 @@ export function AvatarChooser({
     </Container>
   );
 
-  const sharedAvatarProps: Partial<Omit<AvatarProps, 'ref'>> = {
-    size: 90,
-  };
+  const sharedAvatarProps: Partial<Omit<AvatarProps, 'ref'>> = {size: 90};
 
   const avatarPreview =
     type === 'user' ? (

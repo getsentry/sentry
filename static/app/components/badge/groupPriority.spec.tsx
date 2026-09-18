@@ -10,17 +10,11 @@ import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 
 describe('GroupPriority', () => {
   describe('GroupPriorityDropdown', () => {
-    const defaultProps = {
-      groupId: '1',
-      onChange: jest.fn(),
-      value: PriorityLevel.HIGH,
-    };
+    const defaultProps = {groupId: '1', onChange: jest.fn(), value: PriorityLevel.HIGH};
 
     it('skips request when sent lastEditedBy', async () => {
       render(<GroupPriorityDropdown {...defaultProps} lastEditedBy="system" />, {
-        organization: OrganizationFixture({
-          features: ['issue-priority-assignee-ui'],
-        }),
+        organization: OrganizationFixture({features: ['issue-priority-assignee-ui']}),
       });
 
       await userEvent.click(

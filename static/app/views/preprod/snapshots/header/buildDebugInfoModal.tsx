@@ -20,9 +20,7 @@ const VISIBLE_FIELDS: Array<keyof SnapshotDetailsApiResponse> = [
   'vcs_info',
 ];
 
-type Props = ModalRenderProps & {
-  data: SnapshotDetailsApiResponse;
-};
+type Props = ModalRenderProps & {data: SnapshotDetailsApiResponse};
 
 function BuildDebugInfoModal({Header, Body, data}: Props) {
   const filteredData = useMemo(() => pick(data, VISIBLE_FIELDS), [data]);

@@ -68,11 +68,7 @@ function HeaderCell({
     const nextSort = getNextSort(sortKey, sort ?? undefined, 'asc');
     navigate({
       pathname: location.pathname,
-      query: {
-        ...location.query,
-        sort: encodeSort(nextSort),
-        cursor: undefined,
-      },
+      query: {...location.query, sort: encodeSort(nextSort), cursor: undefined},
     });
   };
 
@@ -220,10 +216,7 @@ export function AutomationListTable({
             <LinkButton
               icon={<IconSearch />}
               variant="primary"
-              to={{
-                pathname: makeMonitorBasePathname(organization.slug),
-                query: {query},
-              }}
+              to={{pathname: makeMonitorBasePathname(organization.slug), query: {query}}}
             >
               {t('Search Monitors')}
             </LinkButton>
@@ -252,11 +245,7 @@ const StyledFlex = styled(Flex)`
 
 const AUTOMATION_COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: {zero: '1fr', sm: '2.5fr', '4xl': 'minmax(0, 3fr)'}},
-  {
-    key: 'last-triggered',
-    visible: {'3xl': true},
-    width: 'minmax(160px, 1fr)',
-  },
+  {key: 'last-triggered', visible: {'3xl': true}, width: 'minmax(160px, 1fr)'},
   {key: 'action', visible: {xl: true}, width: '1fr'},
   {key: 'projects', visible: {sm: true}, width: '1fr'},
   {key: 'connected-monitors', visible: {'4xl': true}, width: '1fr'},

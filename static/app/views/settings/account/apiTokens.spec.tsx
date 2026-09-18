@@ -18,10 +18,7 @@ describe('ApiTokens', () => {
   });
 
   it('renders empty result', async () => {
-    MockApiClient.addMockResponse({
-      url: '/api-tokens/',
-      body: null,
-    });
+    MockApiClient.addMockResponse({url: '/api-tokens/', body: null});
 
     render(<ApiTokens />);
 
@@ -34,10 +31,7 @@ describe('ApiTokens', () => {
     const token1 = ApiTokenFixture({id: '1', name: 'token1'});
     const token2 = ApiTokenFixture({id: '2', name: 'token2'});
 
-    MockApiClient.addMockResponse({
-      url: '/api-tokens/',
-      body: [token1, token2],
-    });
+    MockApiClient.addMockResponse({url: '/api-tokens/', body: [token1, token2]});
 
     render(<ApiTokens />);
 
@@ -48,10 +42,7 @@ describe('ApiTokens', () => {
   it('renders empty in demo mode even if there are tokens', async () => {
     jest.mocked(isDemoModeActive).mockReturnValue(true);
 
-    MockApiClient.addMockResponse({
-      url: '/api-tokens/',
-      body: [ApiTokenFixture()],
-    });
+    MockApiClient.addMockResponse({url: '/api-tokens/', body: [ApiTokenFixture()]});
 
     render(<ApiTokens />);
 
@@ -63,10 +54,7 @@ describe('ApiTokens', () => {
   });
 
   it('can delete token', async () => {
-    MockApiClient.addMockResponse({
-      url: '/api-tokens/',
-      body: [ApiTokenFixture()],
-    });
+    MockApiClient.addMockResponse({url: '/api-tokens/', body: [ApiTokenFixture()]});
 
     const deleteTokenMock = MockApiClient.addMockResponse({
       url: '/api-tokens/',
@@ -80,10 +68,7 @@ describe('ApiTokens', () => {
     expect(deleteTokenMock).not.toHaveBeenCalled();
 
     // mock response for refetch after delete
-    MockApiClient.addMockResponse({
-      url: '/api-tokens/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/api-tokens/', body: []});
 
     await userEvent.click(removeButton);
     // Confirm modal
@@ -98,9 +83,7 @@ describe('ApiTokens', () => {
     expect(deleteTokenMock).toHaveBeenCalledTimes(1);
     expect(deleteTokenMock).toHaveBeenCalledWith(
       '/api-tokens/',
-      expect.objectContaining({
-        method: 'DELETE',
-      })
+      expect.objectContaining({method: 'DELETE'})
     );
   });
 });

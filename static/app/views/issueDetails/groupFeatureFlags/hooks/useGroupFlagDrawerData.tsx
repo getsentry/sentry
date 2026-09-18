@@ -32,10 +32,7 @@ export function useGroupFlagDrawerData({
     isError: isFlagsError,
     isPending: isFlagsPending,
     refetch: refetchFlags,
-  } = useGroupFeatureFlags({
-    groupId: group.id,
-    environment: environments,
-  });
+  } = useGroupFeatureFlags({groupId: group.id, environment: environments});
 
   // Flatten all the tag values together into a big string. This is meant as a
   // perf improvement: here we iterate over all tags&values once, (N*M) then

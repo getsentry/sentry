@@ -155,11 +155,7 @@ function MemberInviteModalCustomization({
   const isOverMemberLimit = totalLicenses > 0 && usedSeats >= totalLicenses;
 
   const renderPassthrough = () =>
-    children({
-      sendInvites: onSendInvites,
-      canSend: true,
-      isOverMemberLimit,
-    });
+    children({sendInvites: onSendInvites, canSend: true, isOverMemberLimit});
 
   // We don't need to do anything if the modal isn't going to actually sent
   // member invites.

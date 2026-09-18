@@ -55,10 +55,7 @@ describe('AutomationsList', () => {
       url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [AutomationFixture({name: 'Automation 1'})],
@@ -106,16 +103,8 @@ describe('AutomationsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [
-        AutomationFixture({
-          id: '100',
-          name: 'Automation 1',
-          detectorIds: ['1'],
-        }),
-        AutomationFixture({
-          id: '101',
-          name: 'Automation 2',
-          detectorIds: ['2'],
-        }),
+        AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']}),
+        AutomationFixture({id: '101', name: 'Automation 2', detectorIds: ['2']}),
       ],
     });
 
@@ -137,16 +126,10 @@ describe('AutomationsList', () => {
     // Projects column should show the correct project for each row
     await waitFor(() => {
       expect(
-        within(rows[0]!).getByRole('link', {
-          name: 'View Project Details',
-          hidden: true,
-        })
+        within(rows[0]!).getByRole('link', {name: 'View Project Details', hidden: true})
       ).toHaveAttribute('aria-description', 'project-1');
       expect(
-        within(rows[1]!).getByRole('link', {
-          name: 'View Project Details',
-          hidden: true,
-        })
+        within(rows[1]!).getByRole('link', {name: 'View Project Details', hidden: true})
       ).toHaveAttribute('aria-description', 'project-2');
     });
 
@@ -200,11 +183,7 @@ describe('AutomationsList', () => {
 
     expect(mockAutomationsRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [1],
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [1]})})
     );
   });
 
@@ -220,9 +199,7 @@ describe('AutomationsList', () => {
     expect(mockAutomationsRequest).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          sortBy: '-lastTriggered',
-        }),
+        query: expect.objectContaining({sortBy: '-lastTriggered'}),
       })
     );
 
@@ -236,11 +213,7 @@ describe('AutomationsList', () => {
     await waitFor(() => {
       expect(mockAutomationsRequest).toHaveBeenLastCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sortBy: 'name',
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({sortBy: 'name'})})
       );
     });
     expect(router.location.query.sort).toBe('name');
@@ -255,11 +228,7 @@ describe('AutomationsList', () => {
     await waitFor(() => {
       expect(mockAutomationsRequest).toHaveBeenLastCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sortBy: '-name',
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({sortBy: '-name'})})
       );
     });
     expect(router.location.query.sort).toBe('-name');
@@ -541,14 +510,8 @@ describe('AutomationsList', () => {
         url: '/organizations/org-slug/workflows/',
         method: 'GET',
         body: filteredAutomations,
-        headers: {
-          'X-Hits': '50',
-        },
-        match: [
-          MockApiClient.matchQuery({
-            query: 'action:slack',
-          }),
-        ],
+        headers: {'X-Hits': '50'},
+        match: [MockApiClient.matchQuery({query: 'action:slack'})],
       });
 
       // Click through menus to select action:slack
@@ -618,9 +581,7 @@ describe('AutomationsList', () => {
             id: '2',
             name: 'All Disabled Actions',
             actionFilters: [
-              ActionFilterFixture({
-                actions: [ActionFixture({status: 'disabled'})],
-              }),
+              ActionFilterFixture({actions: [ActionFixture({status: 'disabled'})]}),
             ],
           }),
           // Automation with mixed action statuses - should show warning
@@ -684,9 +645,7 @@ describe('AutomationsList', () => {
   });
 
   it('disables alert controls without alerts:write permission', async () => {
-    const noWriteOrg = OrganizationFixture({
-      access: ['org:read', 'alerts:read'],
-    });
+    const noWriteOrg = OrganizationFixture({access: ['org:read', 'alerts:read']});
 
     render(<AutomationsList />, {organization: noWriteOrg});
     await screen.findByTestId('automation-list-row');
@@ -699,14 +658,9 @@ describe('AutomationsList', () => {
   });
 
   it('does not enable bulk controls for project-scoped alert writers', async () => {
-    const teamAdminOrg = OrganizationFixture({
-      access: ['org:read', 'alerts:read'],
-    });
+    const teamAdminOrg = OrganizationFixture({access: ['org:read', 'alerts:read']});
     ProjectsStore.loadInitialData([
-      ProjectFixture({
-        ...project,
-        access: ['project:read', 'alerts:write'],
-      }),
+      ProjectFixture({...project, access: ['project:read', 'alerts:write']}),
     ]);
 
     render(<AutomationsList />, {organization: teamAdminOrg});

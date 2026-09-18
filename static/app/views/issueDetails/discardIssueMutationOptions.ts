@@ -9,11 +9,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {useNavigate} from 'sentry/utils/useNavigate';
 
-type DiscardIssueVariables = {
-  groupId: string;
-  orgSlug: string;
-  projectId: string;
-};
+type DiscardIssueVariables = {groupId: string; orgSlug: string; projectId: string};
 
 export function discardIssueMutationOptions({
   navigate,

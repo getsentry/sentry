@@ -297,10 +297,7 @@ export function ProjectCharts({
       chart_index: chartIndex,
     });
 
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, [chartId]: value},
-    });
+    navigate({pathname: location.pathname, query: {...location.query, [chartId]: value}});
   };
 
   // Keep this handler referentially stable. It is passed as `onTotalValuesChange`

@@ -20,10 +20,7 @@ describe('getInitialFilterText', () => {
   });
 
   it('defaults null value types to contains', () => {
-    const fieldDefinition: FieldDefinition = {
-      kind: FieldKind.FIELD,
-      valueType: null,
-    };
+    const fieldDefinition: FieldDefinition = {kind: FieldKind.FIELD, valueType: null};
 
     expect(getInitialFilterText('message', fieldDefinition)).toBe(
       `message:${WildcardOperators.CONTAINS}""`

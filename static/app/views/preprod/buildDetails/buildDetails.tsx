@@ -40,12 +40,7 @@ export default function BuildDetails() {
     [
       getApiUrl(
         '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            headArtifactId: artifactId,
-          },
-        }
+        {path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId}}
       ),
     ],
     {
@@ -65,12 +60,7 @@ export default function BuildDetails() {
     [
       getApiUrl(
         '/organizations/$organizationIdOrSlug/files/preprodartifacts/$headArtifactId/size-analysis/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            headArtifactId: artifactId,
-          },
-        }
+        {path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId}}
       ),
     ],
     {

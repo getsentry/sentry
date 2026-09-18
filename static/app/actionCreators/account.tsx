@@ -16,9 +16,7 @@ export async function disconnectIdentity(
   try {
     await api.requestPromise(
       `/users/me/user-identities/${identity.category}/${identity.id}/`,
-      {
-        method: 'DELETE',
-      }
+      {method: 'DELETE'}
     );
   } catch {
     addErrorMessage('Error disconnecting identity');

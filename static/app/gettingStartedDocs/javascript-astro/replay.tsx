@@ -23,9 +23,7 @@ export const replay: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Install the [code:@sentry/astro] package with the [code:astro] CLI:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         installSnippetBlock,
@@ -56,9 +54,7 @@ export const replay: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Configure the Sentry integration in your [code:astro.config.mjs] file:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -89,9 +85,7 @@ export default defineConfig({
           type: 'text',
           text: tct(
             'Set sample rates and replay options in your [code:sentry.client.config.js] file:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

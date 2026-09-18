@@ -158,11 +158,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   // TODO: Would be wise to guard against Y-axis type mismatches, we don't want
   // to support multi-axis here.
 
-  const series = plottables.flatMap(plottable =>
-    plottable.toSeries({
-      theme,
-    })
-  );
+  const series = plottables.flatMap(plottable => plottable.toSeries({theme}));
 
   const heatMapPlottable = plottables[0];
 
@@ -335,20 +331,14 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
           show: true,
           enterable: true,
           extraCssText: `box-shadow: 0 0 0 1px ${theme.tokens.border.transparent.neutral.muted}, ${theme.shadow.high}; z-index: ${theme.zIndex.tooltip} !important; pointer-events: auto !important;`,
-          axisPointer: {
-            show: false,
-          },
+          axisPointer: {show: false},
           triggerOn: 'mousemove',
           formatter: formatTooltip,
         }}
         series={series}
         xAxes={[
           HIDDEN_CATEGORY_AXIS,
-          heatMapTimeAxis({
-            min: meta.xAxis.start,
-            max: meta.xAxis.end,
-            timezone,
-          }),
+          heatMapTimeAxis({min: meta.xAxis.start, max: meta.xAxis.end, timezone}),
         ]}
         yAxes={[
           HIDDEN_CATEGORY_AXIS,
@@ -393,9 +383,7 @@ export const visualMapOptions = (
       seriesIndex: 0,
       min: 0,
       max: 1,
-      inRange: {
-        color: [...colors],
-      },
+      inRange: {color: [...colors]},
     },
   ];
 };

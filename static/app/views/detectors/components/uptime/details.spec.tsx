@@ -27,19 +27,14 @@ describe('UptimeAlertDetails', () => {
       url: `/organizations/${organization.slug}/users/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/3/checks/`,
       body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/uptime-summary/',
-      body: {
-        '3': UptimeSummaryFixture(),
-      },
+      body: {'3': UptimeSummaryFixture()},
     });
   });
 

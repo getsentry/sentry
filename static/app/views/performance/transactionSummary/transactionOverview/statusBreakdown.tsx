@@ -20,11 +20,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
-type Props = {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-};
+type Props = {eventView: EventView; location: Location; organization: Organization};
 
 export function StatusBreakdown({eventView, location, organization}: Props) {
   const navigate = useNavigate();
@@ -95,10 +91,7 @@ export function StatusBreakdown({eventView, location, organization}: Props) {
 
               trackAnalytics(
                 'performance_views.transaction_summary.status_breakdown_click',
-                {
-                  organization,
-                  status: row[statusAttribute] as string,
-                }
+                {organization, status: row[statusAttribute] as string}
               );
             },
           }));

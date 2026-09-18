@@ -49,37 +49,17 @@ export type ProfilingEventParameters = {
   'profiling_views.flamegraph.click.profile': {
     profile_type: ProfileSource | AggregateProfileSource;
   };
-  'profiling_views.flamegraph.thread.change': {
-    profile_type: ProfileSource;
-  };
-  'profiling_views.flamegraph.zoom.reset': {
-    profile_type: ProfileSource;
-  };
-  'profiling_views.go_to_flamegraph': {
-    source: ProfilingEventSource;
-  };
+  'profiling_views.flamegraph.thread.change': {profile_type: ProfileSource};
+  'profiling_views.flamegraph.zoom.reset': {profile_type: ProfileSource};
+  'profiling_views.go_to_flamegraph': {source: ProfilingEventSource};
   'profiling_views.go_to_transaction': NoParams;
-  'profiling_views.landing': {
-    data: 'populated' | 'empty' | 'errored';
-  };
+  'profiling_views.landing': {data: 'populated' | 'empty' | 'errored'};
   'profiling_views.landing.tab.transaction_click': NoParams;
-  'profiling_views.landing.tab_change': {
-    tab: 'flamegraph' | 'transactions';
-  };
-  'profiling_views.landing.widget.function_change': {
-    source: string;
-  };
-  'profiling_views.landing.widget.open_list': {
-    source: string;
-  };
-  'profiling_views.landing.widget.pagination': {
-    direction: string;
-    source: string;
-  };
-  'profiling_views.landing.widget_change': {
-    source: string;
-    target: string;
-  };
+  'profiling_views.landing.tab_change': {tab: 'flamegraph' | 'transactions'};
+  'profiling_views.landing.widget.function_change': {source: string};
+  'profiling_views.landing.widget.open_list': {source: string};
+  'profiling_views.landing.widget.pagination': {direction: string; source: string};
+  'profiling_views.landing.widget_change': {source: string; target: string};
   'profiling_views.profile_flamegraph': {
     colorCoding: string;
     project_platform: PlatformKey | undefined;
@@ -87,9 +67,7 @@ export type ProfilingEventParameters = {
     sorting: string;
     view: string;
   };
-  'profiling_views.trace.profile_context.pagination': {
-    direction: string;
-  };
+  'profiling_views.trace.profile_context.pagination': {direction: string};
 };
 
 type EventKey = keyof ProfilingEventParameters;

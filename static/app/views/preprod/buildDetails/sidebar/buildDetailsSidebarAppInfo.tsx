@@ -29,10 +29,7 @@ interface BuildDetailsSidebarAppInfoProps {
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
   const labels = getLabels(props.appInfo.platform ?? undefined);
 
-  const datetimeFormat = getFormat({
-    seconds: true,
-    timeZone: true,
-  });
+  const datetimeFormat = getFormat({seconds: true, timeZone: true});
 
   return (
     <Stack gap="xl">

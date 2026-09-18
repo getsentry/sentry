@@ -16,10 +16,6 @@ export const docs: Docs = {
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
   profilingOnboarding: profiling({frameworkPackage: 'sentry-rails'}),
-  logsOnboarding: logs({
-    docsPlatform: 'rails',
-  }),
-  metricsOnboarding: metrics({
-    docsPlatform: 'rails',
-  }),
+  logsOnboarding: logs({docsPlatform: 'rails'}),
+  metricsOnboarding: metrics({docsPlatform: 'rails'}),
 };

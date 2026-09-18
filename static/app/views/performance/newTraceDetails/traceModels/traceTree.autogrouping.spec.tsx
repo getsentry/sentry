@@ -21,9 +21,7 @@ const organization = OrganizationFixture();
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
 const traceMetadata = {replay: null, meta: null, organization};
 
-const options = {
-  organization,
-};
+const options = {organization};
 
 const singleTransactionTrace = makeTrace({
   transactions: [
@@ -785,15 +783,10 @@ describe('autogrouping', () => {
               ],
             }),
           ]),
-          {
-            ...traceMetadata,
-            organization: EAPOrganization,
-          }
+          {...traceMetadata, organization: EAPOrganization}
         );
 
-        TraceTree.AutogroupSiblingSpanNodes(tree.root, {
-          organization: EAPOrganization,
-        });
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, {organization: EAPOrganization});
         expect(tree.build().serialize()).toMatchSnapshot();
       });
 

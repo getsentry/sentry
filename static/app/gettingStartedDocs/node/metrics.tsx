@@ -30,10 +30,7 @@ export const getNodeMetricsOnboarding = <
             type: 'text',
             text: tct(
               'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports metrics is [code:10.25.0].',
-              {
-                code: <code />,
-                packageName: <code>{packageName}</code>,
-              }
+              {code: <code />, packageName: <code>{packageName}</code>}
             ),
           },
           getInstallCodeBlock(params, {packageName}),

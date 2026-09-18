@@ -24,9 +24,7 @@ function HelpMenuWithWhatsNew() {
   return <PrimaryNavigationHelpMenu {...whatsNewOptions} />;
 }
 
-jest.mock('sentry/utils/intercom', () => ({
-  showIntercom: jest.fn(),
-}));
+jest.mock('sentry/utils/intercom', () => ({showIntercom: jest.fn()}));
 jest.mock('sentry/utils/analytics');
 
 async function expandResourcesSubmenu() {

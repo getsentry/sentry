@@ -96,10 +96,7 @@ export function TraceAiConversations({
     nodeTraceMap,
     isLoading,
     error,
-  } = useConversation({
-    conversationId: activeConversationId,
-    ...traceTimeBounds,
-  });
+  } = useConversation({conversationId: activeConversationId, ...traceTimeBounds});
 
   const traceNodes = useMemo(
     () => conversationNodes.filter(n => nodeTraceMap.get(n.id) === traceSlug),

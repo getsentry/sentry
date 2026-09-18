@@ -65,12 +65,7 @@ function getBodyContent({
     case 'multipart/form-data': {
       const transformedData = getTransformedData(data, meta).map(d => {
         const [key, value] = d.data;
-        return {
-          key,
-          subject: key,
-          value,
-          meta: d.meta,
-        };
+        return {key, subject: key, value, meta: d.meta};
       });
 
       if (!transformedData.length) {

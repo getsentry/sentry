@@ -541,10 +541,7 @@ describe('provisionSubscriptionAction', () => {
   });
 
   it('calls api with correct am1 args', async () => {
-    const am1Sub = SubscriptionFixture({
-      organization: mockOrg,
-      plan: 'am1_f',
-    });
+    const am1Sub = SubscriptionFixture({organization: mockOrg, plan: 'am1_f'});
     triggerProvisionSubscription({
       subscription: am1Sub,
       orgId: am1Sub.slug,
@@ -1759,9 +1756,7 @@ describe('provisionSubscriptionAction', () => {
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
       method: 'POST',
       statusCode: 500,
-      body: {
-        error: 'Internal error.',
-      },
+      body: {error: 'Internal error.'},
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));

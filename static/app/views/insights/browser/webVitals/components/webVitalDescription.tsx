@@ -13,11 +13,7 @@ import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {scoreToStatus} from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
-type Props = {
-  webVital: WebVitals;
-  score?: number;
-  value?: string;
-};
+type Props = {webVital: WebVitals; score?: number; value?: string};
 
 export const WEB_VITAL_FULL_NAME_MAP = {
   cls: t('Cumulative Layout Shift'),

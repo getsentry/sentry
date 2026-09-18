@@ -31,10 +31,7 @@ export function ReleasesSortSelect({
       ).map(name => {
         const filter = RELEASES_SORT_OPTIONS[name];
         if (name !== ReleasesSortOption.ADOPTION) {
-          return {
-            label: filter,
-            value: name,
-          };
+          return {label: filter, value: name};
         }
 
         // Adoption sort requires exactly one environment because it calculates

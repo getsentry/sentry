@@ -150,12 +150,7 @@ export function AttributesContent({
       return (
         <StyledLink
           data-test-id="view-profile"
-          to={{
-            pathname: target,
-            query: {
-              spanId: node.value.event_id,
-            },
-          }}
+          to={{pathname: target, query: {spanId: node.value.event_id}}}
           onClick={() =>
             trackAnalytics('profiling_views.go_to_flamegraph', {
               organization,
@@ -175,19 +170,13 @@ export function AttributesContent({
         spanId: node.value.event_id,
         timestamp: node.value.start_timestamp,
         dateSelection: normalizeDateTimeParams(selection.datetime),
-        location: {
-          ...currentLocation,
-          query: {},
-        },
+        location: {...currentLocation, query: {}},
       });
       return <StyledLink to={target}>{props.item.value}</StyledLink>;
     },
     [FieldKey.REPLAY_ID]: (props: CustomRenderersProps) => {
       const target: LocationDescriptorObject = {
-        pathname: makeReplaysPathname({
-          path: `/${props.item.value}/`,
-          organization,
-        }),
+        pathname: makeReplaysPathname({path: `/${props.item.value}/`, organization}),
         query: {
           event_t: node.value.start_timestamp,
           referrer: 'performance.trace_view.details',
@@ -252,12 +241,7 @@ export function AttributesContent({
             attributes={sortedAndFilteredAttributes}
             pinnedAttribute={pin?.enabled && isEAPSpanNode(node) ? pin.attribute : null}
             renderers={customRenderers}
-            rendererExtra={{
-              theme,
-              location,
-              navigate,
-              organization,
-            }}
+            rendererExtra={{theme, location, navigate, organization}}
             getCustomActions={content => {
               const actions = getTraceAttributesTreeActions({
                 location,

@@ -15,14 +15,10 @@ export const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
-  featureFlagOnboarding: featureFlag({
-    packageName: '@sentry/bun',
-  }),
+  featureFlagOnboarding: featureFlag({packageName: '@sentry/bun'}),
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'bun',
     packageName: '@sentry/bun',
   }),
-  agentMonitoringOnboarding: agentMonitoring({
-    packageName: '@sentry/bun',
-  }),
+  agentMonitoringOnboarding: agentMonitoring({packageName: '@sentry/bun'}),
 };

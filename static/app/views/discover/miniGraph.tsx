@@ -184,9 +184,7 @@ function MiniGraph(props: Props) {
               });
         const data = allSeries.map(series => ({
           ...series,
-          lineStyle: {
-            opacity: chartType === 'line' ? 1 : 0,
-          },
+          lineStyle: {opacity: chartType === 'line' ? 1 : 0},
         }));
 
         const hasOther = topEvents && topEvents + 1 === allSeries.length;
@@ -204,17 +202,10 @@ function MiniGraph(props: Props) {
           colors: chartColors,
           height: 150,
           series: [...data],
-          xAxis: {
-            show: false,
-            axisPointer: {
-              show: false,
-            },
-          },
+          xAxis: {show: false, axisPointer: {show: false}},
           yAxis: {
             show: true,
-            axisLine: {
-              show: false,
-            },
+            axisLine: {show: false},
             axisLabel: {
               color: theme.tokens.content.secondary,
               fontFamily: theme.font.family.sans,
@@ -230,24 +221,12 @@ function MiniGraph(props: Props) {
               showMaxLabel: false,
             },
             splitNumber: 3,
-            splitLine: {
-              show: false,
-            },
+            splitLine: {show: false},
             zlevel: theme.zIndex.header,
           },
-          tooltip: {
-            show: false,
-          },
-          toolBox: {
-            show: false,
-          },
-          grid: {
-            left: 0,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            containLabel: false,
-          },
+          tooltip: {show: false},
+          toolBox: {show: false},
+          grid: {left: 0, top: 0, right: 0, bottom: 0, containLabel: false},
           stacked:
             (typeof topEvents === 'number' && topEvents > 0) ||
             (Array.isArray(yAxis) && yAxis.length > 1),

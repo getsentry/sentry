@@ -29,9 +29,7 @@ import {makeFetchOrgAuthTokensForOrgQueryKey} from 'sentry/views/settings/organi
 
 type OrgAuthTokenWithToken = OrgAuthToken & {token: string};
 
-const schema = z.object({
-  name: z.string().min(1, t('Name is required')),
-});
+const schema = z.object({name: z.string().min(1, t('Name is required'))});
 
 function AuthTokenCreateForm({
   organization,
@@ -148,9 +146,7 @@ export default function OrganizationAuthTokensNewAuthToken() {
             <div>
               {tct(
                 'For more information on how to use the web API, see our [link:documentation].',
-                {
-                  link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                }
+                {link: <ExternalLink href="https://docs.sentry.io/api/" />}
               )}
             </div>
           </Stack>

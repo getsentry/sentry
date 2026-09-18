@@ -204,10 +204,7 @@ export function SizeCompareMainContent() {
         <Button
           variant="primary"
           onClick={() => {
-            triggerComparison({
-              baseArtifactId,
-              headArtifactId,
-            });
+            triggerComparison({baseArtifactId, headArtifactId});
           }}
         >
           {t('Trigger a comparison')}
@@ -244,10 +241,7 @@ export function SizeCompareMainContent() {
         <Button
           variant="secondary"
           onClick={() => {
-            triggerComparison({
-              baseArtifactId,
-              headArtifactId,
-            });
+            triggerComparison({baseArtifactId, headArtifactId});
           }}
         >
           <Flex gap="sm">
@@ -283,10 +277,7 @@ export function SizeCompareMainContent() {
         isComparing={false}
         onClearBaseBuild={() => {
           navigate(
-            getCompareBuildPath({
-              organizationSlug: organization.slug,
-              headArtifactId,
-            })
+            getCompareBuildPath({organizationSlug: organization.slug, headArtifactId})
           );
         }}
       />
@@ -325,9 +316,7 @@ export function SizeCompareMainContent() {
                 <IconChevron
                   direction={isFilesExpanded ? 'up' : 'down'}
                   size="sm"
-                  style={{
-                    transition: 'transform 0.2s ease',
-                  }}
+                  style={{transition: 'transform 0.2s ease'}}
                 />
               </Button>
               <Heading as="h2">

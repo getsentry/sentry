@@ -239,14 +239,8 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       : this.findClosestParentTransaction()?.transactionId;
   }
 
-  get traceHeaderTitle(): {
-    title: string;
-    subtitle?: string;
-  } {
-    return {
-      title: this.op || t('Trace'),
-      subtitle: this.value.transaction,
-    };
+  get traceHeaderTitle(): {title: string; subtitle?: string} {
+    return {title: this.op || t('Trace'), subtitle: this.value.transaction};
   }
 
   get directVisibleChildren(): BaseNode[] {

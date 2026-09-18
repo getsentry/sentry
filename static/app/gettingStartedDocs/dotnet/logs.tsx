@@ -40,9 +40,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Logs in .NET are supported in Sentry .NET SDK version [code:5.14.0] and above.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -71,9 +69,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To enable logging, you need to initialize the SDK with the [code:EnableLogs] option set to [code:true].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -90,9 +86,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'For more detailed information on logging configuration, see the [link:logs documentation].',
-            {
-              link: <ExternalLink href="https://docs.sentry.io/platforms/dotnet/logs/" />,
-            }
+            {link: <ExternalLink href="https://docs.sentry.io/platforms/dotnet/logs/" />}
           ),
         },
       ],

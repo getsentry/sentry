@@ -17,10 +17,7 @@ import {DashboardChatBlock} from './dashboardChatBlock';
 
 const MAX_CHAT_HISTORY_HEIGHT = 500;
 
-export type WidgetError = {
-  errorMessage: string;
-  widgetTitle: string;
-};
+export type WidgetError = {errorMessage: string; widgetTitle: string};
 
 interface DashboardChatPanelProps {
   blocks: Block[];

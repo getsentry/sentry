@@ -35,10 +35,7 @@ export function PreprodBuildsDistributionTable({
 }: PreprodBuildsDistributionTableProps) {
   const rows = builds.map(build => {
     const linkUrl =
-      getInstallBuildPath({
-        organizationSlug,
-        baseArtifactId: build.id,
-      }) ?? '';
+      getInstallBuildPath({organizationSlug, baseArtifactId: build.id}) ?? '';
     const isInstallable = build.distribution_info?.is_installable ?? false;
     const isRowDisabled = !isInstallable;
     const downloadCount = build.distribution_info?.download_count ?? 0;

@@ -31,9 +31,7 @@ export function GroupFixture(params: Partial<Group> = {}): Group {
     platform: 'javascript',
     priority: PriorityLevel.MEDIUM,
     priorityLockedAt: null,
-    project: ProjectFixture({
-      platform: 'javascript',
-    }),
+    project: ProjectFixture({platform: 'javascript'}),
     seenBy: [],
     shareId: '',
     shortId: 'JAVASCRIPT-6QS',
@@ -63,15 +61,8 @@ export function SimpleGroupFixture(params: Partial<SimpleGroup> = {}): SimpleGro
   return {
     id: '1',
     culprit: 'fetchData(app/components/group/suggestedOwners/suggestedOwners)',
-    metadata: {
-      function: 'fetchData',
-      type: 'RequestError',
-    },
-    project: {
-      id: '1',
-      slug: 'project-slug',
-      platform: 'javascript',
-    },
+    metadata: {function: 'fetchData', type: 'RequestError'},
+    project: {id: '1', slug: 'project-slug', platform: 'javascript'},
     shortId: 'JAVASCRIPT-6QS',
     status: GroupStatus.UNRESOLVED,
     lastSeen: '2019-04-11T01:08:59Z',

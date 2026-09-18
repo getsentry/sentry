@@ -36,10 +36,7 @@ export default function MultiQueryMode() {
           <Breadcrumbs
             crumbs={[
               {label: t('Explore')},
-              {
-                label: t('Traces'),
-                to: makeTracesPathname({organization, path: '/'}),
-              },
+              {label: t('Traces'), to: makeTracesPathname({organization, path: '/'})},
               {label: title ? title : t('Compare Queries')},
             ]}
           />

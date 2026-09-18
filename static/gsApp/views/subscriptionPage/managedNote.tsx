@@ -44,9 +44,7 @@ const DEFAULT_MESSAGE = tct(
   {mailto: <a href="mailto:support@sentry.io" />}
 );
 
-type Props = {
-  subscription: Subscription;
-};
+type Props = {subscription: Subscription};
 
 /**
  * ManagedNote Component

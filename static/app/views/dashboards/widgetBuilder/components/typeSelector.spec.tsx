@@ -65,9 +65,7 @@ describe('TypeSelector', () => {
       <WidgetBuilderProvider>
         <TypeSelector />
       </WidgetBuilderProvider>,
-      {
-        organization: OrganizationFixture(),
-      }
+      {organization: OrganizationFixture()}
     );
 
     await userEvent.click(await screen.findByText('Table'));

@@ -15,10 +15,7 @@ export function useSelectedGroupSearchView() {
   const queryClient = useQueryClient();
 
   return useQuery({
-    ...groupSearchViewApiOptions({
-      id: viewId ?? 0,
-      orgSlug: organization.slug,
-    }),
+    ...groupSearchViewApiOptions({id: viewId ?? 0, orgSlug: organization.slug}),
     enabled: defined(viewId),
     initialData: () => {
       // The view may have already been loaded by the starred views query,

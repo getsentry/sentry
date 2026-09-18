@@ -5,11 +5,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 
-const TABS = {
-  details: t('Details'),
-  request: t('Request'),
-  response: t('Response'),
-};
+const TABS = {details: t('Details'), request: t('Request'), response: t('Response')};
 
 export type TabKey = keyof typeof TABS;
 

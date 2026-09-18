@@ -51,15 +51,11 @@ export function useSessionsRequest({
   const sessionQuery = useApiQuery<SessionApiResponse>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
+        path: {organizationIdOrSlug: organization.slug},
       }),
       {query: baseQueryParams},
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   return {

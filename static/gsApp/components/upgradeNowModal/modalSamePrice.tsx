@@ -49,11 +49,7 @@ function UpgradeNowModal({
     try {
       await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
         method: 'PUT',
-        data: {
-          ...reservations,
-          plan: plan.id,
-          referrer: 'replay-am2-update-modal',
-        },
+        data: {...reservations, plan: plan.id, referrer: 'replay-am2-update-modal'},
       });
 
       SubscriptionStore.loadData(organization.slug, () => {

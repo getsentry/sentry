@@ -14,13 +14,9 @@ export const docs: Docs<PlatformOptions> = {
   onboarding,
   crashReportOnboarding: crashReport,
   profilingOnboarding: profiling,
-  featureFlagOnboarding: featureFlag({
-    packageName: '@sentry/aws-serverless',
-  }),
+  featureFlagOnboarding: featureFlag({packageName: '@sentry/aws-serverless'}),
   logsOnboarding: logs,
-  agentMonitoringOnboarding: agentMonitoring({
-    packageName: '@sentry/aws-serverless',
-  }),
+  agentMonitoringOnboarding: agentMonitoring({packageName: '@sentry/aws-serverless'}),
   mcpOnboarding: mcp,
   platformOptions,
   metricsOnboarding: metrics,

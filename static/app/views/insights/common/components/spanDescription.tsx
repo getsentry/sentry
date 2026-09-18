@@ -83,17 +83,10 @@ export function DatabaseSpanDescription({
 
   const sdk =
     indexedSpan?.['sdk.name'] && indexedSpan?.['sdk.version']
-      ? {
-          name: indexedSpan?.['sdk.name'],
-          version: indexedSpan?.['sdk.version'],
-        }
+      ? {name: indexedSpan?.['sdk.name'], version: indexedSpan?.['sdk.version']}
       : undefined;
 
-  const event = {
-    platform: indexedSpan?.platform,
-    release,
-    sdk,
-  };
+  const event = {platform: indexedSpan?.platform, release, sdk};
 
   // isExpanded is a query param that is meant to be accessed only when clicking on the
   // "View full query" button from the hover tooltip. It is removed from the query params
@@ -178,11 +171,7 @@ export function DatabaseSpanDescription({
             <StackTraceMiniFrame
               projectId={indexedSpan?.['project.id']?.toString()}
               event={event}
-              frame={{
-                filename: codeFilepath,
-                lineNo: codeLineno,
-                function: codeFunction,
-              }}
+              frame={{filename: codeFilepath, lineNo: codeLineno, function: codeFunction}}
             />
           ) : (
             <MissingFrame system={system} />

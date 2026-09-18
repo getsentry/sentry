@@ -120,10 +120,7 @@ Retrieve a collection of replays.
     "data": [
       {
         "activity": 5,
-        "browser": {
-          "name": "Chome",
-          "version": "103.0.38"
-        },
+        "browser": {"name": "Chome", "version": "103.0.38"},
         "count_dead_clicks": 6,
         "count_rage_clicks": 1,
         "count_errors": 1,
@@ -143,21 +140,13 @@ Retrieve a collection of replays.
         "has_viewed": true,
         "id": "7e07485f-12f9-416b-8b14-26260799b51f",
         "is_archived": false,
-        "os": {
-          "name": "iOS",
-          "version": "16.2"
-        },
+        "os": {"name": "iOS", "version": "16.2"},
         "platform": "Sentry",
         "project_id": "639195",
         "releases": ["version@1.4"],
-        "sdk": {
-          "name": "Thundercat",
-          "version": "27.1"
-        },
+        "sdk": {"name": "Thundercat", "version": "27.1"},
         "started_at": "2022-07-07T14:05:57.909921",
-        "tags": {
-          "hello": ["world", "Lionel Richie"]
-        },
+        "tags": {"hello": ["world", "Lionel Richie"]},
         "trace_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
         "urls": ["/organizations/abc123/issues"],
         "user": {
@@ -187,10 +176,7 @@ Retrieve a single replay instance.
   {
     "data": {
       "activity": 5,
-      "browser": {
-        "name": "Chome",
-        "version": "103.0.38"
-      },
+      "browser": {"name": "Chome", "version": "103.0.38"},
       "count_dead_clicks": 6,
       "count_rage_clicks": 1,
       "count_errors": 1,
@@ -209,21 +195,13 @@ Retrieve a single replay instance.
       "finished_at": "2022-07-07T14:15:33.201019",
       "has_viewed": false,
       "id": "7e07485f-12f9-416b-8b14-26260799b51f",
-      "os": {
-        "name": "iOS",
-        "version": "16.2"
-      },
+      "os": {"name": "iOS", "version": "16.2"},
       "platform": "Sentry",
       "project_id": "639195",
       "releases": ["version@1.4"],
-      "sdk": {
-        "name": "Thundercat",
-        "version": "27.1"
-      },
+      "sdk": {"name": "Thundercat", "version": "27.1"},
       "started_at": "2022-07-07T14:05:57.909921",
-      "tags": {
-        "hello": ["world", "Lionel Richie"]
-      },
+      "tags": {"hello": ["world", "Lionel Richie"]},
       "trace_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
       "urls": ["/organizations/abc123/issues"],
       "user": {
@@ -427,13 +405,7 @@ Retrieve a collection of tag keys associated with the replays dataset.
 - Response 200
 
   ```json
-  [
-    {
-      "key": "plan.total_members",
-      "name": "Plan.Total Members",
-      "totalValues": 630661
-    }
-  ]
+  [{"key": "plan.total_members", "name": "Plan.Total Members", "totalValues": 630661}]
   ```
 
 ## Replay Tag Values [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/tags/<key>/values/]
@@ -511,14 +483,7 @@ Retrieve a collection of click events associated with a replay.
 - Response 200
 
   ```json
-  {
-    "data": [
-      {
-        "node_id": 339,
-        "timestamp": 1681226444
-      }
-    ]
-  }
+  {"data": [{"node_id": 339, "timestamp": 1681226444}]}
   ```
 
 ## Replay Viewed By [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/<replay_id>/viewed-by/]
@@ -552,11 +517,7 @@ Retrieve a collection of click events associated with a replay.
           "isStaff": false,
           "experiments": {},
           "emails": [
-            {
-              "id": "2231333",
-              "email": "some.body@sentry.io",
-              "is_verified": true
-            }
+            {"id": "2231333", "email": "some.body@sentry.io", "is_verified": true}
           ],
           "avatar": {
             "avatarType": "upload",
@@ -631,12 +592,7 @@ Retrieve the last status of a replay summary task. If the status is "completed",
   ```
 
   ```json
-  {
-    "status": "not_started",
-    "created_at": null,
-    "num_segments": null,
-    "data": null
-  }
+  {"status": "not_started", "created_at": null, "num_segments": null, "data": null}
   ```
 
 ### Submit a Replay Summary Task [POST]
@@ -646,10 +602,7 @@ Submit a task to generate a replay summary for the first `num_segments` segments
 - Request
 
   ```json
-  {
-    "num_segments": 5,
-    "temperature": 0.3
-  }
+  {"num_segments": 5, "temperature": 0.3}
   ```
 
   To summarize the whole replay, submit an up-to-date segment count in `num_segments`. `temperature` must be a number between 0 and 1 (inclusive).

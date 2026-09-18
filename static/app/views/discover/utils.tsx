@@ -495,21 +495,12 @@ export function generateFieldOptions({
       if (overrides === undefined) {
         return param;
       }
-      return {
-        ...param,
-        ...overrides({parameter: param}),
-      };
+      return {...param, ...overrides({parameter: param})};
     });
 
     fieldOptions[`function:${func}`] = {
       label: `${func}(${ellipsis})`,
-      value: {
-        kind: FieldValueKind.FUNCTION,
-        meta: {
-          name: func,
-          parameters,
-        },
-      },
+      value: {kind: FieldValueKind.FUNCTION, meta: {name: func, parameters}},
     };
   });
 
@@ -585,10 +576,7 @@ export function generateFieldOptions({
           : tag;
       fieldOptions[`tag:${tag}`] = {
         label: tag,
-        value: {
-          kind: FieldValueKind.TAG,
-          meta: {name: tagValue, dataType: 'string'},
-        },
+        value: {kind: FieldValueKind.TAG, meta: {name: tagValue, dataType: 'string'}},
       };
     });
   }
@@ -662,11 +650,7 @@ export function handleAddQueryToDashboard({
   yAxis?: string | string[];
 }) {
   const displayType = resolveDisplayType(widgetType, eventView.display);
-  const defaultWidgetQuery = eventViewToWidgetQuery({
-    eventView,
-    displayType,
-    yAxis,
-  });
+  const defaultWidgetQuery = eventViewToWidgetQuery({eventView, displayType, yAxis});
 
   const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
     eventView,
@@ -864,11 +848,7 @@ export function constructAddQueryToDashboardLink({
   yAxis?: string | string[];
 }) {
   const displayType = resolveDisplayType(widgetType, eventView.display);
-  const defaultWidgetQuery = eventViewToWidgetQuery({
-    eventView,
-    displayType,
-    yAxis,
-  });
+  const defaultWidgetQuery = eventViewToWidgetQuery({eventView, displayType, yAxis});
 
   const defaultTitle =
     query?.name ?? (eventView.name === 'All Events' ? undefined : eventView.name);

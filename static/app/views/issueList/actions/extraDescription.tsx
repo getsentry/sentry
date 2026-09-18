@@ -2,11 +2,7 @@ import {t, tct} from 'sentry/locale';
 
 import {BULK_LIMIT, BULK_LIMIT_STR} from './utils';
 
-type Props = {
-  all: boolean;
-  query: string;
-  queryCount: number;
-};
+type Props = {all: boolean; query: string; queryCount: number};
 
 export function ExtraDescription({all, query, queryCount}: Props) {
   if (!all) {
@@ -28,9 +24,7 @@ export function ExtraDescription({all, query, queryCount}: Props) {
         {queryCount > BULK_LIMIT
           ? tct(
               'This will apply to the first [bulkNumber] issues matched in this project!',
-              {
-                bulkNumber: BULK_LIMIT_STR,
-              }
+              {bulkNumber: BULK_LIMIT_STR}
             )
           : tct('This will apply to all [bulkNumber] issues matched in this project!', {
               bulkNumber: queryCount,

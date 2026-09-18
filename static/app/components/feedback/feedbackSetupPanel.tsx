@@ -17,9 +17,7 @@ export function FeedbackSetupPanel() {
   const {activateSidebar} = useFeedbackOnboardingSidebarPanel();
 
   useEffect(() => {
-    trackAnalytics('feedback.index-setup-viewed', {
-      organization,
-    });
+    trackAnalytics('feedback.index-setup-viewed', {organization});
   }, [organization]);
 
   return (

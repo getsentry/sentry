@@ -45,9 +45,7 @@ describe('CustomerProjects', () => {
       },
     });
 
-    const projectRow = await screen.findByRole('row', {
-      name: /backend-project/,
-    });
+    const projectRow = await screen.findByRole('row', {name: /backend-project/});
 
     expect(within(projectRow).getByText('7')).toBeInTheDocument();
     expect(projectsMock).toHaveBeenCalledTimes(1);

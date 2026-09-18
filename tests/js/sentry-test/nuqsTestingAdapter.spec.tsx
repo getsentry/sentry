@@ -10,12 +10,7 @@ describe('SentryNuqsTestingAdapter', () => {
     }
 
     const {router} = render(<TestComponent />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/test',
-          query: {query: 'hello'},
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/test', query: {query: 'hello'}}},
     });
 
     expect(screen.getByText('Search: hello')).toBeInTheDocument();
@@ -38,12 +33,7 @@ describe('SentryNuqsTestingAdapter', () => {
     }
 
     const {router} = render(<TestComponent />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/test',
-          query: {query: 'initial'},
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/test', query: {query: 'initial'}}},
     });
 
     expect(screen.getByText('Search: initial')).toBeInTheDocument();
@@ -74,10 +64,7 @@ describe('SentryNuqsTestingAdapter', () => {
 
     render(<TestComponent />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/test',
-          query: {foo: 'value1', bar: 'value2'},
-        },
+        location: {pathname: '/test', query: {foo: 'value1', bar: 'value2'}},
       },
     });
 
@@ -91,13 +78,7 @@ describe('SentryNuqsTestingAdapter', () => {
       return <div>Search: {search ?? 'empty'}</div>;
     }
 
-    render(<TestComponent />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/test',
-        },
-      },
-    });
+    render(<TestComponent />, {initialRouterConfig: {location: {pathname: '/test'}}});
 
     expect(screen.getByText('Search: empty')).toBeInTheDocument();
   });

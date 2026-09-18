@@ -163,10 +163,7 @@ export function EditAccessSelector({
     return (
       <Tooltip
         title={renderCollapsedAvatarTooltip()}
-        overlayStyle={{
-          pointerEvents: 'auto',
-          zIndex: 1000,
-        }}
+        overlayStyle={{pointerEvents: 'auto', zIndex: 1000}}
       >
         <div
           onMouseEnter={() => setIsCollapsedAvatarTooltipOpen(true)}

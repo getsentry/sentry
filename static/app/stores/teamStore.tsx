@@ -31,13 +31,7 @@ interface TeamStoreDefinition extends StrictStoreDefinition<State> {
 
 const teamStoreConfig: TeamStoreDefinition = {
   initialized: false,
-  state: {
-    teams: [],
-    loadedUserTeams: false,
-    loading: true,
-    hasMore: null,
-    cursor: null,
-  },
+  state: {teams: [], loadedUserTeams: false, loading: true, hasMore: null, cursor: null},
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
@@ -76,11 +70,7 @@ const teamStoreConfig: TeamStoreDefinition = {
   loadUserTeams(userTeams: Team[]) {
     const teams = this.updateTeams(userTeams);
 
-    this.state = {
-      ...this.state,
-      loadedUserTeams: true,
-      teams,
-    };
+    this.state = {...this.state, loadedUserTeams: true, teams};
 
     this.trigger(new Set(teams.map(team => team.id)));
   },
@@ -93,10 +83,7 @@ const teamStoreConfig: TeamStoreDefinition = {
     const item = this.getBySlug(itemId);
 
     if (!item) {
-      this.state = {
-        ...this.state,
-        teams: [...this.state.teams, response],
-      };
+      this.state = {...this.state, teams: [...this.state.teams, response]};
 
       this.trigger(new Set([itemId]));
       return;

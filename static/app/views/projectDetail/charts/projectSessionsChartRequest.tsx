@@ -108,18 +108,11 @@ class ProjectSessionsChartRequest extends Component<
         period: datetime.period,
       });
 
-    this.setState(state => ({
-      reloading: state.timeseriesData !== null,
-      errored: false,
-    }));
+    this.setState(state => ({reloading: state.timeseriesData !== null, errored: false}));
 
     try {
       const queryParams = this.queryParams({shouldFetchWithPrevious});
-      const requests = [
-        api.requestPromise(this.path, {
-          query: queryParams,
-        }),
-      ];
+      const requests = [api.requestPromise(this.path, {query: queryParams})];
       // for crash free sessions and users, we need to make a separate request to get the total count in period
       if (this.isCrashFreeRate) {
         requests.push(
@@ -213,10 +206,7 @@ class ProjectSessionsChartRequest extends Component<
     };
 
     if (!shouldFetchWithPrevious) {
-      return {
-        ...baseParams,
-        ...normalizeDateTimeParams(datetime),
-      };
+      return {...baseParams, ...normalizeDateTimeParams(datetime)};
     }
 
     const {period} = selection.datetime;
@@ -225,10 +215,7 @@ class ProjectSessionsChartRequest extends Component<
       {shouldDoublePeriod: true}
     ).statsPeriod;
 
-    return {
-      ...baseParams,
-      statsPeriod: doubledPeriod,
-    };
+    return {...baseParams, statsPeriod: doubledPeriod};
   }
 
   transformData(
@@ -255,10 +242,7 @@ class ProjectSessionsChartRequest extends Component<
                 fetchedWithPrevious ? dataMiddleIndex : 0
               )[i]! * 100;
 
-            return {
-              name: interval,
-              value: getCrashFreePercent(crashedSessionsPercent),
-            };
+            return {name: interval, value: getCrashFreePercent(crashedSessionsPercent)};
           }),
       },
     ] as Series[]; // TODO(project-detail): Change SeriesDataUnit value to support null
@@ -285,11 +269,7 @@ class ProjectSessionsChartRequest extends Component<
           : SessionFieldWithOperation.SESSIONS
       ];
 
-    return {
-      timeseriesData,
-      totalCount,
-      previousTimeseriesData,
-    };
+    return {timeseriesData, totalCount, previousTimeseriesData};
   }
 
   transformSessionCountData(responseData: SessionApiResponse) {

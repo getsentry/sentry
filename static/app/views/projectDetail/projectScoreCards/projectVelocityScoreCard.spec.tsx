@@ -10,12 +10,7 @@ describe('ProjectDetail > ProjectVelocity', () => {
   const selection = {
     projects: [1],
     environments: [],
-    datetime: {
-      start: null,
-      end: null,
-      period: '14d',
-      utc: null,
-    },
+    datetime: {start: null, end: null, period: '14d', utc: null},
   };
 
   afterEach(() => {
@@ -57,13 +52,7 @@ describe('ProjectDetail > ProjectVelocity', () => {
     expect(currentDataEndpointMock).toHaveBeenNthCalledWith(
       1,
       `/organizations/${organization.slug}/releases/stats/`,
-      expect.objectContaining({
-        query: {
-          environment: [],
-          project: 1,
-          statsPeriod: '14d',
-        },
-      })
+      expect.objectContaining({query: {environment: [], project: 1, statsPeriod: '14d'}})
     );
 
     expect(previousDataEndpointMock).toHaveBeenCalledTimes(1);

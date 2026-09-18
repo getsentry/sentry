@@ -11,12 +11,7 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-const pageDatetime = {
-  start: null,
-  end: null,
-  period: '7d',
-  utc: null,
-};
+const pageDatetime = {start: null, end: null, period: '7d', utc: null};
 
 function seerResult(overrides: Partial<AskSeerSearchQuery>): AskSeerSearchQuery {
   return {
@@ -158,11 +153,7 @@ describe('getLogsSeerLocationQuery', () => {
       }),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
-      result: seerResult({
-        query: 'severity:error',
-        sort: '-timestamp',
-        mode: 'logs',
-      }),
+      result: seerResult({query: 'severity:error', sort: '-timestamp', mode: 'logs'}),
     }).query;
 
     expect(sampleQuery[LOGS_CURSOR_KEY]).toBeUndefined();
@@ -196,11 +187,7 @@ describe('getLogsSeerLocationQuery', () => {
       }),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
-      result: seerResult({
-        query: 'severity:error',
-        sort: '-timestamp',
-        mode: 'logs',
-      }),
+      result: seerResult({query: 'severity:error', sort: '-timestamp', mode: 'logs'}),
     });
 
     expect(query.mode).toBe(Mode.SAMPLES);
@@ -211,9 +198,7 @@ describe('getLogsSeerLocationQuery', () => {
 
   it('clears stale samples sort when switching to aggregate mode', () => {
     const {query} = getLogsSeerLocationQuery({
-      currentLocation: locationWithQuery({
-        logsSortBys: ['-timestamp'],
-      }),
+      currentLocation: locationWithQuery({logsSortBys: ['-timestamp']}),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
       result: seerResult({
@@ -230,15 +215,10 @@ describe('getLogsSeerLocationQuery', () => {
 
   it('preserves the existing samples sort when Seer omits one', () => {
     const {query} = getLogsSeerLocationQuery({
-      currentLocation: locationWithQuery({
-        logsSortBys: ['-severity'],
-      }),
+      currentLocation: locationWithQuery({logsSortBys: ['-severity']}),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
-      result: seerResult({
-        query: 'severity:error',
-        mode: 'logs',
-      }),
+      result: seerResult({query: 'severity:error', mode: 'logs'}),
     });
 
     expect(query.mode).toBe(Mode.SAMPLES);
@@ -247,9 +227,7 @@ describe('getLogsSeerLocationQuery', () => {
 
   it('preserves the existing aggregate sort when Seer omits one', () => {
     const {query} = getLogsSeerLocationQuery({
-      currentLocation: locationWithQuery({
-        logsAggregateSortBys: ['-count(message)'],
-      }),
+      currentLocation: locationWithQuery({logsAggregateSortBys: ['-count(message)']}),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
       result: seerResult({
@@ -277,10 +255,7 @@ describe('getLogsSeerLocationQuery', () => {
       }),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
-      result: seerResult({
-        query: 'severity:error',
-        statsPeriod: '24h',
-      }),
+      result: seerResult({query: 'severity:error', statsPeriod: '24h'}),
     }).query;
 
     expect(relativeQuery.statsPeriod).toBe('24h');
@@ -304,10 +279,7 @@ describe('getLogsSeerLocationQuery', () => {
       }),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
-      result: seerResult({
-        end: '2024-06-02T00:00:00Z',
-        start: '2024-06-01T00:00:00Z',
-      }),
+      result: seerResult({end: '2024-06-02T00:00:00Z', start: '2024-06-01T00:00:00Z'}),
     }).query;
 
     expect(absoluteQuery.start).toBe('2024-06-01T00:00:00');
@@ -373,10 +345,7 @@ describe('getLogsSeerLocationQuery', () => {
       currentLocation: locationWithQuery({}),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
-      result: seerResult({
-        query: 'severity:error',
-        expandedProjectIds: [1, 2],
-      }),
+      result: seerResult({query: 'severity:error', expandedProjectIds: [1, 2]}),
     });
 
     expect(query.project).toEqual(['1', '2']);
@@ -399,9 +368,7 @@ describe('getLogsSeerLocationQuery', () => {
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
       projects: [ProjectFixture({id: '9', slug: 'seer'})],
-      result: seerResult({
-        query: 'project:seer severity:error',
-      }),
+      result: seerResult({query: 'project:seer severity:error'}),
     });
 
     // Project scope goes to the page-level selector, not the search bar.

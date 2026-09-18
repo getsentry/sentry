@@ -101,12 +101,7 @@ export function ActionSet({
     [area, onUpdate, organization]
   );
   const numIssues = issues.size;
-  const confirm = getConfirm({
-    numIssues,
-    allInQuerySelected,
-    query,
-    queryCount,
-  });
+  const confirm = getConfirm({numIssues, allInQuerySelected, query, queryCount});
 
   const label = getLabel(numIssues, allInQuerySelected);
 

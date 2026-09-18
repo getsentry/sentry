@@ -65,9 +65,7 @@ export function ProductSelect({
           addOnCategory: apiName,
         });
 
-        const priceInDollars = utils.formatPrice({
-          cents: priceInCents,
-        });
+        const priceInDollars = utils.formatPrice({cents: priceInCents});
 
         const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
         let reservedBudgetInfo = null;
@@ -87,14 +85,7 @@ export function ProductSelect({
         const ariaLabel = t('Add %s to plan', productName);
 
         const toggleProductOption = () => {
-          onUpdate({
-            addOns: {
-              ...formData.addOns,
-              [apiName]: {
-                enabled: !isSelected,
-              },
-            },
-          });
+          onUpdate({addOns: {...formData.addOns, [apiName]: {enabled: !isSelected}}});
         };
 
         if (apiName === AddOnCategory.LEGACY_SEER) {
@@ -131,9 +122,7 @@ export function ProductSelect({
                 optionHeader={
                   <Flex align="center" justify="between" gap="sm" flex="1">
                     <Heading as="h3" variant="primary">
-                      {toTitleCase(productName, {
-                        allowInnerUpperCase: true,
-                      })}
+                      {toTitleCase(productName, {allowInnerUpperCase: true})}
                     </Heading>
                     <Flex align="center" gap="md">
                       {formattedMonthlyBudget && (
@@ -234,9 +223,7 @@ export function ProductSelect({
                 optionHeader={
                   <Flex align="center" justify="between" gap="sm" flex="1" wrap="wrap">
                     <Heading as="h3" variant="primary">
-                      {toTitleCase(productName, {
-                        allowInnerUpperCase: true,
-                      })}
+                      {toTitleCase(productName, {allowInnerUpperCase: true})}
                     </Heading>
                     <Flex align="start" gap="xs" wrap="wrap">
                       {/* TODO(seer): serialize pricing info */}

@@ -21,19 +21,13 @@ import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 describe('HighlightsDataSection', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
-  const event = EventFixture({
-    contexts: TEST_EVENT_CONTEXTS,
-    tags: TEST_EVENT_TAGS,
-  });
+  const event = EventFixture({contexts: TEST_EVENT_CONTEXTS, tags: TEST_EVENT_TAGS});
   const eventTagMap = TEST_EVENT_TAGS.reduce<Record<string, string>>(
     (tagMap, tag) => ({...tagMap, [tag.key]: tag.value}),
     {}
   );
   const highlightTags = ['environment', 'handled', 'transaction', 'url'];
-  const highlightContext = {
-    user: ['email'],
-    browser: ['name', 'version'],
-  };
+  const highlightContext = {user: ['email'], browser: ['name', 'version']};
   const highlightContextTitles = ['User: email', 'Browser: name', 'Browser: version'];
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
@@ -84,9 +78,7 @@ describe('HighlightsDataSection', () => {
       body: {},
     });
 
-    render(<HighlightsDataSection event={event} project={project} />, {
-      organization,
-    });
+    render(<HighlightsDataSection event={event} project={project} />, {organization});
     expect(await screen.findByText('Highlights')).toBeInTheDocument();
     // Wait for the project detail API data to load and render tags
     expect(await screen.findByText('environment', {selector: 'div'})).toBeInTheDocument();

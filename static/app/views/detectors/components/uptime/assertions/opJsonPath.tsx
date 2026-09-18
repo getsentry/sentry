@@ -184,9 +184,7 @@ export function AssertionOpJsonPath({
       erroredOp={erroredOp}
       tooltip={tct(
         'The assertion evaluates to true if the JSON path matches. See the [link:JSON Path RFC] for more information.',
-        {
-          link: <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9535.html" />,
-        }
+        {link: <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9535.html" />}
       )}
       op={normalizedOp}
     >

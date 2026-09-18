@@ -8,12 +8,7 @@ import {
 } from 'sentry/constants';
 import type {Permissions} from 'sentry/types/integrations';
 
-const PERMISSION_LEVELS = {
-  'no-access': 0,
-  read: 1,
-  write: 2,
-  admin: 3,
-};
+const PERMISSION_LEVELS = {'no-access': 0, read: 1, write: 2, admin: 3};
 
 const HUMAN_RESOURCE_NAMES = {
   project: 'Project',
@@ -44,11 +39,7 @@ const SPECIAL_PERMISSION_SCOPES = new Set<string>(
   SPECIAL_SENTRY_APP_PERMISSIONS.map(permission => permission.scope)
 );
 
-type PermissionLevelResources = {
-  admin: string[];
-  read: string[];
-  write: string[];
-};
+type PermissionLevelResources = {admin: string[]; read: string[]; write: string[]};
 /**
  * Numerical value of the scope where Admin is higher than Write,
  * which is higher than Read. Used to sort scopes by access.

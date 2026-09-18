@@ -137,12 +137,7 @@ describe('normalizeUrl', () => {
     result = normalizeUrl({pathname: '/settings/acme/'});
     expect(result.pathname).toBe('/settings/organization/');
 
-    result = normalizeUrl(
-      {pathname: '/settings/acme/'},
-      {
-        forceCustomerDomain: false,
-      }
-    );
+    result = normalizeUrl({pathname: '/settings/acme/'}, {forceCustomerDomain: false});
     expect(result.pathname).toBe('/settings/organization/');
 
     result = normalizeUrl({pathname: '/settings/sentry/members'});
@@ -168,22 +163,12 @@ describe('normalizeUrl', () => {
 
     // Normalizes urls if options.customerDomain is true and orgslug.sentry.io isn't being used
     ConfigStore.set('customerDomain', null);
-    result = normalizeUrl(
-      {pathname: '/settings/acme/'},
-      {
-        forceCustomerDomain: true,
-      }
-    );
+    result = normalizeUrl({pathname: '/settings/acme/'}, {forceCustomerDomain: true});
     expect(result.pathname).toBe('/settings/organization/');
 
     result = normalizeUrl(
-      {
-        pathname: '/organizations/albertos-apples/issues',
-        query: {q: 'all'},
-      },
-      {
-        forceCustomerDomain: true,
-      }
+      {pathname: '/organizations/albertos-apples/issues', query: {q: 'all'}},
+      {forceCustomerDomain: true}
     );
     expect(result.pathname).toBe('/issues');
   });

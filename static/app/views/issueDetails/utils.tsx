@@ -30,13 +30,7 @@ export function markEventSeen(
 ) {
   bulkUpdate(
     api,
-    {
-      orgId,
-      projectId,
-      itemIds: [groupId],
-      failSilently: true,
-      data: {hasSeen: true},
-    },
+    {orgId, projectId, itemIds: [groupId], failSilently: true, data: {hasSeen: true}},
     {}
   );
 
@@ -256,11 +250,7 @@ export function groupEventApiOptions<T = Event>({
   return apiOptions.as<T>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
     {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        issueId: groupId,
-        eventId,
-      },
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId, eventId},
       query: getGroupEventDetailsQueryData({
         environments,
         query,
@@ -279,10 +269,7 @@ export function useIsSampleEvent(): boolean {
   const environments = useEnvironmentsFromUrl();
 
   const {data} = useGroupTags(
-    {
-      groupId: groupId ?? undefined,
-      environment: environments,
-    },
+    {groupId: groupId ?? undefined, environment: environments},
     // Don't want this query to take precedence over the main requests
     {enabled: defined(groupData)}
   );
@@ -308,14 +295,7 @@ export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: b
     enabled,
   });
 
-  useQuery({
-    ...fetchIssueTagApiOptions({
-      organization,
-      groupId,
-      tagKey,
-    }),
-    enabled,
-  });
+  useQuery({...fetchIssueTagApiOptions({organization, groupId, tagKey}), enabled});
 }
 
 export function getUserTagValue(tagValue: TagValue): {

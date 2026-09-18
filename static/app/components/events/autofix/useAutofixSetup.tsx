@@ -4,21 +4,13 @@ import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface AutofixSetupResponse {
-  billing: {
-    hasAutofixQuota: boolean;
-  } | null;
-  integration: {
-    ok: boolean;
-    reason: string | null;
-  };
+  billing: {hasAutofixQuota: boolean} | null;
+  integration: {ok: boolean; reason: string | null};
   seerReposLinked: boolean;
 }
 
 function makeAutofixSetupQueryKey(orgSlug: string, groupId: string): ApiQueryKey {
-  return autofixSetupApiOptions({
-    groupId,
-    organizationSlug: orgSlug,
-  }).queryKey;
+  return autofixSetupApiOptions({groupId, organizationSlug: orgSlug}).queryKey;
 }
 
 export function autofixSetupApiOptions({
@@ -30,10 +22,7 @@ export function autofixSetupApiOptions({
 }) {
   return apiOptions.as<AutofixSetupResponse>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, issueId: groupId},
-      staleTime: 30_000,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, issueId: groupId}, staleTime: 30_000}
   );
 }
 
@@ -45,12 +34,7 @@ export function useAutofixSetup(
 
   const queryData = useApiQuery<AutofixSetupResponse>(
     makeAutofixSetupQueryKey(orgSlug, groupId),
-    {
-      enabled: Boolean(groupId),
-      staleTime: 30_000,
-      retry: false,
-      ...options,
-    }
+    {enabled: Boolean(groupId), staleTime: 30_000, retry: false, ...options}
   );
 
   return {

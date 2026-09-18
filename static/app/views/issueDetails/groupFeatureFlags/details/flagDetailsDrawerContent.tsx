@@ -137,13 +137,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
             organization,
             surface: analyticsArea,
           });
-          navigate({
-            pathname: path,
-            query: {
-              ...query,
-              flagDrawerCursor: cursor,
-            },
-          });
+          navigate({pathname: path, query: {...query, flagDrawerCursor: cursor}});
         }}
         size="xs"
       />

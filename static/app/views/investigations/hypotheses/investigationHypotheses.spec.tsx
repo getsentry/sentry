@@ -86,20 +86,11 @@ describe('InvestigationHypotheses', () => {
         InvestigationHypothesisFixture({
           verificationSteps: [
             InvestigationVerificationStepFixture({id: 'done', result: null}),
-            InvestigationVerificationStepFixture({
-              id: 'in-progress',
-              status: 'running',
-            }),
-            InvestigationVerificationStepFixture({
-              id: 'failed',
-              status: 'failed',
-            }),
+            InvestigationVerificationStepFixture({id: 'in-progress', status: 'running'}),
+            InvestigationVerificationStepFixture({id: 'failed', status: 'failed'}),
           ],
         }),
-        InvestigationHypothesisFixture({
-          id: 'unplanned',
-          verificationSteps: undefined,
-        }),
+        InvestigationHypothesisFixture({id: 'unplanned', verificationSteps: undefined}),
       ],
     });
     MockApiClient.addMockResponse({url: orchestrationUrl, body: projection});
@@ -345,10 +336,7 @@ describe('InvestigationHypotheses', () => {
     // the card would sit on its old disposition until someone reloaded.
     const orchestrationRequest = MockApiClient.addMockResponse({
       url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({
-        status: 'completed',
-        workflowVersion: 7,
-      }),
+      body: InvestigationOrchestrationFixture({status: 'completed', workflowVersion: 7}),
     });
     const commandRequest = MockApiClient.addMockResponse({
       url: commandsUrl,
@@ -396,19 +384,13 @@ describe('InvestigationHypotheses', () => {
     // so a hypothesis the agent has only just formed arrives without the key at
     // all — not as an empty list.
     const hypotheses = InvestigationOrchestrationFixture().hypotheses.map(hypothesis => {
-      const unplanned = {
-        ...hypothesis,
-        effectiveStatus: 'pending' as const,
-      };
+      const unplanned = {...hypothesis, effectiveStatus: 'pending' as const};
       delete unplanned.verificationSteps;
       return unplanned;
     });
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({
-        hypotheses,
-        phase: 'investigating',
-      }),
+      body: InvestigationOrchestrationFixture({hypotheses, phase: 'investigating'}),
     });
 
     renderHypotheses();

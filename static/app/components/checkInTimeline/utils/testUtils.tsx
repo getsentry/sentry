@@ -10,13 +10,7 @@ export type TestStatusCounts = [
 
 export function generateTestStats(counts: TestStatusCounts): StatsBucket<string> {
   const [in_progress, ok, missed, timeout, error] = counts;
-  return {
-    in_progress,
-    ok,
-    missed,
-    timeout,
-    error,
-  };
+  return {in_progress, ok, missed, timeout, error};
 }
 
 export const testStatusPrecedent = ['error', 'timeout', 'missed', 'ok', 'in_progress'];

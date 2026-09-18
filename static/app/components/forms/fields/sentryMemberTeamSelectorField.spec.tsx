@@ -21,14 +21,8 @@ describe('SentryMemberTeamSelectorField', () => {
     TeamStore.loadInitialData(mockTeams);
     OrganizationStore.onUpdate(org, {replace: true});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/user-teams/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/teams/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/user-teams/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/teams/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: mockUsers.map(user => ({user})),

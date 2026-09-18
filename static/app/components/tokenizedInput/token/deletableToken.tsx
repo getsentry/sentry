@@ -28,12 +28,7 @@ export function DeletableToken<T>({
   state,
 }: DeletableTokenProps<T>) {
   const ref = useRef<HTMLDivElement>(null);
-  const {rowProps, gridCellProps} = useGridListItem({
-    item,
-    ref,
-    state,
-    focusable: true,
-  });
+  const {rowProps, gridCellProps} = useGridListItem({item, ref, state, focusable: true});
 
   const onKeyDownCapture = useCallback(
     (evt: KeyboardEvent<HTMLInputElement>) => {

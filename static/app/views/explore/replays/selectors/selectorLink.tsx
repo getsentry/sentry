@@ -33,10 +33,7 @@ export function SelectorLink({
     </TooltipContainer>
   );
 
-  const pathname = makeReplaysPathname({
-    path: '/',
-    organization,
-  });
+  const pathname = makeReplaysPathname({path: '/', organization});
 
   return (
     <StyledTextOverflow>

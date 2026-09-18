@@ -31,18 +31,12 @@ describe('IssueListOverview (actions)', () => {
     GroupStore.reset();
     IssueListCacheStore.reset();
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
       body: [groupStats],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/searches/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
@@ -76,10 +70,7 @@ describe('IssueListOverview (actions)', () => {
       url: '/organizations/org-slug/sent-first-event/',
       body: {sentFirstEvent: true},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
 
     TagStore.init?.();
   });
@@ -87,23 +78,17 @@ describe('IssueListOverview (actions)', () => {
   describe('status', () => {
     const group1 = GroupFixture({
       id: '1',
-      metadata: {
-        title: 'Group 1',
-      },
+      metadata: {title: 'Group 1'},
       shortId: 'JAVASCRIPT-1',
     });
     const group2 = GroupFixture({
       id: '2',
-      metadata: {
-        title: 'Group 2',
-      },
+      metadata: {title: 'Group 2'},
       shortId: 'JAVASCRIPT-2',
     });
     const group3 = GroupFixture({
       id: '3',
-      metadata: {
-        title: 'Group 3',
-      },
+      metadata: {title: 'Group 3'},
       shortId: 'JAVASCRIPT-3',
     });
 
@@ -277,17 +262,13 @@ describe('IssueListOverview (actions)', () => {
   describe('mark reviewed', () => {
     const group1 = GroupFixture({
       id: '1',
-      metadata: {
-        title: 'Group 1',
-      },
+      metadata: {title: 'Group 1'},
       shortId: 'JAVASCRIPT-1',
       inbox: {},
     });
     const group2 = GroupFixture({
       id: '2',
-      metadata: {
-        title: 'Group 2',
-      },
+      metadata: {title: 'Group 2'},
       shortId: 'JAVASCRIPT-2',
       inbox: {},
     });
@@ -357,16 +338,12 @@ describe('IssueListOverview (actions)', () => {
     const medPriorityGroup = GroupFixture({
       id: '1',
       priority: PriorityLevel.MEDIUM,
-      metadata: {
-        title: 'Medium priority issue',
-      },
+      metadata: {title: 'Medium priority issue'},
     });
     const highPriorityGroup = GroupFixture({
       id: '2',
       priority: PriorityLevel.HIGH,
-      metadata: {
-        title: 'High priority issue',
-      },
+      metadata: {title: 'High priority issue'},
     });
 
     beforeEach(() => {
@@ -383,9 +360,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {
-        organization,
-      });
+      render(<IssueListOverview />, {organization});
 
       expect(await screen.findByText('Medium priority issue')).toBeInTheDocument();
       const groups = screen.getAllByTestId('group');
@@ -625,9 +600,7 @@ describe('IssueListOverview (actions)', () => {
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
-        expect.objectContaining({
-          query: expect.objectContaining({id: ['1']}),
-        })
+        expect.objectContaining({query: expect.objectContaining({id: ['1']})})
       );
 
       expect(screen.queryByText('Group 1')).not.toBeInTheDocument();

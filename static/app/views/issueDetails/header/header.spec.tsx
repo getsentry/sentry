@@ -14,9 +14,7 @@ import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataConte
 import {GroupHeader} from 'sentry/views/issueDetails/header/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
-jest.mock('sentry/utils/useFeedbackForm', () => ({
-  useFeedbackForm: () => jest.fn(),
-}));
+jest.mock('sentry/utils/useFeedbackForm', () => ({useFeedbackForm: () => jest.fn()}));
 
 jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
   ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
@@ -26,10 +24,7 @@ jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
 describe('GroupHeader', () => {
   const baseUrl = 'BASE_URL/';
   const organization = OrganizationFixture();
-  const project = ProjectFixture({
-    platform: 'javascript',
-    teams: [TeamFixture()],
-  });
+  const project = ProjectFixture({platform: 'javascript', teams: [TeamFixture()]});
   const group = GroupFixture({
     issueCategory: IssueCategory.ERROR,
     isUnhandled: true,
@@ -53,10 +48,7 @@ describe('GroupHeader', () => {
         url: '/organizations/org-slug/replay-count/',
         body: {},
       });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/repos/',
-        body: {},
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/repos/', body: {}});
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
         body: [],
@@ -77,9 +69,7 @@ describe('GroupHeader', () => {
         <GroupDataContextProvider group={group} project={group.project}>
           <GroupHeader {...defaultProps} group={group} project={project} event={null} />
         </GroupDataContextProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(screen.getByText('RequestError')).toBeInTheDocument();
@@ -108,9 +98,7 @@ describe('GroupHeader', () => {
         <GroupDataContextProvider group={group} project={group.project}>
           <GroupHeader {...defaultProps} group={group} project={project} event={null} />
         </GroupDataContextProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(
@@ -132,9 +120,7 @@ describe('GroupHeader', () => {
             event={null}
           />
         </GroupDataContextProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(

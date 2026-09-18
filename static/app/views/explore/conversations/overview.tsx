@@ -55,22 +55,14 @@ const CONVERSATION_FIELD_DEFINITIONS: Record<string, FieldDefinition> =
   Object.fromEntries(
     Object.values(CONVERSATION_FIELDS).map(({key, valueType, description}) => [
       key,
-      {
-        kind: FieldKind.FIELD,
-        valueType,
-        desc: description,
-      },
+      {kind: FieldKind.FIELD, valueType, desc: description},
     ])
   );
 
 const CONVERSATION_FILTER_KEYS: TagCollection = Object.fromEntries(
   Object.values(CONVERSATION_FIELDS).map(({key}) => [
     key,
-    {
-      key,
-      name: key,
-      kind: FieldKind.MEASUREMENT,
-    },
+    {key, name: key, kind: FieldKind.MEASUREMENT},
   ])
 );
 
@@ -136,9 +128,7 @@ function ConversationsOverviewPage() {
   );
 
   useEffect(() => {
-    trackAnalytics('conversations.page-view', {
-      organization,
-    });
+    trackAnalytics('conversations.page-view', {organization});
   }, [organization]);
 
   useEffect(() => {
@@ -146,13 +136,9 @@ function ConversationsOverviewPage() {
       return;
     }
     if (showOnboarding) {
-      trackAnalytics('conversations.onboarding.page-view', {
-        organization,
-      });
+      trackAnalytics('conversations.onboarding.page-view', {organization});
     } else {
-      trackAnalytics('conversations.table.page-view', {
-        organization,
-      });
+      trackAnalytics('conversations.table.page-view', {organization});
     }
   }, [isConversationsTab, showOnboarding, isOnboardingLoading, organization]);
 
@@ -176,10 +162,7 @@ function ConversationsOverviewPage() {
             disallowNegation: true,
             replaceRawSearchKeys: ['gen_ai.conversation.id', 'gen_ai.input.messages'],
             matchKeySuggestions: [
-              {
-                key: 'gen_ai.conversation.id',
-                valuePattern: /^[0-9a-fA-F]{8,32}$/,
-              },
+              {key: 'gen_ai.conversation.id', valuePattern: /^[0-9a-fA-F]{8,32}$/},
               {key: 'gen_ai.conversation.id', valuePattern: /^resp_/},
               {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
               {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},

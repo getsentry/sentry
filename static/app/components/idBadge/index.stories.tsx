@@ -111,11 +111,7 @@ export default Storybook.story('IdBadge', story => {
       email: user.email,
     };
 
-    const teamActor: Actor = {
-      type: 'team',
-      id: teams[0]!.id,
-      name: teams[0]!.name,
-    };
+    const teamActor: Actor = {type: 'team', id: teams[0]!.id, name: teams[0]!.name};
 
     return (
       <Storybook.SideBySide>

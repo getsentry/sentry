@@ -22,20 +22,11 @@ describe('ProjectCspReports', () => {
       method: 'GET',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: projectUrl,
-      method: 'GET',
-      body: {
-        options: {},
-      },
-    });
+    MockApiClient.addMockResponse({url: projectUrl, method: 'GET', body: {options: {}}});
   });
 
   it('renders', async () => {
-    render(<ProjectCspReports />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<ProjectCspReports />, {organization, initialRouterConfig});
 
     // Panel heading
     expect(await screen.findByText('About')).toBeInTheDocument();
@@ -48,10 +39,7 @@ describe('ProjectCspReports', () => {
       statusCode: 400,
       body: {},
     });
-    render(<ProjectCspReports />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<ProjectCspReports />, {organization, initialRouterConfig});
 
     expect(
       await screen.findByText('There was an error loading data.')
@@ -59,15 +47,9 @@ describe('ProjectCspReports', () => {
   });
 
   it('can enable default ignored sources', async () => {
-    render(<ProjectCspReports />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<ProjectCspReports />, {organization, initialRouterConfig});
 
-    const mock = MockApiClient.addMockResponse({
-      url: projectUrl,
-      method: 'PUT',
-    });
+    const mock = MockApiClient.addMockResponse({url: projectUrl, method: 'PUT'});
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -79,25 +61,15 @@ describe('ProjectCspReports', () => {
       projectUrl,
       expect.objectContaining({
         method: 'PUT',
-        data: {
-          options: {
-            'sentry:csp_ignored_sources_defaults': true,
-          },
-        },
+        data: {options: {'sentry:csp_ignored_sources_defaults': true}},
       })
     );
   });
 
   it('can set additional ignored sources', async () => {
-    render(<ProjectCspReports />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<ProjectCspReports />, {organization, initialRouterConfig});
 
-    const mock = MockApiClient.addMockResponse({
-      url: projectUrl,
-      method: 'PUT',
-    });
+    const mock = MockApiClient.addMockResponse({url: projectUrl, method: 'PUT'});
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -115,9 +87,7 @@ describe('ProjectCspReports', () => {
         method: 'PUT',
         data: {
           // XXX: Org details endpoints accept these multiline inputs as a list, where as it looks like project details accepts it as a string with newlines
-          options: {
-            'sentry:csp_ignored_sources': 'test\ntest2',
-          },
+          options: {'sentry:csp_ignored_sources': 'test\ntest2'},
         },
       })
     );

@@ -125,9 +125,7 @@ function ScheduledChanges({
     >
       <Container padding="0 xl">
         <Heading size="lg" as="h2">
-          {tct('From [effectiveDate]', {
-            effectiveDate,
-          })}
+          {tct('From [effectiveDate]', {effectiveDate})}
         </Heading>
       </Container>
       {(planItem || reservedVolume.length > 0) && (
@@ -165,16 +163,8 @@ function ScheduledChanges({
             });
             const formattedCategory =
               reserved === 1
-                ? getSingularCategoryName({
-                    plan,
-                    category,
-                    capitalize: false,
-                  })
-                : getPlanCategoryName({
-                    plan,
-                    category,
-                    capitalize: false,
-                  });
+                ? getSingularCategoryName({plan, category, capitalize: false})
+                : getPlanCategoryName({plan, category, capitalize: false});
             return (
               <ScheduledChangeItem
                 isSubItem
@@ -250,9 +240,7 @@ function ScheduledChanges({
         </Text>
         <div>
           <Text as="span" size="2xl" bold>
-            {utils.displayPrice({
-              cents: total,
-            })}
+            {utils.displayPrice({cents: total})}
           </Text>
           <Text as="span" size="lg">
             {' USD'}
@@ -361,21 +349,12 @@ function Receipt({
                     const formattedReserved = formatReservedWithUnits(
                       reserved,
                       category,
-                      {
-                        isAbbreviated: true,
-                        useUnitScaling: true,
-                      }
+                      {isAbbreviated: true, useUnitScaling: true}
                     );
                     const formattedCategory =
                       reserved === 1
-                        ? getSingularCategoryName({
-                            plan,
-                            category,
-                          })
-                        : getPlanCategoryName({
-                            plan,
-                            category,
-                          });
+                        ? getSingularCategoryName({plan, category})
+                        : getPlanCategoryName({plan, category});
                     return (
                       <ReceiptItem
                         key={item.type}
@@ -500,10 +479,7 @@ function Receipt({
 const checkoutSuccessFeedbackOptions = {
   formTitle: t('Give feedback'),
   messagePlaceholder: t('How can we make the checkout experience better for you?'),
-  tags: {
-    'feedback.source': 'checkout_success',
-    'feedback.owner': 'billing',
-  },
+  tags: {'feedback.source': 'checkout_success', 'feedback.owner': 'billing'},
 };
 
 export function CheckoutSuccess({

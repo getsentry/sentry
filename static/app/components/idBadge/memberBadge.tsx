@@ -17,13 +17,7 @@ function getMemberUser(member: Member): AvatarUser {
     return member.user;
   }
   // Adapt the member into a AvatarUser
-  return {
-    id: '',
-    name: member.name,
-    email: member.email,
-    username: '',
-    ip_address: '',
-  };
+  return {id: '', name: member.name, email: member.email, username: '', ip_address: ''};
 }
 
 export function MemberBadge({member, disableLink, ...props}: MemberBadgeProps) {

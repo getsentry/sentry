@@ -57,38 +57,14 @@ const TRENDS_FUNCTIONS: TrendFunction[] = [
 ];
 
 const TRENDS_PARAMETERS: TrendParameter[] = [
-  {
-    label: TrendParameterLabel.DURATION,
-    column: TrendParameterColumn.DURATION,
-  },
-  {
-    label: TrendParameterLabel.LCP,
-    column: TrendParameterColumn.LCP,
-  },
-  {
-    label: TrendParameterLabel.FCP,
-    column: TrendParameterColumn.FCP,
-  },
-  {
-    label: TrendParameterLabel.FID,
-    column: TrendParameterColumn.FID,
-  },
-  {
-    label: TrendParameterLabel.CLS,
-    column: TrendParameterColumn.CLS,
-  },
-  {
-    label: TrendParameterLabel.SPANS_HTTP,
-    column: TrendParameterColumn.SPANS_HTTP,
-  },
-  {
-    label: TrendParameterLabel.SPANS_DB,
-    column: TrendParameterColumn.SPANS_DB,
-  },
-  {
-    label: TrendParameterLabel.SPANS_BROWSER,
-    column: TrendParameterColumn.SPANS_BROWSER,
-  },
+  {label: TrendParameterLabel.DURATION, column: TrendParameterColumn.DURATION},
+  {label: TrendParameterLabel.LCP, column: TrendParameterColumn.LCP},
+  {label: TrendParameterLabel.FCP, column: TrendParameterColumn.FCP},
+  {label: TrendParameterLabel.FID, column: TrendParameterColumn.FID},
+  {label: TrendParameterLabel.CLS, column: TrendParameterColumn.CLS},
+  {label: TrendParameterLabel.SPANS_HTTP, column: TrendParameterColumn.SPANS_HTTP},
+  {label: TrendParameterLabel.SPANS_DB, column: TrendParameterColumn.SPANS_DB},
+  {label: TrendParameterLabel.SPANS_BROWSER, column: TrendParameterColumn.SPANS_BROWSER},
   {
     label: TrendParameterLabel.SPANS_RESOURCE,
     column: TrendParameterColumn.SPANS_RESOURCE,
@@ -105,16 +81,10 @@ export function makeTrendToColorMapping(theme: Theme) {
       lighter: theme.colors.red200,
       default: theme.colors.red400,
     },
-    neutral: {
-      lighter: theme.colors.yellow200,
-      default: theme.colors.yellow400,
-    },
+    neutral: {lighter: theme.colors.yellow200, default: theme.colors.yellow400},
     // TODO remove this once backend starts sending
     // TrendChangeType.IMPROVED as change type
-    improvement: {
-      lighter: theme.colors.green200,
-      default: theme.colors.green400,
-    },
+    improvement: {lighter: theme.colors.green200, default: theme.colors.green400},
   };
 }
 
@@ -166,18 +136,12 @@ export function performanceTypeToTrendParameterLabel(
 ): TrendParameter {
   switch (performanceType) {
     case ProjectPerformanceType.FRONTEND:
-      return {
-        label: TrendParameterLabel.LCP,
-        column: TrendParameterColumn.LCP,
-      };
+      return {label: TrendParameterLabel.LCP, column: TrendParameterColumn.LCP};
     case ProjectPerformanceType.ANY:
     case ProjectPerformanceType.BACKEND:
     case ProjectPerformanceType.FRONTEND_OTHER:
     default:
-      return {
-        label: TrendParameterLabel.DURATION,
-        column: TrendParameterColumn.DURATION,
-      };
+      return {label: TrendParameterLabel.DURATION, column: TrendParameterColumn.DURATION};
   }
 }
 
@@ -199,11 +163,7 @@ export function normalizeTrends(
 ): NormalizedTrendsTransaction[] {
   const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
-    return {
-      ...row,
-      received_at,
-      transaction: row.transaction,
-    };
+    return {...row, received_at, transaction: row.transaction};
   });
 }
 
@@ -222,11 +182,7 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
   let minValue = Number.MAX_SAFE_INTEGER;
   let maxValue = 0;
   if (!data) {
-    return {
-      maxValue,
-      minValue,
-      smoothedResults: undefined,
-    };
+    return {maxValue, minValue, smoothedResults: undefined};
   }
 
   const smoothedResults: Series[] = [];
@@ -244,10 +200,7 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
     for (let i = 0; i < smoothed.length; i++) {
       const point = smoothed[i] as any;
       const value = point.y;
-      resultData.push({
-        name: point.x,
-        value,
-      });
+      resultData.push({name: point.x, value});
       if (!isNaN(value)) {
         const rounded = Math.round(value);
         minValue = Math.min(rounded, minValue);
@@ -262,11 +215,7 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
     });
   }
 
-  return {
-    minValue,
-    maxValue,
-    smoothedResults,
-  };
+  return {minValue, maxValue, smoothedResults};
 }
 
 export function getTopTrendingEvents(location: Location) {

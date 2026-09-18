@@ -7,15 +7,7 @@ const SCREEN_FALLBACK = {
 };
 
 function filtersFor(value: string, key = 'app.vitals.start.screen') {
-  return {
-    globalFilter: [
-      {
-        dataset: WidgetType.SPANS,
-        tag: {key, name: key},
-        value,
-      },
-    ],
-  };
+  return {globalFilter: [{dataset: WidgetType.SPANS, tag: {key, name: key}, value}]};
 }
 
 function expand(value: string, key?: string) {
@@ -55,10 +47,7 @@ describe('withGlobalFilterFallback', () => {
     expect(
       withGlobalFilterFallback(
         filtersFor('tags[custom_tag]:[foo,bar]', 'tags[custom_tag]'),
-        {
-          attribute: 'tags[custom_tag]',
-          fallbackAttribute: 'transaction',
-        }
+        {attribute: 'tags[custom_tag]', fallbackAttribute: 'transaction'}
       )?.globalFilter?.[0]?.value
     ).toBe('(tags[custom_tag]:[foo,bar] OR transaction:[foo,bar])');
   });

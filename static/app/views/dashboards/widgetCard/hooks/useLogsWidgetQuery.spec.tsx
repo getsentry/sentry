@@ -40,28 +40,18 @@ describe('useLogsSeriesQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [],
-      },
+      body: {data: []},
     });
 
     renderHookWithProviders(() =>
-      useLogsSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useLogsSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: ['count()'],
-            dataset: 'ourlogs',
-          }),
+          query: expect.objectContaining({yAxis: ['count()'], dataset: 'ourlogs'}),
         })
       );
     });
@@ -84,9 +74,7 @@ describe('useLogsSeriesQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [],
-      },
+      body: {data: []},
     });
 
     renderHookWithProviders(() =>
@@ -94,9 +82,7 @@ describe('useLogsSeriesQuery', () => {
         widget,
         organization,
         pageFilters,
-        dashboardFilters: {
-          release: ['1.0.0'],
-        },
+        dashboardFilters: {release: ['1.0.0']},
         enabled: true,
       })
     );
@@ -141,28 +127,17 @@ describe('useLogsTableQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-      },
+      body: {data: []},
     });
 
     renderHookWithProviders(() =>
-      useLogsTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useLogsTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            dataset: 'ourlogs',
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({dataset: 'ourlogs'})})
       );
     });
   });
@@ -184,9 +159,7 @@ describe('useLogsTableQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-      },
+      body: {data: []},
     });
 
     renderHookWithProviders(() =>
@@ -204,10 +177,7 @@ describe('useLogsTableQuery', () => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            per_page: 50,
-            cursor: 'test-cursor',
-          }),
+          query: expect.objectContaining({per_page: 50, cursor: 'test-cursor'}),
         })
       );
     });

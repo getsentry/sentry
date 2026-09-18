@@ -49,9 +49,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Logs for Unity are supported in Sentry SDK version [code:4.0.0] and above.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
       ],
@@ -71,9 +69,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Open your project settings: [strong:Tools > Sentry > Logging] and check the [strong:Enable Structured Logging] option.',
-            {
-              strong: <strong />,
-            }
+            {strong: <strong />}
           ),
         },
         {
@@ -95,9 +91,6 @@ export const logs: OnboardingConfig = {
     },
   ],
   verify: (params: DocsParams) => [
-    {
-      type: StepType.VERIFY,
-      content: [logsVerify(params)],
-    },
+    {type: StepType.VERIFY, content: [logsVerify(params)]},
   ],
 };

@@ -89,9 +89,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install the [strong:NuGet] package:', {
-            strong: <strong />,
-          }),
+          text: tct('Install the [strong:NuGet] package:', {strong: <strong />}),
         },
         {
           type: 'code',
@@ -122,11 +120,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'csharp', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -168,9 +162,7 @@ export const onboarding: OnboardingConfig = {
                 type: 'text',
                 text: tct(
                   'You can measure the performance of your endpoints by adding a middleware to [code:Startup.cs]:',
-                  {
-                    code: <code />,
-                  }
+                  {code: <code />}
                 ),
               },
               {
@@ -179,11 +171,7 @@ export const onboarding: OnboardingConfig = {
                   "You'll be able to monitor the performance of your actions automatically. To add additional spans to it, you can use the API:"
                 ),
               },
-              {
-                type: 'code',
-                language: 'csharp',
-                code: getPerformanceSpansSnippet(),
-              },
+              {type: 'code', language: 'csharp', code: getPerformanceSpansSnippet()},
             ],
           },
         ] satisfies OnboardingStep[])

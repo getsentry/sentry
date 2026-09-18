@@ -180,10 +180,7 @@ function CollapsiblePanel({
   const panelRef = useRef<HTMLDivElement>(null);
   const [isExpandedByUser, setIsExpandedByUser] = useState(false);
   const isExpanded = forceExpanded || isExpandedByUser;
-  const disclosureProps = {
-    isExpanded,
-    onExpandedChange: setIsExpandedByUser,
-  };
+  const disclosureProps = {isExpanded, onExpandedChange: setIsExpandedByUser};
   const state = useDisclosureState(disclosureProps);
   const {buttonProps, panelProps} = useDisclosure(disclosureProps, state, panelRef);
   const {pressProps} = usePress(buttonProps);

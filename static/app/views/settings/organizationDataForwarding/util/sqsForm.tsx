@@ -218,10 +218,7 @@ export function SQSSetupForm({
       />
       <ProjectConfigFields
         form={form}
-        fields={{
-          enroll_new_projects: 'enroll_new_projects',
-          project_ids: 'project_ids',
-        }}
+        fields={{enroll_new_projects: 'enroll_new_projects', project_ids: 'project_ids'}}
         disabled={disabled}
         projectOptions={projectOptions}
       />
@@ -287,10 +284,7 @@ export function SQSEditForm({
       />
       <ProjectConfigFields
         form={form}
-        fields={{
-          enroll_new_projects: 'enroll_new_projects',
-          project_ids: 'project_ids',
-        }}
+        fields={{enroll_new_projects: 'enroll_new_projects', project_ids: 'project_ids'}}
         disabled={disabled}
         projectOptions={projectOptions}
       />

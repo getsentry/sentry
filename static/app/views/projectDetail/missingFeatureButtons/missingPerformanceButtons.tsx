@@ -19,9 +19,7 @@ import {
 
 const DOCS_URL = 'https://docs.sentry.io/performance-monitoring/getting-started/';
 
-type Props = {
-  organization: Organization;
-};
+type Props = {organization: Organization};
 
 export function MissingPerformanceButtons({organization}: Props) {
   const navigate = useNavigate();

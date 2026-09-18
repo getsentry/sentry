@@ -12,10 +12,7 @@ import {TagsDistributionDrawer} from 'sentry/views/issueDetails/groupDistributio
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {useDrawerTab} from 'sentry/views/issueDetails/groupDistributions/useDrawerTab';
 
-type Props = {
-  group: Group;
-  includeFeatureFlagsTab: boolean;
-};
+type Props = {group: Group; includeFeatureFlagsTab: boolean};
 
 /**
  * Shared tags and feature flags distributions drawer used by issue details.

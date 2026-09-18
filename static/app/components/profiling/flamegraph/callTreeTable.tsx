@@ -267,21 +267,15 @@ export function syncCallTreeTableScroll(args: SyncCallTreeScrollParams) {
       | null
       | undefined;
     if (lastCell) {
-      lastCell.scrollIntoView({
-        block: 'nearest',
-      });
+      lastCell.scrollIntoView({block: 'nearest'});
 
       const left = -328 + (args.node.item.depth * 14 + 8);
       if (Array.isArray(args.scrollContainer)) {
         args.scrollContainer.forEach(c => {
-          c.scrollBy({
-            left,
-          });
+          c.scrollBy({left});
         });
       } else {
-        args.scrollContainer.scrollBy({
-          left,
-        });
+        args.scrollContainer.scrollBy({left});
       }
     }
   } else if (args.coordinates && args.scrollContainer) {
@@ -289,14 +283,10 @@ export function syncCallTreeTableScroll(args: SyncCallTreeScrollParams) {
 
     if (Array.isArray(args.scrollContainer)) {
       args.scrollContainer.forEach(c => {
-        c.scrollBy({
-          left,
-        });
+        c.scrollBy({left});
       });
     } else {
-      args.scrollContainer.scrollBy({
-        left,
-      });
+      args.scrollContainer.scrollBy({left});
     }
   }
 }
@@ -476,9 +466,7 @@ export function CallTreeTableFixedColumns(props: CallTreeTableColumns) {
 export function CallTreeTableDynamicColumns(props: BaseCallTreeTableColumns) {
   const handleExpanding = (evt: React.MouseEvent) => {
     evt.stopPropagation();
-    props.onExpandClick(props.node, !props.node.expanded, {
-      expandChildren: evt.metaKey,
-    });
+    props.onExpandClick(props.node, !props.node.expanded, {expandChildren: evt.metaKey});
   };
 
   return (

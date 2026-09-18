@@ -34,12 +34,7 @@ const exception = EventEntryFixture({
   },
 });
 
-const message = {
-  type: 'message',
-  data: {
-    formatted: 'Something is broken',
-  },
-};
+const message = {type: 'message', data: {formatted: 'Something is broken'}};
 
 const threads = EventEntryFixture({
   type: EntryType.THREADS,

@@ -168,9 +168,7 @@ function UsageBreakdownInfo({
               }
               help={tct(
                 "The amount of [budgetTerm] you've used so far on this product in the current month.",
-                {
-                  budgetTerm: displayBudgetName(plan),
-                }
+                {budgetTerm: displayBudgetName(plan)}
               )}
             />
           )}
@@ -243,9 +241,7 @@ function DataCategoryUsageBreakdownInfo({
     otherSpend > 0 ? (
       <UsageBreakdownField
         field={t('Active contributors spend')}
-        value={displayPriceWithCents({
-          cents: otherSpend,
-        })}
+        value={displayPriceWithCents({cents: otherSpend})}
         help={
           hasGitLabSupport
             ? t(
@@ -293,9 +289,7 @@ function ReservedBudgetUsageBreakdownInfo({
   const platformReservedField = onTrialOrSponsored
     ? tct('[planName] plan', {planName: plan.name})
     : tct('[productName] monthly credits', {
-        productName: toTitleCase(reservedBudget.productName, {
-          allowInnerUpperCase: true,
-        }),
+        productName: toTitleCase(reservedBudget.productName, {allowInnerUpperCase: true}),
       });
   const formattedPlatformReserved = displayPriceWithCents({
     cents: reservedBudget.reservedBudget,

@@ -26,22 +26,8 @@ import {parse} from './grammar.pegjs';
 function space(prev: LocationRange | null, next: LocationRange | null): TokenFreeText {
   const location: LocationRange = {
     source: undefined,
-    start: prev
-      ? prev.end
-      : {
-          offset: 0,
-          line: 1,
-          column: 1,
-        },
-    end: next
-      ? next.start
-      : prev
-        ? prev.end
-        : {
-            offset: 0,
-            line: 1,
-            column: 1,
-          },
+    start: prev ? prev.end : {offset: 0, line: 1, column: 1},
+    end: next ? next.start : prev ? prev.end : {offset: 0, line: 1, column: 1},
   };
   return new TokenFreeText(location, '');
 }

@@ -33,10 +33,7 @@ function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
     setIsLoading(true);
 
     try {
-      await joinTeamPromise(api, {
-        orgId: organization.slug,
-        teamId: teamSlug,
-      });
+      await joinTeamPromise(api, {orgId: organization.slug, teamId: teamSlug});
       addSuccessMessage(t('Request to join team sent.'));
     } catch {
       addErrorMessage(t('There was an error while trying to request access.'));

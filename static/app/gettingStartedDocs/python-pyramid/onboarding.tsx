@@ -39,9 +39,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock(),
       ],
@@ -55,9 +53,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'If you have the [codePyramid:pyramid] package in your dependencies, the Pyramid integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
-            {
-              codePyramid: <code />,
-            }
+            {codePyramid: <code />}
           ),
         },
         {
@@ -107,9 +103,7 @@ if __name__ == '__main__':
           type: 'text',
           text: tct(
             'When you point your browser to [link:http://localhost:6543/] an error event will be sent to Sentry.',
-            {
-              link: <ExternalLink href="http://localhost:6543/" />,
-            }
+            {link: <ExternalLink href="http://localhost:6543/" />}
           ),
         },
       ],

@@ -73,9 +73,7 @@ export function PrivateGamingSdkAccessModal({
     refetch,
   } = useApiQuery<UserIdentityConfig[]>(
     [getApiUrl('/users/$userId/user-identities/', {path: {userId: 'me'}})],
-    {
-      staleTime: Infinity,
-    }
+    {staleTime: Infinity}
   );
 
   const mutation = useMutation<
@@ -101,9 +99,7 @@ export function PrivateGamingSdkAccessModal({
         addErrorMessage(
           tct(
             'Invitation to console repositories for these platforms have failed: [errors]',
-            {
-              errors: platformsWithErrors.join(','),
-            }
+            {errors: platformsWithErrors.join(',')}
           )
         );
       }

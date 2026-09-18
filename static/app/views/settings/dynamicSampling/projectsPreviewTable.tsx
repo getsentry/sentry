@@ -55,10 +55,7 @@ export function ProjectsPreviewTable({
 
   const {balancedItems} = useMemo(() => {
     const targetRate = parsePercent(debouncedTargetSampleRate);
-    return balanceSampleRate({
-      targetSampleRate: targetRate,
-      items: balancingItems,
-    });
+    return balanceSampleRate({targetSampleRate: targetRate, items: balancingItems});
   }, [debouncedTargetSampleRate, balancingItems]);
 
   const initialSampleRatesById = useMemo(() => {

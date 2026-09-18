@@ -16,9 +16,7 @@ import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 import {useLiveBadge, useLiveRefresh} from './replayLiveIndicator';
 
 jest.mock('sentry/views/explore/replays/detail/ai/replaySummaryContext', () => ({
-  useReplaySummaryContext: () => ({
-    startSummaryRequest: jest.fn(),
-  }),
+  useReplaySummaryContext: () => ({startSummaryRequest: jest.fn()}),
 }));
 
 jest.mock('sentry/utils/replays/hooks/useReplayProjectSlug', () => ({
@@ -33,12 +31,7 @@ describe('useLiveBadge', () => {
     const startedAt = new Date(now - 60_000); // 1 minute ago
     const finishedAt = new Date(now); // just now
 
-    const {result} = renderHook(() =>
-      useLiveBadge({
-        startedAt,
-        finishedAt,
-      })
-    );
+    const {result} = renderHook(() => useLiveBadge({startedAt, finishedAt}));
 
     expect(result.current.isLive).toBe(true);
   });
@@ -48,12 +41,7 @@ describe('useLiveBadge', () => {
     const startedAt = new Date(now - 10 * 60_000); // 10 minutes ago
     const finishedAt = new Date(now - 6 * 60_000); // 6 minutes ago (more than 5 min threshold)
 
-    const {result} = renderHook(() =>
-      useLiveBadge({
-        startedAt,
-        finishedAt,
-      })
-    );
+    const {result} = renderHook(() => useLiveBadge({startedAt, finishedAt}));
 
     expect(result.current.isLive).toBe(false);
   });
@@ -63,12 +51,7 @@ describe('useLiveBadge', () => {
     const startedAt = new Date(now - 2 * 60 * 60_000); // 2 hours ago
     const finishedAt = new Date(now); // just now
 
-    const {result} = renderHook(() =>
-      useLiveBadge({
-        startedAt,
-        finishedAt,
-      })
-    );
+    const {result} = renderHook(() => useLiveBadge({startedAt, finishedAt}));
 
     expect(result.current.isLive).toBe(false);
   });
@@ -78,12 +61,7 @@ describe('useLiveBadge', () => {
     const startedAt = new Date(now - 60_000); // 1 minute ago
     const finishedAt = new Date(now); // just now
 
-    const {result} = renderHook(() =>
-      useLiveBadge({
-        startedAt,
-        finishedAt,
-      })
-    );
+    const {result} = renderHook(() => useLiveBadge({startedAt, finishedAt}));
 
     expect(result.current.isLive).toBe(true);
 
@@ -99,12 +77,7 @@ describe('useLiveBadge', () => {
     const now = Date.now();
     const startedAt = new Date(now - 60_000);
 
-    const {result} = renderHook(() =>
-      useLiveBadge({
-        startedAt,
-        finishedAt: null,
-      })
-    );
+    const {result} = renderHook(() => useLiveBadge({startedAt, finishedAt: null}));
 
     expect(result.current.isLive).toBe(false);
   });
@@ -137,9 +110,7 @@ describe('useLiveRefresh', () => {
   });
 
   it('should not show refresh button initially when polled segments equals current segments', () => {
-    const replay = ReplayRecordFixture({
-      count_segments: 5,
-    });
+    const replay = ReplayRecordFixture({count_segments: 5});
 
     // Mock the polling endpoint to return same segment count
     MockApiClient.addMockResponse({
@@ -162,10 +133,7 @@ describe('useLiveRefresh', () => {
       count_segments: 5,
     });
 
-    const updatedReplay = ReplayRecordFixture({
-      ...replay,
-      count_segments: 10,
-    });
+    const updatedReplay = ReplayRecordFixture({...replay, count_segments: 10});
 
     // Mock the polling endpoint to return updated segment count
     MockApiClient.addMockResponse({
@@ -195,9 +163,7 @@ describe('useLiveRefresh', () => {
       body: {data: {...replay, count_segments: 10}},
     });
 
-    renderHook(() => useLiveRefresh({replay}), {
-      wrapper: createWrapper(),
-    });
+    renderHook(() => useLiveRefresh({replay}), {wrapper: createWrapper()});
 
     // Advance time past polling interval
     await act(async () => {

@@ -6,9 +6,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {DEFAULT_QUERY_CLIENT_CONFIG, useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
-type ResponseData = {
-  value: number;
-};
+type ResponseData = {value: number};
 
 beforeEach(() => {
   jest.restoreAllMocks();
@@ -17,10 +15,7 @@ beforeEach(() => {
 describe('queryClient', () => {
   describe('useQuery', () => {
     it('can do a simple fetch', async () => {
-      const mock = MockApiClient.addMockResponse({
-        url: '/api-tokens/',
-        body: {value: 5},
-      });
+      const mock = MockApiClient.addMockResponse({url: '/api-tokens/', body: {value: 5}});
 
       function TestComponent() {
         const {data} = useApiQuery<ResponseData>([getApiUrl('/api-tokens/')], {
@@ -46,10 +41,7 @@ describe('queryClient', () => {
     });
 
     it('can do a fetch with provided query object', async () => {
-      const mock = MockApiClient.addMockResponse({
-        url: '/api-tokens/',
-        body: {value: 5},
-      });
+      const mock = MockApiClient.addMockResponse({url: '/api-tokens/', body: {value: 5}});
 
       function TestComponent() {
         const {data} = useApiQuery<ResponseData>(
@@ -75,10 +67,7 @@ describe('queryClient', () => {
     });
 
     it('can return error state', async () => {
-      MockApiClient.addMockResponse({
-        url: '/api-tokens/',
-        statusCode: 500,
-      });
+      MockApiClient.addMockResponse({url: '/api-tokens/', statusCode: 500});
 
       function TestComponent() {
         const query = useApiQuery<ResponseData>([getApiUrl('/api-tokens/')], {

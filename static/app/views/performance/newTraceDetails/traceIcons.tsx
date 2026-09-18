@@ -20,13 +20,7 @@ function EventTypeIcon(props: EventTypeIconProps) {
   }
 }
 
-export const TraceIcons = {
-  Icon: EventTypeIcon,
-  Chevron,
-  Fire,
-  Profile,
-  Warning,
-};
+export const TraceIcons = {Icon: EventTypeIcon, Chevron, Fire, Profile, Warning};
 
 // These are the icons used in the TraceDetails component - their SVGs path values have been copied
 // and removed from the emotion wrapper which is parsing and compiling unnecessary CSS as the

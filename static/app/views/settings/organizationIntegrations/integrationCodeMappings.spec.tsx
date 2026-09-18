@@ -19,19 +19,13 @@ import {IntegrationCodeMappings} from 'sentry/views/settings/organizationIntegra
 describe('IntegrationCodeMappings', () => {
   const projects = [
     ProjectFixture(),
-    ProjectFixture({
-      id: '3',
-      slug: 'some-project',
-      name: 'Some Project',
-    }),
+    ProjectFixture({id: '3', slug: 'some-project', name: 'Some Project'}),
   ];
 
   const org = OrganizationFixture();
   const integration = GitHubIntegrationFixture();
   const repos = [
-    RepositoryFixture({
-      integrationId: integration.id,
-    }),
+    RepositoryFixture({integrationId: integration.id}),
 
     RepositoryFixture({
       integrationId: integration.id,
@@ -194,13 +188,7 @@ describe('IntegrationCodeMappings', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
       body: {
-        repos: [
-          {
-            id: repos[0]!.id,
-            identifier: repos[1]!.name,
-            defaultBranch: 'main',
-          },
-        ],
+        repos: [{id: repos[0]!.id, identifier: repos[1]!.name, defaultBranch: 'main'}],
       },
     });
     render(<IntegrationCodeMappings integration={integration} />);
@@ -217,10 +205,7 @@ describe('IntegrationCodeMappings', () => {
 
   it('deletes existing config and refreshes data', async () => {
     const deleteUrl = `/organizations/${org.slug}/code-mappings/${pathConfig1.id}/`;
-    const deleteMock = MockApiClient.addMockResponse({
-      url: deleteUrl,
-      method: 'DELETE',
-    });
+    const deleteMock = MockApiClient.addMockResponse({url: deleteUrl, method: 'DELETE'});
 
     render(<IntegrationCodeMappings integration={integration} />);
     renderGlobalModal();

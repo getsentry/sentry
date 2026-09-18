@@ -129,10 +129,7 @@ function SentryAppAvatarChooser({
       onSave={addAvatar}
       title={isColor ? t('Logo') : t('Small Icon')}
       help={styleProps.help.concat(isInternal ? '' : t(' Required for publishing.'))}
-      defaultChoice={{
-        label: styleProps.label,
-        description: styleProps.description,
-      }}
+      defaultChoice={{label: styleProps.label, description: styleProps.description}}
     />
   );
 }
@@ -165,11 +162,7 @@ const APP_TOKEN_COLUMNS: TableColumnConfig[] = [
 
 function requireField(ctx: z.RefinementCtx, value: string, field: string) {
   if (!value.trim()) {
-    ctx.addIssue({
-      code: 'custom',
-      message: t('This field is required'),
-      path: [field],
-    });
+    ctx.addIssue({code: 'custom', message: t('This field is required'), path: [field]});
   }
 }
 
@@ -189,11 +182,7 @@ function requireValidSchemaJson(ctx: z.RefinementCtx, data: SentryAppFormValues)
     try {
       JSON.parse(data.schema);
     } catch {
-      ctx.addIssue({
-        code: 'custom',
-        message: t('Invalid JSON'),
-        path: ['schema'],
-      });
+      ctx.addIssue({code: 'custom', message: t('Invalid JSON'), path: ['schema']});
     }
   }
 }
@@ -277,9 +266,7 @@ type SaveSentryAppPayload = {
   webhookUrl?: string;
 };
 
-type RotateSecretResponse = {
-  clientSecret: string;
-};
+type RotateSecretResponse = {clientSecret: string};
 
 function getSchemaFieldValue(schema: SentryApp['schema'] | null | undefined) {
   const formattedSchema = JSON.stringify(schema ?? {}, null, 2);
@@ -494,9 +481,7 @@ function ClaudeRoutineTemplateForm() {
       events: CLAUDE_ROUTINE_EVENTS,
       isAlertable: true,
     },
-    validators: {
-      onDynamic: claudeRoutineSchema,
-    },
+    validators: {onDynamic: claudeRoutineSchema},
     onSubmit: ({value, formApi}) => {
       const payload = buildSentryAppPayload(value);
       payload.webhookHeaders = [
@@ -697,9 +682,7 @@ function InternalSentryAppCreationForm() {
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: emptySentryAppValues(organization.slug, true),
-    validators: {
-      onDynamic: internalSentryAppSchema,
-    },
+    validators: {onDynamic: internalSentryAppSchema},
     onSubmit: ({value, formApi}) =>
       saveSentryAppMutation
         .mutateAsync(buildSentryAppPayload(value))
@@ -763,9 +746,7 @@ function PublicSentryAppCreationForm() {
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: emptySentryAppValues(organization.slug, false),
-    validators: {
-      onDynamic: publicSentryAppSchema,
-    },
+    validators: {onDynamic: publicSentryAppSchema},
     onSubmit: ({value, formApi}) =>
       saveSentryAppMutation
         .mutateAsync(buildSentryAppPayload(value))
@@ -1004,9 +985,7 @@ function SentryAppEditForm({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues,
-    validators: {
-      onDynamic: isInternal ? internalSentryAppSchema : publicSentryAppSchema,
-    },
+    validators: {onDynamic: isInternal ? internalSentryAppSchema : publicSentryAppSchema},
     onSubmit: ({value, formApi}) =>
       saveSentryAppMutation
         .mutateAsync(buildSentryAppPayload(value))

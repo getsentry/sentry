@@ -49,19 +49,11 @@ function useAiSpanSelection(nodes: AITraceSpanNode[]) {
       }
       setSelectedNodeKey(eventId);
 
-      trackAnalytics('agent-monitoring.trace.span-select', {
-        organization,
-      });
+      trackAnalytics('agent-monitoring.trace.span-select', {organization});
 
       const nodeIdentifier: TraceTree.NodePath = `span-${eventId}`;
       navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            node: nodeIdentifier,
-          },
-        },
+        {...location, query: {...location.query, node: nodeIdentifier}},
         {replace: true}
       );
     },
@@ -99,9 +91,7 @@ export function TraceAiSpans({
   const {selectedNode, handleSelectNode} = useAiSpanSelection(nodes);
 
   const handleViewFullTraceClick = () => {
-    trackAnalytics('agent-monitoring.trace.view-full-trace-click', {
-      organization,
-    });
+    trackAnalytics('agent-monitoring.trace.view-full-trace-click', {organization});
   };
 
   if (isLoading) {
@@ -125,10 +115,7 @@ export function TraceAiSpans({
           onClick={handleViewFullTraceClick}
           to={{
             ...location,
-            query: {
-              ...location.query,
-              tab: TraceLayoutTabKeys.WATERFALL,
-            },
+            query: {...location.query, tab: TraceLayoutTabKeys.WATERFALL},
           }}
         >
           {t('View in Full Trace')}

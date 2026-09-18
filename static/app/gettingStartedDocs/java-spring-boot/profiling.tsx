@@ -55,9 +55,7 @@ export const profiling: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To enable profiling, add the [code:profile-session-sample-rate] option to your [code:application.properties] or [code:application.yml]:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -68,11 +66,7 @@ export const profiling: OnboardingConfig = {
               language: 'properties',
               code: getConfigurationPropertiesSnippet(params),
             },
-            {
-              label: 'YAML',
-              language: 'yaml',
-              code: getConfigurationYamlSnippet(params),
-            },
+            {label: 'YAML', language: 'yaml', code: getConfigurationYamlSnippet(params)},
           ],
         },
       ],

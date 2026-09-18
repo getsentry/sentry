@@ -111,9 +111,7 @@ function EditingViewTitle({
     inputRef.current?.select();
   }, []);
 
-  const autosizeInputRef = useAutosizeInput({
-    value: title,
-  });
+  const autosizeInputRef = useAutosizeInput({value: title});
 
   return (
     <GrowingInput

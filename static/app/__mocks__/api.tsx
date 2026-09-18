@@ -273,20 +273,11 @@ class Client implements ApiNamespace.Client {
             responseText: JSON.stringify(body),
             responseJSON: body,
           },
-          {
-            overrideMimeType: () => {},
-            abort: () => {},
-            then: () => {},
-            error: () => {},
-          }
+          {overrideMimeType: () => {}, abort: () => {}, then: () => {}, error: () => {}}
         );
 
         this.handleRequestError(
-          {
-            id: '1234',
-            path: url,
-            requestOptions: options,
-          },
+          {id: '1234', path: url, requestOptions: options},
           errorResponse as any,
           'error',
           'error'

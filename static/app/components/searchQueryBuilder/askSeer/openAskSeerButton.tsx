@@ -12,10 +12,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type OpenAskSeerButtonProps = {
-  onTabForward: () => void;
-  ref?: Ref<HTMLButtonElement>;
-};
+type OpenAskSeerButtonProps = {onTabForward: () => void; ref?: Ref<HTMLButtonElement>};
 
 export function OpenAskSeerButton({onTabForward, ref}: OpenAskSeerButtonProps) {
   const organization = useOrganization();

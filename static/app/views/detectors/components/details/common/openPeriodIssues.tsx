@@ -166,11 +166,7 @@ function LatestGroupWithOpenPeriods({
     (start: Date, end?: Date) => {
       const startMs = start.getTime();
       const endMs = (end ?? new Date()).getTime();
-      const zoomRange = computeZoomRangeMs({
-        startMs,
-        endMs,
-        intervalSeconds,
-      });
+      const zoomRange = computeZoomRangeMs({startMs, endMs, intervalSeconds});
       navigate({
         pathname: location.pathname,
         query: buildDetectorZoomQuery(location.query, zoomRange),

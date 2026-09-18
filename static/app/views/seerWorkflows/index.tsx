@@ -100,10 +100,7 @@ function SeerWorkflows() {
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<SeerWorkflowRun[]>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        staleTime: 0,
-      }
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
     ),
     queryFn: async context => {
       const response = await apiFetch<SeerWorkflowRun[]>(context);
@@ -325,9 +322,7 @@ function SeerWorkflows() {
                     options={strategyOptions}
                     disabled={strategyOptions.length === 0}
                     onChange={selected =>
-                      updateQuery({
-                        strategy: selected.map(o => String(o.value)),
-                      })
+                      updateQuery({strategy: selected.map(o => String(o.value))})
                     }
                     trigger={triggerProps => (
                       <OverlayTrigger.Button
@@ -342,9 +337,7 @@ function SeerWorkflows() {
                     value={statusFilter}
                     options={STATUS_FILTER_OPTIONS}
                     onChange={selected =>
-                      updateQuery({
-                        status: selected.map(o => String(o.value)),
-                      })
+                      updateQuery({status: selected.map(o => String(o.value))})
                     }
                     trigger={triggerProps => (
                       <OverlayTrigger.Button
@@ -360,9 +353,7 @@ function SeerWorkflows() {
                     options={sourceOptions}
                     disabled={sourceOptions.length === 0}
                     onChange={selected =>
-                      updateQuery({
-                        source: selected.map(o => String(o.value)),
-                      })
+                      updateQuery({source: selected.map(o => String(o.value))})
                     }
                     trigger={triggerProps => (
                       <OverlayTrigger.Button
@@ -510,10 +501,7 @@ const SOURCE_LABELS: Record<WorkflowRunSource, string> = {
 const SOURCE_ICONS: Record<
   WorkflowRunSource,
   React.ComponentType<{size?: 'xs' | 'sm' | 'md'; variant?: 'muted'}>
-> = {
-  cron: IconBot,
-  manual: IconUser,
-};
+> = {cron: IconBot, manual: IconUser};
 
 function getSourceLabel(source: WorkflowRunSource | null): string {
   if (!source) {
@@ -544,10 +532,7 @@ function SourceIcon({source}: {source: WorkflowRunSource | null}) {
   );
 }
 
-const STATUS_FILTER_OPTIONS: Array<{
-  label: string;
-  value: WorkflowDisplayStatus;
-}> = [
+const STATUS_FILTER_OPTIONS: Array<{label: string; value: WorkflowDisplayStatus}> = [
   {value: 'succeeded', label: 'Succeeded'},
   {value: 'failed', label: 'Failed'},
   {value: 'skipped', label: 'Skipped'},
@@ -563,12 +548,7 @@ const PERIOD_FILTER_OPTIONS: Array<{label: string; value: string}> = [
   {value: '30d', label: 'Last 30 days'},
 ];
 
-const PERIOD_TO_DAYS: Record<string, number> = {
-  '24h': 1,
-  '7d': 7,
-  '14d': 14,
-  '30d': 30,
-};
+const PERIOD_TO_DAYS: Record<string, number> = {'24h': 1, '7d': 7, '14d': 14, '30d': 30};
 
 const STATUS_VARIANT = {
   succeeded: {Icon: IconCheckmark, label: 'Succeeded', text: 'success'},

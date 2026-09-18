@@ -10,9 +10,7 @@ import {useLogsFrozenProjectIds} from 'sentry/views/explore/logs/logsFrozenConte
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
 
-type TotalPayloadResult = {
-  data: Array<{'sum(payload_size)': number}>;
-};
+type TotalPayloadResult = {data: Array<{'sum(payload_size)': number}>};
 
 export function useLogsTotalPayload({enabled}: {enabled: boolean}): number | undefined {
   const organization = useOrganization();

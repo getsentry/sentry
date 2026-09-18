@@ -11,10 +11,7 @@ interface StartTourModalProps {
   closeModal: () => void;
   description: React.ReactNode;
   header: React.ReactNode;
-  img: {
-    alt: string;
-    src: string;
-  };
+  img: {alt: string; src: string};
   onDismissTour: () => void;
   onStartTour: () => void;
 }

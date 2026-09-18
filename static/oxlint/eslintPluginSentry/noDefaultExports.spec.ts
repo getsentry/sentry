@@ -121,10 +121,7 @@ const ruleTester = new RuleTester();
 
 ruleTester.run('no-default-exports', noDefaultExports, {
   valid: [
-    {
-      code: 'export function MyComponent() { return <div />; }',
-      filename: 'valid.tsx',
-    },
+    {code: 'export function MyComponent() { return <div />; }', filename: 'valid.tsx'},
     {
       code: `
 export function MyComponentInner() { return <div />; }
@@ -132,14 +129,8 @@ export default wrap(MyComponentInner);
 `,
       filename: 'valid.tsx',
     },
-    {
-      code: 'export const MyComponent = () => <div />;',
-      filename: 'valid.tsx',
-    },
-    {
-      code: 'export const util = () => null;',
-      filename: 'valid.tsx',
-    },
+    {code: 'export const MyComponent = () => <div />;', filename: 'valid.tsx'},
+    {code: 'export const util = () => null;', filename: 'valid.tsx'},
     {
       code: `
         export const a = 1;
@@ -147,26 +138,11 @@ export default wrap(MyComponentInner);
       `,
       filename: 'valid.tsx',
     },
-    {
-      code: 'export class MyClass {}',
-      filename: 'valid.tsx',
-    },
-    {
-      code: 'const x = 1;',
-      filename: 'valid.tsx',
-    },
-    {
-      code: 'export default withConfig(MyComponent);',
-      filename: 'valid.tsx',
-    },
-    {
-      code: 'export default styled(MyComponent)`color: red;`;',
-      filename: 'valid.tsx',
-    },
-    {
-      code: 'export default withConfig(MyComponent) as React.FC;',
-      filename: 'valid.tsx',
-    },
+    {code: 'export class MyClass {}', filename: 'valid.tsx'},
+    {code: 'const x = 1;', filename: 'valid.tsx'},
+    {code: 'export default withConfig(MyComponent);', filename: 'valid.tsx'},
+    {code: 'export default styled(MyComponent)`color: red;`;', filename: 'valid.tsx'},
+    {code: 'export default withConfig(MyComponent) as React.FC;', filename: 'valid.tsx'},
   ],
   invalid: [
     {

@@ -34,20 +34,9 @@ export const profiling: OnboardingConfig = {
             code: <code />,
           }),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'composer require sentry/sentry-laravel',
-        },
-        {
-          type: 'text',
-          text: t('Install the Excimer extension via PECL:'),
-        },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'pecl install excimer',
-        },
+        {type: 'code', language: 'bash', code: 'composer require sentry/sentry-laravel'},
+        {type: 'text', text: t('Install the Excimer extension via PECL:')},
+        {type: 'code', language: 'bash', code: 'pecl install excimer'},
         {
           type: 'text',
           text: tct(
@@ -66,10 +55,7 @@ export const profiling: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       content: [
-        {
-          type: 'text',
-          text: t('Configure the Sentry DSN with this command:'),
-        },
+        {type: 'text', text: t('Configure the Sentry DSN with this command:')},
         {
           type: 'code',
           language: 'shell',
@@ -82,11 +68,7 @@ export const profiling: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'shell',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'shell', code: getConfigureSnippet(params)},
       ],
     },
   ],

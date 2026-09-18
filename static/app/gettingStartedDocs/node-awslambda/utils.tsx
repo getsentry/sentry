@@ -13,14 +13,8 @@ export const platformOptions = {
   installationMethod: {
     label: t('Installation Method'),
     items: [
-      {
-        label: t('Lambda Layer'),
-        value: InstallationMethod.LAMBDA_LAYER,
-      },
-      {
-        label: t('NPM Package'),
-        value: InstallationMethod.NPM_PACKAGE,
-      },
+      {label: t('Lambda Layer'), value: InstallationMethod.LAMBDA_LAYER},
+      {label: t('NPM Package'), value: InstallationMethod.NPM_PACKAGE},
     ],
     defaultValue: InstallationMethod.LAMBDA_LAYER,
   },

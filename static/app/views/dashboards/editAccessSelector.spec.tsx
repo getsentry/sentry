@@ -24,12 +24,7 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [
-        {
-          ...DashboardFixture([], {
-            id: 'default-overview',
-            title: 'Default',
-          }),
-        },
+        {...DashboardFixture([], {id: 'default-overview', title: 'Default'})},
         {
           ...DashboardFixture([], {
             id: '1',
@@ -41,11 +36,7 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/1/',
-      body: DashboardFixture([], {
-        id: '1',
-        title: 'Custom Errors',
-        filters: {},
-      }),
+      body: DashboardFixture([], {id: '1', title: 'Custom Errors', filters: {}}),
     });
   });
 
@@ -121,21 +112,9 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
 });
 
 const teamData = [
-  {
-    id: '1',
-    slug: 'team1',
-    name: 'Team 1',
-  },
-  {
-    id: '2',
-    slug: 'team2',
-    name: 'Team 2',
-  },
-  {
-    id: '3',
-    slug: 'team3',
-    name: 'Team 3',
-  },
+  {id: '1', slug: 'team1', name: 'Team 1'},
+  {id: '2', slug: 'team2', name: 'Team 2'},
+  {id: '3', slug: 'team3', name: 'Team 3'},
 ];
 
 describe('When EditAccessSelector is rendered with Teams', () => {
@@ -146,12 +125,7 @@ describe('When EditAccessSelector is rendered with Teams', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [
-        {
-          ...DashboardFixture([], {
-            id: 'default-overview',
-            title: 'Default',
-          }),
-        },
+        {...DashboardFixture([], {id: 'default-overview', title: 'Default'})},
         {
           ...DashboardFixture([], {
             id: '1',
@@ -163,11 +137,7 @@ describe('When EditAccessSelector is rendered with Teams', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/1/',
-      body: DashboardFixture([], {
-        id: '1',
-        title: 'Custom Errors',
-        filters: {},
-      }),
+      body: DashboardFixture([], {id: '1', title: 'Custom Errors', filters: {}}),
     });
   });
 

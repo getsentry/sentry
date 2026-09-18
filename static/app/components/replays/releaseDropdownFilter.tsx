@@ -24,14 +24,8 @@ export function ReleaseDropdownFilter({version}: {version: string}) {
           label: t('Search for replays in this release'),
           onAction: () =>
             navigate({
-              pathname: makeReplaysPathname({
-                path: '/',
-                organization,
-              }),
-              query: {
-                ...location.query,
-                query: `release:"${version}"`,
-              },
+              pathname: makeReplaysPathname({path: '/', organization}),
+              query: {...location.query, query: `release:"${version}"`},
             }),
         },
         {

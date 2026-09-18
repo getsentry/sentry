@@ -56,14 +56,7 @@ export function MEPDataProvider({
   );
 
   return (
-    <MEPDataContext
-      value={{
-        isMetricsData,
-        setIsMetricsData,
-      }}
-    >
-      {children}
-    </MEPDataContext>
+    <MEPDataContext value={{isMetricsData, setIsMetricsData}}>{children}</MEPDataContext>
   );
 }
 

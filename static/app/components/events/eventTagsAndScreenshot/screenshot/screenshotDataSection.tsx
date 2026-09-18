@@ -39,11 +39,7 @@ export function ScreenshotDataSection({
   const location = useLocation();
   const organization = useOrganization();
   const {data: attachments} = useFetchEventAttachments(
-    {
-      orgSlug: organization.slug,
-      projectSlug,
-      eventId: event.id,
-    },
+    {orgSlug: organization.slug, projectSlug, eventId: event.id},
     {enabled: true}
   );
   const [screenshotInFocus, setScreenshotInFocus] = useState(0);
@@ -72,13 +68,9 @@ export function ScreenshotDataSection({
     eventAttachment: EventAttachment,
     downloadUrl: string
   ) {
-    trackAnalytics('issue_details.issue_tab.screenshot_modal_opened', {
-      organization,
-    });
+    trackAnalytics('issue_details.issue_tab.screenshot_modal_opened', {organization});
     function handleDelete() {
-      trackAnalytics('issue_details.issue_tab.screenshot_modal_deleted', {
-        organization,
-      });
+      trackAnalytics('issue_details.issue_tab.screenshot_modal_deleted', {organization});
       handleDeleteScreenshot(eventAttachment.id);
     }
 

@@ -25,13 +25,7 @@ describe('useExploreAggregatesTable', () => {
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     const mockNormalRequestUrl = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-        meta: {
-          dataScanned: 'partial',
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {dataScanned: 'partial', fields: {}}},
       method: 'GET',
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -49,15 +43,8 @@ describe('useExploreAggregatesTable', () => {
       method: 'GET',
     });
     renderHookWithProviders(
-      () =>
-        useExploreAggregatesTable({
-          query: 'test value',
-          enabled: true,
-          limit: 100,
-        }),
-      {
-        additionalWrapper: Wrapper,
-      }
+      () => useExploreAggregatesTable({query: 'test value', enabled: true, limit: 100}),
+      {additionalWrapper: Wrapper}
     );
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
@@ -88,31 +75,18 @@ describe('useExploreAggregatesTable', () => {
   it('includes trace and timestamp aggregates for sample trace links', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-        meta: {
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {fields: {}}},
       method: 'GET',
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useExploreAggregatesTable({
-          query: 'test value',
-          enabled: true,
-          limit: 100,
-        }),
+      () => useExploreAggregatesTable({query: 'test value', enabled: true, limit: 100}),
       {
         additionalWrapper: Wrapper,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              groupBy: 'span.op',
-              visualize: JSON.stringify({yAxes: ['count()']}),
-            },
+            query: {groupBy: 'span.op', visualize: JSON.stringify({yAxes: ['count()']})},
           },
         },
       }
@@ -153,20 +127,13 @@ describe('useExploreAggregatesTable', () => {
     });
 
     renderHookWithProviders(
-      () =>
-        useExploreAggregatesTable({
-          query: 'test value',
-          enabled: true,
-          limit: 100,
-        }),
+      () => useExploreAggregatesTable({query: 'test value', enabled: true, limit: 100}),
       {
         additionalWrapper: Wrapper,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              extrapolate: '0',
-            },
+            query: {extrapolate: '0'},
           },
         },
       }
@@ -192,12 +159,7 @@ describe('useExploreAggregatesTable', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useExploreAggregatesTable({
-          query: 'test value',
-          enabled: true,
-          limit: 100,
-        }),
+      () => useExploreAggregatesTable({query: 'test value', enabled: true, limit: 100}),
       {
         additionalWrapper: Wrapper,
         initialRouterConfig: {
@@ -227,22 +189,12 @@ describe('useExploreAggregatesTable', () => {
   it('does not order by a dropped invalid series when another series remains', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-        meta: {
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {fields: {}}},
       method: 'GET',
     });
 
     renderHookWithProviders(
-      () =>
-        useExploreAggregatesTable({
-          query: 'test value',
-          enabled: true,
-          limit: 100,
-        }),
+      () => useExploreAggregatesTable({query: 'test value', enabled: true, limit: 100}),
       {
         additionalWrapper: Wrapper,
         initialRouterConfig: {

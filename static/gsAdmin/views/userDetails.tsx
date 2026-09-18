@@ -38,14 +38,10 @@ export function UserDetails() {
   const queryClient = useQueryClient();
 
   const makeFetchUserQueryKey = (): ApiQueryKey => [
-    getApiUrl('/users/$userId/', {
-      path: {userId},
-    }),
+    getApiUrl('/users/$userId/', {path: {userId}}),
   ];
   const makeFetchUserIdentitiesQueryKey = (): ApiQueryKey => [
-    getApiUrl('/users/$userId/user-identities/', {
-      path: {userId},
-    }),
+    getApiUrl('/users/$userId/user-identities/', {path: {userId}}),
   ];
   const makeFetchTokensQueryKey = (): ApiQueryKey => [
     getApiUrl('/api-tokens/'),
@@ -73,9 +69,7 @@ export function UserDetails() {
     isPending: isTokensPending,
     isError: isTokensError,
     refetch: refetchTokens,
-  } = useApiQuery<InternalAppApiToken[]>(makeFetchTokensQueryKey(), {
-    staleTime: 0,
-  });
+  } = useApiQuery<InternalAppApiToken[]>(makeFetchTokensQueryKey(), {staleTime: 0});
 
   const refetchData = () => {
     refetchUser();
@@ -85,10 +79,7 @@ export function UserDetails() {
 
   const onUpdateMutation = useMutation({
     mutationFn: (params: Record<string, any>) => {
-      return api.requestPromise(`/users/${userId}/`, {
-        method: 'PUT',
-        data: params,
-      });
+      return api.requestPromise(`/users/${userId}/`, {method: 'PUT', data: params});
     },
     onMutate: () => {
       addLoadingMessage('Saving changes...');
@@ -298,10 +289,7 @@ export function UserDetails() {
           name: 'Suspend Account',
           help: 'Prevent this user from logging in. Account and data are preserved.',
           visible: user.isActive && !user.isSuspended,
-          confirmModalOpts: {
-            priority: 'danger',
-            confirmText: 'Suspend Account',
-          },
+          confirmModalOpts: {priority: 'danger', confirmText: 'Suspend Account'},
           onAction: params => suspendMutation.mutate({...params, action: 'suspend'}),
         },
         {
@@ -325,14 +313,8 @@ export function UserDetails() {
             />
           ),
         },
-        {
-          noPanel: true,
-          content: <UserCustomers userId={user.id} />,
-        },
-        {
-          noPanel: true,
-          content: userEmails,
-        },
+        {noPanel: true, content: <UserCustomers userId={user.id} />},
+        {noPanel: true, content: userEmails},
       ]}
     />
   );

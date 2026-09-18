@@ -14,12 +14,7 @@ describe('trackAmplitudeEvent', () => {
   const eventName = 'My Event';
   const orgId = 123;
   beforeEach(() => {
-    ConfigStore.loadInitialData(
-      ConfigFixture({
-        enableAnalytics: true,
-        user,
-      })
-    );
+    ConfigStore.loadInitialData(ConfigFixture({enableAnalytics: true, user}));
   });
   afterEach(() => {
     jest.mocked(Amplitude.setUserId).mockClear();

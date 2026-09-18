@@ -62,9 +62,7 @@ function SentryAppList() {
     <ResultGrid
       path="/_admin/"
       endpoint="/sentry-apps-stats/"
-      defaultParams={{
-        per_page: 10,
-      }}
+      defaultParams={{per_page: 10}}
       hasPagination={false}
       columns={[
         <th key="apps">Name</th>,
@@ -87,9 +85,7 @@ function DocIntegrationList() {
     <ResultGrid
       path="/_admin/"
       endpoint="/doc-integrations/"
-      defaultParams={{
-        per_page: 10,
-      }}
+      defaultParams={{per_page: 10}}
       hasPagination={false}
       columns={[
         <th key="apps">Name</th>,
@@ -190,9 +186,7 @@ function CustomersByVolume() {
         key={lastRefresh.toString()}
         path="/_admin/"
         endpoint="/customers/"
-        defaultParams={{
-          per_page: 10,
-        }}
+        defaultParams={{per_page: 10}}
         defaultSort="events.24h"
         hasPagination={false}
         columns={[

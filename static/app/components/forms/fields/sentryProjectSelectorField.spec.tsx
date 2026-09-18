@@ -10,11 +10,7 @@ describe('SentryProjectSelectorField', () => {
     const mock = jest.fn();
     const projects = [
       ProjectFixture(),
-      ProjectFixture({
-        id: '23',
-        slug: 'my-proj',
-        name: 'My Proj',
-      }),
+      ProjectFixture({id: '23', slug: 'my-proj', name: 'My Proj'}),
     ];
     render(
       <SentryProjectSelectorField onChange={mock} name="project" projects={projects} />
@@ -29,16 +25,8 @@ describe('SentryProjectSelectorField', () => {
     const mock = jest.fn();
     const projects = [
       ProjectFixture(),
-      ProjectFixture({
-        id: '23',
-        slug: 'my-proj',
-        name: 'My Proj',
-      }),
-      ProjectFixture({
-        id: '24',
-        slug: 'other-project',
-        name: 'My Other Project',
-      }),
+      ProjectFixture({id: '23', slug: 'my-proj', name: 'My Proj'}),
+      ProjectFixture({id: '24', slug: 'other-project', name: 'My Other Project'}),
     ];
     render(
       <SentryProjectSelectorField

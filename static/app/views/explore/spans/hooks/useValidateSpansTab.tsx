@@ -13,9 +13,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getColumnFieldsForValidation} from 'sentry/views/explore/utils/columnValidation';
 import {validateEventParamsOptions} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
-type UseValidateSpansTabArgs = {
-  enabled?: boolean;
-};
+type UseValidateSpansTabArgs = {enabled?: boolean};
 
 export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = {}) {
   const {selection} = usePageFilters();
@@ -44,10 +42,5 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
     ...(enabled ? {} : {queryFn: skipToken}),
   });
 
-  return {
-    data,
-    isFetching,
-    isPlaceholderData,
-    isLoading,
-  };
+  return {data, isFetching, isPlaceholderData, isLoading};
 }

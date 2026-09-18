@@ -23,13 +23,7 @@ const actionableItemsQuery = ({
 }: UseActionableItemsProps): ApiQueryKey => [
   getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/actionable-items/',
-    {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        projectIdOrSlug: projectSlug,
-        eventId,
-      },
-    }
+    {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug, eventId}}
   ),
 ];
 

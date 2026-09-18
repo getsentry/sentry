@@ -33,12 +33,7 @@ export function TeamCrumb({routes, route, isLast}: SettingsBreadcrumbProps) {
         </CrumbLink>
       }
       onCrumbSelect={teamSlug => {
-        navigate(
-          recreateRoute('', {
-            routes,
-            params: {...params, teamId: teamSlug},
-          })
-        );
+        navigate(recreateRoute('', {routes, params: {...params, teamId: teamSlug}}));
       }}
       onOpenChange={open => {
         if (open) {

@@ -33,10 +33,7 @@ export function LinkButton({
 }: LinkButtonProps) {
   const contextSize = useSizeContext();
   const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
-  const {hasChildren, accessibleLabel} = useButtonFunctionality({
-    ...props,
-    disabled,
-  });
+  const {hasChildren, accessibleLabel} = useButtonFunctionality({...props, disabled});
 
   return (
     <Tooltip

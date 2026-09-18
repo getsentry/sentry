@@ -52,9 +52,7 @@ describe('DetectorDetails', () => {
     },
   });
   const initialRouterConfig = {
-    location: {
-      pathname: `/organizations/${organization.slug}/issues/detectors/1/`,
-    },
+    location: {pathname: `/organizations/${organization.slug}/issues/detectors/1/`},
     route: '/organizations/:orgId/issues/detectors/:detectorId/',
   };
 
@@ -66,10 +64,7 @@ describe('DetectorDetails', () => {
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
     TeamStore.loadInitialData([ownerTeam]);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [
@@ -95,10 +90,7 @@ describe('DetectorDetails', () => {
         ],
       },
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=14d',
       body: [GroupFixture()],
@@ -173,10 +165,7 @@ describe('DetectorDetails', () => {
     });
 
     it('renders the detector details and snuba query', async () => {
-      render(<DetectorDetails />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<DetectorDetails />, {organization, initialRouterConfig});
 
       expect(await screen.findByRole('heading', {name: /detector1/})).toBeInTheDocument();
       // Displays the snuba query
@@ -197,10 +186,7 @@ describe('DetectorDetails', () => {
         ProjectFixture({id: project.id, platform: 'javascript'}),
       ]);
 
-      render(<DetectorDetails />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<DetectorDetails />, {organization, initialRouterConfig});
 
       const heading = await screen.findByRole('heading', {
         name: snubaQueryDetector.name,
@@ -211,10 +197,7 @@ describe('DetectorDetails', () => {
     });
 
     it('can edit the detector when the user has alerts:write access', async () => {
-      const {router} = render(<DetectorDetails />, {
-        organization,
-        initialRouterConfig,
-      });
+      const {router} = render(<DetectorDetails />, {organization, initialRouterConfig});
 
       const editButton = await screen.findByRole('button', {name: 'Edit'});
       await userEvent.click(editButton);
@@ -242,10 +225,7 @@ describe('DetectorDetails', () => {
     });
 
     it('displays ongoing issues for the detector', async () => {
-      const {router} = render(<DetectorDetails />, {
-        organization,
-        initialRouterConfig,
-      });
+      const {router} = render(<DetectorDetails />, {organization, initialRouterConfig});
 
       // Verify ongoing issues section is displayed
       expect(await screen.findByText('RequestError')).toBeInTheDocument();
@@ -317,10 +297,7 @@ describe('DetectorDetails', () => {
     });
 
     it('displays correct detector details', async () => {
-      render(<DetectorDetails />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<DetectorDetails />, {organization, initialRouterConfig});
 
       expect(await screen.findByRole('heading', {name: /detector1/})).toBeInTheDocument();
 
@@ -345,10 +322,7 @@ describe('DetectorDetails', () => {
     });
 
     it('displays the check-in table with correct data', async () => {
-      render(<DetectorDetails />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<DetectorDetails />, {organization, initialRouterConfig});
 
       expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
 
@@ -399,10 +373,7 @@ describe('DetectorDetails', () => {
     });
 
     it('displays correct detector details', async () => {
-      render(<DetectorDetails />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<DetectorDetails />, {organization, initialRouterConfig});
 
       expect(await screen.findByRole('heading', {name: /detector1/})).toBeInTheDocument();
 
@@ -462,10 +433,7 @@ describe('DetectorDetails', () => {
         },
       });
 
-      render(<DetectorDetails />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<DetectorDetails />, {organization, initialRouterConfig});
 
       expect(await screen.findByRole('heading', {name: /detector1/})).toBeInTheDocument();
 

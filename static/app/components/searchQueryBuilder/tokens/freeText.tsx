@@ -229,18 +229,13 @@ function calculateNextFocusForFilter(
     part = 'key';
   }
 
-  return {
-    itemKey: `${Token.FILTER}:${numPreviousFilterItems}`,
-    part,
-  };
+  return {itemKey: `${Token.FILTER}:${numPreviousFilterItems}`, part};
 }
 
 function calculateNextFocusForInsertedToken(item: Node<ParseResultToken>): FocusOverride {
   const {index} = parseTokenKey(item.key.toString());
 
-  return {
-    itemKey: `${Token.FREE_TEXT}:${index + 1}`,
-  };
+  return {itemKey: `${Token.FREE_TEXT}:${index + 1}`};
 }
 
 function calculateNextFocusForCommittedCustomValue({
@@ -265,9 +260,7 @@ function calculateNextFocusForCommittedCustomValue({
     return undefined;
   }
 
-  return {
-    itemKey: `${tokenType}:${index + diff}`,
-  };
+  return {itemKey: `${tokenType}:${index + diff}`};
 }
 
 function shouldHideInvalidTooltip({
@@ -406,11 +399,7 @@ function SearchQueryBuilderInputInternal({
     filterValue,
   });
   const {items: sortedFilteredItems, isLoading: isLoadingFilterKeys} =
-    useSortedFilterKeyItems({
-      filterValue,
-      inputValue,
-      includeSuggestions: true,
-    });
+    useSortedFilterKeyItems({filterValue, inputValue, includeSuggestions: true});
 
   const humanizedEsqSuggestion = useHumanizedEsqSuggestion(filterKeys, inputValue);
 

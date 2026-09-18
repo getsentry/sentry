@@ -9,11 +9,7 @@ const Context = createContext<{
   collapse: (path: string) => void;
   expand: (path: string) => void;
   expandedPaths: string[];
-}>({
-  collapse: () => {},
-  expand: () => {},
-  expandedPaths: [],
-});
+}>({collapse: () => {}, expand: () => {}, expandedPaths: []});
 
 interface Props {
   children: ReactNode;
@@ -58,11 +54,7 @@ export function useExpandedState({path}: {path: string}) {
   const {collapse, expand, expandedPaths} = useContext(Context);
   const isExpanded = expandedPaths.includes(path);
   return useMemo(
-    () => ({
-      collapse: () => collapse(path),
-      expand: () => expand(path),
-      isExpanded,
-    }),
+    () => ({collapse: () => collapse(path), expand: () => expand(path), isExpanded}),
     [collapse, expand, isExpanded, path]
   );
 }

@@ -79,10 +79,7 @@ describe('ProjectFilters', () => {
   }
 
   function renderInboundFilters(filters: CustomInboundFilter[]) {
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: filters,
-    });
+    MockApiClient.addMockResponse({url: CUSTOM_INBOUND_FILTERS_URL, body: filters});
     const result = render(<ProjectFilters />, {
       organization: inboundFiltersV2Org,
       outletContext: {project},
@@ -141,12 +138,7 @@ describe('ProjectFilters', () => {
 
     expect(mock).toHaveBeenCalledWith(
       getFilterEndpoint(filter),
-      expect.objectContaining({
-        method: 'PUT',
-        data: {
-          active: false,
-        },
-      })
+      expect.objectContaining({method: 'PUT', data: {active: false}})
     );
     await waitFor(() => {
       expect(
@@ -174,12 +166,7 @@ describe('ProjectFilters', () => {
       );
       expect(mock).toHaveBeenCalledWith(
         getFilterEndpoint(filter),
-        expect.objectContaining({
-          method: 'PUT',
-          data: {
-            active: true,
-          },
-        })
+        expect.objectContaining({method: 'PUT', data: {active: true}})
       );
     }
   });
@@ -189,9 +176,7 @@ describe('ProjectFilters', () => {
 
     const updatedProject = DetailedProjectFixture({
       slug: project.slug,
-      options: {
-        'filters:chunk-load-error': true,
-      },
+      options: {'filters:chunk-load-error': true},
     });
 
     const mock = MockApiClient.addMockResponse({
@@ -201,10 +186,7 @@ describe('ProjectFilters', () => {
       body: updatedProject,
     });
 
-    MockApiClient.addMockResponse({
-      url: PROJECT_URL,
-      body: updatedProject,
-    });
+    MockApiClient.addMockResponse({url: PROJECT_URL, body: updatedProject});
 
     const control = await screen.findByRole('checkbox', {
       name: 'Filter out ChunkLoadError(s)',
@@ -218,11 +200,7 @@ describe('ProjectFilters', () => {
       PROJECT_URL,
       expect.objectContaining({
         method: 'PUT',
-        data: {
-          options: {
-            'filters:chunk-load-error': true,
-          },
-        },
+        data: {options: {'filters:chunk-load-error': true}},
       })
     );
     await waitFor(() => {
@@ -243,9 +221,7 @@ describe('ProjectFilters', () => {
     ).toBeChecked();
 
     expect(
-      await screen.findByRole('checkbox', {
-        name: 'Safari Version 15 and lower',
-      })
+      await screen.findByRole('checkbox', {name: 'Safari Version 15 and lower'})
     ).toBeChecked();
 
     expect(
@@ -319,10 +295,7 @@ describe('ProjectFilters', () => {
   it('can set ip address filter', async () => {
     renderComponent();
 
-    const mock = MockApiClient.addMockResponse({
-      url: PROJECT_URL,
-      method: 'PUT',
-    });
+    const mock = MockApiClient.addMockResponse({url: PROJECT_URL, method: 'PUT'});
 
     const textbox = await screen.findByRole('textbox', {name: 'IP Addresses'});
     expect(
@@ -368,22 +341,14 @@ describe('ProjectFilters', () => {
   it('has custom inbound filters with flag + can change', async () => {
     render(<ProjectFilters />, {
       organization,
-      outletContext: {
-        project: {
-          ...project,
-          features: ['custom-inbound-filters'],
-        },
-      },
+      outletContext: {project: {...project, features: ['custom-inbound-filters']}},
       initialRouterConfig,
     });
 
     expect(await screen.findByRole('textbox', {name: 'Releases'})).toBeEnabled();
     expect(screen.getByRole('textbox', {name: 'Error Message'})).toBeEnabled();
 
-    const mock = MockApiClient.addMockResponse({
-      url: PROJECT_URL,
-      method: 'PUT',
-    });
+    const mock = MockApiClient.addMockResponse({url: PROJECT_URL, method: 'PUT'});
 
     const releasesField = screen.getByRole('textbox', {name: 'Releases'});
     await userEvent.type(releasesField, 'release\nrelease2');
@@ -882,10 +847,7 @@ describe('ProjectFilters', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Delete filter'}));
 
     // Override the list response so the post-delete refetch drops the filter
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: CUSTOM_INBOUND_FILTERS_URL, body: []});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
@@ -917,10 +879,7 @@ describe('ProjectFilters', () => {
   });
 
   it('offers log and metric data types when the ingestion features are enabled', async () => {
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: CUSTOM_INBOUND_FILTERS_URL, body: []});
     render(<ProjectFilters />, {
       organization: OrganizationFixture({
         ...organization,
@@ -939,10 +898,7 @@ describe('ProjectFilters', () => {
   });
 
   it('only offers condition properties for the selected data type', async () => {
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: CUSTOM_INBOUND_FILTERS_URL, body: []});
     render(<ProjectFilters />, {
       organization: OrganizationFixture({
         ...organization,
@@ -972,10 +928,7 @@ describe('ProjectFilters', () => {
   });
 
   it('explains which fields a condition matches', async () => {
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: CUSTOM_INBOUND_FILTERS_URL, body: []});
     render(<ProjectFilters />, {
       organization: OrganizationFixture({
         ...organization,
@@ -1126,10 +1079,7 @@ describe('ProjectFilters', () => {
   });
 
   it('remaps condition properties when the data type changes', async () => {
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: CUSTOM_INBOUND_FILTERS_URL, body: []});
     render(<ProjectFilters />, {
       organization: OrganizationFixture({
         ...organization,
@@ -1196,9 +1146,7 @@ describe('ProjectFilters', () => {
         project: {
           ...project,
           features: ['custom-inbound-filters'],
-          options: {
-            'filters:error_messages': 'test',
-          },
+          options: {'filters:error_messages': 'test'},
         },
       },
       initialRouterConfig,
@@ -1212,10 +1160,7 @@ describe('ProjectFilters', () => {
   });
 
   it('disables undiscard tombstone for users without project:write', async () => {
-    const discardProject = ProjectFixture({
-      ...project,
-      features: ['discard-groups'],
-    });
+    const discardProject = ProjectFixture({...project, features: ['discard-groups']});
     const discardOrg = OrganizationFixture({access: [], features: ['discard-groups']});
 
     render(<ProjectFilters />, {

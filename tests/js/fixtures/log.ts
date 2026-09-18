@@ -68,10 +68,7 @@ export function LogFixtureMeta(
       return [key, valueType];
     })
   );
-  return {
-    fields: Object.fromEntries(fields),
-    units: {},
-  };
+  return {fields: Object.fromEntries(fields), units: {}};
 }
 
 interface LogsTestInitOptions {
@@ -111,10 +108,7 @@ export function initializeLogsTest({
   initialPageFilters: PageFilters;
   organization: Organization;
   project: Project;
-  routerConfig: {
-    location: LocationConfig;
-    route?: string;
-  };
+  routerConfig: {location: LocationConfig; route?: string};
   setupEventsMock: (logFixtures: OurLogsResponseItem[]) => jest.Mock;
   setupPageFilters: () => void;
   setupTotalPayloadMock: () => jest.Mock;
@@ -124,10 +118,7 @@ export function initializeLogsTest({
 
   const forcedProject = projectOverrides ?? {hasLogs: true};
   const {organization, project} = initializeOrg({
-    organization: {
-      features: [...baseFeatures, ...orgFeatures],
-      ...orgOverrides,
-    },
+    organization: {features: [...baseFeatures, ...orgFeatures], ...orgOverrides},
     projects: [forcedProject],
   });
 
@@ -140,10 +131,7 @@ export function initializeLogsTest({
     },
   };
 
-  const routerConfig: {
-    location: LocationConfig;
-    route?: string;
-  } = {
+  const routerConfig: {location: LocationConfig; route?: string} = {
     location: initialLocation,
     route: '/organizations/:orgId/explore/logs/',
   };
@@ -151,22 +139,14 @@ export function initializeLogsTest({
   const initialPageFilters: PageFilters = {
     projects: [parseInt(project.id, 10)],
     environments: [],
-    datetime: {
-      period: '14d',
-      start: null,
-      end: null,
-      utc: null,
-    },
+    datetime: {period: '14d', start: null, end: null, utc: null},
   };
 
   const generateRouterConfig = (routerQueryOverrides: Record<string, string>) => {
     return {
       location: {
         ...initialLocation,
-        query: {
-          ...initialLocation.query,
-          ...routerQueryOverrides,
-        },
+        query: {...initialLocation.query, ...routerQueryOverrides},
       },
     };
   };
@@ -264,14 +244,8 @@ export function createLogFixtures(
   organization: Organization,
   project: Project,
   nowDate: Date,
-  options: {
-    baseFields?: string[];
-    intervalMs?: number;
-  } = {}
-): {
-  baseFixtures: OurLogsResponseItem[];
-  detailedFixtures: OurLogsResponseItem[];
-} {
+  options: {baseFields?: string[]; intervalMs?: number} = {}
+): {baseFixtures: OurLogsResponseItem[]; detailedFixtures: OurLogsResponseItem[]} {
   const {intervalMs = 1000} = options;
   const nowTimestamp = nowDate.getTime();
 
@@ -387,8 +361,5 @@ export function createLogFixtures(
     return LogFixture(completeLogData as any);
   });
 
-  return {
-    baseFixtures,
-    detailedFixtures,
-  };
+  return {baseFixtures, detailedFixtures};
 }

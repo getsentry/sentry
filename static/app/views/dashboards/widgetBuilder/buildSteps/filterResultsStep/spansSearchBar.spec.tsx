@@ -129,9 +129,7 @@ describe('SpansSearchBar', () => {
       onClose: jest.fn(),
     });
 
-    const searchInput = await screen.findByRole('combobox', {
-      name: 'Add a search term',
-    });
+    const searchInput = await screen.findByRole('combobox', {name: 'Add a search term'});
     await userEvent.click(searchInput);
     await userEvent.type(searchInput, 'span.op:', {delay: null});
     await userEvent.keyboard('function', {delay: null});
@@ -154,9 +152,7 @@ describe('SpansSearchBar', () => {
       onClose,
     });
 
-    const searchInput = await screen.findByRole('combobox', {
-      name: 'Add a search term',
-    });
+    const searchInput = await screen.findByRole('combobox', {name: 'Add a search term'});
     await userEvent.click(searchInput);
     await userEvent.type(searchInput, 'span.op:', {delay: null});
     await userEvent.keyboard('{enter}', {delay: null});

@@ -65,11 +65,7 @@ export function ProjectMapperAddRow({
 
   const sentryProjects = config.sentryProjects ?? [];
   const sentryProjectOptions = [
-    {
-      label: t('Create a Project'),
-      leadingItems: <IconAdd />,
-      value: -1,
-    },
+    {label: t('Create a Project'), leadingItems: <IconAdd />, value: -1},
     ...sentryProjects.map(project => ({
       label: project.slug,
       value: project.id,

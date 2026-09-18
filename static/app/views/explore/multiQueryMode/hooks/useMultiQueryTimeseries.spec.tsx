@@ -24,16 +24,18 @@ describe('useMultiQueryTimeseries', () => {
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
-    jest.mocked(useReadQueriesFromLocation).mockReturnValue([
-      {
-        query: 'test value',
-        groupBys: [],
-        sortBys: [],
-        yAxes: [],
-        chartType: ChartType.LINE,
-        fields: [],
-      },
-    ]);
+    jest
+      .mocked(useReadQueriesFromLocation)
+      .mockReturnValue([
+        {
+          query: 'test value',
+          groupBys: [],
+          sortBys: [],
+          yAxes: [],
+          chartType: ChartType.LINE,
+          fields: [],
+        },
+      ]);
 
     const mockTimeSeries = TimeSeriesFixture();
 
@@ -44,16 +46,8 @@ describe('useMultiQueryTimeseries', () => {
           {
             ...mockTimeSeries,
             yAxis: 'count(message)',
-            values: [
-              {
-                ...mockTimeSeries.values[0]!,
-                value: 0,
-              },
-            ],
-            meta: {
-              ...mockTimeSeries.meta,
-              dataScanned: 'partial',
-            },
+            values: [{...mockTimeSeries.values[0]!, value: 0}],
+            meta: {...mockTimeSeries.meta, dataScanned: 'partial'},
           },
         ],
       },
@@ -73,12 +67,7 @@ describe('useMultiQueryTimeseries', () => {
       ],
       method: 'GET',
     });
-    renderHookWithProviders(() =>
-      useMultiQueryTimeseries({
-        enabled: true,
-        index: 0,
-      })
-    );
+    renderHookWithProviders(() => useMultiQueryTimeseries({enabled: true, index: 0}));
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
     expect(mockNormalRequestUrl).toHaveBeenCalledWith(

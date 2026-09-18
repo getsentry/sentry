@@ -2,13 +2,9 @@ import type {PlatformKey} from 'sentry/types/platform';
 
 export type PlatformSelectionSource = 'detected' | 'manual';
 
-type MobilePromptBannerParams = {
-  matchedUserAgentString: string;
-};
+type MobilePromptBannerParams = {matchedUserAgentString: string};
 
-type PlatformParam = {
-  platform: PlatformKey;
-};
+type PlatformParam = {platform: PlatformKey};
 
 type PlatformCategory = {
   category: string;
@@ -31,18 +27,11 @@ type PlatformSearchParam = {
   variant?: 'scm' | 'legacy';
 };
 
-type SampleEventParam = {
-  platform?: PlatformKey;
-};
+type SampleEventParam = {platform?: PlatformKey};
 
-type InviteRequestParam = {
-  invite_status: string;
-  member_id: number;
-};
+type InviteRequestParam = {invite_status: string; member_id: number};
 
-type InviteModal = {
-  modal_session: string;
-};
+type InviteModal = {modal_session: string};
 
 type SampleEvent = {
   duration: number;
@@ -53,33 +42,19 @@ type SampleEvent = {
   source: string;
 };
 
-type SetupWizard = {
-  project_platform?: string;
-};
+type SetupWizard = {project_platform?: string};
 
 // define the event key to payload mappings
 export type GrowthEventParameters = {
-  'assistant.guide_cued': {
-    guide: string;
-  };
-  'assistant.guide_dismissed': {
-    guide: string;
-    step: number;
-  };
-  'assistant.guide_finished': {
-    guide: string;
-  };
+  'assistant.guide_cued': {guide: string};
+  'assistant.guide_dismissed': {guide: string; step: number};
+  'assistant.guide_finished': {guide: string};
   'github_invite_banner.snoozed': Record<string, unknown>;
   'github_invite_banner.viewed': {members_shown: number; total_members: number};
-  'growth.clicked_enter_sandbox': {
-    scenario: string;
-    source?: string;
-  };
+  'growth.clicked_enter_sandbox': {scenario: string; source?: string};
   'growth.clicked_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'growth.clicked_mobile_prompt_setup_project': MobilePromptBannerParams;
-  'growth.clicked_sidebar': {
-    item: string;
-  };
+  'growth.clicked_sidebar': {item: string};
   'growth.demo_click_docs': Record<string, unknown>;
   'growth.demo_click_request_demo': Record<string, unknown>;
   'growth.demo_click_sign_up': Record<string, unknown>;
@@ -93,63 +68,35 @@ export type GrowthEventParameters = {
   'growth.end_modal_more_tours': Record<string, unknown>;
   'growth.end_modal_restart_tours': Record<string, unknown>;
   'growth.end_modal_signup': Record<string, unknown>;
-  'growth.metric_alert_preset_sidebar_clicked': {
-    preset: string;
-  };
-  'growth.metric_alert_preset_use_template': {
-    preset: string;
-  };
+  'growth.metric_alert_preset_sidebar_clicked': {preset: string};
+  'growth.metric_alert_preset_use_template': {preset: string};
   'growth.onboarding_clicked_instrument_app': {source?: string};
-  'growth.onboarding_clicked_setup_platform_later': PlatformParam & {
-    project_id: string;
-  };
+  'growth.onboarding_clicked_setup_platform_later': PlatformParam & {project_id: string};
   'growth.onboarding_clicked_skip': {source?: string};
   'growth.onboarding_load_choose_platform': Record<string, unknown>;
   'growth.onboarding_quick_start_cta': SampleEventParam;
   'growth.onboarding_set_up_your_project': PlatformParam;
-  'growth.onboarding_start_onboarding': {
-    source?: string;
-  };
-  'growth.onboarding_take_to_error': {
-    platform?: string;
-  };
+  'growth.onboarding_start_onboarding': {source?: string};
+  'growth.onboarding_take_to_error': {platform?: string};
   'growth.onboarding_view_full_docs': Record<string, unknown>;
   'growth.onboarding_view_sample_event': SampleEventParam;
   'growth.platformpicker_category': PlatformCategory;
   'growth.platformpicker_search': PlatformSearchParam;
-  'growth.sample_error_onboarding_link_clicked': {
-    platform?: string;
-    project_id?: string;
-  };
-  'growth.sample_transaction_docs_link_clicked': {
-    project_id: string;
-  };
+  'growth.sample_error_onboarding_link_clicked': {platform?: string; project_id?: string};
+  'growth.sample_transaction_docs_link_clicked': {project_id: string};
   'growth.select_platform': PlatformPickerParam;
   'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'invite_modal.add_more': InviteModal;
   'invite_modal.closed': InviteModal;
   'invite_modal.invites_sent': InviteModal;
-  'invite_modal.opened': InviteModal & {
-    can_invite: boolean;
-    source?: string;
-  };
+  'invite_modal.opened': InviteModal & {can_invite: boolean; source?: string};
   'invite_modal.requests_sent': InviteModal;
   'invite_request.approved': InviteRequestParam;
   'invite_request.denied': InviteRequestParam;
-  'member_settings_page.loaded': {
-    num_invite_requests: number;
-    num_members: number;
-  };
-  'onboarding.wizard_clicked': {
-    action: string;
-    todo_id: string;
-    todo_title: string;
-  };
+  'member_settings_page.loaded': {num_invite_requests: number; num_members: number};
+  'onboarding.wizard_clicked': {action: string; todo_id: string; todo_title: string};
   'onboarding.wizard_opened': Record<string, unknown>;
-  'sample_event.button_viewed': {
-    project_id: string;
-    source: string;
-  };
+  'sample_event.button_viewed': {project_id: string; source: string};
   'sample_event.created': SampleEvent;
   'sample_event.failed': SampleEvent;
   'sdk_updates.clicked': Record<string, unknown>;

@@ -194,13 +194,7 @@ function Chart({
     : seriesSelection;
 
   const legend = showLegend
-    ? {
-        right: 16,
-        top: 12,
-        data,
-        selected,
-        ...legendOptions,
-      }
+    ? {right: 16, top: 12, data, selected, ...legendOptions}
     : undefined;
 
   let series = Array.isArray(releaseSeries)
@@ -224,15 +218,8 @@ function Chart({
   }
   const chartOptions = {
     colors: chartColors,
-    grid: {
-      left: '24px',
-      right: '24px',
-      top: '32px',
-      bottom: '12px',
-    },
-    seriesOptions: {
-      showSymbol: false,
-    },
+    grid: {left: '24px', right: '24px', top: '32px', bottom: '12px'},
+    seriesOptions: {showSymbol: false},
     tooltip: {
       trigger: 'axis' as const,
       truncate: 80,
@@ -250,12 +237,7 @@ function Chart({
         return tooltipFormatter(value);
       },
     },
-    xAxis: timeframe
-      ? {
-          min: timeframe.start,
-          max: timeframe.end,
-        }
-      : undefined,
+    xAxis: timeframe ? {min: timeframe.start, max: timeframe.end} : undefined,
     yAxis: {
       axisLabel: {
         color: theme.tokens.content.secondary,
@@ -630,10 +612,7 @@ export function EventsChart(props: EventsChartProps) {
             dataset={dataset}
           >
             {eventData => {
-              return chartImplementation({
-                ...eventData,
-                zoomRenderProps,
-              });
+              return chartImplementation({...eventData, zoomRenderProps});
             }}
           </EventsRequest>
         );

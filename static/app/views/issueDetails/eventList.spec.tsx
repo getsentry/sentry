@@ -49,9 +49,7 @@ describe('EventList', () => {
           `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",` +
           `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"`,
       },
-      body: {
-        data: MOCK_EVENTS_TABLE_DATA,
-      },
+      body: {data: MOCK_EVENTS_TABLE_DATA},
       match: [
         (_url, options) => {
           return options.query?.field?.includes('user.display');
@@ -65,9 +63,7 @@ describe('EventList', () => {
           `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",` +
           `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"`,
       },
-      body: {
-        data: [{'count()': totalCount}],
-      },
+      body: {data: [{'count()': totalCount}]},
       match: [
         (_url, options) => {
           return options.query?.field?.includes('count()');
@@ -77,9 +73,7 @@ describe('EventList', () => {
   });
 
   function renderAllEvents() {
-    render(<EventList group={group} />, {
-      initialRouterConfig,
-    });
+    render(<EventList group={group} />, {initialRouterConfig});
   }
 
   it('renders the list using a discover event query', async () => {
@@ -123,18 +117,11 @@ describe('EventList', () => {
 
   it('updates query from location param change', async () => {
     const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
-    const locationQuery = {
-      query: {
-        query: `${tagKey}:${tagValue}`,
-      },
-    };
+    const locationQuery = {query: {query: `${tagKey}:${tagValue}`}};
     render(<EventList group={group} />, {
       initialRouterConfig: {
         ...initialRouterConfig,
-        location: {
-          ...initialRouterConfig.location,
-          query: locationQuery.query,
-        },
+        location: {...initialRouterConfig.location, query: locationQuery.query},
       },
     });
 

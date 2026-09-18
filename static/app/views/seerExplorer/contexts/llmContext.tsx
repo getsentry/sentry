@@ -201,10 +201,7 @@ interface LLMContextProviderProps {
   children: ReactNode;
 }
 
-const INITIAL_STATE: LLMContextState = {
-  nodes: new Map(),
-  version: 0,
-};
+const INITIAL_STATE: LLMContextState = {nodes: new Map(), version: 0};
 
 export function LLMContextProvider({children}: LLMContextProviderProps) {
   // All state lives in refs — no re-renders needed. Consumers read
@@ -272,13 +269,7 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
 
   // Memoize so that the context value reference is stable across re-renders.
   const value = useMemo<LLMContextInternalValue>(
-    () => ({
-      getOverlayNodes,
-      getSnapshot,
-      registerNode,
-      unregisterNode,
-      updateNodeData,
-    }),
+    () => ({getOverlayNodes, getSnapshot, registerNode, unregisterNode, updateNodeData}),
     [getOverlayNodes, getSnapshot, registerNode, unregisterNode, updateNodeData]
   );
 

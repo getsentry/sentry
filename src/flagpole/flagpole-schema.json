@@ -30,9 +30,7 @@
       "title": "Segments",
       "description": "The list of segments to evaluate for the feature. An empty list will always evaluate to False.",
       "type": "array",
-      "items": {
-        "$ref": "#/definitions/Segment"
-      }
+      "items": {"$ref": "#/definitions/Segment"}
     },
     "enabled": {
       "title": "Enabled",
@@ -73,24 +71,9 @@
         "value": {
           "title": "Value",
           "anyOf": [
-            {
-              "type": "array",
-              "items": {
-                "type": "integer"
-              }
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "number"
-              }
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
+            {"type": "array", "items": {"type": "integer"}},
+            {"type": "array", "items": {"type": "number"}},
+            {"type": "array", "items": {"type": "string"}}
           ]
         }
       },
@@ -114,24 +97,9 @@
         "value": {
           "title": "Value",
           "anyOf": [
-            {
-              "type": "array",
-              "items": {
-                "type": "integer"
-              }
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "number"
-              }
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
+            {"type": "array", "items": {"type": "integer"}},
+            {"type": "array", "items": {"type": "number"}},
+            {"type": "array", "items": {"type": "string"}}
           ]
         }
       },
@@ -154,17 +122,7 @@
         },
         "value": {
           "title": "Value",
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "string"
-            },
-            {
-              "type": "number"
-            }
-          ]
+          "anyOf": [{"type": "integer"}, {"type": "string"}, {"type": "number"}]
         }
       },
       "required": ["property", "value"]
@@ -186,17 +144,7 @@
         },
         "value": {
           "title": "Value",
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "string"
-            },
-            {
-              "type": "number"
-            }
-          ]
+          "anyOf": [{"type": "integer"}, {"type": "string"}, {"type": "number"}]
         }
       },
       "required": ["property", "value"]
@@ -219,36 +167,13 @@
         "value": {
           "title": "Value",
           "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "number"
-            },
-            {
-              "type": "string"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "integer"
-              }
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "number"
-              }
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
+            {"type": "integer"},
+            {"type": "number"},
+            {"type": "string"},
+            {"type": "boolean"},
+            {"type": "array", "items": {"type": "integer"}},
+            {"type": "array", "items": {"type": "number"}},
+            {"type": "array", "items": {"type": "string"}}
           ]
         }
       },
@@ -272,36 +197,13 @@
         "value": {
           "title": "Value",
           "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "number"
-            },
-            {
-              "type": "string"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "integer"
-              }
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "number"
-              }
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
+            {"type": "integer"},
+            {"type": "number"},
+            {"type": "string"},
+            {"type": "boolean"},
+            {"type": "array", "items": {"type": "integer"}},
+            {"type": "array", "items": {"type": "number"}},
+            {"type": "array", "items": {"type": "string"}}
           ]
         }
       },
@@ -322,13 +224,7 @@
           "enum": ["matches"],
           "type": "string"
         },
-        "value": {
-          "title": "Value",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
+        "value": {"title": "Value", "type": "array", "items": {"type": "string"}}
       },
       "required": ["property", "value"]
     },
@@ -347,13 +243,7 @@
           "enum": ["not_matches"],
           "type": "string"
         },
-        "value": {
-          "title": "Value",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
+        "value": {"title": "Value", "type": "array", "items": {"type": "string"}}
       },
       "required": ["property", "value"]
     },
@@ -386,30 +276,14 @@
               }
             },
             "oneOf": [
-              {
-                "$ref": "#/definitions/InCondition"
-              },
-              {
-                "$ref": "#/definitions/NotInCondition"
-              },
-              {
-                "$ref": "#/definitions/ContainsCondition"
-              },
-              {
-                "$ref": "#/definitions/NotContainsCondition"
-              },
-              {
-                "$ref": "#/definitions/EqualsCondition"
-              },
-              {
-                "$ref": "#/definitions/NotEqualsCondition"
-              },
-              {
-                "$ref": "#/definitions/MatchesCondition"
-              },
-              {
-                "$ref": "#/definitions/NotMatchesCondition"
-              }
+              {"$ref": "#/definitions/InCondition"},
+              {"$ref": "#/definitions/NotInCondition"},
+              {"$ref": "#/definitions/ContainsCondition"},
+              {"$ref": "#/definitions/NotContainsCondition"},
+              {"$ref": "#/definitions/EqualsCondition"},
+              {"$ref": "#/definitions/NotEqualsCondition"},
+              {"$ref": "#/definitions/MatchesCondition"},
+              {"$ref": "#/definitions/NotMatchesCondition"}
             ]
           }
         },

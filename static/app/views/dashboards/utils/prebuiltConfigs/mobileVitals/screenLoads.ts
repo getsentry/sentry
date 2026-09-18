@@ -33,13 +33,7 @@ const AVG_TTID_BIG_NUMBER_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 0,
-    y: 0,
-    w: 2,
-    minH: 1,
-  },
+  layout: {h: 1, x: 0, y: 0, w: 2, minH: 1},
 };
 
 const AVG_TTFD_BIG_NUMBER_WIDGET: PrebuiltWidget = {
@@ -60,13 +54,7 @@ const AVG_TTFD_BIG_NUMBER_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 2,
-    y: 0,
-    w: 2,
-    minH: 1,
-  },
+  layout: {h: 1, x: 2, y: 0, w: 2, minH: 1},
 };
 
 const TOTAL_COUNT_BIG_NUMBER_WIDGET: PrebuiltWidget = {
@@ -87,13 +75,7 @@ const TOTAL_COUNT_BIG_NUMBER_WIDGET: PrebuiltWidget = {
       orderby: '',
     },
   ],
-  layout: {
-    h: 1,
-    x: 4,
-    y: 0,
-    w: 2,
-    minH: 1,
-  },
+  layout: {h: 1, x: 4, y: 0, w: 2, minH: 1},
 };
 
 const AVG_TTID_LINE_WIDGET: PrebuiltWidget = {
@@ -115,13 +97,7 @@ const AVG_TTID_LINE_WIDGET: PrebuiltWidget = {
       orderby: `avg(${SpanFields.APP_VITALS_TTID_VALUE})`,
     },
   ],
-  layout: {
-    h: 2,
-    x: 0,
-    y: 1,
-    w: 2,
-    minH: 2,
-  },
+  layout: {h: 2, x: 0, y: 1, w: 2, minH: 2},
 };
 
 const AVG_TTFD_LINE_WIDGET: PrebuiltWidget = {
@@ -143,13 +119,7 @@ const AVG_TTFD_LINE_WIDGET: PrebuiltWidget = {
       orderby: `avg(${SpanFields.APP_VITALS_TTFD_VALUE})`,
     },
   ],
-  layout: {
-    h: 2,
-    x: 2,
-    y: 1,
-    w: 2,
-    minH: 2,
-  },
+  layout: {h: 2, x: 2, y: 1, w: 2, minH: 2},
 };
 
 const TOTAL_COUNT_LINE_WIDGET: PrebuiltWidget = {
@@ -171,13 +141,7 @@ const TOTAL_COUNT_LINE_WIDGET: PrebuiltWidget = {
       orderby: TRANSACTION_COUNT,
     },
   ],
-  layout: {
-    h: 2,
-    x: 4,
-    y: 1,
-    w: 2,
-    minH: 2,
-  },
+  layout: {h: 2, x: 4, y: 1, w: 2, minH: 2},
 };
 
 const TTID_BAR_CHART_WIDGET: PrebuiltWidget = {
@@ -199,13 +163,7 @@ const TTID_BAR_CHART_WIDGET: PrebuiltWidget = {
       orderby: SpanFields.DEVICE_CLASS,
     },
   ],
-  layout: {
-    h: 2,
-    x: 0,
-    y: 3,
-    w: 2,
-    minH: 2,
-  },
+  layout: {h: 2, x: 0, y: 3, w: 2, minH: 2},
 };
 
 const TTFD_BAR_CHART_WIDGET: PrebuiltWidget = {
@@ -227,13 +185,7 @@ const TTFD_BAR_CHART_WIDGET: PrebuiltWidget = {
       orderby: SpanFields.DEVICE_CLASS,
     },
   ],
-  layout: {
-    h: 2,
-    x: 2,
-    y: 3,
-    w: 2,
-    minH: 2,
-  },
+  layout: {h: 2, x: 2, y: 3, w: 2, minH: 2},
 };
 
 const SPAN_OPERATIONS_TABLE: PrebuiltWidget = {
@@ -276,13 +228,7 @@ const SPAN_OPERATIONS_TABLE: PrebuiltWidget = {
       orderby: '-sum(span.self_time)',
     },
   ],
-  layout: {
-    h: 4,
-    x: 0,
-    y: 5,
-    w: 6,
-    minH: 2,
-  },
+  layout: {h: 4, x: 0, y: 5, w: 6, minH: 2},
 };
 
 const HEADER_ROW_WIDGETS: PrebuiltWidget[] = [
@@ -316,11 +262,7 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: [
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'os.name',
-          name: 'os.name',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'os.name', name: 'os.name', kind: FieldKind.TAG},
         value: '',
       },
       {

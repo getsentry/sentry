@@ -9,11 +9,7 @@ import {ReleaseStatus} from 'sentry/types/release';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
-type ParamsGet = {
-  orgSlug: string;
-  projectSlug: string;
-  releaseVersion: string;
-};
+type ParamsGet = {orgSlug: string; projectSlug: string; releaseVersion: string};
 
 export function archiveRelease(api: Client, params: ParamsGet) {
   const {orgSlug, releaseVersion} = params;
@@ -27,11 +23,7 @@ export function archiveRelease(api: Client, params: ParamsGet) {
       }),
       {
         method: 'POST',
-        data: {
-          status: ReleaseStatus.ARCHIVED,
-          projects: [],
-          version: releaseVersion,
-        },
+        data: {status: ReleaseStatus.ARCHIVED, projects: [], version: releaseVersion},
       }
     )
     .then(() => {
@@ -62,11 +54,7 @@ export function restoreRelease(api: Client, params: ParamsGet) {
       }),
       {
         method: 'POST',
-        data: {
-          status: ReleaseStatus.ACTIVE,
-          projects: [],
-          version: releaseVersion,
-        },
+        data: {status: ReleaseStatus.ACTIVE, projects: [], version: releaseVersion},
       }
     )
     .then(() => {

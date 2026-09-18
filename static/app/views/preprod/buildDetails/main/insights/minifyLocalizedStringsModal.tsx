@@ -88,11 +88,7 @@ function getMinifyLocalizedStringsContent() {
               <Text>
                 {tct(
                   'In Xcode, open [menu] and add a new Run Script phase after the localized resources step.',
-                  {
-                    menu: (
-                      <InlineCode>Build Phases → + → New Run Script Phase</InlineCode>
-                    ),
-                  }
+                  {menu: <InlineCode>Build Phases → + → New Run Script Phase</InlineCode>}
                 )}
               </Text>
             </li>

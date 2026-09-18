@@ -180,13 +180,7 @@ const CLIENT_TRANSACTIONS_TABLE: PrebuiltWidget = {
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 5,
-    w: 6,
-    h: 3,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {x: 0, y: 5, w: 6, h: 3, minH: TABLE_MIN_HEIGHT},
 };
 
 const SERVER_TRANSACTIONS_TABLE_FIELDS = [
@@ -231,24 +225,12 @@ const SERVER_TRANSACTIONS_TABLE: PrebuiltWidget = {
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 8,
-    w: 6,
-    h: 3,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {x: 0, y: 8, w: 6, h: 3, minH: TABLE_MIN_HEIGHT},
 };
 
 const SERVER_TREE_WIDGET: PrebuiltWidget = {
   ...SERVER_TREE_WIDGET_TEMPLATE,
-  layout: {
-    x: 0,
-    y: 11,
-    w: 6,
-    h: 3,
-    minH: 3,
-  },
+  layout: {x: 0, y: 11, w: 6, h: 3, minH: 3},
 };
 
 export const NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {

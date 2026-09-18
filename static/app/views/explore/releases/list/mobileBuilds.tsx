@@ -95,10 +95,7 @@ export function MobileBuilds({
 
   const handleSearch = useCallback(
     (query: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query},
-      });
+      navigate({...location, query: {...location.query, cursor: undefined, query}});
     },
     [location, navigate]
   );

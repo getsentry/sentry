@@ -18,9 +18,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getReasonGroupName} from 'sentry/views/organizationStats/getReasonGroupName';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 
-type Props = {
-  project: Project;
-};
+type Props = {project: Project};
 
 function formatData(rawData: UsageSeries | undefined, theme: Theme) {
   if (!rawData?.groups?.length) {
@@ -89,9 +87,7 @@ export function ProjectFiltersChart({project}: Props) {
         },
       },
     ],
-    {
-      staleTime: Infinity,
-    }
+    {staleTime: Infinity}
   );
 
   const formattedData = formatData(data, theme);

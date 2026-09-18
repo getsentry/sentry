@@ -130,10 +130,7 @@ function ReplayListItem({
   return (
     <Link
       to={{
-        pathname: makeReplaysPathname({
-          path: `/${replay.id}/`,
-          organization,
-        }),
+        pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
         query: {
           referrer,
           ...linkEventView.generateQueryStringObject(),

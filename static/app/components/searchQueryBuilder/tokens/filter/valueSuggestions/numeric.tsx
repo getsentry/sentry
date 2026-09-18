@@ -58,10 +58,7 @@ export function getNumericSuggestions(
         sectionText: '',
         suggestions: NUMERIC_UNITS.map(unit => {
           const value = `${inputValue}${unit}`;
-          return {
-            value,
-            label: labelForValue(value, valueType),
-          };
+          return {value, label: labelForValue(value, valueType)};
         }),
       },
     ];

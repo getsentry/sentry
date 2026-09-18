@@ -9,11 +9,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 
-type Props = {
-  eventView: EventView;
-  organization: Organization;
-  savedQuery?: SavedQuery;
-};
+type Props = {eventView: EventView; organization: Organization; savedQuery?: SavedQuery};
 
 const NAME_DEFAULT = t('Untitled query');
 
@@ -36,10 +32,7 @@ export function EventInputName({organization, eventView, savedQuery}: Props) {
 
     // This ensures that we are updating SavedQuery.name only.
     // Changes on QueryBuilder table will not be saved.
-    const nextEventView = EventView.fromSavedQuery({
-      ...savedQuery,
-      name: nextQueryName,
-    });
+    const nextEventView = EventView.fromSavedQuery({...savedQuery, name: nextQueryName});
 
     handleUpdateQueryName(api, organization, nextEventView).then(
       (_updatedQuery: SavedQuery) => {

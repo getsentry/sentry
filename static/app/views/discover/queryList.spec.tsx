@@ -32,9 +32,7 @@ describe('Discover > QueryList', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    organization = OrganizationFixture({
-      features: ['discover-basic', 'discover-query'],
-    });
+    organization = OrganizationFixture({features: ['discover-basic', 'discover-query']});
     savedQueries = [
       DiscoverSavedQueryFixture(),
       DiscoverSavedQueryFixture({name: 'saved query 2', id: '2'}),
@@ -57,10 +55,7 @@ describe('Discover > QueryList', () => {
     duplicateMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/saved/',
       method: 'POST',
-      body: {
-        id: '3',
-        name: 'Saved query copy',
-      },
+      body: {id: '3', name: 'Saved query copy'},
     });
 
     updateHomepageMock = MockApiClient.addMockResponse({
@@ -188,9 +183,7 @@ describe('Discover > QueryList', () => {
   });
 
   it('passes dataset to the query if flag is enabled', async () => {
-    const org = OrganizationFixture({
-      features: ['discover-basic', 'discover-query'],
-    });
+    const org = OrganizationFixture({features: ['discover-basic', 'discover-query']});
     render(
       <QueryList
         savedQuerySearchQuery=""
@@ -247,10 +240,7 @@ describe('Discover > QueryList', () => {
 
     await waitFor(() => {
       expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: location.pathname,
-          query: {},
-        })
+        expect.objectContaining({pathname: location.pathname, query: {}})
       );
     });
 
@@ -332,9 +322,7 @@ describe('Discover > QueryList', () => {
   });
 
   it('renders Add to Dashboard in context menu', async () => {
-    const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit'],
-    });
+    const featuredOrganization = OrganizationFixture({features: ['dashboards-edit']});
 
     render(
       <QueryList
@@ -396,14 +384,9 @@ describe('Discover > QueryList', () => {
   });
 
   it('passes yAxis from the savedQuery to MiniGraph', async () => {
-    const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit'],
-    });
+    const featuredOrganization = OrganizationFixture({features: ['dashboards-edit']});
     const yAxis = ['count()', 'failure_count()'];
-    const savedQueryWithMultiYAxis = {
-      ...savedQueries.slice(1)[0]!,
-      yAxis,
-    };
+    const savedQueryWithMultiYAxis = {...savedQueries.slice(1)[0]!, yAxis};
 
     render(
       <QueryList
@@ -422,9 +405,7 @@ describe('Discover > QueryList', () => {
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          yAxis: ['count()', 'failure_count()'],
-        }),
+        query: expect.objectContaining({yAxis: ['count()', 'failure_count()']}),
       })
     );
   });
@@ -526,9 +507,7 @@ describe('Discover > QueryList', () => {
 
   describe('Add to Dashboard modal', () => {
     it('opens a modal with the correct params for Top 5 chart', async () => {
-      const featuredOrganization = OrganizationFixture({
-        features: ['dashboards-edit'],
-      });
+      const featuredOrganization = OrganizationFixture({features: ['dashboards-edit']});
       render(
         <QueryList
           savedQuerySearchQuery=""
@@ -591,9 +570,7 @@ describe('Discover > QueryList', () => {
     });
 
     it('opens a modal with the correct params for other chart', async () => {
-      const featuredOrganization = OrganizationFixture({
-        features: ['dashboards-edit'],
-      });
+      const featuredOrganization = OrganizationFixture({features: ['dashboards-edit']});
       render(
         <QueryList
           savedQuerySearchQuery=""
@@ -730,9 +707,7 @@ describe('Discover > QueryList', () => {
   });
 
   it('passes dataset to open modal', async () => {
-    const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit'],
-    });
+    const featuredOrganization = OrganizationFixture({features: ['dashboards-edit']});
     render(
       <QueryList
         savedQuerySearchQuery=""

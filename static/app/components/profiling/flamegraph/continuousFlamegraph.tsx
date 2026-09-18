@@ -155,10 +155,7 @@ function convertContinuousProfileMeasurementsToUIFrames(
     return undefined;
   }
 
-  const measurements: UIFrameMeasurements = {
-    unit: measurement.unit,
-    values: [],
-  };
+  const measurements: UIFrameMeasurements = {unit: measurement.unit, values: []};
 
   for (let i = 0; i < measurement.values.length; i++) {
     const value = measurement.values[i]!;
@@ -166,10 +163,7 @@ function convertContinuousProfileMeasurementsToUIFrames(
 
     const elapsedNanoseconds = next.elapsed_since_start_ns - value.elapsed_since_start_ns;
 
-    measurements.values.push({
-      elapsed: elapsedNanoseconds / 1e9,
-      value: value.value,
-    });
+    measurements.values.push({elapsed: elapsedNanoseconds / 1e9, value: value.value});
   }
 
   return measurements;
@@ -761,9 +755,7 @@ export function ContinuousFlamegraph(): ReactElement {
       // the total range is rendered and perfectly aligned from top to bottom.
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
-        {
-          width: {min: 1},
-        }
+        {width: {min: 1}}
       );
 
       return newView;
@@ -806,9 +798,7 @@ export function ContinuousFlamegraph(): ReactElement {
       // the total range is rendered and perfectly aligned from top to bottom.
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
-        {
-          width: {min: 1},
-        }
+        {width: {min: 1}}
       );
 
       return newView;
@@ -851,9 +841,7 @@ export function ContinuousFlamegraph(): ReactElement {
       // the total range is rendered and perfectly aligned from top to bottom.
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
-        {
-          width: {min: 1},
-        }
+        {width: {min: 1}}
       );
 
       return newView;
@@ -1271,15 +1259,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
     const renderer = initializeFlamegraphRenderer(
       [FlamegraphRendererWebGL, FlamegraphRenderer2D],
-      [
-        flamegraphCanvasRef,
-        flamegraph,
-        flamegraphTheme,
-        {
-          colorCoding,
-          draw_border: true,
-        },
-      ]
+      [flamegraphCanvasRef, flamegraph, flamegraphTheme, {colorCoding, draw_border: true}]
     );
 
     if (renderer === null) {
@@ -1391,28 +1371,18 @@ export function ContinuousFlamegraph(): ReactElement {
 
           // if we find the frame on the active thread, it always takes priority
           if (newScore > 0 && currentProfile.threadId === threadID) {
-            return {
-              frame,
-              threadId: currentProfile.threadId,
-              isActiveThread: true,
-            };
+            return {frame, threadId: currentProfile.threadId, isActiveThread: true};
           }
 
           return newScore <= oldScore
             ? prevCandidate
-            : {
-                frame,
-                threadId: currentProfile.threadId,
-              };
+            : {frame, threadId: currentProfile.threadId};
         },
         null
       );
 
       if (defined(candidate)) {
-        dispatch({
-          type: 'set thread id',
-          payload: candidate.threadId,
-        });
+        dispatch({type: 'set thread id', payload: candidate.threadId});
         return;
       }
     }
@@ -1420,10 +1390,7 @@ export function ContinuousFlamegraph(): ReactElement {
     // fall back case, when we finally load the active profile index from the profile,
     // make sure we update the thread id so that it is show first
     if (defined(threadID)) {
-      dispatch({
-        type: 'set thread id',
-        payload: threadID,
-      });
+      dispatch({type: 'set thread id', payload: threadID});
     }
   }, [profileGroup, highlightFrames, flamegraphProfiles.threadId, dispatch, sorting]);
 
@@ -1635,9 +1602,5 @@ function formatProfileSeriesMeasurement({
       elapsed: offset,
     });
   }
-  return {
-    name,
-    unit: unit ?? measurement?.unit,
-    values,
-  };
+  return {name, unit: unit ?? measurement?.unit, values};
 }

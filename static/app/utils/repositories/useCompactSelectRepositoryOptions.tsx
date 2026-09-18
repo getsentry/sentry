@@ -44,11 +44,7 @@ function selectRepositoryOptions(
     return connected;
   }
   return [
-    {
-      key: 'connected',
-      label: t('Connected'),
-      options: connected,
-    },
+    {key: 'connected', label: t('Connected'), options: connected},
     {
       key: 'disconnected',
       label: t('Disconnected'),

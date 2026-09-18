@@ -290,14 +290,8 @@ describe('findRangeOfMultiSeries()', () => {
           {name: 3, value: 1950},
         ],
       },
-      {
-        seriesName: 'p95()',
-        data: [],
-      },
-      {
-        seriesName: 'p50()',
-        data: [],
-      },
+      {seriesName: 'p95()', data: []},
+      {seriesName: 'p50()', data: []},
     ];
     expect(findRangeOfMultiSeries(noDataSeries)).toStrictEqual({max: 2300, min: 1900});
   });

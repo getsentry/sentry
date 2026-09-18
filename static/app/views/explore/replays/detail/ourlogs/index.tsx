@@ -186,10 +186,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
             booleanAttributes={booleanAttributes}
             embedded
             embeddedOptions={embeddedOptions}
-            localOnlyItemFilters={{
-              filteredItems: logItems,
-              filterText,
-            }}
+            localOnlyItemFilters={{filteredItems: logItems, filterText}}
             embeddedStyling={{disableBodyPadding: true, showVerticalScrollbar: false}}
             emptyRenderer={() => (
               <NoRowRenderer

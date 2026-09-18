@@ -211,10 +211,7 @@ function mockTransactionSpansResponse(
 }
 
 const initialRouterConfig: RouterConfig = {
-  location: {
-    pathname: '/organizations/org-slug/performance/trace/trace-id/',
-    query: {},
-  },
+  location: {pathname: '/organizations/org-slug/performance/trace/trace-id/', query: {}},
   route: '/organizations/:orgId/performance/trace/:traceSlug/',
 };
 
@@ -222,10 +219,7 @@ function mockEventsResponse() {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',
     method: 'GET',
-    body: {
-      data: [],
-      queries: [],
-    },
+    body: {data: [], queries: []},
   });
 }
 
@@ -269,10 +263,7 @@ async function keyboardNavigationTestSetup() {
     mockTransactionDetailsResponse(`${i}`);
   }
   mockTraceResponse({
-    body: {
-      transactions: keyboard_navigation_transactions,
-      orphan_errors: [],
-    },
+    body: {transactions: keyboard_navigation_transactions, orphan_errors: []},
   });
   mockTraceMetaResponse({
     body: {
@@ -293,9 +284,7 @@ async function keyboardNavigationTestSetup() {
   mockTraceEventDetails();
   mockEventsResponse();
 
-  const value = render(<TraceView />, {
-    initialRouterConfig,
-  });
+  const value = render(<TraceView />, {initialRouterConfig});
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
@@ -329,12 +318,7 @@ async function pageloadTestSetup() {
     mockTransactionDetailsResponse(`${i}`);
   }
 
-  mockTraceResponse({
-    body: {
-      transactions: pageloadTransactions,
-      orphan_errors: [],
-    },
-  });
+  mockTraceResponse({body: {transactions: pageloadTransactions, orphan_errors: []}});
 
   mockTraceMetaResponse({
     body: {
@@ -355,9 +339,7 @@ async function pageloadTestSetup() {
   mockTraceEventDetails();
   mockEventsResponse();
 
-  const value = render(<TraceView />, {
-    initialRouterConfig,
-  });
+  const value = render(<TraceView />, {initialRouterConfig});
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
@@ -404,21 +386,14 @@ async function nestedTransactionsTestSetup() {
     mockTransactionDetailsResponse(`${i}`);
   }
 
-  mockTraceResponse({
-    body: {
-      transactions,
-      orphan_errors: [],
-    },
-  });
+  mockTraceResponse({body: {transactions, orphan_errors: []}});
   mockTraceMetaResponse();
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
   mockEventsResponse();
 
-  const value = render(<TraceView />, {
-    initialRouterConfig,
-  });
+  const value = render(<TraceView />, {initialRouterConfig});
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
@@ -450,12 +425,7 @@ async function searchTestSetup() {
     );
     mockTransactionDetailsResponse(`${i}`);
   }
-  mockTraceResponse({
-    body: {
-      transactions,
-      orphan_errors: [],
-    },
-  });
+  mockTraceResponse({body: {transactions, orphan_errors: []}});
 
   mockTraceMetaResponse({
     body: {
@@ -477,9 +447,7 @@ async function searchTestSetup() {
   mockTraceEventDetails();
   mockEventsResponse();
 
-  const value = render(<TraceView />, {
-    initialRouterConfig,
-  });
+  const value = render(<TraceView />, {initialRouterConfig});
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
@@ -517,12 +485,7 @@ async function simpleTestSetup() {
     parent = next;
     mockTransactionDetailsResponse(`${i}`);
   }
-  mockTraceResponse({
-    body: {
-      transactions,
-      orphan_errors: [],
-    },
-  });
+  mockTraceResponse({body: {transactions, orphan_errors: []}});
   mockTraceMetaResponse({
     body: {
       errors: 0,
@@ -542,9 +505,7 @@ async function simpleTestSetup() {
   mockTraceEventDetails();
   mockEventsResponse();
 
-  const value = render(<TraceView />, {
-    initialRouterConfig,
-  });
+  const value = render(<TraceView />, {initialRouterConfig});
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
@@ -631,22 +592,10 @@ async function completeTestSetup({
       projects: 0,
       transactions: 0,
       transaction_child_count_map: [
-        {
-          'transaction.id': '0',
-          count: 2,
-        },
-        {
-          'transaction.id': '1',
-          count: 2,
-        },
-        {
-          'transaction.id': '2',
-          count: 2,
-        },
-        {
-          'transaction.id': '3',
-          count: 2,
-        },
+        {'transaction.id': '0', count: 2},
+        {'transaction.id': '1', count: 2},
+        {'transaction.id': '2', count: 2},
+        {'transaction.id': '3', count: 2},
       ],
       span_count: 200,
       span_count_map: {},
@@ -659,11 +608,7 @@ async function completeTestSetup({
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/project_slug:error0/',
-    body: {
-      tags: [],
-      contexts: {},
-      entries: [],
-    },
+    body: {tags: [], contexts: {}, entries: []},
   });
 
   const transactionWithSpans = makeEventTransaction({
@@ -766,10 +711,7 @@ async function completeTestSetup({
   mockTransactionSpansResponse('0', {}, transactionWithoutSpans);
   mockSpansResponse('0', {}, transactionWithoutSpans);
 
-  const value = render(<TraceView />, {
-    initialRouterConfig,
-    organization,
-  });
+  const value = render(<TraceView />, {initialRouterConfig, organization});
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
@@ -899,12 +841,7 @@ describe('trace view', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: null},
     });
   });
   afterEach(() => {
@@ -1115,10 +1052,7 @@ describe('trace view', () => {
         url: '/organizations/org-slug/issues/1/',
         body: GroupFixture(),
       });
-      const query = {
-        pinnedAttribute: 'custom.region',
-        eventId: errors[0]!.event_id,
-      };
+      const query = {pinnedAttribute: 'custom.region', eventId: errors[0]!.event_id};
       const {router} = renderTrace(query);
       expect(await screen.findByText('waterfall-region')).toBeInTheDocument();
       const waterfall = within(screen.getByTestId('trace-virtualized-list'));
@@ -1577,17 +1511,12 @@ describe('trace view', () => {
     mockPerformanceSubscriptionDetailsResponse();
     mockProjectDetailsResponse();
 
-    mockTraceResponse({
-      asyncDelay: 1000,
-      body: {transactions: [], orphan_errors: []},
-    });
+    mockTraceResponse({asyncDelay: 1000, body: {transactions: [], orphan_errors: []}});
     mockTraceMetaResponse();
     mockTraceTagsResponse();
     mockEventsResponse();
 
-    render(<TraceView />, {
-      initialRouterConfig,
-    });
+    render(<TraceView />, {initialRouterConfig});
     expect(await screen.findByText(/assembling the trace/i)).toBeInTheDocument();
   });
 
@@ -1600,9 +1529,7 @@ describe('trace view', () => {
     mockTraceTagsResponse({statusCode: 404});
     mockEventsResponse();
 
-    render(<TraceView />, {
-      initialRouterConfig,
-    });
+    render(<TraceView />, {initialRouterConfig});
     expect(
       await screen.findByText(/Woof, we failed to load your trace/i)
     ).toBeInTheDocument();
@@ -1617,20 +1544,13 @@ describe('trace view', () => {
     mockPerformanceSubscriptionDetailsResponse();
     mockProjectDetailsResponse();
 
-    mockTraceResponse({
-      body: {
-        transactions: [],
-        orphan_errors: [],
-      },
-    });
+    mockTraceResponse({body: {transactions: [], orphan_errors: []}});
     mockTraceMetaResponse();
     mockTraceTagsResponse();
     mockEventsResponse();
 
     mockQueryString(`?timestamp=${twelveMinutesAgoInSeconds.toString()}`);
-    render(<TraceView />, {
-      initialRouterConfig,
-    });
+    render(<TraceView />, {initialRouterConfig});
     expect(
       await screen.findByText(
         /We were unable to find any spans for this trace\. If you came here from Logs or Application Metrics/i
@@ -1647,20 +1567,13 @@ describe('trace view', () => {
     mockPerformanceSubscriptionDetailsResponse();
     mockProjectDetailsResponse();
 
-    mockTraceResponse({
-      body: {
-        transactions: [],
-        orphan_errors: [],
-      },
-    });
+    mockTraceResponse({body: {transactions: [], orphan_errors: []}});
     mockTraceMetaResponse();
     mockTraceTagsResponse();
     mockEventsResponse();
 
     mockQueryString(`?timestamp=${oneMinuteAgoInSeconds.toString()}`);
-    render(<TraceView />, {
-      initialRouterConfig,
-    });
+    render(<TraceView />, {initialRouterConfig});
     expect(
       await screen.findByText(
         /We're still processing this trace. Please try refreshing after a minute/i
@@ -1750,9 +1663,7 @@ describe('trace view', () => {
           start_timestamp: start,
           end_timestamp: start + 2,
           is_transaction: true,
-          additional_attributes: {
-            'tags[performance.timeOrigin,number]': start,
-          },
+          additional_attributes: {'tags[performance.timeOrigin,number]': start},
           children: [
             makeEAPSpan({
               event_id: 'lcp-span',
@@ -1817,10 +1728,7 @@ describe('trace view', () => {
       url: '/organizations/org-slug/logs/',
       body: {data: []},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
     mockTraceRootFacets();
     mockEventsResponse();
 
@@ -2270,10 +2178,7 @@ describe('trace view', () => {
         {},
         {
           entries: [
-            {
-              type: EntryType.SPANS,
-              data: [makeSpan({span_id: '0', op: 'special-span'})],
-            },
+            {type: EntryType.SPANS, data: [makeSpan({span_id: '0', op: 'special-span'})]},
           ],
         }
       );
@@ -2295,10 +2200,7 @@ describe('trace view', () => {
         {},
         {
           entries: [
-            {
-              type: EntryType.SPANS,
-              data: [makeSpan({span_id: '0', op: 'special-span'})],
-            },
+            {type: EntryType.SPANS, data: [makeSpan({span_id: '0', op: 'special-span'})]},
           ],
         }
       );
@@ -2732,22 +2634,10 @@ describe('trace view', () => {
           projects: 0,
           transactions: 0,
           transaction_child_count_map: [
-            {
-              'transaction.id': '0',
-              count: 5,
-            },
-            {
-              'transaction.id': '1',
-              count: 5,
-            },
-            {
-              'transaction.id': '2',
-              count: 5,
-            },
-            {
-              'transaction.id': '3',
-              count: 5,
-            },
+            {'transaction.id': '0', count: 5},
+            {'transaction.id': '1', count: 5},
+            {'transaction.id': '2', count: 5},
+            {'transaction.id': '3', count: 5},
           ],
           span_count: 200,
           span_count_map: {},
@@ -2762,20 +2652,14 @@ describe('trace view', () => {
             {
               type: EntryType.SPANS,
               data: [
-                makeSpan({
-                  span_id: '0',
-                  description: 'span-description',
-                  op: 'op-0',
-                }),
+                makeSpan({span_id: '0', description: 'span-description', op: 'op-0'}),
               ],
             },
           ],
         }
       );
 
-      const {container} = render(<TraceView />, {
-        initialRouterConfig,
-      });
+      const {container} = render(<TraceView />, {initialRouterConfig});
 
       // Awaits for the placeholder rendering rows to be removed
       await within(container).findByText(/transaction-op-0/i);

@@ -66,10 +66,7 @@ function TeamMisery({
           100
         : null;
 
-      return {
-        ...dataRow,
-        trend,
-      } as TableDataRow & {trend: number};
+      return {...dataRow, trend} as TableDataRow & {trend: number};
     })
     .filter(x => x.trend !== null)
     .sort((a, b) => Math.abs(b.trend) - Math.abs(a.trend));

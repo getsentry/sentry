@@ -67,11 +67,10 @@ export function HeaderCell({
   children,
   sortKey,
   ...props
-}: {
-  children?: React.ReactNode;
-  divider?: boolean;
-  sortKey?: string;
-} & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
+}: {children?: React.ReactNode; divider?: boolean; sortKey?: string} & Omit<
+  ComponentProps<typeof SimpleTable.HeaderCell>,
+  'sort'
+>) {
   const [sort, setSort] = useDetectorListSort();
   const [, setCursor] = useQueryState('cursor');
   const handleSort = () => {

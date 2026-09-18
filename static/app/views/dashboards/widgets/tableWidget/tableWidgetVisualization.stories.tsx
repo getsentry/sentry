@@ -21,14 +21,8 @@ import {Actions} from 'sentry/views/discover/table/cellAction';
 
 export default Storybook.story('TableWidgetVisualization', story => {
   const customColumns: TabularColumn[] = [
-    {
-      key: 'count(span.duration)',
-      type: 'number',
-    },
-    {
-      key: 'http.request_method',
-      type: 'string',
-    },
+    {key: 'count(span.duration)', type: 'number'},
+    {key: 'http.request_method', type: 'string'},
   ];
 
   story('Getting Started', () => {
@@ -53,10 +47,7 @@ export default Storybook.story('TableWidgetVisualization', story => {
   });
 
   story('Table Data and Optional Columns', () => {
-    const tableWithEmptyData: TabularData = {
-      ...sampleHTTPRequestTableData,
-      data: [],
-    };
+    const tableWithEmptyData: TabularData = {...sampleHTTPRequestTableData, data: []};
     const aliases = {
       'count(span.duration)': 'Count of Span Duration',
       'http.request_method': 'HTTP Request Method',

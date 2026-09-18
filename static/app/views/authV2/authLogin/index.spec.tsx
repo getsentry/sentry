@@ -80,10 +80,7 @@ describe('AuthLogin', () => {
 
   it('does not render the sign-in flow while auth config is loading', async () => {
     const authConfig = Promise.withResolvers<AuthConfig>();
-    MockApiClient.addMockResponse({
-      url: '/auth/config/',
-      body: () => authConfig.promise,
-    });
+    MockApiClient.addMockResponse({url: '/auth/config/', body: () => authConfig.promise});
 
     renderWithLoadingState();
 
@@ -114,11 +111,7 @@ describe('AuthLogin', () => {
     expect(screen.getByText('Authentication ready')).toBeInTheDocument();
     expect(trackAnalytics).toHaveBeenCalledWith(
       'auth.login.rendered',
-      {
-        organization: null,
-        entrypoint: 'generic',
-        state: 'login',
-      },
+      {organization: null, entrypoint: 'generic', state: 'login'},
       {startSession: true}
     );
   });
@@ -191,10 +184,7 @@ describe('AuthLogin', () => {
     await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     expect(request).toHaveBeenCalledWith(
       '/auth/organizations/acme/demo/',
-      expect.objectContaining({
-        method: 'POST',
-        data: {nextUri: null},
-      })
+      expect.objectContaining({method: 'POST', data: {nextUri: null}})
     );
     expect(screen.getByText('Loading authentication')).toBeInTheDocument();
     expect(
@@ -203,10 +193,7 @@ describe('AuthLogin', () => {
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
 
     act(() => {
-      demoLogin.resolve({
-        nextUri: '/organizations/acme/issues/',
-        user: UserFixture(),
-      });
+      demoLogin.resolve({nextUri: '/organizations/acme/issues/', user: UserFixture()});
     });
 
     await waitFor(() =>
@@ -435,10 +422,7 @@ describe('AuthLogin', () => {
   it('returns to the legacy login experience', async () => {
     const originalLocation = window.location.href;
     setWindowLocation('https://login.sentry.io/auth/login/');
-    Cookies.set('sentry_react_auth', '1', {
-      domain: '.sentry.io',
-      path: '/auth/',
-    });
+    Cookies.set('sentry_react_auth', '1', {domain: '.sentry.io', path: '/auth/'});
     mockAuthConfig();
 
     try {
@@ -477,10 +461,7 @@ describe('AuthLogin', () => {
       vstsLoginLink: '',
       warning: 'Your session has expired.',
     };
-    MockApiClient.addMockResponse({
-      url: '/auth/config/',
-      body: authConfig,
-    });
+    MockApiClient.addMockResponse({url: '/auth/config/', body: authConfig});
 
     render(<AuthLogin />);
 

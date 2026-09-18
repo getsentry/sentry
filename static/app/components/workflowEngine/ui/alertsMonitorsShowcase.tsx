@@ -40,10 +40,7 @@ function AlertsMonitorsShowcase(props: ModalRenderProps) {
     <FeatureShowcase
       {...props}
       onStepChange={step => {
-        trackAnalytics('monitors.onboarding_modal_viewed', {
-          organization,
-          step,
-        });
+        trackAnalytics('monitors.onboarding_modal_viewed', {organization, step});
       }}
     >
       <FeatureShowcase.Step>

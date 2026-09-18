@@ -50,10 +50,7 @@ const stacktraceLinkQueryKey = (
   query: StacktraceLinkQuery
 ): ApiQueryKey => [
   getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-link/', {
-    path: {
-      organizationIdOrSlug: orgSlug,
-      projectIdOrSlug: projectSlug!,
-    },
+    path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!},
   }),
   {query},
 ];
@@ -65,10 +62,6 @@ export function useStacktraceLink(
   const query = buildStacktraceLinkQuery(event, frame);
   return useApiQuery<StacktraceLinkResult>(
     stacktraceLinkQueryKey(orgSlug, projectSlug, query),
-    {
-      staleTime: Infinity,
-      retry: false,
-      ...options,
-    }
+    {staleTime: Infinity, retry: false, ...options}
   );
 }

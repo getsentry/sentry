@@ -47,26 +47,10 @@ export function UptimeTimingDetails(
     UPTIME_PHASE_DESCRIPTIONS[op as keyof typeof UPTIME_PHASE_DESCRIPTIONS];
 
   const attributes: TraceItemResponseAttribute[] = [
-    {
-      name: 'operation',
-      type: 'str',
-      value: op,
-    },
-    {
-      name: 'duration',
-      type: 'str',
-      value: getDuration(duration, 2, true),
-    },
-    {
-      name: 'start_timestamp',
-      type: 'float',
-      value: start_timestamp,
-    },
-    {
-      name: 'end_timestamp',
-      type: 'float',
-      value: end_timestamp,
-    },
+    {name: 'operation', type: 'str', value: op},
+    {name: 'duration', type: 'str', value: getDuration(duration, 2, true)},
+    {name: 'start_timestamp', type: 'float', value: start_timestamp},
+    {name: 'end_timestamp', type: 'float', value: end_timestamp},
   ];
 
   return (
@@ -85,17 +69,9 @@ export function UptimeTimingDetails(
 
         <AttributesTree
           attributes={attributes}
-          rendererExtra={{
-            location,
-            navigate,
-            organization,
-            theme,
-          }}
+          rendererExtra={{location, navigate, organization, theme}}
           columnCount={1}
-          config={{
-            disableActions: true,
-            disableRichValue: true,
-          }}
+          config={{disableActions: true, disableRichValue: true}}
         />
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>

@@ -10,10 +10,7 @@ import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
 
 export const ITEMS_PER_PAGE = 40;
 
-export type DiffTableSort = {
-  field: string;
-  kind: 'asc' | 'desc';
-};
+export type DiffTableSort = {field: string; kind: 'asc' | 'desc'};
 
 type DiffChangeElements = {
   icon: React.ReactNode;
@@ -29,39 +26,19 @@ export function getDiffChangeElements(diffItem: DiffItem): DiffChangeElements {
   };
   switch (diffItem.type) {
     case 'added':
-      change = {
-        type: 'danger',
-        label: t('Added'),
-        icon: <IconAdd />,
-      };
+      change = {type: 'danger', label: t('Added'), icon: <IconAdd />};
       break;
     case 'removed':
-      change = {
-        type: 'success',
-        label: t('Removed'),
-        icon: <IconSubtract />,
-      };
+      change = {type: 'success', label: t('Removed'), icon: <IconSubtract />};
       break;
     case 'increased':
-      change = {
-        type: 'danger',
-        label: t('Increased'),
-        icon: <IconAdd />,
-      };
+      change = {type: 'danger', label: t('Increased'), icon: <IconAdd />};
       break;
     case 'decreased':
-      change = {
-        type: 'success',
-        label: t('Decreased'),
-        icon: <IconSubtract />,
-      };
+      change = {type: 'success', label: t('Decreased'), icon: <IconSubtract />};
       break;
     default:
-      change = {
-        type: 'warning',
-        label: t('Unchanged'),
-        icon: <IconFix />,
-      };
+      change = {type: 'warning', label: t('Unchanged'), icon: <IconFix />};
       break;
   }
   return change;

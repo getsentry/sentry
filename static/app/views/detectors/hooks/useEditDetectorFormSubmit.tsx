@@ -51,10 +51,7 @@ export function useEditDetectorFormSubmit<
           formModel.getTransformedData() as TFormData
         );
 
-        const updatedData = {
-          detectorId: detector.id,
-          ...payload,
-        };
+        const updatedData = {detectorId: detector.id, ...payload};
 
         const resultDetector = await updateDetector(updatedData);
 

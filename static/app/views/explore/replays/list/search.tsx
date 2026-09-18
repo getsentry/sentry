@@ -28,10 +28,7 @@ export function ReplaysSearch() {
         initialQuery=""
         query={query}
         onSearch={searchQuery => {
-          setQueryParams({
-            query: searchQuery.trim() || null,
-            cursor: null,
-          });
+          setQueryParams({query: searchQuery.trim() || null, cursor: null});
         }}
       />
     </Container>

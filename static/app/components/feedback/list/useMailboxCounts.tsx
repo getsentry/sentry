@@ -29,11 +29,7 @@ const mailboxCountsParsers = {
 type ApiReturnType = Record<string, number>;
 
 // This is what the hook consumer gets:
-type HookReturnType = {
-  ignored: number;
-  resolved: number;
-  unresolved: number;
-};
+type HookReturnType = {ignored: number; resolved: number; unresolved: number};
 
 export function useMailboxCounts({
   organization,
@@ -68,27 +64,18 @@ export function useMailboxCounts({
   );
 
   const queryViewWithStatsPeriod = useMemo(
-    () =>
-      coaleseIssueStatsPeriodQuery({
-        listHeadTime,
-        queryView,
-      }),
+    () => coaleseIssueStatsPeriodQuery({listHeadTime, queryView}),
     [listHeadTime, queryView]
   );
 
   const result = useApiQuery<ApiReturnType>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
+        path: {organizationIdOrSlug: organization.slug},
       }),
       {query: queryViewWithStatsPeriod},
     ],
-    {
-      staleTime: 1_000,
-      refetchInterval: 30_000,
-    }
+    {staleTime: 1_000, refetchInterval: 30_000}
   );
 
   return useMemo(

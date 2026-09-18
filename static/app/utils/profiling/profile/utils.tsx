@@ -177,11 +177,7 @@ export function createFrameIndex(
   return (frames as Profiling.Schema['shared']['frames']).reduce((acc, frame, index) => {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     acc[index] = new Frame(
-      {
-        key: index,
-        column: frame.colno ?? frame?.col ?? frame?.column,
-        ...frame,
-      },
+      {key: index, column: frame.colno ?? frame?.col ?? frame?.column, ...frame},
       type
     );
     return acc;

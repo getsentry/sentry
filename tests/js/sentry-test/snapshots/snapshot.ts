@@ -84,9 +84,7 @@ let _browserPromise: Promise<Browser> | null = null;
 function getBrowser(): Promise<Browser> {
   if (!_browserPromise) {
     _browserPromise = chromium
-      .launch({
-        args: ['--font-render-hinting=none', '--disable-skia-runtime-opts'],
-      })
+      .launch({args: ['--font-render-hinting=none', '--disable-skia-runtime-opts']})
       .catch(err => {
         _browserPromise = null;
         throw err;
@@ -145,9 +143,7 @@ export async function takeSnapshot({
   const browser = await getBrowser();
   const context = await browser.newContext({
     deviceScaleFactor: 2,
-    ...(viewport && {
-      viewport: {width: viewport.width, height: viewport.height ?? 720},
-    }),
+    ...(viewport && {viewport: {width: viewport.width, height: viewport.height ?? 720}}),
   });
 
   try {

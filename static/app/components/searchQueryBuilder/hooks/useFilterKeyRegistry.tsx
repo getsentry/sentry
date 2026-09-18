@@ -66,8 +66,5 @@ export function useFilterKeyRegistry({
     [queryClient]
   );
 
-  return {
-    filterKeyRegistryQueryOptions,
-    registerFilterKeys,
-  };
+  return {filterKeyRegistryQueryOptions, registerFilterKeys};
 }

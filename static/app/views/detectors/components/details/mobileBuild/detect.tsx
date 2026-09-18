@@ -62,16 +62,10 @@ function getConditionDescription({
   const unit = getDisplayUnit(thresholdType);
 
   if (condition.conditionResult === DetectorPriorityLevel.OK) {
-    return t('Below or equal to %(value)s%(unit)s', {
-      value: comparisonValue,
-      unit,
-    });
+    return t('Below or equal to %(value)s%(unit)s', {value: comparisonValue, unit});
   }
 
-  return t('Above %(value)s%(unit)s', {
-    value: comparisonValue,
-    unit,
-  });
+  return t('Above %(value)s%(unit)s', {value: comparisonValue, unit});
 }
 
 function DetectorPriorities({detector}: {detector: PreprodDetector}) {

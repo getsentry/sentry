@@ -4,12 +4,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type TransactionListTableData =
-  | {
-      empty: boolean;
-      query: string;
-    }
-  | undefined;
+type TransactionListTableData = {empty: boolean; query: string} | undefined;
 
 type PerformanceAtScaleContextProps = {
   metricsSeriesDataEmpty: boolean | undefined;
@@ -22,9 +17,7 @@ export const PerformanceAtScaleContext = createContext<
   PerformanceAtScaleContextProps | undefined
 >(undefined);
 
-type ProviderProps = {
-  children: React.ReactNode;
-};
+type ProviderProps = {children: React.ReactNode};
 
 export function PerformanceAtScaleContextProvider({children}: ProviderProps) {
   const [metricsSeriesDataEmpty, setMetricsSeriesDataEmpty] = useState<

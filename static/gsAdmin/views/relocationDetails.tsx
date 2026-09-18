@@ -188,14 +188,10 @@ export function RelocationDetails() {
 
   const {data, isPending, isError, refetch} = useApiQuery<Relocation>(
     [
-      getApiUrl('/relocations/$relocationUuid/', {
-        path: {relocationUuid},
-      }),
+      getApiUrl('/relocations/$relocationUuid/', {path: {relocationUuid}}),
       {host: locality ? locality.url : ''},
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   if (isPending) {
@@ -208,10 +204,7 @@ export function RelocationDetails() {
 
   const relocationData = {
     ...data,
-    region: localities.find(l => l.name === regionName) || {
-      name: regionName,
-      url: '',
-    },
+    region: localities.find(l => l.name === regionName) || {name: regionName, url: ''},
   };
 
   const handleDataUpdate = () => {

@@ -48,10 +48,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'text',
-          text: t('Or, throw an error in a simple vue component.'),
-        },
+        {type: 'text', text: t('Or, throw an error in a simple vue component.')},
         {
           type: 'code',
           tabs: [

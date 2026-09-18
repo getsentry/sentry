@@ -48,9 +48,7 @@ function getDisabledProducts({
           'To use Performance, request an owner in your organization to update its plan to the latest version.'
         );
 
-    disabledProducts[ProductSolution.PERFORMANCE_MONITORING] = {
-      reason,
-    };
+    disabledProducts[ProductSolution.PERFORMANCE_MONITORING] = {reason};
   }
 
   if (!hasSessionReplay) {
@@ -134,9 +132,10 @@ function getDisabledProducts({
   return disabledProducts;
 }
 
-type Props = {
-  subscription: Subscription;
-} & Omit<ProductSelectionProps, 'disabledProducts'>;
+type Props = {subscription: Subscription} & Omit<
+  ProductSelectionProps,
+  'disabledProducts'
+>;
 
 function ProductSelectionAvailabilityContainer({
   organization,

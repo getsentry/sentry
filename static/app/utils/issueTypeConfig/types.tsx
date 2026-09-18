@@ -2,15 +2,9 @@ import type {IssueType} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Tab} from 'sentry/views/issueDetails/types';
 
-export type ResourceLink = {
-  link: string;
-  text: string;
-};
+export type ResourceLink = {link: string; text: string};
 
-type DisabledWithReasonConfig = {
-  enabled: boolean;
-  disabledReason?: string;
-};
+type DisabledWithReasonConfig = {enabled: boolean; disabledReason?: string};
 
 export type IssueTypeConfig = {
   /**
@@ -45,10 +39,7 @@ export type IssueTypeConfig = {
   /**
    * Custom copy for actions and other UI elements
    */
-  customCopy: {
-    eventUnits: string;
-    resolution: string;
-  };
+  customCopy: {eventUnits: string; resolution: string};
   /**
    * Default time period to use for the issue type
    */
@@ -57,10 +48,7 @@ export type IssueTypeConfig = {
    * Should show detector section in the sidebar
    * Optionally set a custom title for it
    */
-  detector: DisabledWithReasonConfig & {
-    ctaText?: string;
-    title?: string;
-  };
+  detector: DisabledWithReasonConfig & {ctaText?: string; title?: string};
   /**
    * Is the "Open in Discover" button available for this issue
    */
@@ -72,10 +60,7 @@ export type IssueTypeConfig = {
   /**
    * Options for rendering the Evidence section - pass null to disable
    */
-  evidence: {
-    title: string;
-    helpText?: string;
-  } | null;
+  evidence: {title: string; helpText?: string} | null;
   /**
    * Should the grouping information section be shown within the event details?
    * Some issue types are grouped by some user defined object like a metric or uptime detector,
@@ -99,9 +84,7 @@ export type IssueTypeConfig = {
     graph: DisabledWithReasonConfig & {
       type?: 'detector-history' | 'discover-events' | 'cron-checks' | 'uptime-checks';
     };
-    occurrenceSummary: DisabledWithReasonConfig & {
-      downtime?: boolean;
-    };
+    occurrenceSummary: DisabledWithReasonConfig & {downtime?: boolean};
     tagDistribution: DisabledWithReasonConfig;
   };
   /**

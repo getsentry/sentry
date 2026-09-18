@@ -47,11 +47,7 @@ describe('ConversationEmbedStory', () => {
       url: '/organizations/org-slug/agents/conversations/',
       body: [untitled, titled],
       match: [
-        MockApiClient.matchQuery({
-          project: [-1],
-          per_page: 25,
-          statsPeriod: '14d',
-        }),
+        MockApiClient.matchQuery({project: [-1], per_page: 25, statsPeriod: '14d'}),
       ],
     });
 

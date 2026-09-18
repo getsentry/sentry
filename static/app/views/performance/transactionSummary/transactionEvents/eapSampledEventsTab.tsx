@@ -78,19 +78,13 @@ export function EAPSampledEventsTab() {
 
   const cursor = decodeScalar(location.query?.[SEGMENT_SPANS_CURSOR]);
   const onCursor: CursorHandler = (newCursor, pathname, query) => {
-    navigate({
-      pathname,
-      query: {...query, [SEGMENT_SPANS_CURSOR]: newCursor},
-    });
+    navigate({pathname, query: {...query, [SEGMENT_SPANS_CURSOR]: newCursor}});
   };
 
   const onChangeEventsDisplayFilter = (newFilterName: EventsDisplayFilterName) => {
     trackAnalytics(
       'performance_views.transactionEvents.display_filter_dropdown.selection',
-      {
-        organization,
-        action: newFilterName,
-      }
+      {organization, action: newFilterName}
     );
 
     const nextQuery: Location['query'] = {
@@ -103,10 +97,7 @@ export function EAPSampledEventsTab() {
       delete nextQuery.showTransactions;
     }
 
-    navigate({
-      pathname: location.pathname,
-      query: nextQuery,
-    });
+    navigate({pathname: location.pathname, query: nextQuery});
   };
 
   return (
@@ -150,27 +141,19 @@ function FilterBar(props: FilterBarProps) {
   const navigate = useNavigate();
 
   const handleSearch = (query: string) => {
-    const queryParams = normalizeDateTimeParams({
-      ...location.query,
-      query,
-    });
+    const queryParams = normalizeDateTimeParams({...location.query, query});
 
     // do not propagate pagination when making a new search
     const searchQueryParams = omit(queryParams, SEGMENT_SPANS_CURSOR);
 
-    navigate({
-      pathname: location.pathname,
-      query: searchQueryParams,
-    });
+    navigate({pathname: location.pathname, query: searchQueryParams});
   };
 
   const query = decodeScalar(location.query.query, '');
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
 
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.SPANS]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
@@ -301,12 +284,7 @@ function useMaxDuration(
   search.setFilterValues('transaction', [transactionName]);
 
   const {data, isLoading} = useSpans(
-    {
-      search,
-      pageFilters,
-      fields: [...EAP_PERCENTILE_FIELDS],
-      enabled: hasDurationFilter,
-    },
+    {search, pageFilters, fields: [...EAP_PERCENTILE_FIELDS], enabled: hasDurationFilter},
     'api.insights.transaction-events-percentiles'
   );
 
@@ -337,9 +315,7 @@ function mapEAPPercentileValues(data: Array<Record<string, number>>): Percentile
 }
 
 function filterEventsDisplayToEAPLocationQuery(option: EventsDisplayFilterName) {
-  const query: Record<string, string> = {
-    showTransactions: option,
-  };
+  const query: Record<string, string> = {showTransactions: option};
   if (option !== EventsDisplayFilterName.P100) {
     query[QueryParameterNames.SPANS_SORT] = '-span.duration';
   }

@@ -75,10 +75,7 @@ class TestNode extends BaseNode {
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 const createMockValue = (
   overrides: Partial<TraceTree.NodeValue> = {}
@@ -239,10 +236,7 @@ describe('BaseNode', () => {
 
     it('should return correct start timestamp', () => {
       const extra = createMockExtra();
-      const value = createMockValue({
-        start_timestamp: 1000,
-        end_timestamp: 2000,
-      });
+      const value = createMockValue({start_timestamp: 1000, end_timestamp: 2000});
 
       const node = new TestNode(null, value, extra);
 
@@ -272,19 +266,10 @@ describe('BaseNode', () => {
     it('should collect errors from value during construction', () => {
       const extra = createMockExtra();
       const errors = [
-        makeTraceError({
-          issue_id: 1,
-          event_id: 'error-1',
-        }),
-        makeTraceError({
-          issue_id: 2,
-          event_id: 'error-2',
-        }),
+        makeTraceError({issue_id: 1, event_id: 'error-1'}),
+        makeTraceError({issue_id: 2, event_id: 'error-2'}),
       ];
-      const value = createMockValue({
-        event_id: 'test-id',
-        errors,
-      });
+      const value = createMockValue({event_id: 'test-id', errors});
 
       const node = new TestNode(null, value, extra);
 
@@ -298,10 +283,7 @@ describe('BaseNode', () => {
         makeEAPOccurrence({issue_id: 1, event_id: 'occurrence-1'}),
         makeEAPOccurrence({issue_id: 2, event_id: 'occurrence-2'}),
       ];
-      const value = createMockValue({
-        event_id: 'test-id',
-        occurrences,
-      });
+      const value = createMockValue({event_id: 'test-id', occurrences});
 
       const node = new TestNode(null, value, extra);
 
@@ -315,12 +297,7 @@ describe('BaseNode', () => {
 
       // Add duplicate issue IDs
       node.errors.add(makeTraceError({issue_id: 1, event_id: 'error-1'}));
-      node.errors.add(
-        makeTraceError({
-          issue_id: 1,
-          event_id: 'error-1-duplicate',
-        })
-      );
+      node.errors.add(makeTraceError({issue_id: 1, event_id: 'error-1-duplicate'}));
       node.errors.add(makeTraceError({issue_id: 2, event_id: 'error-2'}));
 
       const uniqueErrors = node.uniqueErrorIssues;
@@ -333,24 +310,11 @@ describe('BaseNode', () => {
       const node = new TestNode(null, createMockValue({event_id: 'test-id'}), extra);
 
       // Add duplicate issue IDs
+      node.occurrences.add(makeEAPOccurrence({issue_id: 1, event_id: 'occurrence-1'}));
       node.occurrences.add(
-        makeEAPOccurrence({
-          issue_id: 1,
-          event_id: 'occurrence-1',
-        })
+        makeEAPOccurrence({issue_id: 1, event_id: 'occurrence-1-duplicate'})
       );
-      node.occurrences.add(
-        makeEAPOccurrence({
-          issue_id: 1,
-          event_id: 'occurrence-1-duplicate',
-        })
-      );
-      node.occurrences.add(
-        makeEAPOccurrence({
-          issue_id: 2,
-          event_id: 'occurrence-2',
-        })
-      );
+      node.occurrences.add(makeEAPOccurrence({issue_id: 2, event_id: 'occurrence-2'}));
 
       const uniqueOccurrences = node.uniqueOccurrenceIssues;
       expect(uniqueOccurrences).toHaveLength(2);
@@ -362,12 +326,7 @@ describe('BaseNode', () => {
       const node = new TestNode(null, createMockValue({event_id: 'test-id'}), extra);
 
       node.errors.add(makeTraceError({issue_id: 1, event_id: 'error-1'}));
-      node.occurrences.add(
-        makeEAPOccurrence({
-          issue_id: 2,
-          event_id: 'occurrence-2',
-        })
-      );
+      node.occurrences.add(makeEAPOccurrence({issue_id: 2, event_id: 'occurrence-2'}));
 
       const uniqueIssues = node.uniqueIssues;
       expect(uniqueIssues).toHaveLength(2);
@@ -387,12 +346,7 @@ describe('BaseNode', () => {
         createMockValue({event_id: 'test-id'}),
         extra
       );
-      nodeWithErrors.errors.add(
-        makeTraceError({
-          issue_id: 1,
-          event_id: 'error-1',
-        })
-      );
+      nodeWithErrors.errors.add(makeTraceError({issue_id: 1, event_id: 'error-1'}));
       expect(nodeWithErrors.hasIssues).toBe(true);
 
       const nodeWithOccurrences = new TestNode(
@@ -401,10 +355,7 @@ describe('BaseNode', () => {
         extra
       );
       nodeWithOccurrences.occurrences.add(
-        makeEAPOccurrence({
-          issue_id: 1,
-          event_id: 'occurrence-1',
-        })
+        makeEAPOccurrence({issue_id: 1, event_id: 'occurrence-1'})
       );
       expect(nodeWithOccurrences.hasIssues).toBe(true);
     });
@@ -427,11 +378,7 @@ describe('BaseNode', () => {
         extra
       );
       nodeWithError.errors.add(
-        makeTraceError({
-          issue_id: 1,
-          event_id: 'error-1',
-          level: 'error',
-        })
+        makeTraceError({issue_id: 1, event_id: 'error-1', level: 'error'})
       );
       expect(nodeWithError.maxIssueSeverity).toBe('error');
 
@@ -442,11 +389,7 @@ describe('BaseNode', () => {
         extra
       );
       nodeWithFatal.errors.add(
-        makeTraceError({
-          issue_id: 1,
-          event_id: 'fatal-1',
-          level: 'fatal',
-        })
+        makeTraceError({issue_id: 1, event_id: 'fatal-1', level: 'fatal'})
       );
       expect(nodeWithFatal.maxIssueSeverity).toBe('fatal');
 
@@ -457,11 +400,7 @@ describe('BaseNode', () => {
         extra
       );
       nodeWithWarning.errors.add(
-        makeTraceError({
-          issue_id: 1,
-          event_id: 'warning-1',
-          level: 'warning',
-        })
+        makeTraceError({issue_id: 1, event_id: 'warning-1', level: 'warning'})
       );
       expect(nodeWithWarning.maxIssueSeverity).toBe('unknown');
 
@@ -472,18 +411,10 @@ describe('BaseNode', () => {
         extra
       );
       nodeWithMixed.errors.add(
-        makeTraceError({
-          issue_id: 1,
-          event_id: 'warning-1',
-          level: 'warning',
-        })
+        makeTraceError({issue_id: 1, event_id: 'warning-1', level: 'warning'})
       );
       nodeWithMixed.errors.add(
-        makeTraceError({
-          issue_id: 2,
-          event_id: 'error-1',
-          level: 'error',
-        })
+        makeTraceError({issue_id: 2, event_id: 'error-1', level: 'error'})
       );
       expect(nodeWithMixed.maxIssueSeverity).toBe('error');
     });
@@ -492,13 +423,7 @@ describe('BaseNode', () => {
       const extra = createMockExtra();
       const node = new TestNode(null, createMockValue({event_id: 'test-id'}), extra);
 
-      node.errors.add(
-        makeTraceError({
-          issue_id: 1,
-          event_id: 'error-1',
-          level: 'fatal',
-        })
-      );
+      node.errors.add(makeTraceError({issue_id: 1, event_id: 'error-1', level: 'fatal'}));
 
       // First call should compute and cache the result
       const firstCall = node.maxIssueSeverity;
@@ -514,10 +439,7 @@ describe('BaseNode', () => {
   describe('profile handling', () => {
     it('should collect profile from profile_id during construction', () => {
       const extra = createMockExtra();
-      const value = createMockValue({
-        event_id: 'test-id',
-        profile_id: 'profile-123',
-      });
+      const value = createMockValue({event_id: 'test-id', profile_id: 'profile-123'});
 
       const node = new TestNode(null, value, extra);
 
@@ -526,10 +448,7 @@ describe('BaseNode', () => {
 
     it('should collect profile from profiler_id during construction', () => {
       const extra = createMockExtra();
-      const value = createMockValue({
-        event_id: 'test-id',
-        profiler_id: 'profiler-456',
-      });
+      const value = createMockValue({event_id: 'test-id', profiler_id: 'profiler-456'});
 
       const node = new TestNode(null, value, extra);
       expect(node.profilerId).toBe('profiler-456');
@@ -537,10 +456,7 @@ describe('BaseNode', () => {
 
     it('should ignore empty profile IDs', () => {
       const extra = createMockExtra();
-      const value = createMockValue({
-        event_id: 'test-id',
-        profile_id: '',
-      });
+      const value = createMockValue({event_id: 'test-id', profile_id: ''});
 
       const node = new TestNode(null, value, extra);
 
@@ -626,12 +542,7 @@ describe('BaseNode', () => {
     it('should match by error event ID', () => {
       const extra = createMockExtra();
       const node = new TestNode(null, createMockValue({event_id: 'node-id'}), extra);
-      node.errors.add(
-        makeTraceError({
-          issue_id: 1,
-          event_id: 'error-event-id',
-        })
-      );
+      node.errors.add(makeTraceError({issue_id: 1, event_id: 'error-event-id'}));
 
       expect(node.matchById('error-event-id')).toBe(true);
       expect(node.matchById('different-id')).toBe(false);
@@ -641,10 +552,7 @@ describe('BaseNode', () => {
       const extra = createMockExtra();
       const node = new TestNode(null, createMockValue({event_id: 'node-id'}), extra);
       node.occurrences.add(
-        makeEAPOccurrence({
-          issue_id: 1,
-          event_id: 'occurrence-event-id',
-        })
+        makeEAPOccurrence({issue_id: 1, event_id: 'occurrence-event-id'})
       );
 
       expect(node.matchById('occurrence-event-id')).toBe(true);
@@ -708,9 +616,7 @@ describe('BaseNode', () => {
       const extra = createMockExtra();
       const node = new TestNode(null, createMockValue({event_id: 'test-id'}), extra);
 
-      const result = await node.fetchChildren(false, {} as TraceTree, {
-        api: {} as any,
-      });
+      const result = await node.fetchChildren(false, {} as TraceTree, {api: {} as any});
 
       expect(result).toBeNull();
     });
@@ -1228,11 +1134,7 @@ describe('BaseNode', () => {
         );
         const child = new TestNode(
           parent,
-          createMockValue({
-            event_id: 'child',
-            op: 'db.query',
-            project_slug: 'backend',
-          }),
+          createMockValue({event_id: 'child', op: 'db.query', project_slug: 'backend'}),
           extra
         );
 
@@ -1251,12 +1153,7 @@ describe('BaseNode', () => {
           extra
         );
         // Add error to parent
-        parent.errors.add(
-          makeTraceError({
-            issue_id: 1,
-            event_id: 'error-1',
-          })
-        );
+        parent.errors.add(makeTraceError({issue_id: 1, event_id: 'error-1'}));
 
         const child = new TestNode(
           parent,
@@ -1300,10 +1197,7 @@ describe('BaseNode', () => {
         for (let i = 1; i <= 5; i++) {
           const newNode = new TestNode(
             current,
-            createMockValue({
-              event_id: `level-${i}`,
-              op: i === 3 ? 'special' : 'normal',
-            }),
+            createMockValue({event_id: `level-${i}`, op: i === 3 ? 'special' : 'normal'}),
             extra
           );
           current = newNode;
@@ -1473,9 +1367,7 @@ describe('BaseNode', () => {
   });
 
   describe('expand method', () => {
-    const createMockTraceTree = () => ({
-      list: [] as TestNode[],
-    });
+    const createMockTraceTree = () => ({list: [] as TestNode[]});
 
     it('should expand node and add visible children to tree list', () => {
       const extra = createMockExtra();
@@ -1791,10 +1683,7 @@ describe('BaseNode', () => {
 
     it('should find parent transaction node', () => {
       const extra = createMockExtra();
-      const mockTransactionParent = {
-        type: 'txn',
-        id: 'transaction-parent',
-      };
+      const mockTransactionParent = {type: 'txn', id: 'transaction-parent'};
 
       const child = new TestNode(null, createMockValue({event_id: 'child'}), extra);
       jest.spyOn(child, 'findParent').mockReturnValue(mockTransactionParent as any);
@@ -1842,12 +1731,7 @@ describe('BaseNode', () => {
       const extra = createMockExtra();
       const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
 
-      node.errors.add(
-        makeTraceError({
-          issue_id: 1,
-          event_id: 'error-1',
-        })
-      );
+      node.errors.add(makeTraceError({issue_id: 1, event_id: 'error-1'}));
 
       expect(node.hasErrors).toBe(true);
     });
@@ -1865,12 +1749,7 @@ describe('BaseNode', () => {
       const extra = createMockExtra();
       const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
 
-      node.occurrences.add(
-        makeEAPOccurrence({
-          issue_id: 1,
-          event_id: 'occurrence-1',
-        })
-      );
+      node.occurrences.add(makeEAPOccurrence({issue_id: 1, event_id: 'occurrence-1'}));
 
       expect(node.hasOccurrences).toBe(true);
     });

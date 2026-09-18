@@ -21,11 +21,7 @@ interface GridListProps extends AriaGridListOptions<GridItem> {
 function GridList({onDelete, ...props}: GridListProps) {
   const ref = useRef<HTMLDivElement>(null);
   const state = useListState<GridItem>(props);
-  const {gridProps} = useGridList({
-    props,
-    state,
-    ref,
-  });
+  const {gridProps} = useGridList({props, state, ref});
 
   return (
     <div {...gridProps} ref={ref}>
@@ -65,11 +61,7 @@ function Grid({onDelete, ...props}: GridProps) {
 }
 
 function Component() {
-  const [items, setItems] = useState(() =>
-    [1, 2].map(value => ({
-      key: String(value),
-    }))
-  );
+  const [items, setItems] = useState(() => [1, 2].map(value => ({key: String(value)})));
 
   function onDelete(key: string) {
     setItems(items.filter(item => item.key !== key));

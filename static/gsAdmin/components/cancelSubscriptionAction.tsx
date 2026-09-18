@@ -7,23 +7,15 @@ import type {
 } from 'admin/components/adminConfirmationModal';
 import type {Subscription} from 'getsentry/types';
 
-type Props = AdminConfirmRenderProps & {
-  subscription: Subscription;
-};
+type Props = AdminConfirmRenderProps & {subscription: Subscription};
 
-type State = {
-  applyBalance: boolean;
-  cancelAtPeriodEnd: boolean;
-};
+type State = {applyBalance: boolean; cancelAtPeriodEnd: boolean};
 
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
 export class CancelSubscriptionAction extends Component<Props, State> {
-  state: State = {
-    cancelAtPeriodEnd: true,
-    applyBalance: true,
-  };
+  state: State = {cancelAtPeriodEnd: true, applyBalance: true};
 
   componentDidMount() {
     this.props.setConfirmCallback(this.handleConfirm);
@@ -69,11 +61,7 @@ export class CancelSubscriptionAction extends Component<Props, State> {
             </label>
             {enabled ? null : (
               <label
-                style={{
-                  marginBottom: 10,
-                  marginLeft: 25,
-                  position: 'relative',
-                }}
+                style={{marginBottom: 10, marginLeft: 25, position: 'relative'}}
                 key="credit"
               >
                 <input

@@ -136,9 +136,7 @@ export function getAIOutputData(
     if (!raw) {
       continue;
     }
-    const extracted = extractAssistantOutput(raw.toString(), {
-      defaultRole: 'assistant',
-    });
+    const extracted = extractAssistantOutput(raw.toString(), {defaultRole: 'assistant'});
     if (
       extracted.reasoningText ||
       extracted.responseText ||

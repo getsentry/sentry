@@ -6,10 +6,7 @@ import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {AggregateParameter} from 'sentry/utils/fields';
 
-type FunctionDescriptionProps = {
-  parameterIndex: number;
-  token: AggregateFilter;
-};
+type FunctionDescriptionProps = {parameterIndex: number; token: AggregateFilter};
 
 function getParameterType(param: AggregateParameter) {
   if (param.kind === 'value') {

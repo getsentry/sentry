@@ -284,10 +284,7 @@ export function computePreviewConfigView(
   relativeStartNs: number,
   relativeStopNs: number,
   {anchorAtRoot = false}: {anchorAtRoot?: boolean} = {}
-): {
-  configView: Rect;
-  mode: CanvasView<FlamegraphModel>['mode'];
-} {
+): {configView: Rect; mode: CanvasView<FlamegraphModel>['mode']} {
   if (anchorAtRoot || flamegraph.depth < configView.height) {
     // if the flamegraph height is less than the config view height,
     // the whole flamechart will fit on the view so we can just use y = 0

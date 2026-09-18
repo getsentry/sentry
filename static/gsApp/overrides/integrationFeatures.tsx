@@ -82,10 +82,7 @@ function planOffers(plan: Plan, featureGate: string) {
   return ORDERED_PLAN_TYPES.indexOf(type) >= ORDERED_PLAN_TYPES.indexOf(required);
 }
 
-type IntegrationFeature = {
-  description: React.ReactNode;
-  featureGate: string;
-};
+type IntegrationFeature = {description: React.ReactNode; featureGate: string};
 
 type GatedFeatureGroup = {
   features: IntegrationFeature[];
@@ -228,12 +225,7 @@ function IntegrationFeaturesBase({
     return null;
   }
 
-  const opts = mapFeatureGroups({
-    features,
-    organization,
-    subscription,
-    billingConfig,
-  });
+  const opts = mapFeatureGroups({features, organization, subscription, billingConfig});
 
   return children(opts);
 }

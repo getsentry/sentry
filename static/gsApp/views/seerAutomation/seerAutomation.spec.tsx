@@ -34,9 +34,7 @@ describe('SeerAutomation', () => {
   });
 
   it('does not show legacy banner for orgs without legacy or beta Seer features', () => {
-    const organization = OrganizationFixture({
-      features: [],
-    });
+    const organization = OrganizationFixture({features: []});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/onboarding-check/`,

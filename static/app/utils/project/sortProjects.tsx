@@ -1,7 +1,4 @@
-type SortableProject = {
-  isBookmarked: boolean;
-  slug: string;
-};
+type SortableProject = {isBookmarked: boolean; slug: string};
 
 function projectDisplayCompare(a: SortableProject, b: SortableProject): number {
   if (a.isBookmarked !== b.isBookmarked) {

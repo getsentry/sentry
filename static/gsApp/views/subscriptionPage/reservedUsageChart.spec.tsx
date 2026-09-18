@@ -21,26 +21,12 @@ describe('mapStatsToChart', () => {
       },
     ];
 
-    const result = mapStatsToChart({
-      stats,
-      transform: ChartDataTransform.CUMULATIVE,
-    });
+    const result = mapStatsToChart({stats, transform: ChartDataTransform.CUMULATIVE});
 
     expect(result).toEqual({
-      accepted: [
-        {
-          value: ['Jan 1', 1],
-        },
-      ],
+      accepted: [{value: ['Jan 1', 1]}],
       dropped: [
-        {
-          dropped: {
-            other: 0,
-            overQuota: 0,
-            spikeProtection: 0,
-          },
-          value: ['Jan 1', 0],
-        },
+        {dropped: {other: 0, overQuota: 0, spikeProtection: 0}, value: ['Jan 1', 0]},
       ],
       projected: [],
       onDemand: [],

@@ -78,11 +78,7 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
   const [traceState, traceDispatch, traceStateEmitter] = useDispatchingReducer(
     TraceReducer,
     {
-      rovingTabIndex: {
-        index: null,
-        items: null,
-        node: null,
-      },
+      rovingTabIndex: {index: null, items: null, node: null},
       search: {
         node: null,
         query: initialQuery,
@@ -93,11 +89,7 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
         resultsLookup: new Map(),
       },
       preferences: props.initialPreferences,
-      tabs: {
-        tabs: [],
-        current_tab: null,
-        last_clicked_tab: null,
-      },
+      tabs: {tabs: [], current_tab: null, last_clicked_tab: null},
     }
   );
 

@@ -2,11 +2,7 @@ import styled from '@emotion/styled';
 
 import {SIMILARITY_SCORE_COLORS} from './similarScoreCard';
 
-type Props = {
-  highSpectrumLabel: string;
-  lowSpectrumLabel: string;
-  className?: string;
-};
+type Props = {highSpectrumLabel: string; lowSpectrumLabel: string; className?: string};
 
 function BaseSimilarSpectrum({className, highSpectrumLabel, lowSpectrumLabel}: Props) {
   return (
@@ -27,9 +23,7 @@ export const SimilarSpectrum = styled(BaseSimilarSpectrum)`
   font-size: ${p => p.theme.font.size.sm};
 `;
 
-type ItemProps = {
-  colorIndex: number;
-};
+type ItemProps = {colorIndex: number};
 
 const SpectrumItem = styled('span')<ItemProps>`
   border-radius: 2px;

@@ -30,9 +30,7 @@ export function CreateFromSeerPrompt() {
 
     try {
       const url = getApiUrl('/organizations/$organizationIdOrSlug/dashboards/generate/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
+        path: {organizationIdOrSlug: organization.slug},
       });
       const response = await fetchMutation<{run_id: string}>({
         url,

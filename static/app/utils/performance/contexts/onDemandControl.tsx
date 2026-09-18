@@ -39,13 +39,7 @@ export function OnDemandControlProvider({
   const setForceOnDemand = useCallback(
     (value: boolean) => {
       navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            forceOnDemand: value,
-          },
-        },
+        {pathname: location.pathname, query: {...location.query, forceOnDemand: value}},
         {replace: true}
       );
       _setForceOnDemand(value);

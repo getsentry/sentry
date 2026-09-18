@@ -487,10 +487,7 @@ export default function IntegrationOrganizationLink() {
         {tct(
           `Please pick a specific [organization:organization] to link with
           your integration installation of [integation].`,
-          {
-            organization: <strong />,
-            integation: <strong>{integrationSlug}</strong>,
-          }
+          {organization: <strong />, integation: <strong>{integrationSlug}</strong>}
         )}
       </p>
       <FieldGroup label={t('Organization')} inline={false} stacked required>

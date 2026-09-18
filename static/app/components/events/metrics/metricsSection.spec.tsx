@@ -22,9 +22,7 @@ import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
 const TRACE_ID = '00000000000000000000000000000000';
 
-const organization = OrganizationFixture({
-  features: ['tracemetrics-enabled'],
-});
+const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
 const project = ProjectFixture();
 const group = GroupFixture();
@@ -55,18 +53,10 @@ describe('MetricsSection', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
-    MockApiClient.addMockResponse({
-      url: '/projects/',
-      body: [project],
-    });
+    MockApiClient.addMockResponse({url: '/projects/', body: [project]});
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -158,9 +148,7 @@ describe('MetricsSection', () => {
   });
 
   it('renders empty when no trace id', () => {
-    const eventWithoutTrace = EventFixture({
-      contexts: {},
-    });
+    const eventWithoutTrace = EventFixture({contexts: {}});
 
     render(<MetricsSection event={eventWithoutTrace} project={project} group={group} />, {
       organization,
@@ -170,9 +158,7 @@ describe('MetricsSection', () => {
   });
 
   it('does not render when feature flag is disabled', () => {
-    const orgWithoutFeature = OrganizationFixture({
-      features: [],
-    });
+    const orgWithoutFeature = OrganizationFixture({features: []});
 
     render(<MetricsSection event={event} project={project} group={group} />, {
       organization: orgWithoutFeature,
@@ -184,10 +170,7 @@ describe('MetricsSection', () => {
   it('renders empty when no metrics data', async () => {
     const mockRequestEmpty = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-        meta: {},
-      },
+      body: {data: [], meta: {}},
     });
 
     render(<MetricsSection event={event} project={project} group={group} />, {
@@ -208,9 +191,7 @@ describe('MetricsSection', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
-          query: {
-            project: project.id,
-          },
+          query: {project: project.id},
         },
       },
     });
@@ -296,9 +277,7 @@ describe('MetricsSection', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
-          query: {
-            project: project.id,
-          },
+          query: {project: project.id},
         },
       },
     });

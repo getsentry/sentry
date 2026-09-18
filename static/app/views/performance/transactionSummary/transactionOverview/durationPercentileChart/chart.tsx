@@ -17,14 +17,8 @@ export function Chart(props: Props) {
       xAxis={{
         type: 'category' as const,
         truncate: true,
-        axisLabel: {
-          showMinLabel: true,
-          showMaxLabel: true,
-        },
-        axisTick: {
-          interval: 0,
-          alignWithLabel: true,
-        },
+        axisLabel: {showMinLabel: true, showMaxLabel: true},
+        axisTick: {interval: 0, alignWithLabel: true},
       }}
       yAxis={{
         minInterval: durationUnit,

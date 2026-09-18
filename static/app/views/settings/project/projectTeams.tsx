@@ -56,9 +56,7 @@ export default function ProjectTeams() {
   });
 
   const handleCursor: CursorHandler = resultsCursor => {
-    navigate({
-      query: {...location.query, cursor: resultsCursor},
-    });
+    navigate({query: {...location.query, cursor: resultsCursor}});
   };
 
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});

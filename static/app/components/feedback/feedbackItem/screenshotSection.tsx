@@ -16,11 +16,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 
-type Props = {
-  event: Event;
-  organization: Organization;
-  projectSlug: string;
-};
+type Props = {event: Event; organization: Organization; projectSlug: string};
 
 export function ScreenshotSection({event, organization, projectSlug}: Props) {
   const {openModal} = useModal();

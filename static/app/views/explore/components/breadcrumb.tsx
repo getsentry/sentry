@@ -18,10 +18,7 @@ export function ExploreBreadcrumb({
   const organization = useOrganization();
   const crumbs: Crumb[] = [];
   if (traceItemDataset === TraceItemDataset.SPANS) {
-    crumbs.push({
-      to: makeTracesPathname({organization, path: '/'}),
-      label: t('Traces'),
-    });
+    crumbs.push({to: makeTracesPathname({organization, path: '/'}), label: t('Traces')});
   }
   if (traceItemDataset === TraceItemDataset.LOGS) {
     crumbs.push({
@@ -41,9 +38,7 @@ export function ExploreBreadcrumb({
       label: t('Replays'),
     });
   }
-  crumbs.push({
-    label: savedQueryName ?? t('Saved Query'),
-  });
+  crumbs.push({label: savedQueryName ?? t('Saved Query')});
 
   return <Breadcrumbs crumbs={crumbs} />;
 }

@@ -71,9 +71,7 @@ export function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
   );
 }
 
-const List = styled('ul')<{
-  isDisabled?: boolean;
-}>`
+const List = styled('ul')<{isDisabled?: boolean}>`
   list-style: none;
   margin: 0;
   padding: 0;

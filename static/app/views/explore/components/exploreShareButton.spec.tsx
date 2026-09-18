@@ -109,9 +109,7 @@ describe('ExploreShareButton', () => {
   });
 
   it('copies a link with a frozen time range when clicked', async () => {
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
     render(<ExploreShareButton traceItemDataset={TraceItemDataset.LOGS} />, {
       initialRouterConfig,
     });

@@ -43,18 +43,12 @@ interface UnsubscribeResponse {
   viewUrl: string;
 }
 
-type BodyProps = {
-  issueId: string;
-  orgSlug: string;
-  signature?: string;
-};
+type BodyProps = {issueId: string; orgSlug: string; signature?: string};
 
 function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
   const endpoint = getApiUrl(
     '/organizations/$organizationIdOrSlug/unsubscribe/project/$id/',
-    {
-      path: {organizationIdOrSlug: orgSlug, id: issueId},
-    }
+    {path: {organizationIdOrSlug: orgSlug, id: issueId}}
   );
   const {isPending, isError, data} = useQuery(
     apiOptions.as<UnsubscribeResponse>()(

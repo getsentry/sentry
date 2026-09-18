@@ -105,9 +105,7 @@ export function NewCronDetectorForm() {
     <NewDetectorLayout
       detectorType="monitor_check_in_failure"
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
-      initialFormData={{
-        scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
-      }}
+      initialFormData={{scheduleType: CRON_DEFAULT_SCHEDULE_TYPE}}
       mapFormErrors={mapCronDetectorFormErrors}
       disabledCreate={
         showingPlatformGuide

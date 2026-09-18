@@ -104,10 +104,7 @@ describe('EditAutomation', () => {
       },
     });
 
-    render(<AutomationEdit />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<AutomationEdit />, {organization, initialRouterConfig});
 
     // Wait for the form to load
     expect(await screen.findByRole('button', {name: 'Save'})).toBeInTheDocument();
@@ -122,10 +119,7 @@ describe('EditAutomation', () => {
       method: 'DELETE',
     });
 
-    const {router} = render(<AutomationEdit />, {
-      organization,
-      initialRouterConfig,
-    });
+    const {router} = render(<AutomationEdit />, {organization, initialRouterConfig});
     renderGlobalModal();
 
     // Wait for the component to load and display the automation name
@@ -157,10 +151,7 @@ describe('EditAutomation', () => {
       body: {...automation, enabled: !automation.enabled},
     });
 
-    render(<AutomationEdit />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<AutomationEdit />, {organization, initialRouterConfig});
 
     // Wait for the component to load and display automation actions
     expect(await screen.findByRole('button', {name: 'Disable'})).toBeInTheDocument();
@@ -189,10 +180,7 @@ describe('EditAutomation', () => {
       body: automation,
     });
 
-    const {router} = render(<AutomationEdit />, {
-      organization,
-      initialRouterConfig,
-    });
+    const {router} = render(<AutomationEdit />, {organization, initialRouterConfig});
 
     // Update an existing filter value field
     const valueInput = await screen.findByRole('textbox', {name: 'Value'});
@@ -210,9 +198,7 @@ describe('EditAutomation', () => {
               expect.objectContaining({
                 conditions: expect.arrayContaining([
                   expect.objectContaining({
-                    comparison: expect.objectContaining({
-                      value: 'updated value',
-                    }),
+                    comparison: expect.objectContaining({value: 'updated value'}),
                   }),
                 ]),
               }),

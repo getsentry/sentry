@@ -15,9 +15,7 @@ jest.mock('sentry/components/events/eventReplay/replayClipPreview', () => {
 
 describe('ReplayPreview', () => {
   const user = UserFixture({id: '1'});
-  const organization = OrganizationFixture({
-    features: ['session-replay'],
-  });
+  const organization = OrganizationFixture({features: ['session-replay']});
 
   beforeEach(() => {
     ConfigStore.set('user', user);

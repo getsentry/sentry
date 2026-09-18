@@ -75,11 +75,7 @@ export const configureStep = (params: DocsParams): OnboardingStep => ({
       type: 'text',
       text: t('You can use the AWS Lambda integration for the Python SDK like this:'),
     },
-    {
-      type: 'code',
-      language: 'python',
-      code: getSdkSetupSnippet(params),
-    },
+    {type: 'code', language: 'python', code: getSdkSetupSnippet(params)},
     alternativeProfiling(params),
     {
       type: 'text',

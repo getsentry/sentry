@@ -69,9 +69,7 @@ function TopBarContent() {
       position="sticky"
       borderBottom="primary"
       top={0}
-      style={{
-        zIndex: theme.zIndex.sidebarPanel - 1,
-      }}
+      style={{zIndex: theme.zIndex.sidebarPanel - 1}}
       wrap="wrap"
     >
       <SizeProvider size="sm">

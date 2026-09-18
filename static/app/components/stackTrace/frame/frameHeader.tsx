@@ -298,10 +298,7 @@ const TrailingActions = styled('div')`
   margin-left: auto;
 `;
 
-const LocationWrapper = styled('span')<{
-  hasFunction: boolean;
-  isExpanded: boolean;
-}>`
+const LocationWrapper = styled('span')<{hasFunction: boolean; isExpanded: boolean}>`
   display: inline-flex;
   align-items: baseline;
   min-width: 0;

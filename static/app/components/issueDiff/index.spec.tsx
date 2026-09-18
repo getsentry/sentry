@@ -15,29 +15,20 @@ describe('IssueDiff', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/base/events/latest/',
-      body: {
-        eventID: '123base',
-      },
+      body: {eventID: '123base'},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/target/events/latest/',
-      body: {
-        eventID: '123target',
-      },
+      body: {eventID: '123target'},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/target/events/123target/',
-      body: {
-        entries: entries123Target,
-      },
+      body: {entries: entries123Target},
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/base/events/123base/',
-      body: {
-        platform: 'javascript',
-        entries: entries123Base,
-      },
+      body: {platform: 'javascript', entries: entries123Base},
     });
   });
 
@@ -61,9 +52,7 @@ describe('IssueDiff', () => {
   it('can diff message', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/target/events/123target/',
-      body: {
-        entries: [{type: 'message', data: {formatted: 'Hello World'}}],
-      },
+      body: {entries: [{type: 'message', data: {formatted: 'Hello World'}}]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/base/events/123base/',

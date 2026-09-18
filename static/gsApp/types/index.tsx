@@ -139,10 +139,7 @@ type AddOns = Partial<Record<AddOnCategory, AddOn>>;
 // how addons are represented in the checkout form data
 export type CheckoutAddOns = Partial<Record<AddOnCategory, Pick<AddOn, 'enabled'>>>;
 
-type RetentionSettings = {
-  downsampled: number | null;
-  standard: number | null;
-};
+type RetentionSettings = {downsampled: number | null; standard: number | null};
 
 export type Plan = {
   addOnCategories: Partial<Record<AddOnCategory, AddOnCategoryInfo>>;
@@ -211,11 +208,7 @@ type Partner = {
   externalId: string;
   isActive: boolean;
   name: string;
-  partnership: {
-    displayName: string;
-    id: string;
-    supportNote: string;
-  };
+  partnership: {displayName: string; id: string; supportNote: string};
 };
 
 export enum BillingType {
@@ -234,9 +227,7 @@ export type SharedOnDemandBudget = {
   sharedMaxBudget: number;
 };
 
-type SharedOnDemandBudgetWithSpends = SharedOnDemandBudget & {
-  onDemandSpendUsed: number;
-};
+type SharedOnDemandBudgetWithSpends = SharedOnDemandBudget & {onDemandSpendUsed: number};
 
 export type PerCategoryOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.PER_CATEGORY;
@@ -249,9 +240,7 @@ type PerCategoryOnDemandBudgetWithSpends = PerCategoryOnDemandBudget & {
 
 export type OnDemandBudgets = SharedOnDemandBudget | PerCategoryOnDemandBudget;
 
-type OnDemandBudgetsEnabled = {
-  enabled: boolean;
-};
+type OnDemandBudgetsEnabled = {enabled: boolean};
 
 type OnDemandBudgetsWithSpends =
   | SharedOnDemandBudgetWithSpends
@@ -293,13 +282,7 @@ export type Subscription = {
   // Event details
   dateJoined: string;
   effectiveRetentions: Partial<
-    Record<
-      'span' | 'log' | 'traceMetric',
-      {
-        downsampled: number;
-        standard: number;
-      }
-    >
+    Record<'span' | 'log' | 'traceMetric', {downsampled: number; standard: number}>
   >;
   // GDPR Info
   gdprDetails: GDPRDetails | null;
@@ -382,10 +365,7 @@ export type Subscription = {
   msaUpdatedForDataConsent?: boolean;
   onDemandBudgets?: SubscriptionOnDemandBudgets;
   onDemandInvoicedManual?: boolean | null;
-  orgStatus?: {
-    id: string;
-    name: string;
-  };
+  orgStatus?: {id: string; name: string};
 
   owner?: {email: string; name: string};
   productTrials?: ProductTrial[];
@@ -401,10 +381,7 @@ export type Subscription = {
   stripeCustomerID?: string;
 };
 
-export type Feature = {
-  description: string;
-  name: string;
-};
+export type Feature = {description: string; name: string};
 
 export type BillingConfig = {
   annualDiscount: number;
@@ -460,16 +437,9 @@ type StructuredAddress = {
   region: string | null;
 };
 
-type TaxNumberName = {
-  taxId: string;
-  taxIdName: string;
-};
+type TaxNumberName = {taxId: string; taxIdName: string};
 
-type SentryTaxIds = TaxNumberName & {
-  region?: TaxNumberName & {
-    code: string;
-  };
-};
+type SentryTaxIds = TaxNumberName & {region?: TaxNumberName & {code: string}};
 
 export type Charge = {
   amount: number;
@@ -498,9 +468,7 @@ export type InvoiceBase = StructuredAddress & {
   isPaid: boolean;
   isRefunded: boolean;
   nextChargeAttempt: string | null;
-  receipt: {
-    url: string;
-  };
+  receipt: {url: string};
   sentryTaxIds: SentryTaxIds | null;
   taxNumber: string | null;
   type: string | null;
@@ -523,10 +491,7 @@ export type Invoice = InvoiceBase & {
   items: InvoiceItem[];
   periodEnd: string | null;
   periodStart: string | null;
-  sender: {
-    address: string[];
-    name: string;
-  };
+  sender: {address: string[]; name: string};
 };
 
 type BaseInvoiceItem = {
@@ -536,10 +501,7 @@ type BaseInvoiceItem = {
   type: InvoiceItemType;
 };
 
-export type InvoiceItem = BaseInvoiceItem & {
-  periodEnd: string;
-  periodStart: string;
-};
+export type InvoiceItem = BaseInvoiceItem & {periodEnd: string; periodStart: string};
 
 /**
  * Converts camelCase string to snake_case. Consecutive capitals are treated as
@@ -722,10 +684,7 @@ export type BillingHistory = {
   hadCustomDynamicSampling: boolean;
   id: string;
   isCurrent: boolean;
-  links: {
-    csv: string;
-    csvPerProject: string;
-  };
+  links: {csv: string; csvPerProject: string};
   onDemandBudgetMode: OnDemandBudgetMode;
   onDemandMaxSpend: number;
   onDemandSpend: number;
@@ -935,11 +894,7 @@ export type Policy = {
   version: string | null;
 };
 
-type PolicyFile = {
-  checksum: string;
-  name: string;
-  size: number;
-};
+type PolicyFile = {checksum: string; name: string; size: number};
 
 export type PolicyRevision = {
   createdAt: string;

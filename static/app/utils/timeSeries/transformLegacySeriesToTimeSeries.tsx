@@ -71,14 +71,7 @@ export function transformLegacySeriesToTimeSeries(
     )
   )[1];
 
-  return {
-    ...timeSeries,
-    groupBy,
-    meta: {
-      ...timeSeries.meta,
-      isOther,
-    },
-  };
+  return {...timeSeries, groupBy, meta: {...timeSeries.meta, isOther}};
 }
 
 function createEventsStatsFromSeries(
@@ -94,12 +87,8 @@ function createEventsStatsFromSeries(
       [{count: dataUnit.value, comparisonCount: undefined}],
     ]),
     meta: {
-      fields: {
-        [series.seriesName]: valueType,
-      },
-      units: {
-        [series.seriesName]: valueUnit,
-      },
+      fields: {[series.seriesName]: valueType},
+      units: {[series.seriesName]: valueUnit},
       isMetricsData: false,
       tips: {columns: undefined, query: undefined},
     },

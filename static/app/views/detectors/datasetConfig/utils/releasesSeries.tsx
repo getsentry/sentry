@@ -19,10 +19,7 @@ export function transformMetricsResponseToSeries(
 ): Series {
   const field = fieldsToDerivedMetrics(aggregate);
   if (!data?.intervals) {
-    return {
-      seriesName: field,
-      data: [],
-    };
+    return {seriesName: field, data: []};
   }
 
   return {

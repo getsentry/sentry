@@ -37,16 +37,12 @@ export function CommitsFilesSection({
   release,
 }: CommitsSectionProps) {
   const organization = useOrganization();
-  const repositoriesQuery = useRepositories({
-    orgSlug: organization.slug,
-  });
+  const repositoriesQuery = useRepositories({orgSlug: organization.slug});
   const releaseReposQuery = useReleaseRepositories({
     orgSlug: organization.slug,
     projectSlug: projectSlug ?? '',
     release,
-    options: {
-      enabled: !!projectSlug,
-    },
+    options: {enabled: !!projectSlug},
   });
   const isError = repositoriesQuery.isError || releaseReposQuery.isError;
   const isLoading = repositoriesQuery.isPending || releaseReposQuery.isPending;

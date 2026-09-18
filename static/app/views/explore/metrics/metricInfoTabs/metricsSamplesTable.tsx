@@ -79,14 +79,8 @@ export function MetricsSamplesTable({
     const {fieldType, unit} = mapMetricUnitToFieldType(traceMetric?.unit);
     return {
       ...meta,
-      fields: {
-        ...meta.fields,
-        [TraceMetricKnownFieldKey.METRIC_VALUE]: fieldType,
-      },
-      units: {
-        ...meta.units,
-        [TraceMetricKnownFieldKey.METRIC_VALUE]: unit ?? '',
-      },
+      fields: {...meta.fields, [TraceMetricKnownFieldKey.METRIC_VALUE]: fieldType},
+      units: {...meta.units, [TraceMetricKnownFieldKey.METRIC_VALUE]: unit ?? ''},
     };
   }, [meta, traceMetric?.unit]);
 
@@ -128,9 +122,7 @@ export function MetricsSamplesTable({
   );
 }
 
-const SimpleTableGrid = styled(StyledSimpleTable)<{
-  source: MetricsSamplesTableSource;
-}>`
+const SimpleTableGrid = styled(StyledSimpleTable)<{source: MetricsSamplesTableSource}>`
   grid-template-columns: ${p =>
     isEmbeddedMetricsSamplesTableSource(p.source)
       ? `${p.theme.space['3xl']} min-content min-content minmax(0, 1fr) min-content min-content`

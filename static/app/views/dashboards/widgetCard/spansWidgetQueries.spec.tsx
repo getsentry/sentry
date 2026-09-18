@@ -166,11 +166,7 @@ describe('spansWidgetQueries', () => {
 
     expect(normalModeMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: 'NORMAL',
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({sampling: 'NORMAL'})})
     );
   });
 
@@ -191,9 +187,7 @@ describe('spansWidgetQueries', () => {
 
     const normalModeMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{a: 'normal mode'}],
-      },
+      body: {data: [{a: 'normal mode'}]},
       match: [
         function (_url: string, options: Record<string, any>) {
           return options.query.sampling === 'NORMAL';
@@ -217,11 +211,7 @@ describe('spansWidgetQueries', () => {
 
     expect(normalModeMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: 'NORMAL',
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({sampling: 'NORMAL'})})
     );
   });
 
@@ -253,11 +243,7 @@ describe('spansWidgetQueries', () => {
           </div>
         )}
       </SpansWidgetQueries>,
-      {
-        organization: OrganizationFixture({
-          features: ['explore-conditional-aggregates'],
-        }),
-      }
+      {organization: OrganizationFixture({features: ['explore-conditional-aggregates']})}
     );
 
     expect(await screen.findByText('idle:Invalid series filter')).toBeInTheDocument();

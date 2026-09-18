@@ -9,9 +9,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import UsageLog from 'getsentry/views/subscriptionPage/usageLog';
 
 describe('Subscription Usage Log', () => {
-  const organization = OrganizationFixture({
-    access: ['org:billing'],
-  });
+  const organization = OrganizationFixture({access: ['org:billing']});
   const sub = SubscriptionFixture({organization});
 
   beforeEach(() => {
@@ -30,10 +28,7 @@ describe('Subscription Usage Log', () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/usage-logs/`,
       method: 'GET',
-      body: {
-        rows: [],
-        eventNames: [],
-      },
+      body: {rows: [], eventNames: []},
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/recurring-credits/`,

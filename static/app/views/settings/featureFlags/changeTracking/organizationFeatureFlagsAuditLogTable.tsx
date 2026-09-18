@@ -46,18 +46,11 @@ export function OrganizationFeatureFlagsAuditLogTable() {
     const filteredFields = Object.fromEntries(
       Object.entries(locationQuery).filter(([_key, val]) => val !== '')
     );
-    return {
-      ...filteredFields,
-      per_page: 15,
-      queryReferrer: 'featureFlagsSettings',
-    };
+    return {...filteredFields, per_page: 15, queryReferrer: 'featureFlagsSettings'};
   }, [locationQuery]);
 
   const {data, isPending, error} = useQuery({
-    ...organizationFlagLogOptions({
-      organization,
-      query,
-    }),
+    ...organizationFlagLogOptions({organization, query}),
     select: selectJsonWithHeaders,
   });
   const flags = data?.json;

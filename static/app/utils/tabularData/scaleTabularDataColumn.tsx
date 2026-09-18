@@ -79,17 +79,11 @@ export function scaleTabularDataColumn(
         return datum;
       }
 
-      return {
-        ...datum,
-        [columnName]: value === null ? null : scaler(value),
-      };
+      return {...datum, [columnName]: value === null ? null : scaler(value)};
     }),
     meta: {
       ...tabularData.meta,
-      units: {
-        ...tabularData.meta.units,
-        [columnName]: destinationUnit,
-      },
+      units: {...tabularData.meta.units, [columnName]: destinationUnit},
     },
   };
 }

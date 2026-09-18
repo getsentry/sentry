@@ -41,10 +41,7 @@ describe('StackTrace', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
-    const promptResponse = {
-      dismissed_ts: undefined,
-      snoozed_ts: undefined,
-    };
+    const promptResponse = {dismissed_ts: undefined, snoozed_ts: undefined};
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: promptResponse,
@@ -159,10 +156,7 @@ describe('StackTrace', () => {
   });
 
   it('if frames are omitted, renders omitted frames', () => {
-    const newData: StacktraceType = {
-      ...data,
-      framesOmitted: [0, 3],
-    };
+    const newData: StacktraceType = {...data, framesOmitted: [0, 3]};
 
     render(<StackTraceContent {...defaultProps} data={newData} event={event} />);
 
@@ -176,10 +170,7 @@ describe('StackTrace', () => {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0]!, inApp: false};
 
-    const newData = {
-      ...data,
-      frames: dataFrames,
-    };
+    const newData = {...data, frames: dataFrames};
 
     render(<StackTraceContent {...defaultProps} data={newData} event={event} />);
 
@@ -190,10 +181,7 @@ describe('StackTrace', () => {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0]!, inApp: true};
 
-    const newData = {
-      ...data,
-      frames: dataFrames,
-    };
+    const newData = {...data, frames: dataFrames};
 
     render(
       <StackTraceContent
@@ -215,10 +203,7 @@ describe('StackTrace', () => {
     dataFrames[3] = {...dataFrames[3]!, function: 'non-in-app-frame'};
     dataFrames[4] = {...dataFrames[4]!, function: 'non-in-app-frame'};
 
-    const newData = {
-      ...data,
-      frames: dataFrames,
-    };
+    const newData = {...data, frames: dataFrames};
 
     render(
       <StackTraceContent
@@ -241,10 +226,7 @@ describe('StackTrace', () => {
     dataFrames[2] = {...dataFrames[2]!, inApp: true};
     dataFrames[4] = {...dataFrames[4]!, inApp: true};
 
-    const newData = {
-      ...data,
-      frames: dataFrames,
-    };
+    const newData = {...data, frames: dataFrames};
 
     render(
       <StackTraceContent

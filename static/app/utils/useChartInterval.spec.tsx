@@ -41,12 +41,7 @@ describe('useChartInterval', () => {
 
     // Update page filters to change interval options
     act(() =>
-      PageFiltersStore.updateDateTime({
-        period: '1h',
-        start: null,
-        end: null,
-        utc: true,
-      })
+      PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: true})
     );
 
     expect(intervalOptions).toEqual([
@@ -127,9 +122,7 @@ describe('useChartInterval', () => {
     }
 
     render(<TestPage />, {
-      initialRouterConfig: {
-        location: {pathname: '/', query: {interval: '12h'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {interval: '12h'}}},
     });
 
     expect(chartInterval).toBe('12h');
@@ -155,18 +148,11 @@ describe('useChartInterval', () => {
     }
 
     render(<TestPage />, {
-      initialRouterConfig: {
-        location: {pathname: '/', query: {interval: '1d'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {interval: '1d'}}},
     });
 
     act(() =>
-      PageFiltersStore.updateDateTime({
-        period: '7d',
-        start: null,
-        end: null,
-        utc: true,
-      })
+      PageFiltersStore.updateDateTime({period: '7d', start: null, end: null, utc: true})
     );
 
     expect(chartInterval).toBe('1d');
@@ -186,9 +172,7 @@ describe('useChartInterval', () => {
     }
 
     render(<TestPage />, {
-      initialRouterConfig: {
-        location: {pathname: '/', query: {interval: '5m'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
     });
 
     expect(chartInterval).toBe('1h');
@@ -229,12 +213,7 @@ describe('useChartInterval', () => {
     render(<TestPage />);
 
     act(() =>
-      PageFiltersStore.updateDateTime({
-        period: '1m',
-        start: null,
-        end: null,
-        utc: true,
-      })
+      PageFiltersStore.updateDateTime({period: '1m', start: null, end: null, utc: true})
     );
 
     expect(chartInterval).toBe('1m');

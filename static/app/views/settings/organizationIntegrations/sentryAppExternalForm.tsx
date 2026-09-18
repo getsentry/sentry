@@ -57,11 +57,7 @@ export type SchemaFormConfig = {
   required_fields?: FieldFromSchema[];
 };
 
-type SentryAppSetting = {
-  name: string;
-  value: unknown;
-  label?: string;
-};
+type SentryAppSetting = {name: string; value: unknown; label?: string};
 
 type AlertRuleSubmitPayload = {
   hasSchemaFormConfig: true;
@@ -76,10 +72,7 @@ type OnSubmitSuccess = (
   change?: {new: unknown; old: unknown}
 ) => void;
 
-type ResetValues = {
-  [key: string]: unknown;
-  settings?: SentryAppSetting[];
-};
+type ResetValues = {[key: string]: unknown; settings?: SentryAppSetting[]};
 
 type FieldGroups = Omit<SchemaFormConfig, 'uri' | 'description'>;
 
@@ -208,15 +201,8 @@ function useSerializedValueMemo<T>(value: T, serializedValue: string): T {
 function foldChoiceResults(
   baseFieldGroups: FieldGroups,
   baseDefaultValues: Record<string, unknown>,
-  results: ReadonlyArray<{
-    choices: Choices;
-    fieldName: string;
-    defaultValue?: unknown;
-  }>
-): {
-  nextDefaultValues: Record<string, unknown>;
-  updatedFieldGroups: FieldGroups;
-} {
+  results: ReadonlyArray<{choices: Choices; fieldName: string; defaultValue?: unknown}>
+): {nextDefaultValues: Record<string, unknown>; updatedFieldGroups: FieldGroups} {
   let updatedFieldGroups = baseFieldGroups;
   const nextDefaultValues = {...baseDefaultValues};
   for (const result of results) {
@@ -290,10 +276,7 @@ function mergeFieldChoices(
 function toSelectValues(
   choices: Choices
 ): Array<SelectValue<JsonFormAdapterChoiceValue>> {
-  return choices.map(([value, label]) => ({
-    value,
-    label: choiceLabelToString(label),
-  }));
+  return choices.map(([value, label]) => ({value, label: choiceLabelToString(label)}));
 }
 
 function getBaseFieldDefaultValue(
@@ -687,16 +670,8 @@ export function SentryAppExternalForm({
       // affected select blank.
       addErrorMessage(t("Couldn't load options for some fields."));
       Sentry.captureException(error, {
-        tags: {
-          sentry_app: appName,
-          form_element: element,
-          form_action: action,
-        },
-        extra: {
-          sentryAppInstallationUuid,
-          configUri: config.uri,
-          seedTriggers,
-        },
+        tags: {sentry_app: appName, form_element: element, form_action: action},
+        extra: {sentryAppInstallationUuid, configUri: config.uri, seedTriggers},
       });
     });
 
@@ -847,10 +822,7 @@ export function SentryAppExternalForm({
               nextFieldGroups: fieldGroups,
             });
 
-            setAsyncOptionsCache(prev => ({
-              ...prev,
-              [field.name]: choices,
-            }));
+            setAsyncOptionsCache(prev => ({...prev, [field.name]: choices}));
 
             return toSelectValues(choices);
           },
@@ -955,11 +927,7 @@ export function SentryAppExternalForm({
       } catch (error) {
         addErrorMessage(t("Couldn't load options for some fields."));
         Sentry.captureException(error, {
-          tags: {
-            sentry_app: appName,
-            form_element: element,
-            form_action: action,
-          },
+          tags: {sentry_app: appName, form_element: element, form_action: action},
           extra: {
             sentryAppInstallationUuid,
             configUri: config.uri,

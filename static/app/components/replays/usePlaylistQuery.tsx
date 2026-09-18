@@ -17,12 +17,7 @@ export function usePlaylistQuery(
   const {statsPeriod, start, end, query, project, environment} =
     eventView.generateQueryStringObject();
 
-  const eventViewQuery: Query = {
-    query,
-    referrer,
-    project,
-    environment,
-  };
+  const eventViewQuery: Query = {query, referrer, project, environment};
 
   if (typeof statsPeriod === 'string') {
     const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(

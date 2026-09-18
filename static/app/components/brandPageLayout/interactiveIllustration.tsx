@@ -463,19 +463,13 @@ function makeAutonomousPath(width: number, height: number, seed: number) {
       x: direction === 0 ? -edgeOffset : width + edgeOffset,
       y: height * startAcross,
     };
-    end = {
-      x: direction === 0 ? width + edgeOffset : -edgeOffset,
-      y: height * endAcross,
-    };
+    end = {x: direction === 0 ? width + edgeOffset : -edgeOffset, y: height * endAcross};
   } else {
     start = {
       x: width * startAcross,
       y: direction === 2 ? -edgeOffset : height + edgeOffset,
     };
-    end = {
-      x: width * endAcross,
-      y: direction === 2 ? height + edgeOffset : -edgeOffset,
-    };
+    end = {x: width * endAcross, y: direction === 2 ? height + edgeOffset : -edgeOffset};
   }
 
   return {

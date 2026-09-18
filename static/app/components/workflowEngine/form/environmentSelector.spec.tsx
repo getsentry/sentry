@@ -25,9 +25,7 @@ describe('EnvironmentSelector', () => {
     await userEvent.click(screen.getByRole('button', {name: 'All Environments'}));
 
     // Get groups
-    const allEnvironments = screen.getByRole('group', {
-      name: 'All Environments',
-    });
+    const allEnvironments = screen.getByRole('group', {name: 'All Environments'});
     const userProjectEnvironments = screen.getByRole('group', {
       name: 'Environments in My Projects',
     });

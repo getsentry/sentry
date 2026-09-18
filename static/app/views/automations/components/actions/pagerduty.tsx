@@ -53,14 +53,9 @@ function SeverityField() {
       name={`${actionId}.data.priority`}
       aria-label={t('Severity')}
       value={action.data.priority}
-      options={PAGERDUTY_SEVERITIES.map(severity => ({
-        label: severity,
-        value: severity,
-      }))}
+      options={PAGERDUTY_SEVERITIES.map(severity => ({label: severity, value: severity}))}
       onChange={(option: SelectValue<string>) => {
-        onUpdate({
-          data: {priority: option.value},
-        });
+        onUpdate({data: {priority: option.value}});
       }}
     />
   );

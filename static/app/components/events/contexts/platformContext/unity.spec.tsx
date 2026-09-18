@@ -19,32 +19,18 @@ const MOCK_UNITY_CONTEXT = {
   unknown_key: 123,
 };
 
-const MOCK_REDACTION = {
-  install_mode: {
-    '': {
-      rem: [['organization:0', 'x']],
-    },
-  },
-};
+const MOCK_REDACTION = {install_mode: {'': {rem: [['organization:0', 'x']]}}};
 
 describe('UnityContext', () => {
   it('returns values and according to the parameters', () => {
     expect(getUnityContextData({data: MOCK_UNITY_CONTEXT})).toEqual([
-      {
-        key: 'active_scene_name',
-        subject: 'Active Scene Name',
-        value: '2_NativeSupport',
-      },
+      {key: 'active_scene_name', subject: 'Active Scene Name', value: '2_NativeSupport'},
       {
         key: 'copy_texture_support',
         subject: 'Copy Texture Support',
         value: 'Basic, Copy3D, DifferentTypes, TextureToRT, RTToTexture',
       },
-      {
-        key: 'editor_version',
-        subject: 'Editor Version',
-        value: '2022.1.23f1',
-      },
+      {key: 'editor_version', subject: 'Editor Version', value: '2022.1.23f1'},
       {key: 'install_mode', subject: 'Install Mode', value: 'Store'},
       {key: 'is_main_thread', subject: 'Is Main Thread', value: true},
       {
@@ -52,20 +38,14 @@ describe('UnityContext', () => {
         subject: 'Rendering Threading Mode',
         value: 'LegacyJobified',
       },
-      {
-        key: 'target_frame_rate',
-        subject: 'Target Frame Rate',
-        value: '-1',
-      },
+      {key: 'target_frame_rate', subject: 'Target Frame Rate', value: '-1'},
       {key: 'extra_data', subject: 'extra_data', value: 'something'},
       {key: 'unknown_key', subject: 'unknown_key', value: 123},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {unity: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {unity: MOCK_REDACTION}}});
 
     render(
       <ContextCard

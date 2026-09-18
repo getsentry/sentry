@@ -10,10 +10,7 @@ import {t} from 'sentry/locale';
  * a clock icon.
  */
 
-type Props = {
-  firstSeen: string;
-  lastSeen: string;
-};
+type Props = {firstSeen: string; lastSeen: string};
 
 export function TimesTag({lastSeen, firstSeen}: Props) {
   return (

@@ -49,9 +49,7 @@ describe('applySeerWidgetDefaults', () => {
 
     it('fills in minH when it is missing from an existing layout', () => {
       const widgets = [
-        makeWidget({
-          layout: {x: 1, y: 2, w: 3, h: 4} as Widget['layout'],
-        }),
+        makeWidget({layout: {x: 1, y: 2, w: 3, h: 4} as Widget['layout']}),
       ];
       const [result] = applySeerWidgetDefaults(widgets);
 

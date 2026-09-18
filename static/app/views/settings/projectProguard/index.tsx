@@ -81,9 +81,7 @@ export default function ProjectProguard() {
               projectIdOrSlug: project.slug,
             },
           })}?id=${encodeURIComponent(id)}`,
-          {
-            method: 'DELETE',
-          }
+          {method: 'DELETE'}
         );
         setLoading(false);
         addSuccessMessage('Successfully deleted the mapping file');

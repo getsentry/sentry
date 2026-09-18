@@ -317,10 +317,7 @@ function getOnDemandChanges(subscription: Subscription) {
   return changes;
 }
 
-type Change = {
-  effectiveDate: string;
-  items: React.ReactNode[];
-};
+type Change = {effectiveDate: string; items: React.ReactNode[]};
 
 function getChanges(subscription: Subscription) {
   const {pendingChanges} = subscription;

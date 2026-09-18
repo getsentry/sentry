@@ -118,9 +118,7 @@ function getPerformanceBreadCrumbs(
     });
   } else {
     if (!organization.features.includes('insights-to-dashboards-ui-rollout')) {
-      crumbs.push({
-        label: DOMAIN_VIEW_BASE_TITLE,
-      });
+      crumbs.push({label: DOMAIN_VIEW_BASE_TITLE});
     }
   }
 
@@ -232,9 +230,7 @@ function getInsightsModuleBreadcrumbs(
     });
   } else {
     if (!organization.features.includes('insights-to-dashboards-ui-rollout')) {
-      crumbs.push({
-        label: DOMAIN_VIEW_BASE_TITLE,
-      });
+      crumbs.push({label: DOMAIN_VIEW_BASE_TITLE});
     }
   }
 
@@ -275,9 +271,7 @@ function getInsightsModuleBreadcrumbs(
           ),
         });
       } else {
-        crumbs.push({
-          label: t('Query Summary'),
-        });
+        crumbs.push({label: t('Query Summary')});
       }
       break;
     case ModuleName.RESOURCE:
@@ -292,9 +286,7 @@ function getInsightsModuleBreadcrumbs(
           ),
         });
       } else {
-        crumbs.push({
-          label: t('Asset Summary'),
-        });
+        crumbs.push({label: t('Asset Summary')});
       }
       break;
     case ModuleName.APP_START:

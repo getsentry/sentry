@@ -6,10 +6,7 @@ import type {Series} from 'sentry/types/echarts';
 import {transformWidgetSeriesToTimeSeries} from './transformWidgetSeriesToTimeSeries';
 
 function makeSeries(seriesName: string, data: number[] = [1, 2, 3]): Series {
-  return {
-    seriesName,
-    data: data.map((value, i) => ({name: `2024-01-0${i + 1}`, value})),
-  };
+  return {seriesName, data: data.map((value, i) => ({name: `2024-01-0${i + 1}`, value}))};
 }
 
 describe('transformWidgetSeriesToTimeSeries', () => {
@@ -51,9 +48,7 @@ describe('transformWidgetSeriesToTimeSeries', () => {
         columns: [],
         fields: ['count()'],
       });
-      const widget = WidgetFixture({
-        queries: [chromeQuery, firefoxQuery],
-      });
+      const widget = WidgetFixture({queries: [chromeQuery, firefoxQuery]});
 
       const result0 = transformWidgetSeriesToTimeSeries(
         makeSeries('browser:Chrome > count()'),

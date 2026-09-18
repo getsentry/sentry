@@ -11,12 +11,7 @@ describe('useInitialMetricDetectorFormData', () => {
     const organization = OrganizationFixture();
     const {result} = renderHookWithProviders(useInitialMetricDetectorFormData, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {},
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {}}},
     });
 
     expect(result.current).toEqual(
@@ -32,14 +27,7 @@ describe('useInitialMetricDetectorFormData', () => {
     const organization = OrganizationFixture();
     const {result} = renderHookWithProviders(useInitialMetricDetectorFormData, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            query: '',
-          },
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {query: ''}}},
     });
 
     expect(result.current.query).toBe('');

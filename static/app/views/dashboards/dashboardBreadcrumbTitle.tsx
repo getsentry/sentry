@@ -233,14 +233,7 @@ export function DashboardBreadcrumbTitle({
   }
 
   if (isPreview) {
-    return (
-      <BreadcrumbList.Title
-        item={{
-          type: 'page-title',
-          label: dashboard.title,
-        }}
-      />
-    );
+    return <BreadcrumbList.Title item={{type: 'page-title', label: dashboard.title}} />;
   }
 
   const hasEditAccess = checkUserHasEditAccess(

@@ -52,9 +52,7 @@ describe('useAddMetricToDashboard', () => {
       }),
     };
 
-    const {result} = renderHookWithProviders(useAddMetricToDashboard, {
-      ...context,
-    });
+    const {result} = renderHookWithProviders(useAddMetricToDashboard, {...context});
 
     act(() => {
       result.current.addToDashboard(metricQuery);
@@ -105,9 +103,7 @@ describe('useAddMetricToDashboard', () => {
       }),
     };
 
-    const {result} = renderHookWithProviders(useAddMetricToDashboard, {
-      ...context,
-    });
+    const {result} = renderHookWithProviders(useAddMetricToDashboard, {...context});
 
     act(() => {
       result.current.addToDashboard(metricQuery);
@@ -159,9 +155,7 @@ describe('useAddMetricToDashboard', () => {
       }),
     };
 
-    const {result} = renderHookWithProviders(useAddMetricToDashboard, {
-      ...context,
-    });
+    const {result} = renderHookWithProviders(useAddMetricToDashboard, {...context});
 
     act(() => {
       result.current.addToDashboard(metricQuery);
@@ -210,9 +204,7 @@ describe('useAddMetricToDashboard', () => {
       }),
     };
 
-    const {result} = renderHookWithProviders(useAddMetricToDashboard, {
-      ...context,
-    });
+    const {result} = renderHookWithProviders(useAddMetricToDashboard, {...context});
 
     act(() => {
       result.current.addToDashboard(metricQuery);

@@ -20,10 +20,7 @@ function createMockNode(overrides: {
     startTimestamp,
     endTimestamp: end,
     value: {start_timestamp: startTimestamp, end_timestamp: end},
-    attributes: {
-      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
-      ...attributes,
-    },
+    attributes: {[SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client', ...attributes},
     errors: new Set(),
   };
 }

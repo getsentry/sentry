@@ -19,11 +19,7 @@ const DEFAULT_LIMIT = 1_000;
 
 const EMPTY_QUERY: Location['query'] = {};
 
-type TraceQueryParamOptions = {
-  limit?: number;
-  targetId?: string;
-  timestamp?: number;
-};
+type TraceQueryParamOptions = {limit?: number; targetId?: string; timestamp?: number};
 
 function getTargetIdParams(
   options: TraceQueryParamOptions,
@@ -187,10 +183,7 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
   const traceQuery = useApiQuery<TraceTree.EAPTrace>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/trace/$traceId/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          traceId: options.traceSlug ?? '',
-        },
+        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
       }),
       {
         query: {
@@ -201,11 +194,7 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
         },
       },
     ],
-    {
-      staleTime: Infinity,
-      retry: false,
-      enabled: hasValidTrace,
-    }
+    {staleTime: Infinity, retry: false, enabled: hasValidTrace}
   );
 
   const isInitialTraceEmpty =
@@ -216,10 +205,7 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
   const traceFallbackQuery = useApiQuery<TraceTree.EAPTrace>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/trace/$traceId/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          traceId: options.traceSlug ?? '',
-        },
+        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
       }),
       {
         query: {

@@ -84,10 +84,7 @@ export function EventFeatureFlagDrawer({
         orderBy={orderBy}
         setOrderBy={value => {
           setOrderBy(value);
-          trackAnalytics('flags.sort_flags', {
-            organization,
-            sortMethod: value as string,
-          });
+          trackAnalytics('flags.sort_flags', {organization, sortMethod: value as string});
         }}
       />
     </Grid>

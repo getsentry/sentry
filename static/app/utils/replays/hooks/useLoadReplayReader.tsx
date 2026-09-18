@@ -8,10 +8,7 @@ import {ReplayReader} from 'sentry/utils/replays/replayReader';
 type Props = {
   orgSlug: string;
   replaySlug: string;
-  clipWindow?: {
-    endTimestampMs: number;
-    startTimestampMs: number;
-  };
+  clipWindow?: {endTimestampMs: number; startTimestampMs: number};
   eventTimestampMs?: number;
   group?: Group;
 };
@@ -39,10 +36,7 @@ export function useLoadReplayReader({
     isError,
     isPending,
     ...replayData
-  } = useReplayData({
-    orgSlug,
-    replayId,
-  });
+  } = useReplayData({orgSlug, replayId});
 
   // get first error matching our group
   const firstMatchingError = useMemo(

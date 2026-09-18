@@ -121,11 +121,13 @@ describe('ResultGrid', () => {
   it('shows the error state when the fetch itself rejects', async () => {
     // The API client swallows a fetch-level rejection without running either
     // callback, so the grid has to observe requestPromise to leave loading.
-    jest.spyOn(Client.prototype, 'request').mockReturnValue({
-      requestPromise: Promise.reject(new Error('Failed to fetch')),
-      alive: true,
-      cancel: () => {},
-    });
+    jest
+      .spyOn(Client.prototype, 'request')
+      .mockReturnValue({
+        requestPromise: Promise.reject(new Error('Failed to fetch')),
+        alive: true,
+        cancel: () => {},
+      });
 
     renderBasicGrid();
     const alert = await screen.findByText('Something bad happened :/');
@@ -183,10 +185,7 @@ describe('ResultGrid region probing', () => {
 
   it('points the user to another region when the default region is empty', async () => {
     // Default region (us) has no matches.
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
     // The org actually lives in the de region.
     MockApiClient.addMockResponse({
       url: '/_admin/cells/de/customers/',
@@ -199,10 +198,7 @@ describe('ResultGrid region probing', () => {
   });
 
   it('switches to the matching region when the hint is clicked', async () => {
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
     const deRequest = MockApiClient.addMockResponse({
       url: '/_admin/cells/de/customers/',
       body: [{id: '1', name: 'Acme'}],
@@ -223,10 +219,7 @@ describe('ResultGrid region probing', () => {
   });
 
   it('does not probe other regions when there is no search query', async () => {
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
     const deRequest = MockApiClient.addMockResponse({
       url: '/_admin/cells/de/customers/',
       body: [{id: '1', name: 'Acme'}],
@@ -242,10 +235,7 @@ describe('ResultGrid region probing', () => {
 
   it('does not probe other regions on a paginated (non-first) empty page', async () => {
     // The current region has results on earlier pages; this later page is empty.
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
     const deRequest = MockApiClient.addMockResponse({
       url: '/_admin/cells/de/customers/',
       body: [{id: '1', name: 'Acme'}],
@@ -357,14 +347,8 @@ describe('ResultGrid region probing', () => {
   });
 
   it('does not show a hint when another region is also empty', async () => {
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/de/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
+    MockApiClient.addMockResponse({url: '/_admin/cells/de/customers/', body: []});
 
     renderGrid('acme');
 
@@ -403,10 +387,7 @@ describe('ResultGrid probeAllRegions', () => {
   });
 
   it('flags other regions when the active region is empty', async () => {
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
     MockApiClient.addMockResponse({
       url: '/_admin/cells/de/customers/',
       body: [{id: '2', name: 'Beta'}],
@@ -446,10 +427,7 @@ describe('ResultGrid probeAllRegions', () => {
       url: '/_admin/cells/us/customers/',
       body: [{id: '1', name: 'Acme'}],
     });
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/de/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/de/customers/', body: []});
 
     renderGrid(undefined, {}, allRegionsProps);
 
@@ -530,10 +508,7 @@ describe('ResultGrid allowAllRegions', () => {
       url: '/_admin/cells/us/customers/',
       body: [{id: '1', name: 'Acme', members: 5}],
     });
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/de/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/de/customers/', body: []});
 
     renderGrid(
       undefined,
@@ -595,14 +570,8 @@ describe('ResultGrid allowAllRegions', () => {
   });
 
   it('shows "No results" only once every region has answered empty', async () => {
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/de/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
+    MockApiClient.addMockResponse({url: '/_admin/cells/de/customers/', body: []});
 
     renderGrid(undefined, {}, allRegionsProps);
 
@@ -784,10 +753,7 @@ describe('ResultGrid allowAllRegions', () => {
       match: [MockApiClient.matchData({cursor: '0:1:0'})],
       body: [{id: '2', name: 'Beta', members: 4}],
     });
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/de/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/de/customers/', body: []});
 
     renderGrid(undefined, {}, allRegionsProps);
 

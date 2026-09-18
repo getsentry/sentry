@@ -38,14 +38,9 @@ interface LegendSelectChangedParams {
   selected: Record<string, boolean>;
 }
 
-const DEFAULT_BUBBLE_X_AXIS = {
-  axisLine: {onZero: true},
-  offset: 0,
-};
+const DEFAULT_BUBBLE_X_AXIS = {axisLine: {onZero: true}, offset: 0};
 
-const DEFAULT_BUBBLE_GRID = {
-  bottom: 0,
-};
+const DEFAULT_BUBBLE_GRID = {bottom: 0};
 
 const RELEASE_BUBBLE_Y_AXIS = {
   type: 'value' as const,
@@ -220,13 +215,8 @@ function createReleaseBubbleSeries({
             width: Math.max(clippedHighlightEndX - clippedHighlightStartX, 0),
             height: coordinateSystem.height ?? 0,
           },
-          style: {
-            fill: theme.tokens.graphics.accent.vibrant,
-            opacity: 0,
-          },
-          emphasis: {
-            style: {opacity: 0.1},
-          },
+          style: {fill: theme.tokens.graphics.accent.vibrant, opacity: 0},
+          emphasis: {style: {opacity: 0.1}},
         },
         {
           type: 'rect',
@@ -260,15 +250,8 @@ function createReleaseBubbleSeries({
     markLine: {
       silent: true,
       symbol: 'none',
-      label: {
-        show: false,
-      },
-      lineStyle: {
-        color: theme.colors.gray400,
-        opacity: 0.5,
-        type: 'solid',
-        width: 1,
-      },
+      label: {show: false},
+      lineStyle: {color: theme.colors.gray400, opacity: 0.5, type: 'solid', width: 1},
       data: [{yAxis: 0}],
     },
     tooltip: {

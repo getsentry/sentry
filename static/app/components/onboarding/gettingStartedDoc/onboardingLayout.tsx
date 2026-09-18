@@ -111,10 +111,7 @@ export function OnboardingLayout({
       ),
       isProfilingSelected: activeProductSelection.includes(ProductSolution.PROFILING),
       isReplaySelected: activeProductSelection.includes(ProductSolution.SESSION_REPLAY),
-      sourcePackageRegistries: {
-        isLoading: isLoadingRegistry,
-        data: registryData,
-      },
+      sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
       urlPrefix,
       isSelfHosted,
       platformOptions: selectedOptions,

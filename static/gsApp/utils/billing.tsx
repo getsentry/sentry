@@ -135,11 +135,7 @@ type FormatOptions = {
 export function formatReservedWithUnits(
   reservedQuantity: number | null,
   dataCategory: DataCategory,
-  options: FormatOptions = {
-    isAbbreviated: false,
-    useUnitScaling: false,
-    isGifted: false,
-  }
+  options: FormatOptions = {isAbbreviated: false, useUnitScaling: false, isGifted: false}
 ): string {
   const categoryInfo = getCategoryInfoFromPlural(dataCategory);
   const unitType = categoryInfo?.formatting.unitType ?? 'count';
@@ -201,9 +197,7 @@ export function formatUsageWithUnits(
     }
     return options.isAbbreviated
       ? displayNumber(usageProfileHours, 1)
-      : usageProfileHours.toLocaleString(undefined, {
-          maximumFractionDigits: 1,
-        });
+      : usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1});
   }
   return options.isAbbreviated
     ? displayNumber(usageQuantity)

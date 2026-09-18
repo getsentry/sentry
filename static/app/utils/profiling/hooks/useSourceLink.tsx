@@ -8,10 +8,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 interface UseSourceCodeLinkProps {
   commitId: string | undefined;
-  frame: {
-    file: string | undefined;
-    path: string | undefined;
-  };
+  frame: {file: string | undefined; path: string | undefined};
   organization: Organization;
   platform: string | undefined;
   project: Project | undefined;

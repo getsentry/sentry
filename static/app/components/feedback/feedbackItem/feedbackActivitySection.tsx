@@ -3,9 +3,7 @@ import {t} from 'sentry/locale';
 import {GroupActivityType, type Group, type GroupActivity} from 'sentry/types/group';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 
-type Props = {
-  feedbackItem: Group;
-};
+type Props = {feedbackItem: Group};
 
 export function FeedbackActivitySection(props: Props) {
   const {feedbackItem} = props;

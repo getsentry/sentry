@@ -127,11 +127,7 @@ function SpendLimitInput({
     reserved !== null;
   const inputName = isPerCategory ? category : 'sharedMaxBudget';
   const displayName = isPerCategory
-    ? getPlanCategoryName({
-        plan: activePlan,
-        category,
-        capitalize: false,
-      })
+    ? getPlanCategoryName({plan: activePlan, category, capitalize: false})
     : 'shared';
 
   const coerceValue = (value: number): string => {
@@ -157,9 +153,7 @@ function SpendLimitInput({
         value={coerceValue(currentSpendingLimit)}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
           const parsedBudget = parseInputValue(e);
-          onUpdate({
-            newData: {[inputName]: parsedBudget},
-          });
+          onUpdate({newData: {[inputName]: parsedBudget}});
         }}
       />
     </Currency>
@@ -213,23 +207,12 @@ export function SharedSpendLimitPriceTable({
 
         const categoryInfo = getCategoryInfoFromPlural(category);
         const reserved = currentReserved[category] ?? 0;
-        const paygPpe = getPaygPpe({
-          activePlan,
-          category,
-          reserved,
-        });
+        const paygPpe = getPaygPpe({activePlan, category, reserved});
         const hasConstantPpe = activePlan.planCategories[category]?.length === 1;
-        const pluralName = getPlanCategoryName({
-          plan: activePlan,
-          category,
-        });
+        const pluralName = getPlanCategoryName({plan: activePlan, category});
         const singularName =
           categoryInfo?.shortenedUnitName ??
-          getSingularCategoryName({
-            plan: activePlan,
-            category,
-            capitalize: false,
-          });
+          getSingularCategoryName({plan: activePlan, category, capitalize: false});
         return (
           <Flex justify="between" key={category} borderTop="primary" padding="md xl">
             <Flex
@@ -261,9 +244,7 @@ export function SharedSpendLimitPriceTable({
             <Container>
               <Text>
                 {hasConstantPpe ? '' : '*'}
-                {formatPaygPricePerUnit({
-                  paygPpe,
-                })}
+                {formatPaygPricePerUnit({paygPpe})}
               </Text>
               <Text variant="muted">/{singularName}</Text>
             </Container>
@@ -326,11 +307,7 @@ export function SharedSpendLimitPriceTable({
                   });
                 return (
                   <Fragment key={category}>
-                    <Text>
-                      {formatPaygPricePerUnit({
-                        paygPpe,
-                      })}
-                    </Text>
+                    <Text>{formatPaygPricePerUnit({paygPpe})}</Text>
                     <Text variant="muted">/{singularName}</Text>
                     {index < dataCategories.length - 1 && <Text>, </Text>}
                   </Fragment>
@@ -376,19 +353,11 @@ function InnerSpendLimitSettings({
       onUpdate({
         onDemandBudgets: {
           ...onDemandBudgets,
-          budgets: {
-            ...onDemandBudgets.budgets,
-            ...newData,
-          },
+          budgets: {...onDemandBudgets.budgets, ...newData},
         },
       });
     } else {
-      onUpdate({
-        onDemandBudgets: {
-          ...onDemandBudgets,
-          ...newData,
-        },
-      });
+      onUpdate({onDemandBudgets: {...onDemandBudgets, ...newData}});
     }
   };
 
@@ -407,11 +376,7 @@ function InnerSpendLimitSettings({
         <Container>
           {baseCategories.map((category, index) => {
             const reserved = currentReserved[category] ?? 0;
-            const paygPpe = getPaygPpe({
-              activePlan,
-              category,
-              reserved,
-            });
+            const paygPpe = getPaygPpe({activePlan, category, reserved});
             const categoryInfo = getCategoryInfoFromPlural(category);
 
             const pluralName = getPlanCategoryName({
@@ -421,11 +386,7 @@ function InnerSpendLimitSettings({
             });
             const singularName =
               categoryInfo?.shortenedUnitName ??
-              getSingularCategoryName({
-                plan: activePlan,
-                category,
-                capitalize: false,
-              });
+              getSingularCategoryName({plan: activePlan, category, capitalize: false});
             const currentBudget = onDemandBudgets.budgets[category] ?? 0;
             const hasPerCategory = categoryInfo?.hasPerCategory;
             const productName = categoryInfo?.productName ?? pluralName;
@@ -631,9 +592,7 @@ function BudgetModeSettings({
             dataTestId={`budget-mode-${budgetMode}`}
             isSelected={isSelected}
             onClick={() => {
-              onUpdate({
-                onDemandBudgets: nextOnDemandBudget,
-              });
+              onUpdate({onDemandBudgets: nextOnDemandBudget});
             }}
             optionHeader={
               <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>

@@ -67,10 +67,7 @@ function ReplayDetailsContent() {
 
   // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
   // once we fix the route params and links we should fix this to accept replayId and stop returning it
-  const readerResult = useLoadReplayReader({
-    replaySlug,
-    orgSlug,
-  });
+  const readerResult = useLoadReplayReader({replaySlug, orgSlug});
   const {replay, replayRecord} = readerResult;
 
   useReplayPageview('replay.details-time-spent');

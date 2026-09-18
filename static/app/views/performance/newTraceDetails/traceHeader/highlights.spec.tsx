@@ -13,12 +13,7 @@ import {Highlights} from 'sentry/views/performance/newTraceDetails/traceHeader/h
 function makeTraceItemDetailsResponse(
   attributes: TraceItemResponseAttribute[]
 ): TraceItemDetailsResponse {
-  return {
-    itemId: 'span-1',
-    timestamp: '2024-01-01T00:00:00Z',
-    meta: {},
-    attributes,
-  };
+  return {itemId: 'span-1', timestamp: '2024-01-01T00:00:00Z', meta: {}, attributes};
 }
 
 describe('Highlights', () => {

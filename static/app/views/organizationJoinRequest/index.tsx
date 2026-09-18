@@ -91,9 +91,7 @@ export default function OrganizationJoinRequest() {
             {t('Request to Join')}
           </Heading>
           <Text as="p">
-            {tct('Ask the admins if you can join the [orgId] organization.', {
-              orgId,
-            })}
+            {tct('Ask the admins if you can join the [orgId] organization.', {orgId})}
           </Text>
         </Stack>
         <form.AppForm form={form}>

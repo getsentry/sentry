@@ -15,9 +15,7 @@ import {OnDemandBudgetMode} from 'getsentry/types';
 
 describe('PendingChanges', () => {
   it('renders null pendingChanges)', () => {
-    const subscription = SubscriptionFixture({
-      organization: OrganizationFixture(),
-    });
+    const subscription = SubscriptionFixture({organization: OrganizationFixture()});
     const {container} = render(<PendingChanges subscription={subscription} />);
     expect(container).toBeEmptyDOMElement();
   });
@@ -239,25 +237,14 @@ describe('PendingChanges', () => {
   it('does not render reserved budgets with mocked values', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
-      reservedBudgets: [
-        SeerReservedBudgetFixture({
-          id: '0',
-          reservedBudget: 0,
-        }),
-      ],
+      reservedBudgets: [SeerReservedBudgetFixture({id: '0', reservedBudget: 0})],
       pendingChanges: PendingChangesFixture({
         planDetails: PlanDetailsLookupFixture('am3_business_ent'),
         plan: 'am3_business_ent',
         planName: 'Business',
-        reserved: {
-          spans: 0,
-          spansIndexed: 0,
-        },
+        reserved: {spans: 0, spansIndexed: 0},
         reservedBudgets: [
-          {
-            reservedBudget: 0,
-            categories: {seerAutofix: true, seerScanner: true},
-          },
+          {reservedBudget: 0, categories: {seerAutofix: true, seerScanner: true}},
         ],
       }),
     });
@@ -270,9 +257,7 @@ describe('PendingChanges', () => {
   });
 
   it('does not render reserved budgets if there are no changes', () => {
-    const subscription = SubscriptionFixture({
-      organization: OrganizationFixture(),
-    });
+    const subscription = SubscriptionFixture({organization: OrganizationFixture()});
     const {container} = render(<PendingChanges subscription={subscription} />);
     expect(container).not.toHaveTextContent('Reserved budgets —');
   });
@@ -284,17 +269,12 @@ describe('PendingChanges', () => {
         planDetails: PlanDetailsLookupFixture('am3_business'),
         plan: 'am3_business',
         planName: 'Business',
-        reserved: {
-          sizeAnalyses: 100,
-        },
+        reserved: {sizeAnalyses: 100},
       }),
     });
     subscription.categories = {
       ...subscription.categories,
-      sizeAnalyses: MetricHistoryFixture({
-        category: 'sizeAnalyses' as any,
-        reserved: 50,
-      }),
+      sizeAnalyses: MetricHistoryFixture({category: 'sizeAnalyses' as any, reserved: 50}),
     };
 
     const {container} = render(<PendingChanges subscription={subscription} />);

@@ -73,11 +73,7 @@ export function getKeyValueListData(
           subject: t('Package Name'),
           value: evidenceData.package || evidenceData.module || t('unknown'),
         },
-        {
-          key: 'file',
-          subject: t('File Name'),
-          value: evidenceData.file || t('unknown'),
-        },
+        {key: 'file', subject: t('File Name'), value: evidenceData.file || t('unknown')},
         {
           key: 'duration change',
           subject: t('Change in Duration'),

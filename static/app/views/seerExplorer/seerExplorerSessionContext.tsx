@@ -41,10 +41,7 @@ export function useSeerExplorerSessionsQuery({
           isEnabled && organization
             ? {organizationIdOrSlug: organization.slug}
             : skipToken,
-        query: {
-          per_page: limit,
-          query: buildRunsSearchQuery(searchQuery),
-        },
+        query: {per_page: limit, query: buildRunsSearchQuery(searchQuery)},
         staleTime: 0,
       }
     ),

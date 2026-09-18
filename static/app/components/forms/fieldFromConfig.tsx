@@ -33,10 +33,7 @@ interface FieldFromConfigProps {
 export function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null {
   const {field, ...otherProps} = props;
 
-  const componentProps = {
-    ...otherProps,
-    ...field,
-  };
+  const componentProps = {...otherProps, ...field};
 
   switch (field.type) {
     case 'separator':

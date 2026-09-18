@@ -27,9 +27,7 @@ describe('GitHubOAuthLoginStep', () => {
   it('renders the OAuth login step for GitHub', () => {
     render(
       <GitHubOAuthLoginStep
-        {...makeStepProps({
-          stepData: {oauthUrl: 'https://github.com/login/oauth'},
-        })}
+        {...makeStepProps({stepData: {oauthUrl: 'https://github.com/login/oauth'}})}
       />
     );
 
@@ -222,10 +220,7 @@ describe('OrgSelectionStep', () => {
 
     dispatchPipelineMessage({
       source: mockPopup,
-      data: {
-        _pipeline_source: 'sentry-pipeline',
-        installation_id: 'new-inst-99',
-      },
+      data: {_pipeline_source: 'sentry-pipeline', installation_id: 'new-inst-99'},
     });
 
     expect(advance).toHaveBeenCalledWith({installationId: 'new-inst-99'});

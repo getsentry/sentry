@@ -80,9 +80,7 @@ export function Chart(props: ChartProps) {
   const xAxis = {
     type: 'category' as const,
     truncate: true,
-    axisTick: {
-      alignWithLabel: true,
-    },
+    axisTick: {alignWithLabel: true},
   };
 
   const allSeries: Series[] = [];

@@ -18,10 +18,7 @@ export function ProductTrialRibbon({
   potentialProductTrial: ProductTrial | null;
 }) {
   const theme = useTheme();
-  const iconProps = {
-    size: 'xs' as const,
-    color: 'white' as const,
-  };
+  const iconProps = {size: 'xs' as const, color: 'white' as const};
   const ribbonColor = activeProductTrial
     ? theme.tokens.graphics.promotion.vibrant
     : theme.tokens.graphics.accent.vibrant;

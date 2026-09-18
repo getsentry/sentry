@@ -44,11 +44,7 @@ const sentryContinuousProfileChunk: Profiling.SentryContinousProfileChunk = {
   retention_days: 0,
   version: '2',
   platform: '',
-  profile: {
-    samples: [],
-    frames: [],
-    stacks: [],
-  },
+  profile: {samples: [], frames: [], stacks: []},
 };
 
 describe('profile', () => {

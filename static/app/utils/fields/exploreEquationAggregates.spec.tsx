@@ -97,10 +97,7 @@ describe('Explore equation conditional aggregates', () => {
       'filter',
       'column',
     ]);
-    expect(gated?.parameters?.[0]).toMatchObject({
-      kind: 'value',
-      defaultValue: '``',
-    });
+    expect(gated?.parameters?.[0]).toMatchObject({kind: 'value', defaultValue: '``'});
     expect(gated?.parameters?.some(parameter => 'options' in parameter)).toBe(false);
   });
 

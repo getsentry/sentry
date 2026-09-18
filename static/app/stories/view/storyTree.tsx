@@ -736,9 +736,9 @@ const FolderName = styled('div')`
   }
 `;
 
-const FolderLink = styled(Link, {
-  shouldForwardProp: prop => prop !== 'active',
-})<{active: boolean}>`
+const FolderLink = styled(Link, {shouldForwardProp: prop => prop !== 'active'})<{
+  active: boolean;
+}>`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};

@@ -103,9 +103,7 @@ export function PageLayout(props: Props) {
     }
   }, [tab]);
 
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories,
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const getNewRoute = useCallback(
@@ -186,14 +184,8 @@ export function PageLayout(props: Props) {
     const nextView = eventView.clone();
     nextView.query = `transaction:"${transactionName}"`;
     nextView.fields = [
-      {
-        field: 'project',
-        width: COL_WIDTH_UNDEFINED,
-      },
-      {
-        field: 'count()',
-        width: COL_WIDTH_UNDEFINED,
-      },
+      {field: 'project', width: COL_WIDTH_UNDEFINED},
+      {field: 'count()', width: COL_WIDTH_UNDEFINED},
     ];
 
     return (
@@ -350,9 +342,7 @@ export function redirectToPerformanceHomepage(
   navigate(
     normalizeUrl({
       pathname: getPerformanceBaseUrl(organization.slug),
-      query: {
-        ...location.query,
-      },
+      query: {...location.query},
     }),
     {replace: true}
   );

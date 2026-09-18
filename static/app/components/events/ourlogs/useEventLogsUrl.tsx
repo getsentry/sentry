@@ -28,12 +28,7 @@ export function useEventLogsUrl(event: Event) {
     selection: {
       projects: [ALL_ACCESS_PROJECTS],
       environments: [],
-      datetime: {
-        start,
-        end,
-        period: null,
-        utc: null,
-      },
+      datetime: {start, end, period: null, utc: null},
     },
     query: `${OurLogKnownFieldKey.TRACE_ID}:${traceId}`,
   });

@@ -102,9 +102,7 @@ export function SpansContextMenu(props: SpansContextMenuProps) {
               })}
               icon={<IconCopy size="xs" />}
             >
-              {tct('Copy [type] Operation', {
-                type: title,
-              })}
+              {tct('Copy [type] Operation', {type: title})}
             </ProfilingContextMenuItemButton>
           </ProfilingContextMenuGroup>
         ) : null}

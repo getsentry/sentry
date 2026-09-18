@@ -35,46 +35,26 @@ describe('Frame Variables', () => {
           "'client'": '',
           "'data'": null,
           "'k'": '',
-          "'options'": {
-            "'data'": null,
-            "'tags'": null,
-          },
+          "'options'": {"'data'": null, "'tags'": null},
         }}
         meta={{
           "'client'": {
             '': {
               rem: [['project:0', 's', 0, 0]],
               len: 41,
-              chunks: [
-                {
-                  type: 'redaction',
-                  text: '',
-                  rule_id: 'project:0',
-                  remark: 's',
-                },
-              ],
+              chunks: [{type: 'redaction', text: '', rule_id: 'project:0', remark: 's'}],
             },
           },
           "'k'": {
             '': {
               rem: [['project:0', 's', 0, 0]],
               len: 12,
-              chunks: [
-                {
-                  type: 'redaction',
-                  text: '',
-                  rule_id: 'project:0',
-                  remark: 's',
-                },
-              ],
+              chunks: [{type: 'redaction', text: '', rule_id: 'project:0', remark: 's'}],
             },
           },
         }}
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
@@ -166,14 +146,7 @@ describe('Frame Variables', () => {
 
   it('renders ruby variables correctly', () => {
     render(
-      <FrameVariables
-        data={{
-          null: 'nil',
-          bool: 'true',
-          str: 'string',
-        }}
-        platform="ruby"
-      />
+      <FrameVariables data={{null: 'nil', bool: 'true', str: 'string'}} platform="ruby" />
     );
 
     expect(within(screen.getByTestId('value-null')).getByText('nil')).toBeInTheDocument();
@@ -187,14 +160,7 @@ describe('Frame Variables', () => {
 
   it('renders php variables correctly', () => {
     render(
-      <FrameVariables
-        data={{
-          null: 'null',
-          bool: 'true',
-          str: 'string',
-        }}
-        platform="php"
-      />
+      <FrameVariables data={{null: 'null', bool: 'true', str: 'string'}} platform="php" />
     );
 
     expect(

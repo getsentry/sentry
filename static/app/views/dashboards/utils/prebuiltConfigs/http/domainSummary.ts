@@ -57,13 +57,7 @@ const DOMAIN_WIDGET: PrebuiltWidget = {
       linkedDashboards: [],
     },
   ],
-  layout: {
-    x: 0,
-    y: 0,
-    minH: 1,
-    h: 1,
-    w: 6,
-  },
+  layout: {x: 0, y: 0, minH: 1, h: 1, w: 6},
 };
 
 const BIG_NUMBER_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
@@ -272,13 +266,7 @@ const TRANSACTIONS_TABLE: PrebuiltWidget = {
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 4,
-    minH: TABLE_MIN_HEIGHT,
-    h: 5,
-    w: 6,
-  },
+  layout: {x: 0, y: 4, minH: TABLE_MIN_HEIGHT, h: 5, w: 6},
 };
 
 export const HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {

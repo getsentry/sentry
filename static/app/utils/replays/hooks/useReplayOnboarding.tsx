@@ -24,9 +24,7 @@ export function useReplayOnboardingSidebarPanel() {
   useEffect(() => {
     if (location.hash === '#replay-sidequest') {
       OnboardingDrawerStore.open(OnboardingDrawerKey.REPLAYS_ONBOARDING);
-      trackAnalytics('replay.list-view-setup-sidebar', {
-        organization,
-      });
+      trackAnalytics('replay.list-view-setup-sidebar', {organization});
     }
   }, [location.hash, organization]);
 
@@ -35,12 +33,7 @@ export function useReplayOnboardingSidebarPanel() {
       navigate({
         ...location,
         hash: 'replay-sidequest',
-        query: projectId
-          ? {
-              ...location.query,
-              project: projectId,
-            }
-          : location.query,
+        query: projectId ? {...location.query, project: projectId} : location.query,
       });
       OnboardingDrawerStore.open(OnboardingDrawerKey.REPLAYS_ONBOARDING);
     },

@@ -56,10 +56,7 @@ import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
-type CronDetectorDetailsProps = {
-  detector: CronDetector;
-  project: Project;
-};
+type CronDetectorDetailsProps = {detector: CronDetector; project: Project};
 
 function getLatestCronMonitorEnv(detector: CronDetector) {
   const environments = detector.dataSources[0].queryObj.environments;
@@ -127,12 +124,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
 
   const monitorEnv = getLatestCronMonitorEnv({
     ...detector,
-    dataSources: [
-      {
-        ...detector.dataSources[0],
-        queryObj: filteredMonitor,
-      },
-    ],
+    dataSources: [{...detector.dataSources[0], queryObj: filteredMonitor}],
   });
   const hasCheckedIn = hasLastCheckIn(filteredMonitor.environments);
 

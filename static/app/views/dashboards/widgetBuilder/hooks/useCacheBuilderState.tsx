@@ -69,17 +69,11 @@ export function useCacheBuilderState() {
           payload: {...builderState, title: state.title, description: state.description},
         });
       } else {
-        dispatch({
-          type: BuilderStateAction.SET_DATASET,
-          payload: nextDataset,
-        });
+        dispatch({type: BuilderStateAction.SET_DATASET, payload: nextDataset});
       }
     },
     [dispatch, organization, state.title, state.description]
   );
 
-  return {
-    cacheBuilderState,
-    restoreOrSetBuilderState,
-  };
+  return {cacheBuilderState, restoreOrSetBuilderState};
 }

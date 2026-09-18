@@ -294,10 +294,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           .filter(Boolean);
       }
 
-      const selection = {
-        ...pageFilters.selection,
-        datetime: seerQuery.datetime,
-      };
+      const selection = {...pageFilters.selection, datetime: seerQuery.datetime};
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
         selection,

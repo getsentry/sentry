@@ -17,10 +17,6 @@ export const makeTestQueryClient = () =>
         },
       },
       // Don't want console output in tests
-      logger: {
-        log: () => {},
-        warn: () => {},
-        error: () => {},
-      },
+      logger: {log: () => {}, warn: () => {}, error: () => {}},
     })
   );

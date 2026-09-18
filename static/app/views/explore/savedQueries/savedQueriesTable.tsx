@@ -122,27 +122,18 @@ export function SavedQueriesTable({
   const getHandleUpdateFromSavedQuery = useCallback(
     (savedQuery: SavedQuery) => {
       return ({name}: {name: string}) => {
-        return updateQueryFromSavedQuery({
-          ...savedQuery,
-          name,
-        });
+        return updateQueryFromSavedQuery({...savedQuery, name});
       };
     },
     [updateQueryFromSavedQuery]
   );
 
   const duplicateQuery = async (savedQuery: SavedQuery) => {
-    await saveQueryFromSavedQuery({
-      ...savedQuery,
-      name: `${savedQuery.name} (Copy)`,
-    });
+    await saveQueryFromSavedQuery({...savedQuery, name: `${savedQuery.name} (Copy)`});
   };
 
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
-    navigate({
-      pathname,
-      query: {...query, [cursorKey]: _cursor},
-    });
+    navigate({pathname, query: {...query, [cursorKey]: _cursor}});
   };
 
   const debouncedOnClick = useMemo(

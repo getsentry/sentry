@@ -76,10 +76,7 @@ export function getVirtualCrumb(event: Event): RawCrumb | undefined {
       type: BreadcrumbType.ERROR,
       level: BreadcrumbLevelType.ERROR,
       category: moduleToCategory(mdl) || 'exception',
-      data: {
-        type,
-        value,
-      },
+      data: {type, value},
       timestamp,
     };
   }

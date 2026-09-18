@@ -186,10 +186,7 @@ describe('disableRouterMocks', () => {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/',
-          query: {
-            id: '100',
-            name: 'John Doe',
-          },
+          query: {id: '100', name: 'John Doe'},
         },
       },
     });

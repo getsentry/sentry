@@ -42,12 +42,7 @@ export function TeamResolutionTime({
       getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/time-to-resolution/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
       }),
-      {
-        query: {
-          ...normalizeDateTimeParams(datetime),
-          environment,
-        },
-      },
+      {query: {...normalizeDateTimeParams(datetime), environment}},
     ],
     {staleTime: 5000}
   );
@@ -78,9 +73,7 @@ export function TeamResolutionTime({
         isGroupedByDate
         useShortDate
         period="7d"
-        tooltip={{
-          valueFormatter: (value: number) => getDuration(value, 1),
-        }}
+        tooltip={{valueFormatter: (value: number) => getDuration(value, 1)}}
         yAxis={{
           // Each yAxis marker will increase by 1 day
           minInterval: 86400,

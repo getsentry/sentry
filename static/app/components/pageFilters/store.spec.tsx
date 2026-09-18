@@ -91,12 +91,7 @@ describe('PageFiltersStore', () => {
       utc: true,
     });
 
-    updateDateTime({
-      period: null,
-      start: null,
-      end: null,
-      utc: null,
-    });
+    updateDateTime({period: null, start: null, end: null, utc: null});
     await tick();
     expect(PageFiltersStore.getState().selection.datetime).toEqual({
       period: null,
@@ -203,12 +198,7 @@ describe('PageFiltersStore', () => {
 
     it('clears only the datetime adjustment when the date changes', async () => {
       initializeWithAdjustments();
-      PageFiltersStore.updateDateTime({
-        period: '7d',
-        start: null,
-        end: null,
-        utc: null,
-      });
+      PageFiltersStore.updateDateTime({period: '7d', start: null, end: null, utc: null});
       await tick();
       expect(PageFiltersStore.getState().adjustments).toEqual({
         projects: projectAdjustment,

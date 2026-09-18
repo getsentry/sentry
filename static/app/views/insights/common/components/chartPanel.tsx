@@ -8,11 +8,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
-  children: React.ReactNode;
-  className?: string;
-  title?: React.ReactNode;
-};
+type Props = {children: React.ReactNode; className?: string; title?: React.ReactNode};
 
 export function ChartPanel({title, children, className}: Props) {
   return (

@@ -106,9 +106,7 @@ export function MetricDetectorFixture(
     ...BASE_DETECTOR,
     id: '1',
     name: 'detector',
-    config: {
-      detectionType: 'static',
-    },
+    config: {detectionType: 'static'},
     type: 'metric_issue',
     enabled: true,
     conditionGroup: params.conditionGroup ?? DataConditionGroupFixture(),
@@ -120,13 +118,7 @@ export function MetricDetectorFixture(
 }
 
 export function ErrorDetectorFixture(params: Partial<ErrorDetector> = {}): ErrorDetector {
-  return {
-    ...BASE_DETECTOR,
-    name: 'Error Detector',
-    id: '2',
-    type: 'error',
-    ...params,
-  };
+  return {...BASE_DETECTOR, name: 'Error Detector', id: '2', type: 'error', ...params};
 }
 
 export function PreprodDetectorFixture(
@@ -137,10 +129,7 @@ export function PreprodDetectorFixture(
     id: '5',
     name: 'Mobile Build Detector',
     type: 'preprod_size_analysis',
-    config: {
-      measurement: 'install_size',
-      thresholdType: 'absolute',
-    },
+    config: {measurement: 'install_size', thresholdType: 'absolute'},
     conditionGroup: params.conditionGroup ?? DataConditionGroupFixture(),
     ...params,
   };

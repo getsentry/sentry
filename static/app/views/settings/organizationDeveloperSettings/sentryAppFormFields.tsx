@@ -88,9 +88,7 @@ export const WebhookUrlField = withFieldGroup({
     return (
       <group.AppField
         name="webhookUrl"
-        listeners={{
-          onChange: ({value}: {value: string}) => onValueChange?.(value),
-        }}
+        listeners={{onChange: ({value}: {value: string}) => onValueChange?.(value)}}
       >
         {field => (
           <field.Layout.Row label={label} hintText={hint} required={required}>

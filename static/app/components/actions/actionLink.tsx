@@ -12,10 +12,7 @@ const StyledAction = styled('a')<{disabled?: boolean}>`
   ${p => p.disabled && 'cursor: not-allowed;'}
 `;
 
-const StyledButton = styled(Button)<{
-  disabled?: boolean;
-  hasDropdown?: boolean;
-}>`
+const StyledButton = styled(Button)<{disabled?: boolean; hasDropdown?: boolean}>`
   display: flex;
   align-items: center;
 

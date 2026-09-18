@@ -7,18 +7,9 @@ import {useTraceMeta, type TraceMetaTrace} from './useTraceMeta';
 const organization = OrganizationFixture();
 
 const mockedTraces: TraceMetaTrace[] = [
-  {
-    traceSlug: 'slug1',
-    timestamp: 1,
-  },
-  {
-    traceSlug: 'slug2',
-    timestamp: 2,
-  },
-  {
-    traceSlug: 'slug3',
-    timestamp: 3,
-  },
+  {traceSlug: 'slug1', timestamp: 1},
+  {traceSlug: 'slug2', timestamp: 2},
+  {traceSlug: 'slug3', timestamp: 3},
 ];
 
 describe('useTraceMeta', () => {
@@ -36,9 +27,7 @@ describe('useTraceMeta', () => {
         metricsCount: 1,
         performanceIssuesCount: 1,
         spansCount: 1,
-        spansCountMap: {
-          op1: 1,
-        },
+        spansCountMap: {op1: 1},
         transactionChildCountMap: [{'transaction.event_id': '1', 'count()': 1}],
         uptimeCount: 0,
       },
@@ -52,10 +41,7 @@ describe('useTraceMeta', () => {
         metricsCount: 2,
         performanceIssuesCount: 1,
         spansCount: 1,
-        spansCountMap: {
-          op1: 1,
-          op2: 1,
-        },
+        spansCountMap: {op1: 1, op2: 1},
         transactionChildCountMap: [{'transaction.event_id': '2', 'count()': 2}],
         uptimeCount: 0,
       },
@@ -69,9 +55,7 @@ describe('useTraceMeta', () => {
         metricsCount: 3,
         performanceIssuesCount: 1,
         spansCount: 1,
-        spansCountMap: {
-          op3: 1,
-        },
+        spansCountMap: {op3: 1},
         transactionChildCountMap: [{'transaction.event_id': '3', 'count()': 1}],
         uptimeCount: 1,
       },
@@ -98,16 +82,8 @@ describe('useTraceMeta', () => {
         metricsCount: 6,
         performanceIssuesCount: 3,
         spansCount: 3,
-        spansCountMap: {
-          op1: 2,
-          op2: 1,
-          op3: 1,
-        },
-        transactionChildCountMap: {
-          '1': 1,
-          '2': 2,
-          '3': 1,
-        },
+        spansCountMap: {op1: 2, op2: 1, op3: 1},
+        transactionChildCountMap: {'1': 1, '2': 2, '3': 1},
         uptimeCount: 1,
       },
       errors: [],
@@ -118,10 +94,7 @@ describe('useTraceMeta', () => {
   });
 
   it('accepts trace meta without transactionsCount', async () => {
-    const trace = {
-      traceSlug: 'slug-without-transactions-count',
-      timestamp: 1,
-    };
+    const trace = {traceSlug: 'slug-without-transactions-count', timestamp: 1};
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -133,15 +106,10 @@ describe('useTraceMeta', () => {
         performanceIssuesCount: 0,
         spansCount: 529,
         transactionChildCountMap: [
-          {
-            'transaction.event_id': '2b6107aa9d5f49c7a100babc02e903a0',
-            'count()': 62,
-          },
+          {'transaction.event_id': '2b6107aa9d5f49c7a100babc02e903a0', 'count()': 62},
           {'transaction.event_id': null, 'count()': 1},
         ],
-        spansCountMap: {
-          processor: 113,
-        },
+        spansCountMap: {processor: 113},
         uptimeCount: 0,
       },
     });
@@ -159,12 +127,8 @@ describe('useTraceMeta', () => {
       metricsCount: 1,
       performanceIssuesCount: 0,
       spansCount: 529,
-      spansCountMap: {
-        processor: 113,
-      },
-      transactionChildCountMap: {
-        '2b6107aa9d5f49c7a100babc02e903a0': 62,
-      },
+      spansCountMap: {processor: 113},
+      transactionChildCountMap: {'2b6107aa9d5f49c7a100babc02e903a0': 62},
       uptimeCount: 0,
     });
   });
@@ -416,9 +380,7 @@ describe('useTraceMeta', () => {
         metricsCount: 1,
         performanceIssuesCount: 1,
         spansCount: 1,
-        spansCountMap: {
-          op1: 1,
-        },
+        spansCountMap: {op1: 1},
         transactionChildCountMap: [],
         uptimeCount: 0,
       },
@@ -432,9 +394,7 @@ describe('useTraceMeta', () => {
         metricsCount: 1,
         performanceIssuesCount: 1,
         spansCount: 1,
-        spansCountMap: {
-          op2: 1,
-        },
+        spansCountMap: {op2: 1},
         transactionChildCountMap: [],
         uptimeCount: 0,
       },
@@ -461,10 +421,7 @@ describe('useTraceMeta', () => {
         metricsCount: 2,
         performanceIssuesCount: 2,
         spansCount: 2,
-        spansCountMap: {
-          op1: 1,
-          op2: 1,
-        },
+        spansCountMap: {op1: 1, op2: 1},
         transactionChildCountMap: {},
         uptimeCount: 0,
       },

@@ -34,10 +34,7 @@ function SpanEvidencePreviewBody({
   onUnmount,
   query,
 }: SpanEvidencePreviewBodyProps) {
-  const {data, isPending, isError} = usePreviewEvent<EventTransaction>({
-    groupId,
-    query,
-  });
+  const {data, isPending, isError} = usePreviewEvent<EventTransaction>({groupId, query});
 
   useEffect(() => {
     if (isPending) {

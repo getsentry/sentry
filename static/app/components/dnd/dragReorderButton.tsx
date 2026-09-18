@@ -4,9 +4,7 @@ import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IconSize} from 'sentry/utils/theme';
 
-type DragReorderButtonProps = Omit<ButtonProps, 'children'> & {
-  iconSize?: IconSize;
-};
+type DragReorderButtonProps = Omit<ButtonProps, 'children'> & {iconSize?: IconSize};
 
 export function DragReorderButton({
   size = 'zero',

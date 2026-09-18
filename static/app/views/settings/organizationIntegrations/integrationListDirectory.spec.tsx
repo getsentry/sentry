@@ -49,9 +49,7 @@ describe('IntegrationListDirectory', () => {
     });
 
     it('shows installed integrations at the top in order of weight', async () => {
-      render(<IntegrationListDirectory />, {
-        organization,
-      });
+      render(<IntegrationListDirectory />, {organization});
       expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
 
       [

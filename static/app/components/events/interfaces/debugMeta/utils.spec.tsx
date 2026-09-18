@@ -8,38 +8,14 @@ import {ImageStatus} from 'sentry/types/debugImage';
 describe('DebugMeta  - utils', () => {
   describe('getStatusWeight function', () => {
     const data = [
-      {
-        parameter: ImageStatus.FOUND,
-        result: 1,
-      },
-      {
-        parameter: ImageStatus.UNUSED,
-        result: 0,
-      },
-      {
-        parameter: null,
-        result: 0,
-      },
-      {
-        parameter: ImageStatus.MISSING,
-        result: 2,
-      },
-      {
-        parameter: ImageStatus.MALFORMED,
-        result: 2,
-      },
-      {
-        parameter: ImageStatus.FETCHING_FAILED,
-        result: 2,
-      },
-      {
-        parameter: ImageStatus.TIMEOUT,
-        result: 2,
-      },
-      {
-        parameter: ImageStatus.OTHER,
-        result: 2,
-      },
+      {parameter: ImageStatus.FOUND, result: 1},
+      {parameter: ImageStatus.UNUSED, result: 0},
+      {parameter: null, result: 0},
+      {parameter: ImageStatus.MISSING, result: 2},
+      {parameter: ImageStatus.MALFORMED, result: 2},
+      {parameter: ImageStatus.FETCHING_FAILED, result: 2},
+      {parameter: ImageStatus.TIMEOUT, result: 2},
+      {parameter: ImageStatus.OTHER, result: 2},
     ];
 
     it('should return a number according to the passed parameter', () => {
@@ -52,14 +28,8 @@ describe('DebugMeta  - utils', () => {
 
   describe('getFileName function', () => {
     const filePaths = [
-      {
-        fileName: 'libsystem_kernel.dylib',
-        directory: '/usr/lib/system/',
-      },
-      {
-        fileName: 'libsentry.dylib',
-        directory: '/Users/user/Coding/sentry-native/build/',
-      },
+      {fileName: 'libsystem_kernel.dylib', directory: '/usr/lib/system/'},
+      {fileName: 'libsentry.dylib', directory: '/Users/user/Coding/sentry-native/build/'},
     ];
 
     it('should return the file name of a provided filepath', () => {
@@ -97,16 +67,8 @@ describe('DebugMeta  - utils', () => {
         unwindStatus: undefined,
         combinedStatus: ImageStatus.UNUSED,
       },
-      {
-        debugStatus: undefined,
-        unwindStatus: null,
-        combinedStatus: ImageStatus.UNUSED,
-      },
-      {
-        debugStatus: null,
-        unwindStatus: null,
-        combinedStatus: ImageStatus.UNUSED,
-      },
+      {debugStatus: undefined, unwindStatus: null, combinedStatus: ImageStatus.UNUSED},
+      {debugStatus: null, unwindStatus: null, combinedStatus: ImageStatus.UNUSED},
     ];
 
     it('should return the status according to the passed parameters', () => {

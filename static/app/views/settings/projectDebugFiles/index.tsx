@@ -60,11 +60,7 @@ export default function ProjectDebugSymbols() {
     isPending: isLoadingDebugFiles,
     isLoadingError: isLoadingErrorDebugFiles,
     refetch: refetchDebugFiles,
-  } = useQuery({
-    ...debugFilesApiOptions,
-    select: selectJsonWithHeaders,
-    retry: false,
-  });
+  } = useQuery({...debugFilesApiOptions, select: selectJsonWithHeaders, retry: false});
 
   const debugFiles = debugFilesResponse?.json;
 
@@ -82,10 +78,7 @@ export default function ProjectDebugSymbols() {
     isPending: isLoadingSymbolSources,
     isError: isErrorSymbolSources,
     refetch: refetchSymbolSources,
-  } = useQuery({
-    ...symbolSourcesOptions,
-    retry: 0,
-  });
+  } = useQuery({...symbolSourcesOptions, retry: 0});
 
   const handleSearch = useCallback(
     (value: string) => {
@@ -101,14 +94,9 @@ export default function ProjectDebugSymbols() {
     mutationFn: (id: string) => {
       return api.requestPromise(
         `${getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.slug,
-          },
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
         })}?id=${id}`,
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
     },
     onMutate: () => {
@@ -118,14 +106,10 @@ export default function ProjectDebugSymbols() {
       addSuccessMessage('Successfully deleted debug file');
 
       // invalidate debug files query
-      queryClient.invalidateQueries({
-        queryKey: debugFilesApiOptions.queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: debugFilesApiOptions.queryKey});
 
       // invalidate symbol sources query
-      queryClient.invalidateQueries({
-        queryKey: symbolSourcesOptions.queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: symbolSourcesOptions.queryKey});
     },
     onError: () => {
       addErrorMessage('Failed to delete debug file');

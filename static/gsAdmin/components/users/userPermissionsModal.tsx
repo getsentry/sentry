@@ -17,10 +17,7 @@ const fieldProps = {
   flexibleControlStateSize: true,
 } as const;
 
-type Props = ModalRenderProps & {
-  onSubmit: (user: User) => void;
-  user: User;
-};
+type Props = ModalRenderProps & {onSubmit: (user: User) => void; user: User};
 
 export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props) {
   const api = useApi({persistInFlight: true});
@@ -30,11 +27,7 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
     isPending: availablePermissionsLoading,
     isError: availablePermissionsError,
   } = useApiQuery<string[]>(
-    [
-      getApiUrl('/users/$userId/permissions/config/', {
-        path: {userId: user.id},
-      }),
-    ],
+    [getApiUrl('/users/$userId/permissions/config/', {path: {userId: user.id}})],
     {staleTime: 0}
   );
   const {
@@ -42,11 +35,7 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
     isPending: permissionListLoading,
     isError: permissionListError,
   } = useApiQuery<string[]>(
-    [
-      getApiUrl('/users/$userId/permissions/', {
-        path: {userId: user.id},
-      }),
-    ],
+    [getApiUrl('/users/$userId/permissions/', {path: {userId: user.id}})],
     {staleTime: 0}
   );
 

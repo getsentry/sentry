@@ -51,10 +51,7 @@ describe('InviteRowControlNew', () => {
   it('displays correct status message for sent invites', () => {
     renderComponent({
       complete: true,
-      inviteStatus: {
-        'moo-deng': {sent: true},
-        'moo-waan': {sent: true},
-      },
+      inviteStatus: {'moo-deng': {sent: true}, 'moo-waan': {sent: true}},
     });
     expect(screen.getAllByRole('alert')).toHaveLength(1);
     expect(

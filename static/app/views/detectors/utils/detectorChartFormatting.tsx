@@ -65,10 +65,5 @@ export function getDetectorChartFormatters({
     return shouldAppendSuffix ? `${base}${unitSuffix}` : base;
   };
 
-  return {
-    outputType,
-    unitSuffix,
-    formatYAxisLabel,
-    formatTooltipValue,
-  };
+  return {outputType, unitSuffix, formatYAxisLabel, formatTooltipValue};
 }

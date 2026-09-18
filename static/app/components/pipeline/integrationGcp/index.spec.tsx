@@ -419,11 +419,7 @@ describe('GcpVerificationStep', () => {
   });
 
   it('lets the customer finish setup when the check cannot be completed', async () => {
-    MockApiClient.addMockResponse({
-      url: VERIFY_URL,
-      method: 'POST',
-      statusCode: 502,
-    });
+    MockApiClient.addMockResponse({url: VERIFY_URL, method: 'POST', statusCode: 502});
     const advance = jest.fn();
 
     render(<GcpVerificationStep {...makeVerificationStepProps({stepData, advance})} />);

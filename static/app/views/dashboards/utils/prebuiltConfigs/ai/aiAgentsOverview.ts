@@ -25,11 +25,7 @@ const TOOL_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:tool`;
 const DEFAULT_GLOBAL_FILTERS = [
   {
     dataset: WidgetType.SPANS,
-    tag: {
-      key: 'gen_ai.agent.name',
-      name: 'gen_ai.agent.name',
-      kind: FieldKind.TAG,
-    },
+    tag: {key: 'gen_ai.agent.name', name: 'gen_ai.agent.name', kind: FieldKind.TAG},
     value: '',
   },
 ];
@@ -222,22 +218,9 @@ const AGENTS_TRACES_TABLE: PrebuiltWidget = {
   tableWidths: DEFAULT_TRACES_TABLE_WIDTHS,
   limit: MAX_TABLE_LIMIT,
   queries: [
-    {
-      conditions: '',
-      fields: [],
-      columns: [],
-      aggregates: [],
-      name: '',
-      orderby: '',
-    },
+    {conditions: '', fields: [], columns: [], aggregates: [], name: '', orderby: ''},
   ],
-  layout: {
-    x: 0,
-    y: 6,
-    w: 6,
-    h: 4,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {x: 0, y: 6, w: 6, h: 4, minH: TABLE_MIN_HEIGHT},
 };
 
 export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -245,9 +228,7 @@ export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   projects: [],
   title: AI_AGENTS_OVERVIEW_DASHBOARD_TITLE,
   description: AI_AGENTS_OVERVIEW_DASHBOARD_DESCRIPTION,
-  filters: {
-    globalFilter: DEFAULT_GLOBAL_FILTERS,
-  },
+  filters: {globalFilter: DEFAULT_GLOBAL_FILTERS},
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, AGENTS_TRACES_TABLE],
   onboarding: {
     type: 'custom',

@@ -19,9 +19,7 @@ import type {EventData, EventView} from 'sentry/utils/discover/eventView';
 import {EventContext} from './eventContext';
 
 const mockedLocation = LocationFixture({
-  query: {
-    field: ['issue', 'transaction.duration'],
-  },
+  query: {field: ['issue', 'transaction.duration']},
 });
 
 const dataRow: EventData = {
@@ -78,17 +76,8 @@ describe('Quick Context Content: Event ID Column', () => {
         entries: [],
         endTimestamp: currentTime,
         startTimestamp: currentTime - 2,
-        contexts: {
-          trace: {
-            status: 'ok',
-          },
-        },
-        tags: [
-          {
-            key: 'http.status_code',
-            value: '200',
-          },
-        ],
+        contexts: {trace: {status: 'ok'}},
+        tags: [{key: 'http.status_code', value: '200'}],
       }),
     });
     renderEventContext(mockedLocation);
@@ -156,12 +145,7 @@ describe('Quick Context Content: Event ID Column', () => {
     const errorEvent: Event = {
       id: '6b43e285de834ec5b5fe30d62d549b20',
       type: EventOrGroupType.ERROR,
-      entries: [
-        {
-          type: EntryType.EXCEPTION,
-          data: exceptionValue,
-        },
-      ],
+      entries: [{type: EntryType.EXCEPTION, data: exceptionValue}],
     } as EventError;
 
     MockApiClient.addMockResponse({

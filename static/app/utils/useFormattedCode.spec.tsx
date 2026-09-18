@@ -5,16 +5,10 @@ import {useFormattedCode} from 'sentry/utils/useFormattedCode';
 describe('useFormattedCode', () => {
   it('returns trimmed code without loading a formatter when disabled', () => {
     const {result} = renderHookWithProviders(() =>
-      useFormattedCode({
-        code: '\n  plain text  \n',
-        language: null,
-      })
+      useFormattedCode({code: '\n  plain text  \n', language: null})
     );
 
-    expect(result.current).toEqual({
-      formattedCode: 'plain text',
-      isPending: false,
-    });
+    expect(result.current).toEqual({formattedCode: 'plain text', isPending: false});
   });
 
   it('uses the source as a fallback while lazily formatting JavaScript', async () => {
@@ -22,11 +16,7 @@ describe('useFormattedCode', () => {
       useFormattedCode({
         code: 'function x(){return 1;}',
         language: 'javascript',
-        options: {
-          indent_size: 2,
-          e4x: true,
-          brace_style: 'preserve-inline',
-        },
+        options: {indent_size: 2, e4x: true, brace_style: 'preserve-inline'},
       })
     );
 

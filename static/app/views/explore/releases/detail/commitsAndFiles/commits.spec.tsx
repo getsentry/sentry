@@ -41,10 +41,7 @@ describe('Commits', () => {
       >
         <Commits />
       </ReleaseContext>,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
   }
 
@@ -156,12 +153,7 @@ describe('Commits', () => {
       url: `/projects/org-slug/project-slug/releases/${encodeURIComponent(
         release.version
       )}/commits/`,
-      body: [
-        CommitFixture(),
-        CommitFixture({
-          repository: otherRepo,
-        }),
-      ],
+      body: [CommitFixture(), CommitFixture({repository: otherRepo})],
     });
     render(
       <ReleaseContext

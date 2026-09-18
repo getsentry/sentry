@@ -107,10 +107,7 @@ function getSampledProfileStartEnd(input: Profiling.SentrySampledProfile): {
   }
   const startNs = samples[0]!.elapsed_since_start_ns;
   const endNs = samples[samples.length - 1]!.elapsed_since_start_ns;
-  return {
-    start: baseTimestamp + startNs * 1e-9,
-    end: baseTimestamp + endNs * 1e-9,
-  };
+  return {start: baseTimestamp + startNs * 1e-9, end: baseTimestamp + endNs * 1e-9};
 }
 
 function getProfileSchemaStartEnd(input: Profiling.Schema): {

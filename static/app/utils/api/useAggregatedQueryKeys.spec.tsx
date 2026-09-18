@@ -21,18 +21,12 @@ function makeReducer() {
     (
       prevState: ApiTokenCounts | undefined,
       response: ApiResponse<ApiTokenCounts>
-    ): ApiTokenCounts => ({
-      ...prevState,
-      ...response.json,
-    })
+    ): ApiTokenCounts => ({...prevState, ...response.json})
   );
 }
 
 const getQueryOptions = (ids: readonly string[]) =>
-  apiOptions.as<ApiTokenCounts>()('/api-tokens/', {
-    query: {ids},
-    staleTime: 0,
-  });
+  apiOptions.as<ApiTokenCounts>()('/api-tokens/', {query: {ids}, staleTime: 0});
 
 describe('useAggregatedQueryKeys', () => {
   let responseReducer: ReturnType<typeof makeReducer>;
@@ -41,22 +35,13 @@ describe('useAggregatedQueryKeys', () => {
   beforeEach(() => {
     responseReducer = makeReducer();
 
-    initialProps = {
-      getQueryOptions,
-      onError: () => {},
-      responseReducer,
-      bufferLimit: 50,
-    };
+    initialProps = {getQueryOptions, onError: () => {}, responseReducer, bufferLimit: 50};
   });
 
   it('should convert multiple buffer calls into one fetch request after a timeout', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/api-tokens/',
-      body: {
-        '1111': 5,
-        '2222': 7,
-        '3333': 11,
-      },
+      body: {'1111': 5, '2222': 7, '3333': 11},
     });
 
     const {result} = renderHook(useAggregatedQueryKeys, {
@@ -82,9 +67,7 @@ describe('useAggregatedQueryKeys', () => {
   });
 
   it('should send a fetch request immediatly if the buffer is full', async () => {
-    const mockRequest = MockApiClient.addMockResponse({
-      url: '/api-tokens/',
-    });
+    const mockRequest = MockApiClient.addMockResponse({url: '/api-tokens/'});
 
     const {result} = renderHook(useAggregatedQueryKeys, {
       wrapper: makeWrapper(makeTestQueryClient()),
@@ -106,11 +89,7 @@ describe('useAggregatedQueryKeys', () => {
     const queryClient = makeTestQueryClient();
     MockApiClient.addMockResponse({
       url: '/api-tokens/',
-      body: {
-        '1111': 5,
-        '2222': 7,
-        '3333': 11,
-      },
+      body: {'1111': 5, '2222': 7, '3333': 11},
     });
 
     // Initial instance, nothing is cached yet
@@ -140,21 +119,12 @@ describe('useAggregatedQueryKeys', () => {
     });
 
     // The cache has data, no waiting!
-    expect(result2.current.data).toEqual({
-      '1111': 5,
-      '2222': 7,
-      '3333': 11,
-    });
+    expect(result2.current.data).toEqual({'1111': 5, '2222': 7, '3333': 11});
   });
 
   it('should pass in the list of all aggregates to the reducer function', async () => {
-    const mockResponse: ApiTokenCounts = {
-      '1111': 5,
-    };
-    MockApiClient.addMockResponse({
-      url: '/api-tokens/',
-      body: mockResponse,
-    });
+    const mockResponse: ApiTokenCounts = {'1111': 5};
+    MockApiClient.addMockResponse({url: '/api-tokens/', body: mockResponse});
 
     const {result} = renderHook(useAggregatedQueryKeys, {
       wrapper: makeWrapper(makeTestQueryClient()),
@@ -176,9 +146,7 @@ describe('useAggregatedQueryKeys', () => {
 
   it('should separate callsites that have different cacheKeys', async () => {
     const wrapper = makeWrapper(makeTestQueryClient());
-    const mockRequest = MockApiClient.addMockResponse({
-      url: '/api-tokens/',
-    });
+    const mockRequest = MockApiClient.addMockResponse({url: '/api-tokens/'});
     const responseReducer1 = makeReducer();
     const responseReducer2 = makeReducer();
 

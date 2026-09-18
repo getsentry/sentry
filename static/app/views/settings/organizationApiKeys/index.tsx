@@ -36,9 +36,7 @@ function OrganizationApiKeys() {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
 
   const removeMutation = useMutation({
@@ -47,10 +45,7 @@ function OrganizationApiKeys() {
         getApiUrl('/organizations/$organizationIdOrSlug/api-keys/$apiKeyId/', {
           path: {organizationIdOrSlug: organization.slug, apiKeyId: removedId},
         }),
-        {
-          method: 'DELETE',
-          data: {},
-        }
+        {method: 'DELETE', data: {}}
       );
     },
     onMutate: () => {

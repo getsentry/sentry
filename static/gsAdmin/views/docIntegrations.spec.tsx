@@ -14,11 +14,7 @@ import {DocIntegrations} from 'admin/views/docIntegrations';
 
 describe('Doc Integrations', () => {
   it('renders', () => {
-    MockApiClient.addMockResponse({
-      url: '/doc-integrations/',
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/doc-integrations/', method: 'GET', body: []});
 
     render(<DocIntegrations />);
 
@@ -45,9 +41,7 @@ describe('Doc Integration Details', () => {
 
     render(<DocIntegrationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`,
-        },
+        location: {pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`},
         route: '/admin/doc-integrations/:docIntegrationSlug/',
       },
     });
@@ -73,16 +67,11 @@ describe('Doc Integration Details', () => {
       body: mockDocIntegration,
     });
 
-    const deleteMock = MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'DELETE',
-    });
+    const deleteMock = MockApiClient.addMockResponse({url: ENDPOINT, method: 'DELETE'});
 
     render(<DocIntegrationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`,
-        },
+        location: {pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`},
         route: '/admin/doc-integrations/:docIntegrationSlug/',
       },
     });
@@ -105,9 +94,7 @@ describe('Doc Integration Details', () => {
     const inModal = within(modal);
 
     await userEvent.click(
-      inModal.getByRole('button', {
-        name: 'Delete Doc Integration 😨',
-      })
+      inModal.getByRole('button', {name: 'Delete Doc Integration 😨'})
     );
 
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
@@ -129,17 +116,13 @@ describe('Doc Integration Details', () => {
     const failedMock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'DELETE',
-      body: {
-        detail: 'Test API error occurred.',
-      },
+      body: {detail: 'Test API error occurred.'},
       statusCode: 403,
     });
 
     render(<DocIntegrationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`,
-        },
+        location: {pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`},
         route: '/admin/doc-integrations/:docIntegrationSlug/',
       },
     });
@@ -161,9 +144,7 @@ describe('Doc Integration Details', () => {
     const inModal = within(modal);
 
     await userEvent.click(
-      inModal.getByRole('button', {
-        name: 'Delete Doc Integration 😨',
-      })
+      inModal.getByRole('button', {name: 'Delete Doc Integration 😨'})
     );
 
     expect(indicators.addErrorMessage).toHaveBeenCalledWith(
@@ -185,17 +166,12 @@ describe('Doc Integration Details', () => {
     const updateMock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
-      body: {
-        is_draft: true,
-        features: [],
-      },
+      body: {is_draft: true, features: []},
     });
 
     render(<DocIntegrationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`,
-        },
+        location: {pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`},
         route: '/admin/doc-integrations/:docIntegrationSlug/',
       },
     });

@@ -64,9 +64,7 @@ export function Screenshot({
   }
 
   function handleDelete(screenshotAttachmentId: string) {
-    trackAnalytics('issue_details.issue_tab.screenshot_dropdown_deleted', {
-      organization,
-    });
+    trackAnalytics('issue_details.issue_tab.screenshot_dropdown_deleted', {organization});
     onDelete(screenshotAttachmentId);
   }
 

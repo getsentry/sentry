@@ -33,17 +33,9 @@ export function getReactNativeContextData({
   return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case ReactNativeContextKeys.EXPO:
-        return {
-          key: ctxKey,
-          subject: t('Expo'),
-          value: data.expo,
-        };
+        return {key: ctxKey, subject: t('Expo'), value: data.expo};
       case ReactNativeContextKeys.FABRIC:
-        return {
-          key: ctxKey,
-          subject: t('Fabric'),
-          value: data.fabric,
-        };
+        return {key: ctxKey, subject: t('Fabric'), value: data.fabric};
       case ReactNativeContextKeys.HERMES_DEBUG_INFO:
         return {
           key: ctxKey,
@@ -51,17 +43,9 @@ export function getReactNativeContextData({
           value: data.hermes_debug_info,
         };
       case ReactNativeContextKeys.HERMES_VERSION:
-        return {
-          key: ctxKey,
-          subject: t('Hermes Version'),
-          value: data.hermes_version,
-        };
+        return {key: ctxKey, subject: t('Hermes Version'), value: data.hermes_version};
       case ReactNativeContextKeys.JS_ENGINE:
-        return {
-          key: ctxKey,
-          subject: t('JS Engine'),
-          value: data.js_engine,
-        };
+        return {key: ctxKey, subject: t('JS Engine'), value: data.js_engine};
       case ReactNativeContextKeys.REACT_NATIVE_VERSION:
         return {
           key: ctxKey,
@@ -69,11 +53,7 @@ export function getReactNativeContextData({
           value: data.react_native_version,
         };
       case ReactNativeContextKeys.TURBO_MODULE:
-        return {
-          key: ctxKey,
-          subject: t('Turbo Module'),
-          value: data.turbo_module,
-        };
+        return {key: ctxKey, subject: t('Turbo Module'), value: data.turbo_module};
       default:
         return {
           key: ctxKey,

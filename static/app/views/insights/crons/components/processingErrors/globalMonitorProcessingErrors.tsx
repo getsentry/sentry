@@ -23,9 +23,7 @@ export function GlobalMonitorProcessingErrors({
   const processingErrorQueryKey = makeMonitorListErrorsQueryKey(organization, project);
   const {data: processingErrors, refetch: refetchErrors} = useApiQuery<
     CheckinProcessingError[]
-  >(processingErrorQueryKey, {
-    staleTime: 0,
-  });
+  >(processingErrorQueryKey, {staleTime: 0});
 
   async function handleDismissError(errorType: ProcessingErrorType, projectId: string) {
     await deleteProjectProcessingErrorByType(

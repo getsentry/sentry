@@ -52,9 +52,7 @@ describe('useSortErrors', () => {
   ];
 
   it('should the list by timestamp by default', () => {
-    const {result} = renderHookWithProviders(useSortErrors, {
-      initialProps: {items},
-    });
+    const {result} = renderHookWithProviders(useSortErrors, {initialProps: {items}});
 
     expect(result.current.sortConfig).toStrictEqual({
       by: 'timestamp',

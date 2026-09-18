@@ -48,10 +48,7 @@ describe('IssueDetailsSidebar', () => {
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
       method: 'GET',
@@ -60,9 +57,7 @@ describe('IssueDetailsSidebar', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-      }),
+      body: AutofixSetupFixture({integration: {ok: true, reason: null}}),
     });
 
     MockApiClient.addMockResponse({
@@ -127,9 +122,7 @@ describe('IssueDetailsSidebar', () => {
       <GroupDataContextProvider group={group} project={group.project}>
         <IssueDetailsSidebar group={group} project={project} event={event} />
       </GroupDataContextProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(await screen.findByText('Seer Autofix')).toBeInTheDocument();
@@ -186,9 +179,7 @@ describe('IssueDetailsSidebar', () => {
 
     expect(await screen.findByText('External Links')).toBeInTheDocument();
     expect(
-      await screen.findByRole('link', {
-        name: /Pull request #123 in example\/widget-app/,
-      })
+      await screen.findByRole('link', {name: /Pull request #123 in example\/widget-app/})
     ).toBeInTheDocument();
   });
 });

@@ -9,14 +9,10 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
 import {useUserTeams} from './useUserTeams';
 
-jest.mock('sentry/utils/isActiveSuperuser', () => ({
-  isActiveSuperuser: jest.fn(),
-}));
+jest.mock('sentry/utils/isActiveSuperuser', () => ({isActiveSuperuser: jest.fn()}));
 
 describe('useUserTeams', () => {
-  const org = OrganizationFixture({
-    access: [],
-  });
+  const org = OrganizationFixture({access: []});
 
   beforeEach(() => {
     TeamStore.reset();
@@ -84,9 +80,7 @@ describe('useUserTeams', () => {
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
     expect(TeamStore.getState().loadedUserTeams).toBe(true);
 
-    const organization = OrganizationFixture({
-      access: ['org:admin'],
-    });
+    const organization = OrganizationFixture({access: ['org:admin']});
     OrganizationStore.onUpdate(organization, {replace: true});
 
     const {result} = renderHookWithProviders(() => useUserTeams(), {organization: org});

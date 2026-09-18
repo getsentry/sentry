@@ -48,14 +48,10 @@ import {ESLintUtils} from '@typescript-eslint/utils';
 export const $RULE_NAME = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'problem',
-    docs: {
-      description: '[Rule description]',
-    },
+    docs: {description: '[Rule description]'},
     fixable: 'code', // include if rule has autofix — see Autofix Guidance
     schema: [],
-    messages: {
-      forbidden: 'Error message shown to user',
-    },
+    messages: {forbidden: 'Error message shown to user'},
   },
   create(context) {
     return {
@@ -77,12 +73,7 @@ import {$RULE_NAME} from './$ARGUMENTS';
 const ruleTester = new RuleTester();
 
 ruleTester.run('$ARGUMENTS', $RULE_NAME, {
-  valid: [
-    {
-      code: '// valid code',
-      filename: '/project/src/file.tsx',
-    },
-  ],
+  valid: [{code: '// valid code', filename: '/project/src/file.tsx'}],
   invalid: [
     {
       code: '// invalid code',

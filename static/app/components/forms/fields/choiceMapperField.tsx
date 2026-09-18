@@ -293,18 +293,12 @@ export function ChoiceMapperField({
       ...restDropdownProps
     } = addDropdown;
 
-    const buildAsyncQueryParams = (query: string) => ({
-      field: searchField,
-      query,
-    });
+    const buildAsyncQueryParams = (query: string) => ({field: searchField, query});
 
     const formatAsyncOptions = (data: any) =>
       data
         .filter((item: SelectOption<string>) => !Object.hasOwn(value, item.value))
-        .map((item: SelectOption<string>) => ({
-          value: item.value,
-          label: item.label,
-        }));
+        .map((item: SelectOption<string>) => ({value: item.value, label: item.label}));
 
     const dropdown = asyncUrl ? (
       <AsyncCompactSelectForIntegrationConfig

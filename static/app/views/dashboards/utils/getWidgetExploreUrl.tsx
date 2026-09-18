@@ -316,10 +316,7 @@ function _getWidgetExploreUrl(
   }
 
   const visualize = [
-    {
-      chartType,
-      yAxes: locationQueryParams.yAxes,
-    },
+    {chartType, yAxes: locationQueryParams.yAxes},
     // Explore widgets do not allow sorting by arbitrary aggregates
     // so dashboard widgets need to inject another visualize to plot the sort
     // and it available for sorting the main chart
@@ -331,10 +328,7 @@ function _getWidgetExploreUrl(
 
   const queryParams = {
     // Page filters should propagate
-    selection: {
-      ...selection,
-      datetime,
-    },
+    selection: {...selection, datetime},
     organization,
     mode: exploreMode,
     visualize,
@@ -412,10 +406,7 @@ function _getWidgetExploreUrlForMultipleQueries(
     utc: decodeBoolean(locationQueryParams.utc) ?? null,
   };
 
-  const currentSelection = {
-    ...selection,
-    datetime,
-  };
+  const currentSelection = {...selection, datetime};
 
   return getExploreMultiQueryUrl({
     organization,

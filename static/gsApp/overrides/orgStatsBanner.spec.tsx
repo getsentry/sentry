@@ -20,10 +20,7 @@ describe('OrgStatsBanner', () => {
 
   it('renders empty if not self serve', () => {
     const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      canSelfServe: false,
-    });
+    const subscription = SubscriptionFixture({organization, canSelfServe: false});
     SubscriptionStore.set(organization.slug, subscription);
 
     wrapper = render(<OrgStatsBanner organization={organization} />);
@@ -32,19 +29,14 @@ describe('OrgStatsBanner', () => {
 
   it('renders empty if business plan without usage exceeded', () => {
     const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_business',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
     SubscriptionStore.set(organization.slug, subscription);
     wrapper = render(<OrgStatsBanner organization={organization} />);
     expect(wrapper.container).toBeEmptyDOMElement();
   });
 
   it('renders increase event limit CTA for billing user', () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_team',
@@ -84,9 +76,7 @@ describe('OrgStatsBanner', () => {
   });
 
   it('renders start trial for billing user', () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_f',
@@ -106,9 +96,7 @@ describe('OrgStatsBanner', () => {
   });
 
   it('renders upgrade for billing user', () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_f',

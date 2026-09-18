@@ -66,14 +66,8 @@ describe('filterFlamegraphTree', () => {
       return !frame.frame.is_application;
     };
 
-    const root = f({
-      key: 0,
-      frame: {is_application: false} as FlamegraphFrame['frame'],
-    });
-    const child1 = f({
-      key: 1,
-      frame: {is_application: true} as FlamegraphFrame['frame'],
-    });
+    const root = f({key: 0, frame: {is_application: false} as FlamegraphFrame['frame']});
+    const child1 = f({key: 1, frame: {is_application: true} as FlamegraphFrame['frame']});
 
     child1.parent = root;
     root.children = [child1];
@@ -88,18 +82,9 @@ describe('filterFlamegraphTree', () => {
       return !frame.frame.is_application;
     };
 
-    const root = f({
-      key: 0,
-      frame: {is_application: true} as FlamegraphFrame['frame'],
-    });
-    const child1 = f({
-      key: 1,
-      frame: {is_application: true} as FlamegraphFrame['frame'],
-    });
-    const child2 = f({
-      key: 2,
-      frame: {is_application: true} as FlamegraphFrame['frame'],
-    });
+    const root = f({key: 0, frame: {is_application: true} as FlamegraphFrame['frame']});
+    const child1 = f({key: 1, frame: {is_application: true} as FlamegraphFrame['frame']});
+    const child2 = f({key: 2, frame: {is_application: true} as FlamegraphFrame['frame']});
 
     child1.parent = root;
     child2.parent = root;
@@ -116,20 +101,14 @@ describe('filterFlamegraphTree', () => {
       return !frame.frame.is_application;
     };
 
-    const root = f({
-      key: 0,
-      frame: {is_application: true} as FlamegraphFrame['frame'],
-    });
+    const root = f({key: 0, frame: {is_application: true} as FlamegraphFrame['frame']});
 
     const child1 = f({
       key: 1,
       frame: {is_application: false} as FlamegraphFrame['frame'],
     });
 
-    const child2 = f({
-      key: 2,
-      frame: {is_application: true} as FlamegraphFrame['frame'],
-    });
+    const child2 = f({key: 2, frame: {is_application: true} as FlamegraphFrame['frame']});
 
     root.children = [child1];
     child1.children = [child2];
@@ -149,20 +128,11 @@ describe('filterFlamegraphTree', () => {
       return !frame.frame.is_application;
     };
 
-    const root = f({
-      key: 0,
-      frame: {is_application: true} as FlamegraphFrame['frame'],
-    });
+    const root = f({key: 0, frame: {is_application: true} as FlamegraphFrame['frame']});
 
-    const child1 = f({
-      key: 1,
-      frame: {is_application: true} as FlamegraphFrame['frame'],
-    });
+    const child1 = f({key: 1, frame: {is_application: true} as FlamegraphFrame['frame']});
 
-    const child2 = f({
-      key: 2,
-      frame: {is_application: true} as FlamegraphFrame['frame'],
-    });
+    const child2 = f({key: 2, frame: {is_application: true} as FlamegraphFrame['frame']});
 
     root.children = [child1];
     child1.children = [child2];
@@ -183,24 +153,12 @@ describe('filterFlamegraphTree', () => {
       return !frame.frame.is_application;
     };
 
-    const root = f({
-      key: 0,
-      frame: {is_application: true} as FlamegraphFrame['frame'],
-    });
+    const root = f({key: 0, frame: {is_application: true} as FlamegraphFrame['frame']});
 
-    const child1 = f({
-      key: 1,
-      frame: {is_application: true} as FlamegraphFrame['frame'],
-    });
+    const child1 = f({key: 1, frame: {is_application: true} as FlamegraphFrame['frame']});
 
-    const child2 = f({
-      key: 3,
-      frame: {is_application: true} as FlamegraphFrame['frame'],
-    });
-    const child3 = f({
-      key: 2,
-      frame: {is_application: true} as FlamegraphFrame['frame'],
-    });
+    const child2 = f({key: 3, frame: {is_application: true} as FlamegraphFrame['frame']});
+    const child3 = f({key: 2, frame: {is_application: true} as FlamegraphFrame['frame']});
 
     root.children = [child1];
     child1.children = [child2, child3];

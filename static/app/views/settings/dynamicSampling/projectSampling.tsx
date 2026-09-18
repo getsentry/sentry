@@ -59,12 +59,8 @@ export function ProjectSampling() {
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      projectRates,
-    },
-    validators: {
-      onDynamic: projectSamplingSchema,
-    },
+    defaultValues: {projectRates},
+    validators: {onDynamic: projectSamplingSchema},
     onSubmit: async ({value, formApi}) => {
       const ratesArray = Object.entries(value.projectRates).map(([id, rate]) => ({
         id: Number(id),

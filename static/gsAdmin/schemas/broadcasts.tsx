@@ -110,12 +110,7 @@ export function getBroadcastSchema(): Field[] {
       label: 'Trial Status',
       options: mapChoices(TRIALCHOICES),
     },
-    {
-      name: 'earlyAdopter',
-      type: 'boolean',
-      required: false,
-      label: 'Early Adopter',
-    },
+    {name: 'earlyAdopter', type: 'boolean', required: false, label: 'Early Adopter'},
     {
       name: 'dateExpires',
       type: 'datetime',

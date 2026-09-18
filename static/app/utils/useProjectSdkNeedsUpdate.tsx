@@ -4,10 +4,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
-type Opts = {
-  minVersion: string;
-  projectId: string[];
-};
+type Opts = {minVersion: string; projectId: string[]};
 
 export function useProjectSdkNeedsUpdate({
   minVersion,
@@ -23,9 +20,7 @@ export function useProjectSdkNeedsUpdate({
       getApiUrl('/organizations/$organizationIdOrSlug/sdk-updates/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {project: projectId},
-      },
+      {query: {project: projectId}},
     ],
     {staleTime: Infinity, refetchOnMount: true}
   );
@@ -47,10 +42,5 @@ export function useProjectSdkNeedsUpdate({
       sdkUpdate => semverCompare(sdkUpdate.sdkVersion || '', minVersion) === -1
     );
 
-  return {
-    isError: false,
-    isFetching: false,
-    needsUpdate,
-    data: selectedProjects,
-  };
+  return {isError: false, isFetching: false, needsUpdate, data: selectedProjects};
 }

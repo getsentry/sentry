@@ -29,12 +29,7 @@ interface Props {
 export function ContentBlocksRenderer({contentBlocks, spacing, className}: Props) {
   const theme = useTheme();
   const resolvedSpacing = spacing ?? theme.space.xl;
-  const contextValue = useMemo(
-    () => ({
-      renderers: defaultRenderers,
-    }),
-    []
-  );
+  const contextValue = useMemo(() => ({renderers: defaultRenderers}), []);
   return (
     <RendererContext value={contextValue}>
       <Wrapper className={className} spacing={resolvedSpacing}>

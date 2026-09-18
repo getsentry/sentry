@@ -133,9 +133,7 @@ export function ReleasesSelectControl({
       onClose={() => {
         resetSearch();
         if (!isEqual(activeReleases, selectedReleases)) {
-          handleChangeFilter?.({
-            [DashboardFilterKeys.RELEASE]: activeReleases,
-          });
+          handleChangeFilter?.({[DashboardFilterKeys.RELEASE]: activeReleases});
         }
       }}
       value={activeReleases}
@@ -153,10 +151,7 @@ export function ReleasesSelectControl({
   );
 }
 
-type LabelDetailsProps = {
-  dateCreated?: string;
-  eventCount?: number;
-};
+type LabelDetailsProps = {dateCreated?: string; eventCount?: number};
 
 function LabelDetails(props: LabelDetailsProps) {
   return (

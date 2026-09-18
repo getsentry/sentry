@@ -90,35 +90,14 @@ export function CompactSelect<Value extends SelectKey>({
   // also multiple:false must be split into clearable true/false to satisfy TS
   const listProps = useMemo(() => {
     if (multiple) {
-      return {
-        clearable,
-        multiple,
-        value,
-        onChange,
-        closeOnSelect,
-        mode,
-      };
+      return {clearable, multiple, value, onChange, closeOnSelect, mode};
     }
 
     if (clearable) {
-      return {
-        clearable,
-        multiple,
-        value,
-        onChange,
-        closeOnSelect,
-        mode,
-      };
+      return {clearable, multiple, value, onChange, closeOnSelect, mode};
     }
 
-    return {
-      clearable,
-      multiple,
-      value,
-      onChange,
-      closeOnSelect,
-      mode,
-    };
+    return {clearable, multiple, value, onChange, closeOnSelect, mode};
   }, [multiple, clearable, value, onChange, closeOnSelect, mode]);
 
   const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
@@ -305,9 +284,6 @@ function trackVirtualizationMetrics<Value extends SelectKey>(
   }
 
   Sentry.metrics.distribution('scraps.compactSelect.option_count', optionCount, {
-    attributes: {
-      has_sections: hasSections,
-      component_title: title,
-    },
+    attributes: {has_sections: hasSections, component_title: title},
   });
 }

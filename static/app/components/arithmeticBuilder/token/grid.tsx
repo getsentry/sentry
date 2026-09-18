@@ -102,11 +102,7 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
     },
   });
 
-  const {gridProps} = useGridList({
-    props,
-    state,
-    ref,
-  });
+  const {gridProps} = useGridList({props, state, ref});
 
   useApplyFocusOverride(state);
 

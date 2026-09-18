@@ -13,16 +13,10 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To start using logs, install the latest version of the Sentry PHP SDK. Logs are supported in version [code:4.12.0] and above of the SDK.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'composer require sentry/sentry',
-        },
+        {type: 'code', language: 'bash', code: 'composer require sentry/sentry'},
         {
           type: 'text',
           text: tct(
@@ -45,9 +39,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To enable logging, you need to initialize the SDK with the [code:enable_logs] option set to [code:true].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -66,9 +58,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'For more detailed configuration options, see the [link:logs documentation].',
-            {
-              link: <ExternalLink href="https://docs.sentry.io/platforms/php/logs/" />,
-            }
+            {link: <ExternalLink href="https://docs.sentry.io/platforms/php/logs/" />}
           ),
         },
       ],

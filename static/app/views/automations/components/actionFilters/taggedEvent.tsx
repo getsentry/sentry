@@ -91,10 +91,7 @@ function KeyField() {
       sorted.unshift(condition.comparison);
     }
 
-    return Object.values(sorted).map((tag: Tag) => ({
-      value: tag.key,
-      label: tag.key,
-    }));
+    return Object.values(sorted).map((tag: Tag) => ({value: tag.key, label: tag.key}));
   }, [tagOptions, condition.comparison]);
 
   return (

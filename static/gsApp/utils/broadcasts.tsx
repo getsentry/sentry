@@ -20,10 +20,7 @@ export const platformOptions = categoryList
     label: name,
     options: Array.from(platformKeys, platformKey => {
       const platform = platforms.find(p => p.id === platformKey);
-      return {
-        value: platformKey,
-        label: platform?.name ?? platformKey,
-      };
+      return {value: platformKey, label: platform?.name ?? platformKey};
     }),
   }));
 

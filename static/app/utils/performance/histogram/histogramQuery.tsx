@@ -25,9 +25,7 @@ type RequestProps = DiscoverQueryProps & HistogramProps;
 export type HistogramQueryChildrenProps = Omit<
   GenericChildrenProps<HistogramProps>,
   'tableData'
-> & {
-  histograms: Histograms | null;
-};
+> & {histograms: Histograms | null};
 
 type Props = RequestProps & {
   children: (props: HistogramQueryChildrenProps) => React.ReactNode;
@@ -36,14 +34,7 @@ type Props = RequestProps & {
 function getHistogramRequestPayload(props: RequestProps) {
   const {fields, numBuckets, min, max, precision, dataFilter, eventView, location} =
     props;
-  const baseApiPayload = {
-    field: fields,
-    numBuckets,
-    min,
-    max,
-    precision,
-    dataFilter,
-  };
+  const baseApiPayload = {field: fields, numBuckets, min, max, precision, dataFilter};
   const additionalApiPayload = omit(eventView.getEventsAPIPayload(location), [
     'field',
     'sort',
@@ -72,12 +63,7 @@ export function HistogramQuery(props: Props) {
   if (fields.length === 0) {
     return (
       <Fragment>
-        {children({
-          isLoading: false,
-          error: null,
-          pageLinks: null,
-          histograms: {},
-        })}
+        {children({isLoading: false, error: null, pageLinks: null, histograms: {}})}
       </Fragment>
     );
   }

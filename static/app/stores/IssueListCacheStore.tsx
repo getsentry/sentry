@@ -53,11 +53,7 @@ const storeConfig: IssueListCacheStoreDefinition = {
   },
 
   save(params: LooseParamsType, data: IssueListCache) {
-    this.state = {
-      params,
-      cache: data,
-      expiration: Date.now() + CACHE_EXPIRATION,
-    };
+    this.state = {params, cache: data, expiration: Date.now() + CACHE_EXPIRATION};
   },
 
   getFromCache(params: LooseParamsType) {

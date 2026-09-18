@@ -60,19 +60,13 @@ describe('TransactionThresholdButton', () => {
     const getTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
-      body: {
-        threshold: '800',
-        metric: 'lcp',
-      },
+      body: {threshold: '800', metric: 'lcp'},
     });
 
     const getProjectThresholdMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
       method: 'GET',
-      body: {
-        threshold: '200',
-        metric: 'duration',
-      },
+      body: {threshold: '200', metric: 'duration'},
     });
     renderComponent(eventView, organization, onChangeThreshold);
 
@@ -92,10 +86,7 @@ describe('TransactionThresholdButton', () => {
     const getProjectThresholdMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
       method: 'GET',
-      body: {
-        threshold: '200',
-        metric: 'duration',
-      },
+      body: {threshold: '200', metric: 'duration'},
     });
     renderComponent(eventView, organization, onChangeThreshold);
 
@@ -110,10 +101,7 @@ describe('TransactionThresholdButton', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
-      body: {
-        threshold: '800',
-        metric: 'lcp',
-      },
+      body: {threshold: '800', metric: 'lcp'},
     });
 
     renderComponent(eventView, organization, onChangeThreshold);

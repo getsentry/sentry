@@ -10,11 +10,7 @@ import GroupingInfo from './groupingInfo';
 
 describe('EventGroupingInfo', () => {
   const group = GroupFixture();
-  const event = EventFixture({
-    groupingConfig: {
-      id: 'default:XXXX',
-    },
-  });
+  const event = EventFixture({groupingConfig: {id: 'default:XXXX'}});
 
   const defaultProps = {
     event,

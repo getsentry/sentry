@@ -33,10 +33,7 @@ export function ProcessingErrorItem({error, checkinTooltip}: Props) {
     case ProcessingErrorType.CHECKIN_INVALID_DURATION:
       return tct(
         'A [checkinTooltip:check-in] was sent with an invalid duration of "[duration]".',
-        {
-          checkinTooltip,
-          duration: error.duration,
-        }
+        {checkinTooltip, duration: error.duration}
       );
     case ProcessingErrorType.CHECKIN_INVALID_GUID:
       return tct('A [checkinTooltip:check-in] was sent with an invalid GUID.', {
@@ -80,10 +77,7 @@ export function ProcessingErrorItem({error, checkinTooltip}: Props) {
     case ProcessingErrorType.MONITOR_INVALID_ENVIRONMENT:
       return tct(
         'A [checkinTooltip:check-in] was sent with an invalid environment due to: [reason].',
-        {
-          checkinTooltip,
-          reason: error.reason,
-        }
+        {checkinTooltip, reason: error.reason}
       );
     case ProcessingErrorType.MONITOR_LIMIT_EXCEEDED:
       return tct(

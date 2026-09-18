@@ -5,9 +5,7 @@ import {
   usePictureInPicture,
 } from '@sentry/scraps/pictureInPicture';
 
-type FakePipWindow = Window & {
-  __listeners: Record<string, Array<() => void>>;
-};
+type FakePipWindow = Window & {__listeners: Record<string, Array<() => void>>};
 
 function createFakePipWindow(): FakePipWindow {
   const doc = document.implementation.createHTMLDocument('pip');

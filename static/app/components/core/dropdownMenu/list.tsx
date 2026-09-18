@@ -139,10 +139,7 @@ export function DropdownMenuList({
   const modifiedMenuProps = useMemo(
     () => ({
       ...menuProps,
-      ...(!hasFocus && {
-        onKeyUp: () => null,
-        onKeyDown: () => null,
-      }),
+      ...(!hasFocus && {onKeyUp: () => null, onKeyDown: () => null}),
     }),
     [menuProps, hasFocus]
   );
@@ -236,10 +233,7 @@ export function DropdownMenuList({
 
   const theme = useTheme();
   const contextValue = useMemo(
-    () => ({
-      rootOverlayState: rootOverlayState ?? overlayState,
-      parentMenuState: state,
-    }),
+    () => ({rootOverlayState: rootOverlayState ?? overlayState, parentMenuState: state}),
     [rootOverlayState, overlayState, state]
   );
   return (
@@ -256,9 +250,7 @@ export function DropdownMenuList({
               hasTitle={!!menuTitle}
               disableTextSelection={disableTextSelection}
               {...mergeProps(modifiedMenuProps, keyboardProps)}
-              style={{
-                maxHeight: overlayPositionProps.style?.maxHeight,
-              }}
+              style={{maxHeight: overlayPositionProps.style?.maxHeight}}
             >
               {renderCollection(stateCollection)}
             </DropdownMenuListWrap>

@@ -8,13 +8,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Counts = {
-  counts: {
-    active: number;
-    disabled: number;
-    total: number;
-  };
-};
+type Counts = {counts: {active: number; disabled: number; total: number}};
 
 export function MonitorsDropdown() {
   const organization = useOrganization();
@@ -25,18 +19,9 @@ export function MonitorsDropdown() {
       getApiUrl('/organizations/$organizationIdOrSlug/monitors-count/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          project: location.query.project,
-          environment: location.query.environment,
-        },
-      },
+      {query: {project: location.query.project, environment: location.query.environment}},
     ],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-      retry: false,
-    }
+    {staleTime: 0, placeholderData: keepPreviousData, retry: false}
   );
 
   const {data: uptimeData, isPending: uptimeIsPending} = useApiQuery<Counts>(
@@ -44,18 +29,9 @@ export function MonitorsDropdown() {
       getApiUrl('/organizations/$organizationIdOrSlug/uptime-count/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {
-        query: {
-          project: location.query.project,
-          environment: location.query.environment,
-        },
-      },
+      {query: {project: location.query.project, environment: location.query.environment}},
     ],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-      retry: false,
-    }
+    {staleTime: 0, placeholderData: keepPreviousData, retry: false}
   );
 
   if (cronsIsPending || uptimeIsPending || !cronsData || !uptimeData) {

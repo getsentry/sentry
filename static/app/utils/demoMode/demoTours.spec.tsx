@@ -17,13 +17,9 @@ import {
 } from 'sentry/utils/demoMode/demoTours';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
-jest.mock('sentry/actionCreators/guides', () => ({
-  recordFinish: jest.fn(),
-}));
+jest.mock('sentry/actionCreators/guides', () => ({recordFinish: jest.fn()}));
 
-jest.mock('sentry/utils/useLocalStorageState', () => ({
-  useLocalStorageState: jest.fn(),
-}));
+jest.mock('sentry/utils/useLocalStorageState', () => ({useLocalStorageState: jest.fn()}));
 
 interface MockToursState {
   [DemoTour.ISSUES]: TourState<DemoTourStep>;
@@ -159,18 +155,14 @@ describe('DemoTours', () => {
     it('maintains separate state for different tours', () => {
       const {result: sideBarResult} = renderHookWithProviders(
         () => useDemoTour(DemoTour.RELEASES),
-        {
-          additionalWrapper: createWrapper(),
-        }
+        {additionalWrapper: createWrapper()}
       );
 
       const sidebarTour = sideBarResult.current;
 
       const {result: issuesResult} = renderHookWithProviders(
         () => useDemoTour(DemoTour.ISSUES),
-        {
-          additionalWrapper: createWrapper(),
-        }
+        {additionalWrapper: createWrapper()}
       );
 
       const issuesTour = issuesResult.current;

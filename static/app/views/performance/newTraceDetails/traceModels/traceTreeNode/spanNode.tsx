@@ -53,10 +53,7 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
   }
 
   get traceHeaderTitle(): {title: string; subtitle?: string} {
-    return {
-      title: this.op || t('Trace'),
-      subtitle: this.value.description,
-    };
+    return {title: this.op || t('Trace'), subtitle: this.value.description};
   }
 
   get sdkName(): string | undefined {

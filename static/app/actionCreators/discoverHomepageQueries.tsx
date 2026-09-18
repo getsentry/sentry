@@ -7,9 +7,7 @@ export function fetchHomepageQuery(api: Client, orgId: string): Promise<SavedQue
     getApiUrl('/organizations/$organizationIdOrSlug/discover/homepage/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      method: 'GET',
-    }
+    {method: 'GET'}
   );
 }
 
@@ -22,10 +20,7 @@ export function updateHomepageQuery(
     getApiUrl('/organizations/$organizationIdOrSlug/discover/homepage/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      method: 'PUT',
-      data: query,
-    }
+    {method: 'PUT', data: query}
   );
 }
 
@@ -34,8 +29,6 @@ export function deleteHomepageQuery(api: Client, orgId: string): Promise<void> {
     getApiUrl('/organizations/$organizationIdOrSlug/discover/homepage/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      method: 'DELETE',
-    }
+    {method: 'DELETE'}
   );
 }

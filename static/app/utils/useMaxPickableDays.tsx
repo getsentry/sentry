@@ -135,21 +135,14 @@ export function getMaxPickableDays(
     case DataCategory.TRACE_METRICS:
     case DataCategory.LOG_BYTE:
     case DataCategory.LOG_ITEM:
-      return {
-        maxPickableDays: 30,
-        maxUpgradableDays: 30,
-        defaultPeriod: '24h',
-      };
+      return {maxPickableDays: 30, maxUpgradableDays: 30, defaultPeriod: '24h'};
     case DataCategory.PROFILE_CHUNKS:
     case DataCategory.PROFILE_CHUNKS_UI:
     case DataCategory.PROFILE_DURATION:
     case DataCategory.PROFILE_DURATION_UI:
     case DataCategory.TRANSACTIONS:
     case DataCategory.REPLAYS:
-      return {
-        maxPickableDays: MAX_PICKABLE_DAYS,
-        maxUpgradableDays: MAX_PICKABLE_DAYS,
-      };
+      return {maxPickableDays: MAX_PICKABLE_DAYS, maxUpgradableDays: MAX_PICKABLE_DAYS};
     default:
       throw new Error(
         `Unsupported data category: ${dataCategory} for getMaxPickableDays`

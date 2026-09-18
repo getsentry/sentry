@@ -272,45 +272,20 @@ export type EntryDebugMeta = {
   type: EntryType.DEBUGMETA;
 };
 
-export type EntryBreadcrumbs = {
-  data: {
-    values: RawCrumb[];
-  };
-  type: EntryType.BREADCRUMBS;
-};
+export type EntryBreadcrumbs = {data: {values: RawCrumb[]}; type: EntryType.BREADCRUMBS};
 
-export type EntryThreads = {
-  data: {
-    values?: Thread[];
-  };
-  type: EntryType.THREADS;
-};
+export type EntryThreads = {data: {values?: Thread[]}; type: EntryType.THREADS};
 
-export type EntryException = {
-  data: ExceptionType;
-  type: EntryType.EXCEPTION;
-};
+export type EntryException = {data: ExceptionType; type: EntryType.EXCEPTION};
 
-export type EntryStacktrace = {
-  data: StacktraceType;
-  type: EntryType.STACKTRACE;
-};
+export type EntryStacktrace = {data: StacktraceType; type: EntryType.STACKTRACE};
 
-export type EntrySpans = {
-  data: RawSpanType[];
-  type: EntryType.SPANS;
-};
+export type EntrySpans = {data: RawSpanType[]; type: EntryType.SPANS};
 
-export type AggregateEntrySpans = {
-  data: AggregateSpanType[];
-  type: EntryType.SPANS;
-};
+export type AggregateEntrySpans = {data: AggregateSpanType[]; type: EntryType.SPANS};
 
 type EntryMessage = {
-  data: {
-    formatted: string;
-    params?: Record<string, any> | any[];
-  };
+  data: {formatted: string; params?: Record<string, any> | any[]};
   type: EntryType.MESSAGE;
 };
 
@@ -348,15 +323,9 @@ export type EntryRequest = {
   type: EntryType.REQUEST;
 };
 
-type EntryTemplate = {
-  data: Frame;
-  type: EntryType.TEMPLATE;
-};
+type EntryTemplate = {data: Frame; type: EntryType.TEMPLATE};
 
-type EntryCsp = {
-  data: Record<string, any>;
-  type: EntryType.CSP;
-};
+type EntryCsp = {data: Record<string, any>; type: EntryType.CSP};
 
 type EntryResources = {
   data: any; // Data is unused here
@@ -608,9 +577,7 @@ export interface ThreadPoolInfoContext {
   [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
 }
 
-type MetricAlertContextType = {
-  alert_rule_id?: string;
-};
+type MetricAlertContextType = {alert_rule_id?: string};
 
 export enum ProfileContextKey {
   PROFILE_ID = 'profile_id',
@@ -683,23 +650,14 @@ export type EventTagWithMeta = EventTag & {meta?: Record<string, any>};
 type EventUser = {
   data?: string | null;
   email?: string;
-  geo?: {
-    city?: string;
-    country_code?: string;
-    region?: string;
-    subdivision?: string;
-  };
+  geo?: {city?: string; country_code?: string; region?: string; subdivision?: string};
   id?: string;
   ip_address?: string;
   name?: string | null;
   username?: string | null;
 };
 
-export type EventEvidenceDisplay = {
-  important: boolean;
-  name: string;
-  value: string;
-};
+export type EventEvidenceDisplay = {important: boolean; name: string; value: string};
 
 export type EventOccurrence = {
   detectionTime: string;
@@ -766,10 +724,7 @@ interface EventBase {
   endTimestamp?: number;
   formatted?: {content: string; format: string};
   groupID?: string;
-  groupingConfig?: {
-    enhancements: string;
-    id: string;
-  };
+  groupingConfig?: {enhancements: string; id: string};
   issueCategory?: IssueCategory;
   latestEventID?: string | null;
   measurements?: Record<string, Measurement>;
@@ -781,10 +736,7 @@ interface EventBase {
   projectSlug?: string;
   release?: EventRelease | null;
   resolvedWith?: string[];
-  sdk?: {
-    name: string | null;
-    version: string | null;
-  } | null;
+  sdk?: {name: string | null; version: string | null} | null;
   sdkUpdates?: SDKUpdatesSuggestion[];
   userReport?: UserReport | null;
 }

@@ -59,11 +59,7 @@ export const providerDetails = {
     makeSentence: ({providerName, integrationName, target}: any) =>
       tct(
         'Send [providerName] notification to the [integrationName] workspace to [target]',
-        {
-          providerName,
-          integrationName,
-          target,
-        }
+        {providerName, integrationName, target}
       ),
   },
   discord: {
@@ -76,11 +72,7 @@ export const providerDetails = {
     makeSentence: ({providerName, integrationName, target}: any) =>
       tct(
         'Send [providerName] notification to the [integrationName] server in the channel [target]',
-        {
-          providerName,
-          integrationName,
-          target,
-        }
+        {providerName, integrationName, target}
       ),
   },
   msteams: {
@@ -186,11 +178,7 @@ export function buildIntegrationAction({
 
   switch (provider) {
     case 'slack':
-      return {
-        id: IssueAlertActionType.SLACK,
-        workspace: integrationId,
-        channel,
-      };
+      return {id: IssueAlertActionType.SLACK, workspace: integrationId, channel};
     case 'discord':
       return {
         id: IssueAlertActionType.DISCORD,
@@ -198,11 +186,7 @@ export function buildIntegrationAction({
         channel_id: channel,
       };
     case 'msteams':
-      return {
-        id: IssueAlertActionType.MS_TEAMS,
-        team: integrationId,
-        channel,
-      };
+      return {id: IssueAlertActionType.MS_TEAMS, team: integrationId, channel};
     default:
       return undefined;
   }
@@ -523,11 +507,7 @@ export function useIssueAlertNotificationOptions({
     setup_message_integration_button_shown: shouldRenderSetupButton,
   });
 
-  return {
-    querySuccess,
-    shouldRenderNotificationConfigs,
-    shouldRenderSetupButton,
-  };
+  return {querySuccess, shouldRenderNotificationConfigs, shouldRenderSetupButton};
 }
 
 export function IssueAlertNotificationOptions(

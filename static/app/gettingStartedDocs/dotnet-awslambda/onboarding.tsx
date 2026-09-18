@@ -68,18 +68,13 @@ export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
       'Sentry provides an integration with AWS Lambda ASP.NET Core Server through the Sentry.AspNetCore NuGet package.',
-      {
-        link: <ExternalLink href="https://www.nuget.org/packages/Sentry.AspNetCore" />,
-      }
+      {link: <ExternalLink href="https://www.nuget.org/packages/Sentry.AspNetCore" />}
     ),
   install: params => [
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Add the Sentry dependency:'),
-        },
+        {type: 'text', text: t('Add the Sentry dependency:')},
         {
           type: 'code',
           tabs: [
@@ -113,25 +108,17 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'All [code:ASP.NET Core] configurations are valid here. But one configuration in particular is relevant.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
           type: 'text',
           text: tct(
             '[code:FlushOnCompletedRequest] ensures all events are flushed out. This is because the general ASP.NET Core hooks for when the process is exiting are not guaranteed to run in a serverless environment. This setting ensures that no event is lost if AWS recycles the process.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'csharp', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -143,15 +130,8 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('You can verify your setup by throwing an exception from a function:'),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getVerifySnippet(),
-        },
-        {
-          type: 'text',
-          text: t('And make a request to that lambda:'),
-        },
+        {type: 'code', language: 'csharp', code: getVerifySnippet()},
+        {type: 'text', text: t('And make a request to that lambda:')},
         {
           type: 'code',
           language: 'shell',

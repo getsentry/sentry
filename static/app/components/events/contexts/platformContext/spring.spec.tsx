@@ -19,16 +19,8 @@ describe('SpringContext', () => {
   it('returns values according to the parameters', () => {
     expect(getSpringContextData({data: MOCK_SPRING_CONTEXT})).toEqual([
       {key: 'active_profiles', subject: 'Active Profiles', value: ['some', 'profiles']},
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something'},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123},
     ]);
   });
 

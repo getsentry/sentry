@@ -8,10 +8,7 @@ export function parseMetricAggregate(aggregate: string): {
 } {
   const parsed = parseFunction(aggregate);
   if (!parsed) {
-    return {
-      aggregation: 'count',
-      traceMetric: {name: '', type: ''},
-    };
+    return {aggregation: 'count', traceMetric: {name: '', type: ''}};
   }
 
   // Format is: aggregate(value,metric_name,metric_type,unit) or aggregate_if(`query`,value,metric_name,metric_type,unit)

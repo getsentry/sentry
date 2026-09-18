@@ -170,9 +170,7 @@ function TrySeerNowButton() {
       icon={<IconUpgrade />}
       analyticsEventKey="clicked.try_seer_button"
       analyticsEventName="Clicked: Try Seer Now"
-      analyticsParams={{
-        surface,
-      }}
+      analyticsParams={{surface}}
     >
       {t('Try Seer Now')}
     </LinkButton>

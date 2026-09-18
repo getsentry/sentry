@@ -18,9 +18,7 @@ import type {
 import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
 
 describe('ConfigureIntegration settings tab', () => {
-  const org = OrganizationFixture({
-    access: ['org:integrations', 'org:write'],
-  });
+  const org = OrganizationFixture({access: ['org:integrations', 'org:write']});
   const integrationId = '1';
 
   function mockRequests(
@@ -31,9 +29,7 @@ describe('ConfigureIntegration settings tab', () => {
   ) {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/`,
-      body: {
-        providers: [provider],
-      },
+      body: {providers: [provider]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/${integrationId}/`,
@@ -43,10 +39,7 @@ describe('ConfigureIntegration settings tab', () => {
       url: `/organizations/${org.slug}/code-mappings/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/repos/`,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${org.slug}/repos/`, body: []});
   }
 
   function renderConfigure(providerKey = 'github') {
@@ -173,13 +166,7 @@ describe('ConfigureIntegration settings tab', () => {
     mockRequests(
       OrganizationIntegrationsFixture({
         provider: {...githubProvider, key: 'github'},
-        configOrganization: [
-          {
-            name: 'toggle',
-            type: 'boolean',
-            label: 'Toggle',
-          },
-        ],
+        configOrganization: [{name: 'toggle', type: 'boolean', label: 'Toggle'}],
       })
     );
 
@@ -207,10 +194,7 @@ describe('ConfigureIntegration mapping removals', () => {
         {value: '10001', label: 'Project B'},
       ],
     },
-    columnLabels: {
-      on_resolve: 'When Resolved',
-      on_unresolve: 'When Unresolved',
-    },
+    columnLabels: {on_resolve: 'When Resolved', on_unresolve: 'When Unresolved'},
     mappedColumnLabel: 'Project',
     mappedSelectors: {
       on_resolve: {
@@ -319,12 +303,7 @@ describe('ConfigureIntegration mapping removals', () => {
       expect(postRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: {
-            sync_status_forward: {
-              '10000': mappings['10000'],
-              '10001': null,
-            },
-          },
+          data: {sync_status_forward: {'10000': mappings['10000'], '10001': null}},
         })
       )
     );
@@ -387,11 +366,7 @@ describe('ConfigureIntegration mapping removals', () => {
       expect(postRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: {
-            sync_status_forward: {
-              '10000': {on_resolve: '1', on_unresolve: '2'},
-            },
-          },
+          data: {sync_status_forward: {'10000': {on_resolve: '1', on_unresolve: '2'}}},
         })
       )
     );
@@ -411,9 +386,7 @@ describe('ConfigureIntegration GCP re-verification', () => {
     providerKey?: string;
     verifyDelay?: number | Promise<void>;
   } = {}) {
-    const organization = OrganizationFixture({
-      access: ['org:integrations', 'org:write'],
-    });
+    const organization = OrganizationFixture({access: ['org:integrations', 'org:write']});
     const provider = GitHubIntegrationProviderFixture({
       key: providerKey,
       slug: providerKey,

@@ -35,11 +35,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 const PAGE_TITLE = t('Application Details');
 
 function getAppQueryKey(appId: string): ApiQueryKey {
-  return [
-    getApiUrl('/api-applications/$appId/', {
-      path: {appId},
-    }),
-  ];
+  return [getApiUrl('/api-applications/$appId/', {path: {appId}})];
 }
 
 interface RotateClientSecretResponse {
@@ -70,9 +66,7 @@ function ApiApplicationsDetails() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<ApiApplication>(getAppQueryKey(appId), {
-    staleTime: 0,
-  });
+  } = useApiQuery<ApiApplication>(getAppQueryKey(appId), {staleTime: 0});
 
   const {mutate: rotateClientSecret} = useMutation<RotateClientSecretResponse>({
     mutationFn: () => {
@@ -113,9 +107,7 @@ function ApiApplicationsDetails() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const apiApplicationEndpoint = getApiUrl('/api-applications/$appId/', {
-    path: {appId},
-  });
+  const apiApplicationEndpoint = getApiUrl('/api-applications/$appId/', {path: {appId}});
 
   const onSaveError = () => addErrorMessage(t('Unable to save change'));
   const onSaveSuccess = (updated: ApiApplication) => {

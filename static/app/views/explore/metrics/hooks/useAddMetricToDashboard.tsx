@@ -93,7 +93,5 @@ export function useAddMetricToDashboard() {
     [organization, location, getEventView, selection]
   );
 
-  return {
-    addToDashboard,
-  };
+  return {addToDashboard};
 }

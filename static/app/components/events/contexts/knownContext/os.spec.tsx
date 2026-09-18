@@ -27,12 +27,7 @@ const MOCK_OS_CONTEXT: OperatingSystemContext = {
 };
 
 const MOCK_REDACTION = {
-  raw_description: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
+  raw_description: {'': {rem: [['organization:0', 's', 0, 0]], len: 5}},
 };
 
 describe('OperatingSystemContext', () => {
@@ -41,38 +36,18 @@ describe('OperatingSystemContext', () => {
       {key: 'name', subject: 'Name', value: 'Linux'},
       {key: 'version', subject: 'Version', value: '6.1.82'},
       {key: 'build', subject: 'Build', value: '20C69'},
-      {
-        key: 'kernel_version',
-        subject: 'Kernel Version',
-        value: '99.168.amzn2023.x86_64',
-      },
+      {key: 'kernel_version', subject: 'Kernel Version', value: '99.168.amzn2023.x86_64'},
       {key: 'rooted', subject: 'Rooted', value: 'yes'},
       {key: 'theme', subject: 'Theme', value: 'dark'},
       {key: 'raw_description', subject: 'Raw Description', value: ''},
-      {
-        key: 'distribution',
-        subject: 'Distro',
-        value: 'Amazon Linux 2023.4.20240401',
-      },
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'distribution', subject: 'Distro', value: 'Amazon Linux 2023.4.20240401'},
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123, meta: undefined},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {os: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {os: MOCK_REDACTION}}});
 
     render(
       <ContextCard

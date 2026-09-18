@@ -24,9 +24,7 @@ describe('SpanEvidenceKeyValueList', () => {
       data?: Record<string, any>;
       hash?: string;
     };
-    type BuildEventOptions = {
-      patternSize?: number;
-    };
+    type BuildEventOptions = {patternSize?: number};
 
     function buildEvent(
       // N+1 and MN+1 DB issues render the same span evidence component, because they share a group
@@ -71,16 +69,8 @@ describe('SpanEvidenceKeyValueList', () => {
     it('renders relevant fields', () => {
       // A plain N+1: the same query, run twice
       const event = buildEvent([
-        {
-          op: 'db',
-          description: 'SELECT * FROM dogs WHERE id = 1121',
-          hash: 'dog_pack',
-        },
-        {
-          op: 'db',
-          description: 'SELECT * FROM dogs WHERE id = 1231',
-          hash: 'dog_pack',
-        },
+        {op: 'db', description: 'SELECT * FROM dogs WHERE id = 1121', hash: 'dog_pack'},
+        {op: 'db', description: 'SELECT * FROM dogs WHERE id = 1231', hash: 'dog_pack'},
       ]);
 
       render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
@@ -130,16 +120,8 @@ describe('SpanEvidenceKeyValueList', () => {
 
     it('renders the pattern size for MN+1 issues', () => {
       const pattern = [
-        {
-          op: 'db',
-          description: 'SELECT * FROM dogs WHERE id = 1121',
-          hash: 'dog_pack',
-        },
-        {
-          op: 'db',
-          description: 'SELECT * FROM dogs WHERE id = 1231',
-          hash: 'dog_pack',
-        },
+        {op: 'db', description: 'SELECT * FROM dogs WHERE id = 1121', hash: 'dog_pack'},
+        {op: 'db', description: 'SELECT * FROM dogs WHERE id = 1231', hash: 'dog_pack'},
         {
           op: 'db',
           description: 'SELECT * FROM tricks WHERE id = 908',
@@ -160,21 +142,9 @@ describe('SpanEvidenceKeyValueList', () => {
       // An MN+1 pattern can include spans which aren't queries at all - that's the "interspersed
       // with other spans" part of what the detector looks for.
       const pattern = [
-        {
-          op: 'db',
-          description: 'SELECT * FROM dogs WHERE id = 1121',
-          hash: 'dog_pack',
-        },
-        {
-          op: 'db',
-          description: 'SELECT * FROM dogs WHERE id = 1231',
-          hash: 'dog_pack',
-        },
-        {
-          op: 'cache.get',
-          description: 'dog_leaderboard',
-          hash: 'cached_leaderboard',
-        },
+        {op: 'db', description: 'SELECT * FROM dogs WHERE id = 1121', hash: 'dog_pack'},
+        {op: 'db', description: 'SELECT * FROM dogs WHERE id = 1231', hash: 'dog_pack'},
+        {op: 'cache.get', description: 'dog_leaderboard', hash: 'cached_leaderboard'},
         {
           op: 'db',
           description: 'SELECT * FROM tricks WHERE id = 908',
@@ -430,10 +400,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
     builder.addEntry(
       EntryRequestFixture({
-        data: {
-          ...EntryRequestFixture().data,
-          url: 'http://some.service.io',
-        },
+        data: {...EntryRequestFixture().data, url: 'http://some.service.io'},
       })
     );
 
@@ -442,10 +409,7 @@ describe('SpanEvidenceKeyValueList', () => {
       event.occurrence = {
         ...event.occurrence,
         subtitle: '/user/*/book/?book_id=*',
-        evidenceData: {
-          ...event.occurrence?.evidenceData,
-          pathParameters: ['123'],
-        },
+        evidenceData: {...event.occurrence?.evidenceData, pathParameters: ['123']},
       } as EventTransaction['occurrence'];
 
       render(
@@ -497,9 +461,7 @@ describe('SpanEvidenceKeyValueList', () => {
         expect(
           extractSpanURLString({
             span_id: 'a',
-            data: {
-              url: 'http://service.io?id=2543',
-            },
+            data: {url: 'http://service.io?id=2543'},
           })?.toString()
         ).toBe('http://service.io/?id=2543');
       });
@@ -507,12 +469,7 @@ describe('SpanEvidenceKeyValueList', () => {
       it('Pulls out a relative URL if a base is provided', () => {
         expect(
           extractSpanURLString(
-            {
-              span_id: 'a',
-              data: {
-                url: '/item',
-              },
-            },
+            {span_id: 'a', data: {url: '/item'}},
             'http://service.io'
           )?.toString()
         ).toBe('http://service.io/item');
@@ -523,10 +480,7 @@ describe('SpanEvidenceKeyValueList', () => {
           extractSpanURLString({
             span_id: 'a',
             description: 'GET http://service.io/item',
-            data: {
-              url: 'http://service.io/item',
-              'http.query': 'id=153',
-            },
+            data: {url: 'http://service.io/item', 'http.query': 'id=153'},
           })?.toString()
         ).toBe('http://service.io/item?id=153');
       });
@@ -536,9 +490,7 @@ describe('SpanEvidenceKeyValueList', () => {
           extractSpanURLString({
             span_id: 'a',
             description: 'GET http://service.io/item',
-            data: {
-              url: '/item',
-            },
+            data: {url: '/item'},
           })?.toString()
         ).toBe('http://service.io/item');
       });
@@ -561,9 +513,7 @@ describe('SpanEvidenceKeyValueList', () => {
           new URL('http://service.io/items?id=6'),
         ];
 
-        expect(extractQueryParameters(URLs)).toEqual({
-          id: ['4', '5', '6'],
-        });
+        expect(extractQueryParameters(URLs)).toEqual({id: ['4', '5', '6']});
       });
 
       it('If the URLs have multiple changing parameters, returns them and their values', () => {
@@ -623,11 +573,7 @@ describe('SpanEvidenceKeyValueList', () => {
           event={builder.getEventFixture()}
           projectSlug={projectSlug}
         />,
-        {
-          organization: OrganizationFixture({
-            features: ['visibility-explore-view'],
-          }),
-        }
+        {organization: OrganizationFixture({features: ['visibility-explore-view']})}
       );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
@@ -692,11 +638,7 @@ describe('SpanEvidenceKeyValueList', () => {
           event={builderWithoutCodeLocation.getEventFixture()}
           projectSlug={projectSlug}
         />,
-        {
-          organization: OrganizationFixture({
-            features: ['visibility-explore-view'],
-          }),
-        }
+        {organization: OrganizationFixture({features: ['visibility-explore-view']})}
       );
 
       const slowDbQuery = screen.getByTestId(
@@ -715,10 +657,7 @@ describe('SpanEvidenceKeyValueList', () => {
       'a1',
       '/',
       IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
-      {
-        duration: 3,
-        fcp: 2500,
-      }
+      {duration: 3, fcp: 2500}
     );
     builder.getEventFixture().projectID = '123';
 
@@ -789,9 +728,7 @@ describe('SpanEvidenceKeyValueList', () => {
       op: 'resource.script',
       description: 'https://example.com/resource.js',
       problemSpan: ProblemSpan.OFFENDER,
-      data: {
-        'http.response_content_length': 31041901,
-      },
+      data: {'http.response_content_length': 31041901},
     });
 
     builder.addSpan(offenderSpan);
@@ -852,9 +789,7 @@ describe('SpanEvidenceKeyValueList', () => {
         op: 'resource.script',
         description: 'https://example.com/resource.js',
         problemSpan: ProblemSpan.OFFENDER,
-        data: {
-          'Encoded Body Size': 31041901,
-        },
+        data: {'Encoded Body Size': 31041901},
       });
 
       legacyKeyBuilder.addSpan(offenderSpanWithLegacyKey);
@@ -889,9 +824,7 @@ describe('SpanEvidenceKeyValueList', () => {
       op: 'http.client',
       description: 'https://example.com/api/users',
       problemSpan: ProblemSpan.OFFENDER,
-      data: {
-        'http.response_content_length': 31041901,
-      },
+      data: {'http.response_content_length': 31041901},
     });
 
     builder.addSpan(offenderSpan);
@@ -946,9 +879,7 @@ describe('SpanEvidenceKeyValueList', () => {
         op: 'http.client',
         description: 'https://example.com/api/users',
         problemSpan: ProblemSpan.OFFENDER,
-        data: {
-          'Encoded Body Size': 31041901,
-        },
+        data: {'Encoded Body Size': 31041901},
       });
 
       legacyKeyBuilder.addSpan(offenderSpanWithLegacyKey);

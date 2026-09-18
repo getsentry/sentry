@@ -7,11 +7,7 @@ describe('Events ActionCreator', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const project = ProjectFixture();
-  const opts = {
-    organization,
-    project: [parseInt(project.id, 10)],
-    environment: [],
-  };
+  const opts = {organization, project: [parseInt(project.id, 10)], environment: []};
 
   let mock: jest.Mock;
 

@@ -22,33 +22,16 @@ export const platformOptions: PlatformOptions = {
   siblingOption: {
     label: t('Sibling Package'),
     items: [
-      {
-        label: t('Angular 14+'),
-        value: SiblingOption.ANGULARV14,
-      },
-      {
-        label: t('Angular 12 & 13'),
-        value: SiblingOption.ANGULARV12,
-      },
-      {
-        label: t('React'),
-        value: SiblingOption.REACT,
-      },
-      {
-        label: t('Vue'),
-        value: SiblingOption.VUE3,
-      },
-      {
-        label: t('Nuxt'),
-        value: SiblingOption.NUXT,
-      },
+      {label: t('Angular 14+'), value: SiblingOption.ANGULARV14},
+      {label: t('Angular 12 & 13'), value: SiblingOption.ANGULARV12},
+      {label: t('React'), value: SiblingOption.REACT},
+      {label: t('Vue'), value: SiblingOption.VUE3},
+      {label: t('Nuxt'), value: SiblingOption.NUXT},
     ],
   },
 };
 
-export type PlatformOptions = {
-  siblingOption: PlatformOption<SiblingOption>;
-};
+export type PlatformOptions = {siblingOption: PlatformOption<SiblingOption>};
 export type Params = DocsParams<PlatformOptions>;
 
 const isAngular = (siblingOption: string): boolean =>
@@ -197,10 +180,7 @@ export function getSetupConfiguration({
       type: 'text',
       text: tct(
         'You should init the Sentry capacitor SDK in your [code:main.ts] file as soon as possible during application load up, before initializing Sentry [siblingName:]',
-        {
-          siblingName: getSiblingName(siblingOption),
-          code: <code />,
-        }
+        {siblingName: getSiblingName(siblingOption), code: <code />}
       ),
     });
   }

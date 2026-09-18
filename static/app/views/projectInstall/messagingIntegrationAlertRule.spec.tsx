@@ -19,22 +19,14 @@ import {
 describe('MessagingIntegrationAlertRule', () => {
   const organization = OrganizationFixture();
   const slackIntegrations = [
-    OrganizationIntegrationsFixture({
-      name: "Moo Deng's Workspace",
-    }),
-    OrganizationIntegrationsFixture({
-      name: "Moo Waan's Workspace",
-    }),
+    OrganizationIntegrationsFixture({name: "Moo Deng's Workspace"}),
+    OrganizationIntegrationsFixture({name: "Moo Waan's Workspace"}),
   ];
   const discordIntegrations = [
-    OrganizationIntegrationsFixture({
-      name: "Moo Deng's Server",
-    }),
+    OrganizationIntegrationsFixture({name: "Moo Deng's Server"}),
   ];
   const msteamsIntegrations = [
-    OrganizationIntegrationsFixture({
-      name: "Moo Deng's Team",
-    }),
+    OrganizationIntegrationsFixture({name: "Moo Deng's Team"}),
   ];
 
   const providersToIntegrations = {
@@ -49,10 +41,7 @@ describe('MessagingIntegrationAlertRule', () => {
 
   const notificationProps: IssueAlertNotificationProps = {
     actions: [],
-    channel: {
-      label: 'channel',
-      value: 'channel',
-    },
+    channel: {label: 'channel', value: 'channel'},
     integration: slackIntegrations[0],
     provider: 'slack',
     providersToIntegrations,
@@ -68,9 +57,7 @@ describe('MessagingIntegrationAlertRule', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channels/`,
-      body: {
-        results: [],
-      },
+      body: {results: []},
     });
   });
 
@@ -173,10 +160,7 @@ describe('MessagingIntegrationAlertRule', () => {
   it('shows the selected channel when no channels are returned', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${discordIntegrations[0]!.id}/channels/`,
-      body: {
-        nextCursor: null,
-        results: [],
-      },
+      body: {nextCursor: null, results: []},
     });
 
     render(
@@ -227,9 +211,7 @@ describe('MessagingIntegrationAlertRule', () => {
     await waitFor(() => {
       expect(validationRequest).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          query: {channel: '#custom-channel'},
-        })
+        expect.objectContaining({query: {channel: '#custom-channel'}})
       );
     });
   });

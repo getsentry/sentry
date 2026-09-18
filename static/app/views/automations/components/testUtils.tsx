@@ -9,11 +9,7 @@ import {
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 
 const defaultBuilderState: AutomationBuilderState = {
-  triggers: {
-    id: 'triggers',
-    conditions: [],
-    logicType: DataConditionGroupLogicType.ANY,
-  },
+  triggers: {id: 'triggers', conditions: [], logicType: DataConditionGroupLogicType.ANY},
   actionFilters: [],
 };
 
@@ -73,10 +69,7 @@ export function AutomationBuilderTestProvider({
       >
         <AutomationBuilderConflictContext.Provider
           value={
-            conflictContext ?? {
-              conflictingConditionGroups: {},
-              conflictReason: null,
-            }
+            conflictContext ?? {conflictingConditionGroups: {}, conflictReason: null}
           }
         >
           {children}

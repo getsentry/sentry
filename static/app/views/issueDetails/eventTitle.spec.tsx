@@ -30,43 +30,43 @@ describe('EventNavigation', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    jest.mocked(useIssueDetails).mockReturnValue({
-      sectionData: {
-        highlights: {key: SectionKey.HIGHLIGHTS},
-        tags: {key: SectionKey.TAGS},
-        replay: {key: SectionKey.REPLAY},
-      },
-      detectorDetails: {},
-      eventCount: 0,
-      eventNavigationHeight: 0,
-      isSidebarOpen: true,
-      navScrollMargin: 0,
-      dispatch: jest.fn(),
-    });
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
-    });
+    jest
+      .mocked(useIssueDetails)
+      .mockReturnValue({
+        sectionData: {
+          highlights: {key: SectionKey.HIGHLIGHTS},
+          tags: {key: SectionKey.TAGS},
+          replay: {key: SectionKey.REPLAY},
+        },
+        detectorDetails: {},
+        eventCount: 0,
+        eventNavigationHeight: 0,
+        isSidebarOpen: true,
+        navScrollMargin: 0,
+        dispatch: jest.fn(),
+      });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
     window.open = jest.fn();
 
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/events/event-id/actionable-items/',
-      body: {
-        errors: [],
-      },
+      body: {errors: []},
       method: 'GET',
     });
   });
 
   it('does not show jump to sections by default', () => {
-    jest.mocked(useIssueDetails).mockReturnValue({
-      sectionData: {},
-      detectorDetails: {},
-      eventCount: 0,
-      eventNavigationHeight: 0,
-      isSidebarOpen: true,
-      navScrollMargin: 0,
-      dispatch: jest.fn(),
-    });
+    jest
+      .mocked(useIssueDetails)
+      .mockReturnValue({
+        sectionData: {},
+        detectorDetails: {},
+        eventCount: 0,
+        eventNavigationHeight: 0,
+        isSidebarOpen: true,
+        navScrollMargin: 0,
+        dispatch: jest.fn(),
+      });
     render(<EventTitle {...defaultProps} />);
     expect(screen.queryByText('Jump To:')).not.toBeInTheDocument();
     expect(screen.queryByText('Replay')).not.toBeInTheDocument();
@@ -95,13 +95,7 @@ describe('EventNavigation', () => {
       url: '/projects/org-slug/project-slug/events/event-id/actionable-items/',
       body: {
         errors: [
-          {
-            type: 'invalid_data',
-            data: {
-              name: 'logentry',
-            },
-            message: 'no message present',
-          },
+          {type: 'invalid_data', data: {name: 'logentry'}, message: 'no message present'},
         ],
       },
       method: 'GET',

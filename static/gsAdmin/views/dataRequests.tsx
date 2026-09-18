@@ -17,11 +17,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
-type EventResult = {
-  groupID: string;
-  id: string;
-  title: string;
-};
+type EventResult = {groupID: string; id: string; title: string};
 
 type Result = {data: EventResult; type: 'event'} | {data: User; type: 'user'};
 

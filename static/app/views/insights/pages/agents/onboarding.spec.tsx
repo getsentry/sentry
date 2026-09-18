@@ -16,9 +16,7 @@ describe('UnsupportedPlatformOnboarding', () => {
   const project = ProjectFixture();
 
   beforeEach(() => {
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
   });
 
   it('renders CopyMarkdownButton', () => {
@@ -239,9 +237,7 @@ describe('NoDocsOnboarding', () => {
   const project = ProjectFixture();
 
   beforeEach(() => {
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
   });
 
   it('renders CopyMarkdownButton', () => {

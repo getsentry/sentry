@@ -88,10 +88,7 @@ export function ConsoleLogRow({
   );
 }
 
-const ConsoleLog = styled('div')<{
-  hasOccurred: boolean;
-  level: undefined | string;
-}>`
+const ConsoleLog = styled('div')<{hasOccurred: boolean; level: undefined | string}>`
   display: grid;
   grid-template-columns: 12px 1fr max-content;
   gap: ${p => p.theme.space.sm};

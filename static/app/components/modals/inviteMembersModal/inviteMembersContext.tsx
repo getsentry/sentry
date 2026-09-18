@@ -29,11 +29,7 @@ export const defaultInviteProps: InviteMembersContextValue = {
   inviteStatus: {},
   invites: [],
   isOverMemberLimit: false,
-  pendingInvites: {
-    emails: new Set<string>(),
-    role: '',
-    teams: new Set<string>(),
-  },
+  pendingInvites: {emails: new Set<string>(), role: '', teams: new Set<string>()},
   reset: () => {},
   sendInvites: () => {},
   sendingInvites: false,

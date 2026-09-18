@@ -7,11 +7,7 @@ import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 describe('utils', () => {
   const teamPlan = PlanDetailsLookupFixture('am1_team');
   const bizPlan = PlanDetailsLookupFixture('am1_business');
-  const DEFAULT_ADDONS = {
-    [AddOnCategory.LEGACY_SEER]: {
-      enabled: false,
-    },
-  };
+  const DEFAULT_ADDONS = {[AddOnCategory.LEGACY_SEER]: {enabled: false}};
 
   describe('formatPrice', () => {
     it('formats price correctly', () => {

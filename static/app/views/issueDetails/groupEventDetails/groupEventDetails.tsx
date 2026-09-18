@@ -39,10 +39,7 @@ function GroupEventDetails() {
     data: event,
     isPending: isLoadingEvent,
     isError: isEventError,
-  } = useGroupEvent({
-    groupId: params.groupId,
-    eventId: params.eventId,
-  });
+  } = useGroupEvent({groupId: params.groupId, eventId: params.eventId});
 
   const {
     data: group,

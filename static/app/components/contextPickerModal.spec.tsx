@@ -32,10 +32,7 @@ describe('ContextPickerModal', () => {
     project = ProjectFixture();
     org = OrganizationFixture();
     project2 = ProjectFixture({slug: 'project2'});
-    org2 = OrganizationFixture({
-      slug: 'org2',
-      id: '21',
-    });
+    org2 = OrganizationFixture({slug: 'org2', id: '21'});
     project4 = ProjectFixture({slug: 'project4', isMember: false});
 
     OrganizationsStore.load([]);
@@ -133,12 +130,7 @@ describe('ContextPickerModal', () => {
       body: [project, project2, project4],
     });
 
-    render(
-      getComponent({
-        needOrg: true,
-        needProject: true,
-      })
-    );
+    render(getComponent({needOrg: true, needProject: true}));
 
     await waitFor(() => {
       expect(fetchProjectsForOrg).toHaveBeenCalled();
@@ -161,14 +153,8 @@ describe('ContextPickerModal', () => {
 
   it('can select org and project', async () => {
     const organizations = [
-      {
-        ...org,
-        projects: [project],
-      },
-      {
-        ...org2,
-        projects: [project2, ProjectFixture({slug: 'project3'})],
-      },
+      {...org, projects: [project]},
+      {...org2, projects: [project2, ProjectFixture({slug: 'project3'})]},
     ];
     const fetchProjectsForOrg = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/projects/`,

@@ -109,24 +109,13 @@ export function HomePage() {
     navigate(`/_admin/customers/${organization.slug}/`);
   };
   const orgSubmit = (query: string) => {
-    navigate({
-      pathname: '/_admin/customers/',
-      query: {
-        query,
-        regionUrl: localityUrl,
-      },
-    });
+    navigate({pathname: '/_admin/customers/', query: {query, regionUrl: localityUrl}});
   };
   const userSelect = (user: User) => {
     navigate(`/_admin/users/${user.id}/`);
   };
   const userSubmit = (query: string) => {
-    navigate({
-      pathname: '/_admin/users/',
-      query: {
-        query,
-      },
-    });
+    navigate({pathname: '/_admin/users/', query: {query}});
   };
   const projSelect = (project: ProjectSearchResult) => {
     navigate(`/_admin/customers/${project.organization.slug}/projects/${project.slug}/`);
@@ -190,10 +179,7 @@ export function HomePage() {
             <OverlayTrigger.Button {...triggerProps} prefix="Region" />
           )}
           value={localityUrl}
-          options={cells.map(c => ({
-            label: c.name,
-            value: c.locality_url,
-          }))}
+          options={cells.map(c => ({label: c.name, value: c.locality_url}))}
           onChange={opt => {
             setLocalityUrl(opt.value);
           }}

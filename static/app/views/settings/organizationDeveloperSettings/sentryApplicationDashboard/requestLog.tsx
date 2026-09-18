@@ -176,10 +176,7 @@ export function RequestLog({app}: RequestLogProps) {
               <OverlayTrigger.Button {...triggerProps}>{eventType}</OverlayTrigger.Button>
             )}
             value={eventType}
-            options={getEventTypes(app).map(type => ({
-              value: type,
-              label: type,
-            }))}
+            options={getEventTypes(app).map(type => ({value: type, label: type}))}
             onChange={opt => handleChangeEventType(opt?.value)}
           />
 

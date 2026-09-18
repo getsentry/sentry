@@ -247,10 +247,7 @@ function useInvalidRoleDetection(roles: string[]) {
   const captureMessage = useEffectEvent(() => {
     Sentry.captureMessage('Gen AI message with invalid role', {
       level: 'warning',
-      tags: {
-        feature: 'agent-monitoring',
-        invalid_role_count: invalidRoles.length,
-      },
+      tags: {feature: 'agent-monitoring', invalid_role_count: invalidRoles.length},
       extra: {
         invalid_roles: invalidRoles,
         allowed_roles: Array.from(ALLOWED_MESSAGE_ROLES),

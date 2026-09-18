@@ -2,15 +2,9 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
-jest.mock('sentry/components/charts/baseChart', () => ({
-  BaseChart: jest.fn(() => null),
-}));
+jest.mock('sentry/components/charts/baseChart', () => ({BaseChart: jest.fn(() => null)}));
 
-const METRIC = {
-  name: 'checkout.latency',
-  type: 'distribution',
-  unit: 'millisecond',
-};
+const METRIC = {name: 'checkout.latency', type: 'distribution', unit: 'millisecond'};
 
 /** The fully qualified spelling Explore recognises for the metric above. */
 const QUALIFIED_P95 = 'p95(value,checkout.latency,distribution,millisecond)';
@@ -57,10 +51,7 @@ describe('metrics query embed', () => {
   });
 
   it('falls back to the default aggregate for the metric type', () => {
-    renderEmbed({
-      data: {...METRIC, mode: 'aggregate', query: ''},
-      level: 'inline',
-    });
+    renderEmbed({data: {...METRIC, mode: 'aggregate', query: ''}, level: 'inline'});
 
     // `distribution` defaults to `sum`, not a blanket `sum(value)`.
     const href = screen
@@ -140,9 +131,7 @@ describe('metrics query embed', () => {
       body: {data: []},
     });
 
-    renderEmbed({
-      data: {...METRIC, mode: 'aggregate', query: '', yAxes: ['p95(value)']},
-    });
+    renderEmbed({data: {...METRIC, mode: 'aggregate', query: '', yAxes: ['p95(value)']}});
 
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();

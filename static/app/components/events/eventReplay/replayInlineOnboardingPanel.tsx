@@ -19,10 +19,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-type OnboardingCTAProps = {
-  platform: PlatformKey;
-  projectId: string;
-};
+type OnboardingCTAProps = {platform: PlatformKey; projectId: string};
 
 export default function ReplayInlineOnboardingPanel({
   platform,

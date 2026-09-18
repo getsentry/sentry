@@ -202,9 +202,7 @@ export function SearchBar(props: SearchBarProps) {
                 ? TRANSACTION_SEARCH_PERIOD
                 : eventView.statsPeriod;
 
-            const [results] = await doDiscoverQuery<{
-              data: DataItem[];
-            }>(api, url, {
+            const [results] = await doDiscoverQuery<{data: DataItem[]}>(api, url, {
               field: ['transaction', 'project_id', 'count()'],
               project: (eventView.project as Array<Readonly<number>>)?.map(String),
               sort: '-count()',
@@ -223,12 +221,7 @@ export function SearchBar(props: SearchBarProps) {
                 });
                 return searchGroup;
               },
-              {
-                title: 'All Transactions',
-                children: [],
-                icon: null,
-                type: 'header',
-              }
+              {title: 'All Transactions', children: [], icon: null, type: 'header'}
             );
 
             setHighlightedItemIndex(-1);

@@ -52,24 +52,13 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'composer require sentry/sentry',
-        },
+        {type: 'code', language: 'bash', code: 'composer require sentry/sentry'},
         {
           type: 'conditional',
           condition: params.isProfilingSelected,
           content: [
-            {
-              type: 'text',
-              text: t('Install the Excimer extension via PECL:'),
-            },
-            {
-              type: 'code',
-              language: 'bash',
-              code: 'pecl install excimer',
-            },
+            {type: 'text', text: t('Install the Excimer extension via PECL:')},
+            {type: 'code', language: 'bash', code: 'pecl install excimer'},
             {
               type: 'text',
               text: tct(
@@ -96,11 +85,7 @@ export const onboarding: OnboardingConfig = {
             'To capture all errors, even the one during the startup of your application, you should initialize the Sentry PHP SDK as soon as possible.'
           ),
         },
-        {
-          type: 'code',
-          language: 'php',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'php', code: getConfigureSnippet(params)},
         {
           type: 'conditional',
           condition: params.isPerformanceSelected,
@@ -124,9 +109,7 @@ export const onboarding: OnboardingConfig = {
           showIcon: false,
           text: tct(
             'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
       ],
@@ -142,11 +125,7 @@ export const onboarding: OnboardingConfig = {
             'In PHP you can either capture a caught exception or capture the last error with captureLastError.'
           ),
         },
-        {
-          type: 'code',
-          language: 'php',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'php', code: getVerifySnippet()},
       ],
     },
   ],

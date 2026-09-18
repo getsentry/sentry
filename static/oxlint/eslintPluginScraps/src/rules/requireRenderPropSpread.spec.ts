@@ -2,13 +2,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 
 import {requireRenderPropSpread} from './requireRenderPropSpread';
 
-const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      lang: 'tsx',
-    },
-  },
-});
+const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'tsx'}}});
 
 const IMPORTS = `
 import {Container, Flex, Grid, Stack, Surface} from '@sentry/scraps/layout';

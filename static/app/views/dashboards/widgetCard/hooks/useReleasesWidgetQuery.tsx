@@ -115,11 +115,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
   const transformedData = (() => {
     if (validationError) {
-      return {
-        loading: false,
-        errorMessage: validationError,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading: false, errorMessage: validationError, rawData: EMPTY_ARRAY};
     }
 
     const isFetching = queryResults.some(q => q?.isFetching);
@@ -135,11 +131,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: Series[] = [];
@@ -283,11 +275,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
   const transformedData = (() => {
     if (validationError) {
-      return {
-        loading: false,
-        errorMessage: validationError,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading: false, errorMessage: validationError, rawData: EMPTY_ARRAY};
     }
 
     const isFetching = queryResults.some(q => q?.isFetching);
@@ -303,11 +291,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const tableResults: TableDataWithTitle[] = [];

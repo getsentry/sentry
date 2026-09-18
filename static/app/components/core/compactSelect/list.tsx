@@ -265,11 +265,7 @@ export function List<Value extends SelectKey>({
     overlayState,
   ]);
 
-  const listState = useListState({
-    ...props,
-    ...listStateProps,
-    items: collectionItems,
-  });
+  const listState = useListState({...props, ...listStateProps, items: collectionItems});
 
   // In composite selects, focus should seamlessly move from one region (list) to
   // another when the ArrowUp/Down key is pressed

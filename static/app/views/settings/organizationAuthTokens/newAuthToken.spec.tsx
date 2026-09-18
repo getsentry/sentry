@@ -40,9 +40,7 @@ describe('OrganizationAuthTokensNewAuthToken', () => {
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
-      expect.objectContaining({
-        data: {name: 'My Token'},
-      })
+      expect.objectContaining({data: {name: 'My Token'}})
     );
   });
 
@@ -54,9 +52,7 @@ describe('OrganizationAuthTokensNewAuthToken', () => {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'POST',
-      body: {
-        detail: 'Test API error occurred.',
-      },
+      body: {detail: 'Test API error occurred.'},
       statusCode: 400,
     });
 
@@ -73,9 +69,7 @@ describe('OrganizationAuthTokensNewAuthToken', () => {
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
-      expect.objectContaining({
-        data: {name: 'My Token'},
-      })
+      expect.objectContaining({data: {name: 'My Token'}})
     );
   });
 
@@ -87,9 +81,7 @@ describe('OrganizationAuthTokensNewAuthToken', () => {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'POST',
-      body: {
-        detail: {message: 'test message', code: 'missing_system_url_prefix'},
-      },
+      body: {detail: {message: 'test message', code: 'missing_system_url_prefix'}},
       statusCode: 400,
     });
 
@@ -106,9 +98,7 @@ describe('OrganizationAuthTokensNewAuthToken', () => {
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
-      expect.objectContaining({
-        data: {name: 'My Token'},
-      })
+      expect.objectContaining({data: {name: 'My Token'}})
     );
   });
 });

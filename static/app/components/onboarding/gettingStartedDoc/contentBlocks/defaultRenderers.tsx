@@ -67,10 +67,7 @@ function CodeBlock(block: Extract<ContentBlock, {type: 'code'}>) {
     );
   }
 
-  const tabsWithValues = block.tabs.map(tab => ({
-    ...tab,
-    value: tab.label,
-  }));
+  const tabsWithValues = block.tabs.map(tab => ({...tab, value: tab.label}));
 
   return (
     <div css={baseBlockStyles}>

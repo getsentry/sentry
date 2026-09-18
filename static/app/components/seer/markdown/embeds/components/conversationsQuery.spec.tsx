@@ -31,12 +31,7 @@ function conversationFixture(overrides: Record<string, unknown> = {}) {
     traceCount: 1,
     traceIds: ['trace-1'],
     projectId: 1,
-    user: {
-      email: 'user@example.com',
-      id: '1',
-      ip_address: null,
-      username: null,
-    },
+    user: {email: 'user@example.com', id: '1', ip_address: null, username: null},
     ...overrides,
   };
 }
@@ -150,16 +145,11 @@ describe('conversationsQuery embed', () => {
   });
 
   it('links each row to its conversation in a new tab', async () => {
-    MockApiClient.addMockResponse({
-      url: LIST_URL,
-      body: [conversationFixture()],
-    });
+    MockApiClient.addMockResponse({url: LIST_URL, body: [conversationFixture()]});
 
     renderEmbed({name: 'conversationsQuery', data: {query: ''}});
 
-    const link = await screen.findByRole('link', {
-      name: 'Refund request escalated',
-    });
+    const link = await screen.findByRole('link', {name: 'Refund request escalated'});
 
     // A new tab keeps the answer the embed is rendered into on screen.
     expect(link).toHaveAttribute('target', '_blank');
@@ -189,10 +179,7 @@ describe('conversationsQuery embed', () => {
   it('shows an empty state when nothing matches', async () => {
     MockApiClient.addMockResponse({url: LIST_URL, body: []});
 
-    renderEmbed({
-      name: 'conversationsQuery',
-      data: {query: 'gen_ai.tool.name:*'},
-    });
+    renderEmbed({name: 'conversationsQuery', data: {query: 'gen_ai.tool.name:*'}});
 
     expect(await screen.findByText('No matching conversations')).toBeInTheDocument();
   });

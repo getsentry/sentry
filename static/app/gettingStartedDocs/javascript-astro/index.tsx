@@ -17,10 +17,7 @@ export const docs: Docs = {
   replayOnboarding: replay,
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
-  logsOnboarding: logsFullStack({
-    docsPlatform: 'astro',
-    packageName: '@sentry/astro',
-  }),
+  logsOnboarding: logsFullStack({docsPlatform: 'astro', packageName: '@sentry/astro'}),
   profilingOnboarding: profilingFullStack({
     packageName: '@sentry/astro',
     browserProfilingLink:

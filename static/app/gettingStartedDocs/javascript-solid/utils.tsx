@@ -104,20 +104,8 @@ render(() => <App />, root);
 export const installSnippetBlock: ContentBlock = {
   type: 'code',
   tabs: [
-    {
-      label: 'npm',
-      language: 'bash',
-      code: 'npm install --save @sentry/solid',
-    },
-    {
-      label: 'yarn',
-      language: 'bash',
-      code: 'yarn add @sentry/solid',
-    },
-    {
-      label: 'pnpm',
-      language: 'bash',
-      code: 'pnpm add @sentry/solid',
-    },
+    {label: 'npm', language: 'bash', code: 'npm install --save @sentry/solid'},
+    {label: 'yarn', language: 'bash', code: 'yarn add @sentry/solid'},
+    {label: 'pnpm', language: 'bash', code: 'pnpm add @sentry/solid'},
   ],
 };

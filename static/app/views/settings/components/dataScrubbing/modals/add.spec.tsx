@@ -814,10 +814,7 @@ describe('Add Modal', () => {
 
     localStorage.setItem(
       'advanced-data-scrubbing',
-      JSON.stringify({
-        eventId: storedEventId,
-        sourceSuggestions: [],
-      })
+      JSON.stringify({eventId: storedEventId, sourceSuggestions: []})
     );
 
     render(
@@ -871,9 +868,7 @@ describe('Add Modal', () => {
 });
 
 describe('Add Modal with ourlogs-enabled', () => {
-  const organization = OrganizationFixture({
-    features: ['ourlogs-enabled'],
-  });
+  const organization = OrganizationFixture({features: ['ourlogs-enabled']});
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

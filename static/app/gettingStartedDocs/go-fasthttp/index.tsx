@@ -16,8 +16,6 @@ export const docs: Docs = {
       'https://docs.sentry.io/platforms/go/guides/fasthttp/user-feedback/configuration/#crash-report-modal',
   }),
   feedbackOnboardingJsLoader,
-  logsOnboarding: logs({
-    docsPlatform: 'fasthttp',
-  }),
+  logsOnboarding: logs({docsPlatform: 'fasthttp'}),
   metricsOnboarding: metrics,
 };

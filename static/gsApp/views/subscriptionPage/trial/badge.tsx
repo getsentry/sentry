@@ -8,10 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft, getTrialLength, isTrial} from 'getsentry/utils/billing';
 
-type Props = {
-  organization: Organization;
-  subscription: Subscription;
-};
+type Props = {organization: Organization; subscription: Subscription};
 
 export function TrialBadge({subscription, organization}: Props) {
   if (isTrial(subscription)) {

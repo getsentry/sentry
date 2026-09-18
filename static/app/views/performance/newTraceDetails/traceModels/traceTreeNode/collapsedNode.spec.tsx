@@ -9,26 +9,17 @@ import {EapSpanNode} from './eapSpanNode';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 const createCollapsedNodeValue = (
   overrides: Partial<TraceTree.CollapsedNode> = {}
-): TraceTree.CollapsedNode => ({
-  type: 'collapsed',
-  ...overrides,
-});
+): TraceTree.CollapsedNode => ({type: 'collapsed', ...overrides});
 
 describe('CollapsedNode', () => {
   describe('constructor', () => {
     it('should initialize with basic properties', () => {
       const extra = createMockExtra();
-      const parentValue = makeEAPSpan({
-        event_id: 'parent',
-        is_transaction: true,
-      });
+      const parentValue = makeEAPSpan({event_id: 'parent', is_transaction: true});
       const collapsedValue = createCollapsedNodeValue();
 
       const parentNode = new EapSpanNode(null, parentValue, extra);
@@ -42,10 +33,7 @@ describe('CollapsedNode', () => {
 
     it('should automatically add itself to parent children', () => {
       const extra = createMockExtra();
-      const parentValue = makeEAPSpan({
-        event_id: 'parent',
-        is_transaction: true,
-      });
+      const parentValue = makeEAPSpan({event_id: 'parent', is_transaction: true});
       const collapsedValue = createCollapsedNodeValue();
 
       const parentNode = new EapSpanNode(null, parentValue, extra);
@@ -60,10 +48,7 @@ describe('CollapsedNode', () => {
 
     it('should handle different parent types', () => {
       const extra = createMockExtra();
-      const parentValue = makeEAPSpan({
-        event_id: 'span-parent',
-        is_transaction: false,
-      });
+      const parentValue = makeEAPSpan({event_id: 'span-parent', is_transaction: false});
       const collapsedValue = createCollapsedNodeValue();
 
       const parentNode = new EapSpanNode(null, parentValue, extra);
@@ -76,10 +61,7 @@ describe('CollapsedNode', () => {
 
     it('should call parent constructor with correct parameters', () => {
       const extra = createMockExtra();
-      const parentValue = makeEAPSpan({
-        event_id: 'parent',
-        is_transaction: true,
-      });
+      const parentValue = makeEAPSpan({event_id: 'parent', is_transaction: true});
       const collapsedValue = createCollapsedNodeValue();
 
       const parentNode = new EapSpanNode(null, parentValue, extra);
@@ -114,10 +96,7 @@ describe('CollapsedNode', () => {
       const parentNode = new EapSpanNode(null, parentValue, extra);
       const node = new CollapsedNode(parentNode, collapsedValue, extra);
 
-      expect(node.traceHeaderTitle).toEqual({
-        title: 'Collapsed',
-        subtitle: undefined,
-      });
+      expect(node.traceHeaderTitle).toEqual({title: 'Collapsed', subtitle: undefined});
     });
 
     it('should return consistent results across multiple calls', () => {

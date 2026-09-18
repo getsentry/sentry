@@ -22,11 +22,7 @@ export function useTransaction(props: UseTransactionProps) {
           },
         }
       ),
-      {
-        query: {
-          referrer: 'trace-details-summary',
-        },
-      },
+      {query: {referrer: 'trace-details-summary'}},
     ],
     {
       // 10 minutes

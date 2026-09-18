@@ -162,9 +162,7 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
             },
           }
         ),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       )
       .then(() => {
         addSuccessMessage(t('Events similar to these will no longer be filtered'));

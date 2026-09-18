@@ -32,12 +32,7 @@ describe('useMetricOptions', () => {
       PageFiltersStore.onInitializeUrlState({
         projects: [project].map(p => parseInt(p.id, 10)),
         environments: ['production'],
-        datetime: {
-          period: '3d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+        datetime: {period: '3d', start: null, end: null, utc: null},
       });
     });
     MockApiClient.addMockResponse({
@@ -74,9 +69,7 @@ describe('useMetricOptions', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(useMetricOptions, {
-      ...context,
-    });
+    const {result} = renderHookWithProviders(useMetricOptions, {...context});
 
     await waitFor(() =>
       expect(result.current.data?.data).toEqual([
@@ -102,9 +95,7 @@ describe('useMetricOptions', () => {
       body: mockData,
     });
 
-    const {result} = renderHookWithProviders(useMetricOptions, {
-      ...context,
-    });
+    const {result} = renderHookWithProviders(useMetricOptions, {...context});
 
     await waitFor(() =>
       expect(mockRequest).toHaveBeenCalledWith(
@@ -140,9 +131,7 @@ describe('useMetricOptions', () => {
       body: {data: []},
     });
 
-    const {result} = renderHookWithProviders(useMetricOptions, {
-      ...context,
-    });
+    const {result} = renderHookWithProviders(useMetricOptions, {...context});
 
     await waitFor(() => expect(result.current.data?.data).toEqual([]));
     expect(result.current.isMetricOptionsEmpty).toBe(true);
@@ -184,9 +173,7 @@ describe('useMetricOptions', () => {
       expect(mockRequest).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/events/`,
         expect.objectContaining({
-          query: expect.objectContaining({
-            environment: ['production'],
-          }),
+          query: expect.objectContaining({environment: ['production']}),
         })
       )
     );

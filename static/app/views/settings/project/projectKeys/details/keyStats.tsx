@@ -15,17 +15,9 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-type KeyStatPoint = {
-  accepted: number;
-  dropped: number;
-  total: number;
-  ts: number;
-};
+type KeyStatPoint = {accepted: number; dropped: number; total: number; ts: number};
 
-type DerivedStats = {
-  emptyStats: boolean;
-  series: Series[];
-};
+type DerivedStats = {emptyStats: boolean; series: Series[]};
 
 function deriveStats(data: KeyStatPoint[]): DerivedStats {
   let emptyStats = true;
@@ -41,14 +33,8 @@ function deriveStats(data: KeyStatPoint[]): DerivedStats {
   });
 
   const series: Series[] = [
-    {
-      seriesName: t('Accepted'),
-      data: accepted,
-    },
-    {
-      seriesName: t('Rate Limited'),
-      data: dropped,
-    },
+    {seriesName: t('Accepted'), data: accepted},
+    {seriesName: t('Rate Limited'), data: dropped},
   ];
 
   return {series, emptyStats};
@@ -61,10 +47,7 @@ export function KeyStats() {
 
   const [queryBase] = useState(() => {
     const until = Math.floor(Date.now() / 1000);
-    return {
-      since: until - 3600 * 24 * 30,
-      until,
-    };
+    return {since: until - 3600 * 24 * 30, until};
   });
 
   const {data, isPending, isError, refetch} = useApiQuery<KeyStatPoint[]>(

@@ -18,31 +18,17 @@ const MOCK_PROFILE_CONTEXT = {
   unknown_key: 123,
 };
 
-const MOCK_REDACTION = {
-  extra_data: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
-};
+const MOCK_REDACTION = {extra_data: {'': {rem: [['organization:0', 's', 0, 0]], len: 5}}};
 
 describe('ProfileContext', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
   it('returns values and according to the parameters', () => {
-    const event = TransactionEventFixture({
-      _meta: {contexts: {profile: MOCK_REDACTION}},
-    });
+    const event = TransactionEventFixture({_meta: {contexts: {profile: MOCK_REDACTION}}});
 
     expect(
-      getProfileContextData({
-        data: MOCK_PROFILE_CONTEXT,
-        event,
-        organization,
-        project,
-      })
+      getProfileContextData({data: MOCK_PROFILE_CONTEXT, event, organization, project})
     ).toEqual([
       {
         key: 'profile_id',
@@ -68,25 +54,13 @@ describe('ProfileContext', () => {
           },
         },
       },
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123, meta: undefined},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = TransactionEventFixture({
-      _meta: {contexts: {profile: MOCK_REDACTION}},
-    });
+    const event = TransactionEventFixture({_meta: {contexts: {profile: MOCK_REDACTION}}});
 
     render(
       <ContextCard

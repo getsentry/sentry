@@ -20,18 +20,14 @@ describe('Performance Onboarding View > Unsupported Banner', () => {
   const organization = OrganizationFixture();
 
   it('Displays unsupported banner for unsupported projects', () => {
-    const project = ProjectFixture({
-      platform: 'nintendo-switch',
-    });
+    const project = ProjectFixture({platform: 'nintendo-switch'});
     render(<LegacyOnboarding organization={organization} project={project} />);
 
     expect(screen.getByTestId('unsupported-alert')).toBeInTheDocument();
   });
 
   it('Does not display unsupported banner for supported projects', () => {
-    const project = ProjectFixture({
-      platform: 'java',
-    });
+    const project = ProjectFixture({platform: 'java'});
     render(<LegacyOnboarding organization={organization} project={project} />);
 
     expect(screen.queryByTestId('unsupported-alert')).not.toBeInTheDocument();
@@ -48,10 +44,7 @@ describe('Testing new onboarding ui', () => {
       body: [ProjectKeysFixture()[0]],
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sdks/',
-      method: 'GET',
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/sdks/', method: 'GET'});
 
     PageFiltersStore.init();
   });
@@ -197,20 +190,12 @@ describe('Testing new onboarding ui', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(projectMock.id, 10)],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/traces/`,
-      body: {
-        data: [],
-        meta: {},
-      },
+      body: {data: [], meta: {}},
       match: [
         MockApiClient.matchQuery({
           project: [parseInt(projectMock.id, 10)],
@@ -228,19 +213,12 @@ describe('Testing new onboarding ui', () => {
 
     render(<Onboarding organization={organization} project={projectMock} />, {
       initialRouterConfig: {
-        location: {
-          pathname: RouterFixture().location.pathname,
-          query: {
-            guidedStep: '4',
-          },
-        },
+        location: {pathname: RouterFixture().location.pathname, query: {guidedStep: '4'}},
       },
     });
 
     expect(
-      await screen.findByRole('button', {
-        name: 'Take me to my trace',
-      })
+      await screen.findByRole('button', {name: 'Take me to my trace'})
     ).toHaveAttribute('aria-busy', 'true');
   });
 
@@ -259,12 +237,7 @@ describe('Testing new onboarding ui', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(projectMock.id, 10)],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
     const trace = {
@@ -285,10 +258,7 @@ describe('Testing new onboarding ui', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/traces/`,
-      body: {
-        data: [trace],
-        meta: {},
-      },
+      body: {data: [trace], meta: {}},
       match: [
         MockApiClient.matchQuery({
           project: [parseInt(projectMock.id, 10)],
@@ -308,26 +278,17 @@ describe('Testing new onboarding ui', () => {
 
     render(<Onboarding organization={organization} project={projectMock} />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/onboarding/',
-          query: {
-            guidedStep: '4',
-          },
-        },
+        location: {pathname: '/onboarding/', query: {guidedStep: '4'}},
       },
     });
 
-    const traceButton = await screen.findByRole('button', {
-      name: 'Take me to my trace',
-    });
+    const traceButton = await screen.findByRole('button', {name: 'Take me to my trace'});
     await waitFor(() => expect(traceButton).toHaveAttribute('aria-busy', 'false'));
 
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
 
     await userEvent.click(
-      await screen.findByRole('button', {
-        name: 'Take me to my trace',
-      })
+      await screen.findByRole('button', {name: 'Take me to my trace'})
     );
 
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(traceHref);

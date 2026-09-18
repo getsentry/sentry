@@ -130,10 +130,7 @@ export function AutomationBuilderDrawerForm({
         trackAnalytics('automation.created', {
           organization,
           ...getAutomationAnalyticsPayload(
-            getNewAutomationData({
-              data: data as AutomationFormData,
-              state,
-            })
+            getNewAutomationData({data: data as AutomationFormData, state})
           ),
           source: 'drawer',
           success: false,
@@ -152,19 +149,13 @@ export function AutomationBuilderDrawerForm({
         return;
       }
       const analyticsPayload = getAutomationAnalyticsPayload(
-        getNewAutomationData({
-          data: formData,
-          state,
-        })
+        getNewAutomationData({data: formData, state})
       );
 
       try {
         formModel.setFormSaving();
         addLoadingMessage(t('Creating Alert...'));
-        const newAutomationData = getNewAutomationData({
-          data: formData,
-          state,
-        });
+        const newAutomationData = getNewAutomationData({data: formData, state});
         const automation = await createAutomation(newAutomationData);
         onSubmitSuccess(formModel.getData());
         trackAnalytics('automation.created', {
@@ -217,11 +208,7 @@ export function AutomationBuilderDrawerForm({
           }}
         >
           <AutomationBuilderContext.Provider
-            value={{
-              state,
-              actions,
-              showTriggerLogicTypeSelector: false,
-            }}
+            value={{state, actions, showTriggerLogicTypeSelector: false}}
           >
             <FormBody closeDrawer={closeDrawer} model={model} />
           </AutomationBuilderContext.Provider>

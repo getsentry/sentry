@@ -6,9 +6,7 @@ import {t} from 'sentry/locale';
 import {type useBreadcrumbFilters} from 'sentry/views/explore/replays/detail/breadcrumbs/useBreadcrumbFilters';
 import {FiltersGrid} from 'sentry/views/explore/replays/detail/filtersGrid';
 
-type Props = {
-  frames: undefined | unknown[];
-} & ReturnType<typeof useBreadcrumbFilters>;
+type Props = {frames: undefined | unknown[]} & ReturnType<typeof useBreadcrumbFilters>;
 
 export function BreadcrumbFilters({
   frames,

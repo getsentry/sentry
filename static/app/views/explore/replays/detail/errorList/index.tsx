@@ -105,11 +105,7 @@ export function ErrorList() {
           <VirtualTable ref={wrapperRef}>
             <VirtualTable.BodyScrollContainer ref={scrollContainerRef}>
               <VirtualTable.HeaderViewport style={{width: totalColumnWidth}}>
-                <VirtualTable.HeaderRow
-                  style={{
-                    gridTemplateColumns,
-                  }}
-                >
+                <VirtualTable.HeaderRow style={{gridTemplateColumns}}>
                   {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
                     <ErrorHeaderCell
                       key={columnIndex}
@@ -132,10 +128,7 @@ export function ErrorList() {
                 </VirtualTable.NoRowsContainer>
               ) : (
                 <VirtualTable.Content
-                  style={{
-                    height: virtualizer.getTotalSize(),
-                    width: totalColumnWidth,
-                  }}
+                  style={{height: virtualizer.getTotalSize(), width: totalColumnWidth}}
                 >
                   <VirtualTable.Offset
                     offset={virtualRows[0]?.start ?? 0}
@@ -168,10 +161,7 @@ export function ErrorList() {
                           key={virtualRow.key}
                           className={rowClassName}
                           data-index={virtualRow.index}
-                          style={{
-                            gridTemplateColumns,
-                            height: BODY_HEIGHT,
-                          }}
+                          style={{gridTemplateColumns, height: BODY_HEIGHT}}
                         >
                           {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
                             <ErrorTableCell

@@ -227,11 +227,7 @@ function NoticeModal({
   );
 }
 
-type Props = {
-  api: Client;
-  organization: Organization;
-  subscription: Subscription;
-};
+type Props = {api: Client; organization: Organization; subscription: Subscription};
 
 type State = {
   deactivatedMemberDismissed: boolean;
@@ -280,9 +276,7 @@ class GSBanner extends Component<Props, State> {
       // TODO: should delay Pendo if there is any popup at all that's blocking and not just guides
       const guideIsActive = !!GuideStore.state.currentGuide;
       window.pendo.initialize({
-        guides: {
-          delay: guideIsActive,
-        },
+        guides: {delay: guideIsActive},
         visitor: {
           id: `${organization.id}.${user.id}`, // need uniqueness per org per user
           userId: user.id,
@@ -356,9 +350,7 @@ class GSBanner extends Component<Props, State> {
       return;
     }
 
-    const modalAnalytics = {
-      [ModalType.PAST_DUE]: 'past_due_modal.seen',
-    } as const;
+    const modalAnalytics = {[ModalType.PAST_DUE]: 'past_due_modal.seen'} as const;
 
     const eventKey = modalAnalytics[whichModal];
     const billingPermissions = this.hasBillingPerms;
@@ -423,9 +415,7 @@ class GSBanner extends Component<Props, State> {
           // product trial alerts
           ...category_product_trial_prompts,
         ],
-        {
-          organization,
-        }
+        {organization}
       );
 
       this.setState({
@@ -471,10 +461,7 @@ class GSBanner extends Component<Props, State> {
   };
 
   PATHS_FOR_PRODUCT_TRIALS = {
-    '/issues/': {
-      product: DataCategory.ERRORS,
-      categories: [DataCategory.ERRORS],
-    },
+    '/issues/': {product: DataCategory.ERRORS, categories: [DataCategory.ERRORS]},
     '/performance/': {
       product: DataCategory.TRANSACTIONS,
       categories: [DataCategory.TRANSACTIONS],
@@ -483,10 +470,7 @@ class GSBanner extends Component<Props, State> {
       product: DataCategory.TRANSACTIONS,
       categories: [DataCategory.TRANSACTIONS],
     },
-    '/replays/': {
-      product: DataCategory.REPLAYS,
-      categories: [DataCategory.REPLAYS],
-    },
+    '/replays/': {product: DataCategory.REPLAYS, categories: [DataCategory.REPLAYS]},
     '/profiling/': {
       product: DataCategory.PROFILES,
       categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],

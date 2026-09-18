@@ -96,20 +96,8 @@ mount(() => <StartClient />, document.getElementById("app"));
 export const installSnippetBlock: ContentBlock = {
   type: 'code',
   tabs: [
-    {
-      label: 'npm',
-      language: 'bash',
-      code: 'npm install --save @sentry/solidstart',
-    },
-    {
-      label: 'yarn',
-      language: 'bash',
-      code: 'yarn add @sentry/solidstart',
-    },
-    {
-      label: 'pnpm',
-      language: 'bash',
-      code: 'pnpm add @sentry/solidstart',
-    },
+    {label: 'npm', language: 'bash', code: 'npm install --save @sentry/solidstart'},
+    {label: 'yarn', language: 'bash', code: 'yarn add @sentry/solidstart'},
+    {label: 'pnpm', language: 'bash', code: 'pnpm add @sentry/solidstart'},
   ],
 };

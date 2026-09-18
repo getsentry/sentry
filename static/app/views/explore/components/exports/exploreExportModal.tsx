@@ -70,9 +70,7 @@ export function ExploreExportModal({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues,
-    validators: {
-      onDynamic: exportModalFormSchema,
-    },
+    validators: {onDynamic: exportModalFormSchema},
     onSubmit: async ({value}) => {
       const isAllColumns =
         config.supportsAllColumns && value.columns === ModalColumnValue.ALL;

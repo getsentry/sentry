@@ -67,10 +67,7 @@ function makeSolutionArtifact(
     data: {
       one_line_summary: 'Add null check before accessing property',
       steps: [
-        {
-          title: 'Add guard clause',
-          description: 'Check for null before accessing .name',
-        },
+        {title: 'Add guard clause', description: 'Check for null before accessing .name'},
         {title: 'Add test', description: 'Cover the null input case'},
       ],
     },
@@ -132,10 +129,7 @@ describe('artifactToMarkdown', () => {
 
     it('renders minimal markdown with empty five_whys and no reproduction_steps', () => {
       const artifact = makeRootCauseArtifact({
-        data: {
-          one_line_description: 'Something broke',
-          five_whys: [],
-        },
+        data: {one_line_description: 'Something broke', five_whys: []},
       });
       expect(artifactToMarkdown(artifact)).toBe(
         ['# Root Cause', '', 'Something broke'].join('\n')
@@ -167,10 +161,7 @@ describe('artifactToMarkdown', () => {
 
     it('renders minimal markdown with empty steps', () => {
       const artifact = makeSolutionArtifact({
-        data: {
-          one_line_summary: 'Quick fix',
-          steps: [],
-        },
+        data: {one_line_summary: 'Quick fix', steps: []},
       });
       expect(artifactToMarkdown(artifact)).toBe(['# Plan', '', 'Quick fix'].join('\n'));
     });

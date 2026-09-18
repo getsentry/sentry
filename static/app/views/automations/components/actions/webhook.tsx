@@ -16,15 +16,11 @@ export function WebhookDetails({
     handler.services?.find(s => s.slug === action.config.targetIdentifier)?.name ||
     action.config.targetIdentifier;
 
-  return tct('Send a notification via [service]', {
-    service: String(service),
-  });
+  return tct('Send a notification via [service]', {service: String(service)});
 }
 
 export function WebhookNode() {
-  return tct('Send a notification via [services]', {
-    services: <ServicesField />,
-  });
+  return tct('Send a notification via [services]', {services: <ServicesField />});
 }
 
 function ServicesField() {
@@ -36,17 +32,9 @@ function ServicesField() {
       name={`${actionId}.config.targetIdentifier`}
       aria-label={t('Webhook')}
       value={action.config.targetIdentifier}
-      options={services?.map(service => ({
-        label: service.name,
-        value: service.slug,
-      }))}
+      options={services?.map(service => ({label: service.name, value: service.slug}))}
       onChange={(option: SelectValue<string>) => {
-        onUpdate({
-          config: {
-            ...action.config,
-            targetIdentifier: option.value,
-          },
-        });
+        onUpdate({config: {...action.config, targetIdentifier: option.value}});
       }}
     />
   );

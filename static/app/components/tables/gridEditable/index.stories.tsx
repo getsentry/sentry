@@ -60,10 +60,7 @@ export default Storybook.story('GridEditable', story => {
         <GridEditable
           data={data}
           columnOrder={columnsWithWidth}
-          grid={{
-            renderHeadCell,
-            renderBodyCell,
-          }}
+          grid={{renderHeadCell, renderBodyCell}}
         />
       </Fragment>
     );
@@ -125,9 +122,7 @@ export default Storybook.story('GridEditable', story => {
   });
 
   story('Column Resize', () => {
-    const queryBasedColumnResize = useQueryBasedColumnResize({
-      columns: columnsWithWidth,
-    });
+    const queryBasedColumnResize = useQueryBasedColumnResize({columns: columnsWithWidth});
 
     return (
       <Fragment>
@@ -145,10 +140,7 @@ export default Storybook.story('GridEditable', story => {
             <GridEditable
               data={data}
               columnOrder={columnsWithWidth}
-              grid={{
-                renderHeadCell,
-                renderBodyCell,
-              }}
+              grid={{renderHeadCell, renderBodyCell}}
             />
           </div>
           <div>
@@ -176,10 +168,7 @@ export default Storybook.story('GridEditable', story => {
     <GridEditable
       data={data}
       columnOrder={columns}
-      grid={{
-        renderHeadCell,
-        renderBodyCell,
-      }}
+      grid={{renderHeadCell, renderBodyCell}}
       height="200px"
       stickyHeader
     />
@@ -214,10 +203,7 @@ export default Storybook.story('GridEditable', story => {
             <GridEditable
               data={data}
               columnOrder={columns}
-              grid={{
-                renderHeadCell,
-                renderBodyCell,
-              }}
+              grid={{renderHeadCell, renderBodyCell}}
               scrollable
               height="200px"
             />
@@ -227,10 +213,7 @@ export default Storybook.story('GridEditable', story => {
             <GridEditable
               data={data}
               columnOrder={columns}
-              grid={{
-                renderHeadCell,
-                renderBodyCell,
-              }}
+              grid={{renderHeadCell, renderBodyCell}}
               stickyHeader
               scrollable
               height="200px"
@@ -273,10 +256,7 @@ export default Storybook.story('GridEditable', story => {
             <GridEditable
               data={newData}
               columnOrder={columns}
-              grid={{
-                renderHeadCell,
-                renderBodyCell,
-              }}
+              grid={{renderHeadCell, renderBodyCell}}
             />
           </div>
           <div style={{width: 400}}>
@@ -284,10 +264,7 @@ export default Storybook.story('GridEditable', story => {
             <GridEditable
               data={newData}
               columnOrder={columns}
-              grid={{
-                renderHeadCell,
-                renderBodyCell,
-              }}
+              grid={{renderHeadCell, renderBodyCell}}
               fit="max-content"
             />
           </div>

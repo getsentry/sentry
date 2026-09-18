@@ -15,11 +15,7 @@ describe('TransactionNameSearchBar', () => {
     query,
     value = 'example-transaction',
     asyncDelay,
-  }: {
-    asyncDelay?: Promise<void>;
-    query?: string;
-    value?: string;
-  } = {}) {
+  }: {asyncDelay?: Promise<void>; query?: string; value?: string} = {}) {
     return MockApiClient.addMockResponse({
       url,
       body: [{value, name: value, key: 'transaction', count: 1}],

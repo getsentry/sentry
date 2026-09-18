@@ -27,39 +27,23 @@ describe('formatDuration', () => {
   describe('formatting', () => {
     it('should format the value into a locale specific number', () => {
       expect(
-        formatDuration({
-          style: 'count-locale',
-          precision: 'ms',
-          duration: [60, 'sec'],
-        })
+        formatDuration({style: 'count-locale', precision: 'ms', duration: [60, 'sec']})
       ).toBe('60,000');
     });
 
     it('should format the value into a count, like statsPeriod', () => {
       expect(
-        formatDuration({
-          style: 'count',
-          precision: 'ms',
-          duration: [60, 'sec'],
-        })
+        formatDuration({style: 'count', precision: 'ms', duration: [60, 'sec']})
       ).toBe('60000');
 
       expect(
-        formatDuration({
-          style: 'count',
-          precision: 'hour',
-          duration: [45, 'min'],
-        })
+        formatDuration({style: 'count', precision: 'hour', duration: [45, 'min']})
       ).toBe('0.75');
     });
 
     it('should format sec into hours, minutes, and seconds', () => {
       expect(
-        formatDuration({
-          style: 'h:mm:ss',
-          precision: 'sec',
-          duration: [500, 'sec'],
-        })
+        formatDuration({style: 'h:mm:ss', precision: 'sec', duration: [500, 'sec']})
       ).toBe('8:20');
     });
 
@@ -79,13 +63,9 @@ describe('formatDuration', () => {
     ])(
       'should format $duration with precision $precision as h:mm:ss.sss',
       ({duration, precision, expected}) => {
-        expect(
-          formatDuration({
-            style: 'h:mm:ss.sss',
-            precision,
-            duration,
-          })
-        ).toBe(expected);
+        expect(formatDuration({style: 'h:mm:ss.sss', precision, duration})).toBe(
+          expected
+        );
       }
     );
 
@@ -105,53 +85,31 @@ describe('formatDuration', () => {
     ])(
       'should format $duration with precision $precision as h:mm:ss, never showing ms',
       ({duration, precision}) => {
-        expect(
-          formatDuration({
-            style: 'h:mm:ss',
-            precision,
-            duration,
-          })
-        ).toBe('8:20');
+        expect(formatDuration({style: 'h:mm:ss', precision, duration})).toBe('8:20');
       }
     );
 
     it('should format the value into an ISO8601 period with ms precision', () => {
       expect(
-        formatDuration({
-          style: 'ISO8601',
-          precision: 'ms',
-          duration: [500_012, 'ms'],
-        })
+        formatDuration({style: 'ISO8601', precision: 'ms', duration: [500_012, 'ms']})
       ).toBe('PT8M20.012S');
     });
 
     it('should format the value into an ISO8601 period with ms precision, but no sec or ms digits', () => {
       expect(
-        formatDuration({
-          style: 'ISO8601',
-          precision: 'ms',
-          duration: [480_000, 'ms'],
-        })
+        formatDuration({style: 'ISO8601', precision: 'ms', duration: [480_000, 'ms']})
       ).toBe('PT8M');
     });
 
     it('should format the value into an ISO8601 period with precision to the second', () => {
       expect(
-        formatDuration({
-          style: 'ISO8601',
-          precision: 'sec',
-          duration: [500_012, 'ms'],
-        })
+        formatDuration({style: 'ISO8601', precision: 'sec', duration: [500_012, 'ms']})
       ).toBe('PT8M20S');
     });
 
     it('should format the value into an ISO8601 period with precision to the minute', () => {
       expect(
-        formatDuration({
-          style: 'ISO8601',
-          precision: 'min',
-          duration: [500_012, 'ms'],
-        })
+        formatDuration({style: 'ISO8601', precision: 'min', duration: [500_012, 'ms']})
       ).toBe('PT8M');
     });
   });

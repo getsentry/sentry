@@ -53,12 +53,7 @@ export function RelatedIssues({
       .addFreeText('is:unresolved')
       .setFilterValues('transaction', [transaction]);
 
-    return {
-      queryParams: {
-        ...queryParams,
-        query: currentFilter.formatString(),
-      },
-    };
+    return {queryParams: {...queryParams, query: currentFilter.formatString()}};
   };
 
   const handleOpenClick = () => {

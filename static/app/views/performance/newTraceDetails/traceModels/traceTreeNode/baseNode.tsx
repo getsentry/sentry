@@ -607,9 +607,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   fetchChildren(
     _fetching: boolean,
     _tree: TraceTree,
-    _options: {
-      api: Client;
-    }
+    _options: {api: Client}
   ): Promise<[number, number] | null> {
     return Promise.resolve(null);
   }
@@ -645,10 +643,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
   abstract get drawerTabsTitle(): string;
 
-  abstract get traceHeaderTitle(): {
-    title: string;
-    subtitle?: string;
-  };
+  abstract get traceHeaderTitle(): {title: string; subtitle?: string};
 
   abstract analyticsName(): string;
 

@@ -11,14 +11,9 @@ export function useStarredIssueViews() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const starredOptions = starredGroupSearchViewsApiOptions({
-    orgSlug: organization.slug,
-  });
+  const starredOptions = starredGroupSearchViewsApiOptions({orgSlug: organization.slug});
 
-  const {data: groupSearchViews} = useQuery({
-    ...starredOptions,
-    staleTime: 0,
-  });
+  const {data: groupSearchViews} = useQuery({...starredOptions, staleTime: 0});
 
   const starredViews =
     groupSearchViews

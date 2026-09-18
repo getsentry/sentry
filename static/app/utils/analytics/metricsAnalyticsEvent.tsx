@@ -43,13 +43,8 @@ export type MetricsAnalyticsEventParameters = {
     organization: Organization;
     close_reason?: 'backdrop_click' | 'cancel_button' | 'close_button' | 'escape_key';
   };
-  'metrics.issue_details.drawer_opened': {
-    organization: Organization;
-  };
-  'metrics.nav.rendered': {
-    has_feature_flag: boolean;
-    organization: Organization;
-  };
+  'metrics.issue_details.drawer_opened': {organization: Organization};
+  'metrics.nav.rendered': {has_feature_flag: boolean; organization: Organization};
   'metrics.onboarding': {
     organization: Organization;
     platform: PlatformKey | 'unknown';

@@ -158,11 +158,7 @@ export type AuthConfigResponse = AuthConfig | {nextUri: string};
 // Users can have SSO providers of their own (social login with github)
 // and organizations can have SSO configuration for SAML/google domain/okta.
 // https://github.com/getsentry/sentry/pull/52469#discussion_r1258387880
-export type AuthProvider = {
-  key: string;
-  name: string;
-  requiredFeature: string;
-};
+export type AuthProvider = {key: string; name: string; requiredFeature: string};
 
 export type OrganizationAuthProvider = {
   default_role: string;
@@ -187,10 +183,7 @@ export enum UserIdentityStatus {
   NEEDED_FOR_ORG_AUTH = 'needed_for_org_auth',
 }
 
-type UserIdentityProvider = {
-  key: string;
-  name: string;
-};
+type UserIdentityProvider = {key: string; name: string};
 
 /**
  * UserIdentityConfig is used in Account Identities

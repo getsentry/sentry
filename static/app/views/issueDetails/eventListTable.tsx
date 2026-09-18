@@ -99,10 +99,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                     icon={<IconChevron direction="left" />}
                     to={{
                       ...location,
-                      query: {
-                        ...location.query,
-                        cursor: links?.previous?.cursor,
-                      },
+                      query: {...location.query, cursor: links?.previous?.cursor},
                     }}
                     disabled={previousDisabled}
                   />
@@ -113,10 +110,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                     icon={<IconChevron direction="right" />}
                     to={{
                       ...location,
-                      query: {
-                        ...location.query,
-                        cursor: links?.next?.cursor,
-                      },
+                      query: {...location.query, cursor: links?.next?.cursor},
                     }}
                     disabled={nextDisabled}
                   />

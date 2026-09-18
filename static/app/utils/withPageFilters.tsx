@@ -19,10 +19,7 @@ export function withPageFilters<P extends InjectedPageFiltersProps>(
   function WithPageFilters(props: Props) {
     const {selection, isReady: isGlobalSelectionReady} = usePageFilters();
 
-    const selectionProps = {
-      selection,
-      isGlobalSelectionReady,
-    };
+    const selectionProps = {selection, isGlobalSelectionReady};
 
     // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
     return <WrappedComponent {...selectionProps} {...(props as any)} />;

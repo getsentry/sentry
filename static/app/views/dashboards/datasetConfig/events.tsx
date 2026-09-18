@@ -106,10 +106,7 @@ export function getTimeseriesSortOptions(
   const options: Record<string, SelectValue<FieldValue>> = {};
   options[`field:${CUSTOM_EQUATION_VALUE}`] = {
     label: 'Custom Equation',
-    value: {
-      kind: FieldValueKind.EQUATION,
-      meta: {name: CUSTOM_EQUATION_VALUE},
-    },
+    value: {kind: FieldValueKind.EQUATION, meta: {name: CUSTOM_EQUATION_VALUE}},
   };
 
   let equations = 0;
@@ -124,12 +121,7 @@ export function getTimeseriesSortOptions(
         equations += 1;
         options[`equation:${alias}`] = {
           label,
-          value: {
-            kind: FieldValueKind.EQUATION,
-            meta: {
-              name: alias ?? field,
-            },
-          },
+          value: {kind: FieldValueKind.EQUATION, meta: {name: alias ?? field}},
         };
         return;
       }
@@ -143,13 +135,7 @@ export function getTimeseriesSortOptions(
         }
         options[`field:${field}`] = {
           label: prettifyParsedFunction(parsedFunction),
-          value: {
-            kind: FieldValueKind.FIELD,
-            meta: {
-              dataType: 'number',
-              name: field,
-            },
-          },
+          value: {kind: FieldValueKind.FIELD, meta: {dataType: 'number', name: field}},
         };
       }
     });
@@ -174,10 +160,7 @@ function getEventsTableFieldOptions(
     measurementKeys: Object.values(measurements).map(({key}) => key),
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
     customMeasurements: Object.values(customMeasurements ?? {}).map(
-      ({key, functions}) => ({
-        key,
-        functions,
-      })
+      ({key, functions}) => ({key, functions})
     ),
   });
 }
@@ -189,10 +172,7 @@ export function transformEventsResponseToTable(
   let tableData = data;
   // events api uses a different response format so we need to construct tableData differently
   const {fields, ...otherMeta} = (data as EventsTableData).meta ?? {};
-  tableData = {
-    ...data,
-    meta: {...fields, ...otherMeta, fields},
-  };
+  tableData = {...data, meta: {...fields, ...otherMeta, fields}};
   return tableData;
 }
 
@@ -265,11 +245,7 @@ export function renderEventIdAsLinkable(
 
   const eventSlug = generateEventSlug(data);
 
-  const target = eventDetailsRouteWithEventView({
-    organization,
-    eventSlug,
-    eventView,
-  });
+  const target = eventDetailsRouteWithEventView({organization, eventSlug, eventView});
 
   return (
     <Link data-test-id="view-event" to={target}>

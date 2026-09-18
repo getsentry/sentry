@@ -31,11 +31,7 @@ const frontmatter = {
       file: heroImg,
     },
     actions: [
-      {
-        children: 'Get Started',
-        to: '/scraps/principles/tokens/',
-        variant: 'primary',
-      },
+      {children: 'Get Started', to: '/scraps/principles/tokens/', variant: 'primary'},
       {
         children: 'View on GitHub',
         to: 'https://github.com/getsentry/sentry',

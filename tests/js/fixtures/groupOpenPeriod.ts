@@ -21,10 +21,7 @@ const DEFAULT_OPEN_PERIOD: GroupOpenPeriod = {
 export function GroupOpenPeriodActivityFixture(
   params: Partial<GroupOpenPeriodActivity> = {}
 ): GroupOpenPeriodActivity {
-  return {
-    ...DEFAULT_ACTIVITY,
-    ...params,
-  };
+  return {...DEFAULT_ACTIVITY, ...params};
 }
 
 export function GroupOpenPeriodFixture(

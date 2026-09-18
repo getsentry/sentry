@@ -31,28 +31,18 @@ function useMockHookImpl({
     enabled,
   });
 
-  return {
-    result,
-  };
+  return {result};
 }
 
 describe('useProgressiveQuery', () => {
   describe('normal sampling mode', () => {
     let mockNormalRequestUrl: jest.Mock;
     beforeEach(() => {
-      mockNormalRequestUrl = MockApiClient.addMockResponse({
-        url: '/test',
-        body: 'test',
-      });
+      mockNormalRequestUrl = MockApiClient.addMockResponse({url: '/test', body: 'test'});
 
       PageFiltersStore.onInitializeUrlState(
         PageFiltersFixture({
-          datetime: {
-            period: '14d',
-            start: null,
-            end: null,
-            utc: false,
-          },
+          datetime: {period: '14d', start: null, end: null, utc: false},
           projects: [2],
         })
       );
@@ -168,11 +158,7 @@ const getMockResponse = ({
   data: [[1745371800, [{count: 0}]]],
   meta: {
     dataScanned: dataScanned ?? 'full',
-    accuracy: {
-      confidence: [],
-      sampleCount: [],
-      samplingRate: [],
-    },
+    accuracy: {confidence: [], sampleCount: [], samplingRate: []},
     fields: fields ?? {},
   },
 });

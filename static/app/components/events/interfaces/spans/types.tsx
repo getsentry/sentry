@@ -43,10 +43,7 @@ export type RawSpanType = {
   project_slug?: string;
   same_process_as_parent?: boolean;
   sentry_tags?: Record<string, string>;
-  'span.averageResults'?: {
-    'avg(span.duration)'?: number;
-    'avg(span.self_time)'?: number;
-  };
+  'span.averageResults'?: {'avg(span.duration)'?: number; 'avg(span.self_time)'?: number};
   status?: string;
   tags?: Record<string, string>;
 };
@@ -54,12 +51,7 @@ export type RawSpanType = {
 export type AggregateSpanType = RawSpanType & {
   count: number;
   frequency: number;
-  samples: Array<{
-    span: string;
-    timestamp: number;
-    trace: string;
-    transaction: string;
-  }>;
+  samples: Array<{span: string; timestamp: number; trace: string; transaction: string}>;
   total: number;
   type: 'aggregate';
 };
@@ -67,13 +59,9 @@ export type AggregateSpanType = RawSpanType & {
 /**
  * Extends the Raw type from json with a type for discriminating the union.
  */
-type BaseSpanType = RawSpanType & {
-  type?: undefined;
-};
+type BaseSpanType = RawSpanType & {type?: undefined};
 
-export type OrphanSpanType = RawSpanType & {
-  type: 'orphan';
-};
+export type OrphanSpanType = RawSpanType & {type: 'orphan'};
 
 export type SpanType = BaseSpanType | OrphanSpanType | AggregateSpanType;
 
@@ -114,10 +102,7 @@ type CommonEnhancedProcessedSpanType = {
 };
 
 export type EnhancedSpan =
-  | ({
-      span: SpanType;
-      type: 'root_span';
-    } & CommonEnhancedProcessedSpanType)
+  | ({span: SpanType; type: 'root_span'} & CommonEnhancedProcessedSpanType)
   | ({
       span: SpanType;
       toggleNestedSpanGroup: (() => void) | undefined;
@@ -128,18 +113,9 @@ export type EnhancedSpan =
 // ProcessedSpanType with additional information
 export type EnhancedProcessedSpanType =
   | EnhancedSpan
-  | ({
-      span: GapSpanType;
-      type: 'gap';
-    } & CommonEnhancedProcessedSpanType)
-  | {
-      span: SpanType;
-      type: 'filtered_out';
-    }
-  | {
-      span: SpanType;
-      type: 'out_of_view';
-    }
+  | ({span: GapSpanType; type: 'gap'} & CommonEnhancedProcessedSpanType)
+  | {span: SpanType; type: 'filtered_out'}
+  | {span: SpanType; type: 'out_of_view'}
   | ({
       continuingTreeDepths: TreeDepthType[];
       span: SpanType;
@@ -208,10 +184,7 @@ export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
 
 type SpanTreeDepth = number;
 
-export type OrphanTreeDepth = {
-  depth: number;
-  type: 'orphan';
-};
+export type OrphanTreeDepth = {depth: number; type: 'orphan'};
 
 export type TreeDepthType = SpanTreeDepth | OrphanTreeDepth;
 
@@ -235,7 +208,4 @@ export type TraceBound = {
   traceStartTimestamp: number;
 };
 
-export type DescendantGroup = {
-  group: SpanTreeModel[];
-  occurrence?: number;
-};
+export type DescendantGroup = {group: SpanTreeModel[]; occurrence?: number};

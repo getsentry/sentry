@@ -221,10 +221,7 @@ function AcceptOrganizationInvite() {
         },
       }),
     ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
+    {staleTime: Infinity, retry: false}
   );
 
   const {
@@ -235,9 +232,7 @@ function AcceptOrganizationInvite() {
     mutationFn: () =>
       api.requestPromise(
         `/accept-invite/${params.orgId}/${params.memberId}/${params.token}/`,
-        {
-          method: 'POST',
-        }
+        {method: 'POST'}
       ),
     onSuccess: () => {
       if (inviteDetails?.orgSlug) {

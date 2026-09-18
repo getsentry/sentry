@@ -290,9 +290,7 @@ describe('ScmPlatformFeatures', () => {
   it('continue button is enabled when platform is selected', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/42/platforms/`,
-      body: {
-        platforms: [DetectedPlatformFixture()],
-      },
+      body: {platforms: [DetectedPlatformFixture()]},
     });
 
     render(
@@ -456,10 +454,7 @@ describe('ScmPlatformFeatures', () => {
 
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
         'onboarding.scm_platform_selected',
-        expect.objectContaining({
-          platform: 'python-django',
-          source: 'detected',
-        })
+        expect.objectContaining({platform: 'python-django', source: 'detected'})
       );
     });
 
@@ -743,10 +738,7 @@ describe('ScmPlatformFeatures', () => {
 
       expect(repoLinkRequest).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${createdProject.slug}/repo/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {repositoryId: mockRepository.id},
-        })
+        expect.objectContaining({method: 'POST', data: {repositoryId: mockRepository.id}})
       );
     });
 
@@ -829,10 +821,7 @@ describe('ScmPlatformFeatures', () => {
     });
 
     it('creates a new project when the platform changed from the existing one', async () => {
-      const stalePythonProject = ProjectFixture({
-        slug: 'python',
-        platform: 'python',
-      });
+      const stalePythonProject = ProjectFixture({slug: 'python', platform: 'python'});
       ProjectsStore.loadInitialData([stalePythonProject]);
       const newProject = ProjectFixture({
         slug: 'javascript-nextjs',

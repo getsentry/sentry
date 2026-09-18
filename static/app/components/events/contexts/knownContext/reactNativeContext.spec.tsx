@@ -22,12 +22,7 @@ const MOCK_REACT_NATIVE_CONTEXT: ReactNativeContext = {
 };
 
 const MOCK_REDACTION = {
-  hermes_version: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 15,
-    },
-  },
+  hermes_version: {'': {rem: [['organization:0', 's', 0, 0]], len: 15}},
 };
 
 describe('ReactNativeContext', () => {
@@ -36,30 +31,12 @@ describe('ReactNativeContext', () => {
       {key: 'expo', subject: 'Expo', value: false},
       {key: 'fabric', subject: 'Fabric', value: true},
       {key: 'hermes_debug_info', subject: 'Hermes Debug Info', value: false},
-      {
-        key: 'hermes_version',
-        subject: 'Hermes Version',
-        value: '250829098.0.10',
-      },
+      {key: 'hermes_version', subject: 'Hermes Version', value: '250829098.0.10'},
       {key: 'js_engine', subject: 'JS Engine', value: 'hermes'},
-      {
-        key: 'react_native_version',
-        subject: 'React Native Version',
-        value: '0.85.1',
-      },
+      {key: 'react_native_version', subject: 'React Native Version', value: '0.85.1'},
       {key: 'turbo_module', subject: 'Turbo Module', value: true},
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123, meta: undefined},
     ]);
   });
 

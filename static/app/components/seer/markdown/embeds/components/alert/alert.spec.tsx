@@ -29,10 +29,7 @@ function renderDetectorAlert(detector: Detector, kind: 'cron' | 'metric' | 'upti
     ],
   });
 
-  return renderEmbed({
-    name: 'alert',
-    data: {id: detector.id, kind, name: detector.name},
-  });
+  return renderEmbed({name: 'alert', data: {id: detector.id, kind, name: detector.name}});
 }
 
 describe('alert embed', () => {
@@ -53,19 +50,12 @@ describe('alert embed', () => {
   });
 
   it('falls back to an id-based label when the API name is missing', () => {
-    renderEmbed({
-      name: 'alert',
-      data: {id: '4521', kind: 'metric'},
-      level: 'inline',
-    });
+    renderEmbed({name: 'alert', data: {id: '4521', kind: 'metric'}, level: 'inline'});
     expect(screen.getByRole('link', {name: 'Alert 4521'})).toBeInTheDocument();
   });
 
   it('renders conditions and actions for an issue alert', async () => {
-    const automation = AutomationFixture({
-      id: '881',
-      name: 'Checkout notifications',
-    });
+    const automation = AutomationFixture({id: '881', name: 'Checkout notifications'});
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/workflows/${automation.id}/`,
       body: automation,
@@ -79,10 +69,7 @@ describe('alert embed', () => {
       ],
     });
 
-    renderEmbed({
-      name: 'alert',
-      data: {id: automation.id, kind: 'issue'},
-    });
+    renderEmbed({name: 'alert', data: {id: automation.id, kind: 'issue'}});
 
     // The block's name is the collapse toggle; the link out is a separate target.
     expect(

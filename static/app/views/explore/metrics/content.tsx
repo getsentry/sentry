@@ -74,10 +74,7 @@ export default function MetricsContent() {
 
 const metricsFeedbackOptions = {
   messagePlaceholder: t('How can we make application metrics work better for you?'),
-  tags: {
-    'feedback.source': 'metrics-listing',
-    'feedback.owner': 'performance',
-  },
+  tags: {'feedback.source': 'metrics-listing', 'feedback.owner': 'performance'},
 };
 
 function MetricsHeader() {

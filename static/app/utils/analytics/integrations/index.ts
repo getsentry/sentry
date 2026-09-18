@@ -45,22 +45,16 @@ type SingleIntegrationEventParams = {
 // for sentry_app, plugin, and doc_integration types. Made required (not
 // optional) so the type checker catches any new install call site that
 // forgets to set it.
-type IntegrationInstallEventParams = SingleIntegrationEventParams & {
-  is_scm: boolean;
-};
+type IntegrationInstallEventParams = SingleIntegrationEventParams & {is_scm: boolean};
 
-type MultipleIntegrationsEventParams = {
-  integrations_installed: number;
-} & IntegrationView;
+type MultipleIntegrationsEventParams = {integrations_installed: number} & IntegrationView;
 
 type IntegrationSearchEventParams = {
   num_results: number;
   search_term: string;
 } & IntegrationView;
 
-type IntegrationCategorySelectEventParams = {
-  category: string;
-} & IntegrationView;
+type IntegrationCategorySelectEventParams = {category: string} & IntegrationView;
 
 type IntegrationServerlessFunctionsViewedParams = {
   num_functions: number;
@@ -79,10 +73,7 @@ type ProjectOwnershipModalParams = {
   net_change?: number;
 };
 
-type SentryAppTemplateAppliedParams = {
-  template: string;
-  referrer?: string;
-};
+type SentryAppTemplateAppliedParams = {template: string; referrer?: string};
 
 // Event key to payload mappings
 export type IntegrationEventParameters = {

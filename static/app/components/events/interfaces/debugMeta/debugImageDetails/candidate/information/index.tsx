@@ -46,10 +46,7 @@ function getTimeSinceData({
   const dateTime = <DateTime date={dateCreated} />;
 
   if (candidate.download.status !== CandidateDownloadStatus.UNAPPLIED) {
-    return {
-      tooltipDesc: dateTime,
-      displayIcon: false,
-    };
+    return {tooltipDesc: dateTime, displayIcon: false};
   }
 
   const uploadedBeforeEvent = moment(dateCreated).isBefore(eventDateReceived);
@@ -61,9 +58,7 @@ function getTimeSinceData({
           <Fragment>
             {tct(
               'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate. To apply new debug information, reprocess this issue.',
-              {
-                when: moment(eventDateReceived).from(dateCreated, true),
-              }
+              {when: moment(eventDateReceived).from(dateCreated, true)}
             )}
             <DateTimeWrapper>{dateTime}</DateTimeWrapper>
           </Fragment>
@@ -75,10 +70,7 @@ function getTimeSinceData({
     const uplodadedMinutesDiff = moment(eventDateReceived).diff(dateCreated, 'minutes');
 
     if (uplodadedMinutesDiff >= 60) {
-      return {
-        tooltipDesc: dateTime,
-        displayIcon: false,
-      };
+      return {tooltipDesc: dateTime, displayIcon: false};
     }
 
     return {
@@ -86,9 +78,7 @@ function getTimeSinceData({
         <Fragment>
           {tct(
             'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate.',
-            {
-              when: moment(eventDateReceived).from(dateCreated, true),
-            }
+            {when: moment(eventDateReceived).from(dateCreated, true)}
           )}
           <DateTimeWrapper>{dateTime}</DateTimeWrapper>
         </Fragment>
@@ -103,9 +93,7 @@ function getTimeSinceData({
         <Fragment>
           {tct(
             'This debug file was uploaded [when] after this event. To apply new debug information, reprocess this issue.',
-            {
-              when: moment(dateCreated).from(eventDateReceived, true),
-            }
+            {when: moment(dateCreated).from(eventDateReceived, true)}
           )}
           <DateTimeWrapper>{dateTime}</DateTimeWrapper>
         </Fragment>
