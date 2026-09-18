@@ -22,12 +22,20 @@ export function callRecordLabel(record: CallRecord): string | null {
   return record.llm_description?.trim() || record.title?.trim() || null;
 }
 
+/** Short display names for the providers seer can call. */
+const PROVIDER_SHORT_LABELS: Record<string, string> = {
+  datadog: 'Datadog',
+  gcp: 'GCP',
+};
+
 /**
  * A readable stand-in for a record nothing could name — generic, because a route or an operation
  * id reads worse. Reported rather than dropped: a vanishing record is how an endpoint disappears.
  */
 export function fallbackCallLabel(record: CallRecord): string {
-  const source = record.provider ?? 'sentry';
+  const source = record.provider
+    ? (PROVIDER_SHORT_LABELS[record.provider] ?? record.provider)
+    : 'Sentry';
 
   // A noun, not a progressive verb: the row may well have settled, and a lib method that reached
   // here has no title at all — `Working…` would leave it reading as still running forever.

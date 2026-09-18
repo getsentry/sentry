@@ -107,7 +107,7 @@ describe('call record rendering', () => {
     render(<BlockComponent block={block} blockIndex={0} />);
 
     expect(screen.getByText('List Your Organizations')).toBeInTheDocument();
-    expect(screen.getByText('sentry API request')).toBeInTheDocument();
+    expect(screen.getByText('Sentry API request')).toBeInTheDocument();
   });
 
   it('keeps the request details on a described api row', () => {
@@ -483,12 +483,12 @@ describe('callRecordLabel', () => {
 });
 
 describe('fallbackCallLabel', () => {
-  it('names sentry for a first-party call', () => {
+  it('names Sentry for a first-party call', () => {
     expect(
       fallbackCallLabel({id: 1, kind: 'api', method: 'GET', path: '/api/0/x/'})
-    ).toBe('sentry API request');
+    ).toBe('Sentry API request');
     expect(fallbackCallLabel({id: 1, kind: 'lib', name: 'code_search'})).toBe(
-      'sentry operation'
+      'Sentry operation'
     );
   });
 
@@ -503,15 +503,13 @@ describe('fallbackCallLabel', () => {
         path: '/api/v2/logs/events',
         provider: 'datadog',
       })
-    ).toBe('datadog API request');
+    ).toBe('Datadog API request');
     expect(
       fallbackCallLabel({id: 1, kind: 'lib', name: 'gcp.api.list_logs', provider: 'gcp'})
-    ).toBe('gcp operation');
+    ).toBe('GCP operation');
   });
 
   it('names a provider it has never seen', () => {
-    // The whole reason the key is rendered as-is rather than mapped to a display name: a provider
-    // added to seer's registry names itself here, with no list over here to fall out of step.
     expect(
       fallbackCallLabel({
         id: 1,
