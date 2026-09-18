@@ -11,9 +11,7 @@ import {
   type TableColumnConfig,
 } from '@sentry/scraps/table';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DataTable} from 'sentry/components/tables/dataTable';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
@@ -167,28 +165,20 @@ export function GridEditable<
 
   const renderGridBody = () => {
     if (error) {
-      return (
-        <DataTable.Status>
-          <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-        </DataTable.Status>
-      );
+      return <DataTable.Error />;
     }
 
     if (isLoading) {
-      return (
-        <DataTable.Status>
-          <LoadingIndicator />
-        </DataTable.Status>
-      );
+      return <DataTable.Loading />;
     }
 
     if (!data || data.length === 0) {
       return (
-        <DataTable.Status>
+        <DataTable.Empty>
           {props.emptyMessage ?? (
             <EmptyState title={t('No results found for your query')} />
           )}
-        </DataTable.Status>
+        </DataTable.Empty>
       );
     }
 

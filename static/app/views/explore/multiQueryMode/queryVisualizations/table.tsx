@@ -6,11 +6,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DataTable} from 'sentry/components/tables/dataTable';
 import {IconStack} from 'sentry/icons/iconStack';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {
   fieldAlignment,
@@ -138,13 +135,9 @@ function AggregatesTable({
         </DataTable.Head>
         <DataTable.Body>
           {result.isPending ? (
-            <DataTable.Status>
-              <LoadingIndicator />
-            </DataTable.Status>
+            <DataTable.Loading />
           ) : result.isError ? (
-            <DataTable.Status>
-              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </DataTable.Status>
+            <DataTable.Error />
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
               const target = getSamplesTargetAtIndex(index, [...queries], row, location);
@@ -175,11 +168,7 @@ function AggregatesTable({
               );
             })
           ) : (
-            <DataTable.Status>
-              <EmptyStateWarning>
-                <p>{t('No spans found')}</p>
-              </EmptyStateWarning>
-            </DataTable.Status>
+            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
           )}
         </DataTable.Body>
       </Table>
@@ -241,13 +230,9 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
         </DataTable.Head>
         <DataTable.Body>
           {result.isPending ? (
-            <DataTable.Status>
-              <LoadingIndicator />
-            </DataTable.Status>
+            <DataTable.Loading />
           ) : result.isError ? (
-            <DataTable.Status>
-              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </DataTable.Status>
+            <DataTable.Error />
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => (
               <DataTable.Row key={i}>
@@ -267,11 +252,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
               </DataTable.Row>
             ))
           ) : (
-            <DataTable.Status>
-              <EmptyStateWarning>
-                <p>{t('No spans found')}</p>
-              </EmptyStateWarning>
-            </DataTable.Status>
+            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
           )}
         </DataTable.Body>
       </Table>
