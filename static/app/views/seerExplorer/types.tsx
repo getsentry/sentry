@@ -270,9 +270,9 @@ export type SeerExplorerRunId = number | string;
 
 export type SeerExplorerResponse = {
   session: {
-    blocks?: Block[];
     status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
+    blocks?: Block[];
     failure_reason?: 'timeout' | 'stalled' | null;
     owner_user_id?: number | null;
     pending_user_input?: PendingUserInput | null;
