@@ -31,7 +31,6 @@ from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.steps import AutofixStep
-from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
@@ -475,7 +474,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_trigger_autofix_agent_sends_started_webhook_for_all_steps(
+    def test_legacy_autofix_steps_send_started_webhooks(
         self,
         mock_client_class,
         mock_process_autofix_updates,
@@ -485,16 +484,12 @@ class TestTriggerAutofixAgent(TestCase):
         mock_record_run,
         mock_metrics_incr,
     ):
-        """Sends correct started webhook for all autofix steps."""
+        """Sends the correct started webhook for each legacy autofix step."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=12345)
 
         step_to_action = {
-            AutofixStep.ROOT_CAUSE: (
-                SeerActionType.ROOT_CAUSE_STARTED,
-                ActivityType.SEER_RCA_STARTED,
-            ),
             AutofixStep.SOLUTION: (
                 SeerActionType.SOLUTION_STARTED,
                 ActivityType.SEER_SOLUTION_STARTED,
@@ -593,7 +588,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.scm.factory.new")
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_root_cause_routes_repo_pins_to_feature(
+    def test_root_cause_routes_to_seer_feature(
         self,
         mock_client_class,
         mock_feature,
@@ -647,133 +642,6 @@ class TestTriggerAutofixAgent(TestCase):
         )
         assert payload["run_id"] == 777
         assert payload["sentry_run_id"] == str(feature_run.uuid)
-
-    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_root_cause_rerun_routes_to_feature(
-        self, mock_client_class, mock_feature, mock_broadcast
-    ):
-        """A root-cause retry reaches RCA-in-Seer with continuation context."""
-        existing_run = self.create_seer_run(
-            organization=self.group.organization, seer_run_state_id=67890
-        )
-        self.create_seer_agent_run(run=existing_run, group=self.group, source="autofix")
-        feature_run = self.create_seer_run(
-            organization=self.group.organization, type="feature_run", seer_run_state_id=777
-        )
-        mock_feature.return_value = feature_run
-
-        with (
-            patch("sentry.quotas.backend.check_seer_quota") as mock_check_quota,
-            patch("sentry.quotas.backend.record_seer_run") as mock_record_run,
-        ):
-            result = trigger_autofix_agent(
-                group=self.group,
-                step=AutofixStep.ROOT_CAUSE,
-                referrer=AutofixReferrer.UNKNOWN,
-                run_id=67890,
-                insert_index=4,
-            )
-
-        assert result == feature_run
-        mock_feature.assert_called_once()
-        feature_trigger = mock_feature.call_args.args[1]
-        assert feature_trigger.step == AutofixStep.ROOT_CAUSE
-        assert feature_trigger.existing_run_id == 67890
-        assert feature_trigger.insert_index == 4
-        mock_client_class.return_value.continue_run.assert_not_called()
-        mock_check_quota.assert_not_called()
-        mock_record_run.assert_not_called()
-
-    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    def test_root_cause_rerun_rejects_run_from_another_group(self, mock_feature):
-        other_group = self.create_group()
-        other_run = self.create_seer_run(
-            organization=self.group.organization, seer_run_state_id=67890
-        )
-        self.create_seer_agent_run(run=other_run, group=other_group, source="autofix")
-
-        with pytest.raises(SeerPermissionError):
-            trigger_autofix_agent(
-                group=self.group,
-                step=AutofixStep.ROOT_CAUSE,
-                referrer=AutofixReferrer.UNKNOWN,
-                run_id=67890,
-                insert_index=4,
-            )
-
-        mock_feature.assert_not_called()
-
-    @patch("sentry.quotas.backend.record_seer_run")
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_feature_receives_stopping_point(
-        self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
-    ):
-        """The stopping point must reach the feature: delivery reads it back off the
-        run to decide whether to continue the pipeline past root cause."""
-        mock_feature.return_value = self.create_seer_run(
-            organization=self.group.organization, type="feature_run", seer_run_state_id=777
-        )
-
-        trigger_autofix_agent(
-            group=self.group,
-            step=AutofixStep.ROOT_CAUSE,
-            referrer=AutofixReferrer.UNKNOWN,
-            run_id=None,
-            stopping_point=AutofixStoppingPoint.CODE_CHANGES,
-        )
-
-        feature_trigger = mock_feature.call_args.args[1]
-        assert feature_trigger.stopping_point == AutofixStoppingPoint.CODE_CHANGES
-
-    @patch("sentry.quotas.backend.record_seer_run")
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_feature_receives_run_options(
-        self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
-    ):
-        mock_feature.return_value = self.create_seer_run(
-            organization=self.group.organization, type="feature_run", seer_run_state_id=777
-        )
-        user = self.create_user()
-
-        trigger_autofix_agent(
-            group=self.group,
-            step=AutofixStep.ROOT_CAUSE,
-            referrer=AutofixReferrer.UNKNOWN,
-            run_id=None,
-            user=user,
-            enable_bash_tools=True,
-        )
-
-        feature_trigger = mock_feature.call_args.args[1]
-        assert feature_trigger.user == user
-        assert feature_trigger.enable_bash_tools is True
-
-    @patch("sentry.quotas.backend.record_seer_run")
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_night_shift_repo_checks_force_bash_tools_on_the_feature(
-        self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
-    ):
-        with self.feature("organizations:autofix-should-run-repo-checks"):
-            trigger_autofix_agent(
-                group=self.group,
-                step=AutofixStep.ROOT_CAUSE,
-                referrer=AutofixReferrer.NIGHT_SHIFT,
-                run_id=None,
-            )
-
-        feature_trigger = mock_feature.call_args.args[1]
-        assert feature_trigger.enable_bash_tools is True
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
@@ -887,23 +755,6 @@ class TestTriggerAutofixAgent(TestCase):
             mock_broadcast.call_args.kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
         )
 
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
-    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_root_cause_still_enforces_quota(
-        self, mock_client_class, mock_feature, mock_check_quota
-    ):
-        """The upstream quota check runs before routing to the feature."""
-        with pytest.raises(NoSeerQuotaException):
-            trigger_autofix_agent(
-                group=self.group,
-                step=AutofixStep.ROOT_CAUSE,
-                referrer=AutofixReferrer.UNKNOWN,
-                run_id=None,
-            )
-
-        mock_feature.assert_not_called()
-
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
@@ -918,7 +769,7 @@ class TestTriggerAutofixAgent(TestCase):
 
         trigger_autofix_agent(
             group=self.group,
-            step=AutofixStep.ROOT_CAUSE,
+            step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.UNKNOWN,
             run_id=None,
         )
@@ -1040,7 +891,7 @@ class TestTriggerAutofixAgent(TestCase):
         with pytest.raises(NoSeerQuotaException):
             trigger_autofix_agent(
                 group=self.group,
-                step=AutofixStep.ROOT_CAUSE,
+                step=AutofixStep.SOLUTION,
                 referrer=AutofixReferrer.UNKNOWN,
                 run_id=None,
             )
@@ -1063,7 +914,7 @@ class TestTriggerAutofixAgent(TestCase):
 
         trigger_autofix_agent(
             group=self.group,
-            step=AutofixStep.ROOT_CAUSE,
+            step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.UNKNOWN,
             run_id=None,
         )
@@ -1089,7 +940,7 @@ class TestTriggerAutofixAgent(TestCase):
         ):
             trigger_autofix_agent(
                 group=self.group,
-                step=AutofixStep.ROOT_CAUSE,
+                step=AutofixStep.SOLUTION,
                 referrer=AutofixReferrer.NIGHT_SHIFT,
                 allow_free_cohort=True,
             )
@@ -1114,7 +965,7 @@ class TestTriggerAutofixAgent(TestCase):
         ):
             trigger_autofix_agent(
                 group=self.group,
-                step=AutofixStep.ROOT_CAUSE,
+                step=AutofixStep.SOLUTION,
                 referrer=AutofixReferrer.NIGHT_SHIFT,
                 allow_free_cohort=True,
             )
@@ -1223,7 +1074,7 @@ class TestTriggerAutofixAgent(TestCase):
 
         trigger_autofix_agent(
             group=self.group,
-            step=AutofixStep.ROOT_CAUSE,
+            step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.UNKNOWN,
             run_id=None,
         )
