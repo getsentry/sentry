@@ -34,11 +34,11 @@ export function DemoHeader() {
 
   return (
     <Wrapper
-      height={{zero: '54px', '3xl': '70px'}}
+      height="53px"
       justify="between"
       align="center"
-      paddingRight="2xl"
-      gap="3xl"
+      paddingRight="xl"
+      gap="md"
       background="primary"
       whiteSpace="nowrap"
       borderBottom="primary"
@@ -66,10 +66,17 @@ export function DemoHeader() {
             href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
             external
           >
-            <Text uppercase>{t('Request a Demo')}</Text>
+            <Text>{t('Request demo')}</Text>
           </LinkButton>
         )}
       </Container>
+      <SignOutButton
+        onClick={() => {
+          logout(api);
+        }}
+      >
+        {t('Exit Sandbox')}
+      </SignOutButton>
       <FreeTrialButton
         variant="primary"
         onClick={() => {
@@ -89,17 +96,9 @@ export function DemoHeader() {
           logout(api);
         }}
       >
-        <FreeTrialTextLong>{t('Start Free Trial')}</FreeTrialTextLong>
-        <FreeTrialTextShort>{t('Sign Up')}</FreeTrialTextShort>
+        <FreeTrialTextLong>{t('Start free trial')}</FreeTrialTextLong>
+        <FreeTrialTextShort>{t('Start trial')}</FreeTrialTextShort>
       </FreeTrialButton>
-      <SignOutButton
-        onClick={() => {
-          logout(api);
-        }}
-        icon={<IconSignOut size="sm" />}
-      >
-        {t('Exit Sandbox')}
-      </SignOutButton>
     </Wrapper>
   );
 }
@@ -127,8 +126,6 @@ const FreeTrialTextShort = styled('span')`
 const FreeTrialTextLong = styled('span')``;
 
 const FreeTrialButton = styled(Button)`
-  text-transform: uppercase;
-
   .short-text {
     display: none;
   }
@@ -142,9 +139,7 @@ const FreeTrialButton = styled(Button)`
   }
 `;
 
-const SignOutButton = styled(Button)`
-  text-transform: uppercase;
-`;
+const SignOutButton = styled(Button)``;
 
 const IconSignOut = styled(IconUpload)`
   transform: rotate(90deg);
