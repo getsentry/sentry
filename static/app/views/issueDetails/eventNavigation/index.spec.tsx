@@ -4,7 +4,7 @@ import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
@@ -167,6 +167,65 @@ describe('EventNavigation', () => {
         'https://www.example.com'
       );
       expect(url.searchParams.get('sort')).toBe('-title');
+    });
+  });
+
+  describe('issue content navigation', () => {
+    const seerOrganization = OrganizationFixture({
+      features: ['discover-basic', 'gen-ai-features', 'autofix-page'],
+      hideAiFeatures: false,
+    });
+
+    function renderNav(org: typeof organization) {
+      render(
+        <GroupDataContextProvider group={group} project={group.project}>
+          <IssueEventNavigation {...defaultProps} />
+        </GroupDataContextProvider>,
+        {initialRouterConfig, organization: org}
+      );
+    }
+
+    it('renders a tab list with the autofix-page feature', () => {
+      renderNav(seerOrganization);
+
+      // Tabs replace the dropdown entirely, so the trigger is gone.
+      expect(
+        screen.queryByRole('button', {name: 'Select issue content'})
+      ).not.toBeInTheDocument();
+
+      // The tab is the <li role="tab">; the anchor it navigates through is nested.
+      const autofixTab = screen.getByRole('tab', {name: 'Autofix'});
+      expect(within(autofixTab).getByRole('link')).toHaveAttribute(
+        'href',
+        expect.stringContaining(
+          `/organizations/${seerOrganization.slug}/issues/${group.id}/${
+            TabPaths[Tab.AUTOFIX]
+          }`
+        )
+      );
+    });
+
+    it('falls back to the dropdown without the autofix-page feature', () => {
+      renderNav(organization);
+
+      expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Select issue content'})
+      ).toBeInTheDocument();
+    });
+
+    it('omits the autofix tab when AI features are hidden', () => {
+      renderNav(
+        OrganizationFixture({
+          features: ['discover-basic', 'gen-ai-features', 'autofix-page'],
+          hideAiFeatures: true,
+        })
+      );
+
+      expect(screen.queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Select issue content'})
+      ).toBeInTheDocument();
     });
   });
 
