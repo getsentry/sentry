@@ -426,6 +426,16 @@ describe('array membership filters', () => {
   });
 });
 
+describe('regex filters', () => {
+  it('preserves consecutive asterisks when updating a regex value', () => {
+    const query = `message:${WildcardOperators.MATCHES}"^foo$"`;
+
+    expect(modifyFilterValue(query, getFirstFilterToken(query), '"^a[**]b$"')).toBe(
+      `message:${WildcardOperators.MATCHES}"^a[**]b$"`
+    );
+  });
+});
+
 describe('syntax-bearing filter keys', () => {
   it('preserves an aggregate key when updating its value', () => {
     const query = 'count():>100';

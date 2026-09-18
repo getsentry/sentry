@@ -27,6 +27,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {
   getKeyName,
+  isRegexOperator,
   quoteFilterKey,
   stringifyToken,
 } from 'sentry/components/searchSyntax/utils';
@@ -680,8 +681,10 @@ export function modifyFilterValue(
     return modifyFilterValueDate(query, token, newValue);
   }
 
-  // stop the user from entering multiple wildcards by themselves
-  newValue = newValue.replace(/\*\*+/g, '*');
+  if (!isRegexOperator(newOp ?? token.operator)) {
+    // stop the user from entering multiple wildcards by themselves
+    newValue = newValue.replace(/\*\*+/g, '*');
+  }
 
   // No operator change — just replace the value.
   if (newOp === undefined) {
