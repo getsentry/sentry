@@ -39,7 +39,7 @@ type ExportedDashboard = {
   period?: string;
 };
 
-export type DashboardExportV1 = {
+type DashboardExportV1 = {
   dashboard: ExportedDashboard;
   version: typeof DASHBOARD_EXPORT_VERSION;
 };
