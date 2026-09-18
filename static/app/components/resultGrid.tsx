@@ -788,11 +788,7 @@ export function ResultGrid({
         return;
       }
       matches.sort((a, b) => a.name.localeCompare(b.name));
-      setProbe(prev => ({
-        ...prev,
-        probingRegions: false,
-        regionMatches: matches,
-      }));
+      setProbe(prev => ({...prev, probingRegions: false, regionMatches: matches}));
     };
 
     otherCells.forEach(probedCell => {
@@ -1051,13 +1047,7 @@ export function ResultGrid({
             : isEmpty)
         );
 
-        setResults({
-          ...IDLE_REGIONS,
-          loading: false,
-          error: false,
-          rows,
-          pageLinks,
-        });
+        setResults({...IDLE_REGIONS, loading: false, error: false, rows, pageLinks});
         setProbe({...IDLE_PROBE, missingExactMatch});
         onLoad?.();
 
@@ -1106,10 +1096,7 @@ export function ResultGrid({
   const stripRegionUrl = useEffectEvent(() => {
     if (needsRegion && location.query.regionUrl) {
       navigate(
-        {
-          pathname: location.pathname,
-          query: {...location.query, regionUrl: undefined},
-        },
+        {pathname: location.pathname, query: {...location.query, regionUrl: undefined}},
         {replace: true}
       );
     }
@@ -1179,19 +1166,6 @@ export function ResultGrid({
         </th>
       )
     : columns;
-
-  const regionHint = (
-    <RegionHint
-      allRegions={allRegions}
-      cell={cell}
-      onChangeCell={onChangeCell}
-      probe={probe}
-      probeAcrossRegions={probeAcrossRegions}
-      probeAllRegions={probeAllRegions}
-      probeAllRegionsHint={probeAllRegionsHint}
-      results={results}
-    />
-  );
 
   const resultTable = (
     <TableScrollWrapper>
@@ -1346,7 +1320,16 @@ export function ResultGrid({
         )}
         {statusNote}
       </SortSearchForm>
-      {regionHint}
+      <RegionHint
+        allRegions={allRegions}
+        cell={cell}
+        onChangeCell={onChangeCell}
+        probe={probe}
+        probeAcrossRegions={probeAcrossRegions}
+        probeAllRegions={probeAllRegions}
+        probeAllRegionsHint={probeAllRegionsHint}
+        results={results}
+      />
       {table}
       {hasPagination && results.pageLinks && (
         <StyledPagination

@@ -94,12 +94,7 @@ function TransactionsTableResults({
 
   const rows: React.ReactNode[] = [];
   const fields = eventView.getFields();
-  let colOrder = columnOrder;
-
-  if (titles?.length) {
-    // Slice to match length of given titles
-    colOrder = colOrder.slice(0, titles.length);
-  }
+  const colOrder = titles?.length ? columnOrder.slice(0, titles.length) : columnOrder;
 
   data.forEach((row, rowIndex: number) => {
     const tableRow = row as TableDataRow;
