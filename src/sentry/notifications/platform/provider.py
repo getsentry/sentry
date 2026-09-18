@@ -105,6 +105,8 @@ class NotificationProvider[RenderableT](Protocol):
     """
 
     key: NotificationProviderKey
+    renderer_key: NotificationProviderKey | None = None
+    """The key renderers are registered against, when it differs from `key`."""
     default_renderer: type[NotificationRenderer[RenderableT]]
     target_class: type[NotificationTarget]
     target_resource_types: list[NotificationTargetResourceType]
@@ -141,7 +143,9 @@ class NotificationProvider[RenderableT](Protocol):
         # Imported here since the registry imports this module to type its registrations.
         from sentry.notifications.platform.registry import renderer_registry
 
-        renderer = renderer_registry.get(provider_key=cls.key, source=data.source)
+        renderer = renderer_registry.get(
+            provider_key=cls.renderer_key or cls.key, source=data.source
+        )
         return renderer or cls.default_renderer
 
     @classmethod

@@ -199,8 +199,4 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
 @provider_registry.register(NotificationProviderKey.SLACK_STAGING)
 class SlackStagingNotificationProvider(SlackNotificationProvider):
     key = NotificationProviderKey.SLACK_STAGING
-
-    @classmethod
-    def get_renderer(cls, *, data: NotificationData) -> type[NotificationRenderer[SlackRenderable]]:
-        # Staging sends Slack payloads, so it resolves renderers registered against the Slack key.
-        return SlackNotificationProvider.get_renderer(data=data)
+    renderer_key = NotificationProviderKey.SLACK
