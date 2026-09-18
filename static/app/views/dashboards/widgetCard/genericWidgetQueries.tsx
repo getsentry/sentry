@@ -15,7 +15,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -106,7 +105,6 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     pageLinks,
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
-  onDemandControlContext?: OnDemandControlContext;
   samplingMode?: SamplingMode;
   // Optional selection override - if not provided, usePageFilters hook will be used
   // This is needed for the widget viewer modal where local zoom state (modalSelection)
@@ -175,7 +173,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     mepSetting,
     onDataFetchStart,
     onDataFetched,
-    onDemandControlContext,
     samplingMode,
     selection: propsSelection,
     skipDashboardFilterParens,
@@ -213,7 +210,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    onDemandControlContext,
     mepSetting,
     samplingMode,
     enabled: isTimeSeriesData && !disabled && !propsLoading,
@@ -229,7 +225,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    onDemandControlContext,
     mepSetting,
     samplingMode,
     enabled: enableTableHook || (enableSeriesHook && needsBreakdownTable),

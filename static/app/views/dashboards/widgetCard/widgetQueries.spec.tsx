@@ -6,7 +6,6 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {PageFilters} from 'sentry/types/core';
-import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -31,13 +30,11 @@ describe('Dashboards > WidgetQueries', () => {
 
   const renderWithProviders = (component: React.ReactNode, options?: any) =>
     render(
-      <MetricsResultsMetaProvider>
-        <DashboardsMEPProvider>
-          <MEPSettingProvider forceTransactions={false}>
-            <WidgetQueryQueueProvider>{component}</WidgetQueryQueueProvider>
-          </MEPSettingProvider>
-        </DashboardsMEPProvider>
-      </MetricsResultsMetaProvider>,
+      <DashboardsMEPProvider>
+        <MEPSettingProvider forceTransactions={false}>
+          <WidgetQueryQueueProvider>{component}</WidgetQueryQueueProvider>
+        </MEPSettingProvider>
+      </DashboardsMEPProvider>,
       options
     );
 
@@ -657,34 +654,32 @@ describe('Dashboards > WidgetQueries', () => {
 
     // Simulate a re-render with a new query alias
     rerender(
-      <MetricsResultsMetaProvider>
-        <DashboardsMEPProvider>
-          <MEPSettingProvider forceTransactions={false}>
-            <WidgetQueryQueueProvider>
-              <WidgetQueries
-                widget={{
-                  ...lineWidget,
-                  queries: [
-                    {
-                      conditions: 'event.type:error',
-                      fields: ['count()'],
-                      aggregates: ['count()'],
-                      columns: [],
-                      name: 'this query alias changed',
-                      orderby: '',
-                    },
-                  ],
-                }}
-              >
-                {props => {
-                  childProps = props;
-                  return <div data-test-id="child" />;
-                }}
-              </WidgetQueries>
-            </WidgetQueryQueueProvider>
-          </MEPSettingProvider>
-        </DashboardsMEPProvider>
-      </MetricsResultsMetaProvider>
+      <DashboardsMEPProvider>
+        <MEPSettingProvider forceTransactions={false}>
+          <WidgetQueryQueueProvider>
+            <WidgetQueries
+              widget={{
+                ...lineWidget,
+                queries: [
+                  {
+                    conditions: 'event.type:error',
+                    fields: ['count()'],
+                    aggregates: ['count()'],
+                    columns: [],
+                    name: 'this query alias changed',
+                    orderby: '',
+                  },
+                ],
+              }}
+            >
+              {props => {
+                childProps = props;
+                return <div data-test-id="child" />;
+              }}
+            </WidgetQueries>
+          </WidgetQueryQueueProvider>
+        </MEPSettingProvider>
+      </DashboardsMEPProvider>
     );
 
     // Did not re-query

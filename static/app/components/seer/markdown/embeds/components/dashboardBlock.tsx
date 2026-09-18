@@ -22,9 +22,7 @@ import {t, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {dashboardDetailsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -186,46 +184,42 @@ function DashboardPreview({
 
   return (
     <Stack gap="md">
-      <OnDemandControlProvider location={dashboardLocation}>
-        <MetricsResultsMetaProvider>
-          <MetricsCardinalityProvider
-            organization={organization}
-            location={dashboardLocation}
-          >
-            <MetricsDataSwitcher location={dashboardLocation}>
-              {metricsDataSide => (
-                <MEPSettingProvider
-                  location={dashboardLocation}
-                  forceTransactions={metricsDataSide.forceTransactionsOnly}
-                >
-                  <WidgetQueryQueueProvider>
-                    <WidgetSyncContextProvider>
-                      <Grid
-                        columns={{
-                          '2xs': 'minmax(0, 1fr)',
-                          md: 'repeat(2, minmax(0, 1fr))',
-                        }}
-                        gap="md"
-                      >
-                        {previewWidgets.map((widget, index) => (
-                          <DashboardWidgetPreview
-                            key={widget.id ?? `${widget.title}-${index}`}
-                            dashboard={dashboard}
-                            selection={selection}
-                            widget={widget}
-                            widgetInterval={widgetInterval}
-                            widgetLegendState={widgetLegendState}
-                          />
-                        ))}
-                      </Grid>
-                    </WidgetSyncContextProvider>
-                  </WidgetQueryQueueProvider>
-                </MEPSettingProvider>
-              )}
-            </MetricsDataSwitcher>
-          </MetricsCardinalityProvider>
-        </MetricsResultsMetaProvider>
-      </OnDemandControlProvider>
+      <MetricsCardinalityProvider
+        organization={organization}
+        location={dashboardLocation}
+      >
+        <MetricsDataSwitcher location={dashboardLocation}>
+          {metricsDataSide => (
+            <MEPSettingProvider
+              location={dashboardLocation}
+              forceTransactions={metricsDataSide.forceTransactionsOnly}
+            >
+              <WidgetQueryQueueProvider>
+                <WidgetSyncContextProvider>
+                  <Grid
+                    columns={{
+                      '2xs': 'minmax(0, 1fr)',
+                      md: 'repeat(2, minmax(0, 1fr))',
+                    }}
+                    gap="md"
+                  >
+                    {previewWidgets.map((widget, index) => (
+                      <DashboardWidgetPreview
+                        key={widget.id ?? `${widget.title}-${index}`}
+                        dashboard={dashboard}
+                        selection={selection}
+                        widget={widget}
+                        widgetInterval={widgetInterval}
+                        widgetLegendState={widgetLegendState}
+                      />
+                    ))}
+                  </Grid>
+                </WidgetSyncContextProvider>
+              </WidgetQueryQueueProvider>
+            </MEPSettingProvider>
+          )}
+        </MetricsDataSwitcher>
+      </MetricsCardinalityProvider>
       {remainingWidgets > 0 ? (
         <Link to={href}>
           {tn('View %s more widget', 'View %s more widgets', remainingWidgets)}

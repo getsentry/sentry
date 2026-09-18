@@ -40,10 +40,6 @@ import {
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
-import {
-  createOnDemandFilterWarning,
-  shouldDisplayOnDemandWidgetWarning,
-} from 'sentry/utils/onDemandMetrics';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -370,12 +366,6 @@ function DataWidgetViewerModal(props: Props) {
     modalSelection
   );
 
-  const getOnDemandFilterWarning = createOnDemandFilterWarning(
-    t(
-      'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
-    )
-  );
-
   const queryOptions = sortedQueries.map((query, index) => {
     const {name, conditions} = query;
     // Creates the highlighted query elements to be used in the Query Select
@@ -390,18 +380,7 @@ function DataWidgetViewerModal(props: Props) {
       const queryString = `${conditions} ${dashboardFiltersString}`.trim();
       return !name && !!queryString ? (
         <HighlightContainer {...highlightedContainerProps}>
-          <ProvidedFormattedQuery
-            query={queryString}
-            getFilterTokenWarning={
-              shouldDisplayOnDemandWidgetWarning(
-                query,
-                widget.widgetType ?? WidgetType.ERRORS,
-                organization
-              )
-                ? getOnDemandFilterWarning
-                : undefined
-            }
-          />
+          <ProvidedFormattedQuery query={queryString} />
         </HighlightContainer>
       ) : null;
     };
