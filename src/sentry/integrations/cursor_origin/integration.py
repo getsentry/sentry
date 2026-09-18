@@ -60,7 +60,7 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
 
     @property
     def repo_search(self) -> bool:
-        return False
+        return True
 
     def get_client(self) -> CursorOriginApiClient:
         return CursorOriginApiClient(
@@ -79,10 +79,9 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         raise_on_page_limit: bool = False,
         parallel: bool = False,
     ) -> list[RepositoryInfo]:
-        """Repositories this installation can see.
+        """Repositories this installation can see, narrowed by `query` where given.
 
-        The remaining keyword arguments exist for base-class compatibility. Origin has no
-        search endpoint, so `query` filters locally.
+        The remaining keyword arguments exist for base-class compatibility.
         """
 
         def to_repository_info(raw: Sequence[OriginRepositorySummary]) -> list[RepositoryInfo]:
@@ -97,7 +96,7 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
             ]
 
         try:
-            raw_repos = self.get_client().get_repositories()
+            raw_repos = self.get_client().get_repositories(query)
         except ApiPaginationTruncated as e:
             if raise_on_page_limit:
                 raise ApiPaginationTruncated(to_repository_info(e.partial_data)) from e
@@ -106,13 +105,7 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
             logger.info("cursor_origin.get_repositories.error", extra={"error": str(e)})
             self.raise_error(e)
 
-        repos = to_repository_info(raw_repos)
-
-        if query:
-            lowered = query.lower()
-            repos = [repo for repo in repos if lowered in repo["name"].lower()]
-
-        return repos
+        return to_repository_info(raw_repos)
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         try:
