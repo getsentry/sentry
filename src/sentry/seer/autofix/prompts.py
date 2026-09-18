@@ -39,6 +39,8 @@ def root_cause_prompt(
     run_state: "SeerRunState | None" = None,
     should_run_repo_checks: bool = False,
 ) -> str:
+    """DEPRECATED: RCA runs through Seer, see src/seer/automation/features/autofix/feature.py in seer repo to change behavior"""
+
     return dedent(
         f"""\
         Analyze issue {short_id}: "{title}" (culprit: {culprit})

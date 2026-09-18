@@ -273,8 +273,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-smart-assignment-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display the Seer Night Shift UI
     manager.add("organizations:seer-night-shift-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Route autofix RCA through the Seer autofix feature
-    manager.add("organizations:autofix-rca-in-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Route autofix solution through the Seer autofix feature
     manager.add("organizations:autofix-solution-in-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Route autofix code changes through the Seer autofix feature
