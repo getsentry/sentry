@@ -50,10 +50,19 @@ import {
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
+import type {SeerStatusBlockVariant} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {InvestigationDetail} from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
+
+// Every way a run stops for good. `awaitingInput` is deliberately absent: that
+// run is paused, not over, so it has no total to report yet.
+const RUN_ENDED_VARIANTS: readonly SeerStatusBlockVariant[] = [
+  'complete',
+  'failed',
+  'cancelled',
+];
 
 const STATUS_TAG_VARIANT = {
   running: 'info',
@@ -165,12 +174,16 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     investigation.orchestration && orchestration
       ? getSeerStatusBlock(orchestration)
       : null;
-  // A finished run's total is frozen at the projection's last update, which is
-  // the closest thing the contract carries to a finish time. Without one there
-  // is no total to state, so the header says nothing rather than leaving a
-  // counter running on a run that has stopped.
+  // A stopped run's total is frozen at the projection's last update, which is
+  // the closest thing the contract carries to a finish time. How long a run went
+  // before it failed or was cancelled is worth the same as how long a successful
+  // one took, so all three keep the number. Without that timestamp there is no
+  // total to state, and the header says nothing rather than leaving a counter
+  // running on a run that has stopped.
   const runEndedAt =
-    runStatus?.variant === 'complete' ? (orchestration?.updatedAt ?? null) : null;
+    runStatus && RUN_ENDED_VARIANTS.includes(runStatus.variant)
+      ? (orchestration?.updatedAt ?? null)
+      : null;
   const showRunTimer = runStatus?.variant === 'running' || Boolean(runEndedAt);
 
   useEffect(() => {

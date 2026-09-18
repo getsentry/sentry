@@ -1859,6 +1859,34 @@ describe('Investigation detail', () => {
     expect(screen.getByText('Your investigation is ready')).toBeInTheDocument();
   });
 
+  // How long a run went before it stopped is worth the same whether it
+  // succeeded or not, so an unsuccessful end keeps its total too.
+  it.each(['failed', 'cancelled'] as const)(
+    'keeps the total on a %s run',
+    async status => {
+      setMockDate(new Date('2026-08-13T20:05:00Z'));
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationAgenticDetailFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          status,
+          phase: status,
+          updatedAt: '2026-08-13T20:04:00Z',
+        }),
+      });
+
+      renderView();
+
+      const header = await screen.findByRole('banner');
+      expect(
+        await within(header).findByRole('timer', {name: 'Total run time'})
+      ).toHaveTextContent('4.0min');
+    }
+  );
+
   it('does not reach for orchestration on a manual investigation', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
