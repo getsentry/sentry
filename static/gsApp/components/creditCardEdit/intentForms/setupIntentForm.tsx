@@ -39,10 +39,7 @@ export function SetupIntentForm(props: IntentFormProps) {
         url: getApiUrl('/customers/$organizationIdOrSlug/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        data: {
-          paymentMethod,
-          ftcConsentLocation,
-        },
+        data: {paymentMethod, ftcConsentLocation},
       }),
     onSuccess: (data: Subscription) => {
       addSuccessMessage(t('Updated payment method.'));
@@ -95,9 +92,7 @@ export function SetupIntentForm(props: IntentFormProps) {
         elements,
         clientSecret: intentData.clientSecret,
         redirect: 'if_required', // if the payment method requires redirects, we redirect to the return_url on completion
-        confirmParams: {
-          return_url: window.location.href,
-        },
+        confirmParams: {return_url: window.location.href},
       })
       .then((result: SetupIntentResult) => {
         if (result.error) {
@@ -105,9 +100,7 @@ export function SetupIntentForm(props: IntentFormProps) {
           setIsSubmitting(false);
           return;
         }
-        updateSubscription({
-          paymentMethod: result.setupIntent.payment_method,
-        });
+        updateSubscription({paymentMethod: result.setupIntent.payment_method});
       });
   };
 

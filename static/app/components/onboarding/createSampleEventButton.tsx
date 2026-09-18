@@ -60,9 +60,7 @@ export function CreateSampleEventButton({
     mutationFn: () => {
       const url = getApiUrl(
         '/projects/$organizationIdOrSlug/$projectIdOrSlug/create-sample/',
-        {
-          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project!.slug},
-        }
+        {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project!.slug}}
       );
       return fetchMutation<{groupID: string}>({method: 'POST', url});
     },

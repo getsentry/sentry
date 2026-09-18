@@ -26,10 +26,7 @@ describe('DeleteBillingMetricHistory', () => {
   const openDeleteModal = (
     props: {organization: Organization; onSuccess?: () => void} = {organization}
   ) => {
-    deleteBillingMetricHistory({
-      organization,
-      onSuccess: props.onSuccess || jest.fn(),
-    });
+    deleteBillingMetricHistory({organization, onSuccess: props.onSuccess || jest.fn()});
     renderGlobalModal();
   };
 
@@ -60,16 +57,8 @@ describe('DeleteBillingMetricHistory', () => {
             tally_type: 2,
           },
         },
-        outcomes: {
-          '0': 'Accepted',
-          '1': 'Filtered',
-          '2': 'Rate Limited',
-        },
-        reason_codes: {
-          '0': 'Default',
-          '1': 'Quota',
-          '2': 'Rate Limit',
-        },
+        outcomes: {'0': 'Accepted', '1': 'Filtered', '2': 'Rate Limited'},
+        reason_codes: {'0': 'Default', '1': 'Quota', '2': 'Rate Limit'},
       },
     });
 
@@ -171,12 +160,7 @@ describe('DeleteBillingMetricHistory', () => {
       // Check that the API call was made with the correct parameters
       expect(deleteBillingMetricHistoryMock).toHaveBeenCalledWith(
         `/customers/${organization.slug}/delete-billing-metric-history/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            data_category: 2,
-          },
-        })
+        expect.objectContaining({method: 'POST', data: {data_category: 2}})
       );
 
       // Check that the success message was shown
@@ -222,9 +206,7 @@ describe('DeleteBillingMetricHistory', () => {
       url: `/customers/${organization.slug}/delete-billing-metric-history/`,
       method: 'POST',
       statusCode: 400,
-      body: {
-        detail: 'An error occurred while deleting billing metric history.',
-      },
+      body: {detail: 'An error occurred while deleting billing metric history.'},
     });
 
     openDeleteModal();
@@ -353,9 +335,7 @@ describe('deleteBillingMetricHistory export function', () => {
 
     expect(openModalMock).toHaveBeenCalledWith(
       expect.any(Function),
-      expect.objectContaining({
-        closeEvents: 'escape-key',
-      })
+      expect.objectContaining({closeEvents: 'escape-key'})
     );
   });
 });

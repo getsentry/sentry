@@ -40,10 +40,7 @@ describe('addValidatedFieldTypesToMeta', () => {
   it('preserves table meta field types over validated field types', () => {
     const meta = addValidatedFieldTypesToMeta({
       meta: {
-        fields: {
-          'custom.duration': FieldValueType.STRING,
-          id: FieldValueType.STRING,
-        },
+        fields: {'custom.duration': FieldValueType.STRING, id: FieldValueType.STRING},
       },
       validatedFieldTypes: {
         'custom.duration': FieldValueType.NUMBER,
@@ -175,9 +172,7 @@ describe('SpansTable', () => {
         organization,
         additionalWrapper: Wrapper,
         initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/explore/traces/`,
-          },
+          location: {pathname: `/organizations/${organization.slug}/explore/traces/`},
         },
       }
     );
@@ -203,13 +198,7 @@ describe('SpansTable', () => {
           timestamp: new Date(row.timestamp).getTime() / 1000,
         }),
       ],
-      body: {
-        attributes,
-        itemId: row.id,
-        links: null,
-        meta: {},
-        timestamp: row.timestamp,
-      },
+      body: {attributes, itemId: row.id, links: null, meta: {}, timestamp: row.timestamp},
     });
   }
 
@@ -221,9 +210,7 @@ describe('SpansTable', () => {
     expect(attributeRow).not.toBeNull();
     await userEvent.hover(attributeRow!);
     await userEvent.click(
-      within(attributeRow!).getByRole('button', {
-        name: 'Attribute Actions Menu',
-      }),
+      within(attributeRow!).getByRole('button', {name: 'Attribute Actions Menu'}),
       {pointerEventsCheck: 0}
     );
   }
@@ -241,9 +228,7 @@ describe('SpansTable', () => {
 
     renderTable();
 
-    const showButtons = screen.getAllByRole('button', {
-      name: 'Show span details',
-    });
+    const showButtons = screen.getAllByRole('button', {name: 'Show span details'});
     expect(firstDetailsMock).not.toHaveBeenCalled();
     expect(secondDetailsMock).not.toHaveBeenCalled();
 
@@ -337,10 +322,7 @@ describe('SpansTable', () => {
     });
 
     const pendingResult = makeQueryResult([], 'unrelated-hint');
-    Object.assign(pendingResult, {
-      isFetching: true,
-      isPlaceholderData: true,
-    });
+    Object.assign(pendingResult, {isFetching: true, isPlaceholderData: true});
     rerenderTable(pendingResult);
 
     expect(screen.getByText('custom value')).toBeInTheDocument();

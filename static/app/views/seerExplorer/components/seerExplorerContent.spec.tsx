@@ -125,10 +125,7 @@ describe('SeerExplorerContent', () => {
             },
             {
               id: 'msg-2',
-              message: {
-                role: 'assistant',
-                content: 'This is a null pointer exception.',
-              },
+              message: {role: 'assistant', content: 'This is a null pointer exception.'},
               timestamp: '2024-01-01T00:02:00Z',
               loading: false,
             },
@@ -147,9 +144,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization: codeModeOrganization,
-        }
+        {organization: codeModeOrganization}
       );
 
       await userEvent.click(
@@ -172,9 +167,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
       await screen.findByTestId('seer-explorer-input');
       expect(document.querySelector('[data-seer-explorer-root]')).toBeInTheDocument();
@@ -190,9 +183,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
       expect(
         await screen.findByText('Ask Seer anything about your application.')
@@ -209,9 +200,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
       expect(
         await screen.findByPlaceholderText(
@@ -222,10 +211,9 @@ describe('SeerExplorerContent', () => {
 
     it('sends the suggested question when a suggestion button is clicked', async () => {
       const sendMessage = jest.fn();
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        sendMessage,
-      });
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
 
       render(
         <PictureInPictureProvider>
@@ -236,9 +224,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       const suggestion = await screen.findByRole('button', {
@@ -252,12 +238,14 @@ describe('SeerExplorerContent', () => {
     });
 
     it('shows error state when isError is true', async () => {
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        runId: 123,
-        isError: true,
-        errorStatusCode: undefined,
-      });
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({
+          ...defaultHookReturn,
+          runId: 123,
+          isError: true,
+          errorStatusCode: undefined,
+        });
 
       render(
         <PictureInPictureProvider>
@@ -268,9 +256,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(
@@ -279,12 +265,14 @@ describe('SeerExplorerContent', () => {
     });
 
     it('shows 404-specific error message', async () => {
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        runId: 123,
-        isError: true,
-        errorStatusCode: 404,
-      });
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({
+          ...defaultHookReturn,
+          runId: 123,
+          isError: true,
+          errorStatusCode: 404,
+        });
 
       render(
         <PictureInPictureProvider>
@@ -295,9 +283,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(
@@ -307,12 +293,14 @@ describe('SeerExplorerContent', () => {
     });
 
     it('shows generic error message when for non-404 errors', async () => {
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        runId: 123,
-        isError: true,
-        errorStatusCode: 444,
-      });
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({
+          ...defaultHookReturn,
+          runId: 123,
+          isError: true,
+          errorStatusCode: 444,
+        });
 
       render(
         <PictureInPictureProvider>
@@ -323,9 +311,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(
@@ -349,10 +335,7 @@ describe('SeerExplorerContent', () => {
             },
             {
               id: 'msg-2',
-              message: {
-                role: 'assistant',
-                content: 'This is a null pointer exception.',
-              },
+              message: {role: 'assistant', content: 'This is a null pointer exception.'},
               timestamp: '2024-01-01T00:01:00Z',
               loading: false,
             },
@@ -371,9 +354,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(await screen.findByText('What is this error?')).toBeInTheDocument();
@@ -395,9 +376,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
       const textarea = await screen.findByTestId('seer-explorer-input');
       await userEvent.type(textarea, 'Test message');
@@ -406,10 +385,9 @@ describe('SeerExplorerContent', () => {
 
     it('calls sendMessage and clears input when send button is clicked', async () => {
       const sendMessage = jest.fn();
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        sendMessage,
-      });
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
 
       render(
         <PictureInPictureProvider>
@@ -420,9 +398,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -435,10 +411,9 @@ describe('SeerExplorerContent', () => {
 
     it('calls sendMessage and clears input when Enter is pressed', async () => {
       const sendMessage = jest.fn();
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        sendMessage,
-      });
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
 
       render(
         <PictureInPictureProvider>
@@ -449,9 +424,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -525,9 +498,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -545,10 +516,9 @@ describe('SeerExplorerContent', () => {
 
     it('does not send empty messages', async () => {
       const sendMessage = jest.fn();
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        sendMessage,
-      });
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
 
       render(
         <PictureInPictureProvider>
@@ -559,9 +529,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       await screen.findByTestId('seer-explorer-input');
@@ -572,11 +540,9 @@ describe('SeerExplorerContent', () => {
 
     it('does not send while polling', async () => {
       const sendMessage = jest.fn();
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        sendMessage,
-        isPolling: true,
-      });
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage, isPolling: true});
 
       render(
         <PictureInPictureProvider>
@@ -587,9 +553,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -639,9 +603,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -714,10 +676,9 @@ describe('SeerExplorerContent', () => {
 
   describe('Input Persistence', () => {
     it('restores the persisted draft when the drawer remounts', async () => {
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        runId: 7,
-      });
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, runId: 7});
 
       const {unmount} = render(
         <PictureInPictureProvider>
@@ -840,11 +801,9 @@ describe('SeerExplorerContent', () => {
 
     it('clears the persisted draft when a message is sent', async () => {
       const sendMessage = jest.fn();
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        sendMessage,
-        runId: 42,
-      });
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage, runId: 42});
 
       render(
         <PictureInPictureProvider>
@@ -871,15 +830,17 @@ describe('SeerExplorerContent', () => {
   describe('Read-only State', () => {
     it('disables input when session owner differs from current user', async () => {
       ConfigStore.set('user', UserFixture({id: '1'}));
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        sessionData: {
-          blocks: [],
-          status: 'completed',
-          updated_at: '2024-01-01T00:00:00Z',
-          owner_user_id: 2,
-        },
-      });
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({
+          ...defaultHookReturn,
+          sessionData: {
+            blocks: [],
+            status: 'completed',
+            updated_at: '2024-01-01T00:00:00Z',
+            owner_user_id: 2,
+          },
+        });
 
       render(
         <PictureInPictureProvider>
@@ -890,9 +851,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -905,15 +864,17 @@ describe('SeerExplorerContent', () => {
 
     it('enables input when owner id matches current user', async () => {
       ConfigStore.set('user', UserFixture({id: '1'}));
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        sessionData: {
-          blocks: [],
-          status: 'completed',
-          updated_at: '2024-01-01T00:00:00Z',
-          owner_user_id: 1,
-        },
-      });
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({
+          ...defaultHookReturn,
+          sessionData: {
+            blocks: [],
+            status: 'completed',
+            updated_at: '2024-01-01T00:00:00Z',
+            owner_user_id: 1,
+          },
+        });
 
       render(
         <PictureInPictureProvider>
@@ -924,9 +885,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -939,15 +898,17 @@ describe('SeerExplorerContent', () => {
 
     it('enables input when owner_user_id is undefined', async () => {
       ConfigStore.set('user', UserFixture({id: '1'}));
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        sessionData: {
-          blocks: [],
-          status: 'completed',
-          updated_at: '2024-01-01T00:00:00Z',
-          owner_user_id: undefined,
-        },
-      });
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({
+          ...defaultHookReturn,
+          sessionData: {
+            blocks: [],
+            status: 'completed',
+            updated_at: '2024-01-01T00:00:00Z',
+            owner_user_id: undefined,
+          },
+        });
 
       render(
         <PictureInPictureProvider>
@@ -958,9 +919,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -989,9 +948,7 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
       await screen.findByTestId('seer-explorer-input');
       expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
@@ -1016,9 +973,7 @@ describe('SeerExplorerContent', () => {
             onTogglePictureInPicture={() => {}}
           />
         </SeerExplorerSessionsProvider>,
-        {
-          organization: orgWithFlag,
-        }
+        {organization: orgWithFlag}
       );
 
       await screen.findByText('Seer Agent');
@@ -1054,14 +1009,16 @@ describe('SeerExplorerContent', () => {
     });
 
     it('shows the pop-out button and requests a window on click', async () => {
-      const requestWindow = jest.fn().mockResolvedValue({
-        document: document.implementation.createHTMLDocument('pip'),
-        close: jest.fn(),
-        focus: jest.fn(),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        closed: false,
-      });
+      const requestWindow = jest
+        .fn()
+        .mockResolvedValue({
+          document: document.implementation.createHTMLDocument('pip'),
+          close: jest.fn(),
+          focus: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          closed: false,
+        });
       Object.defineProperty(window, 'documentPictureInPicture', {
         configurable: true,
         writable: true,
@@ -1088,14 +1045,16 @@ describe('SeerExplorerContent', () => {
     });
 
     it('requests a window when selecting Windowed from the dock-position menu', async () => {
-      const requestWindow = jest.fn().mockResolvedValue({
-        document: document.implementation.createHTMLDocument('pip'),
-        close: jest.fn(),
-        focus: jest.fn(),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        closed: false,
-      });
+      const requestWindow = jest
+        .fn()
+        .mockResolvedValue({
+          document: document.implementation.createHTMLDocument('pip'),
+          close: jest.fn(),
+          focus: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          closed: false,
+        });
       Object.defineProperty(window, 'documentPictureInPicture', {
         configurable: true,
         writable: true,
@@ -1130,9 +1089,7 @@ describe('SeerExplorerContent', () => {
   });
 
   describe('Slack upgrade alert', () => {
-    const outdatedSlackIntegration = OrganizationIntegrationsFixture({
-      outOfDate: true,
-    });
+    const outdatedSlackIntegration = OrganizationIntegrationsFixture({outOfDate: true});
 
     const upgradeNudgeText =
       'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app to get started.';

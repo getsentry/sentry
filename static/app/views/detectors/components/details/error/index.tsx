@@ -28,10 +28,7 @@ import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeCon
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-type ErrorDetectorDetailsProps = {
-  detector: Detector;
-  project: Project;
-};
+type ErrorDetectorDetailsProps = {detector: Detector; project: Project};
 
 const formatResolveAge = (resolveAge: number) => {
   if (!resolveAge) {

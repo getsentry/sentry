@@ -21,9 +21,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 import {IntegrationExternalMappings} from './integrationExternalMappings';
 
-type Props = {
-  integration: Integration;
-};
+type Props = {integration: Integration};
 
 export function IntegrationExternalTeamMappings(props: Props) {
   const {openModal} = useModal();
@@ -118,10 +116,7 @@ export function IntegrationExternalTeamMappings(props: Props) {
   };
 
   const defaultTeamOptions = () => {
-    return initialResults.map(({id, slug}) => ({
-      value: {id, name: slug},
-      label: slug,
-    }));
+    return initialResults.map(({id, slug}) => ({value: {id, name: slug}, label: slug}));
   };
 
   const getBaseFormEndpoint = (mapping?: ExternalActorMappingOrSuggestion) => {
@@ -150,10 +145,7 @@ export function IntegrationExternalTeamMappings(props: Props) {
           }
         )
       : getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            teamIdOrSlug: teamSlug,
-          },
+          path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
         });
   };
 

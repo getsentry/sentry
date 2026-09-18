@@ -5,11 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {MobileOverviewTable} from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
 import {DEFAULT_SORT} from 'sentry/views/insights/pages/mobile/settings';
 
-const EMPTY_RESPONSE = {
-  data: [],
-  isLoading: false,
-  meta: {fields: {}, units: {}},
-};
+const EMPTY_RESPONSE = {data: [], isLoading: false, meta: {fields: {}, units: {}}};
 
 describe('MobileOverviewTable', () => {
   it('links the Time Spent header to the ascending sort when it is the active sort', () => {

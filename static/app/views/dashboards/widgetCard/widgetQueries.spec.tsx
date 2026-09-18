@@ -97,12 +97,7 @@ describe('Dashboards > WidgetQueries', () => {
   const selection: PageFilters = {
     projects: [1],
     environments: ['prod'],
-    datetime: {
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    },
+    datetime: {period: '14d', start: null, end: null, utc: false},
   };
 
   afterEach(() => {
@@ -221,12 +216,7 @@ describe('Dashboards > WidgetQueries', () => {
     const longSelection: PageFilters = {
       projects: [1],
       environments: ['prod', 'dev'],
-      datetime: {
-        period: '90d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '90d', start: null, end: null, utc: false},
     };
 
     // Initialize PageFiltersStore with the specific selection for this test
@@ -270,19 +260,14 @@ describe('Dashboards > WidgetQueries', () => {
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({interval: '30m'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({interval: '30m'})})
     );
   });
 
   it('can send table result queries', async () => {
     const tableMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {'sdk.name': 'string'},
-        data: [{'sdk.name': 'python'}],
-      },
+      body: {meta: {'sdk.name': 'string'}, data: [{'sdk.name': 'python'}]},
     });
 
     // Initialize PageFiltersStore with selection
@@ -322,18 +307,12 @@ describe('Dashboards > WidgetQueries', () => {
   it('can send multiple table queries', async () => {
     const firstQuery = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {'sdk.name': 'string'},
-        data: [{'sdk.name': 'python'}],
-      },
+      body: {meta: {'sdk.name': 'string'}, data: [{'sdk.name': 'python'}]},
       match: [MockApiClient.matchQuery({query: 'event.type:error'})],
     });
     const secondQuery = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {title: 'string'},
-        data: [{title: 'ValueError'}],
-      },
+      body: {meta: {title: 'string'}, data: [{title: 'ValueError'}]},
       match: [MockApiClient.matchQuery({query: 'title:ValueError'})],
     });
 
@@ -385,10 +364,7 @@ describe('Dashboards > WidgetQueries', () => {
   it('can send big number result queries', async () => {
     const tableMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {'sdk.name': 'string'},
-        data: [{'sdk.name': 'python'}],
-      },
+      body: {meta: {'sdk.name': 'string'}, data: [{'sdk.name': 'python'}]},
     });
 
     // Initialize PageFiltersStore with selection
@@ -451,10 +427,7 @@ describe('Dashboards > WidgetQueries', () => {
     });
     const secondQuery = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {title: 'string'},
-        data: [{title: 'ValueError'}],
-      },
+      body: {meta: {title: 'string'}, data: [{title: 'ValueError'}]},
       match: [MockApiClient.matchQuery({query: 'title:ValueError'})],
     });
 
@@ -530,39 +503,13 @@ describe('Dashboards > WidgetQueries', () => {
     const defaultMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       method: 'GET',
-      body: {
-        data: [
-          [
-            1000,
-            [
-              {
-                count: 100,
-              },
-            ],
-          ],
-        ],
-        start: 1000,
-        end: 2000,
-      },
+      body: {data: [[1000, [{count: 100}]]], start: 1000, end: 2000},
       match: [MockApiClient.matchQuery({query: 'event.type:default'})],
     });
     const errorMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       method: 'GET',
-      body: {
-        data: [
-          [
-            1000,
-            [
-              {
-                count: 200,
-              },
-            ],
-          ],
-        ],
-        start: 1000,
-        end: 2000,
-      },
+      body: {data: [[1000, [{count: 200}]]], start: 1000, end: 2000},
       match: [MockApiClient.matchQuery({query: 'event.type:error'})],
     });
     const barWidget = {
@@ -604,12 +551,7 @@ describe('Dashboards > WidgetQueries', () => {
 
     const longSelection = {
       ...selection,
-      datetime: {
-        period: '90d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '90d', start: null, end: null, utc: false},
     };
 
     // Initialize PageFiltersStore with longSelection
@@ -699,16 +641,7 @@ describe('Dashboards > WidgetQueries', () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {
-        data: [
-          [
-            1000,
-            [
-              {
-                count: 100,
-              },
-            ],
-          ],
-        ],
+        data: [[1000, [{count: 100}]]],
         isMetricsData: false,
         start: 1000,
         end: 2000,
@@ -720,26 +653,16 @@ describe('Dashboards > WidgetQueries', () => {
 
     renderWithProviders(
       <DashboardsMEPContext
-        value={{
-          isMetricsData: undefined,
-          setIsMetricsData: setIsMetricsMock,
-        }}
+        value={{isMetricsData: undefined, setIsMetricsData: setIsMetricsMock}}
       >
         <WidgetQueries widget={singleQueryWidget}>{children}</WidgetQueries>
       </DashboardsMEPContext>,
-      {
-        organization: {
-          ...organization,
-          features: [...organization.features],
-        },
-      }
+      {organization: {...organization, features: [...organization.features]}}
     );
 
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'errors'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({dataset: 'errors'})})
     );
 
     await waitFor(() => {
@@ -751,10 +674,7 @@ describe('Dashboards > WidgetQueries', () => {
     const {organization} = initialData;
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {title: 'string', isMetricsData: true},
-        data: [{title: 'ValueError'}],
-      },
+      body: {meta: {title: 'string', isMetricsData: true}, data: [{title: 'ValueError'}]},
     });
     const setIsMetricsMock = jest.fn();
 
@@ -762,28 +682,18 @@ describe('Dashboards > WidgetQueries', () => {
 
     renderWithProviders(
       <DashboardsMEPContext
-        value={{
-          isMetricsData: undefined,
-          setIsMetricsData: setIsMetricsMock,
-        }}
+        value={{isMetricsData: undefined, setIsMetricsData: setIsMetricsMock}}
       >
         <WidgetQueries widget={{...singleQueryWidget, displayType: DisplayType.TABLE}}>
           {children}
         </WidgetQueries>
       </DashboardsMEPContext>,
-      {
-        organization: {
-          ...organization,
-          features: [...organization.features],
-        },
-      }
+      {organization: {...organization, features: [...organization.features]}}
     );
 
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'errors'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({dataset: 'errors'})})
     );
 
     await waitFor(() => {
@@ -792,11 +702,7 @@ describe('Dashboards > WidgetQueries', () => {
   });
 
   it('does not inject equation aliases for top N requests', async () => {
-    const testData = initializeOrg({
-      organization: {
-        ...OrganizationFixture(),
-      },
-    });
+    const testData = initializeOrg({organization: {...OrganizationFixture()}});
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],

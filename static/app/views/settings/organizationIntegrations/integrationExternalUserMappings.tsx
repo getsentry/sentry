@@ -24,9 +24,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 import {IntegrationExternalMappings} from './integrationExternalMappings';
 
-type Props = {
-  integration: Integration;
-};
+type Props = {integration: Integration};
 
 export function IntegrationExternalUserMappings(props: Props) {
   const {openModal} = useModal();
@@ -41,9 +39,7 @@ export function IntegrationExternalUserMappings(props: Props) {
     return externalUserId
       ? getApiUrl(
           '/organizations/$organizationIdOrSlug/external-users/$externalUserId/',
-          {
-            path: {organizationIdOrSlug: organization.slug, externalUserId},
-          }
+          {path: {organizationIdOrSlug: organization.slug, externalUserId}}
         )
       : getApiUrl('/organizations/$organizationIdOrSlug/external-users/', {
           path: {organizationIdOrSlug: organization.slug},
@@ -138,10 +134,7 @@ export function IntegrationExternalUserMappings(props: Props) {
     .filter(member => member.user)
     .map(({user, email, name}) => {
       const label = email === name ? email : `${name} - ${email}`;
-      return {
-        value: {id: user?.id!, name: label},
-        label,
-      };
+      return {value: {id: user?.id!, name: label}, label};
     });
 
   const openMembersModal = () => {

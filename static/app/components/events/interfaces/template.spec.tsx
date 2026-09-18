@@ -39,11 +39,7 @@ it('preserves redaction metadata on template variables', () => {
         _meta: {
           entries: {
             0: {
-              data: {
-                values: {
-                  vars: {password: {'': {rem: [['!config', 's', 0, 0]]}}},
-                },
-              },
+              data: {values: {vars: {password: {'': {rem: [['!config', 's', 0, 0]]}}}}},
             },
           },
         },

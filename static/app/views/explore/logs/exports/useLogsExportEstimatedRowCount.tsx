@@ -25,18 +25,12 @@ function useLogsExportEstimateTimeseries({
   queryExtras,
 }: UseLogsExportEstimateTimeseriesOptions) {
   const timeseriesResult = useSortedTimeSeries(
-    {
-      ...baseRequest,
-      enabled,
-      ...queryExtras,
-    },
+    {...baseRequest, enabled, ...queryExtras},
     'api.explore.ourlogs-timeseries',
     DiscoverDatasets.OURLOGS
   );
 
-  return {
-    result: timeseriesResult,
-  };
+  return {result: timeseriesResult};
 }
 
 /**
@@ -56,10 +50,7 @@ export function useLogsExportEstimatedRowCount(
 
   const timeseriesResult = useProgressiveQuery<typeof useLogsExportEstimateTimeseries>({
     queryHookImplementation: useLogsExportEstimateTimeseries, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
-    queryHookArgs: {
-      baseRequest,
-      enabled: true,
-    },
+    queryHookArgs: {baseRequest, enabled: true},
     queryOptions: {
       canTriggerHighAccuracy: result => {
         const hasData = computeVisualizeSampleTotals(

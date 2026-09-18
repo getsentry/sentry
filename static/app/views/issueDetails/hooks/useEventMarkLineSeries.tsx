@@ -100,16 +100,8 @@ export function useCurrentEventMarklineSeries({
     // Labels and colors based on series type, matching eventGraph.tsx bar chart series
     const isUserSeries = seriesType === 'user';
     const labels = isUserSeries
-      ? {
-          total: t('Total users'),
-          matching: t('Matching users'),
-          default: t('Users'),
-        }
-      : {
-          total: t('Total events'),
-          matching: t('Matching events'),
-          default: t('Events'),
-        };
+      ? {total: t('Total users'), matching: t('Matching users'), default: t('Users')}
+      : {total: t('Total events'), matching: t('Matching events'), default: t('Events')};
 
     // Colors match eventGraph.tsx series colors
     const colors = isUserSeries
@@ -126,24 +118,10 @@ export function useCurrentEventMarklineSeries({
 
     const markLine = createMarkLine({
       animation: false,
-      lineStyle: {
-        color: theme.tokens.graphics.promotion.vibrant,
-        type: 'solid',
-      },
-      label: {
-        show: false,
-      },
-      emphasis: {
-        label: {
-          show: false,
-        },
-      },
-      data: [
-        {
-          xAxis: closestEventSeries.name,
-          name: event.id,
-        },
-      ],
+      lineStyle: {color: theme.tokens.graphics.promotion.vibrant, type: 'solid'},
+      label: {show: false},
+      emphasis: {label: {show: false}},
+      data: [{xAxis: closestEventSeries.name, name: event.id}],
       tooltip: {
         trigger: 'item',
         formatter: () => {
@@ -151,9 +129,7 @@ export function useCurrentEventMarklineSeries({
           const time = getFormattedDate(
             event.dateCreated,
             getFormat({timeZone: true, year: true}),
-            {
-              local: !eventView.utc,
-            }
+            {local: !eventView.utc}
           );
 
           const matchingCount = closestEventSeries.value.toLocaleString();
@@ -212,12 +188,7 @@ export function useCurrentEventMarklineSeries({
       },
     });
 
-    return {
-      seriesName: 'Current Event',
-      data: [],
-      markLine,
-      type: 'line',
-    };
+    return {seriesName: 'Current Event', data: [], markLine, type: 'line'};
   }, [
     event,
     theme,

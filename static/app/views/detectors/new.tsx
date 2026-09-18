@@ -58,15 +58,10 @@ export default function DetectorNew() {
     onSubmit: () => {
       navigate({
         pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
-        query: {
-          detectorType,
-          project: projectId ?? undefined,
-        },
+        query: {detectorType, project: projectId ?? undefined},
       });
     },
-    initialData: {
-      detectorType,
-    },
+    initialData: {detectorType},
   };
 
   return (

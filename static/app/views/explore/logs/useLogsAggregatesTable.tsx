@@ -63,14 +63,8 @@ export function useLogsAggregatesTable({
     typeof useLogsAggregatesTableImpl
   >({
     queryHookImplementation: useLogsAggregatesTableImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
-    queryHookArgs: {
-      enabled,
-      limit,
-      referrer,
-    },
-    queryOptions: {
-      canTriggerHighAccuracy,
-    },
+    queryHookArgs: {enabled, limit, referrer},
+    queryOptions: {canTriggerHighAccuracy},
   });
 
   return {
@@ -106,11 +100,7 @@ function useLogsAggregatesTableImpl({
     retry: false,
   });
 
-  return {
-    result,
-    pageLinks: result.data?.headers.Link,
-    eventView,
-  };
+  return {result, pageLinks: result.data?.headers.Link, eventView};
 }
 
 function useLogsAggregatesApiOptions({
@@ -166,8 +156,5 @@ function useLogsAggregatesApiOptions({
     }
   );
 
-  return {
-    queryOptions: options,
-    eventView,
-  };
+  return {queryOptions: options, eventView};
 }

@@ -48,11 +48,7 @@ const TablePanelHeader = styled(PanelHeader)`
 
 export const StyledPanelItem = styled(PanelItem, {
   shouldForwardProp: prop => isPropValid(prop) && prop !== 'overflow',
-})<{
-  align?: 'left' | 'center' | 'right';
-  overflow?: boolean;
-  span?: number;
-}>`
+})<{align?: 'left' | 'center' | 'right'; overflow?: boolean; span?: number}>`
   align-items: center;
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   ${p => (p.align === 'left' ? 'justify-content: flex-start;' : null)}

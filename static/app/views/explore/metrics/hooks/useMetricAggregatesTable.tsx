@@ -110,16 +110,8 @@ export function useMetricAggregatesTable({
   );
   return useProgressiveQuery<typeof useMetricAggregatesTableImp>({
     queryHookImplementation: useMetricAggregatesTableImp, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
-    queryHookArgs: {
-      enabled,
-      limit,
-      traceMetric,
-      queryExtras,
-      staleTime,
-    },
-    queryOptions: {
-      canTriggerHighAccuracy,
-    },
+    queryHookArgs: {enabled, limit, traceMetric, queryExtras, staleTime},
+    queryOptions: {canTriggerHighAccuracy},
   });
 }
 

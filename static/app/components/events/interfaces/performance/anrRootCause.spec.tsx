@@ -9,12 +9,7 @@ import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceD
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 jest.mock('sentry/views/performance/newTraceDetails/traceApi/useTrace', () => {
-  return {
-    useTrace: jest.fn(() => ({
-      data: [],
-      status: 'success',
-    })),
-  };
+  return {useTrace: jest.fn(() => ({data: [], status: 'success'}))};
 });
 
 const wrapper = ({children}: {children: React.ReactNode}) => (
@@ -176,11 +171,7 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
 describe('anrRootCause', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/customers/org-slug/',
-      method: 'GET',
-      body: {},
-    });
+    MockApiClient.addMockResponse({url: '/customers/org-slug/', method: 'GET', body: {}});
   });
   it('displays stacktrace of the offending thread', () => {
     const event = makeEventWithThreads([
