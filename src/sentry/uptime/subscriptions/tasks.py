@@ -296,7 +296,7 @@ def _find_store(cluster: str, key_prefix: str) -> ConfigStore | None:
     namespace=uptime_tasks,
     processing_deadline_duration=60,
     expires=SWEEP_RUN_INTERVAL,
-    retry=Retry(times=3, delay=5),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
 )
 def check_missing_configs(subscription_id_prefix: str, cluster: str, key_prefix: str, **kwargs):
     """
@@ -327,7 +327,7 @@ def check_missing_configs(subscription_id_prefix: str, cluster: str, key_prefix:
     namespace=uptime_tasks,
     processing_deadline_duration=60,
     expires=SWEEP_RUN_INTERVAL,
-    retry=Retry(times=3, delay=5),
+    retry=Retry(times=3, delay=120, on=(Exception,)),
 )
 def check_orphaned_configs(cluster: str, key_prefix: str, partition: int, **kwargs):
     """
