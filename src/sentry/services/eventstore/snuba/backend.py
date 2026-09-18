@@ -10,6 +10,7 @@ from typing import Any, Literal, overload
 import sentry_sdk
 from django.utils import timezone
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+from sentry_sdk import traces
 from snuba_sdk import (
     Column,
     Condition,
@@ -40,7 +41,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba
 from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.snuba import DATASETS, _prepare_start_end, bulk_snuba_queries, raw_snql_query
-from sentry.utils.tracing import start_span
 from sentry.utils.validators import normalize_event_id
 
 EVENT_ID = Columns.EVENT_ID.value.alias
@@ -241,7 +241,10 @@ class SnubaEventStorage(EventStorage):
         """
         Get events from Snuba, with node data loaded.
         """
-        with start_span(op="eventstore.snuba.get_events", name="eventstore.snuba.get_events"):
+        with traces.start_span(
+            name="eventstore.snuba.get_events",
+            attributes={"sentry.op": "eventstore.snuba.get_events"},
+        ):
             return self.__get_events(
                 filter,
                 eap_conditions=eap_conditions,
