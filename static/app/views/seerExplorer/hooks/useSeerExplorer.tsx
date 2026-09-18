@@ -87,6 +87,7 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/monitors/:detectorId/',
   '/monitors/:detectorId/edit/',
   '/monitors/alerts/',
+  '/monitors/alerts/:automationId/',
   '/monitors/crons/',
   '/monitors/errors/',
   '/monitors/metrics/',
