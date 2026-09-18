@@ -193,6 +193,9 @@ describe('EventNavigation', () => {
         screen.queryByRole('button', {name: 'Select issue content'})
       ).not.toBeInTheDocument();
 
+      // Autofix sits second, right after the events tab.
+      expect(screen.getAllByRole('tab')[1]).toHaveAccessibleName('Autofix');
+
       // The tab is the <li role="tab">; the anchor it navigates through is nested.
       const autofixTab = screen.getByRole('tab', {name: 'Autofix'});
       expect(within(autofixTab).getByRole('link')).toHaveAttribute(

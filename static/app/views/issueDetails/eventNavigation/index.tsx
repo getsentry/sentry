@@ -137,6 +137,13 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       hidden: false,
     },
     {
+      key: Tab.AUTOFIX,
+      name: TabName[Tab.AUTOFIX]!,
+      // Autofix has no count to show; it is a single ongoing analysis.
+      count: null,
+      hidden: !showAutofixTab,
+    },
+    {
       key: Tab.REPLAYS,
       name: TabName[Tab.REPLAYS]!,
       count:
@@ -162,13 +169,6 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       name: TabName[Tab.USER_FEEDBACK]!,
       count: <ItemCount value={group.userReportCount} />,
       hidden: !issueTypeConfig.pages.userFeedback.enabled,
-    },
-    {
-      key: Tab.AUTOFIX,
-      name: TabName[Tab.AUTOFIX]!,
-      // Autofix has no count to show; it is a single ongoing analysis.
-      count: null,
-      hidden: !showAutofixTab,
     },
   ];
 
