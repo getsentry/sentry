@@ -16,8 +16,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
-import {THREE_DS_REFERRER} from 'getsentry/constants';
-import {MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
+import {THREE_DS_REFERRER, MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, ReservedBudgetCategoryType} from 'getsentry/types';
 import type {
