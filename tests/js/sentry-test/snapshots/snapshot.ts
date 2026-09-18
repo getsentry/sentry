@@ -15,6 +15,9 @@ import type {
   SnapshotTestMetadata,
 } from 'sentry-test/snapshots/snapshot-image-metadata';
 import {SnapshotContainer} from 'sentry-test/snapshots/snapshotContainer';
+import {getSnapshotFeaturesTag} from 'sentry-test/snapshots/snapshotScenarios';
+
+import type {Organization} from 'sentry/types/organization';
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
 const FONTS_DIR = path.resolve(PROJECT_ROOT, 'static/fonts');
@@ -104,6 +107,7 @@ interface TakeSnapshotOptions {
   container: string;
   containerWidth: number;
   displayName: string;
+  features: Organization['features'];
   fileSlug: string;
   group: string | null;
   metadata: SnapshotTestMetadata;
@@ -129,6 +133,7 @@ export interface SnapshotInteraction {
 export async function takeSnapshot({
   fileSlug,
   displayName,
+  features,
   renderFn,
   testFilePath,
   group,
@@ -195,6 +200,10 @@ export async function takeSnapshot({
     autoTags.container = container;
     if (viewportLabel) {
       autoTags.viewport = viewportLabel;
+    }
+    const featuresTag = getSnapshotFeaturesTag(features);
+    if (featuresTag) {
+      autoTags.features = featuresTag;
     }
     const tags = {...metadata.tags, ...autoTags};
 
