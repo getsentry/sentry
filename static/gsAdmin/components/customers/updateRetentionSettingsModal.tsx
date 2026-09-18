@@ -80,8 +80,14 @@ function UpdateRetentionSettingsModal({
 }: ModalProps) {
   const api = useApi();
 
+  const storedOrgStandard = subscription.orgRetention?.standard ?? null;
+
+  // Zero is the one legacy value this field cannot round-trip: the endpoint
+  // rejects a zero org-level write, and the billing platform has no
+  // representation for it. Read a stored zero as no override so it is never
+  // offered back as a "0 days (current)" choice that cannot be saved.
   const [orgStandard, setOrgStandard] = useState<number | null>(
-    subscription.orgRetention?.standard ?? null
+    storedOrgStandard === 0 ? null : storedOrgStandard
   );
 
   const [logBytesStandard, setLogBytesStandard] = useState<number | null>(
@@ -161,6 +167,10 @@ function UpdateRetentionSettingsModal({
             Update the retention settings for each data category. Retention must be a
             multiple of 30 days. Clearing a field defaults to the plan's retention value
             for the category.
+          </p>
+          <p>
+            Zero is not a valid org retention. An organization still carrying a zero-day
+            org override reads as the plan default here, and saving clears it.
           </p>
         </div>
         <br />
