@@ -36,7 +36,7 @@ export function getStacktrace(event: Event): StacktraceType | null {
 
   const threads =
     event.entries.find(e => e.type === EntryType.THREADS)?.data?.values ?? [];
-  const bestThread = findBestThread(threads);
+  const bestThread = findBestThread(threads, event);
 
   if (!bestThread) {
     return null;
