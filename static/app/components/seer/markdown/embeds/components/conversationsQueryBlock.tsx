@@ -2,6 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {markdownToPlainText} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -15,7 +16,6 @@ import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/q
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useOrganization} from 'sentry/utils/useOrganization';
