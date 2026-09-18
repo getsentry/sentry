@@ -5,6 +5,7 @@ import {
 } from 'sentry-fixture/tracemetrics';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -31,9 +32,6 @@ describe('MetricSelector', () => {
     initializeTraceMetricsTest();
 
   beforeEach(() => {
-    // Suppress react-popper async flushSync/act warnings (known library compat issue)
-    jest.spyOn(console, 'error').mockImplementation();
-
     setupPageFilters();
     const {baseFixtures} = createTraceMetricFixtures(organization, project, new Date());
 
@@ -163,7 +161,7 @@ describe('MetricSelector', () => {
         organization,
       });
       const trigger = screen.getByRole('button', {name: 'bar'});
-      trigger.focus();
+      act(() => trigger.focus());
 
       await userEvent.keyboard('{ArrowDown}');
 
