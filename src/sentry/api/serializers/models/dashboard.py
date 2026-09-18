@@ -110,6 +110,7 @@ class DashboardWidgetResponse(TypedDict):
     layout: dict[str, int] | None
     axisRange: str | None
     legendType: DashboardWidgetLegendType | None
+    chartPalette: str | None
     datasetSource: str | None
     exploreUrls: NotRequired[list[str] | None]
     changedReason: list[WidgetChangedReasonType] | None
@@ -364,6 +365,7 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
             "layout": obj.detail.get("layout") if obj.detail else None,
             "axisRange": obj.detail.get("axis_range") if obj.detail else None,
             "legendType": obj.detail.get("legend_type") if obj.detail else None,
+            "chartPalette": obj.detail.get("chart_palette") if obj.detail else None,
             "datasetSource": DATASET_SOURCES[obj.dataset_source],
             "changedReason": obj.changed_reason,
         }
