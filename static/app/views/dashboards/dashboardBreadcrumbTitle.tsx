@@ -134,7 +134,7 @@ function DashboardTitle({
     key: 'export',
     label: t('Export'),
     leadingItems: <IconDownload />,
-    onAction: exportDashboard,
+    onAction: () => exportDashboard(dashboard),
   };
   const duplicateItem: MenuItemProps = {
     key: 'duplicate',

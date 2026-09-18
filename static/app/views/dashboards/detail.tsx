@@ -302,7 +302,7 @@ class DashboardDetail extends Component<Props, State> {
         pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
         query,
       },
-      {preventScrollReset: true}
+      {preventScrollReset: true, state: location.state}
     );
   };
 

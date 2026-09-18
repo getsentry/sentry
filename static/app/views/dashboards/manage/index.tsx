@@ -437,11 +437,7 @@ function ManageDashboards() {
                   <Feature features="dashboards-import">
                     <Button
                       onClick={() => {
-                        openImportDashboardFromFileModal({
-                          organization,
-                          api,
-                          location,
-                        });
+                        openImportDashboardFromFileModal({organization});
                       }}
                       variant="primary"
                       icon={<IconAdd />}

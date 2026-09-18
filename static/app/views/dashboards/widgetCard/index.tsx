@@ -305,7 +305,7 @@ function WidgetCard(props: Props) {
           const query = omit(location.query, Object.values(WidgetViewerQueryField));
           navigate(
             {pathname: location.pathname, query},
-            {preventScrollReset: true, replace: true}
+            {preventScrollReset: true, replace: true, state: location.state}
           );
         },
       });
