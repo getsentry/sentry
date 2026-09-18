@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState, useSyncExternalStore} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -16,6 +16,7 @@ import {
   investigationExecutionFixtureKey,
   NO_MATCH,
 } from 'sentry/views/investigations/__stories__/investigationFixtureApi';
+import {RecordedResponseInspector} from 'sentry/views/investigations/__stories__/recordedResponseInspector';
 import {
   recordedFrameAt,
   recordedFrameIndexAt,
@@ -24,115 +25,19 @@ import {
   type RecordedInvestigationRun,
   recordedPhaseMarkers,
 } from 'sentry/views/investigations/__stories__/recordedRun';
+import {
+  createReplayClock,
+  formatReplayClock,
+  type ReplayClock,
+  useReplayClock,
+} from 'sentry/views/investigations/__stories__/replayClock';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 
 const PLAYBACK_SPEEDS = ['1', '2', '4', '8', '16'] as const;
 type PlaybackSpeed = (typeof PLAYBACK_SPEEDS)[number];
 
-// How often the clock advances. Fine enough for a scrubber, cheap enough to
-// leave the investigation page alone between frames.
-const TICK_INTERVAL_MS = 100;
-
 // The scrubber works in tenths of a second; the run is minutes long.
 const SLIDER_STEP_MS = 100;
-
-type ReplayClockSnapshot = {
-  isPlaying: boolean;
-  speed: number;
-  timeMs: number;
-};
-
-type ReplayClock = ReturnType<typeof createReplayClock>;
-
-/**
- * The playhead. It advances by real elapsed time (times the playback speed) so
- * a run replays at the pace it actually ran, and it lives outside React so the
- * investigation page only re-renders when a recorded response changes — not on
- * every tick.
- */
-function createReplayClock(durationMs: number) {
-  let snapshot: ReplayClockSnapshot = {isPlaying: false, speed: 1, timeMs: 0};
-  const listeners = new Set<() => void>();
-  let interval: ReturnType<typeof setInterval> | undefined;
-  let tickedAt = 0;
-
-  function update(next: Partial<ReplayClockSnapshot>) {
-    snapshot = {...snapshot, ...next};
-    for (const listener of listeners) {
-      listener();
-    }
-  }
-
-  function stopInterval() {
-    if (interval !== undefined) {
-      clearInterval(interval);
-      interval = undefined;
-    }
-  }
-
-  function tick() {
-    const now = performance.now();
-    const elapsed = (now - tickedAt) * snapshot.speed;
-    tickedAt = now;
-
-    const timeMs = snapshot.timeMs + elapsed;
-    if (timeMs >= durationMs) {
-      stopInterval();
-      update({isPlaying: false, timeMs: durationMs});
-      return;
-    }
-    update({timeMs});
-  }
-
-  function pause() {
-    stopInterval();
-    if (snapshot.isPlaying) {
-      update({isPlaying: false});
-    }
-  }
-
-  function play() {
-    if (snapshot.isPlaying) {
-      return;
-    }
-    stopInterval();
-    tickedAt = performance.now();
-    interval = setInterval(tick, TICK_INTERVAL_MS);
-    // Replaying from the end restarts rather than sitting on the last frame.
-    update({
-      isPlaying: true,
-      timeMs: snapshot.timeMs >= durationMs ? 0 : snapshot.timeMs,
-    });
-  }
-
-  return {
-    getSnapshot: () => snapshot,
-    subscribe(listener: () => void) {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-    play,
-    pause,
-    toggle: () => (snapshot.isPlaying ? pause() : play()),
-    seek(timeMs: number) {
-      tickedAt = performance.now();
-      update({timeMs: Math.min(Math.max(timeMs, 0), durationMs)});
-    },
-    setSpeed(speed: number) {
-      update({speed});
-    },
-    destroy() {
-      stopInterval();
-      listeners.clear();
-    },
-  };
-}
-
-function useReplayClock(clock: ReplayClock) {
-  return useSyncExternalStore(clock.subscribe, clock.getSnapshot, clock.getSnapshot);
-}
 
 /**
  * Resolves with the frame the server was serving at the current playhead. A
@@ -270,11 +175,6 @@ function ReplayQuerySync({
   return null;
 }
 
-function formatClock(timeMs: number) {
-  const totalSeconds = Math.max(0, Math.round(timeMs / 1000));
-  return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, '0')}`;
-}
-
 function formatPhase(phase: string) {
   const spaced = phase.replace(/_/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
@@ -332,7 +232,7 @@ function PlaybackBar({clock, run}: {clock: ReplayClock; run: RecordedInvestigati
           />
         </Container>
         <Text size="sm" variant="muted" tabular>
-          {formatClock(timeMs)} / {formatClock(run.durationMs)}
+          {formatReplayClock(timeMs)} / {formatReplayClock(run.durationMs)}
         </Text>
         <SegmentedControl
           size="xs"
@@ -356,7 +256,7 @@ function PlaybackBar({clock, run}: {clock: ReplayClock; run: RecordedInvestigati
             }
             onClick={() => clock.seek(marker.offsetMs)}
           >
-            {`${formatPhase(marker.phase)} · ${formatClock(marker.offsetMs)}`}
+            {`${formatPhase(marker.phase)} · ${formatReplayClock(marker.offsetMs)}`}
           </Button>
         ))}
       </Flex>
@@ -396,6 +296,11 @@ export function InvestigationReplay({
         <Container minHeight="760px" border="primary" radius="md" overflow="hidden">
           <InvestigationBootstrapPage investigationId={run.investigationId} />
         </Container>
+        <RecordedResponseInspector
+          clock={clock}
+          organizationSlug={organizationSlug}
+          run={run}
+        />
       </Stack>
     </InvestigationFixtureApiProvider>
   );
