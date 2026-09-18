@@ -1,9 +1,9 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/javascript/agentMonitoring';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 import {featureFlag} from 'sentry/gettingStartedDocs/node/featureFlag';
 import {getNodeLogsOnboarding} from 'sentry/gettingStartedDocs/node/utils';
 
