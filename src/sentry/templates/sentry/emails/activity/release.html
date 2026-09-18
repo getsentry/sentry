@@ -3,6 +3,20 @@
 {% load sentry_avatars %}
 {% load sentry_helpers %}
 
+{% block head %}
+  {{ block.super }}
+  <style type="text/css" inline="false">
+    @media only screen and (max-width: 480px) {
+      .commit-list .commit-date {
+        display: block !important;
+      }
+      .commit-list .commit-date-divider {
+        display: none !important;
+      }
+    }
+  </style>
+{% endblock %}
+
 {% block action %}
 {% endblock %}
 
@@ -47,11 +61,11 @@
       <table class="table commit-list" style="margin-bottom: 0;">
         <colgroup>
           <col width="48px">
-          <col width="400px">
+          <col>
         </colgroup>
         {% for repo in repos %}
           <tr>
-            <th class="lowercase" colspan="3">{{ repo.name }}</th>
+            <th class="lowercase" colspan="2">{{ repo.name }}</th>
           </tr>
           {% for commit, user in repo.commits %}
             <tr>
@@ -79,16 +93,15 @@
                   {% endif %}
                 </h4>
                 <div class="commit-meta muted">
+                  <span style="white-space: nowrap;">{{ commit.short_id }}</span> &middot;
                   {% if commit.author %}
                     {{ commit.author.name }}
                   {% else %}
                     No author provided
                   {% endif %}
-                   &middot; {{ commit.date_added }}
+                  <span class="commit-date-divider">&middot;</span>
+                  <span class="commit-date">{{ commit.date_added }}</span>
                 </div>
-              </td>
-              <td class="align-right">
-                <small>{{ commit.short_id }}</small>
               </td>
             </tr>
           {% endfor %}
