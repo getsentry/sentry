@@ -17,11 +17,7 @@ describe('Badge', () => {
     'experimental',
   ])(
     '%s',
-    variant => (
-      <div style={{padding: 8}}>
-        <Badge variant={variant}>{variant}</Badge>
-      </div>
-    ),
+    variant => <Badge variant={variant}>{variant}</Badge>,
     variant => ({tags: {variant: String(variant), area: 'core'}})
   );
 });
