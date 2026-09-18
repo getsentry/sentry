@@ -10,6 +10,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -955,6 +956,34 @@ describe('ExploreToolbar', () => {
       expect(
         within(section).queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
       ).not.toBeInTheDocument();
+    });
+
+    it('expands the series filter to match the autocomplete menu width', async () => {
+      const viewportWidth = jest
+        .spyOn(document.documentElement, 'clientWidth', 'get')
+        .mockReturnValue(1200);
+
+      try {
+        render(<ExploreToolbar />, {
+          additionalWrapper: Wrapper,
+          organization: organizationWithConditionalAggregates,
+        });
+
+        const input = await screen.findByPlaceholderText(SERIES_FILTER_PLACEHOLDER);
+        await userEvent.click(input);
+
+        const expandedBar = input.closest<HTMLElement>('[data-expanded="true"]')!;
+        const menu = (await screen.findByRole('listbox')).closest<HTMLElement>(
+          '[data-overlay]'
+        )!;
+
+        expect(expandedBar).toHaveStyle({width: '460px'});
+        expect(getEmotionRules(menu).join(' ')).toContain(
+          `width: ${expandedBar.style.width}`
+        );
+      } finally {
+        viewportWidth.mockRestore();
+      }
     });
 
     it('turns a series filter into an _if aggregate', async () => {

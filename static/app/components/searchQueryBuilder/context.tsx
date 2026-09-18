@@ -38,6 +38,8 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
+export const DEFAULT_FILTER_KEY_MENU_WIDTH = 460;
+
 interface SearchQueryBuilderStateContextData {
   clearSearchQuery: (options?: {reopenDropdown?: boolean}) => void;
   committedQuery: string;
@@ -181,7 +183,7 @@ export function SearchQueryBuilderProvider({
   initialQuery,
   fieldDefinitionGetter = defaultFieldDefinitionGetter,
   filterKeys,
-  filterKeyMenuWidth = 460,
+  filterKeyMenuWidth = DEFAULT_FILTER_KEY_MENU_WIDTH,
   filterKeySections,
   getSuggestedFilterKey,
   getTagKeys,

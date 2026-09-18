@@ -2,6 +2,8 @@ import type {KeyboardEvent, PointerEvent, ReactNode} from 'react';
 import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {DEFAULT_FILTER_KEY_MENU_WIDTH} from 'sentry/components/searchQueryBuilder/context';
+
 const PAGE_EDGE_PADDING_PX = 16;
 
 /**
@@ -58,14 +60,14 @@ function findOpenSuggestionListbox(root: HTMLElement) {
 }
 
 /**
- * Grows a series filter bar or equation builder to the remaining window width while
+ * Grows a series filter bar or equation builder to the filter key menu width while
  * focused so a long query has room to be read and edited, then collapses it back into
  * the toolbar column.
  */
 export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const expandToPageWidth = useCallback(() => {
+  const expandToMenuWidth = useCallback(() => {
     const el = ref.current;
     if (!el || el.dataset.expanded === 'true') {
       return;
@@ -73,7 +75,10 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
     const {left} = el.getBoundingClientRect();
     // Expand instantly so focus and the caret are not racing the width animation.
     el.style.transition = 'none';
-    el.style.width = `${document.documentElement.clientWidth - left - PAGE_EDGE_PADDING_PX}px`;
+    el.style.width = `${Math.min(
+      DEFAULT_FILTER_KEY_MENU_WIDTH,
+      document.documentElement.clientWidth - left - PAGE_EDGE_PADDING_PX
+    )}px`;
     el.dataset.expanded = 'true';
     requestAnimationFrame(() => {
       if (ref.current) {
@@ -165,13 +170,13 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
       // reliably. Take over this first click and put the caret at the end of the trailing
       // input instead; individual tokens stay editable on subsequent clicks.
       event.preventDefault();
-      expandToPageWidth();
+      expandToMenuWidth();
       focusTrailingInput();
       requestAnimationFrame(() => {
         focusTrailingInput();
       });
     },
-    [expandToPageWidth, focusTrailingInput]
+    [expandToMenuWidth, focusTrailingInput]
   );
 
   const collapseOnEnter = useCallback(
@@ -202,7 +207,7 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
     <ExpandableFilterSearchBarWrapper
       ref={ref}
       onPointerDownCapture={onPointerDownCapture}
-      onFocusCapture={expandToPageWidth}
+      onFocusCapture={expandToMenuWidth}
       onBlurCapture={collapseAfterBlur}
       onKeyDownCapture={collapseOnEnter}
     >
