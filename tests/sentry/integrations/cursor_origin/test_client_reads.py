@@ -152,6 +152,20 @@ class CursorOriginReadsTest(TestCase):
         assert "sha=main" in responses.calls[0].request.url
 
     @responses.activate
+    def test_a_limited_read_asks_for_no_more_than_it_wants(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/commits",
+            json={"commits": [{"sha": f"c{i}"} for i in range(20)], "nextPageToken": "page-2"},
+        )
+
+        commits = self.origin_client.get_commits(REPO, sha="main", limit=20)
+
+        assert len(commits) == 20
+        assert "pageSize=20" in responses.calls[0].request.url
+        assert len(responses.calls) == 1
+
+    @responses.activate
     def test_get_commits_defaults_to_the_default_branch(self) -> None:
         """Origin reads an absent `sha` as the repository's default branch."""
         responses.add(
