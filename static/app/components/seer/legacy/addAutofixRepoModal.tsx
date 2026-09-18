@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useMemo, useRef, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -12,6 +11,7 @@ import {Link} from '@sentry/scraps/link';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MAX_REPOS_LIMIT} from 'sentry/components/seer/legacy/constants';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
@@ -95,7 +95,7 @@ export function AddAutofixRepoModal({
 
   const parentRef = useRef<HTMLDivElement>(null);
 
-  const rowVirtualizer = useVirtualizer({
+  const {totalSize, virtualItems} = useVirtualRows({
     count: filteredRepositories.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 36,
@@ -146,12 +146,12 @@ export function AddAutofixRepoModal({
           <ModalReposContainer ref={parentRef}>
             <div
               style={{
-                height: `${rowVirtualizer.getTotalSize()}px`,
+                height: `${totalSize}px`,
                 width: '100%',
                 position: 'relative',
               }}
             >
-              {rowVirtualizer.getVirtualItems().map(virtualItem => {
+              {virtualItems.map(virtualItem => {
                 const repo = filteredRepositories[virtualItem.index]!;
                 return (
                   <div
