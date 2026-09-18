@@ -91,8 +91,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     organization.features.includes('gen-ai-features') &&
     !organization.hideAiFeatures;
 
+  // Only consulted on the dropdown path, which tabs replace outright, so the
+  // autofix entry never factors in here.
   const hideDropdownButton =
-    !showAutofixTab &&
     !issueTypeConfig.pages.attachments.enabled &&
     !issueTypeConfig.pages.userFeedback.enabled &&
     !issueTypeConfig.pages.replays.enabled;
