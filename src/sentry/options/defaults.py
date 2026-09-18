@@ -4424,3 +4424,11 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# How far back the ingestion delay measurement window reaches, in minutes.
+register(
+    "ingestion-delay.measurement-lookback-minutes",
+    type=Int,
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
