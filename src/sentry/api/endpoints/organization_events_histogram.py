@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -10,7 +11,6 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.snuba import discover
-from sentry.utils.tracing import start_span
 
 # The maximum number of array columns allowed to be queried at at time
 MAX_ARRAY_COLS = 4
@@ -62,7 +62,7 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({})
 
-        with start_span(op="discover.endpoint", name="histogram"):
+        with traces.start_span(name="histogram", attributes={"sentry.op": "discover.endpoint"}):
             serializer = HistogramSerializer(data=request.GET)
             if serializer.is_valid():
                 data = serializer.validated_data

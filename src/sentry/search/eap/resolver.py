@@ -34,6 +34,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     OrFilter,
     TraceItemFilter,
 )
+from sentry_sdk import traces
 
 from sentry.api import event_search
 from sentry.discover import arithmetic
@@ -66,7 +67,6 @@ from sentry.search.events import filter as event_filter
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.search.exceptions import InvalidIssueSearchQuery
-from sentry.utils.tracing import get_current_span, set_span_tag, trace
 
 
 def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
@@ -138,7 +138,7 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown function {function_name}")
 
-    @trace
+    @traces.trace
     def resolve_meta(
         self,
         referrer: str,
@@ -147,9 +147,9 @@ class SearchResolver:
     ) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
-        span = get_current_span()
+        span = traces.get_current_span()
         if span:
-            set_span_tag(span, "SearchResolver.params", self.params)
+            span.set_attribute("SearchResolver.params", repr(self.params))
 
         projects = self.params.projects
 
@@ -173,7 +173,7 @@ class SearchResolver:
             downsampled_storage_config=validate_sampling(sampling_mode),
         )
 
-    @trace
+    @traces.trace
     def resolve_query(
         self, querystring: str | None
     ) -> tuple[
@@ -187,11 +187,13 @@ class SearchResolver:
         also append the environment before returning the final TraceItemFilter"""
         environment_query = self.__resolve_environment_query()
         where, having, contexts = self.__resolve_query(querystring)
-        span = get_current_span()
-        if span:
-            set_span_tag(span, "SearchResolver.query_string", querystring)
-            set_span_tag(span, "SearchResolver.resolved_query", where)
-            set_span_tag(span, "SearchResolver.environment_query", environment_query)
+        span = traces.get_current_span()
+        if span and querystring is not None:
+            span.set_attribute("SearchResolver.query_string", querystring)
+        if span and where is not None:
+            span.set_attribute("SearchResolver.resolved_query", repr(where))
+        if span and environment_query is not None:
+            span.set_attribute("SearchResolver.environment_query", repr(environment_query))
 
         where = and_trace_item_filters(
             where,
@@ -202,7 +204,7 @@ class SearchResolver:
 
         return where, having, contexts
 
-    @trace
+    @traces.trace
     def resolve_query_with_columns(
         self,
         querystring: str | None,
@@ -985,7 +987,7 @@ class SearchResolver:
                 final_contexts.append(context)
         return final_contexts
 
-    @trace
+    @traces.trace
     def resolve_columns(
         self, selected_columns: list[str], has_aggregates: bool = False
     ) -> tuple[
@@ -996,12 +998,12 @@ class SearchResolver:
 
         This function will also dedupe the virtual column contexts if necessary
         """
-        span = get_current_span()
+        span = traces.get_current_span()
         resolved_columns = []
         resolved_contexts = []
         stripped_columns = [column.strip() for column in selected_columns]
         if span:
-            set_span_tag(span, "SearchResolver.selected_columns", stripped_columns)
+            span.set_attribute("SearchResolver.selected_columns", stripped_columns)
         for column in stripped_columns:
             match = fields.is_function(column)
             has_aggregates = has_aggregates or match is not None
@@ -1060,7 +1062,7 @@ class SearchResolver:
         resolved_column, _ = self.resolve_column(column)
         return resolved_column.search_type
 
-    @trace
+    @traces.trace
     def resolve_attributes(
         self, columns: list[str]
     ) -> tuple[list[ResolvedAttribute], list[VirtualColumnDefinition | None]]:
@@ -1198,7 +1200,7 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
-    @trace
+    @traces.trace
     def resolve_functions(
         self, columns: list[str]
     ) -> tuple[
