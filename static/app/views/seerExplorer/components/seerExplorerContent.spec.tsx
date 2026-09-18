@@ -14,7 +14,6 @@ import {
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
 
@@ -79,6 +78,87 @@ describe('SeerExplorerContent', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  describe('Show thinking', () => {
+    it('renders thinking traces when code mode tools is enabled', async () => {
+      const codeModeOrganization = OrganizationFixture({
+        openMembership: true,
+        features: ['seer-explorer', 'gen-ai-features', 'seer-explorer-code-mode-tools'],
+        hideAiFeatures: false,
+      });
+
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sessionData: {
+          blocks: [
+            {
+              id: 'msg-1',
+              message: {role: 'user', content: 'What is this error?'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+            },
+            {
+              id: 'tool-1',
+              message: {
+                role: 'tool_use',
+                content: null,
+                thinking_content: 'Let me search for issues...',
+                tool_calls: [
+                  {
+                    id: 'call-1',
+                    function: 'telemetry_live_search',
+                    args: '{"question":"errors"}',
+                  },
+                ],
+              },
+              timestamp: '2024-01-01T00:01:00Z',
+              loading: false,
+              tool_results: [
+                {
+                  tool_call_id: 'call-1',
+                  tool_call_function: 'telemetry_live_search',
+                  content: '{}',
+                },
+              ],
+              tool_links: [{kind: 'telemetry_live_search', params: {}}],
+            },
+            {
+              id: 'msg-2',
+              message: {
+                role: 'assistant',
+                content: 'This is a null pointer exception.',
+              },
+              timestamp: '2024-01-01T00:02:00Z',
+              loading: false,
+            },
+          ],
+          status: 'completed',
+          updated_at: '2024-01-01T00:02:00Z',
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization: codeModeOrganization,
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: /See thinking and tool calls/})
+      );
+
+      expect(screen.getByText('Let me search for issues...')).toBeVisible();
+      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+    });
   });
 
   describe('Empty State', () => {
@@ -277,10 +357,9 @@ describe('SeerExplorerContent', () => {
               loading: false,
             },
           ],
-          run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:01:00Z',
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -546,10 +625,9 @@ describe('SeerExplorerContent', () => {
               loading: false,
             },
           ],
-          run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:02:00Z',
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -571,6 +649,66 @@ describe('SeerExplorerContent', () => {
       await userEvent.keyboard('{Enter}');
 
       expect(sendMessage).toHaveBeenCalledWith('New message', 3);
+    });
+  });
+
+  describe('Timeout Recovery', () => {
+    it('shows the warning and retries the latest user turn', async () => {
+      const sendMessage = jest.fn();
+      const startNewSession = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        isTimedOut: true,
+        runId: 123,
+        sendMessage,
+        startNewSession,
+        sessionData: {
+          blocks: [
+            {
+              id: 'user-1',
+              message: {role: 'user', content: 'First question'},
+              timestamp: '2024-01-01T00:00:00Z',
+            },
+            {
+              id: 'assistant-1',
+              message: {role: 'assistant', content: 'First answer'},
+              timestamp: '2024-01-01T00:01:00Z',
+            },
+            {
+              id: 'user-2',
+              message: {role: 'user', content: 'Timed out question'},
+              timestamp: '2024-01-01T00:02:00Z',
+            },
+          ],
+          status: 'error',
+          updated_at: '2024-01-01T00:03:00Z',
+          failure_reason: 'timeout',
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      expect(await screen.findByText('Response timed out.')).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toHaveAttribute(
+        'placeholder',
+        'Ask Seer a question, or press / for commands.'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+      expect(sendMessage).toHaveBeenCalledWith('Timed out question', 2);
+
+      await userEvent.click(screen.getByRole('button', {name: 'New chat'}));
+      expect(startNewSession).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -737,11 +875,10 @@ describe('SeerExplorerContent', () => {
         ...defaultHookReturn,
         sessionData: {
           blocks: [],
-          run_id: 999,
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: 2,
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -772,11 +909,10 @@ describe('SeerExplorerContent', () => {
         ...defaultHookReturn,
         sessionData: {
           blocks: [],
-          run_id: 999,
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: 1,
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -807,11 +943,10 @@ describe('SeerExplorerContent', () => {
         ...defaultHookReturn,
         sessionData: {
           blocks: [],
-          run_id: 999,
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: undefined,
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -889,7 +1024,7 @@ describe('SeerExplorerContent', () => {
       await screen.findByText('Seer Agent');
       await userEvent.click(await screen.findByRole('button', {name: 'Debug'}));
       expect(
-        await screen.findByRole('menuitemradio', {name: /Context Engine/})
+        await screen.findByRole('option', {name: /Context Engine/})
       ).toBeInTheDocument();
     });
   });

@@ -29,8 +29,11 @@ from sentry.investigations.models import (
     InvestigationStatus,
 )
 from sentry.investigations.services import (
+    create_agentic_breached_metric_investigation,
+    create_agentic_manual_investigation,
     create_manual_investigation,
     create_template_investigation,
+    resolve_investigation_source,
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.telemetry import record_investigation_started
@@ -88,7 +91,49 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         values = validator.validated_data
         project_ids = request.access.accessible_project_ids
         try:
-            if "template_key" in values:
+            if "source" in values and "template_key" not in values:
+                source = values["source"]
+                requested_project_ids = values.get("project_ids", [])
+                if source["type"] == "metric_open_period":
+                    resolved_source = resolve_investigation_source(
+                        organization=organization,
+                        source=source,
+                        accessible_project_ids=project_ids,
+                    )
+                    requested_project_ids = sorted(
+                        set(requested_project_ids) | {resolved_source.project_id}
+                    )
+                    if not set(requested_project_ids).issubset(project_ids):
+                        return Response(
+                            {"detail": "One or more projects are inaccessible."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    investigation, created = create_agentic_breached_metric_investigation(
+                        organization=organization,
+                        user_id=user_id(request),
+                        title=values.get("title"),
+                        resolved_source=resolved_source,
+                        project_ids=requested_project_ids,
+                        filters=values.get("filters", {}),
+                    )
+                    if not created:
+                        require_investigation_project_access(investigation, project_ids)
+                else:
+                    if not set(requested_project_ids).issubset(project_ids):
+                        return Response(
+                            {"detail": "One or more projects are inaccessible."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    created = True
+                    investigation, _ = create_agentic_manual_investigation(
+                        organization=organization,
+                        user_id=user_id(request),
+                        title=values.get("title"),
+                        source=source,
+                        project_ids=requested_project_ids,
+                        filters=values.get("filters", {}),
+                    )
+            elif "template_key" in values:
                 with transaction.atomic(using=router.db_for_write(Investigation)):
                     investigation, created = create_template_investigation(
                         organization=organization,

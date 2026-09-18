@@ -11,7 +11,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo.base import SiloMode
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -38,6 +38,7 @@ class GroupNoteTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(activity.id)
+        assert response.data[0]["commentId"] == str(activity.id)
 
     def test_note_merge(self) -> None:
         """Test that when 2 (or more) issues with comments are merged, the chronological order of the comments are preserved."""
@@ -105,7 +106,7 @@ class GroupNoteTest(APITestCase):
         assert response.data[3]["id"] == str(note3.id)
         assert response.data[3]["data"]["text"] == note3.data["text"]
 
-    @with_feature("projects:issue-action-log-activity")
+    @action_log_activity_enabled()
     def test_reads_from_gale(self) -> None:
         group = self.group
 
@@ -125,12 +126,13 @@ class GroupNoteTest(APITestCase):
         assert len(response.data) == 1
         # `id` is the Activity id (comment_id), matching the flag-off contract
         assert response.data[0]["id"] == "123"
+        assert response.data[0]["commentId"] == "123"
         assert response.data[0]["type"] == "note"
         assert response.data[0]["user"]["id"] == str(self.user.id)
         assert response.data[0]["data"]["text"] == "hello world"
         assert response.data[0]["data"]["comment_id"] == 123
 
-    @with_feature("projects:issue-action-log-activity")
+    @action_log_activity_enabled()
     def test_reads_from_gale_with_edits(self) -> None:
         group = self.group
 
@@ -200,6 +202,7 @@ class GroupNoteCreateTest(APITestCase):
         assert response.status_code == 201, response.content
 
         activity = Activity.objects.get(id=response.data["id"])
+        assert response.data["commentId"] == str(activity.id)
         assert activity.user_id == self.user.id
         assert activity.group == group
         assert activity.data == {"text": "hello world"}
@@ -207,7 +210,7 @@ class GroupNoteCreateTest(APITestCase):
         response = self.client.post(url, format="json", data={"text": "hello world"})
         assert response.status_code == 400, response.content
 
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    @action_log_activity_enabled()
     def test_returns_gale(self) -> None:
         group = self.group
 
@@ -230,6 +233,7 @@ class GroupNoteCreateTest(APITestCase):
 
         # `id` is the Activity id (comment_id), matching the flag-off contract
         assert response.data["id"] == str(activity.id)
+        assert response.data["commentId"] == str(activity.id)
         assert response.data["type"] == "note"
         assert response.data["source"] == "mcp:claude-code"
         assert response.data["user"]["id"] == str(self.user.id)

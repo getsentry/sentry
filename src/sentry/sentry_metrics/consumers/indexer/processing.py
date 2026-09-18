@@ -7,18 +7,11 @@ from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.sentry_metrics.configuration import (
-    IndexerStorage,
-    MetricsIngestConfiguration,
-    UseCaseKey,
-)
+from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
 from sentry.sentry_metrics.consumers.indexer.schema_validator import MetricsSchemaValidator
-from sentry.sentry_metrics.consumers.indexer.tags_validator import (
-    GenericMetricsTagsValidator,
-    ReleaseHealthTagsValidator,
-)
+from sentry.sentry_metrics.consumers.indexer.tags_validator import ReleaseHealthTagsValidator
 from sentry.sentry_metrics.indexer.base import StringIndexer
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PostgresIndexer
@@ -59,10 +52,7 @@ class MessageProcessor:
         """
         Get the tags validator function for the current use case.
         """
-        if self._config.use_case_id == UseCaseKey.RELEASE_HEALTH:
-            return ReleaseHealthTagsValidator().is_allowed
-        else:
-            return GenericMetricsTagsValidator().is_allowed
+        return ReleaseHealthTagsValidator().is_allowed
 
     def __get_schema_validator(self) -> Callable[[str, IngestMetric], None]:
         """
@@ -115,13 +105,8 @@ class MessageProcessor:
         4. Take a mapping of string -> int (indexed strings), and replace all of
            the messages strings into ints
         """
-        should_index_tag_values = self._config.should_index_tag_values
-        is_output_sliced = self._config.is_output_sliced or False
-
         batch = IndexerBatch(
             outer_message,
-            should_index_tag_values=should_index_tag_values,
-            is_output_sliced=is_output_sliced,
             tags_validator=self.__get_tags_validator(),
             schema_validator=self.__get_schema_validator(),
         )

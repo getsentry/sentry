@@ -197,6 +197,15 @@ class Fixtures:
     def create_investigation_favorite(self, *args, **kwargs):
         return Factories.create_investigation_favorite(*args, **kwargs)
 
+    def create_investigation_orchestration_run(self, *args, **kwargs):
+        return Factories.create_investigation_orchestration_run(*args, **kwargs)
+
+    def create_investigation_orchestration_event(self, *args, **kwargs):
+        return Factories.create_investigation_orchestration_event(*args, **kwargs)
+
+    def create_investigation_orchestration_command(self, *args, **kwargs):
+        return Factories.create_investigation_orchestration_command(*args, **kwargs)
+
     def create_investigation_block(self, *args, **kwargs):
         return Factories.create_investigation_block(*args, **kwargs)
 
@@ -1320,6 +1329,9 @@ class Fixtures:
         )
 
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
+
+    def create_seer_autofix_issue_data(self, group, **kwargs):
+        return Factories.create_seer_autofix_issue_data(group=group, **kwargs)
 
     def create_seer_run(self, organization=None, **kwargs):
         if organization is None:

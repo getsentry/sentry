@@ -11,6 +11,29 @@ const exampleThresholdsConfig: ThresholdsConfig = {
 };
 
 describe('Widget Builder > ThresholdsStep', () => {
+  it('renders without crashing when max_values is undefined', async () => {
+    const onChange = jest.fn();
+    const configWithoutMaxValues = {
+      max_values: undefined,
+      unit: null,
+    } as unknown as ThresholdsConfig;
+    render(
+      <Thresholds
+        thresholdsConfig={configWithoutMaxValues}
+        onThresholdChange={onChange}
+        onUnitChange={onChange}
+        errors={{}}
+      />
+    );
+
+    // Component should render with empty max value inputs instead of throwing
+    expect(await screen.findByLabelText('First Minimum')).toBeInTheDocument();
+    expect(screen.getByLabelText('First Maximum', {selector: 'input'})).toHaveValue(null);
+    expect(screen.getByLabelText('Second Maximum', {selector: 'input'})).toHaveValue(
+      null
+    );
+  });
+
   it('renders thresholds step', async () => {
     const onChange = jest.fn();
     render(

@@ -24,6 +24,7 @@ import {
   dashboardFiltersToString,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
@@ -205,6 +206,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     [needsBreakdownTable, widget]
   );
 
+  // oxlint-disable-next-line react/hooks -- Optional per-dataset query hook; the config prop must not change for a mounted card.
   const hookSeriesResults = config.useSeriesQuery?.({
     widget,
     organization,
@@ -220,6 +222,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     widgetInterval,
   });
 
+  // oxlint-disable-next-line react/hooks -- Optional per-dataset query hook; the config prop must not change for a mounted card.
   const hookTableResults = config.useTableQuery?.({
     widget: tableWidget,
     organization,
@@ -235,6 +238,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     widgetInterval,
   });
 
+  // oxlint-disable-next-line react/hooks -- Optional per-dataset query hook; the config prop must not change for a mounted card.
   const hookHeatmapResults = config.useHeatmapQuery?.({
     widget,
     organization,
@@ -365,12 +369,12 @@ export function applyDashboardFiltersToWidget(
 
   if (dashboardFilters) {
     const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
 
     filtered.queries.forEach(query => {
+      const dashboardFilterConditions = dashboardFiltersToString(
+        withGlobalFilterFallback(dashboardFilters, query.globalFilterFallback),
+        filtered.widgetType
+      );
       if (dashboardFilterConditions) {
         if (query.conditions && !skipParens) {
           query.conditions = `(${query.conditions})`;

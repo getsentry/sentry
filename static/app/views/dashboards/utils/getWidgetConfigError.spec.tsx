@@ -1,3 +1,4 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
@@ -6,6 +7,9 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {getWidgetConfigError} from './getWidgetConfigError';
 
 describe('getWidgetConfigError', () => {
+  const organizationWithConditionalAggregates = OrganizationFixture({
+    features: ['explore-conditional-aggregates'],
+  });
   it.each([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR])(
     'returns an error for %s widgets with no aggregates',
     displayType => {
@@ -150,8 +154,8 @@ describe('getWidgetConfigError', () => {
       queries: [WidgetQueryFixture({aggregates: []})],
     });
 
-    expect(getWidgetConfigError(widget, {hasBlankEquation: true})).toBe(
-      'Enter an equation to preview results'
+    expect(getWidgetConfigError(widget)).toBe(
+      'The widget configuration is not valid. Please add a "Visualize" field.'
     );
   });
 
@@ -165,5 +169,56 @@ describe('getWidgetConfigError', () => {
     });
 
     expect(getWidgetConfigError(widget)).toBeUndefined();
+  });
+
+  it('returns an error for spans widgets with an invalid Explore-style _if filter', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [WidgetQueryFixture({aggregates: ['avg_if(``,span.duration)']})],
+    });
+
+    expect(getWidgetConfigError(widget, organizationWithConditionalAggregates)).toBe(
+      'Invalid series filter'
+    );
+  });
+
+  it('ignores invalid Explore-style _if filters when the feature is disabled', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [WidgetQueryFixture({aggregates: ['avg_if(``,span.duration)']})],
+    });
+
+    expect(getWidgetConfigError(widget, OrganizationFixture())).toBeUndefined();
+    expect(getWidgetConfigError(widget)).toBeUndefined();
+  });
+
+  it('returns undefined when a spans widget still has a valid series alongside an invalid _if', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        WidgetQueryFixture({
+          aggregates: ['avg(span.duration)', 'avg_if(``,span.duration)'],
+        }),
+      ],
+    });
+
+    expect(
+      getWidgetConfigError(widget, organizationWithConditionalAggregates)
+    ).toBeUndefined();
+  });
+
+  it('returns undefined for spans widgets with a valid Explore-style _if filter', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [WidgetQueryFixture({aggregates: ['avg_if(`span.op:db`,span.duration)']})],
+    });
+
+    expect(
+      getWidgetConfigError(widget, organizationWithConditionalAggregates)
+    ).toBeUndefined();
   });
 });

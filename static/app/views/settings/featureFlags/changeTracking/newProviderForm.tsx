@@ -130,7 +130,7 @@ export function NewProviderForm({
   });
 
   return (
-    <FormSearch route="/settings/feature-flags/change-tracking/new-provider/">
+    <FormSearch route="/settings/:orgId/feature-flags/change-tracking/new-provider/">
       <form.AppForm form={form}>
         <form.AppField name="provider">
           {field => (

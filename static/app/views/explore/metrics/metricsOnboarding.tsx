@@ -1,6 +1,5 @@
 import {useEffect} from 'react';
-import {useTheme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';

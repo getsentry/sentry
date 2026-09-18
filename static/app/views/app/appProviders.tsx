@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {SentryTrackingProvider} from 'sentry/scrapsProviders/tracking';
 import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
@@ -32,6 +33,9 @@ export function AppProviders({preloadData, children}: AppProvidersProps) {
       LastKnownRouteContextProvider,
       RouteAnalyticsContextProvider,
       OrganizationProvider,
+      // Reads the organization to build the button/link click tracker, so must
+      // render inside OrganizationProvider.
+      SentryTrackingProvider,
       AsyncSDKIntegrationContextProvider,
       GlobalFeedbackForm,
       DemoToursProvider,

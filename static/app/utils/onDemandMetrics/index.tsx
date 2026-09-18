@@ -35,6 +35,7 @@ function isCustomTag(key: string): boolean {
 }
 
 export function createOnDemandFilterWarning(warning: React.ReactNode) {
+  // oxlint-disable-next-line react/function-component-definition -- This callback is not a React component.
   return (key: string) => {
     const fieldKey = key as FieldKey;
     if (isCustomTag(fieldKey)) {
@@ -79,7 +80,7 @@ export function shouldDisplayOnDemandWidgetWarning(
     !hasErrorCondition(query.conditions) &&
     isOnDemandQueryString(query.conditions) &&
     hasOnDemandMetricWidgetFeature(organization) &&
-    (widgetType === WidgetType.DISCOVER || widgetType === WidgetType.TRANSACTIONS)
+    widgetType === WidgetType.TRANSACTIONS
   );
 }
 

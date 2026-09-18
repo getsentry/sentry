@@ -14,6 +14,7 @@ from sentry.auth.services.auth import AuthService
 from sentry.hybridcloud.rpc.service import (
     RpcAuthenticationSetupException,
     RpcDisabledException,
+    RpcResponseException,
     _RemoteSiloCall,
     dispatch_remote_call,
     dispatch_to_local_service,
@@ -166,6 +167,35 @@ class DispatchRemoteCallTest(TestCase):
 
         result = dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
         assert result is None
+
+    @staticmethod
+    def _set_up_mock_raw_response(service_name: str, body: str) -> None:
+        responses.add(
+            responses.POST,
+            f"{settings.SENTRY_CONTROL_ADDRESS}/api/0/internal/rpc/{service_name}/",
+            content_type="json",
+            body=body,
+        )
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    def test_cell_to_control_empty_body(self) -> None:
+        self._set_up_mock_raw_response("organization/get_organization_by_id", "")
+
+        with pytest.raises(RpcResponseException) as excinfo:
+            dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
+
+        assert "malformed 200 response of 0 byte(s)" in str(excinfo.value)
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    def test_cell_to_control_non_json_body(self) -> None:
+        self._set_up_mock_raw_response(
+            "organization/get_organization_by_id", "<html>502 Bad Gateway</html>"
+        )
+
+        with pytest.raises(RpcResponseException):
+            dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
 
     @responses.activate
     @override_cells(_CELLS)

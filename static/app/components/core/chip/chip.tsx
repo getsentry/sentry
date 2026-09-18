@@ -18,16 +18,6 @@ import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconClose} from 'sentry/icons';
 
-/**
- * How focus is managed across the chip's interactive sections.
- * - `auto` (default): the chip owns a roving tabindex — a single tab stop
- *   enters the chip and Arrow/Home/End move between sections. Use standalone.
- * - `manual`: the chip sets no tabindex and installs no key handling; each
- *   section defers entirely to caller-supplied props. Use when an outer system
- *   (e.g. the search query builder grid) already manages focus.
- */
-type ChipFocus = 'auto' | 'manual';
-
 const SIZES = {
   xs: {height: '20px', radius: '2xs', pad: 'xs', font: 'sm', dismiss: '20px'},
   sm: {height: '24px', radius: 'xs', pad: 'sm', font: 'md', dismiss: '20px'},
@@ -173,10 +163,6 @@ function useChipSegment(interactive: boolean): ChipSegmentProps {
 interface ChipRootProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   /**
-   * @default 'auto'
-   */
-  focus?: ChipFocus;
-  /**
    * Renders a non-interactive summary: interactive sections fall back to inert
    * text and the dismiss affordance is suppressed.
    */
@@ -188,15 +174,9 @@ interface ChipRootProps extends React.HTMLAttributes<HTMLDivElement> {
  * The chonky-embossed container. Owns `size`, `readonly`, and focus management
  * for the sections composed inside it.
  */
-function ChipRoot({
-  size = 'md',
-  readonly = false,
-  focus = 'auto',
-  children,
-  ...rest
-}: ChipRootProps) {
+function ChipRoot({size = 'md', readonly = false, children, ...rest}: ChipRootProps) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const roving = useRovingController(!readonly && focus === 'auto', rootRef);
+  const roving = useRovingController(!readonly, rootRef);
 
   const context = useMemo<ChipContextValue>(
     () => ({size, readonly, roving}),

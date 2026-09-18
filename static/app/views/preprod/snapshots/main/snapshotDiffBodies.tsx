@@ -10,9 +10,12 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
-import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  getImageName,
+  getSnapshotImageUrlForKey,
+} from 'sentry/views/preprod/types/snapshotTypes';
 
-import {useSyncedD3Zoom} from './imageDisplay/useD3Zoom';
+import {useD3Zoom, useSyncedD3Zoom} from './imageDisplay/useD3Zoom';
 import {ZoomControls, zoomTransformStyle} from './imageDisplay/zoomControls';
 import {computeMaskSize} from './computeMaskSize';
 import {DiffOverlay} from './diffOverlay';
@@ -60,7 +63,7 @@ export const SplitPairBody = memo(function SplitPairBodyImpl({
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
   const diffMaskUrl =
     hasVisibleOverlay && diffImageKey && diffImageBaseUrl
-      ? `${diffImageBaseUrl}${diffImageKey}/`
+      ? getSnapshotImageUrlForKey(diffImageBaseUrl, diffImageKey)
       : null;
   return (
     <Container position="relative">
@@ -71,18 +74,14 @@ export const SplitPairBody = memo(function SplitPairBodyImpl({
               {t('Base')}
             </Text>
           </Container>
-          <ZoomViewport ref={zoom1.containerRef}>
-            <ImageSizer {...imageSizerProps(baseImage)}>
-              <ZoomTransformLayer style={zoomTransformStyle(zoom1.transform)}>
-                <LazyImage
-                  src={baseUrl}
-                  alt={`${altPrefix} (base)`}
-                  width={baseImage.width || undefined}
-                  height={baseImage.height || undefined}
-                />
-              </ZoomTransformLayer>
-            </ImageSizer>
-          </ZoomViewport>
+          <ZoomPane zoom={zoom1} image={baseImage}>
+            <LazyImage
+              src={baseUrl}
+              alt={`${altPrefix} (base)`}
+              width={baseImage.width || undefined}
+              height={baseImage.height || undefined}
+            />
+          </ZoomPane>
         </Stack>
         <Stack minWidth="0" borderLeft="secondary">
           <Container padding="sm xl">
@@ -90,27 +89,23 @@ export const SplitPairBody = memo(function SplitPairBodyImpl({
               {headLabel}
             </Text>
           </Container>
-          <ZoomViewport ref={zoom2.containerRef}>
-            <ImageSizer {...imageSizerProps(headImage)}>
-              <ZoomTransformLayer style={zoomTransformStyle(zoom2.transform)}>
-                <LazyImage
-                  src={headUrl}
-                  alt={`${altPrefix} (head)`}
-                  width={headImage.width || undefined}
-                  height={headImage.height || undefined}
-                >
-                  {diffMaskUrl && (
-                    <DiffOverlay
-                      $overlayColor={overlayColor!}
-                      $opacity={overlayOpacity}
-                      $maskUrl={diffMaskUrl}
-                      $maskSize={computeMaskSize(baseImage, headImage)}
-                    />
-                  )}
-                </LazyImage>
-              </ZoomTransformLayer>
-            </ImageSizer>
-          </ZoomViewport>
+          <ZoomPane zoom={zoom2} image={headImage}>
+            <LazyImage
+              src={headUrl}
+              alt={`${altPrefix} (head)`}
+              width={headImage.width || undefined}
+              height={headImage.height || undefined}
+            >
+              {diffMaskUrl && (
+                <DiffOverlay
+                  $overlayColor={overlayColor!}
+                  $opacity={overlayOpacity}
+                  $maskUrl={diffMaskUrl}
+                  $maskSize={computeMaskSize(baseImage, headImage)}
+                />
+              )}
+            </LazyImage>
+          </ZoomPane>
         </Stack>
       </Grid>
       <ZoomControls
@@ -126,46 +121,52 @@ export const ImageColumn = memo(function ImageColumnImpl({
   src,
   alt,
   image,
-  overlayColor,
-  overlayOpacity,
-  diffImageKey,
-  diffImageBaseUrl,
 }: {
   alt: string;
   image: SnapshotImage;
   src: string;
-  diffImageBaseUrl?: string;
-  diffImageKey?: string | null;
-  overlayColor?: string;
-  overlayOpacity?: number;
 }) {
-  const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
-  const diffMaskUrl =
-    hasVisibleOverlay && diffImageKey && diffImageBaseUrl
-      ? `${diffImageBaseUrl}${diffImageKey}/`
-      : null;
+  const zoom = useD3Zoom({wheelRequiresModifier: true});
   return (
-    <Stack minWidth="0">
-      <Flex justify="center">
+    <Container position="relative">
+      <ZoomPane zoom={zoom} image={image}>
         <LazyImage
           src={src}
           alt={alt}
           width={image.width || undefined}
           height={image.height || undefined}
-        >
-          {diffMaskUrl && (
-            <DiffOverlay
-              $overlayColor={overlayColor!}
-              $opacity={overlayOpacity}
-              $maskUrl={diffMaskUrl}
-              $maskSize="100% 100%"
-            />
-          )}
-        </LazyImage>
-      </Flex>
-    </Stack>
+        />
+      </ZoomPane>
+      <ZoomControls
+        onZoomIn={zoom.zoomIn}
+        onZoomOut={zoom.zoomOut}
+        onReset={zoom.resetZoom}
+      />
+    </Container>
   );
 });
+
+function ZoomPane({
+  zoom,
+  image,
+  children,
+}: {
+  children: ReactNode;
+  image: SnapshotImage;
+  zoom: ReturnType<typeof useD3Zoom>;
+}) {
+  return (
+    // oxlint-disable-next-line react/refs
+    <ZoomViewport ref={zoom.containerRef}>
+      <ImageSizer {...imageSizerProps(image)}>
+        {/* oxlint-disable-next-line react/refs */}
+        <ZoomTransformLayer style={zoomTransformStyle(zoom.transform)}>
+          {children}
+        </ZoomTransformLayer>
+      </ImageSizer>
+    </ZoomViewport>
+  );
+}
 
 const WIPE_MIN_HEIGHT = 160;
 
@@ -182,7 +183,7 @@ export const WipeCardBody = memo(function WipeCardBodyImpl({
 }) {
   const naturalHeight = Math.max(headImage.height || 0, baseImage.height || 0);
   const minHeight = naturalHeight
-    ? `${Math.min(Math.max(naturalHeight, WIPE_MIN_HEIGHT), MAX_IMAGE_HEIGHT)}px`
+    ? (`${Math.min(Math.max(naturalHeight, WIPE_MIN_HEIGHT), MAX_IMAGE_HEIGHT)}px` as const)
     : `${WIPE_MIN_HEIGHT}px`;
   return (
     <Flex>
@@ -273,6 +274,7 @@ export const OnionCardBody = memo(function OnionCardBodyImpl({
         </Text>
         <Flex width="200px">
           <Slider
+            aria-label={t('Head image opacity')}
             value={opacity}
             onChange={setOpacity}
             formatOptions={{style: 'unit', unit: 'percent'}}
@@ -302,7 +304,9 @@ function LazyImage({
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setLoaded(false);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [src]);
 
   const onLoad = useCallback(() => setLoaded(true), []);

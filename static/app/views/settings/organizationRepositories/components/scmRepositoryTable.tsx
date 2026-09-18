@@ -7,20 +7,19 @@ import {
   useRef,
   useState,
 } from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Container, Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
@@ -34,10 +33,9 @@ import {
   IconSliders,
 } from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import type {IntegrationProvider} from 'sentry/types/integrations';
+import type {IntegrationProvider, Repository} from 'sentry/types/integrations';
 import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import {useMedia} from 'sentry/utils/useMedia';
 import type {
   ScmInstallation,
   ScmRepoMatches,
@@ -50,6 +48,39 @@ export interface InstallationWrapperProps {
 
 const REPO_LIST_MAX_HEIGHT = 400;
 const ESTIMATED_REPO_ROW_HEIGHT = 32;
+
+function EmptyRepositoryMessage({
+  isLoading,
+  manageUrl,
+  repositories,
+  repoMatches,
+}: {
+  repositories: Repository[];
+  isLoading?: boolean;
+  manageUrl?: string;
+  repoMatches?: ScmRepoMatches;
+}) {
+  if (isLoading) {
+    return (
+      <Flex align="center" gap="sm">
+        <StatusIndicator variant="accent" />
+        <Text variant="muted">{t('Loading repositories')}</Text>
+      </Flex>
+    );
+  }
+  if (repoMatches !== undefined && repositories.length > 0) {
+    return <Text variant="muted">{t('No repositories match your search')}</Text>;
+  }
+  return (
+    <Text variant="muted">
+      {manageUrl
+        ? tct('No repositories available. [link:Manage repository access]', {
+            link: <ExternalLink href={manageUrl} />,
+          })
+        : t('No repositories available.')}
+    </Text>
+  );
+}
 
 interface ScmRepositoryTableProps {
   /**
@@ -177,7 +208,7 @@ function SingleInstallTableContent({
           <IntegrationSummary installation={merged} />
         </Flex>
         <Flex align="center" gap="sm">
-          <Flex display={{'screen:xs': 'none', 'screen:sm': 'flex'}}>
+          <Flex display={{zero: 'none', xl: 'flex'}}>
             <InstallationRepoCountTag installation={merged} />
           </Flex>
           <InstallationActions installation={merged} providerName={provider.name} />
@@ -306,7 +337,7 @@ function InstallationRow({
         <Flex align="center" gap="sm">
           <IntegrationSummary installation={merged} />
         </Flex>
-        <Flex align="center" display={{'screen:xs': 'none', 'screen:sm': 'flex'}}>
+        <Flex align="center" display={{zero: 'none', xl: 'flex'}}>
           <InstallationRepoCountTag installation={merged} />
         </Flex>
         <Flex align="center" gap="md" justifySelf="end">
@@ -337,11 +368,7 @@ function InstallationRepoCountTag({installation}: {installation: ScmInstallation
   const isLoading = reposLoading || isSyncing;
 
   return (
-    <Tooltip
-      isHoverable={!isLoading}
-      title={getRepoCountTooltip(installation, lastSync)}
-      skipWrapper
-    >
+    <Tooltip title={getRepoCountTooltip(installation, lastSync)} skipWrapper>
       <Tag
         variant="muted"
         icon={isLoading ? <StatusIndicator variant="accent" /> : <IconInfo />}
@@ -411,9 +438,8 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
     onSettings,
     onUninstall,
   } = installation;
-
-  const theme = useTheme();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+  const showManageRepositoriesLabel = useResponsivePropValue({zero: false, '2xl': true});
+  const manageRepositoriesLabel = t('Manage repositories');
 
   return (
     <Fragment>
@@ -427,8 +453,9 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
           variant="link"
           size="xs"
           icon={<IconOpen />}
+          aria-label={manageRepositoriesLabel}
         >
-          {isSmallScreen ? undefined : t('Manage repositories')}
+          {showManageRepositoriesLabel ? manageRepositoriesLabel : undefined}
         </LinkButton>
       )}
       {(onUninstall || onSettings || !!overflowMenuItems?.length) && (
@@ -540,29 +567,6 @@ function VirtualizedRepoList({
     getItemKey,
   });
 
-  const renderEmptyMessage = () => {
-    if (isLoading) {
-      return (
-        <Flex align="center" gap="sm">
-          <StatusIndicator variant="accent" />
-          <Text variant="muted">{t('Loading repositories')}</Text>
-        </Flex>
-      );
-    }
-    if (repoMatches !== undefined && repositories.length > 0) {
-      return <Text variant="muted">{t('No repositories match your search')}</Text>;
-    }
-    return (
-      <Text variant="muted">
-        {manageUrl
-          ? tct('No repositories available. [link:Manage repository access]', {
-              link: <ExternalLink href={manageUrl} />,
-            })
-          : t('No repositories available.')}
-      </Text>
-    );
-  };
-
   const outerColumn = nested ? '1/-1' : undefined;
   const outerColumns = nested ? 'subgrid' : '1fr';
   const contentColumn = nested ? '2/-1' : undefined;
@@ -570,7 +574,12 @@ function VirtualizedRepoList({
   const items =
     visibleRepos.length === 0 ? (
       <Flex column={contentColumn} padding="md xl" justify="center">
-        {renderEmptyMessage()}
+        <EmptyRepositoryMessage
+          isLoading={isLoading}
+          manageUrl={manageUrl}
+          repositories={repositories}
+          repoMatches={repoMatches}
+        />
       </Flex>
     ) : (
       <Grid

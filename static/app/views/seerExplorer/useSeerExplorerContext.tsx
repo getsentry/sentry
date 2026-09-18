@@ -31,6 +31,7 @@ import {
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
+import {SeerExplorerErrorBoundary} from 'sentry/views/seerExplorer/components/seerExplorerErrorBoundary';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {
   useSeerExplorerChatDispatch,
@@ -41,6 +42,7 @@ import type {
   SeerExplorerSidebarPosition,
 } from 'sentry/views/seerExplorer/types';
 import {
+  getSeerExplorerAnalyticsBrowserSize,
   useIsSeerExplorerSidebarEnabled,
   usePageReferrer,
   useSeerExplorerDeepLink,
@@ -127,7 +129,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     undefined
   );
   const [sidebarKey, setSidebarKey] = useState(0);
-  const [sidebarPosition, setSidebarPosition] =
+  const [sidebarPosition, setSidebarPositionState] =
     useLocalStorageState<SeerExplorerSidebarPosition>(
       'seer-explorer-sidebar-position',
       'auto'
@@ -140,6 +142,18 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   const organization = useOrganization({allowNull: true});
   const {getPageReferrer} = usePageReferrer();
+
+  const setSidebarPosition = useCallback(
+    (position: SeerExplorerSidebarPosition) => {
+      setSidebarPositionState(position);
+      trackAnalytics('seer.explorer.sidebar.position_changed', {
+        organization,
+        position,
+        ...getSeerExplorerAnalyticsBrowserSize(),
+      });
+    },
+    [organization, setSidebarPositionState]
+  );
 
   const {pipWindow, closePipWindow} = usePictureInPicture();
   const isPoppedOut = pipWindow !== null;
@@ -155,24 +169,44 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   // Re-open the active surface (sidebar or drawer) whenever the PiP window closes
   // (native controls, dock button, or programmatically) — unless a full close
-  // was requested via `closeSeerExplorer`.
+  // was requested via `closeSeerExplorer`. Entering/leaving PiP is tracked as a
+  // position change (`pip` on enter, restored dock preference on leave).
   const suppressRedockRef = useRef(false);
   const wasPoppedOutRef = useRef(false);
   useEffect(() => {
     const wasPoppedOut = wasPoppedOutRef.current;
     wasPoppedOutRef.current = isPoppedOut;
+
+    if (wasPoppedOut === isPoppedOut) {
+      return;
+    }
+
+    trackAnalytics('seer.explorer.sidebar.position_changed', {
+      organization,
+      position: isPoppedOut ? 'pip' : sidebarPosition,
+      ...getSeerExplorerAnalyticsBrowserSize(),
+    });
+
     if (wasPoppedOut && !isPoppedOut) {
       if (suppressRedockRef.current) {
         suppressRedockRef.current = false;
         return;
       }
       if (isSidebarMode) {
+        // oxlint-disable-next-line react/set-state-in-effect
         openSidebar();
       } else {
         openSeerExplorerDrawer();
       }
     }
-  }, [isPoppedOut, isSidebarMode, openSidebar, openSeerExplorerDrawer]);
+  }, [
+    isPoppedOut,
+    isSidebarMode,
+    openSidebar,
+    openSeerExplorerDrawer,
+    organization,
+    sidebarPosition,
+  ]);
 
   const openSeerExplorer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
@@ -184,12 +218,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         // Mirror `useSeerExplorerDrawer`'s option handling so deep links
         // (runId), the command palette (initialQuery), and session switching
         // behave the same in sidebar mode as in the drawer.
-        const {
-          runId: openRunId,
-          startNewRun,
-          initialQuery,
-          appendToOpenRun,
-        } = drawerOptions ?? {};
+        const {runId: openRunId, initialQuery, appendToOpenRun} = drawerOptions ?? {};
         if (initialQuery) {
           // A forwarded query starts a fresh session unless the caller asked to
           // add to the open run. Bump the nonce either way so re-forwarding the
@@ -202,8 +231,6 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
           return;
         } else if (openRunId !== undefined) {
           dispatch({type: 'set run id', payload: openRunId});
-        } else if (startNewRun) {
-          dispatch({type: 'set run id', payload: null});
         }
         setSidebarInitialQuery(initialQuery);
         setSidebarAppendInitialQuery(!!appendToOpenRun);
@@ -279,7 +306,9 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const isPolling = pollingState === 'polling' || pollingState === 'polling-with-backoff';
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setLastViewedAt(Date.now());
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [runId]);
 
   const [isWindowVisible, setIsWindowVisible] = useState(
@@ -319,6 +348,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const [hasEverOpened, setHasEverOpened] = useState(false);
   useEffect(() => {
     if (isOpen || isPoppedOut) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setHasEverOpened(true);
     }
   }, [isOpen, isPoppedOut]);
@@ -347,6 +377,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   useEffect(() => {
     if (isOpen || isPoppedOut || runId === null) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsDoneThinking(false);
     }
   }, [isOpen, isPoppedOut, runId]);
@@ -429,22 +460,24 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         {children}
         {pipWindow && (
           <PictureInPicturePortal pipWindow={pipWindow}>
-            {/* Pop out the content of whichever surface is active: the decoupled
-              sidebar content when the flag is on (there is no drawer then), or
-              the drawer content otherwise. */}
-            {isSidebarMode ? (
-              <SeerExplorerContent
-                key={sidebarKey}
-                getPageReferrer={getPageReferrer}
-                initialQuery={sidebarInitialQuery}
-                appendInitialQuery={sidebarAppendInitialQuery}
-                onClose={closeSeerExplorer}
-                sidebarPosition={sidebarPosition}
-                onSidebarPositionChange={setSidebarPosition}
-              />
-            ) : (
-              <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
-            )}
+            <SeerExplorerErrorBoundary>
+              {/* Pop out the content of whichever surface is active: the decoupled
+                sidebar content when the flag is on (there is no drawer then), or
+                the drawer content otherwise. */}
+              {isSidebarMode ? (
+                <SeerExplorerContent
+                  key={sidebarKey}
+                  getPageReferrer={getPageReferrer}
+                  initialQuery={sidebarInitialQuery}
+                  appendInitialQuery={sidebarAppendInitialQuery}
+                  onClose={closeSeerExplorer}
+                  sidebarPosition={sidebarPosition}
+                  onSidebarPositionChange={setSidebarPosition}
+                />
+              ) : (
+                <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
+              )}
+            </SeerExplorerErrorBoundary>
           </PictureInPicturePortal>
         )}
       </AutofixChatProvider>

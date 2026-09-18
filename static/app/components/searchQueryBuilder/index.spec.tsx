@@ -36,6 +36,7 @@ import {
 import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   FieldKey,
   FieldKind,
@@ -3251,6 +3252,7 @@ describe('SearchQueryBuilder', () => {
           <SearchQueryBuilder
             {...defaultProps}
             onChange={mockOnChange}
+            /* oxlint-disable-next-line react/jsx-curly-brace-presence -- Preserve the escaped string exactly. */
             initialQuery={'browser.name:[foo*,bar\\*,Chrome]'}
           />
         );
@@ -3270,7 +3272,11 @@ describe('SearchQueryBuilder', () => {
 
       it('renders an escaped asterisk with the escape visible in the filter chip', async () => {
         render(
-          <SearchQueryBuilder {...defaultProps} initialQuery={'browser.name:foo\\*'} />
+          <SearchQueryBuilder
+            {...defaultProps}
+            /* oxlint-disable-next-line react/jsx-curly-brace-presence -- Preserve the escaped string exactly. */
+            initialQuery={'browser.name:foo\\*'}
+          />
         );
 
         expect(
@@ -6090,7 +6096,12 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
         expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
         await userEvent.keyboard('transaction');
+
+        // React Aria dispatches virtual focus from a passive effect during selection.
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(jest.fn());
         await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
+        errorSpy.mockRestore();
+
         expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
         await userEvent.keyboard(',');
         await userEvent.click(screen.getByRole('option', {name: 'greater'}));
@@ -7399,7 +7410,12 @@ describe('SearchQueryBuilder', () => {
                     status: string;
                     unsupported_reason: string | null;
                   }>({
-                    url: '/organizations/org-slug/trace-explorer-ai/query/',
+                    url: getApiUrl(
+                      '/organizations/$organizationIdOrSlug/trace-explorer-ai/query/',
+                      {
+                        path: {organizationIdOrSlug: 'org-slug'},
+                      }
+                    ),
                     method: 'POST',
                     data: {},
                   });

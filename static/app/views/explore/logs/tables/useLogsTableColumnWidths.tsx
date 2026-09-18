@@ -38,7 +38,9 @@ function useFieldsColumnWidths(fields: readonly string[]) {
   // Reset only when the fields actually change or the window resizes, not on
   // every new `fields` array identity (sort/search/date all mint a new array).
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setColumnWidths(undefined);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [fieldsKey, windowSize]);
 
   return [columnWidths, setColumnWidths] as const;

@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {t} from 'sentry/locale';
 import {

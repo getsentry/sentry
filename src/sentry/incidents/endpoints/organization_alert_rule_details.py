@@ -3,7 +3,7 @@ import logging
 from collections.abc import Callable
 
 from django.contrib.auth.models import AnonymousUser
-from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -38,10 +38,7 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.workflow_engine.endpoints.organization_detector_details import remove_detector
 from sentry.workflow_engine.models import AlertRuleDetector, Detector
-from sentry.workflow_engine.utils.legacy_metric_tracking import (
-    report_used_legacy_models,
-    track_alert_endpoint_execution,
-)
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +68,6 @@ def update_alert_rule(
             {"alert_rule": ["Passing a detector through this endpoint is not yet supported"]},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    report_used_legacy_models()
     data = request.data
     validator = DrfAlertRuleSerializer(
         context={
@@ -139,7 +135,6 @@ def remove_alert_rule(
         return Response("This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST)
 
 
-@extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
 class OrganizationAlertRuleDetailsPutSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=256, help_text="The name for the rule.")
     aggregate = serializers.CharField(
@@ -240,7 +235,13 @@ Metric alert rule trigger actions follow the following structure:
     owner = OwnerActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
-    thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
+    thresholdPeriod = serializers.IntegerField(
+        required=False,
+        default=1,
+        min_value=1,
+        max_value=20,
+        help_text="Number of consecutive times the threshold must be met before the alert fires.",
+    )
 
 
 def _check_project_access[T](
@@ -285,7 +286,6 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
     @extend_schema(
         operation_id="(DEPRECATED) Retrieve a Metric Alert Rule for an Organization",
     )
-    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
@@ -309,12 +309,12 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
         predefined threshold. These rules help you proactively identify and address issues in your
         project.
         """
+        enforce_alerts_api_deprecation(organization)
         return fetch_alert_rule(request, organization, alert_rule)
 
     @extend_schema(
         operation_id="(DEPRECATED) Update a Metric Alert Rule",
     )
-    @track_alert_endpoint_execution("PUT", "sentry-api-0-organization-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
@@ -343,12 +343,12 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
 
 
         """
+        enforce_alerts_api_deprecation(organization)
         return update_alert_rule(request, organization, alert_rule)
 
     @extend_schema(
         operation_id="(DEPRECATED) Delete a Metric Alert Rule",
     )
-    @track_alert_endpoint_execution("DELETE", "sentry-api-0-organization-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
@@ -371,4 +371,5 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
          predefined threshold. These rules help you proactively identify and address issues in your
          project.
         """
+        enforce_alerts_api_deprecation(organization)
         return remove_alert_rule(request, organization, alert_rule)

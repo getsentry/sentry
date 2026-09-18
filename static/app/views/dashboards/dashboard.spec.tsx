@@ -47,9 +47,9 @@ describe('Dashboards > Dashboard', () => {
   };
   const newWidget: Widget = {
     id: '1',
-    title: 'Test Discover Widget',
+    title: 'Test Errors Widget',
     displayType: DisplayType.LINE,
-    widgetType: WidgetType.DISCOVER,
+    widgetType: WidgetType.ERRORS,
     interval: '5m',
     queries: [
       {
@@ -174,81 +174,6 @@ describe('Dashboards > Dashboard', () => {
     expect(tagsMock).toHaveBeenCalled();
   });
 
-  it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
-    const mockHandleAddCustomWidget = jest.fn();
-    const mockCallbackToUnsetNewWidget = jest.fn();
-    render(
-      <Dashboard
-        dashboard={mockDashboard}
-        isEditingDashboard={false}
-        onUpdate={() => {}}
-        handleUpdateWidgetList={() => {}}
-        handleAddCustomWidget={mockHandleAddCustomWidget}
-        newWidget={newWidget}
-        widgetLimitReached={false}
-        onSetNewWidget={mockCallbackToUnsetNewWidget}
-        widgetLegendState={widgetLegendState}
-      />
-    );
-    await waitFor(() => expect(mockHandleAddCustomWidget).toHaveBeenCalled());
-    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
-  });
-
-  it('dashboard adds new widget if component updated with newWidget prop', async () => {
-    const mockHandleAddCustomWidget = jest.fn();
-    const mockCallbackToUnsetNewWidget = jest.fn();
-    const {rerender} = render(
-      <Dashboard
-        dashboard={mockDashboard}
-        isEditingDashboard={false}
-        onUpdate={() => {}}
-        handleUpdateWidgetList={() => {}}
-        handleAddCustomWidget={mockHandleAddCustomWidget}
-        widgetLimitReached={false}
-        onSetNewWidget={mockCallbackToUnsetNewWidget}
-        widgetLegendState={widgetLegendState}
-      />
-    );
-    expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
-    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
-
-    // Re-render with newWidget prop
-    rerender(
-      <Dashboard
-        dashboard={mockDashboard}
-        isEditingDashboard={false}
-        onUpdate={() => {}}
-        handleUpdateWidgetList={() => {}}
-        handleAddCustomWidget={mockHandleAddCustomWidget}
-        widgetLimitReached={false}
-        onSetNewWidget={mockCallbackToUnsetNewWidget}
-        newWidget={newWidget}
-        widgetLegendState={widgetLegendState}
-      />
-    );
-    await waitFor(() => expect(mockHandleAddCustomWidget).toHaveBeenCalled());
-    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
-  });
-
-  it('dashboard does not try to add new widget if no newWidget', () => {
-    const mockHandleAddCustomWidget = jest.fn();
-    const mockCallbackToUnsetNewWidget = jest.fn();
-    render(
-      <Dashboard
-        dashboard={mockDashboard}
-        isEditingDashboard={false}
-        onUpdate={() => {}}
-        handleUpdateWidgetList={() => {}}
-        handleAddCustomWidget={mockHandleAddCustomWidget}
-        widgetLimitReached={false}
-        onSetNewWidget={mockCallbackToUnsetNewWidget}
-        widgetLegendState={widgetLegendState}
-      />
-    );
-    expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
-    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
-  });
-
   it('handles duplicate widget in view mode', async () => {
     const mockOnUpdate = jest.fn();
     const mockHandleUpdateWidgetList = jest.fn();
@@ -278,7 +203,6 @@ describe('Dashboards > Dashboard', () => {
           handleUpdateWidgetList={mockHandleUpdateWidgetList}
           handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
-          onSetNewWidget={() => {}}
           widgetLegendState={widgetLegendState}
         />
       </MEPSettingProvider>,
@@ -394,7 +318,7 @@ describe('Dashboards > Dashboard', () => {
       };
 
       mount(mockDashboardWithIssueWidget);
-      expect(await screen.findByText('Test Discover Widget')).toBeInTheDocument();
+      expect(await screen.findByText('Test Errors Widget')).toBeInTheDocument();
       expect(screen.getByText('Test Issue Widget')).toBeInTheDocument();
     });
 
@@ -749,7 +673,7 @@ describe('Dashboards > Dashboard', () => {
       rerender();
 
       await waitFor(() => {
-        expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
+        expect(screen.getAllByText('Test Errors Widget')).toHaveLength(2);
       });
     });
 
@@ -796,7 +720,7 @@ describe('Dashboards > Dashboard', () => {
         isPreview: true,
       });
 
-      await screen.findByText('Test Discover Widget');
+      await screen.findByText('Test Errors Widget');
 
       expect(screen.queryByRole('button', {name: /add widget/i})).not.toBeInTheDocument();
     });
@@ -876,6 +800,7 @@ describe('Dashboards > Dashboard', () => {
 
     function SnapshotCapture() {
       const {getLLMContext} = useLLMContext();
+      // oxlint-disable-next-line react/immutability
       snapshotRef.current = getLLMContext;
       return null;
     }

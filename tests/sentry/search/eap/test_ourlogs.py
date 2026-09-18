@@ -17,6 +17,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
@@ -305,6 +306,31 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
+    def test_span_id_query(self) -> None:
+        where, having, _ = self.resolver.resolve_query("span_id:9dd6c84c33259a6d")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.span_id", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="9dd6c84c33259a6d"),
+            )
+        )
+        assert having is None
+
+    def test_parent_span_id_query(self) -> None:
+        """Older SDKs send the emitting span as an attribute instead of the log's span_id field."""
+        where, having, _ = self.resolver.resolve_query("trace.parent_span_id:9dd6c84c33259a6d")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name="sentry.trace.parent_span_id", type=AttributeKey.Type.TYPE_STRING
+                ),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="9dd6c84c33259a6d"),
+            )
+        )
+        assert having is None
+
     def test_internal_trace_id_resolves_with_normalizer(self) -> None:
         """Using the internal name 'sentry.trace_id' resolves with normalizer."""
         where, having, _ = self.resolver.resolve_query(
@@ -318,6 +344,20 @@ class SearchResolverQueryTest(TestCase):
             )
         )
         assert having is None
+
+    def test_wildcard_on_virtual_column_rejected(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="Cannot use wildcards with project"):
+            self.resolver.resolve_query("project:*sen*")
+
+    def test_wildcard_on_virtual_column_rejected_for_timeseries_request(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(granularity_secs=60),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
+        )
+
+        with pytest.raises(InvalidSearchQuery, match="Cannot use wildcards with project"):
+            resolver.resolve_query("project:*sen*")
 
 
 def test_count_default_argument() -> None:

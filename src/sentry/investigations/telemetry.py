@@ -16,6 +16,17 @@ def _record_count(name: str, attributes: dict[str, str]) -> None:
     metrics.incr(name, tags=attributes, sample_rate=1.0)
 
 
+def _record_duration(name: str, value: float, attributes: dict[str, str]) -> None:
+    sentry_sdk.metrics.distribution(name, value, unit="second", attributes=attributes)
+    metrics.distribution(
+        name,
+        value,
+        unit="second",
+        tags=attributes,
+        sample_rate=1.0,
+    )
+
+
 def _investigation_attributes(investigation: Investigation) -> dict[str, str]:
     return {
         "source_type": str(investigation.source.get("type") or investigation.source_type),
@@ -38,11 +49,10 @@ def record_investigation_started(investigation: Investigation) -> None:
 def record_investigation_completed(investigation: Investigation) -> None:
     attributes = _investigation_attributes(investigation)
     _record_count("investigations.completed", attributes)
-    sentry_sdk.metrics.distribution(
+    _record_duration(
         "investigations.duration",
         (timezone.now() - investigation.date_added).total_seconds(),
-        unit="second",
-        attributes=attributes,
+        attributes,
     )
 
 
@@ -61,11 +71,10 @@ def record_execution_completed(execution: InvestigationBlockExecution) -> None:
     attributes = _execution_attributes(execution)
     _record_count("investigations.execution.completed", attributes)
     if execution.completed_at is not None:
-        sentry_sdk.metrics.distribution(
+        _record_duration(
             "investigations.execution.duration",
             (execution.completed_at - execution.date_added).total_seconds(),
-            unit="second",
-            attributes={**attributes, "outcome": "completed"},
+            {**attributes, "outcome": "completed"},
         )
 
 
@@ -78,11 +87,10 @@ def record_execution_failed(
         {**attributes, "reason": reason},
     )
     if execution.completed_at is not None:
-        sentry_sdk.metrics.distribution(
+        _record_duration(
             "investigations.execution.duration",
             (execution.completed_at - execution.date_added).total_seconds(),
-            unit="second",
-            attributes={**attributes, "outcome": "failed"},
+            {**attributes, "outcome": "failed"},
         )
     logger.warning(
         "investigations.execution.failed",

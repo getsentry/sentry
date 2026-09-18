@@ -84,10 +84,11 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def _is_span_eligible(self, span: Span) -> bool:
         span_id = span.get("span_id", None)
+        parent_span_id = span.get("parent_span_id", None)
         op = span.get("op", None)
         hash = span.get("hash", None)
 
-        if not span_id or not op or not hash:
+        if not span_id or not parent_span_id or not op or not hash:
             return False
 
         description = span.get("description")

@@ -117,6 +117,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             title_link="https://sentry.io/alerts/1/",
             text="123.45 events in the last minute",
             chart_url=MOCK_CHART_URL,
+            notes="Check <https://example.com/runbook|the runbook>",
         )
 
         result = SlackMetricAlertRenderer.render(
@@ -126,18 +127,25 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
 
         assert result.get("attachments") is not None
 
-        # With a chart: section block + image block
+        # With notes and a chart: incident section + notes section + image block
         blocks: list[Any] = result["attachments"][0]["blocks"]
-        assert len(blocks) == 2
+        assert len(blocks) == 3
         assert blocks[0]["type"] == "section"
         assert "123.45 events in the last minute" in blocks[0]["text"]["text"]
-        assert blocks[1]["type"] == "image"
-        assert blocks[1]["image_url"] == MOCK_CHART_URL
-        assert blocks[1]["alt_text"] == "Metric Alert Chart"
+        assert blocks[1] == {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "notes: Check <https://example.com/runbook|the runbook>",
+            },
+        }
+        assert blocks[2]["type"] == "image"
+        assert blocks[2]["image_url"] == MOCK_CHART_URL
+        assert blocks[2]["alt_text"] == "Metric Alert Chart"
 
     def test_render_without_chart_url(self) -> None:
         result = SlackMetricAlertRenderer.render(
-            data=self.notification_data,
+            data=self.notification_data.copy(update={"notes": ""}),
             rendered_template=self.rendered_template,
         )
 
@@ -157,6 +165,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             title_link="https://sentry.io/alerts/1/",
             text="",
             new_status=IncidentStatus.CLOSED.value,
+            notes="Check the runbook",
         )
 
         result = SlackMetricAlertRenderer.render(
@@ -166,3 +175,4 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
 
         assert "Resolved" in result["text"]
         assert self.detector.name in result["text"]
+        assert result["attachments"][0]["blocks"][1]["text"]["text"] == "notes: Check the runbook"

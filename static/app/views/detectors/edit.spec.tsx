@@ -35,6 +35,7 @@ import {
 import {SnubaQueryType} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import DetectorEdit from 'sentry/views/detectors/edit';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
@@ -110,6 +111,33 @@ describe('DetectorEdit', () => {
       url: `/organizations/${organization.slug}/workflows/`,
       match: [MockApiClient.matchQuery({ids: ['100']})],
       body: [AutomationFixture({id: '100', name: 'Workflow foo'})],
+    });
+  });
+
+  describe('breadcrumbs', () => {
+    const mockDetector = MetricDetectorFixture({name: 'My Metric Monitor'});
+
+    it('renders parent crumbs in the trail and the monitor name as the page title', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      const monitorsCrumb = await screen.findByRole('link', {name: 'Monitors'});
+      expect(monitorsCrumb).toHaveAttribute('href', '/organizations/org-slug/monitors/');
+      expect(screen.getByRole('link', {name: 'Metric'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/monitors/metrics/'
+      );
+
+      expect(
+        screen.getByRole('heading', {name: mockDetector.name, level: 1})
+      ).toBeInTheDocument();
+
+      const trail = monitorsCrumb.closest('ol')!;
+      expect(within(trail).queryByText(mockDetector.name)).not.toBeInTheDocument();
     });
   });
 
@@ -189,11 +217,90 @@ describe('DetectorEdit', () => {
       // Verify the button text has changed to "Enable"
       expect(await screen.findByRole('button', {name: 'Enable'})).toBeInTheDocument();
     });
+
+    it('renders a Cancel link back to the monitor details page', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      await screen.findAllByText(mockDetector.name);
+
+      expect(await screen.findByRole('button', {name: 'Cancel'})).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/monitors/${mockDetector.id}/`
+      );
+      expect(screen.getByRole('separator')).toBeInTheDocument();
+    });
+
+    it('keeps Cancel available without alerts:write, hiding Disable and Delete', async () => {
+      const readOnlyOrganization = OrganizationFixture({
+        features: ['visibility-explore-view'],
+        access: ['org:read', 'project:read'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${readOnlyOrganization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization: readOnlyOrganization,
+        initialRouterConfig,
+      });
+
+      await screen.findAllByText(mockDetector.name);
+
+      expect(await screen.findByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Disable'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Delete'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+    });
   });
 
   describe('Error', () => {
     const name = 'Test Error Detector';
     const mockDetector = ErrorDetectorFixture({id: '1', name, projectId: project.id});
+
+    it('renders parent crumbs in the trail and the monitor name as the page title', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      const monitorsCrumb = await screen.findByRole('link', {name: 'Monitors'});
+      expect(monitorsCrumb).toHaveAttribute('href', '/organizations/org-slug/monitors/');
+      expect(screen.getByRole('link', {name: 'Error'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/monitors/errors/'
+      );
+
+      expect(screen.getByRole('heading', {name, level: 1})).toBeInTheDocument();
+
+      const trail = monitorsCrumb.closest('ol')!;
+      expect(within(trail).queryByText(name)).not.toBeInTheDocument();
+    });
+
+    it('renders a Cancel link back to the monitor details page', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      await screen.findAllByText(name);
+
+      expect(await screen.findByRole('button', {name: 'Cancel'})).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/monitors/${mockDetector.id}/`
+      );
+      expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+    });
 
     it('allows editing the detector name/environment and saving changes', async () => {
       MockApiClient.addMockResponse({
@@ -285,6 +392,56 @@ describe('DetectorEdit', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/metrics/data/`,
+      });
+    });
+
+    it('reports unsaved form values to Seer without saving', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
+      function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+        ({getLLMContext} = useLLMContext());
+        return <DetectorEdit />;
+      }
+
+      render(<Component />, {organization, initialRouterConfig});
+      await screen.findAllByText(name);
+
+      const readNode = () =>
+        getLLMContext!().nodes.find(node => node.nodeType === 'monitor-builder');
+
+      await waitFor(() => {
+        expect(readNode()).toBeDefined();
+      });
+
+      // Outranks the page nodes rendered alongside it.
+      expect(readNode()!.priority).toBe(1);
+      expect(readNode()!.data).toEqual(
+        expect.objectContaining({
+          mode: 'editing',
+          id: mockDetector.id,
+          type: 'metric_issue',
+          unsavedValues: expect.objectContaining({name}),
+        })
+      );
+
+      const descriptionField = await screen.findByRole('textbox', {name: 'description'});
+      await userEvent.type(descriptionField, 'Typed but never saved');
+
+      // No save. The node must still reflect the edit, which is the whole point
+      // of reading the form model rather than the fetched detector.
+      await waitFor(() => {
+        expect(readNode()!.data).toEqual(
+          expect.objectContaining({
+            unsavedValues: expect.objectContaining({
+              description: 'Typed but never saved',
+            }),
+          })
+        );
       });
     });
 

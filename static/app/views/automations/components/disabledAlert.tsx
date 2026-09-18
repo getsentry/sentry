@@ -23,7 +23,7 @@ type DisabledAlertProps = {
 export function DisabledAlert({automation}: DisabledAlertProps) {
   const {mutate: updateAutomation, isPending: isEnabling} = useUpdateAutomation();
 
-  const canEdit = useCanEditAutomation();
+  const canEdit = useCanEditAutomation(automation.id);
 
   if (automation.enabled) {
     return null;
@@ -44,11 +44,7 @@ export function DisabledAlert({automation}: DisabledAlertProps) {
       <Alert
         variant="muted"
         trailingItems={
-          <Tooltip
-            title={canEdit ? undefined : permissionTooltipText}
-            disabled={canEdit}
-            isHoverable
-          >
+          <Tooltip title={canEdit ? undefined : permissionTooltipText} disabled={canEdit}>
             <Button
               size="xs"
               icon={<IconPlay />}

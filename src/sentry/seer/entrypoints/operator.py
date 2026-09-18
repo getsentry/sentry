@@ -180,12 +180,12 @@ class SeerAutofixOperator[CachePayloadT]:
         run_id: int | None = None,
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
-            AutofixStep,
-            NoSeerQuotaException,
             get_autofix_agent_state,
             trigger_autofix_agent,
             trigger_push_changes,
         )
+        from sentry.seer.autofix.exceptions import NoSeerQuotaException
+        from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
             interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_AUTOFIX,
@@ -615,10 +615,11 @@ def _create_seer_activity(
     if run_id is not None:
         activity_data["run_id"] = run_id
 
-    actor_user_id: int | None = None
+    actor_user_id = (
+        activity_attribution.get("actor_user_id") if activity_attribution is not None else None
+    )
     if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution is not None:
         activity_data["referrer"] = activity_attribution["referrer"].value
-        actor_user_id = activity_attribution.get("actor_user_id")
     elif event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
         root_cause = event_payload.get("root_cause")
         if root_cause:
@@ -661,31 +662,31 @@ def record_seer_activity(
     event_payload: dict[str, Any],
     activity_attribution: SeerActivityAttribution | None = None,
 ) -> None:
-    iteration_attribution: SeerActivityAttribution | None = None
-    if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution:
+    normalized_attribution: SeerActivityAttribution | None = None
+    if activity_attribution:
         try:
             referrer = AutofixReferrer(activity_attribution["referrer"])
         except ValueError:
             pass
         else:
-            iteration_attribution = {"referrer": referrer}
+            normalized_attribution = {"referrer": referrer}
             actor_user_id = activity_attribution.get("actor_user_id")
             if actor_user_id is not None:
-                iteration_attribution["actor_user_id"] = actor_user_id
+                normalized_attribution["actor_user_id"] = actor_user_id
 
     action_source = ActionSource.SEER_EXPLORER
     action_actor = SYSTEM_ACTOR
-    if iteration_attribution is not None:
+    if normalized_attribution is not None:
         action_source = ITERATION_REFERRER_TO_ACTION_SOURCE.get(
-            iteration_attribution["referrer"], ActionSource.SEER_EXPLORER
+            normalized_attribution["referrer"], ActionSource.SEER_EXPLORER
         )
-        actor_user_id = iteration_attribution.get("actor_user_id")
+        actor_user_id = normalized_attribution.get("actor_user_id")
         if actor_user_id is not None:
             action_actor = GroupActionActor.user(actor_user_id)
 
     try:
         with action_context_scope(action_source, action_actor):
-            _create_seer_activity(group, event_type, event_payload, iteration_attribution)
+            _create_seer_activity(group, event_type, event_payload, normalized_attribution)
     except Exception:
         logger.exception(
             "seer.activity_creation_failed",
@@ -798,7 +799,7 @@ def process_autofix_updates(
 def get_autofix_explorer_status(
     stopping_point: AutofixStoppingPoint, autofix_state: SeerRunState
 ) -> bool | None:
-    from sentry.seer.autofix.autofix_agent import AutofixStep
+    from sentry.seer.autofix.steps import AutofixStep
 
     expected_step = AutofixStep.from_autofix_stopping_point(stopping_point)
 
@@ -881,6 +882,8 @@ class SeerOperatorCompletionHook(AgentOnCompletionHook):
             try:
                 state = fetch_run_status(run_id, organization)
                 for block in reversed(state.blocks):
+                    if block.message.role == "user":
+                        break
                     if block.message.role == "assistant" and block.message.content:
                         summary = block.message.content
                         break

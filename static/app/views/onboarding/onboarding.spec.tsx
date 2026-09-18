@@ -672,8 +672,7 @@ describe('Onboarding', () => {
     it('navigates from welcome to scm-connect', async () => {
       const {router} = renderOnboarding('welcome');
 
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
-      await userEvent.click(await screen.findByRole('button', {name: 'Start setup'}));
+      await userEvent.click(await screen.findByRole('button', {name: /Set up manually/}));
 
       // Wait for scm-connect to render and its queries to resolve so the
       // mounted-effect fetches hit the mocked endpoints before afterEach
@@ -685,31 +684,67 @@ describe('Onboarding', () => {
       );
     });
 
-    it('shows the agent setup on start click without leaving welcome', async () => {
+    it('opens on the agent setup rather than the product interstitial', async () => {
       const {router} = renderOnboarding('welcome');
 
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
-
       expect(
-        await screen.findByText('npx @sentry/agent-plugin install')
+        await screen.findByText(/^npx @sentry\/agent-plugin install /)
       ).toBeInTheDocument();
-      expect(screen.getByText('Connect your repository')).toBeInTheDocument();
-      expect(screen.getByText('Choose your platform')).toBeInTheDocument();
-      expect(screen.getByText('Install the SDK')).toBeInTheDocument();
-      expect(screen.getByText('Verify your setup')).toBeInTheDocument();
+      expect(screen.getByText('Recommended')).toBeInTheDocument();
+      expect(screen.getByText('Claude Code, Codex, Cursor, & Grok')).toBeInTheDocument();
+      const prompt = screen.getByText(/org slug: org-slug/);
+      const onboardingCode = prompt.textContent?.match(
+        /run code: ([A-Za-z0-9]{10})/
+      )?.[1];
+
+      expect(onboardingCode).toBeDefined();
+      expect(
+        screen.getByText(
+          `npx @sentry/agent-plugin install ${scmOrganization.slug}#${onboardingCode}`
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
+      expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
+      expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();
       expect(
         screen.queryByText('Detect your framework and language')
       ).not.toBeInTheDocument();
-      expect(trackAnalytics).toHaveBeenCalledWith(
-        'onboarding.scm_welcome_present_agentic_interstitial_clicked',
-        expect.objectContaining({organization: scmOrganization})
-      );
       expect(router.location.pathname).toBe(
         `/onboarding/${scmOrganization.slug}/welcome/`
       );
     });
 
-    it('preloads agent setup while the welcome screen is visible', async () => {
+    it('selects agent setup snippets on click and tracks their source', async () => {
+      renderOnboarding('welcome');
+
+      const installCommand = await screen.findByText(
+        /^npx @sentry\/agent-plugin install /
+      );
+      await userEvent.click(installCommand);
+
+      expect(window.getSelection()?.toString()).toBe(installCommand.textContent);
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agent_snippet_selected',
+        expect.objectContaining({
+          organization: scmOrganization,
+          source: 'install_command',
+        })
+      );
+
+      const prompt = screen.getByText(/Please help me get started with sentry/);
+      await userEvent.click(prompt);
+
+      expect(window.getSelection()?.toString()).toBe(prompt.textContent);
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agent_snippet_selected',
+        expect.objectContaining({
+          organization: scmOrganization,
+          source: 'prompt',
+        })
+      );
+    });
+
+    it('initializes the agentic run exactly once on welcome mount', async () => {
       renderOnboarding('welcome');
 
       await waitFor(() => expect(agenticRunRequestMock).toHaveBeenCalledTimes(1));
@@ -718,26 +753,31 @@ describe('Onboarding', () => {
     it('replaces setup instructions with agent progress', async () => {
       renderOnboarding('welcome');
 
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
-
       expect(
-        await screen.findByText('npx @sentry/agent-plugin install')
+        await screen.findByText(/^npx @sentry\/agent-plugin install /)
       ).toBeInTheDocument();
 
       act(resolveAgenticRunRequest);
 
       expect(await screen.findByText('Agent Connected')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Switch to Manual'})).toBeInTheDocument();
       expect(
-        screen.queryByText('npx @sentry/agent-plugin install')
+        screen.queryByRole('button', {name: /Set up manually/})
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('or')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/^npx @sentry\/agent-plugin install /)
       ).not.toBeInTheDocument();
     });
 
-    it('fires scm_welcome_step_viewed on welcome mount and not the legacy event', () => {
+    it('fires SCM welcome and agentic setup view events on welcome mount', () => {
       renderOnboarding('welcome');
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_welcome_step_viewed',
+        expect.objectContaining({organization: scmOrganization})
+      );
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agentic_setup_viewed',
         expect.objectContaining({organization: scmOrganization})
       );
       expect(trackAnalytics).not.toHaveBeenCalledWith(
@@ -755,7 +795,10 @@ describe('Onboarding', () => {
         JSON.stringify({
           selectedPlatform: nextJsPlatform,
           selectedFeatures: [ProductSolution.ERROR_MONITORING],
-          createdProjectSlug: 'javascript-nextjs',
+          createdProject: {
+            slug: 'javascript-nextjs',
+            messagingSelection: undefined,
+          },
           messagingSetup: selectedMessagingSetup,
           agentSetupProjectBaseline: {
             organizationId: scmOrganization.id,
@@ -783,6 +826,11 @@ describe('Onboarding', () => {
       });
       const {router} = renderFlow(organization, 'welcome');
 
+      expect(trackAnalytics).not.toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agentic_setup_viewed',
+        expect.anything()
+      );
+
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
       expect(await screen.findByText('GitHub')).toBeInTheDocument();
@@ -792,8 +840,7 @@ describe('Onboarding', () => {
     it('fires scm_welcome_continue_clicked on browser setup click and not the legacy event', async () => {
       renderOnboarding('welcome');
 
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
-      await userEvent.click(await screen.findByRole('button', {name: 'Start setup'}));
+      await userEvent.click(await screen.findByRole('button', {name: /Set up manually/}));
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_welcome_continue_clicked',
@@ -1137,7 +1184,10 @@ describe('Onboarding', () => {
           JSON.stringify({
             selectedPlatform: nextJsPlatform,
             selectedFeatures: [ProductSolution.ERROR_MONITORING],
-            createdProjectSlug: nextJsProject.slug,
+            createdProject: {
+              slug: nextJsProject.slug,
+              messagingSelection: undefined,
+            },
           })
         );
 
@@ -1190,6 +1240,10 @@ describe('Onboarding', () => {
       const initialContext = {
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        createdProject: {
+          slug: nextJsProject.slug,
+          messagingSelection: undefined,
+        },
         messagingSetup: selectedMessagingSetup,
       };
 
@@ -1221,8 +1275,8 @@ describe('Onboarding', () => {
       const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
       expect(stored.selectedPlatform).toBeDefined();
       expect(stored.selectedFeatures).toBeDefined();
-      // createdProjectSlug should be cleared so the user can re-create
-      expect(stored.createdProjectSlug).toBeUndefined();
+      // createdProject should be cleared so the user can re-create
+      expect(stored.createdProject).toBeUndefined();
       expect(stored.messagingSetup).toEqual(initialContext.messagingSetup);
     });
 
@@ -1313,7 +1367,10 @@ describe('Onboarding', () => {
         }),
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        createdProjectSlug: 'javascript-nextjs',
+        createdProject: {
+          slug: 'javascript-nextjs',
+          messagingSelection: undefined,
+        },
         messagingSetup: selectedMessagingSetup,
       };
 
@@ -1336,7 +1393,7 @@ describe('Onboarding', () => {
       // Derived state should be cleared
       expect(stored.selectedPlatform).toBeUndefined();
       expect(stored.selectedFeatures).toBeUndefined();
-      expect(stored.createdProjectSlug).toBeUndefined();
+      expect(stored.createdProject).toBeUndefined();
       // Integration and repo should be preserved
       expect(stored.selectedIntegration).toBeDefined();
       expect(stored.selectedRepository).toBeDefined();

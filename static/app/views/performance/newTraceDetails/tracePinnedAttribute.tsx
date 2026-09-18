@@ -1,0 +1,362 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
+import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
+import {Text} from '@sentry/scraps/text';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IconCopy, IconPin, IconRefresh} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
+import {formatDollars} from 'sentry/utils/formatters';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import type {TraceTree} from './traceModels/traceTree';
+import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
+import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
+import {
+  getPinnedAttributeValue,
+  MULTIPLE_PINNED_VALUES,
+  type PinnedAttributeValue,
+} from './tracePinnedAttributeValues';
+
+export const TRACE_ATTRIBUTE_PINNING_FEATURE = 'trace-waterfall-attribute-pinning';
+const PINNED_ATTRIBUTE_PARAM = 'pinnedAttribute';
+
+type PinnedAttributeResponse = {
+  data: Array<{[key: string]: unknown; span_id: string}>;
+};
+
+type PinnedAttributeState = {
+  attribute: string | null;
+  enabled: boolean;
+  isError: boolean;
+  isPending: boolean;
+  retry: () => void;
+  setAttribute: (attribute: string | null) => void;
+  values: ReadonlyMap<string, PinnedAttributeValue>;
+};
+
+export const TracePinnedAttributeContext = createContext<PinnedAttributeState | null>(
+  null
+);
+export const usePinnedAttribute = () => useContext(TracePinnedAttributeContext);
+
+export function useTracePinnedAttribute({
+  enabled,
+  isLoading,
+  traceSlug,
+  tree,
+  manager,
+}: {
+  enabled: boolean;
+  isLoading: boolean;
+  manager: VirtualizedViewManager;
+  traceSlug: string;
+  tree: TraceTree;
+}): PinnedAttributeState {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const organization = useOrganization();
+  const queryAttribute = location.query[PINNED_ATTRIBUTE_PARAM];
+  const attribute =
+    enabled && typeof queryAttribute === 'string' && queryAttribute.length > 0
+      ? queryAttribute
+      : null;
+  const visibleAttribute = !isLoading && tree.type === 'trace' ? attribute : null;
+  const setAttribute = useCallback(
+    (next: string | null) => {
+      if (!enabled) {
+        return;
+      }
+      trackAnalytics('trace.trace_layout.attribute_pin_changed', {
+        organization,
+        action: next ? 'added' : 'removed',
+      });
+      const query = {...location.query};
+      if (next) {
+        query[PINNED_ATTRIBUTE_PARAM] = next;
+      } else {
+        delete query[PINNED_ATTRIBUTE_PARAM];
+      }
+      navigate({...location, query}, {replace: true});
+    },
+    [enabled, location, navigate, organization]
+  );
+
+  // Query the full loaded trace independently of the selected span or error.
+  // Round the time range outward to whole seconds so the events query includes
+  // spans at both trace boundaries, including zero-duration spans.
+  const start = Math.floor(tree.root.space[0] / 1000) * 1000;
+  const end = (Math.floor((tree.root.space[0] + tree.root.space[1]) / 1000) + 1) * 1000;
+  const query = useInfiniteQuery({
+    ...apiOptions.asInfinite<PinnedAttributeResponse>()(
+      '/organizations/$organizationIdOrSlug/events/',
+      {
+        path:
+          attribute && tree.type === 'trace'
+            ? {organizationIdOrSlug: organization.slug}
+            : skipToken,
+        query: {
+          start: new Date(start).toISOString(),
+          end: new Date(end).toISOString(),
+          dataset: DiscoverDatasets.SPANS,
+          field:
+            attribute && attribute !== 'span_id' ? ['span_id', attribute] : ['span_id'],
+          query: `trace:${traceSlug}`,
+          project: -1,
+          per_page: 9999,
+          sort: 'span_id',
+          sampling: 'HIGHEST_ACCURACY',
+          referrer: 'trace.waterfall.attribute-pinning',
+        },
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+  });
+  useFetchAllPages({result: query, enabled: attribute !== null && tree.type === 'trace'});
+  const values = useMemo(() => {
+    const result = new Map<string, PinnedAttributeValue>();
+    for (const page of query.data?.pages ?? []) {
+      for (const item of page.json.data) {
+        const value = attribute ? item[attribute] : null;
+        // Keep null entries so a loaded span without the attribute is resolved.
+        result.set(
+          item.span_id,
+          typeof value === 'string' ||
+            typeof value === 'number' ||
+            typeof value === 'boolean'
+            ? value
+            : null
+        );
+      }
+    }
+    return result;
+  }, [attribute, query.data]);
+
+  useLayoutEffect(() => {
+    manager.setAttributePinningEnabled(enabled);
+  }, [enabled, manager]);
+
+  useLayoutEffect(() => {
+    manager.setPinnedColumnEnabled(visibleAttribute !== null);
+  }, [visibleAttribute, manager]);
+
+  return {
+    enabled,
+    attribute: visibleAttribute,
+    setAttribute,
+    values,
+    isPending:
+      !query.isError &&
+      (query.isPending || query.isFetchingNextPage || query.hasNextPage),
+    isError: query.isError,
+    retry: () => {
+      void query.refetch();
+    },
+  };
+}
+
+export function TracePinnedAttributeHeader() {
+  const pin = usePinnedAttribute();
+  if (!pin?.attribute) {
+    return null;
+  }
+  return (
+    <Flex
+      className="TracePinnedAttributeHeader"
+      align="center"
+      gap="xs"
+      padding="xs md"
+      borderBottom="primary"
+      overflow="hidden"
+    >
+      <Text bold ellipsis size="sm" title={pin.attribute}>
+        {pin.isError ? t('Could not load attribute') : pin.attribute}
+      </Text>
+      {pin.isError && (
+        <Button
+          size="zero"
+          variant="transparent"
+          aria-label={t('Retry loading attribute')}
+          icon={<IconRefresh size="xs" />}
+          onClick={pin.retry}
+        />
+      )}
+      <Button
+        size="zero"
+        variant="transparent"
+        aria-label={t('Unpin attribute')}
+        icon={<IconPin size="xs" isSolid />}
+        onClick={() => pin.setAttribute(null)}
+      />
+    </Flex>
+  );
+}
+
+function formatPinnedValue(attribute: string, value: PinnedAttributeValue): string {
+  if (value === null) {
+    return '—';
+  }
+  if (typeof value === 'number') {
+    if (['span.duration', 'span.total_time', 'duration'].includes(attribute)) {
+      return formatTraceDuration(value);
+    }
+    if (attribute.startsWith('gen_ai.cost.')) {
+      return formatDollars(value);
+    }
+  }
+  return String(value);
+}
+
+export function TracePinnedAttributeCell({node}: {node: BaseNode}) {
+  const pin = usePinnedAttribute();
+  const {copy} = useCopyToClipboard();
+  if (!pin?.attribute) {
+    return null;
+  }
+  const {value, resolved} = getPinnedAttributeValue(node, pin.values);
+  const isPending = pin.isPending && !resolved;
+  const isUnavailable = pin.isError && !resolved;
+  const label = isUnavailable
+    ? '—'
+    : value === MULTIPLE_PINNED_VALUES
+      ? t('Multiple values')
+      : formatPinnedValue(pin.attribute, value);
+  const canCopy =
+    !isPending && !isUnavailable && value !== null && value !== MULTIPLE_PINNED_VALUES;
+  return (
+    <RevealOnHover>
+      {hoverProps => (
+        <Flex
+          {...hoverProps}
+          className={`${hoverProps.className} TracePinnedAttributeCell`}
+          align="center"
+          position="relative"
+          paddingLeft="md"
+          paddingRight="xs"
+          overflow="hidden"
+          height="100%"
+        >
+          {isPending ? (
+            <LoadingIndicator size={12} style={{margin: 0}} />
+          ) : (
+            <Text ellipsis size="sm">
+              {label}
+            </Text>
+          )}
+          {canCopy && (
+            <RevealOnHover.Action>
+              <Flex
+                position="absolute"
+                right="4px"
+                top="0"
+                bottom="0"
+                align="center"
+                padding="0 2xs"
+                background="primary"
+              >
+                <Button
+                  size="zero"
+                  variant="transparent"
+                  aria-label={t('Copy attribute value')}
+                  icon={<IconCopy size="xs" />}
+                  onPointerDown={event => event.stopPropagation()}
+                  onKeyDown={event => event.stopPropagation()}
+                  onClick={event => {
+                    event.stopPropagation();
+                    copy(String(value));
+                  }}
+                />
+              </Flex>
+            </RevealOnHover.Action>
+          )}
+        </Flex>
+      )}
+    </RevealOnHover>
+  );
+}
+
+export function TraceAttributeDivider({
+  edge,
+  manager,
+}: {
+  edge: 'left' | 'right';
+  manager: VirtualizedViewManager;
+}) {
+  const previousX = useRef<number | null>(null);
+  return (
+    <Flex
+      role="separator"
+      aria-label={
+        edge === 'left'
+          ? t('Resize tree and attribute columns')
+          : t('Resize attribute and timeline columns')
+      }
+      aria-orientation="vertical"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(
+        100 *
+          (manager.columns.list.width +
+            (edge === 'right' ? manager.columns.attribute.width : 0))
+      )}
+      tabIndex={0}
+      className={`TraceDivider TraceAttributeDivider ${edge}`}
+      onKeyDown={event => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+          return;
+        }
+        event.preventDefault();
+        manager.resizePinnedColumn(
+          edge,
+          (event.key === 'ArrowRight' ? 1 : -1) * (event.shiftKey ? 50 : 10)
+        );
+        manager.finishPinnedColumnResize();
+      }}
+      onPointerDown={event => {
+        if (event.button !== 0) {
+          return;
+        }
+        event.preventDefault();
+        previousX.current = event.clientX;
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }}
+      onPointerMove={event => {
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          manager.resizePinnedColumn(
+            edge,
+            event.clientX - (previousX.current ?? event.clientX)
+          );
+          previousX.current = event.clientX;
+        }
+      }}
+      onPointerUp={event => {
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+      }}
+      onLostPointerCapture={() => {
+        previousX.current = null;
+        manager.finishPinnedColumnResize();
+      }}
+    />
+  );
+}

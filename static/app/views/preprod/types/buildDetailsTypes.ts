@@ -1,4 +1,4 @@
-/* eslint-disable typescript-sort-keys/interface */
+/* eslint-disable @sentry/sort-interface-keys */
 import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 
 import type {Platform} from './sharedTypes';
@@ -211,6 +211,18 @@ export type SnapshotComparisonState =
   | 'waiting_for_base'
   | 'no_base_build';
 export type SnapshotApprovalStatus = 'approved' | 'auto_approved' | 'requires_approval';
+
+export function isSnapshotApproved(
+  status: SnapshotApprovalStatus | null | undefined
+): boolean {
+  return status === 'approved' || status === 'auto_approved';
+}
+
+export function isForceApprovableSnapshotState(
+  state: SnapshotComparisonState | null | undefined
+): boolean {
+  return state === 'failed' || state === 'no_base_build';
+}
 
 interface SnapshotComparisonInfo {
   image_count: number;

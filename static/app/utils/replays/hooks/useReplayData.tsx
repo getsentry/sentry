@@ -8,7 +8,9 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
+import {getBootstrapProjectsQueryOptions} from 'sentry/bootstrap/bootstrapRequests';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -37,6 +39,16 @@ export function replayRecordApiOptions({
       staleTime: Infinity,
     }
   );
+}
+
+/**
+ * Hoisted so the identity stays stable across renders. TanStack Query only
+ * reuses a cached `select` result while the function reference is unchanged,
+ * and re-running this one yields a fresh object every time: `ReplayRecord`
+ * holds `Date` and `Duration` values, which structural sharing cannot dedupe.
+ */
+function selectReplayRecord(data: ApiResponse<{data: unknown}>) {
+  return data.json.data ? mapResponseToReplayRecord(data.json.data) : undefined;
 }
 
 export function replayAttachmentsApiOptions({
@@ -74,19 +86,10 @@ type Options = {
    * The replayId
    */
   replayId: string | undefined;
-
-  /**
-   * Default: 50
-   * You can override this for testing
-   */
-  errorsPerPage?: number;
-
-  /**
-   * Default: 100
-   * You can override this for testing
-   */
-  segmentsPerPage?: number;
 };
+
+const ERRORS_PER_PAGE = 50;
+const SEGMENTS_PER_PAGE = 100;
 
 const REPLAY_ERROR_FIELDS = [
   'error.type',
@@ -139,12 +142,7 @@ interface Result {
  * @param {orgSlug, replayId} Where to find the root replay event
  * @returns An object representing a unified result of the network requests. Either a single `ReplayReader` data object or fetch errors.
  */
-export function useReplayData({
-  replayId,
-  orgSlug,
-  errorsPerPage = 50,
-  segmentsPerPage = 100,
-}: Options): Result {
+export function useReplayData({replayId, orgSlug}: Options): Result {
   const queryClient = useQueryClient();
 
   // Fetch every field of the replay. The TS type definition lists every field
@@ -152,19 +150,20 @@ export function useReplayData({
   // partial types or nullable fields.
   // We're overfetching for sure.
   const {
-    data: replayData,
+    data: replayRecord,
     status: fetchReplayStatus,
     error: fetchReplayError,
   } = useQuery({
     ...replayRecordApiOptions({organizationIdOrSlug: orgSlug, replayId}),
     retry: false,
+    select: selectReplayRecord,
   });
-  const replayRecord = useMemo(
-    () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),
-    [replayData?.data]
-  );
 
   const projectSlug = useReplayProjectSlug({replayRecord});
+  const {isPending: isFetchingProjects} = useQuery(
+    getBootstrapProjectsQueryOptions(orgSlug)
+  );
+  const isResolvingProjectSlug = !!replayRecord && !projectSlug && isFetchingProjects;
 
   const getAttachmentsQueryOptions = useCallback(
     ({cursor, per_page}: {cursor: string; per_page: number}) =>
@@ -184,8 +183,8 @@ export function useReplayData({
     Boolean(replayRecord);
 
   const attachmentCursors = Array.from(
-    {length: Math.ceil((replayRecord?.count_segments ?? 0) / segmentsPerPage)},
-    (_, i) => `0:${segmentsPerPage * i}:0`
+    {length: Math.ceil((replayRecord?.count_segments ?? 0) / SEGMENTS_PER_PAGE)},
+    (_, i) => `0:${SEGMENTS_PER_PAGE * i}:0`
   );
 
   const {
@@ -195,7 +194,7 @@ export function useReplayData({
   } = useQueries({
     queries: enableAttachments
       ? attachmentCursors.map(cursor =>
-          getAttachmentsQueryOptions({cursor, per_page: segmentsPerPage})
+          getAttachmentsQueryOptions({cursor, per_page: SEGMENTS_PER_PAGE})
         )
       : [],
     combine: results => ({
@@ -240,8 +239,8 @@ export function useReplayData({
   );
 
   const errorCursors = Array.from(
-    {length: Math.ceil((replayRecord?.count_errors ?? 0) / errorsPerPage)},
-    (_, i) => `0:${errorsPerPage * i}:0`
+    {length: Math.ceil((replayRecord?.count_errors ?? 0) / ERRORS_PER_PAGE)},
+    (_, i) => `0:${ERRORS_PER_PAGE * i}:0`
   );
 
   const enableErrors = Boolean(replayRecord) && Boolean(projectSlug);
@@ -255,7 +254,7 @@ export function useReplayData({
           queryOptions({
             ...getErrorsQueryOptions({
               cursor,
-              per_page: errorsPerPage,
+              per_page: ERRORS_PER_PAGE,
             }),
             select: selectJsonWithHeaders,
           })
@@ -292,7 +291,7 @@ export function useReplayData({
           end: replayEnd,
           project: ALL_ACCESS_PROJECTS,
           query: `replayId:[${replayRecord?.id}]`,
-          per_page: errorsPerPage,
+          per_page: ERRORS_PER_PAGE,
           cursor: lastLinkHeader.next?.cursor ?? '0:0:0',
         },
         staleTime: Infinity,
@@ -317,7 +316,7 @@ export function useReplayData({
           end: replayEnd,
           project: ALL_ACCESS_PROJECTS,
           query: `replayId:[${replayRecord?.id}]`,
-          per_page: errorsPerPage,
+          per_page: ERRORS_PER_PAGE,
           cursor: '0:0:0',
         },
         staleTime: Infinity,
@@ -397,6 +396,7 @@ export function useReplayData({
 
   const allStatuses = [
     replayId ? fetchReplayStatus : undefined,
+    isResolvingProjectSlug ? 'pending' : undefined,
     enableAttachments ? fetchAttachmentsStatus : undefined,
     enableErrors ? fetchErrorsStatus : undefined,
     enableExtraErrors ? fetchExtraErrorsStatus : undefined,

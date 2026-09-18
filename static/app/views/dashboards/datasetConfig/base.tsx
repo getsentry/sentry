@@ -37,7 +37,6 @@ import type {FieldValue} from 'sentry/views/discover/table/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import {ErrorsConfig} from './errors';
-import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {LogsConfig} from './logs';
 import {MobileAppSizeConfig} from './mobileAppSize';
@@ -60,6 +59,7 @@ export type WidgetBuilderSearchBarProps = {
 
 export type SearchBarDataProviderProps = {
   pageFilters: PageFilters;
+  filterKeySearch?: string;
   widgetQuery?: WidgetQuery;
 };
 
@@ -67,6 +67,7 @@ export interface SearchBarData {
   getFilterKeySections: () => FilterKeySection[];
   getFilterKeys: () => TagCollection;
   getTagValues: GetTagValues;
+  isFetchingFilterKeys?: boolean;
 }
 
 /**
@@ -365,12 +366,11 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
               ? typeof TraceMetricsConfig
               : T extends WidgetType.PREPROD_APP_SIZE
                 ? typeof MobileAppSizeConfig
-                : typeof ErrorsAndTransactionsConfig;
+                : typeof ErrorsConfig;
 
 export function getDatasetConfig(widgetType?: WidgetType):
   | typeof IssuesConfig
   | typeof ReleasesConfig
-  | typeof ErrorsAndTransactionsConfig
   /* eslint-disable @typescript-eslint/no-duplicate-type-constituents */
   | typeof ErrorsConfig
   | typeof TransactionsConfig
@@ -384,8 +384,6 @@ export function getDatasetConfig(widgetType?: WidgetType):
       return IssuesConfig;
     case WidgetType.RELEASE:
       return ReleasesConfig;
-    case WidgetType.ERRORS:
-      return ErrorsConfig;
     case WidgetType.TRANSACTIONS:
       return TransactionsConfig;
     case WidgetType.LOGS:
@@ -396,9 +394,11 @@ export function getDatasetConfig(widgetType?: WidgetType):
       return TraceMetricsConfig;
     case WidgetType.PREPROD_APP_SIZE:
       return MobileAppSizeConfig;
-    case WidgetType.DISCOVER:
+    case WidgetType.ERRORS:
+    case undefined:
+      return ErrorsConfig;
     default:
-      return ErrorsAndTransactionsConfig;
+      throw new Error(`Unsupported widget type: ${widgetType}`);
   }
 }
 

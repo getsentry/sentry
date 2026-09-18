@@ -5,6 +5,7 @@ import {parseAsString, useQueryStates} from 'nuqs';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -16,7 +17,6 @@ import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -99,7 +99,7 @@ function ClosedMembershipPage() {
   );
 }
 
-function InvestigationsPage() {
+export function InvestigationsPage() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -297,7 +297,6 @@ function InvestigationsPage() {
                   <GridEditable
                     data={investigations}
                     columnOrder={COLUMNS}
-                    columnSortBy={[]}
                     grid={{
                       renderHeadCell: column => column.name,
                       renderBodyCell,

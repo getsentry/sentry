@@ -35,7 +35,6 @@ type Props = {
   limit?: number;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
-  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
   widgetInterval?: string;
@@ -56,7 +55,7 @@ function WidgetQueriesWithOnDemandControl({
   mepSettingContext,
   OnDemandControlContext,
   widgetInterval,
-}: Omit<Props, 'onWidgetSplitDecision'> & {
+}: Props & {
   OnDemandControlContext: any;
   afterFetchSeriesData: (rawResults: SeriesResult) => void;
   afterFetchTableData: (rawResults: TableResult) => void;
@@ -92,15 +91,12 @@ export function WidgetQueries({
   cursor,
   limit,
   onDataFetched,
-  onWidgetSplitDecision,
   onDataFetchStart,
   selection,
   widgetInterval,
 }: Props) {
-  // Discover and Errors datasets are the only datasets processed in this component
-  const config = getDatasetConfig(
-    widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS | WidgetType.TRANSACTIONS
-  );
+  // Errors and Transactions datasets are the only datasets processed in this component.
+  const config = getDatasetConfig(widget.widgetType);
   const context = useDashboardsMEPContext();
   const metricsMeta = useMetricsResultsMeta();
   const mepSettingContext = useMEPSettingContext();
@@ -109,7 +105,7 @@ export function WidgetQueries({
   let setIsMetricsData: undefined | ((value?: boolean) => void);
   let setIsMetricsExtractedData:
     | undefined
-    | ((mapKey: MetricsResultsMetaMapKey, value?: boolean) => void);
+    | ((mapKey: MetricsResultsMetaMapKey, value: boolean) => void);
 
   if (context) {
     setIsMetricsData = context.setIsMetricsData;
@@ -122,9 +118,9 @@ export function WidgetQueries({
   const isSeriesMetricsExtractedDataResults: Array<boolean | undefined> = [];
   const afterFetchSeriesData = (rawResults: SeriesResult) => {
     if (rawResults.data) {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       rawResults = rawResults as EventsStats;
       if (rawResults.isMetricsData !== undefined) {
+        // oxlint-disable-next-line react/immutability
         isSeriesMetricsDataResults.push(rawResults.isMetricsData);
       }
       if (rawResults.isMetricsExtractedData !== undefined) {
@@ -157,27 +153,13 @@ export function WidgetQueries({
       isSeriesMetricsExtractedDataResults.every(Boolean) &&
         isSeriesMetricsExtractedDataResults.some(Boolean)
     );
-
-    const resultValues = Object.values(rawResults);
-    let splitDecision: WidgetType | undefined;
-    if (rawResults.meta) {
-      splitDecision = (rawResults.meta as EventsStats['meta'])?.discoverSplitDecision;
-    } else if (Object.values(rawResults).length > 0) {
-      // Multi-series queries will have a meta key on each series
-      // We can just read the decision from one.
-      splitDecision = resultValues[0]?.meta?.discoverSplitDecision;
-    }
-
-    if (splitDecision) {
-      // Update the dashboard state with the split decision
-      onWidgetSplitDecision?.(splitDecision);
-    }
   };
 
   const isTableMetricsDataResults: boolean[] = [];
   const isTableMetricsExtractedDataResults: boolean[] = [];
   const afterFetchTableData = (rawResults: TableResult) => {
     if (rawResults.meta?.isMetricsData !== undefined) {
+      // oxlint-disable-next-line react/immutability
       isTableMetricsDataResults.push(rawResults.meta.isMetricsData);
     }
     if (rawResults.meta?.isMetricsExtractedData !== undefined) {
@@ -190,15 +172,6 @@ export function WidgetQueries({
       isTableMetricsExtractedDataResults.every(Boolean) &&
         isTableMetricsExtractedDataResults.some(Boolean)
     );
-
-    if (
-      [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
-        rawResults?.meta?.discoverSplitDecision
-      )
-    ) {
-      // Update the dashboard state with the split decision
-      onWidgetSplitDecision?.(rawResults?.meta?.discoverSplitDecision);
-    }
   };
 
   return (

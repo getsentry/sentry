@@ -2,6 +2,7 @@ import atexit
 from typing import Any
 
 from datadog.dogstatsd.base import DogStatsd
+from datadog.util.hostname import get_hostname
 
 from .base import MetricsBackend, Tags
 
@@ -11,6 +12,7 @@ __all__ = ["PreciseDogStatsdMetricsBackend"]
 class PreciseDogStatsdMetricsBackend(MetricsBackend):
     def __init__(self, prefix: str | None = None, **kwargs: Any) -> None:
         self.tags = kwargs.pop("tags", None)
+        self.host: str | None = kwargs.pop("host", None) or get_hostname(hostname_from_config=True)
 
         instance_kwargs: dict[str, Any] = {
             "disable_telemetry": True,

@@ -1,4 +1,5 @@
-import {markdownRendersVisibleContent} from 'sentry/utils/marked/marked';
+import {markdownRendersVisibleContent} from '@sentry/scraps/markdown';
+
 import {parseJsonWithFix} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 import {isKnownHtmlTag} from './htmlTags';

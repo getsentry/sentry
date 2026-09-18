@@ -807,6 +807,35 @@ export const SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY = {
   bottom: 'seer-explorer-sidebar-seer-size:bottom',
 } as const;
 
+/** Pixel step used when bucketing layout sizes for analytics cardinality. */
+const SEER_EXPLORER_ANALYTICS_PIXEL_BUCKET = 50;
+
+/**
+ * Round a CSS-pixel layout size into coarse buckets for analytics (default 50px).
+ * Keeps Amplitude distributions useful without exploding cardinality on exact
+ * device widths/heights or drag endpoints.
+ */
+export function roundSeerExplorerAnalyticsPixels(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return (
+    Math.round(Math.max(0, value) / SEER_EXPLORER_ANALYTICS_PIXEL_BUCKET) *
+    SEER_EXPLORER_ANALYTICS_PIXEL_BUCKET
+  );
+}
+
+/** Current browser viewport size, bucketed for Seer Explorer analytics events. */
+export function getSeerExplorerAnalyticsBrowserSize(): {
+  browser_height: number;
+  browser_width: number;
+} {
+  return {
+    browser_width: roundSeerExplorerAnalyticsPixels(window.innerWidth),
+    browser_height: roundSeerExplorerAnalyticsPixels(window.innerHeight),
+  };
+}
+
 type SeerExplorerSidebarOrientation = 'right' | 'bottom';
 
 /**

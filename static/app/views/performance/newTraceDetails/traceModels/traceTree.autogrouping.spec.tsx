@@ -1,6 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
+  isParentAutogroupedNode,
+  isSiblingAutogroupedNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {
   makeEAPSpan,
   makeEAPTrace,
   makeSpan,
@@ -10,7 +14,6 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
-import {isParentAutogroupedNode, isSiblingAutogroupedNode} from './../traceGuards';
 import {TraceTree} from './traceTree';
 
 const organization = OrganizationFixture();

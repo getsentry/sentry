@@ -6,11 +6,10 @@ import {motion} from 'framer-motion';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
-import {Select, type StylesConfig} from '@sentry/scraps/select';
+import {Select, type StylesConfig, createFilter} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
-import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -101,8 +100,10 @@ export function ScmPlatformFeaturesCore({
   // for the new repo. Keyed on externalId since it is stable across the
   // optimistic -> resolved transition for a given selection.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setShowManualPicker(false);
     autoDetectionTrackedRef.current = false;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [selectedRepository?.externalId]);
 
   useEffect(() => {

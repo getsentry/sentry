@@ -109,6 +109,19 @@ Buttons are available in different sizes: `md` (default), `sm`, `xs`, and `zero`
 <Button size="zero">Zero</Button>
 ```
 
+The `size` prop accepts responsive values based on the available container width.
+
+<Storybook.Demo resizable>
+  <Button size={{zero: 'zero', '3xs': 'zero', '2xs': 'xs', sm: 'sm', lg: 'md'}}>
+    Responsive button
+  </Button>
+</Storybook.Demo>
+```jsx
+<Button size={{zero: 'zero', '3xs': 'zero', '2xs': 'xs', sm: 'sm', lg: 'md'}}>
+  Responsive button
+</Button>
+```
+
 ## Icons
 
 Buttons support an optional leading icon.

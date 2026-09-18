@@ -644,6 +644,23 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             str(group_without_seer.id),
         }
 
+    def test_has_issue_id_does_not_crash(self) -> None:
+        # Regression test: has:issue.id was parsed as issue.id != '' which caused
+        # a ValueError when the lambda tried int('').
+        self.store_event(
+            data={"fingerprint": ["group-1"], "timestamp": before_now(seconds=1).isoformat()},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        # has:issue.id should return all groups (every group always has an id)
+        response = self.get_success_response(query="has:issue.id")
+        assert len(response.data) >= 1
+
+        # !has:issue.id should return no groups (every group always has an id)
+        response = self.get_success_response(query="!has:issue.id")
+        assert len(response.data) == 0
+
     def test_lookup_by_event_id(self) -> None:
         event_id = "c" * 32
         event = self.store_event(
@@ -3225,6 +3242,17 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def assertNoResolution(self, group: Group) -> None:
         assert not GroupResolution.objects.filter(group=group).exists()
 
+    def test_no_accessible_projects(self) -> None:
+        organization = self.create_organization()
+        self.create_project(organization=organization)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, has_global_access=False)
+        self.login_as(user=user)
+
+        response = self.get_response(organization.slug, status="resolved")
+
+        assert response.status_code == 204
+
     def test_global_resolve(self) -> None:
         group1 = self.create_group(status=GroupStatus.RESOLVED)
         group2 = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -4653,6 +4681,17 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+    def test_no_accessible_projects(self) -> None:
+        organization = self.create_organization()
+        self.create_project(organization=organization)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, has_global_access=False)
+        self.login_as(user=user)
+
+        response = self.get_response(organization.slug)
+
+        assert response.status_code == 204
 
     @patch("sentry.eventstream.snuba.SnubaEventStream._send")
     @patch("sentry.eventstream.snuba.datetime")

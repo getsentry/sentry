@@ -3,12 +3,13 @@ import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import {z} from 'zod';
 
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {LinkButton} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
@@ -23,6 +24,7 @@ import {AutomateSection} from 'sentry/views/detectors/components/forms/automateS
 import {useSubmitEditDetector} from 'sentry/views/detectors/hooks/useSubmitEditDetector';
 import {
   makeMonitorBasePathname,
+  makeMonitorDetailsPathname,
   makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
@@ -151,20 +153,24 @@ export function EditExistingErrorDetectorForm({
   return (
     <EditLayout>
       <form.AppForm form={form}>
-        <TopBar.Slot name="title">
-          <Breadcrumbs
-            crumbs={[
+        <TopBar.Slot name="breadcrumbs">
+          <BreadcrumbList
+            items={[
               {
+                type: 'link',
                 label: t('Monitors'),
                 to: makeMonitorBasePathname(organization.slug),
               },
               {
+                type: 'link',
                 label: getDetectorTypeLabel(detector.type),
                 to: makeMonitorTypePathname(organization.slug, detector.type),
               },
-              {label: detector.name},
             ]}
           />
+        </TopBar.Slot>
+        <TopBar.Slot name="title">
+          <BreadcrumbList.Title item={{type: 'page-title', label: detector.name}} />
         </TopBar.Slot>
         <AutomationFeedbackButton />
 
@@ -181,6 +187,13 @@ export function EditExistingErrorDetectorForm({
         </EditLayout.Body>
 
         <EditLayout.Footer maxWidth={maxWidth}>
+          <LinkButton
+            variant="secondary"
+            size="sm"
+            to={makeMonitorDetailsPathname(organization.slug, detector.id)}
+          >
+            {t('Cancel')}
+          </LinkButton>
           <form.SubmitButton
             size="sm"
             disabled={!canEditWorkflowConnections}

@@ -19,6 +19,7 @@ export function ConnectedAssertionSuggestionsButton({
 }: ConnectedAssertionSuggestionsButtonProps) {
   const {form} = useContext(FormContext);
   const formRef = useRef(form);
+  // oxlint-disable-next-line react/refs
   formRef.current = form;
 
   const getFormData = () => {

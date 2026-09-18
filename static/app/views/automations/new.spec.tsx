@@ -10,7 +10,13 @@ import {
   DataConditionHandlerFixture,
 } from 'sentry-fixture/workflowEngine';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as indicators from 'sentry/actionCreators/indicator';
@@ -224,12 +230,16 @@ describe('AutomationNewSettings', () => {
       /tagged event/i
     );
     const tagInput = await screen.findByRole('textbox', {name: 'Tag'});
-    await userEvent.type(tagInput, 'env{enter}');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Value'}), 'prod');
+    await userEvent.click(tagInput);
+    await userEvent.paste('env');
+    await userEvent.keyboard('{enter}');
+    await userEvent.click(screen.getByRole('textbox', {name: 'Value'}));
+    await userEvent.paste('prod');
 
     // Add an action to the block (Slack), also updates the automatic naming
     await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+    await userEvent.click(screen.getByRole('textbox', {name: 'Target'}));
+    await userEvent.paste('#alerts');
 
     // Add an email action
     await selectEvent.select(
@@ -368,10 +378,9 @@ describe('AutomationNewSettings', () => {
     });
 
     await addAction('MS Teams');
-    const targets = screen.getAllByRole('textbox', {name: 'Target'});
-    const msTeamsTarget = targets.at(-1);
-    expect(msTeamsTarget).toBeDefined();
-    await userEvent.type(msTeamsTarget!, 'alerts-team', {delay: null});
+    await userEvent.type(screen.getByPlaceholderText('channel name'), 'alerts-team', {
+      delay: null,
+    });
 
     await addAction('Pagerduty');
     await addAction('Opsgenie');
@@ -658,6 +667,32 @@ describe('AutomationNewSettings', () => {
     expect(await screen.findByText('member-project')).toBeInTheDocument();
   });
 
+  it('pre-selects a writable project for a team admin', async () => {
+    const readOnlyProject = ProjectFixture({
+      id: '3',
+      slug: 'read-only-project',
+      isMember: true,
+      access: ['project:read', 'alerts:read'],
+    });
+    const writableProject = ProjectFixture({
+      id: '4',
+      slug: 'writable-project',
+      isMember: false,
+      access: ['project:read', 'alerts:write'],
+    });
+    ProjectsStore.loadInitialData([readOnlyProject, writableProject]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(readOnlyProject.id)]})
+    );
+
+    render(<AutomationNewSettings />, {
+      organization: OrganizationFixture({access: ['org:read', 'alerts:read']}),
+    });
+
+    expect(await screen.findByText('writable-project')).toBeInTheDocument();
+    expect(screen.queryByText('read-only-project')).not.toBeInTheDocument();
+  });
+
   it('surfaces API error message when automation creation fails', async () => {
     jest.spyOn(indicators, 'addErrorMessage');
 
@@ -708,6 +743,39 @@ describe('AutomationNewSettings', () => {
 
     await waitFor(() => {
       expect(indicators.addErrorMessage).toHaveBeenCalledWith('Repository is required');
+    });
+  });
+
+  describe('breadcrumbs', () => {
+    it('renders the parent crumb in the trail and the placeholder name as the page title', async () => {
+      render(<AutomationNewSettings />, {organization});
+
+      const alertsCrumb = await screen.findByRole('link', {name: 'Alerts'});
+      expect(alertsCrumb).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/monitors/alerts/`
+      );
+
+      expect(
+        screen.getByRole('heading', {name: 'New Alert', level: 1})
+      ).toBeInTheDocument();
+
+      const trail = alertsCrumb.closest('ol')!;
+      expect(within(trail).queryByText('New Alert')).not.toBeInTheDocument();
+    });
+
+    it('names the alert from the page title', async () => {
+      render(<AutomationNewSettings />, {organization});
+
+      await userEvent.click(await screen.findByText('New Alert'));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Alert Name'}),
+        'My new alert{enter}'
+      );
+
+      expect(
+        screen.getByRole('heading', {name: 'My new alert', level: 1})
+      ).toBeInTheDocument();
     });
   });
 });

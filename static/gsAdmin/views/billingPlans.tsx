@@ -7,11 +7,11 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
+import {ResultTable} from 'sentry/components/resultTable';
 import {IconDownload} from 'sentry/icons';
 import type {DataCategory} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
-import {ResultTable} from 'admin/components/resultTable';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 

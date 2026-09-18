@@ -897,6 +897,15 @@ class PostSentryAppsTest(SentryAppsTest):
         )
         assert "webhookHeaders" in response.data
 
+    def test_create_integration_with_non_latin1_webhook_header_value(self) -> None:
+        # HTTP headers are latin-1; ideographic space (U+3000) is not encodable.
+        bad_header = "Authorization: Bearer　token"
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=[bad_header]),
+            status_code=400,
+        )
+        assert "webhookHeaders" in response.data
+
     def test_create_integration_with_space_in_header_name(self) -> None:
         response = self.get_error_response(
             **self.get_data(webhookHeaders=["X Bad Name: value"]), status_code=400

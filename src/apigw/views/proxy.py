@@ -33,8 +33,7 @@ async def proxy_cell_from_org(
     db_ctx: Any, org: str, timeout: float | None = None, **kwargs: Any
 ) -> Any:
     try:
-        async with db_ctx.acquire() as db:
-            cell = await get_cell_for_organization(db, org)
+        cell = await get_cell_for_organization(db_ctx, org)
     except CellResolutionError:
         abort_with_json(404, {"error": "apigateway", "detail": "Not found"})
     return await proxy_cell_request(cell, request, timeout)

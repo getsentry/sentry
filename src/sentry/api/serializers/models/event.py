@@ -45,6 +45,9 @@ SQL_DOUBLEQUOTES_REGEX = re.compile(r"\"([a-zA-Z0-9_]+?)\"")
 MAX_SQL_FORMAT_OPS = 20
 MAX_SQL_FORMAT_LENGTH = 1500
 
+# Page-size ceiling for endpoints that serialize a full event body per row (full=true).
+FULL_PAYLOAD_MAX_PER_PAGE = 10
+
 
 class EventTagOptional(TypedDict, total=False):
     query: str

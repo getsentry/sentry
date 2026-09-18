@@ -1,9 +1,7 @@
-/* eslint-disable unicorn/filename-case */
 import type {ReactElement} from 'react';
 
 import {Tooltip as mockTooltip} from 'sentry-test/snapshots/mocks/tooltip';
 
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {lightTheme} from 'sentry/utils/theme/theme';
 
 import {closeBrowser, takeSnapshot, type SnapshotInteraction} from './snapshot';

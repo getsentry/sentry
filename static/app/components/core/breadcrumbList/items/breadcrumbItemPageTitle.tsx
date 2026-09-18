@@ -4,8 +4,12 @@ import {BreadcrumbCopyAction} from '@sentry/scraps/breadcrumbList/actions/breadc
 import type {BreadcrumbCopyActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import {BreadcrumbMenuAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
 import type {BreadcrumbMenuActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
-import {Button, type ButtonProps, type LinkButtonProps} from '@sentry/scraps/button';
-import {LinkButton} from '@sentry/scraps/button';
+import {
+  Button,
+  type ButtonProps,
+  type LinkButtonProps,
+  LinkButton,
+} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
@@ -58,9 +62,13 @@ function renderTrailingActions(trailingActions?: BreadcrumbTitleActions) {
     return null;
   }
 
+  // Key on the slot each action was declared in, not its position after the
+  // nulls are dropped. Consumers inline conditionals here, so a slot appearing
+  // would otherwise shift every later action onto a new key — remounting it and
+  // discarding its state (an open dropdown snaps shut).
   const actions = (
     Array.isArray(trailingActions) ? trailingActions : [trailingActions]
-  ).filter(action => action !== null);
+  ).flatMap((action, slot) => (action === null ? [] : [{action, slot}]));
 
   if (actions.length === 0) {
     return null;
@@ -68,8 +76,8 @@ function renderTrailingActions(trailingActions?: BreadcrumbTitleActions) {
 
   return (
     <Flex as="span" align="center" gap="xs" flexShrink={0}>
-      {actions.map((action, index) => (
-        <Fragment key={index}>{renderTrailingAction(action)}</Fragment>
+      {actions.map(({action, slot}) => (
+        <Fragment key={slot}>{renderTrailingAction(action)}</Fragment>
       ))}
     </Flex>
   );
@@ -123,7 +131,6 @@ export function BreadcrumbItemPageTitle({
           <Tooltip
             title={pagination.previous.tooltip}
             disabled={!pagination.previous.tooltip}
-            isHoverable
           >
             {pagination.previous.to ? (
               <LinkButton
@@ -145,11 +152,7 @@ export function BreadcrumbItemPageTitle({
               />
             )}
           </Tooltip>
-          <Tooltip
-            title={pagination.next.tooltip}
-            disabled={!pagination.next.tooltip}
-            isHoverable
-          >
+          <Tooltip title={pagination.next.tooltip} disabled={!pagination.next.tooltip}>
             {pagination.next.to ? (
               <LinkButton
                 size="zero"

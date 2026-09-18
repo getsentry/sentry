@@ -1,5 +1,6 @@
 from copy import deepcopy
 from typing import Any
+from unittest.mock import patch
 
 import responses
 from django.http import HttpRequest, HttpResponse
@@ -180,6 +181,33 @@ class MsTeamsRequestParserTest(TestCase):
             parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
             integration = parser.get_integration_from_request()
             assert integration is None
+
+    @responses.activate
+    def test_synchronous_event_skips_the_routing_lookups(self) -> None:
+        """An installationUpdate is decided from the payload, so the integration and
+        cells are never resolved. "remove" because an "add" is caught further up."""
+        request = self.factory.post(
+            self.path,
+            data={
+                "type": "installationUpdate",
+                "action": "remove",
+                "channelData": {"team": {"id": self.integration.external_id}},
+            },
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+            content_type="application/json",
+        )
+        parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
+
+        with patch.object(
+            MsTeamsRequestParser, "get_integration_from_request"
+        ) as mock_get_integration:
+            response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.content == b"passthrough"
+        assert mock_get_integration.call_count == 0
+        assert_no_webhook_payloads()
 
     def test_handle_control_silo_payloads(self) -> None:
         help_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
