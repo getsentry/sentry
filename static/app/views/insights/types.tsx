@@ -190,6 +190,7 @@ export enum SpanFields {
   USER_DISPLAY = 'user.display', // Note: this is not implemented yet, waiting for EAP-123
 
   // Web vital fields
+  BROWSER_NAVIGATION_TYPE = 'browser.navigation.type',
   BROWSER_WEB_VITAL_LCP_VALUE = 'browser.web_vital.lcp.value',
   BROWSER_WEB_VITAL_FCP_VALUE = 'browser.web_vital.fcp.value',
   BROWSER_WEB_VITAL_CLS_VALUE = 'browser.web_vital.cls.value',
@@ -371,7 +372,8 @@ type NonNullableStringFields =
   | SpanFields.USER
   | SpanFields.PROFILER_ID
   | SpanFields.USER_DISPLAY
-  | SpanFields.SENTRY_ORIGIN;
+  | SpanFields.SENTRY_ORIGIN
+  | SpanFields.BROWSER_NAVIGATION_TYPE;
 
 type NullableStringFields = SpanFields.NORMALIZED_DESCRIPTION | SpanFields.SPAN_GROUP;
 
@@ -525,6 +527,9 @@ type CustomResponseFields = {
     | 'data_loss'
     | 'unauthenticated';
   [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
+  // Spans emitted before the SDK version that added this attribute have no
+  // value for it, which comes back as an empty string.
+  [SpanFields.BROWSER_NAVIGATION_TYPE]: '' | BrowserNavigationType;
 };
 
 // Fields that are used as arguments to division() queries.
@@ -623,3 +628,16 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
+
+// Values the JS SDK sets on `browser.navigation.type`, describing the kind of
+// navigation a web vital was measured on. Reported exactly as the web-vitals
+// library names them.
+// See https://github.com/getsentry/sentry-conventions/pull/600
+export type BrowserNavigationType =
+  | 'navigate'
+  | 'reload'
+  | 'back-forward'
+  | 'back-forward-cache'
+  | 'restore'
+  | 'prerender'
+  | 'soft-navigation';
