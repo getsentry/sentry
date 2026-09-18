@@ -165,12 +165,18 @@ export function InstrumentationGuide() {
             <DropdownMenu
               size="sm"
               items={menuItems}
-              triggerLabel={selectedLabel}
-              triggerProps={{
-                icon: platformKey ? (
-                  <PlatformIcon platform={platformKey} size={16} />
-                ) : undefined,
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={
+                    platformKey ? (
+                      <PlatformIcon platform={platformKey} size={16} />
+                    ) : undefined
+                  }
+                >
+                  {selectedLabel}
+                </OverlayTrigger.Button>
+              )}
             />
             {showAutoInstrumentationGuide && (
               <Fragment>

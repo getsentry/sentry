@@ -6,6 +6,7 @@ import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
@@ -73,11 +74,14 @@ export default function ReplayInlineOnboardingPanel({
         {!isScreenSmall && <Background image={replayInlineOnboarding} />}
         <CloseDropdownMenu
           position="bottom-end"
-          triggerProps={{
-            showChevron: false,
-            variant: 'transparent',
-            icon: <IconClose variant="muted" />,
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              variant="transparent"
+              icon={<IconClose variant="muted" />}
+              aria-label={t('Close')}
+            />
+          )}
           size="xs"
           items={[
             {

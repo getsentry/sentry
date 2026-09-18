@@ -12,6 +12,7 @@ import {
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -772,12 +773,14 @@ function KeyValueAction({
       position="bottom-end"
       size="xs"
       onOpenChange={isOpen => setIsVisible(isOpen)}
-      triggerProps={{
-        'aria-label': t('Key Value Action Menu'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        className: 'trigger-button',
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          aria-label={t('Key Value Action Menu')}
+          icon={<IconEllipsis />}
+          className="trigger-button"
+        />
+      )}
       onAction={key => {
         traceAnalytics.trackExploreSearch(
           organization,

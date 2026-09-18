@@ -205,12 +205,15 @@ export function MultiQueryModeChart({
         items && (
           <DropdownMenu
             key="contextMenu"
-            triggerProps={{
-              size: 'xs',
-              variant: 'transparent',
-              showChevron: false,
-              icon: <IconEllipsis />,
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                size="xs"
+                variant="transparent"
+                icon={<IconEllipsis />}
+                aria-label={t('Chart actions')}
+              />
+            )}
             position="bottom-end"
             items={items}
           />

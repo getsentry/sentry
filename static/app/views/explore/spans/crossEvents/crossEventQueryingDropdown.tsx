@@ -2,6 +2,7 @@ import type {Key} from 'react';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -51,21 +52,19 @@ export function CrossEventQueryingDropdown() {
 
   return (
     <Container width={{zero: '100%', md: 'auto'}}>
-      {triggerProps => (
-        <DropdownMenu
-          onAction={onAction}
-          items={getCrossEventDropdownItems(crossEventDatasetAvailability)}
-          isDisabled={isDisabled}
-          triggerProps={{
-            ...triggerProps,
-            tooltipProps: {title: tooltipTitle},
-            size: 'md',
-            showChevron: false,
-            icon: <IconAdd />,
-            'aria-label': t('Add a cross event query'),
-          }}
-        />
-      )}
+      <DropdownMenu
+        onAction={onAction}
+        items={getCrossEventDropdownItems(crossEventDatasetAvailability)}
+        isDisabled={isDisabled}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            tooltipProps={{title: tooltipTitle}}
+            icon={<IconAdd />}
+            aria-label={t('Add a cross event query')}
+          />
+        )}
+      />
     </Container>
   );
 }

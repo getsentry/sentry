@@ -1,6 +1,7 @@
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconDownload, IconEllipsis, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -60,12 +61,14 @@ export function UsageOverviewActions({
   if (shouldCollapseActions) {
     return (
       <DropdownMenu
-        triggerProps={{
-          'aria-label': t('More Actions'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          size: 'sm',
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('More Actions')}
+            icon={<IconEllipsis />}
+            size="sm"
+          />
+        )}
         items={buttons.map(buttonInfo => ({
           key: buttonInfo.label,
           label: buttonInfo.label,

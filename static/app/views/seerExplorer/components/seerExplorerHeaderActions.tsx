@@ -201,16 +201,15 @@ export function SeerExplorerHeaderActions({
           size="xs"
           position="bottom-end"
           menuTitle={t('Dock position')}
-          triggerProps={{
-            tooltipProps: {
-              title: t('Dock position'),
-            },
-            'aria-label': t('Dock position'),
-            icon: <IconPanel direction={POSITION_ICON_DIRECTION[sidebarPosition]} />,
-            showChevron: false,
-            variant: 'transparent',
-            size: 'xs',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              tooltipProps={{title: t('Dock position')}}
+              aria-label={t('Dock position')}
+              icon={<IconPanel direction={POSITION_ICON_DIRECTION[sidebarPosition]} />}
+              variant="transparent"
+            />
+          )}
         />
       )}
       <ChatHistorySelect
@@ -321,13 +320,14 @@ export function SeerExplorerHeaderActionsMenu({
         position="bottom-end"
         // Let submenus extend beyond the Seer panel's overflow boundary.
         strategy="fixed"
-        triggerProps={{
-          'aria-label': t('More actions'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          variant: 'transparent',
-          size: 'xs',
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('More actions')}
+            icon={<IconEllipsis />}
+            variant="transparent"
+          />
+        )}
       />
       {/* Chat history keeps its own searchable dropdown here rather than
           collapsing into the overflow menu — the DropdownMenu has no search,

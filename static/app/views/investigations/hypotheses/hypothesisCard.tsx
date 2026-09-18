@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconEllipsis} from 'sentry/icons';
@@ -75,13 +76,15 @@ export function HypothesisCard({
           <DropdownMenu
             position="bottom-end"
             usePortal
-            triggerProps={{
-              size: 'xs',
-              variant: 'transparent',
-              showChevron: false,
-              icon: <IconEllipsis size="xs" />,
-              'aria-label': t('Actions for %s', hypothesis.statement),
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                size="xs"
+                variant="transparent"
+                icon={<IconEllipsis size="xs" />}
+                aria-label={t('Actions for %s', hypothesis.statement)}
+              />
+            )}
             items={actions}
           />
         ) : null}

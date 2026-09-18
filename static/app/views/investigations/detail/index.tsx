@@ -9,6 +9,7 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -340,13 +341,15 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                     }),
                 },
               ]}
-              triggerProps={{
-                size: 'sm',
-                showChevron: false,
-                variant: 'transparent',
-                icon: <IconEllipsis />,
-                'aria-label': t('Investigation actions'),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  size="sm"
+                  variant="transparent"
+                  icon={<IconEllipsis />}
+                  aria-label={t('Investigation actions')}
+                />
+              )}
               position="bottom-end"
               usePortal
             />

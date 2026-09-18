@@ -408,13 +408,15 @@ function ContextMenu({
 
   return (
     <DropdownMenu
-      triggerProps={{
-        'aria-label': t('Chart actions'),
-        size: 'xs',
-        variant: 'transparent',
-        showChevron: false,
-        icon: <IconEllipsis />,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          aria-label={t('Chart actions')}
+          size="xs"
+          variant="transparent"
+          icon={<IconEllipsis />}
+        />
+      )}
       position="bottom-end"
       items={items}
     />
