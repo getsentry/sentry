@@ -4,7 +4,7 @@ set -euo pipefail
 # Determines which Jest test files to run and computes a matrix for sharding.
 #
 # Inputs (env vars):
-#   FRONTEND_ALL_FILES  - space-separated list of changed frontend files
+#   FRONTEND_ALL_FILES  - path for the NUL-delimited changed frontend files
 #   GITHUB_EVENT_NAME   - set automatically by GitHub Actions
 #   GITHUB_OUTPUT       - set automatically by GitHub Actions
 #
@@ -13,22 +13,35 @@ set -euo pipefail
 #   jest_test_matrix (via output) - JSON matrix for GitHub Actions strategy
 
 # Resolve the merge base and decide whether we can scope to the PR's changed files
-# (scope=scoped) or must run everything (scope=full). We only need the scope here;
-# --findRelatedTests reads the changed files from FRONTEND_ALL_FILES.
+# (scope=scoped) or must run everything (scope=full).
 eval "$(./.github/workflows/scripts/frontend-changed-scope.sh)"
 
 if [ "$scope" == "scoped" ]; then
-  # shellcheck disable=SC2086
-  JEST_TESTS="$(pnpm exec jest --listTests --json --findRelatedTests $FRONTEND_ALL_FILES | jq '.')"
+  changed_files="${FRONTEND_ALL_FILES:-.artifacts/jest-changed-files}"
+  mkdir -p "$(dirname "$changed_files")"
+  git diff --name-only -z --diff-filter=AMR "$merge_base" HEAD^2 -- static/ > "$changed_files"
 
-  RUNNER_CHUNK_SIZE=250
-  JEST_TESTS_LENGTH=$(echo "$JEST_TESTS" | jq 'length')
-  if [ "$JEST_TESTS_LENGTH" -gt 0 ]; then
-    RUNNERS=$(( ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) > 0 ? ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) : 1 ))
+  # This is the serialized path-list byte length. Keep it below a
+  # conservative portion of ARG_MAX; larger PRs run the full Jest suite.
+  changed_files_bytes=$(wc -c < "$changed_files")
+  if (( changed_files_bytes > 100000 )); then
+    echo '::warning::Too many changed files for related-test discovery; running all Jest tests'
   else
-    JEST_TESTS="$(pnpm exec jest --listTests --json)"
-    RUNNERS=8
+    JEST_TESTS="$(
+      xargs -0 -r pnpm exec jest --listTests --json --findRelatedTests < "$changed_files" |
+        jq -s 'add // [] | unique'
+    )"
   fi
+fi
+
+RUNNER_CHUNK_SIZE=250
+JEST_TESTS_LENGTH=0
+if [ -n "${JEST_TESTS:-}" ]; then
+  JEST_TESTS_LENGTH=$(echo "$JEST_TESTS" | jq 'length')
+fi
+
+if [ "$JEST_TESTS_LENGTH" -gt 0 ]; then
+  RUNNERS=$(( ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) > 0 ? ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) : 1 ))
 else
   JEST_TESTS="$(pnpm exec jest --listTests --json)"
   RUNNERS=8
