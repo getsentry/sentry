@@ -10,10 +10,12 @@ from unittest import mock
 import pytest
 import requests
 import responses
+import sentry_sdk
 from django.conf import settings
 from django.db import router
 from django.test import override_settings
 from requests.adapters import HTTPAdapter
+from sentry_sdk.tracing import Span
 from urllib3.exceptions import ConnectTimeoutError, NameResolutionError, ProtocolError
 from urllib3.response import HTTPResponse
 from urllib3.util.retry import Retry
@@ -349,6 +351,59 @@ class DispatchRemoteCallTest(TestCase):
 
 
 @no_silo_test
+@override_settings(RPC_SHARED_SECRET=["synthetic-shared-secret"], RPC_TIMEOUT=10.0)
+@pytest.mark.parametrize(
+    "raw,expected_data",
+    [
+        (
+            HTTPResponse(retries=Retry(total=1)),
+            {"rpc_retry_count": 0, "rpc_destination_region": "europe"},
+        ),
+        (
+            HTTPResponse(
+                retries=Retry(total=1).increment(
+                    method="POST", error=ConnectTimeoutError("synthetic-private-error")
+                )
+            ),
+            {"rpc_retry_count": 1, "rpc_destination_region": "europe"},
+        ),
+        (None, {}),
+        (HTTPResponse(retries=None), {}),
+    ],
+    ids=["no-retry", "retried", "missing-raw", "missing-retries"],
+)
+def test_token_replica_retry_attributes_stay_on_rpc_span(
+    raw: HTTPResponse | None, expected_data: dict[str, int | str]
+) -> None:
+    response = requests.Response()
+    response.status_code = 200
+    response._content = b'{"meta": {}, "value": null}'
+    response.raw = raw
+    rpc_span = Span(op="hybrid_cloud.dispatch_rpc")
+    http_span = Span(op="http.client")
+    rpc_data_before = rpc_span.to_json()["data"]
+    http_data_before = http_span.to_json()["data"]
+    call = _RemoteSiloCall(_CELLS[1], "region_replica", "upsert_replicated_api_token", {})
+
+    def post(*args: Any, **kwargs: Any) -> requests.Response:
+        assert sentry_sdk.get_current_span() is rpc_span
+        sentry_sdk.get_current_scope().span = http_span
+        return response
+
+    with (
+        sentry_sdk.new_scope(),
+        mock.patch("sentry.hybridcloud.rpc.service.start_span", return_value=rpc_span),
+        mock.patch("sentry.hybridcloud.rpc.service._get_connection") as connection,
+        mock.patch("sentry.hybridcloud.rpc.service.monotonic", side_effect=[10.0, 10.25]),
+    ):
+        connection.return_value.post.side_effect = post
+        assert call._send_to_remote_silo(use_test_client=False) == {"meta": {}, "value": None}
+
+    assert rpc_span.to_json()["data"] == {**rpc_data_before, **expected_data}
+    assert http_span.to_json()["data"] == http_data_before
+
+
+@no_silo_test
 @override_settings(RPC_TIMEOUT=1.0)
 @override_options({"hybridcloud.rpc.retries": 1})
 def test_token_replica_diagnostic_after_dns_retry() -> None:
@@ -592,6 +647,7 @@ def test_token_replica_diagnostic_preserves_request_errors(
     error: requests.exceptions.RequestException, kind: str, message: str
 ) -> None:
     call = _RemoteSiloCall(_CELLS[1], "region_replica", "upsert_replicated_api_token", {})
+    span = Span(op="hybrid_cloud.dispatch_rpc")
     with (
         mock.patch("sentry.hybridcloud.rpc.service._get_connection") as connection,
         mock.patch("sentry.hybridcloud.rpc.service.logger.info") as log_info,
@@ -599,9 +655,11 @@ def test_token_replica_diagnostic_preserves_request_errors(
     ):
         connection.return_value.post.side_effect = error
         with pytest.raises(RpcRemoteException, match=message) as exc_info:
-            call._fire_request({}, b"")
+            call._fire_request({}, b"", span=span)
 
     assert exc_info.value.__cause__ is error
+    assert "rpc_retry_count" not in span.to_json()["data"]
+    assert "rpc_destination_region" not in span.to_json()["data"]
     log_info.assert_not_called()
     incr.assert_called_once_with(
         "hybrid_cloud.dispatch_rpc.failure",
