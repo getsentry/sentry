@@ -7,6 +7,7 @@ from sentry.integrations.slack.message_builder.base.block import BlockSlackMessa
 from sentry.integrations.slack.message_builder.incidents import get_started_at
 from sentry.integrations.slack.message_builder.types import INCIDENT_COLOR_MAPPING
 from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
@@ -14,12 +15,12 @@ from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSource,
 )
 
 
+@renderer_registry.register(NotificationProviderKey.SLACK, NotificationSource.METRIC_ALERT)
 class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
-    provider_key = NotificationProviderKey.SLACK
-
     @classmethod
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate

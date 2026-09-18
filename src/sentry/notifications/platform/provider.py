@@ -8,7 +8,6 @@ from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
-    NotificationCategory,
     NotificationData,
     NotificationProviderKey,
     NotificationTarget,
@@ -133,15 +132,17 @@ class NotificationProvider[RenderableT](Protocol):
         return
 
     @classmethod
-    def get_renderer(
-        cls, *, data: NotificationData, category: NotificationCategory
-    ) -> type[NotificationRenderer[RenderableT]]:
+    def get_renderer(cls, *, data: NotificationData) -> type[NotificationRenderer[RenderableT]]:
         """
         Returns an instance of a renderer for a given notification, falling back to the default renderer.
         Override this to method to permit different renderers for the provider, though keep in mind
         that this may produce inconsistencies between notifications.
         """
-        return cls.default_renderer
+        # Imported here since the registry imports this module to type its registrations.
+        from sentry.notifications.platform.registry import renderer_registry
+
+        renderer = renderer_registry.get(provider_key=cls.key, source=data.source)
+        return renderer or cls.default_renderer
 
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:

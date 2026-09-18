@@ -8,18 +8,19 @@ from sentry.integrations.discord.message_builder.base.embed.image import Discord
 from sentry.integrations.discord.message_builder.metric_alerts import get_started_at
 from sentry.integrations.metric_alerts import get_status_text
 from sentry.notifications.platform.discord.provider import DiscordRenderable
+from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSource,
 )
 
 
+@renderer_registry.register(NotificationProviderKey.DISCORD, NotificationSource.METRIC_ALERT)
 class DiscordMetricAlertRenderer(NotificationRenderer[DiscordRenderable]):
-    provider_key = NotificationProviderKey.DISCORD
-
     @classmethod
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
