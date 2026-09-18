@@ -15,6 +15,10 @@ import {
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {DisplayType, type DashboardListItem} from 'sentry/views/dashboards/types';
 
+async function openRowActions(rowIndex: number) {
+  await userEvent.click(screen.getAllByTestId('dashboard-actions')[rowIndex]!);
+}
+
 describe('Dashboards - DashboardTable', () => {
   let dashboards: DashboardListItem[];
   let deleteMock: jest.Mock;
@@ -193,7 +197,10 @@ describe('Dashboards - DashboardTable', () => {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-delete')[1]!);
+    await openRowActions(1);
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Delete Dashboard'})
+    );
 
     expect(deleteMock).not.toHaveBeenCalled();
 
@@ -219,7 +226,10 @@ describe('Dashboards - DashboardTable', () => {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]!);
+    await openRowActions(1);
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Duplicate Dashboard'})
+    );
 
     expect(createMock).not.toHaveBeenCalled();
 
@@ -251,7 +261,10 @@ describe('Dashboards - DashboardTable', () => {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]!);
+    await openRowActions(1);
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Duplicate Dashboard'})
+    );
 
     expect(postMock).not.toHaveBeenCalled();
 
@@ -266,7 +279,7 @@ describe('Dashboards - DashboardTable', () => {
     expect(dashboardUpdateMock).not.toHaveBeenCalled();
   });
 
-  it('renders access column', async () => {
+  it('opens the permissions modal from the row actions menu', async () => {
     const organizationWithEditAccess = OrganizationFixture({
       features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
     });
@@ -283,11 +296,12 @@ describe('Dashboards - DashboardTable', () => {
 
     renderGlobalModal();
 
-    expect(await screen.findAllByTestId('grid-head-cell')).toHaveLength(5);
-    expect(screen.getByText('Access')).toBeInTheDocument();
+    expect(await screen.findAllByTestId('grid-head-cell')).toHaveLength(4);
+    expect(screen.queryByText('Access')).not.toBeInTheDocument();
 
+    await openRowActions(1);
     await userEvent.click(
-      screen.getByRole('button', {name: 'Edit access for Dashboard 2'})
+      await screen.findByRole('menuitemradio', {name: 'View Permissions'})
     );
 
     expect(
@@ -375,17 +389,16 @@ describe('Dashboards - DashboardTable', () => {
       );
 
       const headers = await screen.findAllByTestId('grid-head-cell');
-      expect(headers).toHaveLength(6);
+      expect(headers).toHaveLength(5);
       expect(headers[0]).toHaveTextContent('Name');
       expect(headers[1]).toHaveTextContent('Widgets');
       expect(headers[2]).toHaveTextContent('Owner');
-      expect(headers[3]).toHaveTextContent('Access');
-      expect(headers[4]).toHaveTextContent('Created');
-      expect(headers[5]).toHaveTextContent('Last Visited');
+      expect(headers[3]).toHaveTextContent('Created');
+      expect(headers[4]).toHaveTextContent('Last Visited');
       // Description is only shown in the Sentry Built view
       expect(screen.queryByText('Description')).not.toBeInTheDocument();
 
-      expect(screen.getAllByTestId('dashboard-delete')).toHaveLength(
+      expect(screen.getAllByTestId('dashboard-actions')).toHaveLength(
         lastVisitedDashboards.length
       );
     });
@@ -409,10 +422,9 @@ describe('Dashboards - DashboardTable', () => {
       expect(headers[2]).toHaveTextContent('Widgets');
       expect(headers[3]).toHaveTextContent('Last Visited');
 
-      // Owner, Created, and Access are omitted from the Sentry Built view
+      // Owner and Created are omitted from the Sentry Built view
       expect(screen.queryByText('Owner')).not.toBeInTheDocument();
       expect(screen.queryByText('Created')).not.toBeInTheDocument();
-      expect(screen.queryByText('Access')).not.toBeInTheDocument();
     });
 
     it('renders the description column', async () => {
