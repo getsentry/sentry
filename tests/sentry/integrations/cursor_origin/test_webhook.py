@@ -118,7 +118,8 @@ class CursorOriginWebhookTest(APITestCase):
 
     def test_an_event_without_a_handler_is_accepted(self) -> None:
         """Origin delivers every installation event whether we act on it or not."""
-        assert self._post(event_type="pull_request.created") == 204
+        body = _envelope(event_type="pull_request.created")
+        assert self._post(body=body, event_type="installation.updated") == 204
 
     def test_a_delivery_with_no_signature_is_refused(self) -> None:
         response = self.client.post(path=self.url, data=BODY, content_type="application/json")
