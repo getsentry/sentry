@@ -39,7 +39,7 @@ function makeSnapshot() {
   };
 }
 
-function renderTitle() {
+function renderTitle({onToggleFullscreen}: {onToggleFullscreen?: () => void} = {}) {
   const organization = OrganizationFixture({features: ['dashboards-edit']});
   const dashboard = DashboardFixture([], {
     id: '1',
@@ -56,6 +56,7 @@ function renderTitle() {
       isSaving={false}
       onChange={jest.fn()}
       onEdit={jest.fn()}
+      onToggleFullscreen={onToggleFullscreen}
     />,
     {organization}
   );
@@ -69,6 +70,21 @@ describe('DashboardBreadcrumbTitle actions', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
 
     expect(screen.getByTestId('dashboard-edit')).toHaveTextContent('Edit');
+  });
+
+  it('toggles fullscreen from the title bar', async () => {
+    const onToggleFullscreen = jest.fn();
+    renderTitle({onToggleFullscreen});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Fullscreen'}));
+
+    expect(onToggleFullscreen).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the fullscreen button when no handler is provided', () => {
+    renderTitle();
+
+    expect(screen.queryByRole('button', {name: 'Fullscreen'})).not.toBeInTheDocument();
   });
 });
 
