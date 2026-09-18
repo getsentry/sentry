@@ -44,3 +44,20 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
         assert not DebugIdArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
         assert not ProjectArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
         assert not File.objects.filter(id=artifact_bundle.file.id).exists()
+
+    def test_delete_when_file_already_deleted(self) -> None:
+        """Signal handler must not raise when the associated File is already gone."""
+        from sentry.models.artifactbundle import delete_file_for_artifact_bundle
+        from sentry.models.files.file import File
+
+        # Simulate an ArtifactBundle instance whose File no longer exists in the DB,
+        # which is what Django raises when accessing a FK whose row has been deleted.
+        class _MissingFile:
+            organization_id = None
+
+            @property
+            def file(self) -> None:
+                raise File.DoesNotExist("File matching query does not exist.")
+
+        # Must not raise File.DoesNotExist.
+        delete_file_for_artifact_bundle(_MissingFile())
