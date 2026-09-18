@@ -21,14 +21,10 @@ function count(outputs, name) {
 export function deriveScopeState(pathFilterOutputs) {
   const frontendChanges = count(pathFilterOutputs, 'frontend_all_count');
   const backendChanges = count(pathFilterOutputs, 'backend_src_count');
-  const frontendWarningExemptions = count(
-    pathFilterOutputs,
-    'frontend_warning_exemptions_count'
-  );
-  const backendWarningExemptions = count(
-    pathFilterOutputs,
-    'backend_warning_exemptions_count'
-  );
+  const frontendWarningExemptions = count(pathFilterOutputs, 'api_url_codegen_count');
+  const backendWarningExemptions =
+    count(pathFilterOutputs, 'embed_widget_codegen_count') +
+    count(pathFilterOutputs, 'backend_test_only_paths_count');
 
   return {
     frontend: frontendChanges > 0,

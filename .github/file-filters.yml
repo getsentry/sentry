@@ -39,17 +39,17 @@ frontend_all: &frontend_all
   - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
   - added|modified: '{vercel,tsconfig,biome,package}.json'
 
+api_url_codegen:
+  - added|modified: 'static/app/utils/api/knownSentryApiUrls.generated.ts'
+
 embed_widget_schema:
   - added|modified: 'static/app/components/seer/markdown/embeds/schemas.ts'
   - added|modified: 'scripts/genEmbedWidgets.ts'
 
-# Paths that match a scope filter without being deployed, so they cannot make the frontend and
-# backend halves of a pull request interdependent.
-frontend_warning_exemptions:
-  - added|modified: 'static/app/utils/api/knownSentryApiUrls.generated.ts'
-
-backend_warning_exemptions:
+embed_widget_codegen:
   - added|modified: 'src/sentry/seer/agent/embed_widgets.generated.json'
+
+backend_test_only_paths:
   - added|deleted|modified: 'src/sentry/replays/testutils.py'
   - 'fixtures/search-syntax/**/*'
 
