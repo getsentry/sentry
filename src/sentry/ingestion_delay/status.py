@@ -12,7 +12,7 @@ from sentry.ingestion_delay.query import MEASUREMENT_LOOKBACK, measure_ingestion
 
 logger = logging.getLogger(__name__)
 
-# Buffer for outlier ingestion delays.
+# Buffer for outlier ingestion delays and other delays not captured by received_at and ingested_at attributes.
 STALL_MARGIN = timedelta(seconds=60)
 
 # Buffer for projects just exiting idle.
@@ -51,7 +51,9 @@ def get_ingestion_delay_status(
     delay_seconds = measurement.delay_seconds
     last_ingested_at = measurement.last_ingested_at
 
-    complete_through = now - timedelta(seconds=delay_seconds) if delay_seconds is not None else None
+    complete_through = (
+        now - timedelta(seconds=delay_seconds) - STALL_MARGIN if delay_seconds is not None else None
+    )
 
     def result(
         status: IngestionStatus, through: datetime | None = complete_through
@@ -64,7 +66,7 @@ def get_ingestion_delay_status(
     if (
         complete_through is not None
         and last_ingested_at is not None
-        and last_ingested_at > complete_through - STALL_MARGIN
+        and last_ingested_at > complete_through
     ):
         return result(IngestionStatus.HEALTHY)
 

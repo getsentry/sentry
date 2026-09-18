@@ -36,6 +36,7 @@ import {
 import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   FieldKey,
   FieldKind,
@@ -7409,7 +7410,12 @@ describe('SearchQueryBuilder', () => {
                     status: string;
                     unsupported_reason: string | null;
                   }>({
-                    url: '/organizations/org-slug/trace-explorer-ai/query/',
+                    url: getApiUrl(
+                      '/organizations/$organizationIdOrSlug/trace-explorer-ai/query/',
+                      {
+                        path: {organizationIdOrSlug: 'org-slug'},
+                      }
+                    ),
                     method: 'POST',
                     data: {},
                   });

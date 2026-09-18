@@ -284,6 +284,11 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
         except ApiError as e:
             raise IntegrationError(f"Could not read the Cursor Origin installation: {e}")
 
+        if installation.get("suspendedAt"):
+            raise IntegrationError(
+                "This Origin installation is suspended. Unsuspend it in Origin, then install again."
+            )
+
         name = installation["target"]["slug"]
 
         return {

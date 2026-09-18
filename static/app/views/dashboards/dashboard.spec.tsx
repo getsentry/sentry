@@ -47,9 +47,9 @@ describe('Dashboards > Dashboard', () => {
   };
   const newWidget: Widget = {
     id: '1',
-    title: 'Test Discover Widget',
+    title: 'Test Errors Widget',
     displayType: DisplayType.LINE,
-    widgetType: WidgetType.DISCOVER,
+    widgetType: WidgetType.ERRORS,
     interval: '5m',
     queries: [
       {
@@ -318,7 +318,7 @@ describe('Dashboards > Dashboard', () => {
       };
 
       mount(mockDashboardWithIssueWidget);
-      expect(await screen.findByText('Test Discover Widget')).toBeInTheDocument();
+      expect(await screen.findByText('Test Errors Widget')).toBeInTheDocument();
       expect(screen.getByText('Test Issue Widget')).toBeInTheDocument();
     });
 
@@ -673,7 +673,7 @@ describe('Dashboards > Dashboard', () => {
       rerender();
 
       await waitFor(() => {
-        expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
+        expect(screen.getAllByText('Test Errors Widget')).toHaveLength(2);
       });
     });
 
@@ -720,7 +720,7 @@ describe('Dashboards > Dashboard', () => {
         isPreview: true,
       });
 
-      await screen.findByText('Test Discover Widget');
+      await screen.findByText('Test Errors Widget');
 
       expect(screen.queryByRole('button', {name: /add widget/i})).not.toBeInTheDocument();
     });
