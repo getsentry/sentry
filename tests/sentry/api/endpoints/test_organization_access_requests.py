@@ -69,13 +69,14 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
         managed_team = self.create_team(name="managed", organization=organization)
         other_team = self.create_team(name="other", organization=organization)
         team_admin = self.create_user("admin@example.com")
-        self.create_member(
+        team_admin_member = self.create_member(
             organization=organization,
             user=team_admin,
             role="member",
             teams=[managed_team],
             teamRole="admin",
         )
+        self.create_team_membership(team=other_team, member=team_admin_member, role="contributor")
         requester = self.create_member(
             organization=organization,
             user=self.create_user("requester@example.com"),

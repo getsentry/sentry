@@ -14,8 +14,8 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
 
 logger = logging.getLogger(__name__)
 
@@ -90,28 +90,39 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                 ).select_related("team", "member")
             )
 
-        elif request.access.team_ids_with_membership:
-            access_requests = [
-                access_request
-                for access_request in OrganizationAccessRequest.objects.filter(
+        else:
+            authorized_team_ids = [
+                team.id
+                for team in Team.objects.filter(id__in=request.access.team_ids_with_membership)
+                if request.access.has_team_scope(team, "team:write")
+            ]
+            if not authorized_team_ids:
+                return Response([])
+
+            access_requests = list(
+                OrganizationAccessRequest.objects.filter(
                     member__user_is_active=True,
                     member__user_id__isnull=False,
-                    team__id__in=request.access.team_ids_with_membership,
+                    team_id__in=authorized_team_ids,
                 ).select_related("team", "member")
-                if self._can_access(request, access_request)
-            ]
-        else:
-            # Return empty response if user does not have access
+            )
+
+        if not access_requests:
             return Response([])
 
-        teams_by_user = OrganizationMember.objects.get_teams_by_user(organization=organization)
-
-        # We omit any requests which are now redundant (i.e. the user joined that team some other way)
+        member_ids = {access_request.member_id for access_request in access_requests}
+        team_ids = {access_request.team_id for access_request in access_requests}
+        existing_memberships = set(
+            OrganizationMemberTeam.objects.filter(
+                organizationmember_id__in=member_ids,
+                team_id__in=team_ids,
+                is_active=True,
+            ).values_list("organizationmember_id", "team_id")
+        )
         valid_access_requests = [
             access_request
             for access_request in access_requests
-            if access_request.member.user_id is not None
-            and access_request.team_id not in teams_by_user[access_request.member.user_id]
+            if (access_request.member_id, access_request.team_id) not in existing_memberships
         ]
 
         return Response(serialize(valid_access_requests, request.user))
