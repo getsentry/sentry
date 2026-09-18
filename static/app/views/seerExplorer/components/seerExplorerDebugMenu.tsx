@@ -95,6 +95,7 @@ export function SeerExplorerDebugMenu({
         }
       }}
       position="bottom-end"
+      menuWidth={200}
       size="xs"
       trigger={triggerProps => (
         <OverlayTrigger.Button
