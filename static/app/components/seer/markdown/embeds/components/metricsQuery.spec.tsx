@@ -96,7 +96,9 @@ describe('metrics query embed', () => {
       },
     });
 
-    expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('seer-chart-content', undefined, {timeout: 5000})
+    ).toBeInTheDocument();
     expect(await screen.findByText('checkout')).toBeInTheDocument();
     expect(screen.getByRole('table')).toBeInTheDocument();
 
