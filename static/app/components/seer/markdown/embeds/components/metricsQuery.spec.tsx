@@ -2,6 +2,9 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
+import MetricsQueryBlock from './metricsQueryBlock';
+import type {MetricsQueryData} from './metricsQueryUtils';
+
 jest.mock('sentry/components/charts/baseChart', () => ({
   BaseChart: jest.fn(() => null),
 }));
@@ -32,11 +35,15 @@ function renderEmbed({
   data,
   level = 'block',
 }: {
-  data: Record<string, unknown>;
+  data: MetricsQueryData;
   level?: 'block' | 'inline';
 }) {
+  if (level === 'block') {
+    return render(<MetricsQueryBlock data={data} />);
+  }
+
   const tag = `{% metricsQuery %}${JSON.stringify(data)}{% /metricsQuery %}`;
-  return render(<SeerMarkdown raw={level === 'inline' ? `See ${tag}` : tag} />);
+  return render(<SeerMarkdown raw={`See ${tag}`} />);
 }
 
 describe('metrics query embed', () => {
