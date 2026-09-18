@@ -615,10 +615,14 @@ export const CREDIT_INVOICE_ITEM_TYPES = [
 type CreditInvoiceItemType = (typeof CREDIT_INVOICE_ITEM_TYPES)[number];
 
 /**
- * Fee-related invoice item types (taxes, penalties).
+ * Fee-related invoice item types (taxes, penalties, one-time charges).
  * Exported as const array to enable runtime usage in filters.
  */
-export const FEE_INVOICE_ITEM_TYPES = ['sales_tax', 'cancellation_fee'] as const;
+export const FEE_INVOICE_ITEM_TYPES = [
+  'sales_tax',
+  'cancellation_fee',
+  'one_time_charge',
+] as const;
 
 type FeeInvoiceItemType = (typeof FEE_INVOICE_ITEM_TYPES)[number];
 

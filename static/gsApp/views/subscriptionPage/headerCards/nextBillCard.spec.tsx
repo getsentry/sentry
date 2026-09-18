@@ -133,6 +133,35 @@ describe('NextBillCard', () => {
     expect(screen.getByText('$40.00')).toBeInTheDocument();
   });
 
+  it('lists a one-time charge with its description', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/next-bill/`,
+      method: 'GET',
+      body: PreviewDataFixture({
+        effectiveAt: '2021-03-31',
+        billedAmount: 50_00,
+        invoiceItems: [
+          {
+            amount: 50_00,
+            type: 'one_time_charge',
+            data: {},
+            period_start: '',
+            period_end: '',
+            description: 'One-time charge: usage we did not bill',
+          },
+        ],
+      }),
+    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+    render(<NextBillCard organization={organization} subscription={subscription} />);
+
+    await screen.findByText('Mar 31, 2021・in 28 days');
+    expect(
+      screen.getByText('One-time charge: usage we did not bill')
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('$50.00')).toHaveLength(2); // the total and the row
+  });
+
   it('renders alert for error', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/next-bill/`,
