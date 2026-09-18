@@ -54,13 +54,69 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {dataConditionGroupToLLMContext} from 'sentry/views/automations/utils/automationLLMContext';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
   return <SentryDocumentTitle title={title ?? t('Edit Alert')} />;
 }
+
+const CONTEXT_HINT =
+  'Sentry alert edit page. These are the live builder values, which may differ from the saved ' +
+  'alert — the user is mid-edit and has not submitted. Answer questions about the alert from ' +
+  'these values, not from a fetched copy. triggers is the condition group that starts the alert; ' +
+  'actionFilters are the groups that gate each set of actions, and every action reports where it ' +
+  'lands — targetDisplay is the resolved channel, team, or user name. validationErrors is empty ' +
+  'until a submit fails validation.';
+
+function AlertBuilderNodeInner({
+  automationId,
+  state,
+  validationErrors,
+}: {
+  automationId: string;
+  state: AutomationBuilderState;
+  validationErrors: Record<string, any>;
+}) {
+  // Every field here is set by `getAutomationFormData`, so unlike the monitor
+  // builder — where each detector type declares a different set — none of them
+  // can be missing from the form.
+  const unsavedValues = {
+    name: useFormField<string>('name'),
+    environment: useFormField<string>('environment'),
+    frequency: useFormField<number>('frequency'),
+    detectorIds: useFormField<string[]>('detectorIds'),
+    projectIds: useFormField<string[]>('projectIds'),
+  };
+
+  useLLMContext({
+    // Outranks the page nodes beneath it, so an alert being edited wins.
+    priority: 1,
+    contextHint: CONTEXT_HINT,
+    mode: 'editing',
+    id: automationId,
+    unsavedValues,
+    // Read from the reducer, not the fetched alert: the builder seeds itself
+    // from the saved copy and then diverges as the user edits.
+    triggers: dataConditionGroupToLLMContext(state.triggers),
+    actionFilters: state.actionFilters.map(dataConditionGroupToLLMContext),
+    validationErrors,
+  });
+
+  return null;
+}
+
+/**
+ * Reports the alert being edited. Renders nothing.
+ *
+ * Must render beneath the form, since that is what `useFormField` resolves
+ * against — a hook in the component that *renders* the form sees none of it.
+ */
+const AlertBuilderNode = registerLLMContext('alert-builder', AlertBuilderNodeInner);
 
 function AutomationBreadcrumbs() {
   const organization = useOrganization();
@@ -220,6 +276,11 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       onSubmit={handleFormSubmit}
     >
       <AutomationFormProvider automation={automation}>
+        <AlertBuilderNode
+          automationId={automation.id}
+          state={state}
+          validationErrors={automationBuilderErrors}
+        />
         <AutomationDocumentTitle />
         <Stack flex={1}>
           <AutomationBreadcrumbs />
