@@ -116,7 +116,6 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
             OrganizationMemberTeam.objects.filter(
                 organizationmember_id__in=member_ids,
                 team_id__in=team_ids,
-                is_active=True,
             ).values_list("organizationmember_id", "team_id")
         )
         valid_access_requests = [

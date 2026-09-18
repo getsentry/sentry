@@ -24,6 +24,25 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
         assert len(resp.data) == 1
         assert resp.data[0]["member"]["email"] == "bar@example.com"
 
+    def test_inactive_team_membership_is_not_listed_as_pending(self) -> None:
+        organization = self.create_organization(name="foo", owner=self.user)
+        requester = self.create_member(
+            organization=organization,
+            user=self.create_user("requester@example.com"),
+            role="member",
+        )
+        team = self.create_team(name="foo", organization=organization)
+        membership = self.create_team_membership(team=team, member=requester)
+        membership.update(is_active=False)
+        OrganizationAccessRequest.objects.create(member=requester, team=team)
+        path = reverse("sentry-api-0-organization-access-requests", args=[organization.slug])
+
+        self.login_as(self.user)
+        resp = self.client.get(path)
+
+        assert resp.status_code == 200
+        assert resp.data == []
+
     def test_admin_can_list_access_requests(self) -> None:
         organization = self.create_organization(
             name="foo",
