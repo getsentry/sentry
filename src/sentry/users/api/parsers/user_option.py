@@ -1,4 +1,4 @@
-"""Types and storage keys for the user-preference contract.
+"""Types and storage keys for the display-preference contract.
 
 `UserOptionsSerializer` stays in `endpoints.user_details`, where it has always
 lived and where `users.models.user_option` and getsentry both import it from.
@@ -57,7 +57,7 @@ UserOptionField = Literal[
 
 
 class UserOptionsData(TypedDict, total=False):
-    """The validated preference payload.
+    """The validated display-preference payload.
 
     Mirrors the fields on UserOptionsSerializer. Every field is optional because
     the serializer is always used with partial=True.
@@ -88,7 +88,7 @@ OPTION_KEY_MAP: Mapping[UserOptionField, str] = {
 
 
 def write_user_options(user: User, options: UserOptionsData) -> None:
-    """Persist the supplied preferences. Fields absent from `options` are left alone."""
+    """Persist the supplied display preferences. Fields absent from `options` are left alone."""
     # Imported lazily: UserOption.write_relocation_import imports UserOptionsSerializer
     # from here, so a module-level import would close the cycle.
     from sentry.users.models.user_option import UserOption

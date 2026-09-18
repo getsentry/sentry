@@ -30,7 +30,8 @@ class UserOptionsEndpoint(UserEndpoint):
     """Display preferences only.
 
     `UserDetailsEndpoint` also writes these, nested under `options`, alongside account
-    identity and privilege fields. This endpoint exposes nothing but the preferences, so
+    identity and privilege fields. This endpoint exposes nothing but the display
+    preferences, so
     a caller that should only ever change a theme or a timezone can be given this route
     instead of one that can also rename an account or delete it.
     """
@@ -45,7 +46,7 @@ class UserOptionsEndpoint(UserEndpoint):
 
     @extend_schema(
         operation_id="retrieveUserOptions",
-        summary="Retrieve a User's Preferences",
+        summary="Retrieve a User's Display Preferences",
         responses={
             200: inline_sentry_response_serializer("UserOptions", _UserOptions),
             401: RESPONSE_UNAUTHORIZED,
@@ -61,7 +62,7 @@ class UserOptionsEndpoint(UserEndpoint):
 
     @extend_schema(
         operation_id="updateUserOptions",
-        summary="Update a User's Preferences",
+        summary="Update a User's Display Preferences",
         request=UserOptionsSerializer,
         responses={
             200: inline_sentry_response_serializer("UserOptions", _UserOptions),

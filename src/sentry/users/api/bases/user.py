@@ -57,17 +57,18 @@ class UserAndStaffPermission(StaffPermissionMixin, UserPermission):
 
 
 class UserOptionsPermission(UserPermission):
-    """Lets a Seer agent credential read and write the delegating user's own preferences.
+    """Lets a Seer agent credential read and write the delegating user's own display
+    preferences.
 
     `UserPermission` rejects agent auth outright, because user endpoints are keyed on a
     `user_id` path param and an agent must never act on another person's account. That
-    rejection is lifted here for the preferences resource only, and replaced with an
-    explicit self-only check against the credential.
+    rejection is lifted here for the display-preferences resource only, and replaced
+    with an explicit self-only check against the credential.
 
     Two deliberate narrowings relative to `UserAndStaffPermission`:
 
-    * No staff or superuser bypass. Preferences are personal, so there is no operator
-      reason to write somebody else's.
+    * No staff or superuser bypass. Display preferences are personal, so there is no
+      operator reason to write somebody else's.
     * `PUT` requires a write scope, so an agent holding only the default read-only scopes
       gets Sentry's insufficient-scope challenge and the user is asked to approve first.
     """
