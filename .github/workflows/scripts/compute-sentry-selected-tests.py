@@ -10,7 +10,7 @@ getsentry rootdir). This script handles the translation.
 Usage:
     python3 compute-sentry-selected-tests.py \
         --coverage-db .coverage.combined \
-        --changed-files "src/sentry/models/organization.py tests/sentry/test_org.py"
+        --changed-files-file changed-files
 """
 
 from __future__ import annotations
@@ -238,18 +238,24 @@ def _query_coverage(coverage_db_path: str, db_file_paths: list[str]) -> set[str]
     return test_files
 
 
+def _read_file_list(path: Path | None) -> list[str]:
+    contents = path.read_text() if path else ""
+    return [item for item in contents.split() if item]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Compute selected sentry tests from coverage data")
     parser.add_argument("--coverage-db", required=True, help="Path to coverage SQLite database")
     parser.add_argument(
-        "--changed-files",
+        "--changed-files-file",
+        type=Path,
         required=True,
-        help="Space-separated changed files relative to sentry repo root",
+        help="File containing space-separated changed files relative to sentry repo root",
     )
     parser.add_argument(
-        "--previous-filenames",
-        default="",
-        help="Space-separated previous filenames for renamed files (queried against coverage DB)",
+        "--previous-filenames-file",
+        type=Path,
+        help="File containing space-separated previous filenames for renamed files",
     )
     parser.add_argument("--output", help="Output file path for selected test files (one per line)")
     parser.add_argument("--github-output", action="store_true", help="Write to GITHUB_OUTPUT")
@@ -260,8 +266,8 @@ def main() -> int:
         print(f"Error: Coverage database not found: {coverage_db}", file=sys.stderr)
         return 1
 
-    changed = [f.strip() for f in args.changed_files.split() if f.strip()]
-    previous_filenames = [f.strip() for f in args.previous_filenames.split() if f.strip()]
+    changed = _read_file_list(args.changed_files_file)
+    previous_filenames = _read_file_list(args.previous_filenames_file)
 
     selective_applied = False
 

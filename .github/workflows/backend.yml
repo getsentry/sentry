@@ -97,12 +97,12 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Get changed files
-        id: changed
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files \
-            --paginate | python3 .github/workflows/scripts/parse-pr-files.py >> "$GITHUB_OUTPUT"
+            --paginate | python3 .github/workflows/scripts/parse-pr-files.py \
+              --output-directory "$RUNNER_TEMP/selective-tests"
 
       - name: Setup Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
@@ -139,13 +139,11 @@ jobs:
         if: steps.download-coverage.outputs.coverage-file != ''
         env:
           COVERAGE_DB: ${{ steps.download-coverage.outputs.coverage-file }}
-          CHANGED_FILES: ${{ steps.changed.outputs.files }}
-          PREVIOUS_FILENAMES: ${{ steps.changed.outputs.previous-filenames }}
         run: |
           python3 .github/workflows/scripts/compute-sentry-selected-tests.py \
             --coverage-db "$COVERAGE_DB" \
-            --changed-files "$CHANGED_FILES" \
-            --previous-filenames "$PREVIOUS_FILENAMES" \
+            --changed-files-file "$RUNNER_TEMP/selective-tests/sentry-changed-files" \
+            --previous-filenames-file "$RUNNER_TEMP/selective-tests/sentry-previous-filenames" \
             --output .artifacts/selected-tests.txt \
             --github-output
 
