@@ -391,7 +391,8 @@ const Wrapper = styled(Input.withComponent('div'))`
 
   /* Reclaim the space the search icon would have occupied. */
   &[data-hide-search-icon='true'] [role='grid'] {
-    padding-left: ${p => p.theme.space.sm};
+    /* Match the combobox menu's 12px offset, including the wrapper's 1px border. */
+    padding-left: 11px;
   }
 `;
 
