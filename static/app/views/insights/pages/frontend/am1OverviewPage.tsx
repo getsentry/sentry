@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
@@ -89,7 +88,6 @@ export function Am1FrontendOverviewPage({
   datePageFilterProps,
 }: Am1FrontendOverviewPageProps) {
   useOverviewPageTrackPageload();
-  const theme = useTheme();
 
   const organization = useOrganization();
   const location = useLocation();
@@ -260,7 +258,6 @@ export function Am1FrontendOverviewPage({
                     selectedProjects={eventView.project.map(String)}
                   >
                     <Table
-                      theme={theme}
                       projects={projects}
                       columnTitles={FRONTEND_COLUMN_TITLES}
                       setError={setPageDanger}
