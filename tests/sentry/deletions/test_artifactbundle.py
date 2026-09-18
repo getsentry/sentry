@@ -44,3 +44,20 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
         assert not DebugIdArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
         assert not ProjectArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
         assert not File.objects.filter(id=artifact_bundle.file.id).exists()
+
+    def test_delete_when_file_already_deleted(self) -> None:
+        """Deleting an ArtifactBundle whose File was already removed must not raise."""
+        org = self.create_organization()
+        artifact_bundle = self.create_artifact_bundle(org=org)
+        file_id = artifact_bundle.file_id
+
+        # Simulate the File being deleted before the ArtifactBundle deletion runs.
+        File.objects.filter(id=file_id).delete()
+
+        self.ScheduledDeletion.schedule(instance=artifact_bundle, days=0)
+
+        # Should complete without raising File.DoesNotExist.
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not ArtifactBundle.objects.filter(id=artifact_bundle.id).exists()
