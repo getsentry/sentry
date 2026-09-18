@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -8,7 +9,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Dashboard} from 'sentry/views/dashboards/dashboard';
 import {FiltersBar} from 'sentry/views/dashboards/filtersBar';
@@ -195,7 +195,7 @@ describe('Dashboards > Dashboard', () => {
     };
 
     render(
-      <MEPSettingProvider forceTransactions={false}>
+      <Fragment>
         <Dashboard
           dashboard={dashboardWithOneWidget}
           isEditingDashboard={false}
@@ -205,7 +205,7 @@ describe('Dashboards > Dashboard', () => {
           widgetLimitReached={false}
           widgetLegendState={widgetLegendState}
         />
-      </MEPSettingProvider>,
+      </Fragment>,
       {organization: initialData.organization}
     );
 
@@ -253,7 +253,7 @@ describe('Dashboards > Dashboard', () => {
     };
 
     render(
-      <MEPSettingProvider forceTransactions={false}>
+      <Fragment>
         <Dashboard
           dashboard={dashboardWithOneWidget}
           isEditingDashboard={false}
@@ -264,7 +264,7 @@ describe('Dashboards > Dashboard', () => {
           isEmbedded
           widgetLegendState={widgetLegendState}
         />
-      </MEPSettingProvider>,
+      </Fragment>,
       {organization: initialData.organization}
     );
 
@@ -296,7 +296,7 @@ describe('Dashboards > Dashboard', () => {
 
     const mount = (dashboard: DashboardDetails) => {
       render(
-        <MEPSettingProvider forceTransactions={false}>
+        <Fragment>
           <Dashboard
             dashboard={dashboard}
             isEditingDashboard={false}
@@ -306,7 +306,7 @@ describe('Dashboards > Dashboard', () => {
             widgetLimitReached={false}
             widgetLegendState={widgetLegendState}
           />
-        </MEPSettingProvider>,
+        </Fragment>,
         {organization: initialData.organization}
       );
     };
@@ -415,7 +415,7 @@ describe('Dashboards > Dashboard', () => {
       const location = useLocation();
       const [widgetInterval] = useDashboardChartInterval();
       return (
-        <MEPSettingProvider forceTransactions={false}>
+        <Fragment>
           <FiltersBar
             dashboard={dashboard}
             filters={{}}
@@ -435,7 +435,7 @@ describe('Dashboards > Dashboard', () => {
             widgetLegendState={widgetLegendState}
             widgetInterval={widgetInterval}
           />
-        </MEPSettingProvider>
+        </Fragment>
       );
     }
 
@@ -632,7 +632,7 @@ describe('Dashboards > Dashboard', () => {
     let widgets: Widget[];
     const mount = ({dashboard, isPreview = false, onEditWidget = jest.fn()}: any) => {
       const getDashboardComponent = () => (
-        <MEPSettingProvider forceTransactions={false}>
+        <Fragment>
           <Dashboard
             dashboard={dashboard}
             isEditingDashboard
@@ -646,7 +646,7 @@ describe('Dashboards > Dashboard', () => {
             onEditWidget={onEditWidget}
             widgetLegendState={widgetLegendState}
           />
-        </MEPSettingProvider>
+        </Fragment>
       );
       const {rerender} = render(getDashboardComponent(), {
         organization: initialData.organization,
@@ -768,7 +768,7 @@ describe('Dashboards > Dashboard', () => {
     // URL has release= but no globalFilter — saved global filters must still
     // be applied to the widget data request.
     render(
-      <MEPSettingProvider forceTransactions={false}>
+      <Fragment>
         <Dashboard
           dashboard={dashboardWithGlobalFilters}
           isEditingDashboard={false}
@@ -778,7 +778,7 @@ describe('Dashboards > Dashboard', () => {
           widgetLimitReached={false}
           widgetLegendState={widgetLegendState}
         />
-      </MEPSettingProvider>,
+      </Fragment>,
       {
         organization,
         initialRouterConfig: {

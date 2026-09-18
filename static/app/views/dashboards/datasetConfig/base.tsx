@@ -20,7 +20,6 @@ import type {
 } from 'sentry/utils/discover/fields';
 import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {
   DashboardFilters,
   DisplayType,
@@ -102,10 +101,6 @@ export type WidgetQueryParams = {
    * Optional result limit.
    */
   limit?: number;
-  /**
-   * MEP (Metrics Enhanced Performance) setting.
-   */
-  mepSetting?: MEPState | null;
   /**
    * Sampling mode for the queries.
    */
