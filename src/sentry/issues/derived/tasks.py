@@ -604,6 +604,7 @@ def heal_stale_derived_data(**kwargs: object) -> None:
                 "heal_stale_derived_data.stale_hash_retired",
                 extra={"pipeline_hash": stale_hash, "group_id_mark": lower_bound},
             )
+            save_state(state)
             continue
         if not ranges:
             continue
@@ -629,6 +630,7 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             # below them because pipeline_hash is promoted state. The fixed state
             # age is the correctness backstop that forces a from-zero sweep.
             state.stale[stale_hash] = new_mark
+            save_state(state)
             logger.info(
                 "heal_stale_derived_data.stale_hash_mark_advanced",
                 extra={
@@ -651,9 +653,6 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             sample_rate=1.0,
             tags={"hash_kind": hash_kind},
         )
-
-    # Persist marks before the unrelated check fan-out, which may fail.
-    save_state(state)
 
     task_count = max_tasks - remaining
     if task_count == 0:

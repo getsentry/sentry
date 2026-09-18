@@ -724,7 +724,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
 
         discover.assert_called_once_with(PIPELINE.pipeline_hash, 5)
 
-    def test_null_starts_at_zero_and_state_is_saved_when_budget_is_exhausted(self) -> None:
+    def test_null_starts_at_zero_without_rewriting_state(self) -> None:
         stale_hash = self._pick_stale_hash()
         state = HealSchedulerState(
             head_hash=PIPELINE.pipeline_hash,
@@ -749,8 +749,41 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             max_chunks=1,
             group_id_lower_bound=0,
         )
-        mock_save.assert_called_once_with(state)
+        mock_save.assert_not_called()
         assert state.stale == {stale_hash: 50}
+
+    def test_mark_is_saved_before_scheduling_the_next_hash(self) -> None:
+        hash_a = self._pick_stale_hash("a")
+        hash_b = self._pick_stale_hash("b")
+        state = HealSchedulerState(
+            head_hash=PIPELINE.pipeline_hash,
+            stale={hash_a: 10, hash_b: 10},
+            discovered_at=datetime.now(timezone.utc),
+        )
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-max-tasks": 2,
+                    "issues.derived.check-task-count": 0,
+                }
+            ),
+            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=[
+                    GroupIdRangeResult(ranges=[], drained=True),
+                    GroupIdRangeResult(ranges=[(10, 20)], drained=False),
+                    RuntimeError("range selection failed"),
+                ],
+            ),
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+        ):
+            with pytest.raises(RuntimeError):
+                heal_stale_derived_data()
+
+        mock_save.assert_called_once_with(state)
+        assert state.stale == {hash_a: 20, hash_b: 10}
 
     def test_marks_are_saved_when_check_fan_out_fails(self) -> None:
         stale_hash = self._pick_stale_hash()
