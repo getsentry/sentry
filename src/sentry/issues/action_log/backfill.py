@@ -24,6 +24,7 @@ from sentry.issues.action_log.types import (
     GroupActionType,
     PullRequestClosedAction,
     PullRequestMergedAction,
+    PullRequestOrigin,
     PullRequestReopenedAction,
 )
 from sentry.issues.derived.processing import invalidate_group_derived_data
@@ -35,6 +36,7 @@ from sentry.models.pullrequest import (
     PullRequestLifecycleState,
     is_open_pull_request_state,
 )
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.utils import json, metrics
 from sentry.utils.action_log.activity_translator import activity_to_action
 
@@ -231,14 +233,11 @@ def backfill_group_activities(
     return total_created
 
 
-def _latest_pr_lifecycle_actions(
+def _pr_lifecycle_actions_by_pull_request(
     *, group_id: int, project_id: int
-) -> dict[int, GroupActionLogEntry]:
-    """Map pull request id to its most recently logged lifecycle action.
-
-    Entries are scanned oldest first so the last write per pull request wins.
-    """
-    latest_actions: dict[int, GroupActionLogEntry] = {}
+) -> dict[int, list[GroupActionLogEntry]]:
+    """Group lifecycle actions by pull request in chronological order."""
+    actions_by_pull_request: dict[int, list[GroupActionLogEntry]] = {}
     logged_entries = GroupActionLogEntry.objects.filter(
         group_id=group_id,
         project_id=project_id,
@@ -252,23 +251,42 @@ def _latest_pr_lifecycle_actions(
             pull_request_id = int(data["pull_request"])
         except (KeyError, TypeError, ValueError):
             continue
-        latest_actions[pull_request_id] = entry
-    return latest_actions
+        actions_by_pull_request.setdefault(pull_request_id, []).append(entry)
+    return actions_by_pull_request
 
 
-def _heal_has_other_open_prs(
+def _heal_pr_lifecycle_data(
     *,
     entry: GroupActionLogEntry,
-    has_other_open_prs: bool,
-) -> bool:
-    """Heal the has_other_open_prs field on any action where it is present but null."""
-    if "has_other_open_prs" not in entry.data or entry.data["has_other_open_prs"] is not None:
-        return False
+    has_other_open_prs: bool | None = None,
+    pull_request_origin: PullRequestOrigin,
+) -> None:
+    """Reconcile lifecycle fields on previously logged actions."""
+    updated_data = dict(entry.data)
 
-    entry.data = {**entry.data, "has_other_open_prs": has_other_open_prs}
+    if (
+        has_other_open_prs is not None
+        and "has_other_open_prs" in updated_data
+        and updated_data["has_other_open_prs"] is None
+    ):
+        updated_data["has_other_open_prs"] = has_other_open_prs
+
+    if entry.type == GroupActionType.PULL_REQUEST_CLOSED:
+        recorded_origin = updated_data.get("pull_request_origin")
+        # Attribution can arrive after the close event. Upgrade a prior value,
+        # but never downgrade an automated origin if its Seer link disappears.
+        if recorded_origin is None or (
+            pull_request_origin == PullRequestOrigin.AUTOMATED_FIX
+            and recorded_origin != PullRequestOrigin.AUTOMATED_FIX.value
+        ):
+            updated_data["pull_request_origin"] = pull_request_origin.value
+
+    if updated_data == entry.data:
+        return
+
+    entry.data = updated_data
     entry.save(update_fields=["data", "date_updated"])
     invalidate_group_derived_data(entry.group_id, cursor=(entry.date_added, entry.id))
-    return True
 
 
 def _get_new_pr_lifecycle_action(
@@ -276,6 +294,7 @@ def _get_new_pr_lifecycle_action(
     pull_request: _PullRequestLifecycleDetails,
     latest_action_type: int | None,
     has_other_open_prs: bool,
+    pull_request_origin: PullRequestOrigin,
     group_id: int,
     project_id: int,
 ) -> (
@@ -324,6 +343,7 @@ def _get_new_pr_lifecycle_action(
                 PullRequestClosedAction(
                     pull_request=pull_request.id,
                     has_other_open_prs=has_other_open_prs,
+                    pull_request_origin=pull_request_origin,
                 ),
                 pull_request.closed_at,
             )
@@ -392,26 +412,40 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
         for pull_request in pull_requests
         if is_open_pull_request_state(pull_request.state)
     }
+    automated_fix_pull_request_ids = set(
+        SeerRunPullRequest.objects.filter(pull_request_id__in=pull_request_ids).values_list(
+            "pull_request_id", flat=True
+        )
+    )
 
-    latest_actions = _latest_pr_lifecycle_actions(group_id=group_id, project_id=project_id)
+    logged_actions = _pr_lifecycle_actions_by_pull_request(group_id=group_id, project_id=project_id)
 
     entries: list[BackfillEntry] = []
     for pull_request in pull_requests:
-        latest_action = latest_actions.get(pull_request.id)
+        pull_request_actions = logged_actions.get(pull_request.id, ())
+        latest_action = pull_request_actions[-1] if pull_request_actions else None
         has_other_open_prs = bool(open_pull_request_ids - {pull_request.id})
+        pull_request_origin = (
+            PullRequestOrigin.AUTOMATED_FIX
+            if pull_request.id in automated_fix_pull_request_ids
+            else PullRequestOrigin.OTHER
+        )
+        for logged_action in pull_request_actions:
+            _heal_pr_lifecycle_data(
+                entry=logged_action,
+                has_other_open_prs=(has_other_open_prs if logged_action is latest_action else None),
+                pull_request_origin=pull_request_origin,
+            )
+
         action_and_date = _get_new_pr_lifecycle_action(
             pull_request=pull_request,
             latest_action_type=latest_action.type if latest_action is not None else None,
             has_other_open_prs=has_other_open_prs,
+            pull_request_origin=pull_request_origin,
             group_id=group_id,
             project_id=project_id,
         )
         if action_and_date is None:
-            if latest_action is not None:
-                _heal_has_other_open_prs(
-                    entry=latest_action,
-                    has_other_open_prs=has_other_open_prs,
-                )
             continue
         action, date_added = action_and_date
 
