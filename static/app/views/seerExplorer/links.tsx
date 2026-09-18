@@ -3,7 +3,7 @@ import queryString from 'query-string';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Sort} from 'sentry/utils/discover/fields';
+import {isAggregateField, type Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -979,6 +979,18 @@ function searchParamsFromApiCall(
     next.fields = getStringArray(next.field);
   }
 
+  // The events API expresses a spans aggregation as `field=tag&field=count()`;
+  // Explore needs separate chart axes, groupings, and an explicit aggregate mode.
+  if (next.dataset === 'spans') {
+    const fields = getStringArray(next.fields);
+    const aggregates = fields.filter(isAggregateField);
+    if (aggregates.length) {
+      next.y_axes ??= aggregates;
+      next.group_by ??= fields.filter(field => !isAggregateField(field));
+      next.mode ??= 'aggregates';
+    }
+  }
+
   if (!next.dataset) {
     if (path?.includes('/issues/')) {
       next.dataset = 'issues';
@@ -1018,6 +1030,9 @@ function searchUrl(
   }
   if (sort) {
     queryParams.sort = sort;
+  }
+  if (params.environment !== undefined) {
+    queryParams.environment = getStringArray(params.environment);
   }
   // The page filter expects no timezone (treated as UTC) or a +HH:MM offset.
   if (start) {
@@ -1135,6 +1150,10 @@ function spansQuery(
   const {y_axes, group_by, mode} = params;
   const next = {...queryParams};
   const aggregateFields: string[] = [];
+
+  if (params.fields && mode !== 'aggregates') {
+    next.field = getStringArray(params.fields);
+  }
 
   if (y_axes) {
     const axes = getStringArray(y_axes);

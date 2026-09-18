@@ -892,6 +892,68 @@ describe('search links', () => {
     );
   });
 
+  it('reproduces an events API span aggregation in Explore', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        path_params: {organization_id_or_slug: 'org-slug'},
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=spans&field=span.op&field=count()&query=span.op%3Adb&project=2&project=3&environment=production&environment=staging&statsPeriod=30d&sort=-count()',
+        title: 'Querying spans for database calls',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual({
+      id: 'telemetry_live_search',
+      label: 'Querying spans for database calls',
+      url: {
+        pathname: '/organizations/org-slug/traces/',
+        query: {
+          query: 'span.op:db',
+          project: ['2', '3'],
+          environment: ['production', 'staging'],
+          statsPeriod: '30d',
+          sort: '-count()',
+          mode: 'aggregate',
+          visualize: ['"count()"'],
+          yAxes: ['"count()"'],
+          groupBy: ['span.op'],
+          aggregateField: ['{"yAxes":["count()"]}', '{"groupBy":"span.op"}'],
+        },
+      },
+    });
+  });
+
+  it('keeps sample fields and absolute dates on a spans API link', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=spans&field=id&field=span.op&query=span.op%3Adb&project=2&start=2026-08-01T00%3A00%3A00Z&end=2026-08-02T00%3A00%3A00Z&sort=-timestamp',
+      }),
+      ctx
+    );
+
+    expect(result?.url).toEqual({
+      pathname: '/organizations/org-slug/traces/',
+      query: {
+        query: 'span.op:db',
+        project: ['2'],
+        start: '2026-08-01T00:00:00',
+        end: '2026-08-02T00:00:00',
+        sort: '-timestamp',
+        field: ['id', 'span.op'],
+      },
+    });
+  });
+
   it('infers the issues dataset for a bare org issues list', () => {
     const result = resolveLink(
       subjectFromCallRecord({
