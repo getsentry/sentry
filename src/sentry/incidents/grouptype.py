@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Literal, TypedDict
+from uuid import UUID
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
@@ -187,6 +188,22 @@ def get_alert_type_from_aggregate_dataset(
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
+    rotates_activation_id = True
+
+    def build_occurrence_fingerprint(
+        self, group_key: DetectorGroupKey = None, activation_id: UUID | None = None
+    ) -> list[str]:
+        """
+        Use a custom fingerprint that uses the activation id
+        This ensures that every instance of OK --> non-OK creates a new issue
+        """
+        detector_key = self.state_manager.build_key(group_key)
+
+        if activation_id is None:
+            return [detector_key]
+
+        return [f"{detector_key}:activation:{activation_id.hex}"]
+
     def build_detector_evidence_data(
         self,
         group_evaluation: DataConditionGroupEvaluation,

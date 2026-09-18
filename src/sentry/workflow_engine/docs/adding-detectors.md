@@ -203,6 +203,7 @@ grouping components. The engine appends the detector state key to trigger and re
 fingerprints. Currently occurrence creation passes `group_key` to this override while
 resolution calls it without that argument. Do not make custom components depend on the
 argument unless resolution is updated and trigger/resolution tests cover the behavior.
+
 Fingerprint changes can split or merge production issues and can break recovery.
 
 Test the exact trigger and resolution fingerprints. For grouped detectors, explicitly
