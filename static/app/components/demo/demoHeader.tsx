@@ -44,31 +44,23 @@ export function DemoHeader() {
       borderBottom="primary"
     >
       <StyledLogoSentry />
-      <Container display={{zero: 'none', '2xl': 'block'}}>
-        {containerProps => (
-          <LinkButton
-            {...containerProps}
-            onClick={() => trackAnalytics('growth.demo_click_docs', {organization: null})}
-            href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
-            external
-          >
-            {t('Documentation')}
-          </LinkButton>
-        )}
-      </Container>
-      <Container display={{zero: 'none', xl: 'block'}}>
-        {containerProps => (
-          <LinkButton
-            {...containerProps}
-            onClick={() =>
-              trackAnalytics('growth.demo_click_request_demo', {organization: null})
-            }
-            href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
-            external
-          >
-            <Text>{t('Request demo')}</Text>
-          </LinkButton>
-        )}
+      <Container display={{zero: 'none', xl: 'contents'}}>
+        <LinkButton
+          onClick={() => trackAnalytics('growth.demo_click_docs', {organization: null})}
+          href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
+          external
+        >
+          {t('Documentation')}
+        </LinkButton>
+        <LinkButton
+          onClick={() =>
+            trackAnalytics('growth.demo_click_request_demo', {organization: null})
+          }
+          href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
+          external
+        >
+          <Text>{t('Request demo')}</Text>
+        </LinkButton>
       </Container>
       <SignOutButton
         onClick={() => {
