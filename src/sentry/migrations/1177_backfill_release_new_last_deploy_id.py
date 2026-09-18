@@ -1,0 +1,58 @@
+from django.db import migrations
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
+from django.db.models import F
+
+from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
+
+BATCH_SIZE = 5000
+
+
+def backfill_new_last_deploy_id(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
+    Release = apps.get_model("sentry", "Release")
+    rows = RangeQuerySetWrapperWithProgressBarApprox(
+        Release.objects.all().values_list("id", "last_deploy_id", "new_last_deploy_id", named=True),
+        step=BATCH_SIZE,
+        result_value_getter=lambda row: row.id,
+    )
+    for batch in chunked(rows, BATCH_SIZE):
+        # null is a legitimate last_deploy_id, so a null new_last_deploy_id does not mean
+        # the row is unfilled.
+        out_of_sync = [row for row in batch if row.new_last_deploy_id != row.last_deploy_id]
+        pending_ids = [row.id for row in out_of_sync]
+        if pending_ids:
+            # F() reads last_deploy_id again inside the UPDATE, so a row the dual-write
+            # changed since the read above lands on its current value, not the stale one.
+            Release.objects.filter(id__in=pending_ids).update(
+                new_last_deploy_id=F("last_deploy_id")
+            )
+
+
+class Migration(CheckedMigration):
+    # This flag is used to mark that a migration shouldn't be automatically run in production.
+    # This should only be used for operations where it's safe to run the migration after your
+    # code has deployed. So this should not be used for most operations that alter the schema
+    # of a table.
+    # Here are some things that make sense to mark as post deployment:
+    # - Large data migrations. Typically we want these to be run manually so that they can be
+    #   monitored and not block the deploy for a long period of time while they run.
+    # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
+    #   run this outside deployments so that we don't block them. Note that while adding an index
+    #   is a schema change, it's completely safe to run the operation after the code has deployed.
+    # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
+
+    is_post_deployment = True
+
+    dependencies = [
+        ("sentry", "1176_remove_dashboardhiddenuser"),
+    ]
+
+    operations = [
+        migrations.RunPython(
+            backfill_new_last_deploy_id,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_release"]},
+        ),
+    ]
