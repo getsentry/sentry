@@ -142,6 +142,25 @@ describe('dispatch', () => {
     assert.equal(github.calls[0].workflow_id, 'backend.yml');
   });
 
+  it('falls back to the full suite when changed files exceed the dispatch limit', async () => {
+    const github = makeGithub();
+    const core = mockCore();
+    await dispatch({
+      github,
+      context: mockContext(),
+      core,
+      mergeCommitSha: 'deadbeef',
+      fileChanges: {backend_all: 'true'},
+      sentryChangedFiles: 'src/sentry/very-long-file.py '.repeat(3000),
+      sentryPreviousFilenames: 'src/sentry/old-very-long-file.py '.repeat(3000),
+      targetWorkflow: 'backend.yml',
+    });
+
+    assert.equal(github.calls[0].inputs['sentry-changed-files'], '');
+    assert.equal(github.calls[0].inputs['sentry-previous-filenames'], '');
+    assert.ok(core.logs.warning.some(m => m.includes('payload limit')));
+  });
+
   it('retries on transient failure and eventually succeeds', async () => {
     const github = makeGithub({failUntilAttempt: 1});
     const core = mockCore();
