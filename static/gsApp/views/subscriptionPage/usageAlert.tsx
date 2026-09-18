@@ -257,7 +257,7 @@ export function UsageAlert({subscription, usage}: Props) {
         </UsageInfo>
         <PrimaryCTA
           alertType="projected-overage"
-          organization={organization!}
+          organization={organization}
           subscription={subscription}
         />
       </SubscriptionBody>
@@ -272,7 +272,7 @@ export function UsageAlert({subscription, usage}: Props) {
           primaryCTA={
             <PrimaryCTA
               alertType="exceded-quota"
-              organization={organization!}
+              organization={organization}
               subscription={subscription}
             />
           }
