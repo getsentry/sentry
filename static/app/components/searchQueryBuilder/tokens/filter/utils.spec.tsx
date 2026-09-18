@@ -156,35 +156,24 @@ describe('getValidOpsForFilter', () => {
 });
 
 describe('getValidOpsForFilter regex operators', () => {
-  it('allows regex operators for string fields when allowRegexOperators is true', () => {
+  it('allows regex operators for string fields only when allowRegexOperators is true', () => {
     const fieldDefinition: FieldDefinition = {
       kind: FieldKind.FIELD,
       valueType: FieldValueType.STRING,
     };
+    const filterToken = parseFilterToken('message:hello');
 
-    expect(
-      getValidOpsForFilter({
-        filterToken: parseFilterToken('message:hello'),
-        fieldDefinition,
-        allowRegexOperators: true,
-      })
-    ).toEqual(
+    const allowed = getValidOpsForFilter({
+      filterToken,
+      fieldDefinition,
+      allowRegexOperators: true,
+    });
+    const notAllowed = getValidOpsForFilter({filterToken, fieldDefinition});
+
+    expect(allowed).toEqual(
       expect.arrayContaining([TermOperator.MATCHES, TermOperator.DOES_NOT_MATCH])
     );
-  });
-
-  it('does not allow regex operators when allowRegexOperators is not set', () => {
-    const fieldDefinition: FieldDefinition = {
-      kind: FieldKind.FIELD,
-      valueType: FieldValueType.STRING,
-    };
-
-    expect(
-      getValidOpsForFilter({
-        filterToken: parseFilterToken('message:hello'),
-        fieldDefinition,
-      })
-    ).not.toEqual(expect.arrayContaining([TermOperator.MATCHES]));
+    expect(notAllowed).not.toEqual(expect.arrayContaining([TermOperator.MATCHES]));
   });
 
   it('does not allow regex operators for non-string effective value types', () => {
