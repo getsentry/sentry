@@ -2,12 +2,10 @@ import {Fragment, useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import {type QueryFieldValue} from 'sentry/utils/discover/fields';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {WidgetType, type ValidateWidgetResponse} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import {GroupBySelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/groupByStep/groupBySelector';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -18,13 +16,7 @@ import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 
-interface WidgetBuilderGroupBySelectorProps {
-  validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
-}
-
-export function WidgetBuilderGroupBySelector({
-  validatedWidgetResponse,
-}: WidgetBuilderGroupBySelectorProps) {
+export function WidgetBuilderGroupBySelector() {
   const {state, dispatch} = useWidgetBuilderContext();
   const disableTransactionWidget = useDisableTransactionWidget();
 
@@ -105,7 +97,6 @@ export function WidgetBuilderGroupBySelector({
         columns={state.fields}
         fieldOptions={groupByOptions}
         onChange={handleGroupByChange}
-        validatedWidgetResponse={validatedWidgetResponse}
         style={{paddingRight: 0}}
         widgetType={state.dataset}
         disable={disableTransactionWidget}
