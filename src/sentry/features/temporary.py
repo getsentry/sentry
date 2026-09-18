@@ -124,6 +124,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable LLM-generated title and description for external issue details
     manager.add("organizations:external-issues-ai-generate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:inbound-filters-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Show the custom inbound filters table in project settings. Needs inbound-filters-v2 too.
+    manager.add("organizations:inbound-filters-v2-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GPU crash dump symbolication via teapot
     manager.add("organizations:gpu-crash-symbolication", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable increased issue_owners rate limit for auto-assignment
@@ -442,6 +444,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     # Enable per-series `_if` filters on Explore / compare / dashboard visualize aggregates
     manager.add("organizations:explore-conditional-aggregates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable saving reusable formulas in Explore and referencing them in visualizations
+    manager.add("organizations:explore-saved-formulas", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # Show combined resolved "past issues" section instead of separate key errors / performance issues
     manager.add("organizations:weekly-report-past-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)

@@ -179,6 +179,7 @@ describe('InvestigationFixtureApi', () => {
 
     it('serves the projection to the hypothesis row', async () => {
       renderStoryHypotheses();
+      await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
 
       expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
       expect(
@@ -186,7 +187,7 @@ describe('InvestigationFixtureApi', () => {
           name: 'Database or cache degradation delayed the response',
         })
       ).toBeInTheDocument();
-      expect(screen.getByText('Supported · 86% Confidence')).toBeInTheDocument();
+      expect(screen.getByText('Supported')).toBeInTheDocument();
       expect(
         screen.getByText('The delay begins before the document reaches the browser.')
       ).toBeInTheDocument();
@@ -194,6 +195,7 @@ describe('InvestigationFixtureApi', () => {
 
     it('applies a disposition command and returns the new projection', async () => {
       renderStoryHypotheses();
+      await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
 
       await userEvent.click(
         await screen.findByRole('button', {
@@ -204,9 +206,7 @@ describe('InvestigationFixtureApi', () => {
 
       // The command response carries the updated projection, so the card
       // changes without another read.
-      expect(
-        await screen.findByText('Accepted by you · 91% Confidence')
-      ).toBeInTheDocument();
+      expect(await screen.findByText('Accepted by you')).toBeInTheDocument();
       // Accepting settles the hypothesis, so its edge picks up the accent.
       expect(screen.getAllByTestId('investigation-hypothesis')[1]).toHaveAttribute(
         'data-border',
@@ -216,20 +216,21 @@ describe('InvestigationFixtureApi', () => {
 
     it('clears a disposition back to the agent verdict', async () => {
       renderStoryHypotheses();
+      await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
 
       const trigger = await screen.findByRole('button', {
         name: 'Actions for An external SSO provider slowed the response',
       });
       await userEvent.click(trigger);
       await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
-      await screen.findByText('Accepted by you · 91% Confidence');
+      await screen.findByText('Accepted by you');
 
       await userEvent.click(trigger);
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'Clear decision'})
       );
 
-      expect(await screen.findByText('Refuted · 91% Confidence')).toBeInTheDocument();
+      expect(await screen.findByText('Refuted')).toBeInTheDocument();
       // Back to the agent's verdict, so the edge breaks again.
       expect(screen.getAllByTestId('investigation-hypothesis')[1]).toHaveAttribute(
         'data-border',
@@ -239,6 +240,7 @@ describe('InvestigationFixtureApi', () => {
 
     it('puts a retried hypothesis back into investigation', async () => {
       renderStoryHypotheses();
+      await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
 
       await userEvent.click(
         await screen.findByRole('button', {

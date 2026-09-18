@@ -28,3 +28,29 @@ def test_increment_version_existing_key() -> None:
     assert second.keyname == "second-hello"
     assert second.keyname == second.key
     assert second.version == 1
+
+
+@django_db_all
+def test_get_versions() -> None:
+    CellCacheVersion.incr_version("hello-world")
+    CellCacheVersion.incr_version("hi-world")
+    CellCacheVersion.incr_version("hi-world")
+
+    versions = CellCacheVersion.get_versions(["hello-world", "hi-world"])
+    assert versions == [1, 2]
+
+    versions = CellCacheVersion.get_versions(["nope", "hello-world", "hi-world"])
+    assert versions == [1, 2]
+
+
+@django_db_all
+def test_get_version_map() -> None:
+    CellCacheVersion.incr_version("hello-world")
+    CellCacheVersion.incr_version("hi-world")
+    CellCacheVersion.incr_version("hi-world")
+
+    versions = CellCacheVersion.get_version_map(["hello-world", "hi-world"])
+    assert versions == {"hello-world": 1, "hi-world": 2}
+
+    versions = CellCacheVersion.get_version_map(["nope", "hello-world", "hi-world"])
+    assert versions == {"hello-world": 1, "hi-world": 2}

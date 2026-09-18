@@ -54,7 +54,7 @@ class GetIngestionDelayStatusTest(TestCase):
 
         assert status.status == Status.HEALTHY
         assert status.delay_seconds == 60.0
-        assert status.complete_through == self.now - timedelta(seconds=60)
+        assert status.complete_through == self.now - timedelta(seconds=60) - STALL_MARGIN
         assert not self.mock_accepted.called
 
     def test_recent_write_is_healthy_within_stall_margin(self) -> None:
@@ -64,7 +64,7 @@ class GetIngestionDelayStatusTest(TestCase):
 
         assert status.status == Status.HEALTHY
         assert status.delay_seconds == 60.0
-        assert status.complete_through == self.now - timedelta(seconds=60)
+        assert status.complete_through == self.now - timedelta(seconds=60) - STALL_MARGIN
         assert not self.mock_accepted.called
 
     def test_old_write_with_accepted_data_is_stalled(self) -> None:
@@ -84,7 +84,7 @@ class GetIngestionDelayStatusTest(TestCase):
 
         assert status.status == Status.IDLE
         assert status.delay_seconds == 60.0
-        assert status.complete_through == self.now - timedelta(seconds=60)
+        assert status.complete_through == self.now - timedelta(seconds=60) - STALL_MARGIN
         assert self.mock_accepted.call_args.kwargs["start"] == self.now - timedelta(seconds=3600)
         assert (
             self.mock_accepted.call_args.kwargs["end"]

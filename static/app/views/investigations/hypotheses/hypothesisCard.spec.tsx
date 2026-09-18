@@ -28,7 +28,7 @@ describe('HypothesisCard', () => {
     expect(screen.getByText('Hypothesis 2')).toBeInTheDocument();
   });
 
-  it('shows confidence once the agent has reached a verdict', () => {
+  it('shows the verdict as a tag without confidence', () => {
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({
@@ -38,10 +38,11 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByText('Supported · 86% Confidence')).toBeInTheDocument();
+    expect(screen.getByTestId('hypothesis-status')).toHaveTextContent('Supported');
+    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
   });
 
-  it('falls back to the verdict confidence when the hypothesis omits it', () => {
+  it('omits confidence stored on the agent verdict', () => {
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({
@@ -59,7 +60,8 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByText('Inconclusive · 34% Confidence')).toBeInTheDocument();
+    expect(screen.getByTestId('hypothesis-status')).toHaveTextContent('Inconclusive');
+    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
   });
 
   it('omits confidence while the hypothesis is still in flight', () => {

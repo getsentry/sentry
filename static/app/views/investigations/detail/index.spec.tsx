@@ -26,6 +26,7 @@ import {
   getInvestigationDetailQueryOptions,
   investigationExecutionDetailQueryOptions,
   investigationListQueryOptions,
+  investigationOrchestrationQueryOptions,
 } from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
 import {
@@ -201,7 +202,7 @@ describe('Investigation detail', () => {
     renderView();
 
     const summary = await screen.findByTestId('investigation-summary');
-    expect(within(summary).getByText('Current understanding')).toBeInTheDocument();
+    expect(within(summary).queryByText('Current understanding')).not.toBeInTheDocument();
     expect(within(summary).getByText('Errors rose across releases')).toBeInTheDocument();
     expect(
       within(summary).getByText(/All active releases increased together/)
@@ -690,20 +691,9 @@ describe('Investigation detail', () => {
       'data-cell-variant',
       'unbordered'
     );
-    expect(screen.getByTestId('query-cell-result')).toHaveAttribute(
-      'data-cell-variant',
-      'bordered'
-    );
-    expect(screen.getByTestId('query-cell-toolbar')).toContainElement(
+    expect(screen.getByTestId('query-cell')).toContainElement(screen.getByText('820ms'));
+    expect(screen.getByTestId('query-cell')).toContainElement(
       screen.getByRole('button', {name: 'Cell actions for Database latency'})
-    );
-    expect(screen.getByTestId('investigation-cell-block-1')).toHaveAttribute(
-      'data-has-divider',
-      'false'
-    );
-    expect(screen.getByTestId('investigation-cell-block-2')).toHaveAttribute(
-      'data-has-divider',
-      'true'
     );
     expect(screen.getByText('820ms')).toBeInTheDocument();
     expect(screen.queryByText('Secret text-generation prompt')).not.toBeInTheDocument();
@@ -754,13 +744,67 @@ describe('Investigation detail', () => {
     const toggle = await screen.findByRole('button', {name: 'Toggle Latency query'});
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('820ms')).toBeVisible();
-    expect(screen.getByTestId('query-cell-toolbar')).toContainElement(
+    expect(screen.getByRole('button', {name: 'Show query'})).toBeDisabled();
+    expect(screen.getByTestId('query-cell')).toContainElement(
       screen.getByRole('button', {name: 'Cell actions for Latency query'})
     );
 
     await userEvent.click(toggle);
 
     expect(screen.queryByText('820ms')).not.toBeInTheDocument();
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await userEvent.keyboard('{Enter}');
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('820ms')).toBeVisible();
+
+    await userEvent.keyboard(' ');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Cell actions for Latency query'})
+    );
+    expect(screen.getByRole('menuitemradio', {name: 'Refine'})).toBeVisible();
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('shows and hides saved queries without collapsing the result', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.blocks[1]!.output = {
+      ...InvestigationQueryOutputFixture(),
+      queryLinks: [
+        {kind: 'telemetry', params: {query: 'transaction:/api/checkout'}},
+        {kind: 'telemetry', params: {query: 'transaction:/api/checkout'}},
+        {kind: 'telemetry', params: {query: 'span.op:db'}},
+        {kind: 'telemetry', params: {query: 42}},
+        {kind: 'telemetry', params: {query: ' '}},
+        null,
+      ],
+    };
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    const showQuery = await screen.findByRole('button', {name: 'Show query'});
+    expect(showQuery).toBeEnabled();
+    expect(screen.queryByText('transaction:/api/checkout')).not.toBeInTheDocument();
+
+    await userEvent.click(showQuery);
+
+    expect(screen.getAllByText('transaction:/api/checkout')).toHaveLength(1);
+    expect(screen.getByText('transaction:/api/checkout')).toBeVisible();
+    expect(screen.getByText('span.op:db')).toBeVisible();
+    expect(screen.getByRole('button', {name: 'Toggle Latency query'})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    expect(screen.getByRole('table')).toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Hide query'}));
+
+    expect(screen.queryByText('transaction:/api/checkout')).not.toBeInTheDocument();
+    expect(screen.queryByText('span.op:db')).not.toBeInTheDocument();
+    expect(screen.getByRole('table')).toBeVisible();
   });
 
   it('renders the outer query title as non-editable text', async () => {
@@ -1751,7 +1795,7 @@ describe('Investigation detail', () => {
   // `orchestration` being present is the only thing that marks an investigation
   // as agentic, and the orchestration endpoint 404s without a run, so the gate
   // has to hold in both directions.
-  it('renders the hypothesis row for an agentic investigation', async () => {
+  it('renders the live run status beside the investigation title and hypotheses below', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: InvestigationAgenticDetailFixture(),
@@ -1761,15 +1805,41 @@ describe('Investigation detail', () => {
       body: InvestigationOrchestrationFixture(),
     });
 
-    renderView();
+    const {queryClient} = renderView();
 
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
+    await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
     expect(
       screen.getByRole('heading', {
         name: 'Database or cache degradation delayed the response',
       })
     ).toBeInTheDocument();
-    expect(orchestrationRequest).toHaveBeenCalled();
+    expect(orchestrationRequest).toHaveBeenCalledTimes(1);
+    const header = screen.getByRole('banner');
+    expect(
+      within(header).getByRole('textbox', {name: 'Investigation title'})
+    ).toBeInTheDocument();
+    expect(within(header).getByText('Synthesizing…')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('seer-status-block')).queryByText('Synthesizing…')
+    ).not.toBeInTheDocument();
+
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({status: 'completed', phase: 'completed'}),
+    });
+    await act(() =>
+      queryClient.invalidateQueries({
+        queryKey: investigationOrchestrationQueryOptions(
+          organization.slug,
+          'investigation-1'
+        ).queryKey,
+      })
+    );
+
+    expect(await within(header).findByText('Completed')).toBeInTheDocument();
+    expect(within(header).queryByText('Synthesizing…')).not.toBeInTheDocument();
+    expect(screen.getByText('Your investigation is ready')).toBeInTheDocument();
   });
 
   it('does not reach for orchestration on a manual investigation', async () => {

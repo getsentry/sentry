@@ -60,6 +60,15 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
       outputStatus: 'completed',
       output: InvestigationQueryOutputFixture({
         preferredView: 'chart',
+        queryLinks: [
+          {
+            kind: 'telemetry',
+            params: {
+              dataset: 'spans',
+              query: 'transaction:/api/checkout environment:production',
+            },
+          },
+        ],
         tableMarkdown:
           '| Time | p95 |\n| --- | ---: |\n| 15:55 | 421ms |\n| 16:10 | 1.84s |',
         chart: {

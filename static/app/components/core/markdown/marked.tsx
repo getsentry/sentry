@@ -4,9 +4,10 @@ import {Lexer as MarkedLexer, Marked, marked} from 'marked'; // eslint-disable-l
 import {markedHighlight} from 'marked-highlight';
 import Prism from 'prismjs';
 
-import {extensions} from 'sentry/utils/marked/extensions';
-import type {TagToken} from 'sentry/utils/marked/extensions/tag';
-import {loadPrismLanguage} from 'sentry/utils/prism';
+import {loadPrismLanguage} from '@sentry/scraps/code/prism';
+
+import type {TagToken} from './extensions/tag';
+import {extensions} from './extensions';
 
 export {MarkedLexer};
 export type {MarkedToken, Token};
@@ -215,7 +216,8 @@ const highlightingMarked = new Marked(
 
       if (lang in Prism.languages) {
         try {
-          return Prism.highlight(code, Prism.languages[lang]!, lang);
+          const grammar = Prism.languages[lang];
+          return grammar ? Prism.highlight(code, grammar, lang) : code;
         } catch (e) {
           return code;
         }
@@ -228,7 +230,12 @@ const highlightingMarked = new Marked(
           },
           onLoad: () => {
             try {
-              const highlighted = Prism.highlight(code, Prism.languages[lang]!, lang);
+              const grammar = Prism.languages[lang];
+              if (!grammar) {
+                resolve(code);
+                return;
+              }
+              const highlighted = Prism.highlight(code, grammar, lang);
               resolve(highlighted);
             } catch (e) {
               resolve(code);
@@ -320,7 +327,7 @@ function hasVisibleToken(token: Token): boolean {
     case 'table':
       return true;
     case 'list':
-      return token.items.some(hasVisibleToken);
+      return (token as Tokens.List).items.some(hasVisibleToken);
     default:
       if ('tokens' in token && token.tokens && token.tokens.length > 0) {
         return token.tokens.some(hasVisibleToken);

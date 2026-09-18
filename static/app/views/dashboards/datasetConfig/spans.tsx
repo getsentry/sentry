@@ -45,7 +45,7 @@ import {
   getTimeseriesSortOptions,
   renderTraceAsLinkable,
   transformEventsResponseToTable,
-} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+} from 'sentry/views/dashboards/datasetConfig/events';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {
   DisplayType,
