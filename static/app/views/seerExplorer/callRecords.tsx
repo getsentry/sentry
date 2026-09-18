@@ -27,9 +27,11 @@ export function callRecordLabel(record: CallRecord): string | null {
  * id reads worse. Reported rather than dropped: a vanishing record is how an endpoint disappears.
  */
 export function fallbackCallLabel(record: CallRecord): string {
+  const source = record.provider ?? 'sentry';
+
   // A noun, not a progressive verb: the row may well have settled, and a lib method that reached
   // here has no title at all — `Working…` would leave it reading as still running forever.
-  return record.kind === 'api' ? t('Sentry API request') : t('Sentry operation');
+  return record.kind === 'api' ? t('%s API request', source) : t('%s operation', source);
 }
 
 /**
@@ -87,9 +89,13 @@ export function callRecordDetail(record: CallRecord): {
     if (path) {
       // Seer composes the query string into `resolved_path`, so the request line is the whole URL —
       // a list of params underneath would restate what the URL already says.
+      //
+      //  An external provider may POST a read operation because its query will not fit in a URL.
+      // Seer exposes no mutating provider operation, so `provider` being set means we don't need
+      // to display the body.
       return {
         request: `${record.method} ${path}`,
-        body: withEllipsis(record.body, record.body_truncated),
+        body: record.provider ? null : withEllipsis(record.body, record.body_truncated),
       };
     }
     return null;
