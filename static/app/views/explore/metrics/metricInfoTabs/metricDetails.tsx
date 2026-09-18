@@ -49,12 +49,14 @@ function MetricDetailsEmptyState({children}: {children: React.ReactNode}) {
 
 export function MetricDetails({
   dataRow,
+  routingHint,
   ref,
   showTelemetry,
 }: {
   dataRow: TraceMetricEventsResponseItem;
   ref: React.RefObject<HTMLTableRowElement | null>;
   showTelemetry: boolean;
+  routingHint?: string;
 }) {
   const theme = useTheme();
   const location = useLocation();
@@ -85,6 +87,7 @@ export function MetricDetails({
     traceId: String(dataRow[TraceMetricKnownFieldKey.TRACE] ?? ''),
     timestamp,
     enabled: enableQueries,
+    routingHint,
   });
 
   const traceSlug = String(dataRow[TraceMetricKnownFieldKey.TRACE] ?? '');
