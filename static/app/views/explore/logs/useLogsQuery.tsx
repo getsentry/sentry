@@ -817,6 +817,7 @@ function useAutoFetchWindow({
     setWindowStartMs(undefined);
     setResumeCount(0);
     timesFetched.current = 0;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [queryKeyHash]);
 
   useEffect(() => {
@@ -855,6 +856,7 @@ function useAutoFetchWindow({
     deadlineMs,
     fetchNextPage,
     isFetchingNextPage,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     nextPageCursor,
     resumeCount,
     windowStartMs,

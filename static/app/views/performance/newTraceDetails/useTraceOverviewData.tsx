@@ -12,11 +12,7 @@ import {
   type EventsLogsResult,
 } from 'sentry/views/explore/logs/types';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
-import {
-  getTraceMetaLogsCount,
-  getTraceMetaMetricsCount,
-  type TraceMetaQueryResults,
-} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceViewQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
@@ -124,8 +120,8 @@ export function useTraceOverviewData({
   tree: TraceTree;
 }): TraceOverviewData {
   const organization = useOrganization();
-  const logsMetaCount = getTraceMetaLogsCount(meta);
-  const metricsMetaCount = getTraceMetaMetricsCount(meta);
+  const logsMetaCount = meta?.logsCount;
+  const metricsMetaCount = meta?.metricsCount;
   const shouldFetchLogsCount =
     logsEnabled && meta !== undefined && logsMetaCount === undefined;
   const shouldFetchMetricsCount =

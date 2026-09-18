@@ -48,6 +48,57 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.strings import truncatechars
 
 
+class NextReleaseOrderingTest(TestCase):
+    def test_finalized_order_and_legacy_order(self) -> None:
+        now = timezone.now()
+        current = self.create_release(version="current", date_added=now - timedelta(days=3))
+        next_release = self.create_release(
+            version="next",
+            date_added=now - timedelta(days=4),
+            date_released=now - timedelta(days=2),
+        )
+        late_old_release = self.create_release(
+            version="old", date_added=now - timedelta(days=1), date_released=now - timedelta(days=5)
+        )
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+            == next_release
+        )
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=False)
+            == late_old_release
+        )
+
+    def test_current_release_uses_its_finalized_date(self) -> None:
+        now = timezone.now()
+        current = self.create_release(
+            version="current", date_added=now, date_released=now - timedelta(days=3)
+        )
+        next_release = self.create_release(version="next", date_added=now - timedelta(days=2))
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+            == next_release
+        )
+
+    def test_no_successor(self) -> None:
+        current = self.create_release(version="current")
+        with pytest.raises(Release.DoesNotExist):
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+
+    def test_equal_dates_and_project_scope(self) -> None:
+        current = self.create_release(version="current")
+        other_project = self.create_project(organization=self.organization)
+        self.create_release(
+            project=other_project, version="other-project", date_added=current.date_added
+        )
+        next_release = self.create_release(version="next", date_added=current.date_added)
+        self.create_release(version="later", date_added=current.date_added)
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+            == next_release
+        )
+
+
 @pytest.mark.parametrize(
     "release_version",
     [

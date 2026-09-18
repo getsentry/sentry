@@ -77,6 +77,10 @@ describe('DisabledAlert', () => {
       alertsMemberWrite: false,
     });
     const automation = AutomationFixture({enabled: false});
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/workflows/${automation.id}/project-scope/`,
+      body: {projectIds: [], includesAllProjects: false},
+    });
 
     render(<DisabledAlert automation={automation} />, {
       organization: organizationWithoutAccess,

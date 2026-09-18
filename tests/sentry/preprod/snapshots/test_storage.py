@@ -6,6 +6,8 @@ from urllib3.exceptions import HTTPError
 
 from sentry.objectstore import UsecaseId
 from sentry.preprod.snapshots.storage import SnapshotStorage, get_snapshot_storage
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
@@ -106,10 +108,22 @@ def test_fallback_records_metric_and_log(
     )
 
 
+@django_db_all
 @patch("sentry.preprod.snapshots.storage.get_session")
-def test_factory_builds_all_sessions(mock_get_session) -> None:
+def test_factory_defaults_to_preprod_primary(mock_get_session) -> None:
     get_snapshot_storage(42, org=7)
     assert mock_get_session.call_args_list == [
         call(UsecaseId.PREPROD, 42, org=7),
         call(UsecaseId.PREPROD_SNAPSHOTS, 42, org=7),
+    ]
+
+
+@django_db_all
+@patch("sentry.preprod.snapshots.storage.get_session")
+def test_factory_follows_option(mock_get_session) -> None:
+    with override_options({"preprod.snapshots.objectstore.snapshots-usecase.enabled": True}):
+        get_snapshot_storage(42, org=7)
+    assert mock_get_session.call_args_list == [
+        call(UsecaseId.PREPROD_SNAPSHOTS, 42, org=7),
+        call(UsecaseId.PREPROD, 42, org=7),
     ]

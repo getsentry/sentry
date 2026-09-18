@@ -763,7 +763,6 @@ interface EventBase {
   _meta?: Record<string, any>;
   context?: Record<string, any>;
   dateCreated?: string;
-  device?: Record<string, any>;
   endTimestamp?: number;
   formatted?: {content: string; format: string};
   groupID?: string;

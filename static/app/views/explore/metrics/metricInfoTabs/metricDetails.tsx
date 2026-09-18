@@ -36,17 +36,8 @@ import {
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
 import {useMetricAttributesTreeActions} from 'sentry/views/explore/metrics/useMetricAttributesTreeActions';
-import type {
-  EAPTraceMeta,
-  TraceMeta,
-} from 'sentry/views/performance/newTraceDetails/traceApi/types';
-import {
-  getTraceMetaErrorCount,
-  getTraceMetaLogsCount,
-  getTraceMetaMetricsCount,
-  getTraceMetaSpanCount,
-  useTraceMeta,
-} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import type {EAPTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/types';
+import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 
 function MetricDetailsEmptyState({children}: {children: React.ReactNode}) {
   return (
@@ -187,7 +178,7 @@ function MetricDetailsTraceSummary({
   traceMeta,
   traceMetaErrors,
 }: {
-  traceMeta: TraceMeta | EAPTraceMeta | undefined;
+  traceMeta: EAPTraceMeta | undefined;
   traceMetaErrors: Error[];
 }) {
   return (
@@ -210,7 +201,7 @@ function MetricDetailsTraceSummaryContent({
   traceMeta,
   traceMetaErrors,
 }: {
-  traceMeta: TraceMeta | EAPTraceMeta | undefined;
+  traceMeta: EAPTraceMeta | undefined;
   traceMetaErrors: Error[];
 }) {
   if (traceMetaErrors.length > 0) {
@@ -229,10 +220,10 @@ function MetricDetailsTraceSummaryContent({
     );
   }
 
-  const errors = getTraceMetaErrorCount(traceMeta) ?? 0;
-  const logs = getTraceMetaLogsCount(traceMeta) ?? 0;
-  const spans = getTraceMetaSpanCount(traceMeta) ?? 0;
-  const metrics = getTraceMetaMetricsCount(traceMeta) ?? 0;
+  const errors = traceMeta.errorsCount;
+  const logs = traceMeta.logsCount;
+  const spans = traceMeta.spansCount;
+  const metrics = traceMeta.metricsCount;
 
   return (
     <Text size="sm" monospace variant="secondary">

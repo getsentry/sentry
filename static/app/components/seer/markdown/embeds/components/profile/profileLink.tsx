@@ -1,4 +1,7 @@
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -7,7 +10,11 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function ProfileLink({projectSlug, profileId}: EmbedOutput<'profile'>) {
+export function ProfileLink({
+  format,
+  projectSlug,
+  profileId,
+}: EmbedOutput<'profile'> & ResourceLinkFormatProps) {
   const organization = useOrganization();
   const href = normalizeUrl(
     generateProfileFlamechartRoute({organization, projectSlug, profileId})
@@ -15,6 +22,7 @@ export function ProfileLink({projectSlug, profileId}: EmbedOutput<'profile'>) {
 
   return (
     <ResourceLink
+      format={format}
       icon={IconProfiling}
       href={href}
       title={t('Profile %s', getShortEventId(profileId))}

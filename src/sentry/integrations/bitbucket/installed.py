@@ -7,8 +7,14 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_integration_from_jwt,
+    get_token,
+)
 
 from .integration import BitbucketIntegrationProvider
 
@@ -28,7 +34,39 @@ class BitbucketInstalledEndpoint(Endpoint):
 
     def post(self, request: Request, *args, **kwargs) -> Response:
         state = request.data
+        if not state:
+            return self.respond(status=400)
+
+        client_key = state.get("clientKey")
+        if not client_key:
+            return self.respond(status=400)
+
+        existing = Integration.objects.filter(
+            provider=IntegrationProviderSlug.BITBUCKET.value,
+            external_id=client_key,
+        ).first()
+
+        if existing:
+            try:
+                token = get_token(request)
+                rpc_integration = get_integration_from_jwt(
+                    token=token,
+                    path=request.path,
+                    provider=IntegrationProviderSlug.BITBUCKET.value,
+                    query_params=request.GET,
+                    method="POST",
+                )
+            except AtlassianConnectValidationError:
+                return self.respond(status=401)
+
+            if rpc_integration.external_id != client_key:
+                return self.respond(status=403)
+
         data = BitbucketIntegrationProvider().build_integration(state)
-        ensure_integration(IntegrationProviderSlug.BITBUCKET.value, data)
+        ensure_integration(
+            IntegrationProviderSlug.BITBUCKET.value,
+            data,
+            overwrite_existing_integration=bool(existing),
+        )
 
         return self.respond()

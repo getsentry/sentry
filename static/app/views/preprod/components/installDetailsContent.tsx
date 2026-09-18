@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
@@ -11,7 +12,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
-import {IconLink} from 'sentry/icons';
+import {IconDownload, IconEllipsis, IconLink} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -47,6 +48,16 @@ export function getDeviceInstallUrl(platform: Platform, installUrl: string): str
     return `itms-services://?action=download-manifest&url=${encodeURIComponent(installUrl)}`;
   }
   return installUrl;
+}
+
+export function getIpaDownloadUrl(installUrl: string): string {
+  try {
+    const url = new URL(installUrl);
+    url.searchParams.set('response_format', 'ipa');
+    return url.toString();
+  } catch {
+    return installUrl;
+  }
 }
 
 interface InstallDetailsContentProps {
@@ -177,6 +188,7 @@ export function InstallDetailsContent({
       installDetails.platform,
       installDetails.install_url
     );
+    const ipaDownloadUrl = getIpaDownloadUrl(installDetails.install_url);
     const details = installDetails.is_code_signature_valid !== undefined && (
       <CodeSignatureInfo>
         {installDetails.profile_name && (
@@ -246,61 +258,97 @@ export function InstallDetailsContent({
               justify="center"
               align={{zero: 'stretch', sm: 'center'}}
             >
-              <Flex width={{sm: '100%', xl: 'auto'}}>
-                {installDetails.platform === 'apple' ? (
-                  <LinkButton
-                    href={deviceInstallUrl}
-                    variant="primary"
-                    size="md"
-                    style={{width: '100%'}}
-                  >
-                    {t('Download')}
-                  </LinkButton>
-                ) : (
-                  <Button
-                    onClick={() => window.open(deviceInstallUrl, '_blank')}
-                    variant="primary"
-                    size="md"
-                    style={{width: '100%'}}
-                  >
-                    {t('Download')}
-                  </Button>
-                )}
-              </Flex>
-              {installDetails.install_url && (
-                <Flex
-                  alignSelf={{sm: 'stretch', xl: 'center'}}
-                  width={{sm: '100%', xl: 'auto'}}
-                >
-                  <Container display={{zero: 'block', sm: 'none'}} width="100%">
-                    <Button
-                      onClick={() =>
-                        copy(deviceInstallUrl, {
-                          successMessage: t('Copied Download Link'),
-                        })
-                      }
+              {installDetails.platform === 'apple' ? (
+                <Fragment>
+                  <Flex width={{sm: '100%', xl: 'auto'}}>
+                    <LinkButton
+                      href={deviceInstallUrl}
+                      variant="primary"
                       size="md"
-                      variant="secondary"
                       style={{width: '100%'}}
                     >
-                      {t('Copy Download Link')}
+                      {t('Install')}
+                    </LinkButton>
+                  </Flex>
+                  <Flex width={{sm: '100%', xl: 'auto'}}>
+                    <DropdownMenu
+                      items={[
+                        {
+                          key: 'download-ipa',
+                          label: t('Download IPA'),
+                          leadingItems: <IconDownload />,
+                          externalHref: ipaDownloadUrl,
+                        },
+                        {
+                          key: 'copy-link',
+                          label: t('Copy Install Link'),
+                          leadingItems: <IconLink />,
+                          onAction: () =>
+                            copy(deviceInstallUrl, {
+                              successMessage: t('Copied Install Link'),
+                            }),
+                        },
+                      ]}
+                      trigger={(triggerProps, _isOpen) => (
+                        <DropdownButton
+                          {...triggerProps}
+                          size="md"
+                          aria-label={t('More install options')}
+                          showChevron={false}
+                          style={{width: '100%'}}
+                        >
+                          <IconEllipsis />
+                        </DropdownButton>
+                      )}
+                    />
+                  </Flex>
+                </Fragment>
+              ) : (
+                <Fragment>
+                  <Flex width={{sm: '100%', xl: 'auto'}}>
+                    <Button
+                      onClick={() => window.open(deviceInstallUrl, '_blank')}
+                      variant="primary"
+                      size="md"
+                      style={{width: '100%'}}
+                    >
+                      {t('Download')}
                     </Button>
-                  </Container>
-                  <Container display={{zero: 'none', sm: 'block'}}>
-                    <Tooltip title={t('Copy Download Link')}>
+                  </Flex>
+                  <Flex
+                    alignSelf={{sm: 'stretch', xl: 'center'}}
+                    width={{sm: '100%', xl: 'auto'}}
+                  >
+                    <Container display={{zero: 'block', sm: 'none'}} width="100%">
                       <Button
-                        aria-label={t('Copy Download Link')}
-                        icon={<IconLink />}
-                        size="md"
                         onClick={() =>
                           copy(deviceInstallUrl, {
                             successMessage: t('Copied Download Link'),
                           })
                         }
-                      />
-                    </Tooltip>
-                  </Container>
-                </Flex>
+                        size="md"
+                        variant="secondary"
+                        style={{width: '100%'}}
+                      >
+                        {t('Copy Download Link')}
+                      </Button>
+                    </Container>
+                    <Container display={{zero: 'none', sm: 'block'}}>
+                      <Tooltip title={t('Copy Download Link')}>
+                        <Button
+                          aria-label={t('Copy Download Link')}
+                          icon={<IconLink />}
+                          size="md"
+                          onClick={() =>
+                            copy(deviceInstallUrl, {
+                              successMessage: t('Copied Download Link'),
+                            })
+                          }
+                        />
+                      </Tooltip>
+                    </Container>
+                  </Flex>
+                </Fragment>
               )}
             </Flex>
             <Text align="center" size="md" variant="muted">
