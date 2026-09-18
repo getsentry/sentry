@@ -4,6 +4,7 @@ import {useInfiniteQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
+import {Alert} from '@sentry/scraps/alert';
 import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -227,12 +228,17 @@ function EditAccessModal({
       </Header>
       <Body>
         <Stack gap="md">
+          {!userCanEditDashboardPermissions && (
+            <Alert variant="info">
+              {t('These settings can only be edited by the owner of this dashboard')}
+            </Alert>
+          )}
+
           <InputGroup>
             <InputGroup.LeadingItems disablePointerEvents>
               <IconSearch variant="muted" size="xs" />
             </InputGroup.LeadingItems>
             <InputGroup.Input
-              autoFocus
               size="sm"
               value={search}
               onChange={event => setSearch(event.target.value)}

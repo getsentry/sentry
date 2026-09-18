@@ -75,12 +75,6 @@ describe('EditAccessModal', () => {
     jest.clearAllMocks();
   });
 
-  it('focuses the search input when the modal opens', async () => {
-    await openEditAccessModal();
-
-    expect(screen.getByRole('textbox', {name: 'Search Team'})).toHaveFocus();
-  });
-
   it('renders the owner, every team and the Select All control', async () => {
     await openEditAccessModal();
 
@@ -171,6 +165,26 @@ describe('EditAccessModal', () => {
     expect(await screen.findByRole('checkbox', {name: 'team1'})).toBeDisabled();
     expect(selectAllCheckbox()).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Apply'})).toBeDisabled();
+  });
+
+  it('explains why the controls are inert for users who cannot manage access', async () => {
+    await openEditAccessModal({organization: OrganizationFixture({access: []})});
+
+    expect(
+      await screen.findByText(
+        'These settings can only be edited by the owner of this dashboard'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('omits the notice for users who can manage access', async () => {
+    await openEditAccessModal();
+
+    expect(
+      screen.queryByText(
+        'These settings can only be edited by the owner of this dashboard'
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('filters the team list by search', async () => {
