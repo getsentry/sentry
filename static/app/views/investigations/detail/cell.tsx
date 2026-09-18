@@ -25,6 +25,11 @@ import {
   IconSeer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {
+  getElapsedMilliseconds,
+  useElapsedTime,
+  useNow,
+} from 'sentry/utils/duration/useElapsedTime';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getInvestigationDetailQueryOptions,
@@ -636,7 +641,7 @@ function RefinementPanel({
   const elapsed = useElapsedTime(
     currentExecution?.startedAt ?? execution?.blocks[0]?.timestamp ?? null,
     currentExecution?.completedAt ?? null,
-    active
+    {active}
   );
 
   useEffect(() => {
@@ -1044,34 +1049,6 @@ function adaptTranscriptBlock(block: InvestigationTranscriptBlock): Block {
   };
 }
 
-function useElapsedTime(start: string | null, end: string | null, active: boolean) {
-  const now = useNow(active);
-  return getElapsedMilliseconds(start, end ?? (active ? now : null));
-}
-
-function useNow(active: boolean) {
-  const [now, setNow] = useState(() => new Date().toISOString());
-  useEffect(() => {
-    if (!active) {
-      return;
-    }
-    const interval = window.setInterval(() => setNow(new Date().toISOString()), 250);
-    return () => window.clearInterval(interval);
-  }, [active]);
-  return now;
-}
-
-function getElapsedMilliseconds(start: string | null, end: string | null) {
-  if (!start || !end) {
-    return null;
-  }
-  const duration = Date.parse(end) - Date.parse(start);
-  if (!Number.isFinite(duration) || duration < 0) {
-    return null;
-  }
-  return duration;
-}
-
 function ElapsedDuration({milliseconds}: {milliseconds: number}) {
   return (
     <Text monospace variant="muted">
@@ -1246,8 +1223,7 @@ const CellActions = styled(Flex)`
 `;
 
 const CellHoverSurface = styled(Stack)`
-  &:hover ${CellActions},
-  &:focus-within ${CellActions} {
+  &:hover ${CellActions}, &:focus-within ${CellActions} {
     opacity: 1;
     pointer-events: auto;
   }

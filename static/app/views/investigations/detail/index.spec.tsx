@@ -13,6 +13,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
@@ -124,6 +125,10 @@ describe('Investigation detail', () => {
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
     createFeedbackForm.mockClear();
     ConfigStore.set('customerDomain', null);
+  });
+
+  afterEach(() => {
+    resetMockDate();
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -1796,6 +1801,9 @@ describe('Investigation detail', () => {
   // as agentic, and the orchestration endpoint 404s without a run, so the gate
   // has to hold in both directions.
   it('renders the live run status beside the investigation title and hypotheses below', async () => {
+    // The fixture's investigation starts after the suite-wide frozen clock, and
+    // a run that has not begun yet has no wall time to count.
+    setMockDate(new Date('2026-08-13T20:05:00Z'));
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: InvestigationAgenticDetailFixture(),
@@ -1820,6 +1828,8 @@ describe('Investigation detail', () => {
       within(header).getByRole('textbox', {name: 'Investigation title'})
     ).toBeInTheDocument();
     expect(within(header).getByText('Synthesizing…')).toBeInTheDocument();
+    // The wall clock counts up while the run is going.
+    expect(within(header).getByRole('timer', {name: 'Time elapsed'})).toBeInTheDocument();
     expect(
       within(screen.getByTestId('seer-status-block')).queryByText('Synthesizing…')
     ).not.toBeInTheDocument();
@@ -1839,8 +1849,43 @@ describe('Investigation detail', () => {
 
     expect(await within(header).findByText('Completed')).toBeInTheDocument();
     expect(within(header).queryByText('Synthesizing…')).not.toBeInTheDocument();
+    // …and settles into the total the finished run took.
+    expect(
+      await within(header).findByRole('timer', {name: 'Total run time'})
+    ).toBeInTheDocument();
+    expect(
+      within(header).queryByRole('timer', {name: 'Time elapsed'})
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Your investigation is ready')).toBeInTheDocument();
   });
+
+  // How long a run went before it stopped is worth the same whether it
+  // succeeded or not, so an unsuccessful end keeps its total too.
+  it.each(['failed', 'cancelled'] as const)(
+    'keeps the total on a %s run',
+    async status => {
+      setMockDate(new Date('2026-08-13T20:05:00Z'));
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationAgenticDetailFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          status,
+          phase: status,
+          updatedAt: '2026-08-13T20:04:00Z',
+        }),
+      });
+
+      renderView();
+
+      const header = await screen.findByRole('banner');
+      expect(
+        await within(header).findByRole('timer', {name: 'Total run time'})
+      ).toHaveTextContent('4.0min');
+    }
+  );
 
   it('does not reach for orchestration on a manual investigation', async () => {
     MockApiClient.addMockResponse({

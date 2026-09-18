@@ -9,9 +9,11 @@ import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
   InvestigationBlockExecutionFixture,
   InvestigationBlockFixture,
+  InvestigationAgenticDetailFixture,
   InvestigationBreachedMetricDetailFixture,
   InvestigationDetailFixture,
   InvestigationFailedDetailFixture,
+  InvestigationOrchestrationFixture,
   InvestigationAwaitingInputExecutionFixture,
   InvestigationExecutionDetailFixture,
   InvestigationQueryOutputFixture,
@@ -239,6 +241,30 @@ const runningInvestigation = InvestigationRunningDetailFixture({
   ],
 });
 
+// The header's status chip — and the wall clock beside it — only appear on an
+// agentic run, since `orchestration` being present is the only thing that marks
+// one. Both times are relative to page load, so the counter reads like a live
+// run rather than one dated to whenever this fixture was written.
+const agenticRunStartedAt = new Date(Date.now() - 12 * 1000).toISOString();
+// A finished run's total is measured to the projection's last update.
+const agenticRunFinishedAt = new Date(
+  Date.parse(agenticRunStartedAt) + 47_300
+).toISOString();
+const agenticRunningInvestigation = InvestigationAgenticDetailFixture({
+  id: 'agentic-running-investigation',
+  title: 'Checkout latency after payments-api deploy',
+  sourceType: 'metric_open_period',
+  dateCreated: agenticRunStartedAt,
+  blocks: [],
+});
+const agenticCompletedInvestigation = InvestigationAgenticDetailFixture({
+  id: 'agentic-completed-investigation',
+  title: 'Checkout latency after payments-api deploy',
+  sourceType: 'metric_open_period',
+  dateCreated: agenticRunStartedAt,
+  blocks: [],
+});
+
 const awaitingInputExecutionId = 'awaiting-input-execution';
 const awaitingInputInvestigation = InvestigationDetailFixture({
   id: 'awaiting-input-investigation',
@@ -401,6 +427,41 @@ export default Storybook.story('Investigations — Detail', story => {
     >
       <Container minHeight="760px" border="primary" radius="md" overflow="hidden">
         <InvestigationBootstrapPage investigationId={runningInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Agentic run in progress', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-agentic-running"
+      details={[agenticRunningInvestigation]}
+      orchestration={{
+        [agenticRunningInvestigation.id]: InvestigationOrchestrationFixture({
+          investigationId: agenticRunningInvestigation.id,
+        }),
+      }}
+    >
+      <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
+        <InvestigationBootstrapPage investigationId={agenticRunningInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Agentic run finished', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-agentic-completed"
+      details={[agenticCompletedInvestigation]}
+      orchestration={{
+        [agenticCompletedInvestigation.id]: InvestigationOrchestrationFixture({
+          investigationId: agenticCompletedInvestigation.id,
+          status: 'completed',
+          phase: 'completed',
+          updatedAt: agenticRunFinishedAt,
+        }),
+      }}
+    >
+      <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
+        <InvestigationBootstrapPage investigationId={agenticCompletedInvestigation.id} />
       </Container>
     </InvestigationFixtureApi>
   ));
