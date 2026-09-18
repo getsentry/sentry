@@ -46,27 +46,12 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
 };
 
 // Non-zero size so the SplitPanel isn't gated out (jsdom reports 0×0).
-const CONTAINER_SIZE = {width: 1200, height: 800};
+const CONTAINER_SIZE = {width: 1187, height: 800};
 
-// Drive matchMedia per-query so the wide-screen and short-landscape checks can
-// resolve independently.
-function mockMatchMedia(matches: (query: string) => boolean) {
-  window.matchMedia = jest.fn().mockImplementation((query: string) => ({
-    matches: matches(query),
-    media: query,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  }));
-}
-
-// Orientation is driven by media queries (the `xl` width breakpoint and a
-// short-landscape check); match every query uniformly.
-function mockWideScreen(matches: boolean) {
-  mockMatchMedia(() => matches);
+function mockContainerWidth(width: number) {
+  jest
+    .spyOn(useDimensionsModule, 'useDimensions')
+    .mockReturnValue({width, height: CONTAINER_SIZE.height});
 }
 
 function OpenSeerControl({options}: {options?: OpenSeerExplorerDrawerOptions}) {
@@ -128,10 +113,8 @@ describe('SeerExplorerSidebarLayout', () => {
     sessionStorage.clear();
     localStorage.clear();
     jest.clearAllMocks();
-    // jsdom reports 0×0, which would gate out the SplitPanel — provide a real size.
-    jest.spyOn(useDimensionsModule, 'useDimensions').mockReturnValue(CONTAINER_SIZE);
-    // Narrow viewport by default → auto docks to the bottom.
-    mockWideScreen(false);
+    // The content would be 767px wide beside the default 420px Seer pane.
+    mockContainerWidth(CONTAINER_SIZE.width);
     jest
       .spyOn(useSeerExplorerModule, 'useSeerExplorer')
       .mockReturnValue(defaultHookReturn);
@@ -206,8 +189,8 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(screen.getByText('main app content')).toBe(before);
   });
 
-  it('docks Seer to the bottom on a narrow viewport (auto)', async () => {
-    mockWideScreen(false);
+  it('docks Seer to the bottom below the content breakpoint (auto)', async () => {
+    mockContainerWidth(1187);
     renderSidebar(orgWithSidebar);
 
     await userEvent.click(screen.getByText('open-seer'));
@@ -216,20 +199,9 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(splitOrientation()).toBe('vertical');
   });
 
-  it('docks Seer to the right on a wide viewport (auto)', async () => {
-    mockWideScreen(true);
-    renderSidebar(orgWithSidebar);
-
-    await userEvent.click(screen.getByText('open-seer'));
-
-    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
-    expect(splitOrientation()).toBe('horizontal');
-  });
-
-  it('docks Seer to the right on a short landscape viewport (auto)', async () => {
-    // Not wide (min-width: xl is false), but landscape and short — e.g. a phone
-    // held sideways, where a bottom dock has no room. Auto docks right instead.
-    mockMatchMedia(query => query.includes('orientation: landscape'));
+  it('docks Seer to the right at the content breakpoint (auto)', async () => {
+    // 1188px available − the default 420px Seer pane = container.xl (768px).
+    mockContainerWidth(1188);
     renderSidebar(orgWithSidebar);
 
     await userEvent.click(screen.getByText('open-seer'));
@@ -241,7 +213,7 @@ describe('SeerExplorerSidebarLayout', () => {
   it('lets a persisted position override the viewport default', async () => {
     // Force "right" even on a narrow viewport (auto would be bottom).
     localStorage.setItem(POSITION_KEY, JSON.stringify('right'));
-    mockWideScreen(false);
+    mockContainerWidth(1187);
 
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
@@ -252,7 +224,7 @@ describe('SeerExplorerSidebarLayout', () => {
 
   it('changes and persists the dock position via the dropdown', async () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    mockWideScreen(false); // auto → bottom
+    mockContainerWidth(1187); // auto → bottom
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
     const input = await screen.findByTestId('seer-explorer-input');
@@ -285,7 +257,7 @@ describe('SeerExplorerSidebarLayout', () => {
     // Growing the content pane by one keyboard step (ArrowRight, +10 → 790)
     // shrinks Seer to 1200 − 790 = 410, which is what we persist.
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    mockWideScreen(true);
+    mockContainerWidth(1200);
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
     const input = await screen.findByTestId('seer-explorer-input');
@@ -318,7 +290,7 @@ describe('SeerExplorerSidebarLayout', () => {
     // Persistence runs through `onResizeEnd`, which fires only on a committed
     // drag/keyboard/double-click — never on open or the measure-driven seed. So
     // nothing is written on open; reads fall back to the default size.
-    mockWideScreen(true);
+    mockContainerWidth(1200);
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
@@ -330,7 +302,7 @@ describe('SeerExplorerSidebarLayout', () => {
     // Bottom dock, viewport too short to fit the saved Seer size (700) alongside
     // the content minimum. Opening must not write anything (no committed resize),
     // so the saved preference survives and is restored once the viewport has room.
-    mockWideScreen(false); // auto → bottom
+    mockContainerWidth(1187); // auto → bottom
     jest
       .spyOn(useDimensionsModule, 'useDimensions')
       .mockReturnValue({width: 1200, height: 360});
@@ -344,7 +316,7 @@ describe('SeerExplorerSidebarLayout', () => {
   });
 
   it('switches to the run when opened with a runId (deep link / session picker)', async () => {
-    mockWideScreen(true);
+    mockContainerWidth(1200);
     MockApiClient.addMockResponse({
       url: `/organizations/${orgWithSidebar.slug}/seer/explorer-chat/99/`,
       method: 'GET',
@@ -361,7 +333,7 @@ describe('SeerExplorerSidebarLayout', () => {
   });
 
   it('auto-submits an initialQuery when opened (command palette)', async () => {
-    mockWideScreen(true);
+    mockContainerWidth(1200);
     renderSidebar(orgWithSidebar, {initialQuery: 'find the bug'});
 
     await userEvent.click(screen.getByText('open-seer'));
@@ -376,7 +348,7 @@ describe('SeerExplorerSidebarLayout', () => {
   });
 
   it('does not resubmit a command-palette query after close and reopen', async () => {
-    mockWideScreen(true);
+    mockContainerWidth(1200);
     renderSidebar(orgWithSidebar, {initialQuery: 'find the bug'});
 
     // First open auto-submits the forwarded query exactly once.
@@ -397,7 +369,7 @@ describe('SeerExplorerSidebarLayout', () => {
   });
 
   it('re-submits the same query when re-forwarded while open', async () => {
-    mockWideScreen(true);
+    mockContainerWidth(1200);
     renderSidebar(orgWithSidebar, {initialQuery: 'find the bug'});
 
     // First forward auto-submits once.
@@ -413,7 +385,7 @@ describe('SeerExplorerSidebarLayout', () => {
 
   it('tracks the global-panel-opened analytics when the sidebar opens', async () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    mockWideScreen(true);
+    mockContainerWidth(1200);
     renderSidebar(orgWithSidebar);
 
     await userEvent.click(screen.getByText('open-seer'));
@@ -443,7 +415,7 @@ describe('SeerExplorerSidebarLayout', () => {
       value: {requestWindow, window: null},
     });
 
-    mockWideScreen(true);
+    mockContainerWidth(1200);
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
     const input = await screen.findByTestId('seer-explorer-input');
@@ -471,7 +443,7 @@ describe('SeerExplorerSidebarLayout', () => {
     // user was on. Anything the panel reads off a session can throw — the
     // containment is what keeps that from being a page-wide crash.
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    mockWideScreen(true);
+    mockContainerWidth(1200);
     jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockImplementation(() => {
       throw new TypeError("Cannot read properties of undefined (reading 'map')");
     });
@@ -486,7 +458,7 @@ describe('SeerExplorerSidebarLayout', () => {
   });
 
   it('closes the sidebar from the close button', async () => {
-    mockWideScreen(true);
+    mockContainerWidth(1200);
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
