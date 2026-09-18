@@ -1,5 +1,5 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
-import {ThemeProvider, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import screenfull from 'screenfull';
 
@@ -12,7 +12,6 @@ import {Text} from '@sentry/scraps/text';
 import {IconContract, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ContainerBreakpointSize} from 'sentry/utils/theme';
-import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useFullscreen} from 'sentry/utils/window/useFullscreen';
 import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
@@ -34,6 +33,13 @@ interface HeadingBreadcrumb {
   to: string;
 }
 
+type ContainerBreakpoint = [name: ContainerBreakpointSize, px: number];
+
+interface DemoSize {
+  height: number;
+  width: number;
+}
+
 export function Demo({resizable, standalone, ...props}: DemoProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const fullscreenRef = useRef<HTMLDivElement>(null);
@@ -42,8 +48,6 @@ export function Demo({resizable, standalone, ...props}: DemoProps) {
   const {toggle: toggleFullscreen} = useFullscreen({elementRef: fullscreenRef});
   const isFullscreen = useIsFullscreen();
   const [breadcrumb, setBreadcrumb] = useState<HeadingBreadcrumb[]>([]);
-  const theme = useTheme();
-  const invertedTheme = useInvertedTheme();
 
   if (!resizable) {
     return (
@@ -89,11 +93,22 @@ export function Demo({resizable, standalone, ...props}: DemoProps) {
         <DemoChrome
           {...revealProps}
           ref={fullscreenRef}
-          marginTop="md"
+          marginTop={isFullscreen ? '0' : 'md'}
           position="relative"
-          style={{marginBottom: '-1lh'}}
+          style={{
+            marginBottom: isFullscreen ? 0 : '-1lh',
+          }}
         >
-          <Ruler containerRef={containerRef} breakpoints={breakpoints} />
+          <Container background="secondary" borderBottom="primary">
+            <DemoToolbar
+              breadcrumb={isFullscreen ? breadcrumb : []}
+              breakpoints={breakpoints}
+              dimensions={dimensions}
+              isFullscreen={isFullscreen}
+              onFullscreenToggle={handleFullscreenToggle}
+            />
+            <Ruler containerRef={containerRef} breakpoints={breakpoints} />
+          </Container>
           <Flex align="center" justify="center" flex="1" minHeight="0" padding="xl">
             <ResizableWindow ref={containerRef}>
               <Flex
@@ -111,103 +126,132 @@ export function Demo({resizable, standalone, ...props}: DemoProps) {
               />
             </ResizableWindow>
           </Flex>
-          <ThemeProvider theme={isFullscreen ? invertedTheme : theme}>
-            <Grid
-              columns="minmax(0, 1fr) auto minmax(0, 1fr)"
-              align="center"
-              minHeight="32px"
-              margin="0 xl md xl"
-              padding="0"
-              css={toolbarTheme =>
-                isFullscreen
-                  ? {
-                      background: toolbarTheme.tokens.background.overlay,
-                      border: `1px solid ${toolbarTheme.tokens.border.primary}`,
-                      borderRadius: toolbarTheme.radius.lg,
-                      boxShadow: toolbarTheme.shadow.high,
-                    }
-                  : undefined
-              }
-            >
-              <Flex
-                align="center"
-                gap="sm"
-                minWidth="0"
-                overflow="hidden"
-                containerType="inline-size"
-              >
-                {isFullscreen && breadcrumb.length > 0 && (
-                  <Fragment>
-                    <Flex align="center" minWidth="0" flex="0 1 auto">
-                      <BreadcrumbList
-                        items={breadcrumb.slice(0, -1).map(item => ({
-                          type: 'link',
-                          ...item,
-                        }))}
-                      />
-                    </Flex>
-                    <Flex align="center" minWidth="0" flexGrow={1}>
-                      <BreadcrumbList.Title
-                        item={{
-                          type: 'page-title',
-                          label: breadcrumb.at(-1)?.label ?? '',
-                        }}
-                      />
-                    </Flex>
-                  </Fragment>
-                )}
-              </Flex>
-              <Flex align="center" justify="center" gap="sm">
-                <Container display="inline-block" width="4ch">
-                  <Text align="right">
-                    {getActiveBreakpoint(breakpoints, dimensions.width)}
-                  </Text>
-                </Container>
-                <Text variant="muted" tabular>
-                  ({Math.round(dimensions.width)}px)
-                </Text>
-                <Text monospace variant="muted">
-                  ×
-                </Text>
-                <Container display="inline-block" width="4ch">
-                  <Text align="right">
-                    {getActiveBreakpoint(breakpoints, dimensions.height)}
-                  </Text>
-                </Container>
-                <Text variant="muted" tabular>
-                  ({Math.round(dimensions.height)}px)
-                </Text>
-              </Flex>
-              <Flex justify="end">
-                {screenfull.isEnabled && (
-                  <RevealOnHover.Action>
-                    <Button
-                      size="sm"
-                      tooltipProps={{
-                        title: isFullscreen
-                          ? t('Exit full screen')
-                          : t('Enter full screen'),
-                      }}
-                      aria-label={
-                        isFullscreen ? t('Exit full screen') : t('Enter full screen')
-                      }
-                      icon={
-                        isFullscreen ? (
-                          <IconContract size="sm" />
-                        ) : (
-                          <IconExpand size="sm" />
-                        )
-                      }
-                      onClick={handleFullscreenToggle}
-                    />
-                  </RevealOnHover.Action>
-                )}
-              </Flex>
-            </Grid>
-          </ThemeProvider>
         </DemoChrome>
       )}
     </RevealOnHover>
+  );
+}
+
+interface DemoToolbarProps {
+  breadcrumb: HeadingBreadcrumb[];
+  breakpoints: ContainerBreakpoint[];
+  dimensions: DemoSize;
+  isFullscreen: boolean;
+  onFullscreenToggle: () => void;
+}
+
+function DemoToolbar({
+  breadcrumb,
+  breakpoints,
+  dimensions,
+  isFullscreen,
+  onFullscreenToggle,
+}: DemoToolbarProps) {
+  return (
+    <Grid
+      columns="minmax(0, 1fr) auto minmax(0, 1fr)"
+      align="center"
+      minHeight="32px"
+      margin="0"
+      padding="xs xl"
+    >
+      <DemoBreadcrumbs items={breadcrumb} />
+      <DemoDimensions breakpoints={breakpoints} dimensions={dimensions} />
+      <Flex justify="end">
+        <DemoFullscreenButton isFullscreen={isFullscreen} onClick={onFullscreenToggle} />
+      </Flex>
+    </Grid>
+  );
+}
+
+interface DemoBreadcrumbsProps {
+  items: HeadingBreadcrumb[];
+}
+
+function DemoBreadcrumbs({items}: DemoBreadcrumbsProps) {
+  return (
+    <Flex
+      align="center"
+      gap="sm"
+      minWidth="0"
+      overflow="hidden"
+      containerType="inline-size"
+    >
+      {items.length > 0 && (
+        <Fragment>
+          <Flex align="center" minWidth="0" flex="0 1 auto">
+            <BreadcrumbList
+              items={items.slice(0, -1).map(item => ({type: 'link', ...item}))}
+            />
+          </Flex>
+          <Flex align="center" minWidth="0" flexGrow={1}>
+            <BreadcrumbList.Title
+              item={{type: 'page-title', label: items.at(-1)?.label ?? ''}}
+            />
+          </Flex>
+        </Fragment>
+      )}
+    </Flex>
+  );
+}
+
+interface DemoDimensionsProps {
+  breakpoints: ContainerBreakpoint[];
+  dimensions: DemoSize;
+}
+
+function DemoDimensions({breakpoints, dimensions}: DemoDimensionsProps) {
+  return (
+    <Flex align="center" justify="center" gap="sm">
+      <DemoDimension breakpoints={breakpoints} size={dimensions.width} />
+      <Text monospace variant="muted">
+        ×
+      </Text>
+      <DemoDimension breakpoints={breakpoints} size={dimensions.height} />
+    </Flex>
+  );
+}
+
+interface DemoDimensionProps {
+  breakpoints: ContainerBreakpoint[];
+  size: number;
+}
+
+function DemoDimension({breakpoints, size}: DemoDimensionProps) {
+  return (
+    <Fragment>
+      <Container display="inline-block" width="4ch">
+        <Text align="right">{getActiveBreakpoint(breakpoints, size)}</Text>
+      </Container>
+      <Text variant="muted" tabular>
+        ({Math.round(size)}px)
+      </Text>
+    </Fragment>
+  );
+}
+
+interface DemoFullscreenButtonProps {
+  isFullscreen: boolean;
+  onClick: () => void;
+}
+
+function DemoFullscreenButton({isFullscreen, onClick}: DemoFullscreenButtonProps) {
+  if (!screenfull.isEnabled) {
+    return null;
+  }
+
+  const label = isFullscreen ? t('Exit full screen') : t('Enter full screen');
+
+  return (
+    <RevealOnHover.Action>
+      <Button
+        size="zero"
+        tooltipProps={{title: label}}
+        aria-label={label}
+        icon={isFullscreen ? <IconContract size="xs" /> : <IconExpand size="xs" />}
+        onClick={onClick}
+      />
+    </RevealOnHover.Action>
   );
 }
 
@@ -239,15 +283,12 @@ function getHeadingBreadcrumb(element: HTMLElement | null): HeadingBreadcrumb[] 
   return outline.filter(item => item.label);
 }
 
-function useContainerBreakpoints(): Array<[ContainerBreakpointSize, number]> {
+function useContainerBreakpoints(): ContainerBreakpoint[] {
   const theme = useTheme();
   return useMemo(
     () =>
       (Object.entries(theme.container) as Array<[ContainerBreakpointSize, string]>)
-        .map(
-          ([key, value]) =>
-            [key, parseInt(value, 10)] as [ContainerBreakpointSize, number]
-        )
+        .map(([key, value]) => [key, parseInt(value, 10)] as ContainerBreakpoint)
         .filter(([key, px]) => key !== 'zero' && px > 0)
         .sort((a, b) => a[1] - b[1]),
     [theme.container]
@@ -255,7 +296,7 @@ function useContainerBreakpoints(): Array<[ContainerBreakpointSize, number]> {
 }
 
 function getActiveBreakpoint(
-  breakpoints: Array<[ContainerBreakpointSize, number]>,
+  breakpoints: ContainerBreakpoint[],
   size: number
 ): ContainerBreakpointSize {
   for (let i = breakpoints.length - 1; i >= 0; i--) {
@@ -271,7 +312,7 @@ function Ruler({
   containerRef,
   breakpoints,
 }: {
-  breakpoints: Array<[ContainerBreakpointSize, number]>;
+  breakpoints: ContainerBreakpoint[];
   containerRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const snapTo = (px: number) => {
@@ -285,8 +326,8 @@ function Ruler({
   return (
     <Container
       position="relative"
-      background="secondary"
-      borderBottom="primary"
+      background="tertiary"
+      borderTop="primary"
       overflow="hidden"
       style={{height: 28, zIndex: 1}}
     >
@@ -332,6 +373,7 @@ const TickButton = styled('button')`
     opacity: 0;
     transition: opacity 100ms;
   }
+
   &:hover {
     border-color: ${p => p.theme.tokens.border.transparent.accent.vibrant};
     background:
