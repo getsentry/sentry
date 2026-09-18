@@ -13,7 +13,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {
   getCustomEventsFieldRenderer,
   transformEventsResponseToTable,
-} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+} from 'sentry/views/dashboards/datasetConfig/events';
 
 const theme = ThemeFixture();
 
@@ -26,7 +26,7 @@ describe('transformEventsResponseToTable', () => {
         units: {
           'p75(measurements.inp)': 'millisecond',
         },
-        dataset: 'discover',
+        dataset: 'errors',
         fields: {
           'p75(measurements.inp)': 'duration',
         },
@@ -41,7 +41,7 @@ describe('transformEventsResponseToTable', () => {
       units: {
         'p75(measurements.inp)': 'millisecond',
       },
-      dataset: 'discover',
+      dataset: 'errors',
       fields: {
         'p75(measurements.inp)': 'duration',
       },
