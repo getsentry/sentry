@@ -95,6 +95,7 @@ export function SeerExplorerDebugMenu({
         }
       }}
       position="bottom-end"
+      preventOverflowOptions={{boundary: document.body}}
       menuWidth={200}
       size="xs"
       trigger={triggerProps => (
