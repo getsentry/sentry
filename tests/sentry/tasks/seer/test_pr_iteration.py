@@ -4,6 +4,7 @@ from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.utils import timezone
 from scm.errors import ResourceNotFound
 from scm.types import ReviewComment
 
@@ -25,6 +26,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.details_store import open_iterations
 from sentry.seer.autofix.pr_iteration.emit import (
     BLOCKED_OUTCOMES_DATA_KEY,
+    FAILURE_REASON_DATA_KEY,
     PrIterationOutcome,
     bootstrap_iteration,
 )
@@ -60,7 +62,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.models import SeerApiError, SeerPermissionError
-from sentry.seer.models.run import SeerRun
+from sentry.seer.models.run import SeerRun, SeerRunPrIteration
 from sentry.tasks.seer.pr_iteration import (
     ALREADY_PAUSED_PR_ITERATION_COMMENT,
     STOP_PR_ITERATION_FAILED_COMMENT,
@@ -68,10 +70,12 @@ from sentry.tasks.seer.pr_iteration import (
     UnsupportedProviderError,
     _build_review_feedback,
     _delete_own_comment_eyes_reaction,
+    _dropped_drain_reason,
     _ineligible_pr_iteration_comment_body,
     _resolve_review_comment_threads,
     consume_queued_autofix_feedback,
     pause_pr_iteration_from_comment,
+    sweep_pr_iteration_details,
     trigger_consume_pr_iteration_feedback,
     trigger_pr_iteration_from_comment,
 )
@@ -1863,12 +1867,14 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_a_fully_dropped_drain_closes_its_row(
+    def test_a_fully_dropped_drain_keeps_its_row_with_the_reason(
         self,
         mock_fetch: MagicMock,
         mock_pop: MagicMock,
         _mock_trigger: MagicMock,
     ) -> None:
+        # The drain popped the queue, so this batch will never run. Its row
+        # stays, claimed and carrying why, for the sweep to report.
         seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         stale, block = self._stale_feedback()
         mock_fetch.return_value = self._state(blocks=[block])
@@ -1877,7 +1883,9 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         self._call()
 
-        assert open_iterations(seer_run) == []
+        (row,) = open_iterations(seer_run)
+        assert row.triggered is True
+        assert row.data[FAILURE_REASON_DATA_KEY] == "already_processed"
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -1943,10 +1951,12 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         self._open_iteration_row()
         self._call()
 
-        (row,) = open_iterations(seer_run)
+        dropped_row, row = open_iterations(seer_run)
         assert mock_trigger.call_args.kwargs["iteration_id"] == row.id
         assert row.data["feedback_count"] == 1
         assert row.data["dropped_count"] == 0
+        assert FAILURE_REASON_DATA_KEY not in row.data
+        assert FAILURE_REASON_DATA_KEY in dropped_row.data
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -2214,6 +2224,46 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         assert decision == TriggerDecision(task=None, reason="hard_cap_reached")
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_refused_trigger_writes_its_reason_on_the_waiting_row(
+        self, _mock_apply: MagicMock
+    ) -> None:
+        # Nothing will drain this batch, so the row is what carries why: the
+        # sweep emits it under this reason if nothing later triggers the row.
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+        self._trigger(decision=TriggerDecision(task=None, reason="stale_head"))
+
+        (row,) = open_iterations(seer_run)
+        assert row.triggered is False
+        assert row.data[FAILURE_REASON_DATA_KEY] == "stale_head"
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_scheduled_trigger_writes_no_reason(self, _mock_apply: MagicMock) -> None:
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+        decision = self._trigger()
+
+        assert decision.task is ConsumeTask.Now
+        (row,) = open_iterations(seer_run)
+        assert FAILURE_REASON_DATA_KEY not in row.data
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_a_paused_run_returns_a_refusal(self, mock_apply: MagicMock) -> None:
         self.create_seer_run(
             organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
@@ -2254,6 +2304,50 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
 
         mock_apply.assert_called_once()
         assert mock_apply.call_args.kwargs["countdown"] is None
+
+
+class DroppedDrainReasonTest(TestCase):
+    def test_a_head_that_moved_on_is_stale(self) -> None:
+        dropped = [{"id": "1", "reason": "stale_head"}, {"id": "2", "reason": "live_head_mismatch"}]
+
+        assert _dropped_drain_reason(dropped) == PrIterationOutcome.STALE_HEAD.value
+
+    def test_one_shared_reason_is_named(self) -> None:
+        dropped = [{"id": "1", "reason": "already_processed"}] * 2
+
+        assert _dropped_drain_reason(dropped) == "already_processed"
+
+    def test_a_mix_says_only_that_nothing_was_consumable(self) -> None:
+        dropped = [{"id": "1", "reason": "stale_head"}, {"id": "2", "reason": "already_processed"}]
+
+        assert _dropped_drain_reason(dropped) == PrIterationOutcome.NO_CONSUMABLE_FEEDBACK.value
+
+
+class SweepPrIterationDetailsTest(TestCase):
+    def test_an_aged_row_is_emitted_and_discarded(self) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=SeerRunState(
+                run_id=67890, blocks=[], status="completed", updated_at="2024-01-01T00:00:00Z"
+            ),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+        SeerRunPrIteration.objects.update(date_updated=timezone.now() - timedelta(days=2))
+
+        with (
+            patch("sentry.analytics.record") as mock_record,
+            patch(f"{TASK_PATH}.logger") as mock_logger,
+        ):
+            sweep_pr_iteration_details()
+
+        assert mock_record.call_args.args[0].outcome == PrIterationOutcome.NEVER_TRIGGERED.value
+        assert mock_logger.info.call_args.kwargs["extra"] == {
+            "discarded": 1,
+            "emitted": 1,
+            "backlog": 1,
+        }
 
 
 class _ReactionScmProtocols:
