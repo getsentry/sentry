@@ -75,8 +75,10 @@ def solution_prompt(
     should_run_repo_checks: bool = False,
 ) -> str:
     testing_guidance = (
-        "End your plan with a verification step that runs the repository's linter over the"
-        " changed files and the tests covering the changed code."
+        "End your plan with a verification step that: (1) runs the repository's formatter"
+        " in auto-fix mode over the changed files (look for a format/lint:format/fmt script;"
+        " formatting and linting are separate tools), (2) runs the linter separately, and"
+        " (3) runs the tests covering the changed code."
         f" {_CHECK_COMMAND_SOURCES} Name them in the step."
         if should_run_repo_checks
         else "Do NOT include testing as part of your plan."
@@ -138,7 +140,8 @@ def code_changes_prompt(
             f"""
             Before you finish, verify your changes with the repository's own tooling:
             - Set the repository up first. The checkout has no dependencies installed, so run the project's install/setup commands (e.g. `npm install`, `yarn install`, `pip install -e .`, `make bootstrap`) before running any checks.
-            - Run the linter/formatter over the files you changed.
+            - Find and run the **formatter** (separate from the linter) over the files you changed, in auto-fix/write mode so it rewrites the files. Look for a `format`, `lint:format`, `fmt`, or similar script in `package.json`, `Makefile`, `pyproject.toml`, or CI config. Common tools: `prettier --write`, `black`, `ruff format`, `gofmt -w`. Formatting and linting are different tools — running the linter is not sufficient.
+            - Run the **linter** separately over the files you changed.
             - Run the tests covering the code you changed, scoping the run to the affected area when the suite is large.
             - Fix any failures your changes introduced, then re-run until they pass.
 
