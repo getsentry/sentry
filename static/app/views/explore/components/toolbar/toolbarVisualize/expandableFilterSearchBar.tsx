@@ -1,5 +1,6 @@
 import type {KeyboardEvent, PointerEvent, ReactNode} from 'react';
 import {useCallback, useRef} from 'react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DEFAULT_FILTER_KEY_MENU_WIDTH} from 'sentry/components/searchQueryBuilder/context';
@@ -80,6 +81,7 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
       document.documentElement.clientWidth - left - PAGE_EDGE_PADDING_PX
     )}px`;
     el.dataset.expanded = 'true';
+    delete el.dataset.collapsed;
     requestAnimationFrame(() => {
       if (ref.current) {
         ref.current.style.transition = '';
@@ -89,10 +91,11 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
 
   const collapseToDefaultWidth = useCallback(() => {
     const el = ref.current;
-    if (!el) {
+    if (!el || el.dataset.expanded !== 'true') {
       return;
     }
     el.style.width = '';
+    el.dataset.collapsed = 'true';
     delete el.dataset.expanded;
   }, []);
 
@@ -230,6 +233,18 @@ const ExpandableFilterSearchBarWrapper = styled('div')`
   ${FIELD_SELECTOR} {
     max-width: 100%;
     resize: none;
+  }
+
+  &[data-collapsed='true']:not(:focus-within) {
+    ${FIELD_SELECTOR} {
+      /* Use an opaque fill during closing, then return to the input's default fill. */
+      animation: ${p => keyframes`
+          from, to {
+            background-color: ${p.theme.tokens.background.secondary};
+          }
+        `}
+        ${p => p.theme.motion.smooth.moderate};
+    }
   }
 
   /* The measuring overlay sits above the input and swallows caret placement clicks. */
