@@ -412,6 +412,31 @@ describe('useSeerExplorer', () => {
       });
     });
 
+    it('reads a session that carries no blocks as an empty conversation', async () => {
+      // A run with no Seer state behind it (still mirroring, or failed to
+      // start) comes back as a status-only session. Reading `blocks` off it
+      // unguarded used to throw and take the whole page down with it.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/789/`,
+        method: 'GET',
+        body: {session: {status: 'error'}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.switchToRun(789);
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('error');
+      });
+      expect(result.current.sessionData?.blocks).toEqual([]);
+    });
+
     it('URL-encodes the runId when building explorer-update URLs', async () => {
       // A runId carrying path separators must be encoded so the same-origin
       // POST can't traverse to another endpoint.
