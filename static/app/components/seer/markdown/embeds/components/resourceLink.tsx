@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {isSafeHref} from '@sentry/scraps/markdown';
 
 import {
   IconChat,
@@ -20,7 +21,6 @@ import {
   IconTable,
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import {isSafeHref} from 'sentry/utils/marked/marked';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
 /**

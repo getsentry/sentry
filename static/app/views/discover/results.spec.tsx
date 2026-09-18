@@ -2,7 +2,13 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
@@ -1122,14 +1128,20 @@ describe('Results', () => {
         organization,
       });
 
-      expect(await screen.findByRole('link', {name: 'Discover'})).toBeInTheDocument();
+      const discoverCrumb = await screen.findByRole('link', {name: 'Discover'});
 
-      expect(screen.getByRole('link', {name: 'Discover'})).toHaveAttribute(
+      expect(discoverCrumb).toHaveAttribute(
         'href',
         expect.stringMatching(
           new RegExp('^/organizations/org-slug/explore/discover/homepage/')
         )
       );
+
+      // The query name heads the page, so it is not repeated in the trail.
+      expect(screen.getByRole('heading', {name: 'new', level: 1})).toBeInTheDocument();
+      expect(
+        within(discoverCrumb.closest('ol')!).queryByText('new')
+      ).not.toBeInTheDocument();
     });
 
     it('links back to the Saved Queries through the Saved Queries breadcrumb', async () => {
@@ -1158,6 +1170,47 @@ describe('Results', () => {
         expect.stringMatching(
           new RegExp('^/organizations/org-slug/explore/discover/queries/')
         )
+      );
+    });
+
+    it('renames the saved query from the page title', async () => {
+      const organization = OrganizationFixture({
+        features: ['discover-basic', 'discover-query'],
+      });
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+      renderMockRequests();
+      const mockUpdate = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/saved/1/',
+        method: 'PUT',
+        statusCode: 200,
+        body: {id: '1', name: 'Renamed query'},
+      });
+
+      render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            query: {id: '1'},
+          },
+          route: '/organizations/:orgId/explore/discover/results/',
+        },
+        organization,
+      });
+
+      const heading = await screen.findByRole('heading', {name: 'new', level: 1});
+      await userEvent.click(within(heading).getByText('new'));
+
+      const input = screen.getByRole('textbox', {name: 'Edit query name'});
+      expect(input).toHaveValue('new');
+
+      await userEvent.clear(input);
+      await userEvent.type(input, 'Renamed query{enter}');
+
+      await waitFor(() => expect(mockUpdate).toHaveBeenCalled());
+      expect(mockUpdate).toHaveBeenCalledWith(
+        '/organizations/org-slug/discover/saved/1/',
+        expect.objectContaining({data: expect.objectContaining({name: 'Renamed query'})})
       );
     });
 

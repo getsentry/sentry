@@ -373,41 +373,12 @@ function FlamegraphSearch({
   }, [handleChange, allFlamegraphFrames, spans]);
 
   const onNextSearchClick = useCallback(() => {
-    const frames = memoizedSortFrameResults(search.results);
-    if (!frames.length) {
-      return;
-    }
-
-    if (search.index === null || search.index === frames.length - 1) {
-      dispatch({type: 'set search index position', payload: 0});
-      return;
-    }
-
-    dispatch({
-      type: 'set search index position',
-      payload: search.index + 1,
-    });
-  }, [search.results, search.index, dispatch]);
+    dispatch({type: 'next search result'});
+  }, [dispatch]);
 
   const onPreviousSearchClick = useCallback(() => {
-    const frames = memoizedSortFrameResults(search.results);
-    if (!frames.length) {
-      return;
-    }
-
-    if (search.index === null || search.index === 0) {
-      dispatch({
-        type: 'set search index position',
-        payload: frames.length - 1,
-      });
-      return;
-    }
-
-    dispatch({
-      type: 'set search index position',
-      payload: search.index - 1,
-    });
-  }, [search.results, search.index, dispatch]);
+    dispatch({type: 'previous search result'});
+  }, [dispatch]);
 
   const handleKeyDown = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {

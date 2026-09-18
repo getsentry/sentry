@@ -93,7 +93,7 @@ export default function ErrorsQueryBlock({data}: {data: ErrorsQueryData}) {
       />
       {isChartOnly ? null : (
         <QueryEmbedTable
-          columns={eventColumns(fields)}
+          columns={eventColumns(fields, tableQuery.data?.meta)}
           emptyMessage={t('No matching errors')}
           errorMessage={t('Unable to load errors')}
           isError={tableQuery.isError}

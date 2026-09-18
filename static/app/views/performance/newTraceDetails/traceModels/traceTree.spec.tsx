@@ -1,14 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-
 import {
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isTransactionNode,
-} from './../traceGuards';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
 import {SpanNode} from './traceTreeNode/spanNode';

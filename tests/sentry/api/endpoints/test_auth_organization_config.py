@@ -4,6 +4,7 @@ from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -43,6 +44,36 @@ class AuthOrganizationConfigEndpointTest(APITestCase):
         assert response.data["provider"] == {"key": "dummy", "name": "Dummy"}
         assert response.data["ssoRequired"] is True
         assert response.data["joinRequestUrl"] is None
+
+    def test_demo_login_configuration(self) -> None:
+        demo_user = self.create_user()
+        organization = self.create_organization(owner=demo_user, name="Demo", slug="demo")
+
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [organization.id],
+            }
+        ):
+            response = self.get_success_response(organization.slug)
+
+        assert response.data["loginMethod"] == "demo"
+
+    def test_demo_login_configuration_requires_demo_mode(self) -> None:
+        demo_user = self.create_user()
+        organization = self.create_organization(owner=demo_user, name="Demo", slug="demo")
+
+        with override_options(
+            {
+                "demo-mode.enabled": False,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [organization.id],
+            }
+        ):
+            response = self.get_success_response(organization.slug)
+
+        assert response.data["loginMethod"] == "password"
 
     def test_sso_is_optional_when_unlinked_members_are_allowed(self) -> None:
         organization = self.create_organization(name="Acme", slug="acme")

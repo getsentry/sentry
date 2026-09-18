@@ -275,6 +275,7 @@ export function EditAccessSelector({
         disabled: !userCanEditDashboardPermissions,
       },
     ],
+    // oxlint-disable-next-line react/memo-dependencies
     [userCanEditDashboardPermissions, teamsToRender, makeCreatorOption, listSort]
   );
 

@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {Fragment, createElement, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 
-import {splitTags} from 'sentry/utils/marked/marked';
+import {splitTags} from '@sentry/scraps/markdown';
 
 import {SeerEmbedRegistry} from './embeds';
 

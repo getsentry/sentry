@@ -38,6 +38,7 @@ class GroupNoteTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(activity.id)
+        assert response.data[0]["commentId"] == str(activity.id)
 
     def test_note_merge(self) -> None:
         """Test that when 2 (or more) issues with comments are merged, the chronological order of the comments are preserved."""
@@ -125,6 +126,7 @@ class GroupNoteTest(APITestCase):
         assert len(response.data) == 1
         # `id` is the Activity id (comment_id), matching the flag-off contract
         assert response.data[0]["id"] == "123"
+        assert response.data[0]["commentId"] == "123"
         assert response.data[0]["type"] == "note"
         assert response.data[0]["user"]["id"] == str(self.user.id)
         assert response.data[0]["data"]["text"] == "hello world"
@@ -200,6 +202,7 @@ class GroupNoteCreateTest(APITestCase):
         assert response.status_code == 201, response.content
 
         activity = Activity.objects.get(id=response.data["id"])
+        assert response.data["commentId"] == str(activity.id)
         assert activity.user_id == self.user.id
         assert activity.group == group
         assert activity.data == {"text": "hello world"}
@@ -230,6 +233,7 @@ class GroupNoteCreateTest(APITestCase):
 
         # `id` is the Activity id (comment_id), matching the flag-off contract
         assert response.data["id"] == str(activity.id)
+        assert response.data["commentId"] == str(activity.id)
         assert response.data["type"] == "note"
         assert response.data["source"] == "mcp:claude-code"
         assert response.data["user"]["id"] == str(self.user.id)

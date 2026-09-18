@@ -235,11 +235,13 @@ export function AssertionOpGroup({
           )}
         >
           <CompositeSelect.Region
+            aria-label={t('Assertion group type')}
             value={groupOp.op}
             onChange={option => handleGroupTypeChange(option.value)}
             options={GROUP_TYPE_OPTIONS}
           />
           <CompositeSelect.Region
+            aria-label={t('Assertion group negation')}
             multiple
             value={isNegated ? ['negated'] : []}
             onChange={options =>

@@ -139,6 +139,7 @@ export function useExplorerMenu({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setSelectedIndex(0);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [menuItems]);
 
   // Scroll selected item into view when selection changes
