@@ -1,6 +1,7 @@
 import logging
 
 from django.db import IntegrityError, router, transaction
+from django.db.models import Exists, OuterRef
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,8 +15,8 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (AccessRequestPermission,)
 
     # TODO(dcramer): this should go onto AccessRequestPermission
-    def _can_access(self, request: Request, access_request: OrganizationAccessRequest) -> bool:
+    def _can_access(self, request: Request, team: Team) -> bool:
         if request.access.has_scope("org:admin"):
             return True
         if request.access.has_scope("org:write"):
@@ -71,9 +72,9 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
             return True
         if request.access.has_scope("member:write"):
             return True
-        if request.access.has_team_scope(access_request.team, "team:admin"):
+        if request.access.has_team_scope(team, "team:admin"):
             return True
-        if request.access.has_team_scope(access_request.team, "team:write"):
+        if request.access.has_team_scope(team, "team:write"):
             return True
         return False
 
@@ -82,40 +83,29 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
         Get a list of requests to join org/team.
         If any requests are redundant (user already joined the team), they are not returned.
         """
-        if request.access.has_scope("org:write"):
-            access_requests = list(
-                OrganizationAccessRequest.objects.filter(
-                    team__organization=organization,
-                    member__user_is_active=True,
-                    member__user_id__isnull=False,
-                ).select_related("team", "member")
+        access_requests = OrganizationAccessRequest.objects.filter(
+            team__organization=organization,
+            member__user_is_active=True,
+            member__user_id__isnull=False,
+        )
+        if not request.access.has_scope("org:write"):
+            teams = Team.objects.filter(
+                organization=organization, id__in=request.access.team_ids_with_membership
             )
+            team_ids = [team.id for team in teams if self._can_access(request, team)]
+            if not team_ids:
+                return Response([])
+            access_requests = access_requests.filter(team_id__in=team_ids)
 
-        elif request.access.team_ids_with_membership:
-            access_requests = list(
-                OrganizationAccessRequest.objects.filter(
-                    team__organization=organization,
-                    member__user_is_active=True,
-                    member__user_id__isnull=False,
-                    team__id__in=request.access.team_ids_with_membership,
-                ).select_related("team", "member")
-            )
-        else:
-            # Return empty response if user does not have access
-            return Response([])
+        # Omit requests for members who have already joined the requested team.
+        existing_membership = OrganizationMemberTeam.objects.filter(
+            organizationmember_id=OuterRef("member_id"), team_id=OuterRef("team_id")
+        )
+        access_requests = access_requests.filter(~Exists(existing_membership)).select_related(
+            "team", "member"
+        )
 
-        teams_by_user = OrganizationMember.objects.get_teams_by_user(organization=organization)
-
-        # We omit any requests which are now redundant (i.e. the user joined that team some other way)
-        valid_access_requests = [
-            access_request
-            for access_request in access_requests
-            if self._can_access(request, access_request)
-            and access_request.member.user_id is not None
-            and access_request.team_id not in teams_by_user[access_request.member.user_id]
-        ]
-
-        return Response(serialize(valid_access_requests, request.user))
+        return Response(serialize(list(access_requests), request.user))
 
     def put(self, request: Request, organization: Organization, request_id: int) -> Response:
         """
@@ -131,7 +121,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
         except OrganizationAccessRequest.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self._can_access(request, access_request):
+        if not self._can_access(request, access_request.team):
             return Response(status=403)
 
         serializer = AccessRequestSerializer(data=request.data, partial=True)

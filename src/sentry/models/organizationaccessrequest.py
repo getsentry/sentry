@@ -1,3 +1,5 @@
+from itertools import batched
+
 from django.conf import settings
 from django.db.models import Q
 from django.urls import reverse
@@ -8,6 +10,8 @@ from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_re
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.users.services.user.service import user_service
+
+REQUEST_EMAIL_BATCH_SIZE = 100
 
 
 @cell_silo_model
@@ -78,16 +82,25 @@ class OrganizationAccessRequest(Model):
         ).values("organizationmember_id")
 
         # find members which are either team scoped or have access to all teams
-        member_list = OrganizationMember.objects.filter(
-            Q(role__in=global_roles) | Q(id__in=team_admins),
-            organization=organization,
-            user_id__isnull=False,
-        ).values_list("user_id", flat=True)
-        member_users = user_service.get_many_by_id(
-            ids=[uid for uid in member_list if uid is not None]
+        member_list = (
+            OrganizationMember.objects.filter(
+                Q(role__in=global_roles) | Q(id__in=team_admins),
+                organization=organization,
+                user_id__isnull=False,
+            )
+            .order_by("user_id")
+            .values_list("user_id", flat=True)
         )
-
-        msg.send_async([user.email for user in member_users])
+        sent_emails: set[str] = set()
+        for member_ids in batched(
+            member_list.iterator(chunk_size=REQUEST_EMAIL_BATCH_SIZE), REQUEST_EMAIL_BATCH_SIZE
+        ):
+            member_users = user_service.get_many_by_id(
+                ids=[uid for uid in member_ids if uid is not None]
+            )
+            emails = {user.email for user in member_users} - sent_emails
+            msg.send_async(emails)
+            sent_emails.update(emails)
 
     def send_approved_email(self) -> None:
         from sentry.utils.email import MessageBuilder

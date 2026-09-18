@@ -1,8 +1,11 @@
+from unittest.mock import patch
+
 from django.core import mail
 
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.users.services.user.service import user_service
 
 
 class SendRequestEmailTest(TestCase):
@@ -105,10 +108,23 @@ class TeamAdminRequestEmailTest(TestCase):
         )
 
     @with_feature("organizations:team-roles")
-    def test_emails_only_approvers(self) -> None:
-        with self.tasks():
+    @patch("sentry.models.organizationaccessrequest.REQUEST_EMAIL_BATCH_SIZE", 2)
+    def test_emails_only_approvers_in_batches(self) -> None:
+        duplicate_email_user = self.create_user(email=self.user.email, username="duplicate-email")
+        self.create_member(
+            organization=self.organization,
+            user=duplicate_email_user,
+            team_roles=[(self.team, "admin")],
+        )
+        with (
+            self.tasks(),
+            patch.object(
+                user_service, "get_many_by_id", wraps=user_service.get_many_by_id
+            ) as get_many_by_id,
+        ):
             self.access_request.send_request_email()
 
+        assert [len(call.kwargs["ids"]) for call in get_many_by_id.call_args_list] == [2, 2, 1]
         assert sorted(message.to[0] for message in mail.outbox) == sorted(
             [self.user.email, self.manager.email, self.org_admin.email, self.team_admin.email]
         )

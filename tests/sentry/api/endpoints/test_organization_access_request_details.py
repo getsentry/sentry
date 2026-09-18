@@ -229,6 +229,24 @@ class TeamAdminUpdateAccessRequestTest(APITestCase):
         assert OrganizationAccessRequest.objects.filter(id=self.access_request.id).exists()
 
     @with_feature("organizations:team-roles")
+    def test_cannot_approve_request_from_another_organization(self) -> None:
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+        self.create_member(
+            organization=other_org, user=self.user, team_roles=[(other_team, "admin")]
+        )
+        access_request = self.create_organization_access_request(
+            team=other_team,
+            member=self.create_member(organization=other_org, user=self.create_user()),
+        )
+        self.login_as(self.user)
+        self.get_error_response(
+            self.organization.slug, access_request.id, isApproved=True, status_code=404
+        )
+
+        assert OrganizationAccessRequest.objects.filter(id=access_request.id).exists()
+
+    @with_feature("organizations:team-roles")
     def test_token_requires_team_write_scope(self) -> None:
         token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
         self.get_error_response(
