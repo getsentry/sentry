@@ -29,7 +29,7 @@ class JiraServerSearchEndpointTest(APITestCase):
                     {
                         "jql": 'text ~ "test"',
                         "startAt": 0,
-                        "maxResults": 50,
+                        "maxResults": 20,
                         "fields": "summary",
                     }
                 )
@@ -57,7 +57,7 @@ class JiraServerSearchEndpointTest(APITestCase):
                     {
                         "jql": 'id="HSP-1"',
                         "startAt": 0,
-                        "maxResults": 50,
+                        "maxResults": 20,
                         "fields": "summary",
                     }
                 )
@@ -85,7 +85,7 @@ class JiraServerSearchEndpointTest(APITestCase):
                     {
                         "jql": 'id="HSP-1"',
                         "startAt": 0,
-                        "maxResults": 50,
+                        "maxResults": 20,
                         "fields": "summary",
                     }
                 )

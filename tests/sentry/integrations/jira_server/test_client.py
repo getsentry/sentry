@@ -74,7 +74,7 @@ class JiraServerClientTest(TestCase, BaseTestCase):
                     {
                         "jql": 'id="ABC-123"',
                         "startAt": 0,
-                        "maxResults": 50,
+                        "maxResults": 20,
                         "fields": "summary",
                     }
                 )
@@ -97,7 +97,7 @@ class JiraServerClientTest(TestCase, BaseTestCase):
                     {
                         "jql": 'text ~ "login crash"',
                         "startAt": 0,
-                        "maxResults": 50,
+                        "maxResults": 20,
                         "fields": "summary",
                     }
                 )

@@ -116,7 +116,7 @@ class JiraServerClient(ApiClient):
             jql = f'text ~ "{q}"'
         return self.get(
             self.SEARCH_URL,
-            params={"jql": jql, "startAt": 0, "maxResults": 50, "fields": "summary"},
+            params={"jql": jql, "startAt": 0, "maxResults": 20, "fields": "summary"},
         )
 
     def create_comment(self, issue_key, comment):
