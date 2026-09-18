@@ -571,7 +571,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_trigger_autofix_agent_passes_project_and_group_to_client(
+    def test_legacy_autofix_agent_passes_project_and_group_to_client(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
         """SeerAgentClient is constructed with project and group from the group."""
@@ -581,7 +581,7 @@ class TestTriggerAutofixAgent(TestCase):
 
         trigger_autofix_agent(
             group=self.group,
-            step=AutofixStep.ROOT_CAUSE,
+            step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.UNKNOWN,
             run_id=None,
         )
