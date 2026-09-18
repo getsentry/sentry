@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -46,7 +47,7 @@ const TablePanelHeader = styled(PanelHeader)`
 `;
 
 export const StyledPanelItem = styled(PanelItem, {
-  shouldForwardProp: prop => prop !== 'overflow',
+  shouldForwardProp: prop => isPropValid(prop) && prop !== 'overflow',
 })<{
   align?: 'left' | 'center' | 'right';
   overflow?: boolean;
