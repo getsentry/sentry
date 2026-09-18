@@ -1066,7 +1066,6 @@ class TestFailedRunCompletionHook(TestCase):
                 group_id=self.group.id,
                 run_id=123,
                 referrer="github_pr_comment",
-                iteration_index=1,
                 trigger_source="feedback",
                 feedback_count=2,
                 queued_count=1,
