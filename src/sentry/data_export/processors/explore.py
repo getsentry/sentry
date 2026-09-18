@@ -9,6 +9,7 @@ from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+from sentry_sdk import traces
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.data_export.base import ExportError
@@ -37,7 +38,6 @@ from sentry.snuba.rpc_dataset_common import RPCBase, TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.utils.snuba_rpc import export_logs_rpc
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -277,13 +277,15 @@ class TraceItemFullExportProcessor(ExploreProcessor):
             token = PageToken()
             token.ParseFromString(self.page_token)
             request.page_token.CopyFrom(token)
-        with start_span(op="snuba.rpc", name="ExportTraceItems") as span:
-            set_span_data(span, "dataset", self.explore_query["dataset"])
-            set_span_data(span, "limit", limit)
-            set_span_data(span, "has_page_token", self.page_token is not None)
+        with traces.start_span(
+            name="ExportTraceItems", attributes={"sentry.op": "snuba.rpc"}
+        ) as span:
+            span.set_attribute("dataset", self.explore_query["dataset"])
+            span.set_attribute("limit", limit)
+            span.set_attribute("has_page_token", self.page_token is not None)
             http_resp = export_logs_rpc(request)
             self._sync_page_token_from_snuba_response(http_resp)
-            set_span_data(span, "next_page_token", self.page_token is not None)
+            span.set_attribute("next_page_token", self.page_token is not None)
 
         rows = list(iter_export_trace_items_rows(http_resp, self._supported_trace_item_type))
         return rows or []

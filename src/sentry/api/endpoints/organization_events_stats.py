@@ -8,6 +8,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -49,7 +50,6 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import RPC_DATASETS
 from sentry.utils.snuba import SnubaError, SnubaTSResult
-from sentry.utils.tracing import set_span_data, start_span
 
 SENTRY_BACKEND_REFERRERS = [
     Referrer.API_ALERTS_CHARTCUTERIE.value,
@@ -134,9 +134,13 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             },
         )
 
-        with start_span(op="discover.endpoint", name="filter_params") as span:
-            set_span_data(span, "organization", organization)
-
+        with traces.start_span(
+            name="filter_params",
+            attributes={
+                "sentry.op": "discover.endpoint",
+                "organization": repr(organization),
+            },
+        ):
             top_events = 0
 
             if "topEvents" in request.GET:

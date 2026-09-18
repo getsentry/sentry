@@ -7,6 +7,7 @@ from typing import Any, Union, cast
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
+from sentry_sdk import traces
 from snuba_sdk import (
     AliasedExpression,
     And,
@@ -71,7 +72,6 @@ from sentry.utils.snuba import (
     raw_snql_query,
     resolve_column,
 )
-from sentry.utils.tracing import set_span_data, start_span
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 DATASET_TO_ENTITY_MAP: Mapping[Dataset, EntityKey] = {
@@ -331,20 +331,30 @@ class BaseQueryBuilder:
         equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
-        with start_span(op="QueryBuilder", name="resolve_query"):
-            with start_span(op="QueryBuilder", name="resolve_time_conditions"):
+        with traces.start_span(name="resolve_query", attributes={"sentry.op": "QueryBuilder"}):
+            with traces.start_span(
+                name="resolve_time_conditions", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 # Has to be done early, since other conditions depend on start and end
                 self.resolve_time_conditions()
-            with start_span(op="QueryBuilder", name="resolve_conditions"):
+            with traces.start_span(
+                name="resolve_conditions", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 self.where, self.having = self.resolve_conditions(query)
-            with start_span(op="QueryBuilder", name="resolve_params"):
+            with traces.start_span(name="resolve_params", attributes={"sentry.op": "QueryBuilder"}):
                 # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
                 self.where += self.resolve_params()
-            with start_span(op="QueryBuilder", name="resolve_columns"):
+            with traces.start_span(
+                name="resolve_columns", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 self.columns = self.resolve_select(selected_columns, equations)
-            with start_span(op="QueryBuilder", name="resolve_orderby"):
+            with traces.start_span(
+                name="resolve_orderby", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 self.orderby = self.resolve_orderby(orderby)
-            with start_span(op="QueryBuilder", name="resolve_groupby"):
+            with traces.start_span(
+                name="resolve_groupby", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 self.groupby = self.resolve_groupby(groupby_columns)
 
     def parse_config(self) -> None:
@@ -1565,8 +1575,10 @@ class BaseQueryBuilder:
         return raw_snql_query(self.get_snql_query(), referrer, use_cache, query_source)
 
     def process_results(self, results: Any) -> EventsResponse:
-        with start_span(op="QueryBuilder", name="process_results") as span:
-            set_span_data(span, "result_count", len(results.get("data", [])))
+        with traces.start_span(
+            name="process_results", attributes={"sentry.op": "QueryBuilder"}
+        ) as span:
+            span.set_attribute("result_count", len(results.get("data", [])))
             translated_columns = self.alias_to_typed_tag_map
             if self.builder_config.transform_alias_to_input_format:
                 translated_columns.update(

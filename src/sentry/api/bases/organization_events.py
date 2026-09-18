@@ -15,6 +15,7 @@ from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_sdk import traces
 
 from sentry import features, quotas
 from sentry.api.api_owners import ApiOwner
@@ -73,7 +74,6 @@ from sentry.utils.dates import (
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +174,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         quantize_date_params: bool = True,
     ) -> SnubaParams:
         """Returns params to make snuba queries with"""
-        with start_span(op="discover.endpoint", name="filter_params(dataclass)"):
+        with traces.start_span(
+            name="filter_params(dataclass)", attributes={"sentry.op": "discover.endpoint"}
+        ):
             if (
                 len(self.get_field_list(organization, request))
                 + len(self.get_equation_list(organization, request))
@@ -418,7 +420,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         standard_meta: bool | None = False,
         dataset: Any | None = None,
     ) -> dict[str, Any]:
-        with start_span(op="discover.endpoint", name="base.handle_results"):
+        with traces.start_span(
+            name="base.handle_results", attributes={"sentry.op": "discover.endpoint"}
+        ):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
             # these may get re-used by other timeseries
             meta = results.get("meta", {}).copy()
@@ -617,7 +621,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         use_rpc: bool = False,
     ) -> dict[str, Any]:
         with handle_query_errors():
-            with start_span(op="discover.endpoint", name="base.stats_query_creation"):
+            with traces.start_span(
+                name="base.stats_query_creation", attributes={"sentry.op": "discover.endpoint"}
+            ):
                 _columns = [query_column]
                 # temporary change to make topN query work for multi-axes requests
                 if additional_query_columns is not None:
@@ -643,7 +649,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 self.validate_comparison_delta(comparison_delta, snuba_params, organization)
 
                 query_columns = get_query_columns(columns, rollup)
-            with start_span(op="discover.endpoint", name="base.stats_query"):
+            with traces.start_span(
+                name="base.stats_query", attributes={"sentry.op": "discover.endpoint"}
+            ):
                 result = get_event_stats(
                     query_columns,
                     query,
@@ -655,7 +663,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
-        with start_span(op="discover.endpoint", name="base.stats_serialization"):
+        with traces.start_span(
+            name="base.stats_serialization", attributes={"sentry.op": "discover.endpoint"}
+        ):
             # When the request is for top_events, result can be a SnubaTSResult in the event that
             # there were no top events found. In this case, result contains a zerofilled series
             # that acts as a placeholder.
