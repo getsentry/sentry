@@ -12,6 +12,7 @@ const DISPATCHES = [
 ];
 
 const RETRY_DELAYS_MS = [5000, 15000, 30000, 60000];
+const MAX_WORKFLOW_DISPATCH_PAYLOAD_BYTES = 65535;
 
 async function dispatchWithRetry({github, core, workflow, inputs}) {
   const maxAttempts = RETRY_DELAYS_MS.length + 1;
@@ -77,6 +78,16 @@ export async function dispatch({
         'sentry-changed-files': sentryChangedFiles || '',
         'sentry-previous-filenames': sentryPreviousFilenames || '',
       };
+      if (
+        Buffer.byteLength(JSON.stringify({ref: 'master', inputs}), 'utf8') >
+        MAX_WORKFLOW_DISPATCH_PAYLOAD_BYTES
+      ) {
+        core.warning(
+          'Changed-file inputs exceed the workflow dispatch payload limit; running the full getsentry suite instead.'
+        );
+        inputs['sentry-changed-files'] = '';
+        inputs['sentry-previous-filenames'] = '';
+      }
 
       core.info(
         `Sending dispatch for '${workflow}':\n${JSON.stringify(inputs, null, 2)}`
