@@ -43,6 +43,7 @@ import {
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {AxisRangeSection} from 'sentry/views/dashboards/widgetBuilder/components/axisRangeSection';
+import {ChartPaletteSelector} from 'sentry/views/dashboards/widgetBuilder/components/chartPaletteSelector';
 import {WidgetBuilderDatasetSelector} from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import {WidgetBuilderDescriptionField} from 'sentry/views/dashboards/widgetBuilder/components/descriptionField';
 import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
@@ -451,6 +452,9 @@ function WidgetBuilderSlideoutInner({
                       <WidgetBuilderTypeSelector error={error} setError={setError} />
                       {isTimeSeriesWidget && <AxisRangeSection />}
                       {isTimeSeriesWidget && <LegendTypeSelector />}
+                      {(isTimeSeriesWidget || isCategoricalBarWidget) && (
+                        <ChartPaletteSelector />
+                      )}
                     </Section>
                     {isTextWidget && (
                       <Section>

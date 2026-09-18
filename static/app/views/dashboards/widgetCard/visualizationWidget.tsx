@@ -24,6 +24,7 @@ import {
   type Widget as TWidget,
 } from 'sentry/views/dashboards/types';
 import {applyDashboardFilters, usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {getCustomPalette} from 'sentry/views/dashboards/utils/chartPalettes';
 import {
   findLinkedDashboardForField,
   getLinkedDashboardUrl,
@@ -265,9 +266,10 @@ function VisualizationWidgetContent({
     ([_, plottable]) => plottable.needsColor
   ).length;
 
+  const customPalette = getCustomPalette(widget.chartPalette);
   const colorPalette =
     plottableWithNeedsColor > 0
-      ? theme.chart.getColorPalette(plottableWithNeedsColor - 1)
+      ? (customPalette ?? theme.chart.getColorPalette(plottableWithNeedsColor - 1))
       : [];
 
   const showBreakdownData =
@@ -365,7 +367,8 @@ function VisualizationWidgetContent({
             <Container>
               <SeriesColorIndicator
                 style={{
-                  backgroundColor: colorPalette[index],
+                  // Custom palettes are a fixed length, so wrap like the charts do.
+                  backgroundColor: colorPalette[index % colorPalette.length],
                 }}
               />
             </Container>
@@ -448,6 +451,7 @@ function VisualizationWidgetContent({
             showReleaseAs={showReleaseAs}
             showLegend="never"
             axisRange={widget.axisRange}
+            colorPalette={customPalette}
             onZoom={onZoom}
             legendSelection={legendSelection}
             onLegendSelectionChange={onLegendSelectionChange}
@@ -471,6 +475,7 @@ function VisualizationWidgetContent({
           releases={releases}
           showReleaseAs={showReleaseAs}
           axisRange={widget.axisRange}
+          colorPalette={customPalette}
           onZoom={onZoom}
           legendSelection={legendSelection}
           onLegendSelectionChange={onLegendSelectionChange}
