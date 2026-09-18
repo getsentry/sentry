@@ -833,7 +833,6 @@ export function getSeerExplorerAnalyticsBrowserSize(): {
   };
 }
 
-
 /**
  * Every artifact in the conversation, from whichever channel carried it.
  *
