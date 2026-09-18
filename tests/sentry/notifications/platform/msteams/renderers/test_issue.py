@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -30,7 +30,8 @@ from sentry.integrations.msteams.card_builder.block import (
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
 from sentry.integrations.msteams.utils import ACTION_TYPE
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.project import Project
 from sentry.notifications.platform.msteams.provider import (
     MSTeamsNotificationProvider,
@@ -210,6 +211,45 @@ class IssueMSTeamsRendererTest(TestCase):
         )
 
         assert result == self._build_expected_card(group=group, event=event)
+
+    def _card_actions(self, card: AdaptiveCard) -> list[Any]:
+        container = cast(Any, card["body"][-1])
+        return cast(list[Any], container["items"][0]["actions"])
+
+    def test_render_offers_reverse_actions_for_resolved_issue(self) -> None:
+        data, _, group = self._create_data()
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+
+        result = IssueMSTeamsRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
+        )
+
+        actions = self._card_actions(result)
+        assert [action["title"] for action in actions] == [
+            IssueConstants.UNRESOLVE,
+            IssueConstants.ARCHIVE,
+            IssueConstants.ASSIGN,
+        ]
+
+        resolve_action = actions[0]
+        assert resolve_action["type"] == ActionType.SUBMIT
+        assert resolve_action["data"]["payload"]["actionType"] == ACTION_TYPE.UNRESOLVE
+        assert "integrationId" not in resolve_action["data"]["payload"]
+
+    def test_render_offers_unassign_for_assigned_issue(self) -> None:
+        data, _, group = self._create_data()
+        GroupAssignee.objects.assign(group, self.user)
+
+        result = IssueMSTeamsRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
+        )
+
+        assign_action = self._card_actions(result)[-1]
+        assert assign_action["type"] == ActionType.SUBMIT
+        assert assign_action["title"] == IssueConstants.UNASSIGN
+        assert assign_action["data"]["payload"]["actionType"] == ACTION_TYPE.UNASSIGN
 
     def test_render_with_tags(self) -> None:
         data, event, group = self._create_data(
