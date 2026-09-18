@@ -341,6 +341,30 @@ function IntegrationMainTab({
   );
 }
 
+function IntegrationTabContent({
+  integration,
+  mainTab,
+  tab,
+}: {
+  integration: OrganizationIntegration;
+  mainTab: React.ReactNode;
+  tab: Tab;
+}) {
+  switch (tab) {
+    case 'codeMappings':
+      return <IntegrationCodeMappings integration={integration} />;
+    case 'settings':
+      return mainTab;
+    case 'userMappings':
+      return <IntegrationExternalUserMappings integration={integration} />;
+    case 'teamMappings':
+      return <IntegrationExternalTeamMappings integration={integration} />;
+    default:
+      unreachable(tab);
+      return mainTab;
+  }
+}
+
 function ConfigureIntegration() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -556,25 +580,6 @@ function ConfigureIntegration() {
     />
   );
 
-  function renderTabContent() {
-    if (!integration) {
-      return null;
-    }
-    switch (tab) {
-      case 'codeMappings':
-        return <IntegrationCodeMappings integration={integration} />;
-      case 'settings':
-        return mainTab;
-      case 'userMappings':
-        return <IntegrationExternalUserMappings integration={integration} />;
-      case 'teamMappings':
-        return <IntegrationExternalTeamMappings integration={integration} />;
-      default:
-        unreachable(tab);
-        return mainTab;
-    }
-  }
-
   return (
     <Fragment>
       <IntegrationNavigationHeader
@@ -601,7 +606,7 @@ function ConfigureIntegration() {
               </TabList>
             </Tabs>
           </TabsContainer>
-          {renderTabContent()}
+          <IntegrationTabContent integration={integration} mainTab={mainTab} tab={tab} />
         </Fragment>
       )}
     </Fragment>
