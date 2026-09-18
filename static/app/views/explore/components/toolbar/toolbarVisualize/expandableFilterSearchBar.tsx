@@ -220,6 +220,9 @@ const ExpandableFilterSearchBarWrapper = styled('div')`
   width: 100%;
   min-width: 0;
   position: relative;
+  /* Stay above chart content throughout the closing animation, below CompactSelect
+   * overlays (dropdown) and AttributeDetails (tooltip). */
+  z-index: ${p => p.theme.zIndex.header};
   /* Clip long queries while collapsed; overlays escape once expanded. */
   overflow: hidden;
   transition: width ${p => p.theme.motion.smooth.moderate};
@@ -238,9 +241,6 @@ const ExpandableFilterSearchBarWrapper = styled('div')`
   &:focus-within {
     overflow: visible;
     flex-shrink: 0;
-    /* Above Explore chart content, below CompactSelect overlays (dropdown) and
-     * AttributeDetails (tooltip) so argument menus/tooltips stay usable. */
-    z-index: ${p => p.theme.zIndex.header};
 
     ${FIELD_SELECTOR} {
       background-color: ${p => p.theme.tokens.background.primary};
