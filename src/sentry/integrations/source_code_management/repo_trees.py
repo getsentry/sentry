@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
@@ -356,7 +356,8 @@ class RepoTreesClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> Sequence[Mapping[str, Any]]:
+        """Entries under the tree. Abstract so an implementation can return its own type."""
         raise NotImplementedError
 
     @abstractmethod

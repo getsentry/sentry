@@ -205,7 +205,7 @@ export function ResponseGroup({
                 startTime={startTime}
                 endTime={endTime}
               >
-                {hasTrace
+                {active || hasTrace
                   ? group.map((block, i) => {
                       const isAnswer = block === answer;
                       // A block's own tool calls render after its thinking, so they count as

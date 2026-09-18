@@ -37,9 +37,6 @@ describe('InboxPage', () => {
     features: ['issue-inbox', 'gen-ai-features', 'seat-based-seer-enabled'],
   });
   const seerOrganization = organization;
-  const aiOnlyOrganization = OrganizationFixture({
-    features: ['issue-inbox', 'gen-ai-features'],
-  });
   const project = ProjectFixture({
     id: '1',
     slug: 'project-slug',
@@ -611,13 +608,19 @@ describe('InboxPage', () => {
     });
   });
 
-  it('does not render without Autofix access', () => {
+  it('renders with the inbox feature', async () => {
+    mockSuccessfulSections();
     render(<InboxPage />, {
-      organization: aiOnlyOrganization,
+      organization: OrganizationFixture({features: ['issue-inbox']}),
       initialRouterConfig,
     });
 
-    expect(screen.getByText('Page Not Found')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', {name: /Fix proposed issue/})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Fix Applied'})).toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Assigned'})).toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Diagnosed'})).toBeInTheDocument();
   });
 
   it('includes identified issues in Assigned for scoped assignee tabs', async () => {

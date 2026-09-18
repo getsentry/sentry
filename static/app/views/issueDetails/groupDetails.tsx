@@ -315,6 +315,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     if (defined(group)) {
       GroupStore.loadInitialData([group]);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [groupId, group]);
 
   useSyncGroupStore(groupId, environments);

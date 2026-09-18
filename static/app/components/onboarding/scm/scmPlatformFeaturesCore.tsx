@@ -103,6 +103,7 @@ export function ScmPlatformFeaturesCore({
     // oxlint-disable-next-line react/set-state-in-effect
     setShowManualPicker(false);
     autoDetectionTrackedRef.current = false;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [selectedRepository?.externalId]);
 
   useEffect(() => {
