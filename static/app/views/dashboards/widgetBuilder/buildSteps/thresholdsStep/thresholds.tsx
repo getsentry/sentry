@@ -50,7 +50,7 @@ enum ThresholdMaxKeys {
 type ThresholdMaxValues = Partial<Record<ThresholdMaxKeys, number>>;
 
 export type ThresholdsConfig = {
-  max_values: ThresholdMaxValues;
+  max_values: ThresholdMaxValues | undefined;
   unit: string | null;
   preferredPolarity?: Polarity;
 };
