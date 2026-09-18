@@ -31,6 +31,7 @@ from sentry.seer.autofix.utils import (
     get_repo_url_path,
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
+    perforce_depot_path,
     read_preference_from_sentry_db,
     replace_all_seer_project_repos,
     update_seer_project_settings,
@@ -73,6 +74,36 @@ class TestGetRepoUrlPath(TestCase):
         # real GitLab repo — fail loudly instead of returning the display name.
         with pytest.raises(ValueError):
             get_repo_url_path(repo)
+
+    def test_perforce_top_level_depot_still_splits_into_two_parts(self) -> None:
+        # "//depot" is the canonical Perforce depot name. Without a synthetic owner
+        # it is a single segment, and callers either drop the repo or emit an
+        # empty name.
+        repo = self.create_repo(
+            project=self.project, name="//depot", provider="integrations:perforce"
+        )
+        path = get_repo_url_path(repo)
+        assert path == "perforce/depot"
+        owner, _, name = path.partition("/")
+        assert (owner, name) == ("perforce", "depot")
+
+    def test_perforce_nested_depot_path(self) -> None:
+        repo = self.create_repo(
+            project=self.project, name="//SentryDemo/main", provider="integrations:perforce"
+        )
+        assert get_repo_url_path(repo) == "perforce/SentryDemo/main"
+
+    def test_perforce_encoding_round_trips_to_the_depot_path(self) -> None:
+        # Repository rows are stored under the depot path, so the encoded form has
+        # to be reversible for a by-name lookup to resolve.
+        for depot in ("//depot", "//depot/project", "//SentryDemo/main"):
+            repo = self.create_repo(
+                project=self.project, name=depot, provider="integrations:perforce"
+            )
+            assert perforce_depot_path(get_repo_url_path(repo)) == depot
+
+    def test_perforce_depot_path_ignores_other_providers(self) -> None:
+        assert perforce_depot_path("getsentry/sentry") is None
 
 
 class TestAutofixStateParsing(TestCase):

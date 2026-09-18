@@ -527,6 +527,19 @@ def clear_preference_automation_handoff(project: Project) -> None:
     ).delete()
 
 
+# Perforce depot paths have no owner segment, and a top-level depot (``//depot``)
+# has only one. Callers require ``owner/name``, so this stands in as the owner.
+PERFORCE_REPO_OWNER = "perforce"
+
+
+def perforce_depot_path(repo_full_name: str) -> str | None:
+    """Reverse :func:`get_repo_url_path` for Perforce, or None if not that shape."""
+    prefix = f"{PERFORCE_REPO_OWNER}/"
+    if not repo_full_name.startswith(prefix):
+        return None
+    return f"//{repo_full_name.removeprefix(prefix)}"
+
+
 def get_repo_url_path(repo: Repository) -> str:
     """Return the URL-safe owner/name path for a repository.
 
@@ -535,10 +548,10 @@ def get_repo_url_path(repo: Repository) -> str:
     URL-safe equivalent is stored in ``repo.config["path"]``
     (``path_with_namespace``, e.g. ``"my-group/my-project"``).
 
-    For Perforce, ``repo.name`` is a depot path (``//depot/stream``). Stripping
-    the leading slashes turns it into the ``owner/name`` shape the caller splits
-    on; without this it splits into empty leading segments and yields an empty
-    owner.
+    For Perforce, ``repo.name`` is a depot path (``//depot`` or
+    ``//depot/stream``). Perforce has no owner, and a top-level depot has only one
+    segment, so a synthetic owner is prepended -- callers split on ``/`` and
+    require at least two parts. ``perforce_depot_path`` reverses this.
 
     For GitHub and all other providers, ``repo.name`` is already the
     URL-safe ``owner/repo`` string, so we return it unchanged.
@@ -556,7 +569,7 @@ def get_repo_url_path(repo: Repository) -> str:
             )
         return path
     if repo.provider == "integrations:perforce":
-        return repo.name.lstrip("/")
+        return f"{PERFORCE_REPO_OWNER}/{repo.name.lstrip('/')}"
     return repo.name
 
 
