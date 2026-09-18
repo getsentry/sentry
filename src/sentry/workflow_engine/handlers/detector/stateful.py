@@ -562,9 +562,12 @@ class StatefulDetectorHandler(
             self.state_manager.build_key(group_key),
         ]
 
+        occurrence_id = str(uuid4())
+
         return detector_occurrence.to_issue_occurrence(
             fingerprint=fingerprint,
-            occurrence_id=str(uuid4()),
+            occurrence_id=occurrence_id,
+            event_id=occurrence_id,
             project_id=self.detector.project_id,
             status=new_priority,
             additional_evidence_data=dataclasses.asdict(evidence_data),

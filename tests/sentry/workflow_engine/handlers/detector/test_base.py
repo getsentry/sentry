@@ -153,11 +153,11 @@ class MockEventIdDetectorHandler(MockDefaultDetectorHandler):
 
 
 class MockOccurrenceIdDetectorHandler(MockDefaultDetectorHandler):
-    """Supplies the occurrence id through the hook rather than through event data."""
+    """Supplies the occurrence id through the hook rather than deriving it from the event."""
 
     occurrence_id = "11111111111111111111111111111111"
 
-    def get_occurrence_id(self, event_data: EventData) -> str:
+    def get_occurrence_id(self, group_key: DetectorGroupKey, event_id: str) -> str:
         return self.occurrence_id
 
 
@@ -429,6 +429,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         }
         issue_occurrence = detector_occurrence.to_issue_occurrence(
             occurrence_id=occurrence_id,
+            event_id=occurrence_id,
             project_id=detector.project_id,
             status=priority,
             additional_evidence_data=evidence_data,
@@ -607,6 +608,18 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
 
         assert_event_matches_occurrence(event_data, occurrence)
 
+    def test_evaluate__replaying_an_event_rebuilds_the_same_occurrence_id(self) -> None:
+        handler = MockEventIdDetectorHandler(self.detector)
+
+        first = handler.evaluate(self.packet(10)).result[None].result
+        second = handler.evaluate(self.packet(10)).result[None].result
+
+        assert isinstance(first, IssueOccurrence)
+        assert isinstance(second, IssueOccurrence)
+
+        # the conversion from human-readable string to UUID is deterministic
+        assert first.id == second.id
+
     def test_evaluate__produces_valid_issue_platform_payload(self) -> None:
         evaluation = self.evaluate_triggered()
         occurrence = evaluation.result
@@ -654,8 +667,10 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         assert isinstance(first, IssueOccurrence)
         assert isinstance(second, IssueOccurrence)
 
-        # create_occurrence supplies no event id, so the hook mints a fresh one each time.
+        # create_occurrence supplies no event id, so `get_event_id` mints a fresh one each time.
         assert UUID(first.event_id) != UUID(second.event_id)
+
+        assert UUID(first.id) != UUID(second.id)
 
     def test_evaluate__uses_occurrence_id_hook(self) -> None:
         handler = MockOccurrenceIdDetectorHandler(self.detector)
@@ -665,7 +680,9 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         event_data = evaluation.data["event_data"]
 
         assert isinstance(occurrence, IssueOccurrence)
-        assert occurrence.event_id == MockOccurrenceIdDetectorHandler.occurrence_id
+        assert occurrence.id == MockOccurrenceIdDetectorHandler.occurrence_id
+
+        assert occurrence.event_id != occurrence.id
 
         assert_event_matches_occurrence(event_data, occurrence)
 

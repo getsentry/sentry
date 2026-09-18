@@ -230,6 +230,7 @@ class PreprodSizeAnalysisDetectorHandler(
         detector_occurrence, event_data = self.create_occurrence(evaluation, data_packet, priority)
         occurrence = detector_occurrence.to_issue_occurrence(
             occurrence_id=event_data["event_id"],
+            event_id=event_data["event_id"],
             project_id=self.detector.project_id,
             status=priority,
             additional_evidence_data={},
