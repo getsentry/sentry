@@ -33,7 +33,6 @@ src/sentry/locale/**
 AUTHORS
 Brewfile
 CHANGES
-CLAUDE.md
 README.md
 agents.toml
 bin/__init__.py
@@ -57,7 +56,6 @@ jest.config.snapshots.ts
 migrations_lockfile.txt
 rspack.config.ts
 src/AGENTS.md
-src/CLAUDE.md
 src/sentry/__init__.py
 src/sentry/__main__.py
 src/sentry/adoption/__init__.py
@@ -1590,7 +1588,6 @@ static/index.ejs
 static/robots-dev.txt
 stylelint.config.js
 tests/AGENTS.md
-tests/CLAUDE.md
 tests/__init__.py
 tests/acceptance/__init__.py
 tests/acceptance/chartcuterie/__init__.py
