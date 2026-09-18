@@ -82,7 +82,8 @@ export function ThresholdsSection({
             newThresholds = {max_values: {}, unit: null};
           }
 
-          if (newThresholds?.max_values) {
+          if (newThresholds) {
+            newThresholds.max_values ??= {};
             if (value) {
               newThresholds.max_values[maxKey] = Number(value);
             } else {
