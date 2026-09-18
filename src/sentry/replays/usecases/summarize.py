@@ -5,6 +5,7 @@ from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
+from sentry_sdk import traces
 
 from sentry import nodestore
 from sentry.api.utils import default_start_end_dates
@@ -29,7 +30,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.platform_categories import MOBILE
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class EventDict(TypedDict):
     category: str
 
 
-@trace
+@traces.trace
 def fetch_error_details(project_id: int, error_ids: list[str]) -> list[EventDict]:
     """Fetch error details given error IDs and return a list of EventDict objects."""
     try:
@@ -82,7 +82,7 @@ def _parse_iso_timestamp_to_ms(timestamp: str | None) -> float:
         return 0.0
 
 
-@trace
+@traces.trace
 def fetch_trace_connected_errors(
     project: Project,
     trace_ids: list[str],
@@ -203,7 +203,7 @@ def fetch_trace_connected_errors(
     return events
 
 
-@trace
+@traces.trace
 def fetch_feedback_details(feedback_id: str | None, project_id) -> EventDict | None:
     """
     Fetch user feedback associated with a specific feedback event ID.
@@ -247,7 +247,7 @@ def generate_feedback_log_message(feedback: EventDict) -> str:
     return f"User submitted feedback: '{message}' at {timestamp}"
 
 
-@trace
+@traces.trace
 def get_summary_logs(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
@@ -528,7 +528,7 @@ def _parse_url(s: str, trunc_length: int) -> str:
     return s
 
 
-@trace
+@traces.trace
 def rpc_get_replay_summary_logs(
     project_id: int,
     replay_id: str,
