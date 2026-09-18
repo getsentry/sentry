@@ -7,6 +7,7 @@ import type {SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
+import {useSearchQueryBuilderLayout} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {type Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
@@ -130,6 +131,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   token,
   wrapperRef,
 }: ValueListBoxProps<T>) {
+  const {menuPresentation} = useSearchQueryBuilderLayout();
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
     0
@@ -140,7 +142,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     (element: HTMLUListElement | null) => {
       listBoxRef.current = element;
 
-      if (!element) {
+      if (!element || menuPresentation === 'panel') {
         return;
       }
 
@@ -166,7 +168,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
         observer.disconnect();
       };
     },
-    [listBoxRef, popoverRef, wrapperRef]
+    [listBoxRef, menuPresentation, popoverRef, wrapperRef]
   );
 
   if (!isOpen || (!anyItemsShowing && !isLoading)) {

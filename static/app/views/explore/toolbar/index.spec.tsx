@@ -978,6 +978,8 @@ describe('ExploreToolbar', () => {
         )!;
 
         expect(expandedBar).toHaveStyle({width: '460px'});
+        expect(screen.getByTestId('search-query-builder-panel')).toContainElement(menu);
+        expect(screen.getByTestId('search-query-builder-panel')).toContainElement(input);
         expect(getEmotionRules(menu).join(' ')).toContain(
           `width: ${expandedBar.style.width}`
         );

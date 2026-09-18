@@ -5,6 +5,7 @@ import type {QueryKey} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -188,6 +189,8 @@ export interface SearchQueryBuilderProps {
    * ```
    */
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  /** Render the input and suggestions together in one panel. */
+  menuPresentation?: 'floating' | 'panel';
   /**
    * If provided, filters recent searches by this query string on the backend.
    * This query will not be displayed in the UI because it is stripped from the
@@ -306,7 +309,14 @@ function SearchQueryBuilderUI({
   onChange,
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch} = useSearchQueryBuilderState();
-  const {wrapperRef, actionBarRef, size} = useSearchQueryBuilderLayout();
+  const {
+    wrapperRef,
+    actionBarRef,
+    size,
+    menuPresentation,
+    setMenuContainer,
+    searchBarHeight,
+  } = useSearchQueryBuilderLayout();
   const {skipNextSearchQueryBuilderAutoFocusRef} = useSearchQueryBuilderAI();
   const autoFocusOnMount = useRef(
     // oxlint-disable-next-line react/refs
@@ -330,7 +340,7 @@ function SearchQueryBuilderUI({
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
 
-  return (
+  const searchBar = (
     <Wrapper
       className={className}
       onBlur={() =>
@@ -364,7 +374,60 @@ function SearchQueryBuilderUI({
       </PanelProvider>
     </Wrapper>
   );
+
+  if (menuPresentation === 'panel') {
+    return (
+      // useDimensions measures clientHeight; include the search bar's two 1px borders.
+      <Container position="relative" height={`${searchBarHeight + 2}px`}>
+        <SearchPanel
+          data-test-id="search-query-builder-panel"
+          position="absolute"
+          top="0"
+          left="0"
+          right="0"
+          radius="md"
+        >
+          {searchBar}
+          <Container ref={setMenuContainer} data-query-builder-menu />
+        </SearchPanel>
+      </Container>
+    );
+  }
+
+  return searchBar;
 }
+
+const SearchPanel = styled(Container)`
+  &:has([data-query-builder-menu] [data-overlay]) {
+    top: calc(-${p => p.theme.space.sm} - 1px);
+    left: calc(-${p => p.theme.space.sm} - 1px);
+    right: calc(-${p => p.theme.space.sm} - 1px);
+    padding: ${p => p.theme.space.sm};
+    background: ${p => p.theme.tokens.background.overlay};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    box-shadow: ${p => p.theme.shadow.medium};
+  }
+
+  [data-query-builder-menu]:not(:empty) {
+    padding-top: ${p => p.theme.space.sm};
+    margin-inline: -${p => p.theme.space.sm};
+  }
+
+  [data-query-builder-menu] [data-overlay] {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  [data-query-builder-menu] [role='listbox'] {
+    width: 100%;
+    min-width: 0;
+  }
+`;
 
 export function SearchQueryBuilder({...props}: SearchQueryBuilderProps) {
   const hasProvider = useHasSearchQueryBuilderProvider();

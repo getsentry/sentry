@@ -313,6 +313,65 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  it('keeps key and value suggestions in the same panel as the input', async () => {
+    render(
+      <SearchQueryBuilder
+        {...defaultProps}
+        menuPresentation="panel"
+        portalTarget={document.body}
+      />
+    );
+
+    const panel = screen.getByTestId('search-query-builder-panel');
+    await userEvent.click(getLastInput());
+    expect(panel).toContainElement(await screen.findByRole('listbox'));
+    expect(panel).toContainElement(getLastInput());
+
+    await userEvent.type(getLastInput(), 'browser');
+    expect(panel).toContainElement(
+      await screen.findByRole('option', {name: 'browser.name'})
+    );
+
+    await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
+    expect(panel).toContainElement(await screen.findByRole('option', {name: 'Chrome'}));
+    expect(within(panel).getByRole('listbox')).toHaveStyle({maxWidth: '100%'});
+    await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
+
+    expect(
+      await screen.findByRole('row', {name: 'browser.name:Chrome'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(document.body);
+    expect(within(panel).queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('keeps the date picker below the input in panel mode', async () => {
+    const onChange = jest.fn();
+    render(
+      <SearchQueryBuilder
+        {...defaultProps}
+        menuPresentation="panel"
+        initialQuery="age:-24h"
+        onChange={onChange}
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Edit value for filter: age'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'Absolute date'}));
+
+    const datePicker = await screen.findByTestId('specific-date-picker');
+    expect(screen.getByTestId('search-query-builder-panel')).toContainElement(datePicker);
+    expect(screen.getByTestId('search-query-builder')).not.toContainElement(datePicker);
+
+    await userEvent.type(await screen.findByTestId('date-picker'), '2017-10-17');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith('age:>2017-10-17', expect.anything());
+    });
+  });
+
   it('syncs external initial query changes while disabled', async () => {
     function ExternalProviderSearchQueryBuilder({
       disabled,

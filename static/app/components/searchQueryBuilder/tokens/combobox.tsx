@@ -296,7 +296,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   onTabForward,
   popoverRef,
   state,
-  overlayProps,
+  overlayProps: positionedOverlayProps,
   portalTarget,
   totalOptions,
 }: {
@@ -316,6 +316,14 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   portalTarget?: HTMLElement | null;
 }) {
   const {enableAISearch} = useSearchQueryBuilderAI();
+  const {menuPresentation} = useSearchQueryBuilderLayout();
+  const overlayProps =
+    menuPresentation === 'panel'
+      ? {
+          ...positionedOverlayProps,
+          style: {position: 'relative' as const, width: '100%', maxWidth: '100%'},
+        }
+      : positionedOverlayProps;
   const anyItemsShowing = totalOptions > hiddenOptions.size;
 
   if (!isOpen) {
@@ -487,7 +495,11 @@ export function SearchQueryBuilderCombobox<
         onFocus?.(e);
       },
       onBlur: e => {
-        if (e.relatedTarget && !shouldCloseOnInteractOutside?.(e.relatedTarget)) {
+        if (
+          e.relatedTarget &&
+          (popoverRef.current?.contains(e.relatedTarget) ||
+            !shouldCloseOnInteractOutside?.(e.relatedTarget))
+        ) {
           return;
         }
         onCustomValueBlurred(inputValue, e);
