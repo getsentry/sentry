@@ -1,5 +1,6 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 
 /**
@@ -55,6 +56,53 @@ function isExpanded(input: HTMLElement) {
 }
 
 describe('ExpandableFilterSearchBar', () => {
+  it.each(['padding', 'gap'])(
+    'keeps the current value editor focused when clicking panel %s',
+    async target => {
+      render(
+        <ExpandableFilterSearchBar>
+          <SearchQueryBuilder
+            initialQuery="browser.name:Chrome"
+            menuPresentation="panel"
+            searchSource="explore-conditional-aggregate"
+            getTagValues={() => Promise.resolve([])}
+            filterKeys={{
+              'browser.name': {
+                key: 'browser.name',
+                name: 'browser.name',
+                predefined: true,
+                values: ['Chrome', 'Firefox'],
+              },
+            }}
+          />
+        </ExpandableFilterSearchBar>
+      );
+
+      await userEvent.click(screen.getByTestId('query-builder-input'));
+      await flushAnimationFrames();
+      await userEvent.click(screen.getByLabelText('Edit value for filter: browser.name'));
+      const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'Fire');
+      const option = await screen.findByRole('option', {name: 'Firefox'});
+
+      const panel = screen.getByTestId('search-query-builder-panel');
+      const chrome =
+        target === 'gap' ? panel.querySelector('[data-query-builder-menu]')! : panel;
+      await userEvent.click(chrome);
+
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('Fire');
+      expect(option).toBeInTheDocument();
+      expect(isExpanded(input)).toBe(true);
+
+      await userEvent.click(document.body);
+      await flushAnimationFrames();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(isExpanded(screen.getByTestId('query-builder-input'))).toBe(false);
+    }
+  );
+
   it('expands on click and puts the caret at the end of the query', async () => {
     render(<SearchBarStub defaultValue="span.op:db" />);
 

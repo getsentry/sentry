@@ -426,7 +426,8 @@ export function SearchQueryBuilderCombobox<
 }: SearchQueryBuilderComboboxProps<T>) {
   const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
-  const {menuPresentation, portalTarget, wrapperRef} = useSearchQueryBuilderLayout();
+  const {menuPresentation, panelRef, portalTarget, wrapperRef} =
+    useSearchQueryBuilderLayout();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -592,7 +593,11 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
+      if (
+        popoverRef.current?.contains(el) ||
+        wrapperRef.current?.contains(el) ||
+        panelRef.current?.contains(el)
+      ) {
         return false;
       }
 

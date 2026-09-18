@@ -12,7 +12,8 @@ const PAGE_EDGE_PADDING_PX = 16;
  * option depends on the pointer sequence completing untouched, so menu targets are
  * always left alone by the capture handlers below.
  */
-const MENU_TARGETS = '[data-overlay], [role="listbox"], [role="option"]';
+const MENU_TARGETS =
+  '[data-query-builder-menu], [data-overlay], [role="listbox"], [role="option"]';
 const CONTROL_TARGETS = 'input, textarea, button, a, [role="button"]';
 const TRAILING_INPUT_SELECTOR =
   '[data-test-id="query-builder-input"], [data-test-id="arithmetic-builder-input"]';
@@ -156,6 +157,14 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
     (event: PointerEvent<HTMLDivElement>) => {
       const el = ref.current;
       if (!el || closestMatch(event.target, MENU_TARGETS)) {
+        return;
+      }
+
+      // Let the panel preserve the current editor's focus when its padding is clicked.
+      if (
+        event.target instanceof Element &&
+        event.target.matches('[data-test-id="search-query-builder-panel"]')
+      ) {
         return;
       }
 

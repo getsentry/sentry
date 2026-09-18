@@ -347,6 +347,47 @@ describe('SearchQueryBuilder', () => {
     expect(screen.getByRole('row', {name: 'browser.name:Chrome'})).toBeInTheDocument();
   });
 
+  it.each(['padding', 'gap'])(
+    'preserves value editing when clicking panel %s',
+    async target => {
+      const onChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          menuPresentation="panel"
+          initialQuery="browser.name:Chrome"
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'Fire');
+      const option = await screen.findByRole('option', {name: 'Firefox'});
+      onChange.mockClear();
+
+      const panel = screen.getByTestId('search-query-builder-panel');
+      const chrome =
+        target === 'gap' ? panel.querySelector('[data-query-builder-menu]')! : panel;
+      await userEvent.click(chrome);
+
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('Fire');
+      expect(option).toBeInTheDocument();
+      expect(onChange).not.toHaveBeenCalled();
+
+      await userEvent.click(option);
+      await userEvent.click(document.body);
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {name: 'browser.name:[Chrome,Firefox]'})
+      ).toBeInTheDocument();
+    }
+  );
+
   it('keeps the date picker below the input in panel mode', async () => {
     const onChange = jest.fn();
     render(
@@ -368,6 +409,11 @@ describe('SearchQueryBuilder', () => {
     expect(screen.getByTestId('search-query-builder')).not.toContainElement(datePicker);
 
     await userEvent.type(await screen.findByTestId('date-picker'), '2017-10-17');
+    const panel = screen.getByTestId('search-query-builder-panel');
+    await userEvent.click(panel);
+    expect(datePicker).toBeInTheDocument();
+    await userEvent.click(panel.querySelector('[data-query-builder-menu]')!);
+    expect(datePicker).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith('age:>2017-10-17', expect.anything());

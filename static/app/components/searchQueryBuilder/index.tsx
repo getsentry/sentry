@@ -314,6 +314,7 @@ function SearchQueryBuilderUI({
     actionBarRef,
     size,
     menuPresentation,
+    panelRef,
     setMenuContainer,
     searchBarHeight,
   } = useSearchQueryBuilderLayout();
@@ -380,12 +381,23 @@ function SearchQueryBuilderUI({
       // useDimensions measures clientHeight; include the search bar's two 1px borders.
       <Container position="relative" height={`${searchBarHeight + 2}px`}>
         <SearchPanel
+          ref={panelRef}
           data-test-id="search-query-builder-panel"
           position="absolute"
           top="0"
           left="0"
           right="0"
           radius="md"
+          onPointerDown={event => {
+            if (
+              event.target === event.currentTarget ||
+              (event.target instanceof Element &&
+                event.target.hasAttribute('data-query-builder-menu'))
+            ) {
+              // Padding is part of the editor; keep focus on the current input/control.
+              event.preventDefault();
+            }
+          }}
         >
           {searchBar}
           <Container ref={setMenuContainer} data-query-builder-menu />
