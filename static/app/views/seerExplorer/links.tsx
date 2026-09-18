@@ -625,6 +625,11 @@ export function resolveLink(
     return null;
   }
 
+  // Every rule below is a first-party Sentry route, and a provider's can collide.
+  if (subject.provider) {
+    return null;
+  }
+
   const finish = (rule: LinkRule, result: LinkResult) => ({
     id: rule.id,
     label: result.label,
@@ -640,11 +645,6 @@ export function resolveLink(
         return finish(named, result);
       }
     }
-  }
-
-  // Every prefix below is a first-party Sentry route, and a provider's can collide.
-  if (subject.provider) {
-    return null;
   }
 
   const path = subject.path ?? '';
