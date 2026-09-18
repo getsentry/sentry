@@ -646,7 +646,7 @@ export const useSeerExplorer = () => {
     if (!session) {
       return null;
     }
-    return {...session, blocks: normalizeBlocks(session.blocks)};
+    return {...session, blocks: normalizeBlocks(session.blocks ?? [])};
   }, [apiData?.session]);
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.

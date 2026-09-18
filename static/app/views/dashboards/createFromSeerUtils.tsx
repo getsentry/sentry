@@ -109,8 +109,9 @@ export function extractDashboardFromSession(
   title: string;
   widgets: Widget[];
 } | null {
-  for (let i = session.blocks.length - 1; i >= 0; i--) {
-    const artifact = session.blocks[i]!.artifacts?.find(
+  const sessionBlocks = session.blocks ?? [];
+  for (let i = sessionBlocks.length - 1; i >= 0; i--) {
+    const artifact = sessionBlocks[i]!.artifacts?.find(
       a => a.key === DASHBOARD_ARTIFACT_KEY && a.data
     );
     if (artifact) {

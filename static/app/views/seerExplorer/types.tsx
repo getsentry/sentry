@@ -206,7 +206,10 @@ export interface Block {
 // the API boundary so downstream code never encounters the sentinel.
 const THINKING_SENTINEL = 'Thinking...';
 
-export function normalizeBlocks(blocks: Block[]): Block[] {
+export function normalizeBlocks(blocks: Block[] | undefined): Block[] {
+  if (!blocks) {
+    return [];
+  }
   return blocks.map(block =>
     block.message.content === THINKING_SENTINEL
       ? {...block, message: {...block.message, content: null}}
@@ -267,7 +270,7 @@ export type SeerExplorerRunId = number | string;
 
 export type SeerExplorerResponse = {
   session: {
-    blocks: Block[];
+    blocks?: Block[];
     status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
     failure_reason?: 'timeout' | 'stalled' | null;

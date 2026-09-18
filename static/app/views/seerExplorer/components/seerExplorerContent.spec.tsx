@@ -137,7 +137,7 @@ describe('SeerExplorerContent', () => {
           run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:02:00Z',
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -362,7 +362,7 @@ describe('SeerExplorerContent', () => {
           run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:01:00Z',
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -631,7 +631,7 @@ describe('SeerExplorerContent', () => {
           run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:02:00Z',
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -883,7 +883,7 @@ describe('SeerExplorerContent', () => {
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: 2,
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -918,7 +918,7 @@ describe('SeerExplorerContent', () => {
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: 1,
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -953,7 +953,7 @@ describe('SeerExplorerContent', () => {
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: undefined,
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
