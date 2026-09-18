@@ -1,0 +1,28 @@
+---
+title: Page frame content
+description: Render full-width or centered page content with consistent inline gutters.
+category: layout
+layout: document
+---
+
+import {Content} from '@sentry/scraps/pageframe/content';
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/pageframe/content');
+
+`Content` renders the page's `main` landmark and establishes an inline-size query
+container for its descendants. Use `center` for content that grows through the size
+scale and stops at `960px`. Use `full` when the content should fill the page frame.
+
+<Storybook.Demo resizable>
+  <Content variant="center" padding="xl" background="secondary">
+    Centered page content
+  </Content>
+</Storybook.Demo>
+
+```tsx
+import {Content} from '@sentry/scraps/pageframe/content';
+
+<Content variant="center">Centered page content</Content>;
+<Content variant="full">Full-width page content</Content>;
+```
