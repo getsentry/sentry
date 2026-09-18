@@ -101,7 +101,7 @@ export interface UseVirtualizedTreeProps<T extends TreeLike> {
   expanded?: boolean;
   initialSelectedNodeIndex?: number;
   onScrollToNode?: (
-    node: VirtualizedTreeRenderedRow<T>,
+    node: VirtualizedTreeRenderedRow<T> | undefined,
     scrollContainer: MaybeContainers,
     coordinates?: {depth: number; top: number}
   ) => void;
@@ -168,6 +168,15 @@ export function useVirtualizedTree<T extends TreeLike>(
   const latestItemsRef = useRef(items);
   // oxlint-disable-next-line react/refs
   latestItemsRef.current = items;
+
+  useEffect(() => {
+    markRowAsClicked(state.selectedNodeIndex, items, {
+      ghostRowRef: clickedGhostRowRef.current,
+      rowHeight: props.rowHeight,
+      scrollTop: state.scrollTop,
+      theme,
+    });
+  }, [items, props.rowHeight, state.scrollTop, state.selectedNodeIndex, theme]);
 
   // On scroll, we update scrollTop position.
   // Keep a rafId reference in the unlikely event where component unmounts before raf is executed.
@@ -296,7 +305,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           {
             ghostRowRef: clickedGhostRowRef.current,
             rowHeight: props.rowHeight,
-            scrollTop: latestStateRef.current.scrollTop,
+            scrollTop,
             theme,
           }
         );
@@ -754,7 +763,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       markRowAsClicked(newlyVisibleIndex, latestItemsRef.current, {
         ghostRowRef: clickedGhostRowRef.current,
         rowHeight: props.rowHeight,
-        scrollTop: latestStateRef.current.scrollTop,
+        scrollTop: newScrollTop,
         theme,
       });
 
@@ -804,7 +813,7 @@ export function useVirtualizedTree<T extends TreeLike>(
 
       if (onScrollToNode) {
         onScrollToNode(
-          latestItemsRef.current[newlyVisibleIndex]!,
+          latestItemsRef.current.find(item => item.key === newlyVisibleIndex),
           props.scrollContainer,
           {
             top: newScrollTop,

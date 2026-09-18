@@ -4,6 +4,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {
   IconAsana,
   IconBitbucket,
+  IconCursor,
   IconGeneric,
   IconGithub,
   IconGitlab,
@@ -193,6 +194,8 @@ export const getIntegrationIcon = (
   iconSize: SVGIconProps['size'] = 'md'
 ) => {
   switch (integrationType) {
+    case 'cursor_origin':
+      return <IconCursor size={iconSize} />;
     case 'asana':
       return <IconAsana size={iconSize} />;
     case 'bitbucket':

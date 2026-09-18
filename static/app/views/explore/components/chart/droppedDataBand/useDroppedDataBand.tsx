@@ -18,8 +18,7 @@ import {
 
 export const DROPPED_DATA_SERIES_ID = '__dropped_data__';
 
-// TODO: this should change to read from the outcome property when backend changes are in
-const CLIENT_DISCARD_LABEL = 'Client discard';
+const CLIENT_DISCARD_OUTCOME = 'client_discard';
 
 // Styling constants
 const BAR_SLOT_FILL = 0.69;
@@ -34,11 +33,15 @@ function severityOpacity(severity: number): number {
 
 /**
  * The buckets that will actually be drawn. "Client discards" are filtered out
- * to prevent noisy data cluttering the band
+ * to prevent noisy data cluttering the band.
+ * TODO: adjust this logic in another PR to discard only certain discard evetns,
+ * filtered, and accepted annotations.
  */
 function getVisibleBuckets(annotations: Annotation[] | undefined): AnnotationBucket[] {
   return groupIntoBuckets(
-    (annotations ?? []).filter(annotation => annotation.label !== CLIENT_DISCARD_LABEL)
+    (annotations ?? []).filter(
+      annotation => annotation.outcome !== CLIENT_DISCARD_OUTCOME
+    )
   ).filter(bucket => bucket.severity > 0);
 }
 const DROPPED_DATA_Y_AXIS = {

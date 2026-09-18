@@ -476,6 +476,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                             )
                         link_data.update(url_data)
                 data = installation.get_issue(link_data["externalIssue"], data=link_data)
+            except IntegrationConfigurationError as exc:
+                lifecycle.record_halt(exc)
+                return Response({"non_field_errors": [str(exc)]}, status=400)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
                 return Response(dict(exc.field_errors or {}), status=400)
@@ -510,6 +513,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             installation.store_issue_last_defaults(group.project, request.user, link_data)
             try:
                 installation.after_link_issue(external_issue, data=link_data)
+            except IntegrationConfigurationError as exc:
+                lifecycle.record_halt(exc)
+                return Response({"non_field_errors": [str(exc)]}, status=400)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
                 return Response(dict(exc.field_errors or {}), status=400)

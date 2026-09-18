@@ -21,6 +21,8 @@ import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
+import {isRetryableRequestError} from 'sentry/utils/queryClient';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -174,7 +176,8 @@ export function GroupList({
     [computedQueryParams.query]
   );
 
-  // Issues API does not support AND/OR statements
+  // Issues API does not support AND/OR statements. The endpoint rejects them
+  // with a 400, so skipping the request spares a round trip we know will fail.
   const hasLogicBoolean = useMemo(
     () =>
       parsedQuery
@@ -206,6 +209,7 @@ export function GroupList({
   const {
     data,
     dataUpdatedAt,
+    error,
     isPending,
     isError: isQueryError,
     isSuccess: isQuerySuccess,
@@ -298,7 +302,17 @@ export function GroupList({
   const columns = withColumns;
 
   if (hasError) {
-    return <LoadingError onRetry={refetch} />;
+    // A retry only helps a failure that could land differently next time. The
+    // query here is fixed, so a boolean one the endpoint never accepts and a
+    // client error it already rejected both fail the same way on every press.
+    return hasLogicBoolean ? (
+      <LoadingError message={t('Search queries with AND or OR are not supported.')} />
+    ) : (
+      <LoadingError
+        message={getRequestErrorUserMessage(error, t('There was an error loading data.'))}
+        onRetry={isRetryableRequestError(error) ? refetch : undefined}
+      />
+    );
   }
 
   if (!loading && groups.length === 0) {
