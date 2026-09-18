@@ -77,7 +77,7 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
       organization: Organization,
       preferMode?: Mode,
       referrer?: string
-    ) => string)
+    ) => string | null)
   | undefined
 > = {
   [TraceItemDataset.LOGS]: getWidgetExploreUrlWithDataset(TraceItemDataset.LOGS),

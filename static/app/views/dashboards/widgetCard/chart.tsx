@@ -337,7 +337,10 @@ function TableComponent({
                 organization,
                 dashboardFilters
               );
-              navigate(getExploreUrl(dataRow));
+              const exploreUrl = getExploreUrl(dataRow);
+              if (exploreUrl) {
+                navigate(exploreUrl);
+              }
             }
           }}
         />
