@@ -177,12 +177,26 @@ def _run_deletion(
         deletion.delete()
         return
 
-    task = deletions.get(
-        model=deletion.get_model(),
-        query={"id": deletion.object_id},
-        transaction_id=deletion.guid,
-        actor_id=deletion.actor_id,
-    )
+    model = deletion.get_model()
+    # OrganizationIntegration scheduled uninstall races with reinstall and needs
+    # a row claim. Hybrid-cloud cascade constructs its own task without this flag.
+    from sentry.integrations.models.organization_integration import OrganizationIntegration
+
+    if model is OrganizationIntegration:
+        task = deletions.get(
+            model=model,
+            query={"id": deletion.object_id},
+            transaction_id=deletion.guid,
+            actor_id=deletion.actor_id,
+            claim_pending_deletion=True,
+        )
+    else:
+        task = deletions.get(
+            model=model,
+            query={"id": deletion.object_id},
+            transaction_id=deletion.guid,
+            actor_id=deletion.actor_id,
+        )
 
     if not task.should_proceed(instance):
         logger.info(
