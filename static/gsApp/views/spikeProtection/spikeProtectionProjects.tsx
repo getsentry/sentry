@@ -263,29 +263,6 @@ function SpikeProtectionProjects({subscription}: Props) {
     [debouncedSearch]
   );
 
-  const renderAccordionBody = (project: ProjectSummaryWithOptions) => {
-    const projectNotificationActions = notificationActionsById[project.id] ?? [];
-
-    // Only render if all of the notification actions have been loaded
-    if (isLoading) {
-      return null;
-    }
-
-    const hasProjectWrite = project.access.includes('project:write');
-
-    return (
-      <StyledAccordionDetails>
-        <NotificationActionManager
-          actions={projectNotificationActions}
-          availableActions={availableNotificationActions}
-          recipientRoles={['owner', 'manager', 'billing']}
-          project={project}
-          disabled={!hasOrgWrite && !hasProjectWrite}
-        />
-      </StyledAccordionDetails>
-    );
-  };
-
   return (
     <Fragment>
       <Flex justify="between" marginBottom="xl">
@@ -323,7 +300,17 @@ function SpikeProtectionProjects({subscription}: Props) {
         {projects?.map(project => {
           const hasProjectWrite = project.access.includes('project:write');
           const accordionTitle = <AccordionTitle project={project} />;
-          const accordionBody = renderAccordionBody(project);
+          const accordionBody = isLoading ? null : (
+            <StyledAccordionDetails>
+              <NotificationActionManager
+                actions={notificationActionsById[project.id] ?? []}
+                availableActions={availableNotificationActions}
+                recipientRoles={['owner', 'manager', 'billing']}
+                project={project}
+                disabled={!hasOrgWrite && !hasProjectWrite}
+              />
+            </StyledAccordionDetails>
+          );
           const isAccordionDisabled = !isSpikeProtectionEnabled(project);
 
           return (
