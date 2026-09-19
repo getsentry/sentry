@@ -197,12 +197,15 @@ export function UsageOverviewTableRow({
 
     paygSpend = normalizedMetricHistory.onDemandSpendUsed ?? 0;
   }
-  const bucket = getBucket({
-    events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
-    buckets: subscription.planDetails.planCategories[billedCategory],
-  });
+  const buckets = subscription.planDetails.planCategories[billedCategory];
+  const bucket = buckets
+    ? getBucket({
+        events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
+        buckets,
+      })
+    : null;
   otherSpend = calculateSeerUserSpend(normalizedMetricHistory);
-  const recurringReservedSpend = isChildProduct ? 0 : (bucket.price ?? 0);
+  const recurringReservedSpend = isChildProduct ? 0 : (bucket?.price ?? 0);
   const additionalSpend = recurringReservedSpend + paygSpend + otherSpend;
 
   const formattedSoftCapType =
