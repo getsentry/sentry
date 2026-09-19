@@ -4,12 +4,33 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {
   generateReleaseMarkLines,
+  normalizeProjectParam,
   releaseMarkLinesLabels,
 } from 'sentry/views/explore/releases/detail/utils';
 
 const theme = ThemeFixture();
 
 describe('releases/detail/utils', () => {
+  describe('normalizeProjectParam', () => {
+    it('strips a trailing slash from a project id', () => {
+      expect(normalizeProjectParam('12345/')).toBe('12345');
+    });
+
+    it('strips multiple trailing slashes', () => {
+      expect(normalizeProjectParam('12345///')).toBe('12345');
+    });
+
+    it('leaves a clean project param untouched', () => {
+      expect(normalizeProjectParam('12345')).toBe('12345');
+    });
+
+    it('leaves non-string values untouched', () => {
+      expect(normalizeProjectParam(undefined)).toBeUndefined();
+      expect(normalizeProjectParam(null)).toBeNull();
+      expect(normalizeProjectParam(['12345', '12346'])).toEqual(['12345', '12346']);
+    });
+  });
+
   describe('generateReleaseMarkLines', () => {
     const {created, adopted, unadopted} = releaseMarkLinesLabels;
     const location = LocationFixture();
