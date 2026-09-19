@@ -1,7 +1,7 @@
 import {DAY, HOUR, MINUTE, MONTH, SECOND, WEEK} from 'sentry/utils/formatters';
 
 export function parseClockToSeconds(clock: string) {
-  const [rest, milliseconds] = clock.split('.');
+  const [rest, fractionalSeconds] = clock.split('.');
   const parts = rest!.split(':');
 
   let seconds = 0;
@@ -11,6 +11,6 @@ export function parseClockToSeconds(clock: string) {
     const time = progression[i]! / 1000;
     seconds += num * time;
   }
-  const ms = Number(milliseconds) || 0;
-  return seconds + ms / 1000;
+  const fraction = Number(`0.${fractionalSeconds}`) || 0;
+  return seconds + fraction;
 }

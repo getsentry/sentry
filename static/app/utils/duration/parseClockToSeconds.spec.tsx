@@ -6,6 +6,16 @@ import {
 } from 'sentry/utils/formatters';
 
 describe('parseClockToSeconds', () => {
+  it.each([
+    ['00:01.5', 1.5],
+    ['01:05.12', 65.12],
+    ['00:00.0005', 0.0005],
+    ['01:02:03.25', 3723.25],
+    ['00:01.', 1],
+  ])('parses fractional seconds in %s', (clock, expected) => {
+    expect(parseClockToSeconds(clock)).toBe(expected);
+  });
+
   it('should format durations', () => {
     expect(parseClockToSeconds('0:00')).toBe(0);
     expect(parseClockToSeconds('0:00.100')).toBe(0.1);
