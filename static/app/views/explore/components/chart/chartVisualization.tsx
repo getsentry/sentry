@@ -18,6 +18,7 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import type {AnnotationBucket} from 'sentry/views/explore/components/chart/droppedDataBand/utils';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -29,6 +30,7 @@ interface ChartVisualizationProps {
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   droppedData?: Annotation[];
   showDroppedData?: boolean;
+  onDroppedDataClick?: (bucket: AnnotationBucket) => void;
 }
 
 export function useChartVisualizationPlottables(chartInfo: ChartInfo) {
@@ -68,6 +70,7 @@ export function ChartVisualization({
   chartRef,
   droppedData,
   showDroppedData,
+  onDroppedDataClick,
 }: ChartVisualizationProps) {
   const plottables = useChartVisualizationPlottables(chartInfo);
   const previousPlottables = usePrevious(
@@ -117,6 +120,7 @@ export function ChartVisualization({
         chartXRangeSelection={chartXRangeSelection}
         droppedData={droppedData}
         showDroppedData={showDroppedData}
+        onDroppedDataClick={onDroppedDataClick}
       />
     </StyledTransparentLoadingMask>
   );
