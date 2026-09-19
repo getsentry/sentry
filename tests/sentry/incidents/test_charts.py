@@ -194,6 +194,43 @@ class BuildMetricAlertChartTest(TestCase):
         assert mock_client_get.call_args[1]["params"]["dataset"] == "tracemetrics"
 
 
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    @patch("sentry.incidents.charts.client.get")
+    def test_performance_metrics_mri_aggregate(
+        self, mock_client_get: MagicMock, mock_generate_chart: MagicMock
+    ) -> None:
+        """Regression test: MRI-style aggregates on PerformanceMetrics dataset must not raise
+        InvalidSearchQuery. Commit 0e2f01c dropped allow_mri from translate_aggregate_field
+        when the insights-alerts flag was removed, breaking metric alert chart generation."""
+        mock_client_get.return_value.data = {"data": []}
+        mri_aggregate = "sum(value,connectivity.service_tier.activation.failed,counter,none)"
+        alert_rule = self.create_alert_rule(
+            query="",
+            dataset=Dataset.PerformanceMetrics,
+            aggregate=mri_aggregate,
+        )
+        incident = self.create_incident(
+            status=2,
+            organization=self.organization,
+            projects=[self.project],
+            alert_rule=alert_rule,
+            date_started=timezone.now() - datetime.timedelta(minutes=2),
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+
+        url = build_metric_alert_chart(
+            self.organization,
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            snuba_query=alert_rule.snuba_query,
+            open_period_context=OpenPeriodContext.from_incident(incident),
+        )
+
+        assert url == "chart-url"
+        mock_client_get.assert_called()
+        mock_generate_chart.assert_called()
+
+
 class FetchOpenPeriodsTest(BaseMetricIssueTest):
     @freeze_time(frozen_time)
     def test_get_open_periods_from_detector(self) -> None:
