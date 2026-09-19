@@ -33,6 +33,23 @@ MAX_COMPARE_COMMITS_OPTION_KEY = "cursor-origin-app.fetch-commits.max-compare-co
 RECENT_COMMIT_COUNT = 20
 
 
+def file_changes_from(files: Sequence[OriginCommitFile]) -> list[CommitPatchFile]:
+    """Origin's file statuses as Sentry's change types."""
+    changes: list[CommitPatchFile] = []
+    for file in files:
+        status = file["status"]
+        if status == "modified":
+            changes.append({"path": file["filename"], "type": "M"})
+        elif status in ("added", "copied"):
+            changes.append({"path": file["filename"], "type": "A"})
+        elif status == "removed":
+            changes.append({"path": file["filename"], "type": "D"})
+        elif status == "renamed":
+            changes.append({"path": file["previousFilename"], "type": "D"})
+            changes.append({"path": file["filename"], "type": "A"})
+    return changes
+
+
 class CursorOriginRepositoryProvider(IntegrationRepositoryProvider[CursorOriginIntegration]):
     name = "Cursor Origin"
     repo_provider = IntegrationProviderSlug.CURSOR_ORIGIN.value
@@ -133,19 +150,7 @@ class CursorOriginRepositoryProvider(IntegrationRepositoryProvider[CursorOriginI
 
     def _patch_set(self, files: Sequence[OriginCommitFile]) -> list[CommitPatchFile]:
         """File changes in the shape `Release.set_commits` expects."""
-        changes: list[CommitPatchFile] = []
-        for file in files:
-            status = file["status"]
-            if status == "modified":
-                changes.append({"path": file["filename"], "type": "M"})
-            elif status in ("added", "copied"):
-                changes.append({"path": file["filename"], "type": "A"})
-            elif status == "removed":
-                changes.append({"path": file["filename"], "type": "D"})
-            elif status == "renamed":
-                changes.append({"path": file["previousFilename"], "type": "D"})
-                changes.append({"path": file["filename"], "type": "A"})
-        return changes
+        return file_changes_from(files)
 
     def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str:
         return f"{CURSOR_ORIGIN_WEB_BASE_URL}/{repo.name}/pull/{pull_request.key}"

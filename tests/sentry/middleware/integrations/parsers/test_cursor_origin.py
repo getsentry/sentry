@@ -10,7 +10,8 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 from rest_framework import status
 
-from sentry.integrations.cursor_origin.handlers import HANDLERS, InstallationUpdatedHandler
+from sentry.integrations.cursor_origin.handlers import InstallationUpdatedHandler
+from sentry.integrations.cursor_origin.webhook import HANDLERS
 from sentry.integrations.middleware.hybrid_cloud.parser import SHED_INBOUND_KILLSWITCH
 from sentry.middleware.integrations.parsers.cursor_origin import CursorOriginRequestParser
 from sentry.silo.base import SiloMode

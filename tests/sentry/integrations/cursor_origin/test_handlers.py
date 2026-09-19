@@ -4,7 +4,7 @@ from typing import Any
 from unittest import mock
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.cursor_origin.handlers import HANDLERS
+from sentry.integrations.cursor_origin.webhook import HANDLERS
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service

@@ -138,11 +138,3 @@ class InstallationUpdatedHandler(InstallationEventHandler):
             integration_id=integration.id, name=name or None, metadata=metadata
         )
         _sync_repositories(org_integrations, delivery_id)
-
-
-HANDLERS: dict[str, type[InstallationEventHandler]] = {
-    "installation.deleted": InstallationRemovedHandler,
-    "installation.suspended": InstallationRemovedHandler,
-    "installation.unsuspended": InstallationRestoredHandler,
-    "installation.updated": InstallationUpdatedHandler,
-}
