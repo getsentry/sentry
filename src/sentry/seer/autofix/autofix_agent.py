@@ -122,6 +122,7 @@ class StepConfig:
 
 # Step configurations mapping step to its artifact schema and prompt
 STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
+    # RCA runs through Seer, see autofix_rca/feature.py in seer for changing behavior
     AutofixStep.ROOT_CAUSE: StepConfig(
         artifact_schema=RootCauseArtifact,
         prompt_fn=root_cause_prompt,
@@ -546,10 +547,7 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    use_seer_feature = (
-        step == AutofixStep.ROOT_CAUSE
-        and features.has("organizations:autofix-rca-in-seer", group.organization, actor=user)
-    ) or (
+    use_seer_feature = (step == AutofixStep.ROOT_CAUSE) or (
         step == AutofixStep.SOLUTION
         and features.has("organizations:autofix-solution-in-seer", group.organization, actor=user)
     )
@@ -655,16 +653,6 @@ def trigger_autofix_agent(
 
     if iteration_id is not None:
         prompt_metadata["iteration_id"] = str(iteration_id)
-
-    if step == AutofixStep.ROOT_CAUSE:
-        repo_pins = _build_repo_pins(group, referrer)
-        if repo_pins:
-            repo_pins_str = json.dumps(
-                {repository: repo_pin.dict() for repository, repo_pin in repo_pins.items()}
-            )
-            # Backwards compatibility, use repo_pins in future usages
-            prompt_metadata["base_shas"] = repo_pins_str
-            prompt_metadata["repo_pins"] = repo_pins_str
 
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema

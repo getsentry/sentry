@@ -172,6 +172,8 @@ describe('useSeerExplorer', () => {
       '/monitors/:detectorId/',
       '/monitors/:detectorId/edit/',
       '/monitors/alerts/',
+      '/monitors/alerts/:automationId/',
+      '/monitors/alerts/:automationId/edit/',
       '/monitors/crons/',
       '/monitors/errors/',
       '/monitors/metrics/',

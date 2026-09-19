@@ -918,14 +918,14 @@ function NodeActions(props: {
 
   return (
     <Flex align="center" gap="xs" overflow="visible">
-      <Tooltip title={t('Show in view')} skipWrapper>
+      <Tooltip title={t('Focus in waterfall')} skipWrapper>
         <ActionButton
           onClick={_e => {
             traceAnalytics.trackShowInView(props.organization);
             props.onTabScrollToNode(props.node);
           }}
           size="zero"
-          aria-label={t('Show in view')}
+          aria-label={t('Focus in waterfall')}
           icon={<IconFocus />}
         />
       </Tooltip>
