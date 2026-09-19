@@ -37,6 +37,58 @@ describe('getConfigFromTimeRange', () => {
     });
   });
 
+  it('divides into minute intervals for a one hour window', () => {
+    const start = new Date('2023-06-15T11:00:00Z');
+    const end = new Date('2023-06-15T12:00:00Z');
+    const config = getConfigFromTimeRange(start, end, timelineWidth, timezone);
+    expect(config).toEqual({
+      periodStart: start,
+      start: moment(start)
+        .subtract(15 * 27, 'seconds')
+        .toDate(),
+      end,
+      dateLabelFormat: getFormat({timeOnly: true, seconds: true}),
+      elapsedMinutes: 60,
+      rollupConfig: {
+        bucketPixels: 3,
+        interval: 15,
+        timelineUnderscanWidth: 80,
+        totalBuckets: 240,
+        underscanBuckets: 27,
+        underscanStartOffset: 1,
+      },
+      intervals: {
+        normalMarkerInterval: 10,
+        minimumMarkerInterval: 8.333333333333332,
+        referenceMarkerInterval: 9.583333333333332,
+      },
+      dateTimeProps: {timeOnly: true},
+      timelineWidth: 720,
+      timezone,
+    });
+  });
+
+  it('displays dates when the window spans days in the configured timezone', () => {
+    // 14:30 - 15:30 UTC is 23:30 - 00:30 in Asia/Tokyo, crossing midnight. Even
+    // though the window is under a day and the same day in the browser's
+    // timezone, labels should include the date since the window crosses a day
+    // boundary in the timezone used for the timeline.
+    const start = new Date('2023-06-15T14:30:00Z');
+    const end = new Date('2023-06-15T15:30:00Z');
+    const config = getConfigFromTimeRange(start, end, timelineWidth, 'Asia/Tokyo');
+    expect(config.dateTimeProps).toEqual({timeOnly: false});
+  });
+
+  it('displays only the time when the window stays within a long DST day', () => {
+    // 2026-11-01 is a 25 hour day in America/New_York. A window spanning the
+    // whole day exceeds 24 elapsed hours, but since it never leaves that
+    // calendar day the labels should still show only the time.
+    const start = new Date('2026-11-01T04:00:00Z'); // 2026-11-01 00:00 EDT
+    const end = new Date('2026-11-02T04:30:00Z'); // 2026-11-01 23:30 EST
+    const config = getConfigFromTimeRange(start, end, timelineWidth, 'America/New_York');
+    expect(config.dateTimeProps).toEqual({timeOnly: true});
+  });
+
   it('displays dates when more than 1 day window size', () => {
     const start = new Date('2023-06-15T11:00:00Z');
     const end = new Date('2023-06-16T11:05:00Z');
@@ -123,7 +175,7 @@ describe('getConfigFromTimeRange', () => {
       // 5 days in between each time label
       intervals: {
         normalMarkerInterval: 5 * 24 * 60,
-        minimumMarkerInterval: 6000,
+        minimumMarkerInterval: 6600,
         referenceMarkerInterval: 6900,
       },
       dateTimeProps: {dateOnly: true},
