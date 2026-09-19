@@ -168,6 +168,9 @@ export function initializeSdk(config: Config) {
        * the pointer moves.
        */
       /Cannot read properties of undefined \(reading 'getDataParams'\)/,
+      // Safari/WebKit reports the same ECharts tooltip race condition with
+      // different wording than V8/Chrome.
+      /undefined is not an object \(evaluating '[^']*\.getDataParams'\)/,
     ],
 
     beforeBreadcrumb(crumb) {
