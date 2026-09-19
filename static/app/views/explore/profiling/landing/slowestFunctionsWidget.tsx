@@ -438,13 +438,15 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
         </Tooltip>
         <DropdownMenu
           position="bottom-end"
-          triggerProps={{
-            icon: <IconEllipsis size="xs" />,
-            variant: 'transparent',
-            showChevron: false,
-            size: 'xs',
-            'aria-label': t('Example Profiles'),
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              icon={<IconEllipsis size="xs" />}
+              variant="transparent"
+              size="xs"
+              aria-label={t('Example Profiles')}
+            />
+          )}
           onOpenChange={isOpen => {
             if (isOpen) {
               trackAnalytics('profiling_views.landing.widget.open_list', {

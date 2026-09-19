@@ -288,8 +288,11 @@ function SeerWorkflows() {
             {runActions.length > 0 && (
               <DropdownMenu
                 size="sm"
-                triggerLabel={t('Run…')}
-                triggerProps={{busy: isStartingWorkflowRun}}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps} busy={isStartingWorkflowRun}>
+                    {t('Run…')}
+                  </OverlayTrigger.Button>
+                )}
                 isDisabled={isStartingWorkflowRun}
                 items={runActions.map(({strategy, label}) => ({
                   key: strategy,

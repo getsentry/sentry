@@ -8,6 +8,7 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
@@ -198,12 +199,14 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
             </Button>
             <DropdownMenu
               items={menuItems}
-              triggerProps={{
-                size: 'xs',
-                showChevron: false,
-                icon: <IconEllipsis direction="down" size="sm" />,
-                'aria-label': t('Actions'),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  size="xs"
+                  icon={<IconEllipsis direction="down" size="sm" />}
+                  aria-label={t('Actions')}
+                />
+              )}
             />
           </Grid>
         </Flex>

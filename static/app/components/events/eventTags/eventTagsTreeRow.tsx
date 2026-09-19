@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -322,12 +323,14 @@ function EventTagsTreeRowDropdown({
         size="xs"
         isOpen={isMenuOpen}
         onOpenChange={setIsMenuOpen}
-        triggerProps={{
-          'aria-label': t('Tag Actions Menu'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          className: 'tag-button',
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('Tag Actions Menu')}
+            icon={<IconEllipsis />}
+            className="tag-button"
+          />
+        )}
         items={items}
       />
     </RevealOnHover.Action>

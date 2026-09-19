@@ -6,11 +6,12 @@ import {useMenuTrigger} from '@react-aria/menu';
 import {Item, Section} from '@react-stately/collections';
 import type {LocationDescriptor} from 'history';
 
+import {ControlContext} from '@sentry/scraps/compactSelect';
+
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
-import type {DropdownButtonProps} from './dropdownButton';
 import {DropdownButton} from './dropdownButton';
 import type {MenuItemProps} from './item';
 import type {DropdownMenuListProps} from './list';
@@ -142,12 +143,6 @@ export interface DropdownMenuProps
    */
   triggerLabel?: React.ReactNode;
   /**
-   * If using the default button trigger (i.e. the custom `trigger` prop has
-   * not been provided), then `triggerProps` will be passed on to the button
-   * component.
-   */
-  triggerProps?: Partial<DropdownButtonProps>;
-  /**
    * Whether to render the menu inside a React portal (false by default). This should
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
    * scrollable container that messes with the menu's position. Some features, namely
@@ -167,7 +162,6 @@ function DropdownMenu({
   disabledKeys,
   trigger,
   triggerLabel,
-  triggerProps = {},
   isDisabled: disabledProp,
   isOpen: isOpenProp,
   renderWrapAs = 'div',
@@ -236,23 +230,6 @@ function DropdownMenu({
     triggerRef
   );
 
-  function renderTrigger() {
-    if (trigger) {
-      return trigger({...buttonProps, ...overlayTriggerProps}, isOpen);
-    }
-    return (
-      <DropdownButton
-        size={size}
-        isOpen={isOpen}
-        {...buttonProps}
-        {...overlayTriggerProps}
-        {...triggerProps}
-      >
-        {triggerLabel}
-      </DropdownButton>
-    );
-  }
-
   const activeItems = useMemo(() => removeHiddenItemsAndSetHref(items), [items]);
   const defaultDisabledKeys = useMemo(() => getDisabledKeys(activeItems), [activeItems]);
 
@@ -310,11 +287,35 @@ function DropdownMenu({
       : menu;
   }
 
+  const controlContextValue = useMemo(
+    () => ({
+      overlayIsOpen: isOpen,
+      disabled: isDisabled,
+      size,
+      search: '',
+      searchable: false,
+    }),
+    [isOpen, size, isDisabled]
+  );
+
   return (
     <DropdownMenuWrap className={className} as={renderWrapAs} role="presentation">
-      {renderTrigger()}
-      {/* oxlint-disable-next-line react/refs */}
-      {renderMenu()}
+      <ControlContext value={controlContextValue}>
+        {trigger ? (
+          trigger({...buttonProps, ...overlayTriggerProps}, isOpen)
+        ) : (
+          <DropdownButton
+            size={size}
+            isOpen={isOpen}
+            {...buttonProps}
+            {...overlayTriggerProps}
+          >
+            {triggerLabel}
+          </DropdownButton>
+        )}
+        {/* oxlint-disable-next-line react/refs */}
+        {renderMenu()}
+      </ControlContext>
     </DropdownMenuWrap>
   );
 }

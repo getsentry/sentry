@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
@@ -457,12 +458,14 @@ function AttributesTreeRowDropdown({
         size="xs"
         isOpen={isMenuOpen}
         onOpenChange={setIsMenuOpen}
-        triggerProps={{
-          'aria-label': t('Attribute Actions Menu'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          className: 'attribute-button',
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('Attribute Actions Menu')}
+            icon={<IconEllipsis />}
+            className="attribute-button"
+          />
+        )}
         items={items}
       />
     </RevealOnHover.Action>

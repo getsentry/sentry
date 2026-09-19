@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {t} from 'sentry/locale';
@@ -37,11 +38,14 @@ export function SettingsDropdown() {
 
   return (
     <DropdownMenu
-      triggerProps={{
-        size: 'xs',
-        showChevron: false,
-        icon: <IconSettings />,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          size="xs"
+          icon={<IconSettings />}
+          aria-label={t('Settings')}
+        />
+      )}
       position="bottom-end"
       items={items}
     />

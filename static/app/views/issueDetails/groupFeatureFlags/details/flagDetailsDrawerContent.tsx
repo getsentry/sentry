@@ -5,6 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -188,12 +189,13 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
       size="xs"
       className={isVisible ? '' : 'invisible'}
       onOpenChange={isOpen => setIsVisible(isOpen)}
-      triggerProps={{
-        'aria-label': t('Flag Audit Log Actions Menu'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        size: 'xs',
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          aria-label={t('Flag Audit Log Actions Menu')}
+          icon={<IconEllipsis />}
+        />
+      )}
       items={[
         {
           key: 'view-issues-true',

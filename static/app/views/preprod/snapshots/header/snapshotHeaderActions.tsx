@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, useResponsivePropValue} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -507,13 +508,15 @@ export function SnapshotHeaderActions({
           return (
             <DropdownMenu
               items={menuItems}
-              triggerProps={{
-                size: 'sm',
-                showChevron: false,
-                icon: <IconEllipsis />,
-                'aria-label': t('More actions'),
-                disabled: isDeleting,
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  size="sm"
+                  icon={<IconEllipsis />}
+                  aria-label={t('More actions')}
+                  disabled={isDeleting}
+                />
+              )}
             />
           );
         }}

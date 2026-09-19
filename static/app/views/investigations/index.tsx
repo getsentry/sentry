@@ -204,13 +204,15 @@ export function InvestigationsPage() {
               }),
           },
         ]}
-        triggerProps={{
-          size: 'sm',
-          showChevron: false,
-          variant: 'transparent',
-          icon: <IconEllipsis />,
-          'aria-label': t('More options for %s', investigation.title),
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            size="sm"
+            variant="transparent"
+            icon={<IconEllipsis />}
+            aria-label={t('More options for %s', investigation.title)}
+          />
+        )}
         position="bottom-end"
         usePortal
       />

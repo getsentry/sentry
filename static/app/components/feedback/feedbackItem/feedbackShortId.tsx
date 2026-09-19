@@ -5,6 +5,7 @@ import queryString from 'query-string';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TextOverflow} from 'sentry/components/textOverflow';
@@ -72,13 +73,15 @@ export function FeedbackShortId({className, feedbackItem, style}: Props) {
         <ShortId>{feedbackItem.shortId}</ShortId>
       </Flex>
       <DropdownMenu
-        triggerProps={{
-          'aria-label': t('Short-ID copy actions'),
-          icon: <IconChevron direction="down" size="xs" />,
-          size: 'zero',
-          variant: 'transparent',
-          showChevron: false,
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('Short-ID copy actions')}
+            icon={<IconChevron direction="down" size="xs" />}
+            size="zero"
+            variant="transparent"
+          />
+        )}
         position="bottom"
         size="xs"
         items={[

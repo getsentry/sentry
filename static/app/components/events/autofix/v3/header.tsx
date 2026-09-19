@@ -5,6 +5,7 @@ import {DrawerHeader} from '@sentry/scraps/drawer';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -151,13 +152,16 @@ function AutofixDebugMenu({
       items={items}
       size="xs"
       position="bottom-end"
-      triggerLabel={t('Debug')}
-      triggerProps={{
-        'aria-label': t('Debug'),
-        icon: <IconBug />,
-        variant: 'transparent',
-        size: 'xs',
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          aria-label={t('Debug')}
+          icon={<IconBug />}
+          variant="transparent"
+        >
+          {t('Debug')}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }

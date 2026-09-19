@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -65,11 +66,14 @@ function Banner(props: BannerProps) {
       <BannerBackground image={props.image} />
       <CloseDropdownMenu
         position="bottom-end"
-        triggerProps={{
-          showChevron: false,
-          variant: 'transparent',
-          icon: <IconClose variant="muted" />,
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            variant="transparent"
+            icon={<IconClose variant="muted" />}
+            aria-label={t('Close')}
+          />
+        )}
         size="xs"
         items={[
           {

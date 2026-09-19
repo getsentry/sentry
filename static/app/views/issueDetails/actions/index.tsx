@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {
@@ -591,12 +592,14 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           analyticsEventName="Issue Details: Share Action Clicked"
         />
         <DropdownMenu
-          triggerProps={{
-            'aria-label': t('More Actions'),
-            icon: <IconEllipsis />,
-            showChevron: false,
-            size: 'sm',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              aria-label={t('More Actions')}
+              icon={<IconEllipsis />}
+              size="sm"
+            />
+          )}
           items={[
             {
               key: 'mark-review',

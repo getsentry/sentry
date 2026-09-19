@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
 import {IconAdd} from 'sentry/icons';
@@ -74,13 +75,14 @@ export function AddWidget({onAddWidget}: Props) {
             items={addWidgetDropdownItems}
             data-test-id="widget-add"
             position="auto-start"
-            triggerProps={{
-              'aria-label': t('Add Widget'),
-              size: 'md',
-              showChevron: false,
-              icon: <IconAdd size="lg" variant="muted" />,
-              variant: 'transparent',
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                aria-label={t('Add Widget')}
+                icon={<IconAdd size="lg" variant="muted" />}
+                variant="transparent"
+              />
+            )}
           />
         </InnerWrapper>
       </WidgetWrapper>

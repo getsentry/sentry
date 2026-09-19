@@ -3,6 +3,7 @@ import {Fragment, useCallback} from 'react';
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ArchiveActions} from 'sentry/components/actions/archive';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -302,12 +303,14 @@ export function ActionSet({
       <DropdownMenu
         size="sm"
         items={menuItems}
-        triggerProps={{
-          'aria-label': t('More issue actions'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          size: 'xs',
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('More issue actions')}
+            icon={<IconEllipsis />}
+            size="xs"
+          />
+        )}
         isDisabled={!anySelected}
       />
     </Fragment>
