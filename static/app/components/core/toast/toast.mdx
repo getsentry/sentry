@@ -11,6 +11,8 @@ resources:
     WAI-ARIA Alert: https://www.w3.org/WAI/ARIA/apg/patterns/alert/
 ---
 
+import {useEffect, useId, useState} from 'react';
+
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
@@ -22,6 +24,7 @@ export const documentation = import('!!type-loader!@sentry/scraps/toast');
 
 Use the namespaced `toast` API to show temporary notifications. The shared app provider renders the
 toaster, so callers only need to invoke a method.
+Each method returns the toast's id, which you can use to update or dismiss it later.
 
 <Storybook.Demo>
   <Flex gap="sm" wrap="wrap">
@@ -73,8 +76,77 @@ toast.error('Could not save changes', {
 ```
 
 - `duration` is in milliseconds. It defaults to `6_000`. Use `Infinity` for a persistent toast.
-- `id` updates an existing toast with the same id instead of adding another toast.
+- `id` opts out of automatic replacement. Reuse it to update the same toast.
 - `onDismiss` runs when the toast is dismissed.
+
+## Updating an operation
+
+Supply an id when starting an operation, then reuse it to replace loading with the result.
+Toasts with explicit ids stay separate from automatic replacement, so unrelated notifications stay visible.
+
+Start resolving, show an unrelated notification, then complete or fail the operation.
+Loading has a 30-second timeout; the result uses the normal timeout and still appears if loading has expired.
+
+export function OperationToastDemo() {
+  const id = useId();
+  const [pending, setPending] = useState(false);
+  useEffect(
+    () => () => {
+      toast.dismiss(id);
+    },
+    [id]
+  );
+  return (
+    <Flex gap="sm" wrap="wrap">
+      <Button
+        disabled={pending}
+        onClick={() => {
+          toast.loading('Resolving issues…', {id, duration: 30_000});
+          setPending(true);
+        }}
+      >
+        Start resolving
+      </Button>
+      <Button
+        disabled={!pending}
+        onClick={() => {
+          toast.success('Selected issues resolved', {id});
+          setPending(false);
+        }}
+      >
+        Complete
+      </Button>
+      <Button
+        disabled={!pending}
+        onClick={() => {
+          toast.error('Unable to resolve issues', {id});
+          setPending(false);
+        }}
+      >
+        Fail
+      </Button>
+      <Button onClick={() => toast.message('Unrelated notification')}>
+        Other notification
+      </Button>
+    </Flex>
+  );
+}
+
+<Storybook.Demo>
+  <OperationToastDemo />
+</Storybook.Demo>
+
+```tsx
+import {uuid4} from '@sentry/core';
+
+const id = toast.loading('Resolving issues…', {
+  id: uuid4(),
+  duration: 30_000,
+});
+
+// When the request finishes, update the same toast.
+toast.success('Selected issues resolved', {id});
+```
 
 ## Actions
 
@@ -109,8 +181,8 @@ toast.success('Item deleted', {
 ## Dismissing toasts
 
 Toasts dismiss automatically after their duration. Users can also click the `Dismiss` button or swipe
-a toast. Toasts of the same variant stack up to three at once; showing a different variant
-dismisses the previous variant's active toasts.
+a toast. Without an explicit id, showing a different variant dismisses previous toasts that also have
+no explicit id. Toasts with explicit ids are unaffected. Up to three toasts are visible at once.
 
 ```tsx
 // Dismiss one toast by id

@@ -1,15 +1,18 @@
 import {useTheme} from '@emotion/react';
 
+import {toast} from '@sentry/scraps/toast';
+
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
+import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueActionHandler} from 'sentry/views/issueList/types';
 
 import {NoGroupsHandler} from './noGroupsHandler';
 
@@ -20,7 +23,7 @@ type GroupListBodyProps = {
   groupStatsPeriod: string;
   loading: boolean;
   memberList: IndexedMembersByProject | undefined;
-  onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
+  onActionTaken: IssueActionHandler;
   pageSize: number;
   query: string;
   refetchGroups: () => void;
@@ -32,7 +35,7 @@ type GroupListProps = {
   groupIds: string[];
   groupStatsPeriod: string;
   memberList: IndexedMembersByProject | undefined;
-  onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
+  onActionTaken: IssueActionHandler;
   query: string;
 };
 
@@ -148,7 +151,10 @@ function GroupList({
             displayReprocessingLayout={displayReprocessingLayout}
             useFilteredStats
             canSelect={!selectDisabled}
-            onPriorityChange={priority => onActionTaken([id], {priority})}
+            onPriorityChange={priority => {
+              toast.success(t('Reprioritized %s', group.shortId));
+              onActionTaken([id], {priority});
+            }}
             withColumns={DEFAULT_COLUMNS}
           />
         );

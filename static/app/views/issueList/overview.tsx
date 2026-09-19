@@ -12,7 +12,6 @@ import * as qs from 'query-string';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
-import {addMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -54,7 +53,7 @@ import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueActionHandler, IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -744,6 +743,9 @@ function IssueListOverviewInner({
     data: IssueUpdateData;
     groupItems: BaseGroup[];
   }) => {
+    if (groupItems.length === 0) {
+      return;
+    }
     const projectIds = selection?.projects?.map(p => p.toString());
     const endpoint = `/organizations/${organization.slug}/issues/`;
 
@@ -778,28 +780,18 @@ function IssueListOverviewInner({
 
   const onIssueAction = ({
     itemIds,
-    actionType,
     shouldRemove,
     skipRefetch,
-    undo,
   }: {
-    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived' | 'Reprioritized';
-    itemIds: string[];
+    itemIds: string[] | undefined;
     shouldRemove: boolean;
     skipRefetch?: boolean;
-    undo?: () => void;
   }) => {
-    if (itemIds.length > 1) {
-      addMessage(`${actionType} ${itemIds.length} ${t('Issues')}`, 'success', {
-        duration: 4000,
-        undo,
-      });
-    } else {
-      const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-      addMessage(`${actionType} ${shortId}`, 'success', {
-        duration: 4000,
-        undo,
-      });
+    if (itemIds === undefined) {
+      // Reload the list instead of merging results when the affected IDs are unknown.
+      actionTakenRef.current = false;
+      fetchData();
+      return;
     }
 
     if (!shouldRemove) {
@@ -829,52 +821,51 @@ function IssueListOverviewInner({
     }
   };
 
-  const onActionTaken = (itemIds: string[], data: IssueUpdateData) => {
-    const groupItems = itemIds.map(id => GroupStore.get(id)).filter(defined);
-
+  const onActionTaken: IssueActionHandler = (itemIds, data, previousGroups = []) => {
     if ('status' in data) {
-      if (data.status === 'resolved') {
+      if (data.status === GroupStatus.RESOLVED || data.status === GroupStatus.IGNORED) {
         onIssueAction({
           itemIds,
-          actionType: 'Resolved',
           shouldRemove:
             query.includes('is:unresolved') ||
-            query.includes('is:ignored') ||
-            isForReviewQuery(query),
+            isForReviewQuery(query) ||
+            (data.status === GroupStatus.RESOLVED && query.includes('is:ignored')),
           skipRefetch: realtimeActive,
-          undo: realtimeActive
-            ? undefined
-            : () =>
-                undoAction({
-                  data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
-                  groupItems,
-                }),
         });
-        return;
-      }
 
-      if (data.status === 'ignored') {
-        onIssueAction({
-          itemIds,
-          actionType: 'Archived',
-          shouldRemove: query.includes('is:unresolved') || isForReviewQuery(query),
-          skipRefetch: realtimeActive,
-          undo: realtimeActive
-            ? undefined
-            : () =>
-                undoAction({
-                  data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
-                  groupItems,
-                }),
-        });
-        return;
+        const firstGroup = previousGroups[0];
+        // Undo needs the previous state of every explicitly selected issue.
+        if (realtimeActive || !firstGroup || previousGroups.length !== itemIds?.length) {
+          return;
+        }
+
+        // One Undo request applies the same status, substatus and empty details to
+        // every issue, so it must match all of their previous states.
+        const canRestorePreviousState = previousGroups.every(
+          group =>
+            group.status === GroupStatus.UNRESOLVED &&
+            group.substatus === firstGroup.substatus &&
+            Object.keys(group.statusDetails).length === 0
+        );
+        if (!canRestorePreviousState) {
+          return;
+        }
+
+        return () =>
+          undoAction({
+            data: {
+              status: GroupStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: firstGroup.substatus,
+            },
+            groupItems: previousGroups,
+          });
       }
     }
 
     if ('inbox' in data && !data.inbox) {
       onIssueAction({
         itemIds,
-        actionType: 'Reviewed',
         shouldRemove: isForReviewQuery(query),
         skipRefetch: realtimeActive,
       });
@@ -887,12 +878,12 @@ function IssueListOverviewInner({
 
       onIssueAction({
         itemIds,
-        actionType: 'Reprioritized',
         shouldRemove: !priorityValues.has(priority),
         skipRefetch: realtimeActive,
       });
       return;
     }
+    return;
   };
 
   const onDelete = () => {

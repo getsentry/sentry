@@ -1,22 +1,22 @@
 import {Fragment} from 'react';
+import {uuid4} from '@sentry/core';
 import type {QueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import type {ResponsiveKey} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import {IconRefresh} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
+import {GroupStatus, type BaseGroup} from 'sentry/types/group';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
@@ -234,6 +234,67 @@ export function invalidateIssueQueries({
   });
 }
 
+function getBulkActionMessages(
+  data: IssueUpdateData | Record<string, unknown>,
+  itemIds: string[] | undefined
+) {
+  const count = itemIds?.length;
+  const target =
+    itemIds?.length === 1
+      ? (GroupStore.get(itemIds[0]!)?.shortId ?? t('1 issue'))
+      : tn('%s issue', '%s issues', count ?? 0);
+
+  if ('status' in data && data.status === GroupStatus.RESOLVED) {
+    return {
+      loading: t('Resolving issues…'),
+      success:
+        count === undefined ? t('Selected issues resolved') : t('Resolved %s', target),
+      error: t('Unable to resolve issues'),
+    };
+  }
+  if ('status' in data && data.status === GroupStatus.IGNORED) {
+    return {
+      loading: t('Archiving issues…'),
+      success:
+        count === undefined ? t('Selected issues archived') : t('Archived %s', target),
+      error: t('Unable to archive issues'),
+    };
+  }
+  if ('status' in data && data.status === GroupStatus.UNRESOLVED) {
+    return {
+      loading: t('Unresolving issues…'),
+      success:
+        count === undefined
+          ? t('Selected issues unresolved')
+          : t('Unresolved %s', target),
+      error: t('Unable to unresolve issues'),
+    };
+  }
+  if ('inbox' in data && !data.inbox) {
+    return {
+      loading: t('Marking issues reviewed…'),
+      success:
+        count === undefined ? t('Selected issues reviewed') : t('Reviewed %s', target),
+      error: t('Unable to mark issues reviewed'),
+    };
+  }
+  if ('priority' in data) {
+    return {
+      loading: t('Updating issue priority…'),
+      success:
+        count === undefined
+          ? t('Selected issues reprioritized')
+          : t('Reprioritized %s', target),
+      error: t('Unable to update issue priority'),
+    };
+  }
+  return {
+    loading: t('Saving changes…'),
+    success: t('Changes saved'),
+    error: t('Unable to update issues'),
+  };
+}
+
 export function performBulkUpdate({
   api,
   data,
@@ -251,13 +312,25 @@ export function performBulkUpdate({
   query: string;
   selection: PageFilters;
   onError?: () => void;
-  onSuccess?: (itemIds: string[] | undefined) => void;
+  onSuccess?: (
+    itemIds: string[] | undefined,
+    previousGroups: BaseGroup[]
+  ) => (() => void) | void;
 }) {
+  if (itemIds?.length === 0) {
+    return;
+  }
+
   const projectConstraints = {
     project: getSelectedProjectIds({selectedGroupIds: itemIds, selection}),
   };
 
-  addLoadingMessage(t('Saving changes…'));
+  const previousGroups = itemIds?.map(id => GroupStore.get(id)).filter(defined) ?? [];
+  const messages = getBulkActionMessages(data, itemIds);
+  const toastId = toast.loading(messages.loading, {
+    id: uuid4(),
+    duration: 30_000,
+  });
 
   bulkUpdate(
     api,
@@ -273,12 +346,21 @@ export function performBulkUpdate({
     },
     {
       success: () => {
-        clearIndicators();
-        onSuccess?.(itemIds);
+        const undo = onSuccess?.(itemIds, previousGroups);
+        toast.success(messages.success, {
+          id: toastId,
+          action: undo
+            ? {label: t('Undo'), icon: <IconRefresh size="xs" />, onClick: undo}
+            : undefined,
+        });
       },
       error: () => {
-        clearIndicators();
-        addErrorMessage(t('Unable to update issues'));
+        toast.error(
+          isDemoModeActive()
+            ? t('This action is not allowed in demo mode.')
+            : messages.error,
+          {id: toastId}
+        );
         onError?.();
       },
     }

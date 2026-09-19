@@ -26,7 +26,7 @@ import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueActionHandler, IssueUpdateData} from 'sentry/views/issueList/types';
 
 import {ActionSet} from './actionSet';
 import {Headers} from './headers';
@@ -48,7 +48,7 @@ type IssueListActionsProps = {
   queryCount: number;
   selection: PageFilters;
   statsPeriod: string;
-  onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
+  onActionTaken?: IssueActionHandler;
 };
 
 const animationProps: MotionNodeAnimationOptions = {
@@ -257,13 +257,14 @@ export function IssueListActions({
         organizationSlug: organization.slug,
         query,
         selection,
-        onSuccess: updatedItemIds => {
-          onActionTaken?.(updatedItemIds ?? [], data);
+        onSuccess: (updatedItemIds, previousGroups) => {
+          const undo = onActionTaken?.(updatedItemIds, data, previousGroups);
           invalidateIssueQueries({
             itemIds: updatedItemIds,
             organizationSlug: organization.slug,
             queryClient,
           });
+          return undo;
         },
       });
     });
