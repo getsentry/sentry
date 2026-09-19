@@ -8,7 +8,7 @@ import type {DrawerOptions} from '@sentry/scraps/drawer';
 import {ContainerQueryProvider} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconClose} from 'sentry/icons/iconClose';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';

@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import maxBy from 'lodash/maxBy';
 import type {DistributedOmit} from 'type-fest';
 
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 

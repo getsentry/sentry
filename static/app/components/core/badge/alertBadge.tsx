@@ -2,7 +2,7 @@ import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';

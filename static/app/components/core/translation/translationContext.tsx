@@ -1,4 +1,4 @@
-import {createContext, useContext} from 'react';
+import {createContext} from 'react';
 
 export type TranslationContextValue = {
   t: (
@@ -8,13 +8,7 @@ export type TranslationContextValue = {
   tct: (template: string, components: Record<string, React.ReactNode>) => React.ReactNode;
 };
 
-const TranslationContext = createContext<TranslationContextValue>({
+export const TranslationContext = createContext<TranslationContextValue>({
   t: string => string,
   tct: template => template,
 });
-
-export const TranslationContextProvider = TranslationContext.Provider;
-
-export function useTranslation() {
-  return useContext(TranslationContext);
-}
