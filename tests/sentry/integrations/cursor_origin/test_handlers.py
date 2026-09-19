@@ -7,6 +7,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.handlers import HANDLERS
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
@@ -56,7 +57,16 @@ class InstallationEventHandlerTest(TestCase):
             )
 
     def _handle(self, event_type: str, payload: dict[str, Any] | None = None) -> None:
-        HANDLERS[event_type]()(payload if payload is not None else _installation(), DELIVERY_ID)
+        context = integration_service.organization_contexts(
+            provider="cursor_origin", external_id=INSTALLATION_ID
+        )
+        assert context.integration is not None
+        HANDLERS[event_type]()(
+            payload if payload is not None else _installation(),
+            DELIVERY_ID,
+            context.integration,
+            context.organization_integrations,
+        )
 
     def _integration(self) -> Integration:
         return Integration.objects.get(id=self.integration.id)
@@ -159,17 +169,6 @@ class InstallationEventHandlerTest(TestCase):
             self._handle("installation.deleted")
 
         assert not mock_sync.called
-
-    def test_an_installation_sentry_does_not_have_is_ignored(self) -> None:
-        """A half-finished install, or one already removed from this side."""
-        self._handle("installation.deleted", _installation(id="i_01someone_else"))
-
-        assert self._integration().status == ObjectStatus.ACTIVE
-
-    def test_a_payload_with_no_installation_is_ignored(self) -> None:
-        self._handle("installation.deleted", {})
-
-        assert self._integration().status == ObjectStatus.ACTIVE
 
     def test_another_organizations_repositories_are_left_alone(self) -> None:
         """Repositories are disabled per organization on the shared installation."""
