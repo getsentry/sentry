@@ -193,7 +193,6 @@ class BuildMetricAlertChartTest(TestCase):
         mock_generate_chart.assert_called()
         assert mock_client_get.call_args[1]["params"]["dataset"] == "tracemetrics"
 
-
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     @patch("sentry.incidents.charts.client.get")
     def test_performance_metrics_mri_aggregate(
