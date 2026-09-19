@@ -78,7 +78,7 @@ from sentry.seer.agent.utils import (
     get_retention_boundary,
 )
 from sentry.seer.autofix.autofix import get_all_tags_overview
-from sentry.seer.autofix.utils import get_repo_url_path
+from sentry.seer.autofix.utils import get_repo_url_path, perforce_depot_path
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     BaselineTagDistributionEntry,
@@ -1092,9 +1092,15 @@ def get_repository_definition(
             )
             return None
 
+        # Perforce rows are stored under their depot path, while Seer holds the
+        # synthetic-owner form get_repo_url_path handed it.
+        names = [repo_full_name]
+        if depot_path := perforce_depot_path(repo_full_name):
+            names.append(depot_path)
+
         repo = Repository.objects.filter(
             organization_id=organization_id,
-            name=repo_full_name,
+            name__in=names,
             status=ObjectStatus.ACTIVE,
             provider__in=supported_providers,
         ).first()
