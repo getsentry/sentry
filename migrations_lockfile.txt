@@ -43,4 +43,4 @@ tempest: 0001_squashed_0003_use_encrypted_char_field
 
 uptime: 0001_squashed_0055_backfill_2xx_status_assertion
 
-workflow_engine: 0120_replace_boolean_deescalation_comparisons
+workflow_engine: 0121_delete_malformed_anomaly_conditions
