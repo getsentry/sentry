@@ -82,16 +82,16 @@ class WorkflowEngineIncidentSerializer(Serializer):
 
         for open_period in item_list:
             detector = open_periods_to_detectors.get(open_period)
-            if detector is None:
-                continue
-            detector_id = detector.id
-            if detector_id in detector_ids_to_alert_rule_ids:
-                alert_rule_id = detector_ids_to_alert_rule_ids[detector_id]
-            else:
-                alert_rule_id = get_fake_id_from_object_id(detector_id)
-
             results[open_period] = {"projects": [open_period.project.slug]}
-            results[open_period]["alert_rule"] = alert_rules.get(str(alert_rule_id))
+            if detector is None:
+                results[open_period]["alert_rule"] = None
+            else:
+                detector_id = detector.id
+                if detector_id in detector_ids_to_alert_rule_ids:
+                    alert_rule_id = detector_ids_to_alert_rule_ids[detector_id]
+                else:
+                    alert_rule_id = get_fake_id_from_object_id(detector_id)
+                results[open_period]["alert_rule"] = alert_rules.get(str(alert_rule_id))
 
         igops = IncidentGroupOpenPeriod.objects.filter(group_open_period__in=results.keys())
         igop_by_open_period_id = {igop.group_open_period_id: igop for igop in igops}
