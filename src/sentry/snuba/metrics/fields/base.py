@@ -98,7 +98,7 @@ COMPOSITE_ENTITY_CONSTITUENT_ALIAS = "__CHILD_OF__"
 
 SnubaDataType = dict[str, Any]
 PostQueryFuncReturnType = Optional[Union[tuple[Any, ...], ClickhouseHistogram, int, float]]
-MetricOperationParams = Mapping[str, Union[str, int, float]]
+MetricOperationParams = Mapping[str, None | str | int | float | Sequence[tuple[str | int, ...]]]
 
 
 def build_metrics_query(
