@@ -228,6 +228,11 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         allow_null=True,
         help_text="Agent names to filter conversations by.",
     )
+    starred = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Whether to star the saved query for the current organization member.",
+    )
     query = ListField(
         child=QuerySerializer(),
         required=True,
@@ -330,4 +335,5 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
             "project_ids": data["projects"],
             "query": query,
             "dataset": ExploreSavedQueryDataset.get_id_for_type_name(data["dataset"]),
+            "starred": data["starred"],
         }
