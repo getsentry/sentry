@@ -27,6 +27,12 @@ import {
   SessionTerm,
 } from 'sentry/views/explore/releases/utils/sessionTerm';
 
+type ProjectQueryParam = string | string[] | null | undefined;
+
+export function normalizeProjectParam(project: ProjectQueryParam): ProjectQueryParam {
+  return typeof project === 'string' ? project.replace(/\/+$/, '') : project;
+}
+
 type CommitsByRepository = Record<string, Commit[]>;
 
 /**
