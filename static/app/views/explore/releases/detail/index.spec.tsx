@@ -1,8 +1,8 @@
+import {HealthFixture} from 'sentry-fixture/health';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseMetaFixture} from 'sentry-fixture/releaseMeta';
-import {HealthFixture} from 'sentry-fixture/health';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 

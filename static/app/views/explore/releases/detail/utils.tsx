@@ -17,7 +17,6 @@ import type {
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {decodeList} from 'sentry/utils/queryString';
-
 import {
   getReleaseBounds,
   getReleaseParams,
