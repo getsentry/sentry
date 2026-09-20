@@ -2,7 +2,12 @@ import * as Sentry from '@sentry/react';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addMessage, addErrorMessage, addSuccessMessage, addLoadingMessage} from './indicator';
+import {
+  addMessage,
+  addErrorMessage,
+  addSuccessMessage,
+  addLoadingMessage,
+} from './indicator';
 
 jest.mock('@sentry/react', () => ({
   captureException: jest.fn(),
