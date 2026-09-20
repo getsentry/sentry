@@ -46,6 +46,7 @@ from sentry.incidents.logic import (
     get_actions_for_trigger,
     get_alert_resolution,
     get_available_action_integrations_for_org,
+    get_column_from_aggregate,
     get_metric_issue_aggregates,
     get_triggers_for_alert_rule,
     snapshot_alert_rule,
@@ -3464,6 +3465,17 @@ class MetricTranslationTest(TestCase):
         # Make sure it doesn't do anything wonky running twice:
         translated_2 = translate_aggregate_field(translated, reverse=True)
         assert translated_2 == "count_unique(user)"
+
+    def test_equation_passthrough(self) -> None:
+        # equation| aggregates must not raise InvalidSearchQuery
+        aggregate = "equation|count() / 2"
+        translated = translate_aggregate_field(aggregate)
+        assert translated == aggregate
+
+    def test_get_column_from_aggregate_equation_returns_none(self) -> None:
+        # equation| aggregates must return None without raising
+        result = get_column_from_aggregate("equation|count() / 2", allow_mri=False)
+        assert result is None
 
 
 class TestDeduplicateTriggerActions(TestCase):

@@ -1825,6 +1825,13 @@ def get_column_from_aggregate(
     allow_eap: bool = False,
     match: Match[str] | None = None,
 ) -> str | None:
+    # Equation aggregates (e.g. "equation|count() / 2") cannot be resolved by
+    # resolve_field, which rejects the "equation|" prefix. Return None early so
+    # callers treat them as unsupported/passthrough, matching the behaviour of
+    # check_aggregate_column_support which guards on is_equation() first.
+    if is_equation(aggregate):
+        return None
+
     # These functions exist as SnQLFunction definitions and are not supported in the older
     # logic for resolving functions. We parse these using `fields.is_function`, otherwise
     # they will fail using the old resolve_field logic.
