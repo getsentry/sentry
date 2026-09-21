@@ -4,15 +4,9 @@ import {Link} from '@sentry/scraps/link';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
@@ -23,10 +17,9 @@ import type {
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
-  errorsAndTransactionsAggregateFunctionOutputType,
-  getAggregateAlias,
+  eventsAggregateFunctionOutputType,
   isEquation,
   isLegalYAxisType,
   parseFunction,
@@ -42,17 +35,9 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import {FieldKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
-import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {CUSTOM_EQUATION_VALUE} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelectors';
-import {
-  useErrorsAndTransactionsSeriesQuery,
-  useErrorsAndTransactionsTableQuery,
-} from 'sentry/views/dashboards/widgetCard/hooks/useErrorsAndTransactionsWidgetQuery';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -65,57 +50,6 @@ import {
   DiscoverQueryPageSource,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
-
-const DEFAULT_WIDGET_QUERY: WidgetQuery = {
-  name: '',
-  fields: ['count()'],
-  columns: [],
-  fieldAliases: [],
-  aggregates: ['count()'],
-  conditions: '',
-  orderby: '-count()',
-};
-
-const DEFAULT_FIELD: QueryFieldValue = {
-  function: ['count', '', undefined, undefined],
-  kind: FieldValueKind.FUNCTION,
-};
-
-export const ErrorsAndTransactionsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
-  TableData | EventsTableData
-> = {
-  defaultCategoryField: 'transaction',
-  defaultField: DEFAULT_FIELD,
-  defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
-  enableEquations: true,
-  getCustomFieldRenderer: getCustomEventsFieldRenderer,
-  SearchBar: EventsSearchBar,
-  filterSeriesSortOptions,
-  filterYAxisAggregateParams,
-  filterYAxisOptions,
-  getTableFieldOptions: getEventsTableFieldOptions,
-  getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
-    getTimeseriesSortOptions(organization, widgetQuery, tags, getEventsTableFieldOptions),
-  getTableSortOptions,
-  getGroupByFieldOptions: getEventsTableFieldOptions,
-  handleOrderByReset,
-  supportedDisplayTypes: [
-    DisplayType.AREA,
-    DisplayType.BAR,
-    DisplayType.BIG_NUMBER,
-    DisplayType.CATEGORICAL_BAR,
-    DisplayType.LINE,
-    DisplayType.TABLE,
-    DisplayType.TOP_N,
-  ],
-  useSeriesQuery: useErrorsAndTransactionsSeriesQuery,
-  useTableQuery: useErrorsAndTransactionsTableQuery,
-  transformSeries: transformEventsResponseToSeries,
-  transformTable: transformEventsResponseToTable,
-  filterAggregateParams,
-  getSeriesResultType,
-};
 
 export function getTableSortOptions(
   _organization: Organization,
@@ -278,7 +212,7 @@ export function filterYAxisAggregateParams(
     }
 
     const functionName = fieldValue.function[0];
-    const primaryOutput = errorsAndTransactionsAggregateFunctionOutputType(
+    const primaryOutput = eventsAggregateFunctionOutputType(
       functionName,
       option.value.meta.name
     );
@@ -306,7 +240,7 @@ export function filterYAxisOptions(displayType: DisplayType) {
       !(displayType === DisplayType.BIG_NUMBER) &&
       option.value.kind === FieldValueKind.FUNCTION
     ) {
-      const primaryOutput = errorsAndTransactionsAggregateFunctionOutputType(
+      const primaryOutput = eventsAggregateFunctionOutputType(
         option.value.meta.name,
         undefined
       );
@@ -318,26 +252,6 @@ export function filterYAxisOptions(displayType: DisplayType) {
 
     return option.value.kind === FieldValueKind.FUNCTION;
   };
-}
-
-// Get the series result type from the EventsStats meta
-export function getSeriesResultType(
-  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
-  widgetQuery: WidgetQuery
-): Record<string, AggregationOutputType> {
-  const field = widgetQuery.aggregates[0]!;
-  const resultTypes = {};
-  // Need to use getAggregateAlias since events-stats still uses aggregate alias format
-  if (isMultiSeriesStats(data)) {
-    Object.keys(data).forEach(
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      key => (resultTypes[key] = data[key]!.meta?.fields[getAggregateAlias(key)])
-    );
-  } else {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    resultTypes[field] = data.meta?.fields[getAggregateAlias(field)];
-  }
-  return resultTypes;
 }
 
 export function renderEventIdAsLinkable(

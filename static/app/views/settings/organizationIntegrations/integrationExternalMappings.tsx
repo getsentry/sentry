@@ -32,7 +32,7 @@ const MAPPING_COLUMNS: TableColumnConfig[] = [
   {key: 'externalName', width: '1fr'},
   {key: 'arrow', width: 'max-content'},
   {key: 'sentryName', width: '1fr'},
-  {key: 'actions', width: '66px'},
+  {key: 'actions', width: 'max-content'},
 ];
 
 type CodeOwnersAssociationMappings = Record<
@@ -226,14 +226,14 @@ export function IntegrationExternalMappings(props: Props) {
               {tct('Sentry [type]', {type})}
             </SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>
-              <AddButton
+              <Button
                 data-test-id="add-mapping-button"
                 onClick={() => onCreate()}
                 size="xs"
                 icon={<IconAdd />}
               >
                 {tct('Add [type] Mapping', {type})}
-              </AddButton>
+              </Button>
             </SimpleTable.HeaderCell>
           </SimpleTable.HeaderRow>
         }
@@ -258,7 +258,7 @@ export function IntegrationExternalMappings(props: Props) {
                   type={type}
                 />
               </ExternalForm>
-              <SimpleTable.RowCell>
+              <SimpleTable.RowCell justify="center">
                 <MappingActions
                   canDelete={canDelete}
                   mapping={mapping}
@@ -286,12 +286,9 @@ const MappingTable = styled(SimpleTable)`
     padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 
-  /* The flat nth-child(4n) form this replaced counted cells across the whole
-     grid; with real rows the actions column is the fourth cell of each row. */
   [role='columnheader']:nth-child(4),
   [role='cell']:nth-child(4) {
     padding-right: ${p => p.theme.space.md};
-    justify-content: end;
   }
 `;
 
@@ -302,10 +299,6 @@ const StyledPluginIcon = styled(PluginIcon)`
 
 const ExternalNameColumn = styled(SimpleTable.RowCell)`
   font-family: ${p => p.theme.font.family.mono};
-`;
-
-const AddButton = styled(Button)`
-  align-self: end;
 `;
 
 const ExternalForm = styled(SimpleTable.RowCell)`

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Protocol
 
@@ -20,6 +21,12 @@ _MAX_CHECK_GROUPS = 10_000
 # Safety valve on the number of group IDs one ``group_id_ranges_for_hash`` call may
 # walk, however large the requested chunking is.
 _MAX_SCANNED_GROUP_IDS = 2_000_000
+
+
+@dataclass(frozen=True)
+class GroupIdRangeResult:
+    ranges: list[tuple[int, int]]
+    drained: bool
 
 
 class _TaskState(Protocol):
@@ -106,15 +113,16 @@ def _pick_random_fresh_group_ranges(
 
 
 def group_id_ranges_for_hash(
-    pipeline_hash: str | None, *, chunk_size: int, max_chunks: int
-) -> list[tuple[int, int]]:
+    pipeline_hash: str | None, *, chunk_size: int, max_chunks: int, group_id_lower_bound: int = 0
+) -> GroupIdRangeResult:
     """Partition the group IDs of GroupDerivedData rows with a pipeline_hash into ranges.
 
     Returns at most max_chunks of ascending disjoint [start, end) ranges, each
-    covering chunk_size group IDs but possibly the last.
+    covering chunk_size group IDs but possibly the last. ``drained`` is true only
+    when a valid query found no rows at or above ``group_id_lower_bound``.
     """
     if chunk_size <= 0 or max_chunks <= 0:
-        return []
+        return GroupIdRangeResult(ranges=[], drained=False)
 
     # One boundary per chunk, plus one extra to close the final range (or, if we ran
     # out of matching rows first, to tell us we did).
@@ -149,7 +157,7 @@ def group_id_ranges_for_hash(
             FROM (
                 SELECT group_id
                 FROM {GroupDerivedData._meta.db_table}
-                WHERE {hash_predicate}
+                WHERE {hash_predicate} AND group_id >= %s
                 ORDER BY group_id
                 LIMIT %s
             ) scanned
@@ -158,7 +166,7 @@ def group_id_ranges_for_hash(
         ORDER BY rn
     """
     params: list[str | int] = [] if pipeline_hash is None else [pipeline_hash]
-    params += [scan_limit, chunk_size]
+    params += [group_id_lower_bound, scan_limit, chunk_size]
 
     using = router.db_for_read(GroupDerivedData)
     with (
@@ -169,7 +177,7 @@ def group_id_ranges_for_hash(
         rows = cursor.fetchall()
 
     if not rows:
-        return []
+        return GroupIdRangeResult(ranges=[], drained=True)
 
     scanned = rows[0][2]
     boundaries = [group_id for group_id, rn, _ in rows if rn % chunk_size == 0]
@@ -180,7 +188,7 @@ def group_id_ranges_for_hash(
     else:
         # We didn't fill out the final chunk, so the last row we scanned closes it.
         ends = boundaries[1:] + [rows[-1][0] + 1]
-    return list(zip(boundaries, ends))[:max_chunks]
+    return GroupIdRangeResult(ranges=list(zip(boundaries, ends))[:max_chunks], drained=False)
 
 
 def _resume_check_id(
