@@ -128,16 +128,24 @@ describe('ReleasesList', () => {
     expect(within(items.at(2)!).getByText('Project Slug')).toBeInTheDocument();
   });
 
-  it('renders the SDK version of each release when events report one', async () => {
+  it('renders the SDK version of each release from only its own projects when events report one', async () => {
     sdkVersionsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [
           {
+            'project.id': 4383603,
             release: '1.0.1',
             'sdk.name': 'sentry.javascript.react',
             'sdk.version': '9.12.0',
             'count()': 10,
+          },
+          {
+            'project.id': 4383604,
+            release: '1.0.1',
+            'sdk.name': 'sentry.cocoa',
+            'sdk.version': '8.40.0',
+            'count()': 20,
           },
         ],
       },
@@ -150,6 +158,7 @@ describe('ReleasesList', () => {
       await within(items.at(1)!).findByText('SDK 9.12.0 · sentry.javascript.react')
     ).toBeInTheDocument();
     expect(within(items.at(0)!).queryByText(/^SDK /)).not.toBeInTheDocument();
+    expect(within(items.at(1)!).queryByText('+1')).not.toBeInTheDocument();
     expect(sdkVersionsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
