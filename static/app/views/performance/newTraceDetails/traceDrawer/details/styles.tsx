@@ -4,11 +4,7 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {
-  DropdownMenu,
-  type DropdownMenuProps,
-  type MenuItemProps,
-} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
@@ -19,10 +15,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
-import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {type LazyRenderProps} from 'sentry/components/lazyRender';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -32,7 +26,6 @@ import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {
   KeyValueTableCard,
-  KeyValueTableCardGrid,
   KeyValueTableCardPanel,
   type KeyValueTableDataRowProps,
   KeyValueTableSubject,
@@ -40,7 +33,6 @@ import {
 } from 'sentry/components/tables/keyValueTable';
 import {
   IconCircleFill,
-  IconEllipsis,
   IconFocus,
   IconJson,
   IconPanel,
@@ -48,7 +40,7 @@ import {
   IconTerminal,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event, EventTransaction} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -62,12 +54,7 @@ import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
-import {
-  tryParseJsonRecursive,
-  getTraceKeyValueActions,
-  TraceDrawerActionValueKind,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
@@ -88,7 +75,6 @@ import {
   makeDurationComparisonStatusColors,
   MIN_PCT_DURATION_DIFFERENCE,
 } from './durationComparison';
-import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
 
 const BodyContainer = styled('div')`
   display: flex;
@@ -112,12 +98,6 @@ const DetailContainer = styled('div')`
 const FlexBox = styled('div')`
   display: flex;
   align-items: center;
-`;
-
-const Actions = styled(FlexBox)`
-  gap: ${p => p.theme.space.xs};
-  justify-content: end;
-  width: 100%;
 `;
 
 const Title = styled(FlexBox)`
@@ -182,167 +162,12 @@ const StyledSubTitleText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-function TitleOp({text}: {text: string}) {
-  return (
-    <Tooltip
-      title={
-        <Fragment>
-          {text}
-          <CopyToClipboardButton
-            aria-label={t('Copy to clipboard')}
-            variant="transparent"
-            size="zero"
-            text={text}
-            tooltipProps={{disabled: true}}
-          />
-        </Fragment>
-      }
-      showOnlyOnOverflow
-    >
-      <TitleOpText>{text}</TitleOpText>
-    </Tooltip>
-  );
-}
-
-const Type = styled('div')`
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const TitleOpText = styled('div')`
-  font-size: 15px;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const Table = styled('table')`
-  td {
-    overflow: hidden;
-  }
-`;
-
-const IconTitleWrapper = styled(FlexBox)`
-  gap: ${p => p.theme.space.md};
-  min-width: 30px;
-`;
-
-const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
-  background-color: ${p => p.backgroundColor};
-  border-radius: ${p => p.theme.radius.md};
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  min-width: 30px;
-
-  svg {
-    fill: ${p => p.theme.colors.white};
-    width: 14px;
-    height: 14px;
-  }
-`;
-
-const LegacyHeaderContainer = styled(FlexBox)`
-  margin: ${p => p.theme.space.md};
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  container-type: inline-size;
-
-  @container (max-width: 780px) {
-    .DropdownMenu {
-      display: block;
-    }
-    .Actions {
-      display: none;
-    }
-  }
-
-  @container (min-width: 781px) {
-    .DropdownMenu {
-      display: none;
-    }
-  }
-`;
-
 const HeaderContainer = styled(FlexBox)`
   align-items: baseline;
   justify-content: space-between;
   gap: ${p => p.theme.space['2xl']};
   margin-bottom: ${p => p.theme.space.md};
 `;
-
-type DurationProps = {
-  baseline: number | undefined;
-  duration: number;
-  baseDescription?: string;
-  precision?: number;
-  ratio?: number;
-};
-
-function Duration(props: DurationProps) {
-  if (typeof props.duration !== 'number' || Number.isNaN(props.duration)) {
-    return <DurationContainer>{t('unknown')}</DurationContainer>;
-  }
-
-  const precision = props.precision ?? 2;
-  if (props.baseline === undefined || props.baseline === 0) {
-    return (
-      <DurationContainer>
-        {getDuration(props.duration, precision, true)}
-      </DurationContainer>
-    );
-  }
-
-  const comparison = getDurationComparison(
-    props.baseline,
-    props.duration,
-    props.baseDescription
-  );
-
-  return (
-    <Fragment>
-      <DurationContainer>
-        {getDuration(props.duration, precision, true)}{' '}
-        {props.ratio ? `(${(props.ratio * 100).toFixed()}%)` : null}
-      </DurationContainer>
-      {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
-        <Comparison status={comparison.status}>{comparison.deltaText}</Comparison>
-      ) : null}
-    </Fragment>
-  );
-}
-
-function TableRow({
-  title,
-  children,
-}: {
-  children: React.ReactNode;
-  title: React.JSX.Element | string | null;
-}) {
-  if (!children) {
-    return null;
-  }
-
-  return (
-    <tr>
-      <td className="key">
-        <Flex align="center">{title}</Flex>
-      </td>
-      <ValueTd className="value">
-        <TableValueRow>
-          <StyledPre>
-            <span className="val-string">{children}</span>
-          </StyledPre>
-        </TableValueRow>
-      </ValueTd>
-    </tr>
-  );
-}
 
 type HighlightProps = {
   avgDuration: number | undefined;
@@ -461,46 +286,6 @@ function Highlights({
 const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
-
-function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
-  const theme = useTheme();
-  const breakdown = generateStats(event, {type: 'no_filter'});
-  const dispatch = useTraceStateDispatch();
-
-  return (
-    <HighlightsOpsBreakdownWrapper>
-      <HighlightsSpanCount>
-        {t('Most frequent span ops for this transaction are')}
-      </HighlightsSpanCount>
-      <Flex wrap="wrap" gap="md">
-        {breakdown.slice(0, 3).map(currOp => {
-          const {name, percentage} = currOp;
-
-          const operationName = typeof name === 'string' ? name : t('Other');
-          const color = pickBarColor(operationName, theme);
-          const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-
-          return (
-            <HighlightsOpRow
-              key={operationName}
-              onClick={() =>
-                dispatch({
-                  type: 'set query',
-                  query: `op:${operationName}`,
-                  source: 'external',
-                })
-              }
-            >
-              <StyledIconCircleFill size="xs" fill={color} />
-              {operationName}
-              <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
-            </HighlightsOpRow>
-          );
-        })}
-      </Flex>
-    </HighlightsOpsBreakdownWrapper>
-  );
-}
 
 function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   const theme = useTheme();
@@ -691,120 +476,6 @@ function IssuesLink({
     </Link>
   );
 }
-
-const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
-  observerOptions: {rootMargin: '50px'},
-};
-
-const DurationContainer = styled('span')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-right: ${p => p.theme.space.md};
-`;
-
-const Comparison = styled('span')<{status: 'faster' | 'slower' | 'equal'}>`
-  color: ${p =>
-    p.status === 'faster'
-      ? p.theme.tokens.content.success
-      : p.status === 'slower'
-        ? p.theme.tokens.content.danger
-        : p.theme.tokens.content.secondary};
-`;
-
-const TableValueRow = styled('div')`
-  display: grid;
-  grid-template-columns: auto min-content;
-  gap: ${p => p.theme.space.md};
-
-  border-radius: 4px;
-  background-color: ${p => p.theme.tokens.background.tertiary};
-  margin: 2px;
-`;
-
-const StyledPre = styled('pre')`
-  margin: 0 !important;
-  background-color: transparent !important;
-`;
-
-const ValueTd = styled('td')`
-  position: relative;
-`;
-
-// Renders the dropdown menu list at the root trace drawer content container level, to prevent
-// being stacked under other content.
-function DropdownMenuWithPortal(props: DropdownMenuProps) {
-  const drawerContainerRef = useDrawerContainerRef();
-
-  return (
-    <DropdownMenu
-      {...props}
-      usePortal={!!drawerContainerRef}
-      portalContainerRef={drawerContainerRef}
-    />
-  );
-}
-
-function KeyValueAction({
-  rowKey,
-  rowValue,
-  projectIds,
-  kind = TraceDrawerActionValueKind.SENTRY_TAG,
-}: Pick<KeyValueActionParams, 'rowKey' | 'rowValue' | 'kind' | 'projectIds'>) {
-  const location = useLocation();
-  const organization = useOrganization();
-  const [isVisible, setIsVisible] = useState(false);
-  const dropdownOptions = getTraceKeyValueActions({
-    rowKey,
-    rowValue,
-    kind,
-    projectIds,
-    location,
-    organization,
-  });
-
-  if (dropdownOptions.length === 0 || !rowValue || !rowKey) {
-    return null;
-  }
-
-  return (
-    <KeyValueActionDropdown
-      preventOverflowOptions={{padding: 4}}
-      className={isVisible ? '' : 'invisible'}
-      position="bottom-end"
-      size="xs"
-      onOpenChange={isOpen => setIsVisible(isOpen)}
-      triggerProps={{
-        'aria-label': t('Key Value Action Menu'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        className: 'trigger-button',
-      }}
-      onAction={key => {
-        traceAnalytics.trackExploreSearch(
-          organization,
-          rowKey,
-          // oxlint-disable-next-line typescript/no-base-to-string
-          rowValue.toString(),
-          key as TraceDrawerActionKind,
-          'drawer'
-        );
-      }}
-      items={dropdownOptions}
-    />
-  );
-}
-
-const KeyValueActionDropdown = styled(DropdownMenu)`
-  display: block;
-  margin: 1px;
-  height: 20px;
-  .trigger-button {
-    height: 20px;
-    min-height: 20px;
-    padding: 0 ${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.space.xs};
-    z-index: 1;
-  }
-`;
 
 function PanelPositionDropDown({organization}: {organization: Organization}) {
   const traceState = useTraceState();
@@ -1064,61 +735,6 @@ const CardWrapper = styled('div')`
   }
 `;
 
-function SectionCardGroup({children}: {children: React.ReactNode}) {
-  return <KeyValueTableCardGrid>{children}</KeyValueTableCardGrid>;
-}
-
-function CopyableCardValueWithLink({value}: {value: React.ReactNode}) {
-  return (
-    <CardValueContainer>
-      <CardValueText>
-        {value}
-        {typeof value === 'string' ? (
-          <StyledCopyToClipboardButton
-            variant="transparent"
-            size="zero"
-            text={value}
-            aria-label={t('Copy to clipboard')}
-          />
-        ) : null}
-      </CardValueText>
-    </CardValueContainer>
-  );
-}
-
-function TraceDataSection({event}: {event: EventTransaction}) {
-  const traceData = event.contexts.trace?.data;
-
-  if (!traceData) {
-    return null;
-  }
-
-  return (
-    <SectionCard
-      items={Object.entries(traceData).map(([key, value]) => ({
-        key,
-        subject: key,
-        value,
-      }))}
-      title={t('Trace Data')}
-    />
-  );
-}
-
-const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
-  transform: translateY(2px);
-`;
-
-const CardValueContainer = styled(FlexBox)`
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  flex-wrap: wrap;
-`;
-
-const CardValueText = styled('span')`
-  overflow-wrap: anywhere;
-`;
-
 function MultilineText({
   children,
   renderFormatted,
@@ -1319,36 +935,18 @@ function SectionTitleWithQuestionTooltip({
 export const TraceDrawerComponents = {
   DetailContainer,
   BodyContainer,
-  FlexBox,
   Title: TitleWithTestId,
-  Type,
-  TitleOp,
   HeaderContainer,
-  LegacyHeaderContainer,
   Highlights,
   HighLightEAPOpsBreakdown,
-  HighLightsOpsBreakdown,
-  Actions,
   NodeActions,
-  KeyValueAction,
-  Table,
   SectionTitleWithQuestionTooltip,
-  IconTitleWrapper,
-  IconBorder,
   TitleText,
   LegacyTitleText,
-  Duration,
-  TableRow,
-  LAZY_RENDER_PROPS,
-  TableValueRow,
   IssuesLink,
   SectionCard,
-  CopyableCardValueWithLink,
   EventTags,
   SubtitleWithCopyButton,
-  TraceDataSection,
-  SectionCardGroup,
-  DropdownMenuWithPortal,
   MultilineText,
   MultilineJSON,
   MultilineTextLabel,

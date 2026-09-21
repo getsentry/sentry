@@ -37,27 +37,20 @@ export function ContextDataValue({
   value,
   meta,
   raw,
-  subjectIcon,
-}: Pick<ValueProps, 'value' | 'meta'> & {
-  raw?: boolean;
-  subjectIcon?: React.ReactNode;
-}) {
+}: Pick<ValueProps, 'value' | 'meta'> & {raw?: boolean}) {
   return (
     <StructuredEventData
       data={raw ? JSON.stringify(value) : value}
       meta={meta}
       withAnnotatedText
-    >
-      {subjectIcon}
-    </StructuredEventData>
+    />
   );
 }
 
 export function PreformattedValue({
   value = null,
   meta,
-  subjectIcon,
-}: Pick<ValueProps, 'value' | 'meta'> & {subjectIcon?: React.ReactNode}) {
+}: Pick<ValueProps, 'value' | 'meta'>) {
   const dataValue =
     typeof value === 'object' && !isValidElement(value)
       ? JSON.stringify(value, null, 2)
@@ -70,7 +63,6 @@ export function PreformattedValue({
   return (
     <pre className="val-string">
       <AnnotatedText value={dataValue} meta={meta} />
-      {subjectIcon}
     </pre>
   );
 }

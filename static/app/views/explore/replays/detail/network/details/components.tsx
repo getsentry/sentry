@@ -54,7 +54,7 @@ export function SizeTooltip({children}: {children: ReactNode}) {
 export type KeyValueTuple = {
   key: string;
   value: string | ReactNode;
-  type?: 'warning' | 'error';
+  type?: 'warning';
 };
 
 export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: string) {

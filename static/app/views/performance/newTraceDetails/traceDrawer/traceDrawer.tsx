@@ -13,7 +13,6 @@ import {
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {DrawerContainerRefContext} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
 import {
   usePassiveResizableDrawer,
   type UsePassiveResizableDrawerOptions,
@@ -48,7 +47,6 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const organization = useOrganization();
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
-  const contentContainerRef = useRef<HTMLDivElement>(null);
 
   const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
@@ -365,29 +363,23 @@ export function TraceDrawer(props: TraceDrawerProps) {
         </TabsLayout>
       </TabsHeightContainer>
       {isDrawerMinimized ? null : (
-        <DrawerContainerRefContext value={contentContainerRef}>
-          <Content
-            ref={contentContainerRef}
-            layout={traceState.preferences.layout}
-            data-test-id="trace-drawer"
-          >
-            <ContentWrapper>
-              {traceState.tabs.current_tab &&
-              typeof traceState.tabs.current_tab.node !== 'string'
-                ? traceState.tabs.current_tab.node.renderDetails({
-                    manager: props.manager,
-                    node: traceState.tabs.current_tab.node,
-                    onParentClick,
-                    onTabScrollToNode: props.onTabScrollToNode,
-                    organization,
-                    replay: props.replay,
-                    traceId: props.traceId,
-                    tree: props.trace,
-                  })
-                : null}
-            </ContentWrapper>
-          </Content>
-        </DrawerContainerRefContext>
+        <Content layout={traceState.preferences.layout} data-test-id="trace-drawer">
+          <ContentWrapper>
+            {traceState.tabs.current_tab &&
+            typeof traceState.tabs.current_tab.node !== 'string'
+              ? traceState.tabs.current_tab.node.renderDetails({
+                  manager: props.manager,
+                  node: traceState.tabs.current_tab.node,
+                  onParentClick,
+                  onTabScrollToNode: props.onTabScrollToNode,
+                  organization,
+                  replay: props.replay,
+                  traceId: props.traceId,
+                  tree: props.trace,
+                })
+              : null}
+          </ContentWrapper>
+        </Content>
       )}
     </PanelWrapper>
   );

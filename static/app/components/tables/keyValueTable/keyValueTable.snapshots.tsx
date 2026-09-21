@@ -37,17 +37,17 @@ describe('KeyValueTable', () => {
     {tags: {area: 'core', variant: 'inline'}}
   );
 
-  it.snapshot.each<'error' | 'warning'>(['error', 'warning'])(
-    'inline-%s',
-    (type: 'error' | 'warning') => (
+  it.snapshot(
+    'inline-warning',
+    () => (
       <div style={{padding: 8, width: 400}}>
         <KeyValueTable>
-          <KeyValueTableRow keyName="Status" value="Failing" type={type} />
+          <KeyValueTableRow keyName="Status" value="Failing" type="warning" />
           <KeyValueTableRow keyName="Version" value="2.1.0" />
         </KeyValueTable>
       </div>
     ),
-    (type: 'error' | 'warning') => ({tags: {area: 'core', variant: 'inline', type}})
+    {tags: {area: 'core', variant: 'inline', type: 'warning'}}
   );
 
   it.snapshot(

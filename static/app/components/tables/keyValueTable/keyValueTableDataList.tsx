@@ -60,7 +60,6 @@ function Row({
   const {
     subject,
     subjectNode,
-    subjectIcon,
     subjectDataTestId,
     meta,
     value = null,
@@ -70,10 +69,10 @@ function Row({
   } = item;
 
   const renderValue = (v: KeyValueListDataItem['value']) =>
-    item.isContextData || isContextData ? (
-      <ContextDataValue value={v} meta={meta} raw={raw} subjectIcon={subjectIcon} />
+    isContextData ? (
+      <ContextDataValue value={v} meta={meta} raw={raw} />
     ) : (
-      <PreformattedValue value={v} meta={meta} subjectIcon={subjectIcon} />
+      <PreformattedValue value={v} meta={meta} />
     );
 
   const rendered =

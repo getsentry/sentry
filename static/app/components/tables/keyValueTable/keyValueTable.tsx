@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 type Props = {
   keyName: React.ReactNode;
   value: React.ReactNode;
-  type?: undefined | 'error' | 'warning';
+  type?: 'warning';
 };
 
 export const KeyValueTable = styled('dl')<{margin?: boolean}>`
@@ -35,11 +35,9 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
   text-overflow: ellipsis;
 
   background-color: ${
-    type === 'error'
-      ? theme.colors.red100 + ' !important'
-      : type === 'warning'
-        ? theme.tokens.background.transparent.warning.muted + ' !important'
-        : 'inherit'
+    type === 'warning'
+      ? theme.tokens.background.transparent.warning.muted + ' !important'
+      : 'inherit'
   };
   &:nth-of-type(2n-1) {
     background-color: ${theme.tokens.background.secondary};
