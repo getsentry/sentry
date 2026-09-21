@@ -1,4 +1,4 @@
-import {useMatches} from 'react-router-dom';
+import {Fragment} from 'react';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -6,6 +6,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import {AutofixPanelProvider} from 'sentry/views/issueDetails/autofix/context';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -13,12 +14,6 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {IssueEventNavigation} from '.';
 
 jest.mock('sentry/views/issueDetails/context');
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useMatches: jest.fn(),
-}));
-
-const mockUseMatches = jest.mocked(useMatches);
 
 describe('EventNavigation', () => {
   const organization = OrganizationFixture({features: ['discover-basic']});
@@ -41,32 +36,27 @@ describe('EventNavigation', () => {
     group,
   };
 
-  const initialRouterConfig = {
-    location: {
-      pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-    },
-    route: '/organizations/:orgId/issues/:groupId/events/',
-  };
+  /**
+   * `useGroupDetailsRoute` reads the current tab off the deepest route's `handle`,
+   * so each tab under test needs a child route carrying that handle. The nav under
+   * test renders on the parent route, so the child renders nothing of its own.
+   */
+  function routerConfigForTab(tab: Tab) {
+    return {
+      location: {
+        pathname: `/organizations/${organization.slug}/issues/${group.id}/${TabPaths[tab]}`,
+      },
+      route: '/organizations/:orgId/issues/:groupId/',
+      children: [
+        {path: TabPaths[tab], handle: {path: TabPaths[tab]}, element: <Fragment />},
+      ],
+    };
+  }
+
+  const initialRouterConfig = routerConfigForTab(Tab.EVENTS);
 
   beforeEach(() => {
     jest.resetAllMocks();
-    mockUseMatches.mockImplementation(() => [
-      {id: '0', pathname: '/', params: {}, data: null, handle: {path: '/'}},
-      {
-        id: '0-0',
-        pathname: '/organizations/org-slug/issues/group-id/',
-        params: {orgId: 'org-slug', groupId: 'group-id'},
-        data: null,
-        handle: {path: '/organizations/:orgId/issues/:groupId/'},
-      },
-      {
-        id: '0-0-0',
-        pathname: '/organizations/org-slug/issues/group-id/events/',
-        params: {orgId: 'org-slug', groupId: 'group-id'},
-        data: null,
-        handle: {path: TabPaths[Tab.EVENTS]},
-      },
-    ]);
     jest.mocked(useIssueDetails).mockReturnValue({
       sectionData: {
         highlights: {key: SectionKey.HIGHLIGHTS},
@@ -286,6 +276,43 @@ describe('EventNavigation', () => {
 
       expect(
         await screen.findByRole('menuitemradio', {name: 'Attachments 50+'})
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('autofix tab', () => {
+    const seerOrganization = OrganizationFixture({
+      features: ['discover-basic', 'gen-ai-features', 'autofix-page'],
+      hideAiFeatures: false,
+    });
+
+    it('lifts the seer toolbar into the navigation row on the autofix tab', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/`,
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/setup/`,
+        body: {integration: {ok: true, reason: null}},
+      });
+
+      render(
+        <GroupDataContextProvider group={group} project={group.project}>
+          <AutofixPanelProvider group={group} project={group.project}>
+            <IssueEventNavigation {...defaultProps} />
+          </AutofixPanelProvider>
+        </GroupDataContextProvider>,
+        {
+          initialRouterConfig: routerConfigForTab(Tab.AUTOFIX),
+          organization: seerOrganization,
+        }
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'Start a new analysis from scratch'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Copy analysis as Markdown'})
       ).toBeInTheDocument();
     });
   });

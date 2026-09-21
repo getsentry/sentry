@@ -18,15 +18,22 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.cursor_origin.constants import (
     CURSOR_ORIGIN_WEBHOOK_DEDUPE_SECONDS,
     CURSOR_ORIGIN_WEBHOOK_SIGNATURE_PREFIX,
     CURSOR_ORIGIN_WEBHOOK_TOLERANCE_SECONDS,
 )
-from sentry.integrations.cursor_origin.handlers import HANDLERS
+from sentry.integrations.cursor_origin.handlers import (
+    InstallationRemovedHandler,
+    InstallationRestoredHandler,
+    InstallationUpdatedHandler,
+    WebhookEventHandler,
+)
 from sentry.integrations.cursor_origin.keys import signing_keys_for
+from sentry.integrations.cursor_origin.push import RepositoryPushedHandler
+from sentry.integrations.cursor_origin.webhook_types import OriginPayloadError
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
@@ -123,7 +130,20 @@ def verify_delivery(request: HttpRequest, body: bytes) -> Verification:
     return Verification.REFUSED
 
 
-@control_silo_endpoint
+# Installation events are handled on control; repository events are forwarded to the
+# cells, where commits live.
+# `installation.created` is deliberately absent: the install pipeline has already done
+# the work by the time it arrives.
+HANDLERS: dict[str, type[WebhookEventHandler]] = {
+    "installation.deleted": InstallationRemovedHandler,
+    "installation.suspended": InstallationRemovedHandler,
+    "installation.unsuspended": InstallationRestoredHandler,
+    "installation.updated": InstallationUpdatedHandler,
+    "repository.pushed": RepositoryPushedHandler,
+}
+
+
+@all_silo_endpoint
 class CursorOriginWebhookEndpoint(Endpoint):
     """Origin webhook reference: https://cursor.com/docs/api/origin
 
@@ -223,6 +243,14 @@ class CursorOriginWebhookEndpoint(Endpoint):
                     context.integration,
                     context.organization_integrations,
                 )
+        except OriginPayloadError as e:
+            _release_delivery(delivery_id)
+            logger.warning(
+                "cursor_origin.webhook.invalid_payload",
+                extra={"delivery_id": delivery_id, "event_type": event_type, "error": str(e)},
+            )
+            metrics.incr("cursor_origin.webhook.invalid_payload", sample_rate=1.0)
+            return HttpResponse(status=400)
         except Exception:
             _release_delivery(delivery_id)
             raise

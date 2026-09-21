@@ -67,16 +67,17 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries).toBeNull();
   });
 
-  it('draws no pill for a drop ratio under the first severity band', () => {
+  it('draws a pill for a small positive drop ratio', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
         droppedAnnotations: [AnnotationFixture({start: 0, eventCount: 1})],
-        acceptedAnnotations: [AnnotationFixture({start: 0, eventCount: 999_999})],
+        acceptedAnnotations: [AnnotationFixture({start: 0, eventCount: 99})],
       })
     );
 
-    expect(result.current.droppedDataSeries).toBeNull();
+    expect(result.current.droppedDataSeries).not.toBeNull();
+    expect(result.current.droppedDataSeries?.data).toHaveLength(1);
   });
 
   it('draws no pill for buckets that only have accepted volume', () => {

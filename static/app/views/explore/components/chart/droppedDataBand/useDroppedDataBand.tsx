@@ -18,7 +18,7 @@ import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries'
 import {DroppedDataTooltip} from 'sentry/views/explore/components/chart/droppedDataBand/droppedDataTooltip';
 import {
   groupIntoBuckets,
-  SEVERITY_OPACITIES,
+  opacityForRatio,
   type AnnotationBucket,
 } from 'sentry/views/explore/components/chart/droppedDataBand/utils';
 
@@ -30,10 +30,6 @@ const BAND_PADDING = 4;
 const BOX_HEIGHT = 8;
 export const BAND_HEIGHT = BAND_PADDING + BOX_HEIGHT + BAND_PADDING;
 const BOX_BORDER_RADIUS = 2;
-
-function severityOpacity(severity: number): number {
-  return SEVERITY_OPACITIES[severity - 1] ?? 1;
-}
 
 const DROPPED_DATA_Y_AXIS = {
   type: 'value' as const,
@@ -91,7 +87,7 @@ function createDroppedDataSeries({
     const boxTop = boxStartY + bandOffset + BAND_PADDING;
 
     return {
-      // The single severity box. Its hue/intensity encodes severity.
+      // The single drop pill. Opacity encodes how much data is missing.
       type: 'rect',
       shape: {
         x: boxStartX - boxWidth / 2,
@@ -104,7 +100,7 @@ function createDroppedDataSeries({
         lineWidth: BAND_PADDING * 2,
         stroke: 'transparent',
         fill: theme.tokens.dataviz.semantic.bad,
-        opacity: severityOpacity(dataItem.severity),
+        opacity: opacityForRatio(dataItem.ratio),
       },
     } satisfies CustomSeriesRenderItemReturn;
   };
@@ -160,7 +156,7 @@ export function useDroppedDataBand({
   const buckets = useMemo(
     () =>
       groupIntoBuckets(droppedAnnotations ?? [], acceptedAnnotations ?? []).filter(
-        bucket => bucket.severity > 0
+        bucket => bucket.ratio > 0
       ),
     [acceptedAnnotations, droppedAnnotations]
   );

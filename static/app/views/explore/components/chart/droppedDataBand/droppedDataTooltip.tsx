@@ -106,7 +106,7 @@ export function DroppedDataTooltip({bucket, timezone}: DroppedDataTooltipProps) 
         <Flex as="header" justify="between" gap="2xl" padding="lg xl">
           <Text bold>{t('Total Dropped')}</Text>
           <Text bold tabular>
-            {formatPercentage(bucket.ratio)}
+            {formatPercentage(bucket.ratio, undefined, {minimumValue: 0.0001})}
           </Text>
         </Flex>
         <Separator orientation="horizontal" />
