@@ -19,7 +19,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
-import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
@@ -466,10 +466,8 @@ function TriggeredConditionDetails({
           </Flex>
         }
       >
-        <KeyValueTableDataList
-          margin
-          shouldSort={false}
-          data={[
+        <KeyValueTableCard
+          contentItems={[
             {
               key: 'dataset',
               value: datasetConfig.name,
@@ -494,11 +492,9 @@ function TriggeredConditionDetails({
                   {
                     key: 'query',
                     value: (
-                      <pre>
-                        <Text size="md">
-                          <ProvidedFormattedQuery query={snubaQuery.query} />
-                        </Text>
-                      </pre>
+                      <Text size="md">
+                        <ProvidedFormattedQuery query={snubaQuery.query} />
+                      </Text>
                     ),
                     subject: t('Query'),
                   },
@@ -511,17 +507,13 @@ function TriggeredConditionDetails({
             },
             {
               key: 'condition',
-              value: (
-                <pre>
-                  {getConditionDescription({
-                    aggregate: snubaQuery.aggregate,
-                    condition: triggeredCondition,
-                    config: evidenceData.config ?? {
-                      detectionType: 'static',
-                    },
-                  })}
-                </pre>
-              ),
+              value: getConditionDescription({
+                aggregate: snubaQuery.aggregate,
+                condition: triggeredCondition,
+                config: evidenceData.config ?? {
+                  detectionType: 'static',
+                },
+              }),
               subject: t('Condition'),
             },
             ...(formattedEvaluatedValue
@@ -533,7 +525,7 @@ function TriggeredConditionDetails({
                   },
                 ]
               : []),
-          ]}
+          ].map(item => ({item}))}
         />
       </FoldSection>
       <OpenPeriodTimelineSection eventId={eventId} groupId={groupId} />

@@ -84,23 +84,19 @@ describe('SizeAnalysisTriggeredSection', () => {
 
     expect(screen.getByRole('region', {name: 'Triggered Condition'})).toBeInTheDocument();
 
-    expect(screen.getByRole('cell', {name: 'Threshold Type'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Absolute Diff'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Measurement'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('cell', {name: 'Install/Uncompressed Size'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Condition'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Evaluated Value'})).toBeInTheDocument();
+    expect(screen.getByText('Threshold Type')).toBeInTheDocument();
+    expect(screen.getByText('Absolute Diff')).toBeInTheDocument();
+    expect(screen.getByText('Measurement')).toBeInTheDocument();
+    expect(screen.getByText('Install/Uncompressed Size')).toBeInTheDocument();
+    expect(screen.getByText('Condition')).toBeInTheDocument();
+    expect(screen.getByText('Evaluated Value')).toBeInTheDocument();
   });
 
   it('formats condition as "measurement Diff > value" for diff threshold', () => {
     render(<SizeAnalysisTriggeredSection {...defaultProps} />);
 
     // absolute_diff with no artifact tag: "Install/Uncompressed Size Diff > 1 MB"
-    expect(
-      screen.getByRole('cell', {name: 'Install/Uncompressed Size Diff > 1 MB'})
-    ).toBeInTheDocument();
+    expect(screen.getByText('Install/Uncompressed Size Diff > 1 MB')).toBeInTheDocument();
   });
 
   it('shows platform-specific measurement label from artifact type tag', () => {
@@ -111,10 +107,8 @@ describe('SizeAnalysisTriggeredSection', () => {
 
     render(<SizeAnalysisTriggeredSection {...defaultProps} event={event} />);
 
-    expect(screen.getByRole('cell', {name: 'Install Size'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('cell', {name: 'Install Size Diff > 1 MB'})
-    ).toBeInTheDocument();
+    expect(screen.getByText('Install Size')).toBeInTheDocument();
+    expect(screen.getByText('Install Size Diff > 1 MB')).toBeInTheDocument();
   });
 
   it('shows Android measurement label for aab artifact type', () => {
@@ -125,7 +119,7 @@ describe('SizeAnalysisTriggeredSection', () => {
 
     render(<SizeAnalysisTriggeredSection {...defaultProps} event={event} />);
 
-    expect(screen.getByRole('cell', {name: 'Uncompressed Size'})).toBeInTheDocument();
+    expect(screen.getByText('Uncompressed Size')).toBeInTheDocument();
   });
 
   it('shows both Open Build and Open Comparison for diff threshold types', () => {
@@ -180,14 +174,14 @@ describe('SizeAnalysisTriggeredSection', () => {
 
     render(<SizeAnalysisTriggeredSection {...defaultProps} event={event} />);
 
-    expect(screen.getByRole('cell', {name: '+15%'})).toBeInTheDocument();
+    expect(screen.getByText('+15%')).toBeInTheDocument();
   });
 
   it('renders absolute_diff values in MB', () => {
     render(<SizeAnalysisTriggeredSection {...defaultProps} />);
 
     // 4292608 bytes = +4.29 MB (capped at 2 decimals, + prefix for diff)
-    expect(screen.getByRole('cell', {name: '+4.29 MB'})).toBeInTheDocument();
+    expect(screen.getByText('+4.29 MB')).toBeInTheDocument();
   });
 
   it('renders query field when present in config', () => {
@@ -207,15 +201,13 @@ describe('SizeAnalysisTriggeredSection', () => {
 
     render(<SizeAnalysisTriggeredSection {...defaultProps} event={event} />);
 
-    expect(screen.getByRole('cell', {name: 'Query'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('cell', {name: 'app_id:com.example.app'})
-    ).toBeInTheDocument();
+    expect(screen.getByText('Query')).toBeInTheDocument();
+    expect(screen.getByText('app_id:com.example.app')).toBeInTheDocument();
   });
 
   it('does not render query field when not present', () => {
     render(<SizeAnalysisTriggeredSection {...defaultProps} />);
 
-    expect(screen.queryByRole('cell', {name: 'Query'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Query')).not.toBeInTheDocument();
   });
 });

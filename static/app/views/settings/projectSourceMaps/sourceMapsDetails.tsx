@@ -12,7 +12,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {FileSize} from 'sentry/components/fileSize';
-import {Panel} from 'sentry/components/panels/panel';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -238,12 +237,10 @@ export function SourceMapsDetails({bundleId, project}: Props) {
         }
       />
       {isDebugIdBundle && debugIdBundlesArtifactsData && (
-        <DetailsPanel>
-          <DebugIdBundleDetails
-            debugIdBundle={debugIdBundlesArtifactsData}
-            projectId={project.id}
-          />
-        </DetailsPanel>
+        <DebugIdBundleDetails
+          debugIdBundle={debugIdBundlesArtifactsData}
+          projectId={project.id}
+        />
       )}
       <SearchBarWithMarginBottom
         placeholder={isDebugIdBundle ? t('Filter by Path or ID') : t('Filter by Path')}
@@ -366,10 +363,6 @@ const ARTIFACT_COLUMNS_WITHOUT_TYPE = ARTIFACT_COLUMNS.filter(
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const DetailsPanel = styled(Panel)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const ArtifactColumn = styled(SimpleTable.RowCell)`
