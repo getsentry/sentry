@@ -1,14 +1,12 @@
 import {useLayoutEffect} from 'react';
 import * as Sentry from '@sentry/react';
 import MockDate from 'mockdate';
-import {TransactionEventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   act,
-  fireEvent,
   render,
   screen,
   userEvent,
@@ -18,28 +16,15 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {EntryType, type EventTransaction} from 'sentry/types/event';
-import * as analytics from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import TraceView from 'sentry/views/performance/newTraceDetails/index';
 import {
   makeEAPError,
   makeEAPSpan,
   makeEAPTrace,
-  makeEventTransaction,
-  makeSpan,
-  makeTraceError,
-  makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
-import {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
-import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import type {StoredTracePreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-
-import type {TraceFullDetailed} from './traceApi/types';
 
 class MockResizeObserver {
   callback: ResizeObserverCallback;
@@ -75,17 +60,6 @@ function mockQueryString(queryString: `?${string}` | '') {
     `http://localhost/organizations/org-slug/performance/trace/trace-id/${queryString}`
   );
   expect(window.location.search).toBe(queryString);
-}
-
-function mockTracePreferences(preferences: Partial<StoredTracePreferences>) {
-  const storedPreferences: StoredTracePreferences = {
-    drawer_layout: DEFAULT_TRACE_VIEW_PREFERENCES.layout,
-    missing_instrumentation: DEFAULT_TRACE_VIEW_PREFERENCES.missing_instrumentation,
-    autogroup: DEFAULT_TRACE_VIEW_PREFERENCES.autogroup,
-    compressed_timeline: DEFAULT_TRACE_VIEW_PREFERENCES.compressed_timeline,
-    ...preferences,
-  };
-  localStorage.setItem('trace-waterfall-preferences', JSON.stringify(storedPreferences));
 }
 
 function mockTraceResponse(resp?: Partial<ResponseType>) {
@@ -144,68 +118,12 @@ function mockProjectDetailsResponse(resp?: Partial<ResponseType>) {
   });
 }
 
-function mockTransactionDetailsResponse(id: string, resp?: Partial<ResponseType>) {
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/project_slug:${id}/`,
-    method: 'GET',
-    asyncDelay: 1,
-    ...(resp ?? {body: TransactionEventFixture()}),
-  });
-}
-
-function mockTraceRootEvent(id: string, resp?: Partial<ResponseType>) {
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/project_slug:${id}/`,
-    method: 'GET',
-    asyncDelay: 1,
-    ...(resp ?? {body: TransactionEventFixture()}),
-  });
-}
-
 function mockTraceRootFacets(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events-facets/',
     method: 'GET',
     asyncDelay: 1,
     body: {},
-    ...resp,
-  });
-}
-
-function mockTraceEventDetails(resp?: Partial<ResponseType>) {
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events/',
-    method: 'GET',
-    asyncDelay: 1,
-    body: {},
-    ...(resp ?? {body: TransactionEventFixture()}),
-  });
-}
-
-function mockSpansResponse(
-  id: string,
-  resp?: Partial<ResponseType>,
-  body: Partial<EventTransaction> = {}
-) {
-  return MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/project_slug:${id}/?averageColumn=span.self_time&averageColumn=span.duration`,
-    method: 'GET',
-    asyncDelay: 1,
-    body,
-    ...resp,
-  });
-}
-
-function mockTransactionSpansResponse(
-  id: string,
-  resp?: Partial<ResponseType>,
-  body: Partial<EventTransaction> = {}
-) {
-  return MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/project_slug:${id}/`,
-    method: 'GET',
-    asyncDelay: 1,
-    body,
     ...resp,
   });
 }
@@ -228,595 +146,68 @@ function mockEventsResponse() {
     },
   });
 }
-
-function getVirtualizedContainer(): HTMLElement {
-  const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
-  if (!virtualizedContainer) {
-    throw new Error('Virtualized container not found');
-  }
-  return virtualizedContainer;
-}
-
-function getVirtualizedScrollContainer(): HTMLElement {
-  const virtualizedScrollContainer = screen.queryByTestId(
-    'trace-virtualized-list-scroll-container'
-  );
-
-  if (!virtualizedScrollContainer) {
-    throw new Error('Virtualized scroll container not found');
-  }
-  return virtualizedScrollContainer;
-}
-
-function getVirtualizedRows(container: HTMLElement) {
-  return Array.from(container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
-}
-
-async function keyboardNavigationTestSetup() {
-  mockPerformanceSubscriptionDetailsResponse();
-  mockProjectDetailsResponse();
-  const keyboard_navigation_transactions: TraceFullDetailed[] = [];
-  for (let i = 0; i < 1e2; i++) {
-    keyboard_navigation_transactions.push(
-      makeTransaction({
-        span_id: i + '',
-        event_id: i + '',
-        transaction: 'transaction-name-' + i,
-        'transaction.op': 'transaction-op-' + i,
-        project_slug: 'project_slug',
-      })
-    );
-    mockTransactionDetailsResponse(`${i}`);
-  }
-  mockTraceResponse({
-    body: {
-      transactions: keyboard_navigation_transactions,
-      orphan_errors: [],
-    },
-  });
-  mockTraceMetaResponse({
-    body: {
-      errors: 0,
-      performance_issues: 0,
-      projects: 0,
-      transactions: 0,
-      transaction_child_count_map: keyboard_navigation_transactions.map(t => ({
-        'transaction.id': t.event_id,
-        count: 5,
-      })),
-      span_count: 200,
-      span_count_map: {},
-    },
-  });
-  mockTraceRootFacets();
-  mockTraceRootEvent('0');
-  mockTraceEventDetails();
-  mockEventsResponse();
-
-  const value = render(<TraceView />, {
-    initialRouterConfig,
-  });
-  const virtualizedContainer = getVirtualizedContainer();
-  const virtualizedScrollContainer = getVirtualizedScrollContainer();
-
-  // Awaits for the placeholder rendering rows to be removed
-  try {
-    await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
-      timeout: 5000,
-    });
-  } catch (e) {
-    printVirtualizedList(virtualizedContainer);
-    throw e;
-  }
-  return {...value, virtualizedContainer, virtualizedScrollContainer};
-}
-
-async function pageloadTestSetup() {
-  mockPerformanceSubscriptionDetailsResponse();
-  mockProjectDetailsResponse();
-  const pageloadTransactions: TraceFullDetailed[] = [];
-  for (let i = 0; i < 1e3; i++) {
-    pageloadTransactions.push(
-      makeTransaction({
-        span_id: i + '',
-        event_id: i + '',
-        transaction: 'transaction-name-' + i,
-        'transaction.op': 'transaction-op-' + i,
-        project_slug: 'project_slug',
-      })
-    );
-
-    mockTransactionDetailsResponse(`${i}`);
-  }
-
-  mockTraceResponse({
-    body: {
-      transactions: pageloadTransactions,
-      orphan_errors: [],
-    },
-  });
-
-  mockTraceMetaResponse({
-    body: {
-      errors: 0,
-      performance_issues: 0,
-      projects: 0,
-      transactions: 0,
-      transaction_child_count_map: pageloadTransactions.map(t => ({
-        'transaction.id': t.event_id,
-        count: 5,
-      })),
-      span_count: 200,
-      span_count_map: {},
-    },
-  });
-  mockTraceRootFacets();
-  mockTraceRootEvent('0');
-  mockTraceEventDetails();
-  mockEventsResponse();
-
-  const value = render(<TraceView />, {
-    initialRouterConfig,
-  });
-  const virtualizedContainer = getVirtualizedContainer();
-  const virtualizedScrollContainer = getVirtualizedScrollContainer();
-
-  // Awaits for the placeholder rendering rows to be removed
-  try {
-    await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
-      timeout: 5000,
-    });
-  } catch (e) {
-    printVirtualizedList(virtualizedContainer);
-    throw e;
-  }
-  return {...value, virtualizedContainer, virtualizedScrollContainer};
-}
-
-async function searchTestSetup() {
-  mockPerformanceSubscriptionDetailsResponse();
-  mockProjectDetailsResponse();
-  const transactions: TraceFullDetailed[] = [];
-  for (let i = 0; i < 11; i++) {
-    transactions.push(
-      makeTransaction({
-        span_id: i + '',
-        event_id: i + '',
-        transaction: 'transaction-name' + i,
-        'transaction.op': 'transaction-op-' + i,
-        project_slug: 'project_slug',
-      })
-    );
-    mockTransactionDetailsResponse(`${i}`);
-  }
-  mockTraceResponse({
-    body: {
-      transactions,
-      orphan_errors: [],
-    },
-  });
-
-  mockTraceMetaResponse({
-    body: {
-      errors: 0,
-      performance_issues: 0,
-      projects: 0,
-      transactions: 0,
-      transaction_child_count_map: transactions.map(t => ({
-        'transaction.id': t.event_id,
-        count: 5,
-      })),
-      span_count: 200,
-      span_count_map: {},
-    },
-  });
-
-  mockTraceRootFacets();
-  mockTraceRootEvent('0');
-  mockTraceEventDetails();
-  mockEventsResponse();
-
-  const value = render(<TraceView />, {
-    initialRouterConfig,
-  });
-  const virtualizedContainer = getVirtualizedContainer();
-  const virtualizedScrollContainer = getVirtualizedScrollContainer();
-
-  // Awaits for the placeholder rendering rows to be removed
-  try {
-    await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
-      timeout: 5000,
-    });
-  } catch (e) {
-    printVirtualizedList(virtualizedContainer);
-    throw e;
-  }
-  return {...value, virtualizedContainer, virtualizedScrollContainer};
-}
-
-async function simpleTestSetup() {
-  mockPerformanceSubscriptionDetailsResponse();
-  mockProjectDetailsResponse();
-  const transactions: TraceFullDetailed[] = [];
-  let parent: any;
-  for (let i = 0; i < 1e3; i++) {
-    const next = makeTransaction({
-      span_id: i + '',
-      event_id: i + '',
-      transaction: 'transaction-name' + i,
-      'transaction.op': 'transaction-op-' + i,
-      project_slug: 'project_slug',
-    });
-
-    if (parent) {
-      parent.children.push(next);
-    } else {
-      transactions.push(next);
-    }
-    parent = next;
-    mockTransactionDetailsResponse(`${i}`);
-  }
-  mockTraceResponse({
-    body: {
-      transactions,
-      orphan_errors: [],
-    },
-  });
-  mockTraceMetaResponse({
-    body: {
-      errors: 0,
-      performance_issues: 0,
-      projects: 0,
-      transactions: 0,
-      transaction_child_count_map: transactions.map(t => ({
-        'transaction.id': t.event_id,
-        count: 5,
-      })),
-      span_count: 200,
-      span_count_map: {},
-    },
-  });
-  mockTraceRootFacets();
-  mockTraceRootEvent('0');
-  mockTraceEventDetails();
-  mockEventsResponse();
-
-  const value = render(<TraceView />, {
-    initialRouterConfig,
-  });
-  const virtualizedContainer = getVirtualizedContainer();
-  const virtualizedScrollContainer = getVirtualizedScrollContainer();
-
-  // Awaits for the placeholder rendering rows to be removed
-  try {
-    await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
-      timeout: 5000,
-    });
-  } catch (e) {
-    printVirtualizedList(virtualizedContainer);
-    throw e;
-  }
-  return {...value, virtualizedContainer, virtualizedScrollContainer};
-}
-
-async function completeTestSetup({
-  organization,
-  rootMeasurements,
-}: {
-  organization?: ReturnType<typeof OrganizationFixture>;
-  rootMeasurements?: TraceFullDetailed['measurements'];
-} = {}) {
-  mockPerformanceSubscriptionDetailsResponse();
-  mockProjectDetailsResponse();
-  const start = Date.now() / 1e3;
-
-  mockTraceResponse({
-    body: {
-      transactions: [
-        makeTransaction({
-          event_id: '0',
-          transaction: 'transaction-name-0',
-          'transaction.op': 'transaction-op-0',
-          project_slug: 'project_slug',
-          start_timestamp: start,
-          timestamp: start + 2,
-          measurements: rootMeasurements,
-          children: [
-            makeTransaction({
-              event_id: '1',
-              transaction: 'transaction-name-1',
-              'transaction.op': 'transaction-op-1',
-              project_slug: 'project_slug',
-              start_timestamp: start,
-              timestamp: start + 2,
-            }),
-          ],
-        }),
-        makeTransaction({
-          event_id: '2',
-          transaction: 'transaction-name-2',
-          'transaction.op': 'transaction-op-2',
-          project_slug: 'project_slug',
-          start_timestamp: start,
-          timestamp: start + 2,
-        }),
-        makeTransaction({
-          event_id: '3',
-          transaction: 'transaction-name-3',
-          'transaction.op': 'transaction-op-3',
-          project_slug: 'project_slug',
-          start_timestamp: start,
-          timestamp: start + 2,
-        }),
-      ],
-      orphan_errors: [
-        makeTraceError({
-          event_id: 'error0',
-          issue: 'error-issue',
-          project_id: 0,
-          project_slug: 'project_slug',
-          issue_id: 0,
-          title: 'error-title',
-          level: 'fatal',
-          timestamp: start + 2,
-        }),
-      ],
-    },
-  });
-  mockTraceMetaResponse({
-    body: {
-      errors: 0,
-      performance_issues: 0,
-      projects: 0,
-      transactions: 0,
-      transaction_child_count_map: [
-        {
-          'transaction.id': '0',
-          count: 2,
-        },
-        {
-          'transaction.id': '1',
-          count: 2,
-        },
-        {
-          'transaction.id': '2',
-          count: 2,
-        },
-        {
-          'transaction.id': '3',
-          count: 2,
-        },
-      ],
-      span_count: 200,
-      span_count_map: {},
-    },
-  });
-  mockTraceRootFacets();
-  mockTraceRootEvent('0');
-  mockTraceEventDetails();
-  mockEventsResponse();
-
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events/project_slug:error0/',
-    body: {
-      tags: [],
-      contexts: {},
-      entries: [],
-    },
-  });
-
-  const transactionWithSpans = makeEventTransaction({
-    entries: [
-      {
-        type: EntryType.SPANS,
-        data: [
-          makeSpan({
-            span_id: 'span0',
-            op: 'http',
-            description: 'request',
-            start_timestamp: start,
-            timestamp: start + 0.1,
-          }),
-          // Parent autogroup chain
-          makeSpan({
-            op: 'db',
-            description: 'redis',
-            parent_span_id: 'span0',
-            span_id: 'redis0',
-            start_timestamp: start + 0.1,
-            timestamp: start + 0.2,
-          }),
-          makeSpan({
-            op: 'db',
-            description: 'redis',
-            parent_span_id: 'redis0',
-            span_id: 'redis1',
-            start_timestamp: start + 0.2,
-            timestamp: start + 0.3,
-          }),
-          // Sibling autogroup chain
-          makeSpan({
-            op: 'http',
-            description: 'request',
-            parent_span_id: 'span0',
-            span_id: 'http0',
-            start_timestamp: start + 0.3,
-            timestamp: start + 0.4,
-          }),
-          makeSpan({
-            op: 'http',
-            description: 'request',
-            parent_span_id: 'span0',
-            span_id: 'http1',
-            start_timestamp: start + 0.4,
-            timestamp: start + 0.5,
-          }),
-          makeSpan({
-            op: 'http',
-            description: 'request',
-            parent_span_id: 'span0',
-            span_id: 'http2',
-            start_timestamp: start + 0.5,
-            timestamp: start + 0.6,
-          }),
-          makeSpan({
-            op: 'http',
-            description: 'request',
-            parent_span_id: 'span0',
-            span_id: 'http3',
-            start_timestamp: start + 0.6,
-            timestamp: start + 0.7,
-          }),
-          makeSpan({
-            op: 'http',
-            description: 'request',
-            parent_span_id: 'span0',
-            span_id: 'http4',
-            start_timestamp: start + 0.7,
-            timestamp: start + 0.8,
-          }),
-          // No instrumentation gap
-          makeSpan({
-            op: 'queue',
-            description: 'process',
-            parent_span_id: 'span0',
-            span_id: 'queueprocess0',
-            start_timestamp: start + 0.8,
-            timestamp: start + 0.9,
-          }),
-          makeSpan({
-            op: 'queue',
-            description: 'process',
-            parent_span_id: 'span0',
-            span_id: 'queueprocess1',
-            start_timestamp: start + 1.1,
-            timestamp: start + 1.2,
-          }),
-        ],
-      },
-    ],
-  });
-
-  const transactionWithoutSpans = makeEventTransaction({});
-
-  mockTransactionSpansResponse('1', {}, transactionWithSpans);
-  mockSpansResponse('1', {}, transactionWithSpans);
-  // Mock empty response for txn without spans
-  mockTransactionSpansResponse('0', {}, transactionWithoutSpans);
-  mockSpansResponse('0', {}, transactionWithoutSpans);
-
-  const value = render(<TraceView />, {
-    initialRouterConfig,
-    organization,
-  });
-  const virtualizedContainer = getVirtualizedContainer();
-  const virtualizedScrollContainer = getVirtualizedScrollContainer();
-
-  // Awaits for the placeholder rendering rows to be removed
-  try {
-    await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
-      timeout: 5000,
-    });
-  } catch (e) {
-    printVirtualizedList(virtualizedContainer);
-    throw e;
-  }
-  return {...value, start, virtualizedContainer, virtualizedScrollContainer};
-}
-
+const VISIBLE_TRACE_ROW_SELECTOR = '.TraceRow:not(.Hidden)';
 const DRAWER_TABS_TEST_ID = 'trace-drawer-tab';
 const DRAWER_TABS_PIN_BUTTON_TEST_ID = 'trace-drawer-tab-pin-button';
-const VISIBLE_TRACE_ROW_SELECTOR = '.TraceRow:not(.Hidden)';
-const ACTIVE_SEARCH_HIGHLIGHT_ROW = '.TraceRow.SearchResult.Highlight:not(.Hidden)';
 
-const searchToResolve = async (): Promise<void> => {
-  await screen.findByTestId('trace-search-success', undefined, {timeout: 10_000});
-};
+function setupEAPTraceView() {
+  const start = 1;
+  const trace = makeEAPTrace([
+    makeEAPSpan({
+      event_id: 'root-transaction',
+      description: 'root transaction',
+      is_transaction: true,
+      start_timestamp: start,
+      end_timestamp: start + 1,
+    }),
+    makeEAPSpan({
+      event_id: 'second-transaction',
+      description: 'second transaction',
+      is_transaction: true,
+      start_timestamp: start + 1,
+      end_timestamp: start + 2,
+    }),
+    makeEAPSpan({
+      event_id: 'third-transaction',
+      description: 'third transaction',
+      is_transaction: true,
+      start_timestamp: start + 2,
+      end_timestamp: start + 3,
+    }),
+  ]);
 
-function printVirtualizedList(container: HTMLElement) {
-  const stdout: string[] = [];
-  const scrollContainer = screen.queryByTestId(
-    'trace-virtualized-list-scroll-container'
-  )!;
+  mockPerformanceSubscriptionDetailsResponse();
+  mockProjectDetailsResponse();
+  mockTraceResponse({body: trace});
+  mockTraceMetaResponse({
+    body: {
+      errorsCount: 0,
+      logsCount: 0,
+      metricsCount: 0,
+      performanceIssuesCount: 0,
+      spansCount: 3,
+      spansCountMap: {},
+      transactionChildCountMap: [],
+      uptimeCount: 0,
+    },
+  });
+  mockTraceRootFacets();
+  mockEventsResponse();
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/logs/', body: {data: []}});
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
 
-  const rows = Array.from(container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
-  const searchResultIterator = screen.queryByTestId('trace-search-result-iterator');
-  // https://github.com/typescript-eslint/typescript-eslint/issues/10722
-  // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
-  const searchInput = screen.queryByPlaceholderText(
-    'Search in trace'
-  ) as HTMLInputElement;
-  const loading = screen.queryByTestId('trace-search-loading');
-  const success = screen.queryByTestId('trace-search-success');
-
-  stdout.push(
-    'Debug Information: ' +
-      'Rows=' +
-      rows.length +
-      ' ' +
-      'Search Query:' +
-      (searchInput?.value || '<empty>') +
-      ' ' +
-      (searchResultIterator?.textContent || '<empty>') +
-      ' ' +
-      'Search Status:' +
-      (loading ? 'loading' : success ? 'success' : '<empty>') +
-      ' ' +
-      'Scroll=' +
-      'top:' +
-      scrollContainer.scrollTop +
-      ' ' +
-      'left:' +
-      scrollContainer.scrollLeft +
-      ' '
-  );
-
-  for (const r of [...rows]) {
-    const count = r.querySelector('.TraceChildrenCount')?.textContent;
-    const op = r.querySelector('.TraceOperation')?.textContent;
-    const desc = r.querySelector('.TraceDescription')?.textContent;
-    let t = (count ?? '') + ' ' + (op ?? '') + ' — ' + (desc ?? '');
-
-    if (r.classList.contains('SearchResult')) {
-      t = t + ' search';
-    }
-    if (r.classList.contains('Highlight')) {
-      t = t + ' highlight';
-    }
-
-    if (document.activeElement === r) {
-      t = t + ' ⬅ focused ';
-    }
-
-    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
-    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
-    const leftColumn = r.querySelector('.TraceLeftColumnInner') as HTMLElement;
-    const left = Math.round(Number.parseInt(leftColumn.style.paddingLeft, 10) / 10);
-
-    stdout.push(' '.repeat(left) + t);
+  for (const itemId of ['root-transaction', 'second-transaction', 'third-transaction']) {
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project_slug/trace-items/${itemId}/`,
+      body: {
+        itemId,
+        links: null,
+        meta: {},
+        timestamp: new Date(1e3 * start).toISOString(),
+        attributes: [],
+      },
+    });
   }
-
-  // This is a debug fn, we need it to log
-  // eslint-disable-next-line no-console
-  console.log(stdout.join('\n'));
-}
-
-async function assertHighlightedRowAtIndex(
-  virtualizedContainer: HTMLElement,
-  index: number
-) {
-  await waitFor(() => {
-    expect(virtualizedContainer.querySelectorAll('.TraceRow.Highlight')).toHaveLength(1);
-  });
-  await waitFor(() => {
-    const highlighted_row = virtualizedContainer.querySelector(
-      ACTIVE_SEARCH_HIGHLIGHT_ROW
-    );
-    const r = Array.from(
-      virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR)
-    );
-    expect(r.indexOf(highlighted_row!)).toBe(index);
-  });
 }
 
 describe('trace view', () => {
@@ -923,7 +314,11 @@ describe('trace view', () => {
             attributes: [
               {name: 'custom.region', type: 'str', value: 'drawer-region'},
               {name: 'tags[custom.size,number]', type: 'int', value: 0},
-              {name: 'tags[custom.enabled,boolean]', type: 'bool', value: false},
+              {
+                name: 'tags[custom.enabled,boolean]',
+                type: 'bool',
+                value: false,
+              },
             ],
           },
         });
@@ -1005,14 +400,18 @@ describe('trace view', () => {
         url: '/organizations/org-slug/events/',
         match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
         asyncDelay: nextPage.promise,
-        body: {data: [{span_id: unloadedChild.event_id, 'custom.region': 0}]},
+        body: {
+          data: [{span_id: unloadedChild.event_id, 'custom.region': 0}],
+        },
       });
       renderTrace({pinnedAttribute: 'custom.region'});
 
       expect(await screen.findByText('root-region')).toBeInTheDocument();
       await waitFor(() => expect(nextRequest).toHaveBeenCalled());
       expect(
-        pinnedCell('pinnable root').getByRole('button', {name: 'Copy attribute value'})
+        pinnedCell('pinnable root').getByRole('button', {
+          name: 'Copy attribute value',
+        })
       ).toBeEnabled();
       expect(pinnedCell('pinnable child').getByText('—')).toBeInTheDocument();
       expect(
@@ -1048,7 +447,9 @@ describe('trace view', () => {
         url: '/organizations/org-slug/events/',
         match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
         asyncDelay: 100,
-        body: {data: [{span_id: root.event_id, 'custom.region': 'waterfall-region'}]},
+        body: {
+          data: [{span_id: root.event_id, 'custom.region': 'waterfall-region'}],
+        },
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/1/',
@@ -1101,7 +502,9 @@ describe('trace view', () => {
               cursor: undefined,
             }),
           ],
-          body: {data: [{span_id: root.event_id, 'custom.region': 'root-region'}]},
+          body: {
+            data: [{span_id: root.event_id, 'custom.region': 'root-region'}],
+          },
           headers: {
             Link: '<https://sentry.io/api/0/organizations/org-slug/events/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
           },
@@ -1111,7 +514,10 @@ describe('trace view', () => {
           match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
           body: {
             data: [
-              {span_id: root.children[0]!.event_id, 'custom.region': 'child-region'},
+              {
+                span_id: root.children[0]!.event_id,
+                'custom.region': 'child-region',
+              },
             ],
           },
         };
@@ -1139,7 +545,10 @@ describe('trace view', () => {
         await waitFor(() => expect(router.location.query.node).toBe('span-pin-root'));
 
         const retry = Promise.withResolvers<void>();
-        MockApiClient.addMockResponse({...failedResponse, asyncDelay: retry.promise});
+        MockApiClient.addMockResponse({
+          ...failedResponse,
+          asyncDelay: retry.promise,
+        });
         await userEvent.click(
           screen.getByRole('button', {name: 'Retry loading attribute'})
         );
@@ -1171,7 +580,9 @@ describe('trace view', () => {
       const attributeRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
         match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
-        body: {data: [{span_id: root.event_id, 'custom.region': 'waterfall-region'}]},
+        body: {
+          data: [{span_id: root.event_id, 'custom.region': 'waterfall-region'}],
+        },
       });
       const {router} = renderTrace({pinnedAttribute: 'custom.region'});
 
@@ -1180,7 +591,9 @@ describe('trace view', () => {
         screen.queryByRole('button', {name: 'Unpin attribute'})
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('separator', {name: 'Resize tree and attribute columns'})
+        screen.queryByRole('separator', {
+          name: 'Resize tree and attribute columns',
+        })
       ).not.toBeInTheDocument();
       expect(attributeRequest).not.toHaveBeenCalled();
       expect(router.location.query.pinnedAttribute).toBe('custom.region');
@@ -1240,14 +653,20 @@ describe('trace view', () => {
       const regionRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
         match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
-        body: {data: [{span_id: root.event_id, 'custom.region': 'waterfall-region'}]},
+        body: {
+          data: [{span_id: root.event_id, 'custom.region': 'waterfall-region'}],
+        },
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
         match: [
-          MockApiClient.matchQuery({field: ['span_id', 'tags[custom.size,number]']}),
+          MockApiClient.matchQuery({
+            field: ['span_id', 'tags[custom.size,number]'],
+          }),
         ],
-        body: {data: [{span_id: root.event_id, 'tags[custom.size,number]': 0}]},
+        body: {
+          data: [{span_id: root.event_id, 'tags[custom.size,number]': 0}],
+        },
       });
       const {router} = renderTrace();
       await userEvent.click(await screen.findByText('pinnable root'));
@@ -1301,14 +720,18 @@ describe('trace view', () => {
       ).toBeInTheDocument();
       await openAttributeMenu('tags[custom.size,number]');
       await userEvent.click(
-        await screen.findByRole('menuitemradio', {name: 'Unpin from waterfall'})
+        await screen.findByRole('menuitemradio', {
+          name: 'Unpin from waterfall',
+        })
       );
       expect(router.location.query.pinnedAttribute).toBeUndefined();
       expect(
         screen.queryByRole('img', {name: 'Pinned attribute'})
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('separator', {name: 'Resize tree and attribute columns'})
+        screen.queryByRole('separator', {
+          name: 'Resize tree and attribute columns',
+        })
       ).not.toBeInTheDocument();
       expect(router.location.query.node).toEqual(nodeBeforePin);
     });
@@ -1462,7 +885,9 @@ describe('trace view', () => {
       const attributeRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
         match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
-        body: {data: [{span_id: trace.event_id, 'custom.region': 'older-region'}]},
+        body: {
+          data: [{span_id: trace.event_id, 'custom.region': 'older-region'}],
+        },
       });
       const query = {pinnedAttribute: 'custom.region', statsPeriod: '14d'};
       renderTrace(query);
@@ -1518,7 +943,7 @@ describe('trace view', () => {
 
     mockTraceResponse({
       asyncDelay: 1000,
-      body: {transactions: [], orphan_errors: []},
+      body: [],
     });
     mockTraceMetaResponse();
     mockTraceTagsResponse();
@@ -1557,10 +982,7 @@ describe('trace view', () => {
     mockProjectDetailsResponse();
 
     mockTraceResponse({
-      body: {
-        transactions: [],
-        orphan_errors: [],
-      },
+      body: [],
     });
     mockTraceMetaResponse();
     mockTraceTagsResponse();
@@ -1587,10 +1009,7 @@ describe('trace view', () => {
     mockProjectDetailsResponse();
 
     mockTraceResponse({
-      body: {
-        transactions: [],
-        orphan_errors: [],
-      },
+      body: [],
     });
     mockTraceMetaResponse();
     mockTraceTagsResponse();
@@ -1605,71 +1024,6 @@ describe('trace view', () => {
         /We're still processing this trace. Please try refreshing after a minute/i
       )
     ).toBeInTheDocument();
-  });
-
-  it('does not render the summary tab even when the legacy feature flag is enabled', async () => {
-    const organization = OrganizationFixture({features: ['single-trace-summary']});
-
-    await completeTestSetup({organization});
-
-    expect(await screen.findByRole('tab', {name: 'Waterfall'})).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Summary'})).not.toBeInTheDocument();
-  });
-
-  it('selects and zooms to a vital pill source node on click', async () => {
-    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    const zoomSpy = jest.spyOn(VirtualizedViewManager.prototype, 'onZoomIntoSpace');
-    const {start} = await completeTestSetup({
-      rootMeasurements: {lcp: {value: 500, unit: 'millisecond'}},
-    });
-    const vitalPill = (await screen.findAllByText('LCP')).find(element =>
-      element.classList.contains('TraceIndicatorLabel')
-    );
-
-    expect(vitalPill).toBeDefined();
-    analyticsSpy.mockClear();
-    zoomSpy.mockClear();
-
-    await userEvent.click(vitalPill!);
-
-    expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-      'TransactionID: 0'
-    );
-    expect(analyticsSpy).toHaveBeenCalledWith('trace.trace_layout.zoom_to_fill', {
-      organization: expect.objectContaining({slug: 'org-slug'}),
-    });
-    expect(zoomSpy).toHaveBeenCalledWith([start * 1e3, 525], {padding: false});
-  });
-
-  it('selects and zooms to a summary vital pill source node on click', async () => {
-    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    const zoomSpy = jest.spyOn(VirtualizedViewManager.prototype, 'onZoomIntoSpace');
-    const {start} = await completeTestSetup({
-      rootMeasurements: {lcp: {value: 500, unit: 'millisecond'}},
-    });
-    mockTransactionDetailsResponse('2');
-    await userEvent.click(await screen.findByText('transaction-name-2'));
-    expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-      'TransactionID: 2'
-    );
-
-    const vitalPill = await screen.findByRole('button', {name: /LCP/});
-
-    analyticsSpy.mockClear();
-    zoomSpy.mockClear();
-
-    await userEvent.click(vitalPill);
-
-    expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-      'TransactionID: 0'
-    );
-    expect(analyticsSpy).toHaveBeenCalledWith('trace.trace_layout.zoom_to_fill', {
-      organization: expect.objectContaining({slug: 'org-slug'}),
-    });
-    expect(zoomSpy).toHaveBeenCalledWith([start * 1e3, 525], {padding: false});
-    expect(window.location.search).not.toContain('zoomToNode');
-    expect(window.location.search).not.toContain('zoomToTimestamp');
-    expect(window.location.search).not.toContain('zoomToVital');
   });
 
   it('reveals a hidden vital pill source node on click', async () => {
@@ -1790,25 +1144,84 @@ describe('trace view', () => {
     );
   });
 
+  describe('EAP waterfall navigation', () => {
+    it('focuses the node from the eventId query parameter', async () => {
+      mockQueryString('?eventId=second-transaction');
+      setupEAPTraceView();
+
+      render(<TraceView />, {initialRouterConfig});
+
+      const secondTransaction = await screen.findByText('second transaction');
+      const secondTransactionRow = secondTransaction.closest(VISIBLE_TRACE_ROW_SELECTOR);
+      expect(secondTransactionRow).not.toBeNull();
+      await waitFor(() => expect(secondTransactionRow).toHaveFocus());
+    });
+
+    it('moves between visible EAP rows with keyboard navigation', async () => {
+      setupEAPTraceView();
+      render(<TraceView />, {initialRouterConfig});
+
+      const rootTransaction = await screen.findByText('root transaction');
+      const rootTransactionRow = rootTransaction.closest(VISIBLE_TRACE_ROW_SELECTOR);
+      const secondTransaction = screen.getByText('second transaction');
+      const secondTransactionRow = secondTransaction.closest(VISIBLE_TRACE_ROW_SELECTOR);
+      await userEvent.click(rootTransactionRow!);
+      expect(rootTransactionRow).toHaveFocus();
+
+      await userEvent.keyboard('{arrowdown}');
+      await waitFor(() => expect(secondTransactionRow).toHaveFocus());
+      await userEvent.keyboard('{arrowup}');
+      await waitFor(() => expect(rootTransactionRow).toHaveFocus());
+    });
+
+    it('warns when an EAP node from the URL cannot be found', async () => {
+      mockQueryString('?eventId=does-not-exist');
+      setupEAPTraceView();
+      const warning = jest.spyOn(Sentry.logger, 'warn');
+
+      render(<TraceView />, {initialRouterConfig});
+
+      await screen.findByText('root transaction');
+      await waitFor(() => {
+        expect(warning).toHaveBeenCalledWith('Failed to scroll to node in trace tree');
+      });
+      warning.mockRestore();
+    });
+  });
+
+  describe('EAP drawer tabs', () => {
+    it('replaces an unpinned tab and creates a new tab after pinning', async () => {
+      setupEAPTraceView();
+      render(<TraceView />, {initialRouterConfig});
+
+      const secondTransaction = await screen.findByText('second transaction');
+      await userEvent.click(secondTransaction.closest(VISIBLE_TRACE_ROW_SELECTOR)!);
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
+      });
+      expect(screen.getByTestId(DRAWER_TABS_TEST_ID)).toHaveTextContent(
+        'second transaction'
+      );
+
+      const thirdTransaction = await screen.findByText('third transaction');
+      await userEvent.click(thirdTransaction.closest(VISIBLE_TRACE_ROW_SELECTOR)!);
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
+        expect(screen.getByTestId(DRAWER_TABS_TEST_ID)).toHaveTextContent(
+          'third transaction'
+        );
+      });
+
+      await userEvent.click(screen.getByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
+      const rootTransaction = await screen.findByText('root transaction');
+      await userEvent.click(rootTransaction.closest(VISIBLE_TRACE_ROW_SELECTOR)!);
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
+      });
+    });
+  });
+
   describe('pageload', () => {
-    it('scrolls to trace root', async () => {
-      mockQueryString('?node=trace-root');
-      const {virtualizedContainer} = await completeTestSetup();
-      await waitFor(() => {
-        const rows = getVirtualizedRows(virtualizedContainer);
-        expect(rows[0]).toHaveFocus();
-      });
-    });
-
-    it('scrolls to transaction', async () => {
-      mockQueryString('?node=txn-1');
-      const {virtualizedContainer} = await completeTestSetup();
-      await waitFor(() => {
-        const rows = getVirtualizedRows(virtualizedContainer);
-        expect(rows[2]).toHaveFocus();
-      });
-    });
-
     it('expands and collapses loaded EAP children with keyboard navigation', async () => {
       mockPerformanceSubscriptionDetailsResponse();
       mockProjectDetailsResponse();
@@ -1897,858 +1310,6 @@ describe('trace view', () => {
       await waitFor(() => {
         expect(screen.queryByText('special span')).not.toBeInTheDocument();
       });
-    });
-
-    it('scrolls to event id query param', async () => {
-      mockQueryString('?eventId=1');
-      const {virtualizedContainer} = await completeTestSetup();
-
-      await waitFor(() => {
-        const rows = getVirtualizedRows(virtualizedContainer);
-        expect(rows[2]).toHaveFocus();
-      });
-    });
-
-    it.each([
-      '?eventId=doesnotexist',
-      '?node=txn-doesnotexist',
-      // Invalid path
-      '?node=span-does-notexist',
-    ] as Array<`?${string}`>)('logs if path is not found: %s', async path => {
-      mockQueryString(path);
-
-      jest.spyOn(Sentry.logger, 'warn');
-      await pageloadTestSetup();
-
-      await waitFor(() => {
-        expect(Sentry.logger.warn).toHaveBeenCalledWith(
-          'Failed to scroll to node in trace tree'
-        );
-      });
-    });
-
-    describe('preferences', () => {
-      it('redraws the trace when compressed timeline changes', async () => {
-        mockTracePreferences({compressed_timeline: true});
-        mockQueryString('?node=span-span0&node=txn-1');
-        const organization = OrganizationFixture({
-          features: ['trace-waterfall-time-compression'],
-        });
-
-        const drawSpy = jest.spyOn(VirtualizedViewManager.prototype, 'draw');
-        const successMessageSpy = jest.spyOn(indicators, 'addSuccessMessage');
-
-        try {
-          await completeTestSetup({organization});
-
-          const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
-          await userEvent.click(preferencesDropdownTrigger);
-
-          expect(await screen.findByText('Compressed Timeline')).toBeInTheDocument();
-
-          drawSpy.mockClear();
-          const compressedTimelineOption = await screen.findByText('Compressed Timeline');
-          await userEvent.click(compressedTimelineOption);
-
-          expect(successMessageSpy).toHaveBeenCalledWith('Compressed timeline disabled');
-          await waitFor(() => {
-            expect(drawSpy).toHaveBeenCalled();
-          });
-        } finally {
-          drawSpy.mockRestore();
-          successMessageSpy.mockRestore();
-        }
-      });
-
-      it('hides and disables compressed timeline without the feature flag', async () => {
-        mockTracePreferences({compressed_timeline: true});
-        mockQueryString('?node=span-span0&node=txn-1');
-
-        const compressionSpy = jest.spyOn(TraceTimeCompression, 'FromVisibleItems');
-
-        try {
-          await completeTestSetup();
-
-          const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
-          await userEvent.click(preferencesDropdownTrigger);
-
-          expect(screen.queryByText('Compressed Timeline')).not.toBeInTheDocument();
-          expect(compressionSpy.mock.calls.at(-1)?.[0]?.enabled).toBe(false);
-        } finally {
-          compressionSpy.mockRestore();
-        }
-      });
-
-      it('renders compressed timeline gap markers as non-interactive overlays', async () => {
-        mockTracePreferences({compressed_timeline: true});
-        const organization = OrganizationFixture({
-          features: ['trace-waterfall-time-compression'],
-        });
-        const compressionSpy = jest
-          .spyOn(TraceTimeCompression, 'FromVisibleItems')
-          .mockImplementation(options => {
-            const [traceStart, traceDuration] = options.traceSpace;
-            return {
-              start: traceStart,
-              duration: traceDuration,
-              compressedDuration: traceDuration,
-              enabled: true,
-              gaps: [
-                {
-                  start: traceStart + 0.5,
-                  end: traceStart + 1,
-                  duration: 0.5,
-                  retainedDuration: 0.1,
-                  compressedStart: 0.5,
-                  compressedEnd: 0.6,
-                },
-              ],
-              toCompressedOffset: (timestamp: number) => timestamp - traceStart,
-              toRealTimestamp: (offset: number) => traceStart + offset,
-            };
-          });
-
-        try {
-          const {virtualizedScrollContainer} = await completeTestSetup({organization});
-
-          const marker = await waitFor(() => {
-            const nextMarker = document.querySelector<HTMLElement>(
-              '.TraceCollapsedGapMarker'
-            );
-            if (!nextMarker) {
-              throw new Error('Expected compressed timeline gap marker to render');
-            }
-            return nextMarker;
-          });
-
-          expect(marker).toHaveStyle({pointerEvents: 'none'});
-
-          const pill = marker.querySelector<HTMLElement>('.TraceCollapsedGapMarkerPill');
-          if (!pill) {
-            throw new Error('Expected compressed timeline gap marker pill to render');
-          }
-          expect(pill).toHaveStyle({pointerEvents: 'auto'});
-          fireEvent.wheel(pill, {deltaY: 24});
-          expect(virtualizedScrollContainer.scrollTop).toBe(24);
-
-          await userEvent.hover(pill);
-          expect(
-            await screen.findByText(/Skipped .* inactive period/)
-          ).toBeInTheDocument();
-        } finally {
-          compressionSpy.mockRestore();
-        }
-      });
-    });
-  });
-
-  describe('keyboard navigation', () => {
-    it('arrow down', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-
-      await userEvent.click(rows[0]!);
-      await waitFor(() => expect(rows[0]).toHaveFocus());
-
-      await userEvent.keyboard('{arrowdown}');
-      await waitFor(() => expect(rows[1]).toHaveFocus());
-    });
-
-    it('arrow up', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-
-      await userEvent.click(rows[1]!);
-      await waitFor(() => expect(rows[1]).toHaveFocus());
-
-      await userEvent.keyboard('{arrowup}');
-      await waitFor(() => expect(rows[0]).toHaveFocus());
-    });
-
-    it('arrow left does not collapse trace root row', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-
-      await userEvent.click(rows[0]!);
-      await waitFor(() => expect(rows[0]).toHaveFocus());
-
-      await userEvent.keyboard('{arrowleft}');
-      expect(await screen.findByText('transaction-name-1')).toBeInTheDocument();
-    });
-
-    it('arrowup on first node jumps to end', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-
-      let rows = getVirtualizedRows(virtualizedContainer);
-      await userEvent.click(rows[0]!);
-
-      await waitFor(() => expect(rows[0]).toHaveFocus());
-      await userEvent.keyboard('{arrowup}');
-
-      expect(
-        await within(virtualizedContainer).findByText(/transaction-op-99/i)
-      ).toBeInTheDocument();
-
-      await waitFor(() => {
-        rows = getVirtualizedRows(virtualizedContainer);
-        expect(rows[rows.length - 1]).toHaveFocus();
-      });
-    });
-
-    it('arrowdown on last node jumps to start', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-
-      let rows = getVirtualizedRows(virtualizedContainer);
-      await userEvent.click(rows[0]!);
-      await waitFor(() => expect(rows[0]).toHaveFocus());
-
-      await userEvent.keyboard('{arrowup}');
-      await waitFor(() => {
-        rows = getVirtualizedRows(virtualizedContainer);
-        expect(rows[rows.length - 1]).toHaveFocus();
-      });
-      expect(
-        await within(virtualizedContainer).findByText(/transaction-op-99/i)
-      ).toBeInTheDocument();
-
-      await userEvent.keyboard('{arrowdown}');
-      await waitFor(() => {
-        rows = getVirtualizedRows(virtualizedContainer);
-        expect(rows[0]).toHaveFocus();
-      });
-      expect(
-        await within(virtualizedContainer).findByText(/transaction-op-0/i)
-      ).toBeInTheDocument();
-    });
-
-    it('tab scrolls to next node', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-
-      let rows = getVirtualizedRows(virtualizedContainer);
-      await userEvent.click(rows[0]!);
-
-      await waitFor(() => expect(rows[0]).toHaveFocus());
-      await userEvent.keyboard('{tab}');
-
-      await waitFor(() => {
-        rows = getVirtualizedRows(virtualizedContainer);
-        expect(rows[1]).toHaveFocus();
-      });
-    });
-
-    it('shift+tab scrolls to previous node', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-
-      let rows = getVirtualizedRows(virtualizedContainer);
-      await userEvent.click(rows[1]!);
-
-      await waitFor(() => {
-        rows = getVirtualizedRows(virtualizedContainer);
-        expect(rows[1]).toHaveFocus();
-      });
-      await userEvent.keyboard('{Shift>}{tab}{/Shift}');
-
-      await waitFor(() => {
-        rows = getVirtualizedRows(virtualizedContainer);
-        expect(rows[0]).toHaveFocus();
-      });
-    });
-
-    it('arrowdown+shift scrolls to the end of the list', async () => {
-      const {container, virtualizedContainer} = await keyboardNavigationTestSetup();
-
-      let rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      await userEvent.click(rows[0]!);
-
-      await waitFor(() => {
-        rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-        expect(rows[0]).toHaveFocus();
-      });
-      await userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
-
-      expect(
-        await within(virtualizedContainer).findByText(/transaction-op-99/i)
-      ).toBeInTheDocument();
-      await waitFor(() => {
-        rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-        expect(rows[rows.length - 1]).toHaveFocus();
-      });
-    });
-
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('arrowup+shift scrolls to the start of the list', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-
-      let rows = getVirtualizedRows(virtualizedContainer);
-
-      await userEvent.click(rows[1]!);
-      await waitFor(() => {
-        rows = getVirtualizedRows(virtualizedContainer);
-        expect(rows[1]).toHaveFocus();
-      });
-
-      await userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
-      expect(
-        await within(virtualizedContainer).findByText(/transaction-op-99/i)
-      ).toBeInTheDocument();
-
-      await waitFor(() => {
-        rows = getVirtualizedRows(virtualizedContainer);
-        expect(rows[rows.length - 1]).toHaveFocus();
-      });
-
-      await userEvent.keyboard('{Shift>}{arrowup}{/Shift}');
-
-      expect(
-        await within(virtualizedContainer).findByText(/transaction-op-0/i)
-      ).toBeInTheDocument();
-
-      await waitFor(() => {
-        rows = getVirtualizedRows(virtualizedContainer);
-        expect(rows[0]).toHaveFocus();
-      });
-    });
-  });
-
-  describe('search', () => {
-    it('triggers search on load but does not steal focus from node param', async () => {
-      mockQueryString('?search=transaction-op-99&node=txn-0');
-
-      const {virtualizedContainer} = await pageloadTestSetup();
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      expect(searchInput).toHaveValue('transaction-op-99');
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
-          '-/1'
-        );
-      });
-
-      const rows = getVirtualizedRows(virtualizedContainer);
-      expect(rows[1]).toHaveFocus();
-    });
-
-    it('if search on load does not match anything, it does not steal focus or highlight first result', async () => {
-      mockQueryString('?search=dead&node=txn-5');
-
-      const {container} = await pageloadTestSetup();
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      expect(searchInput).toHaveValue('dead');
-
-      await waitFor(() => {
-        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
-          'no results'
-        );
-      });
-
-      await waitFor(() => {
-        const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-        expect(rows[6]).toHaveFocus();
-      });
-    });
-
-    it('searches in transaction', async () => {
-      const {container} = await searchTestSetup();
-
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.click(searchInput);
-      await userEvent.paste('transaction-op');
-
-      await waitFor(() => expect(searchInput).toHaveValue('transaction-op'));
-      await searchToResolve();
-
-      await assertHighlightedRowAtIndex(container, 1);
-    });
-
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('supports roving with arrowup and arrowdown', async () => {
-      const {container} = await searchTestSetup();
-
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op');
-      expect(searchInput).toHaveValue('transaction-op');
-      await searchToResolve();
-
-      for (const action of [
-        // starting at the top, jump bottom with shift+arrowdown
-        ['{Shift>}{arrowdown}{/Shift}', 11],
-        // move to row above with arrowup
-        ['{arrowup}', 10],
-        // and jump back to top with shift+arrowup
-        ['{Shift>}{arrowup}{/Shift}', 1],
-        // and jump to next row with arrowdown
-        ['{arrowdown}', 2],
-      ] as const) {
-        await userEvent.keyboard(action[0]);
-
-        await assertHighlightedRowAtIndex(container, action[1]);
-      }
-    });
-
-    it('search roving updates the element in the drawer', async () => {
-      await searchTestSetup();
-
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.click(searchInput);
-      await userEvent.paste('transaction-op');
-      await waitFor(() => expect(searchInput).toHaveValue('transaction-op'));
-
-      // Wait for the search results to resolve
-      await searchToResolve();
-
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'TransactionID: 0'
-      );
-
-      // assert that focus on search input is never lost
-      expect(searchInput).toHaveFocus();
-      await userEvent.keyboard('{arrowdown}');
-
-      await waitFor(() => {
-        expect(screen.getByTestId('trace-drawer-title')).toHaveTextContent(
-          'TransactionID: 1'
-        );
-      });
-    });
-
-    it('highlighted node narrows down on the first result', async () => {
-      const {container} = await searchTestSetup();
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-
-      await userEvent.click(searchInput);
-      await userEvent.paste('transaction-op-1');
-      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-1'));
-      await searchToResolve();
-
-      await assertHighlightedRowAtIndex(container, 2);
-
-      await userEvent.clear(searchInput);
-      await waitFor(() => expect(searchInput).toHaveValue(''));
-      await userEvent.click(searchInput);
-      await userEvent.paste('transaction-op-5');
-      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-5'));
-      await searchToResolve();
-
-      await assertHighlightedRowAtIndex(container, 6);
-    });
-
-    // TODO Abdullah Khan: This is flaky, we need to fix it
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('highlighted is persisted on node while it is part of the search results', async () => {
-      const {container} = await searchTestSetup();
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'trans');
-      await waitFor(() => expect(searchInput).toHaveValue('trans'));
-      // Wait for the search results to resolve
-      await searchToResolve();
-
-      await userEvent.keyboard('{arrowdown}');
-      await searchToResolve();
-
-      await assertHighlightedRowAtIndex(container, 2);
-
-      await userEvent.type(searchInput, 'act');
-      await waitFor(() => expect(searchInput).toHaveValue('transact'));
-      await searchToResolve();
-
-      // Highlighting is persisted on the row
-      await assertHighlightedRowAtIndex(container, 2);
-
-      await userEvent.clear(searchInput);
-      await userEvent.click(searchInput);
-      await userEvent.paste('this wont match anything');
-      await waitFor(() => expect(searchInput).toHaveValue('this wont match anything'));
-      await searchToResolve();
-
-      // When there is no match, the highlighting is removed
-      await waitFor(() => {
-        expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
-      });
-    });
-
-    it('auto highlights the first result when search begins', async () => {
-      const {container} = await searchTestSetup();
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-
-      // Nothing is highlighted
-      expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
-      await userEvent.type(searchInput, 't');
-      await waitFor(() => expect(searchInput).toHaveValue('t'));
-
-      // Wait for the search results to resolve
-      await searchToResolve();
-
-      await assertHighlightedRowAtIndex(container, 1);
-    });
-
-    // TODO Abdullah Khan: This is flaky, and when it flakes it takes over 90s to run
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('clicking a row that is also a search result updates the result index', async () => {
-      const {container, virtualizedContainer} = await searchTestSetup();
-
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op-1');
-      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-1'));
-
-      await searchToResolve();
-
-      await assertHighlightedRowAtIndex(container, 2);
-      const rows = getVirtualizedRows(virtualizedContainer);
-      // By default, we highlight the first result
-      expect(await screen.findByTestId('trace-search-result-iterator')).toHaveTextContent(
-        '1/2'
-      );
-
-      // Click on a random row in the list that is not a search result
-      await userEvent.click(rows[5]!);
-      await waitFor(() => {
-        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
-          '-/2'
-        );
-      });
-
-      // Click on a the row in the list that is a search result
-      await userEvent.click(rows[2]!);
-      await waitFor(() => {
-        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
-          '1/2'
-        );
-      });
-    });
-
-    // Really flakey, blocking deploys
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('during search, expanding a row retriggers search', async () => {
-      mockPerformanceSubscriptionDetailsResponse();
-      mockProjectDetailsResponse();
-
-      mockTraceRootFacets();
-      mockTraceRootEvent('0');
-      mockTraceEventDetails();
-
-      mockEventsResponse();
-
-      mockTraceResponse({
-        body: {
-          transactions: [
-            makeTransaction({
-              span_id: '0',
-              event_id: '0',
-              transaction: 'transaction-name-0',
-              'transaction.op': 'transaction-op-0',
-              project_slug: 'project_slug',
-            }),
-            makeTransaction({
-              span_id: '1',
-              event_id: '1',
-              transaction: 'transaction-name-1',
-              'transaction.op': 'transaction-op-1',
-              project_slug: 'project_slug',
-            }),
-            makeTransaction({
-              span_id: '2',
-              event_id: '2',
-              transaction: 'transaction-name-2',
-              'transaction.op': 'transaction-op-2',
-              project_slug: 'project_slug',
-            }),
-            makeTransaction({
-              span_id: '3',
-              event_id: '3',
-              transaction: 'transaction-name-3',
-              'transaction.op': 'transaction-op-3',
-              project_slug: 'project_slug',
-            }),
-          ],
-          orphan_errors: [],
-        },
-      });
-
-      mockTraceMetaResponse({
-        body: {
-          errors: 0,
-          performance_issues: 0,
-          projects: 0,
-          transactions: 0,
-          transaction_child_count_map: [
-            {
-              'transaction.id': '0',
-              count: 5,
-            },
-            {
-              'transaction.id': '1',
-              count: 5,
-            },
-            {
-              'transaction.id': '2',
-              count: 5,
-            },
-            {
-              'transaction.id': '3',
-              count: 5,
-            },
-          ],
-          span_count: 200,
-          span_count_map: {},
-        },
-      });
-
-      const spansRequest = mockSpansResponse(
-        '0',
-        {},
-        {
-          entries: [
-            {
-              type: EntryType.SPANS,
-              data: [
-                makeSpan({
-                  span_id: '0',
-                  description: 'span-description',
-                  op: 'op-0',
-                }),
-              ],
-            },
-          ],
-        }
-      );
-
-      const {container} = render(<TraceView />, {
-        initialRouterConfig,
-      });
-
-      // Awaits for the placeholder rendering rows to be removed
-      await within(container).findByText(/transaction-op-0/i);
-
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'op-0');
-      await waitFor(() => expect(searchInput).toHaveValue('op-0'));
-
-      await searchToResolve();
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
-          '1/1'
-        );
-      });
-
-      const open = await screen.findAllByRole('button', {name: '+'});
-      await userEvent.click(open[0]!);
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
-          '1/1'
-        );
-      });
-
-      expect(await screen.findByText('span-description')).toBeInTheDocument();
-      expect(spansRequest).toHaveBeenCalled();
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
-          '1/2'
-        );
-      });
-    });
-
-    it('during search, highlighting is persisted on the row', async () => {
-      const {container} = await searchTestSetup();
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.click(searchInput);
-      await userEvent.paste('transaction-op');
-      await waitFor(() => expect(searchInput).toHaveValue('transaction-op'));
-      await searchToResolve();
-
-      await assertHighlightedRowAtIndex(container, 1);
-
-      // User moves down the list using keyboard navigation
-      for (let i = 1; i < 6; i++) {
-        await userEvent.keyboard('{arrowDown}');
-        await assertHighlightedRowAtIndex(container, 1 + i);
-      }
-
-      // User clicks on an entry in the list, then proceeds to search
-      await waitFor(() => {
-        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
-          '6/11'
-        );
-      });
-      // And then continues the query - the highlighting is preserved as long as the
-      // row is part of the search results
-      await assertHighlightedRowAtIndex(container, 6);
-
-      await userEvent.click(searchInput);
-      await userEvent.type(searchInput, '-');
-      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-'));
-      await userEvent.type(searchInput, '5');
-      await waitFor(() => expect(searchInput).toHaveValue('transaction-op-5'));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
-          '1/1'
-        );
-      });
-      await assertHighlightedRowAtIndex(container, 6);
-
-      // Keep the previous results until the new search completes. Clearing the
-      // query also resets the results and can make the idle icon look finished.
-      await userEvent.type(searchInput, '-none');
-      expect(searchInput).toHaveValue('transaction-op-5-none');
-      await waitFor(() => {
-        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
-          'no results'
-        );
-      });
-      await waitFor(() => {
-        // eslint-disable-next-line testing-library/no-container
-        expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
-      });
-    }, 20_000);
-  });
-
-  describe('tabbing', () => {
-    it('does not fetch trace-wide logs when opening a waterfall drawer', async () => {
-      const organization = OrganizationFixture({features: ['ourlogs-enabled']});
-      const traceLogsRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/trace-logs/`,
-        body: {data: []},
-      });
-      const {virtualizedContainer} = await completeTestSetup({organization});
-      const rows = getVirtualizedRows(virtualizedContainer);
-
-      expect(traceLogsRequest).not.toHaveBeenCalled();
-      await userEvent.click(rows[5]!);
-
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
-      });
-      expect(traceLogsRequest).not.toHaveBeenCalled();
-    });
-
-    it('clicking on a node spawns a new tab when none is selected', async () => {
-      const {virtualizedContainer} = await simpleTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(0);
-      await userEvent.click(rows[5]!);
-
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
-      });
-    });
-
-    it('clicking on a node replaces the previously selected tab', async () => {
-      const {virtualizedContainer} = await simpleTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(0);
-
-      await userEvent.click(rows[5]!);
-
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
-      });
-      expect(
-        screen
-          .getAllByTestId(DRAWER_TABS_TEST_ID)[0]!
-          .textContent?.includes('transaction-op-4')
-      ).toBeTruthy();
-
-      await userEvent.click(rows[7]!);
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
-      });
-      await waitFor(() => {
-        expect(
-          screen
-            .getAllByTestId(DRAWER_TABS_TEST_ID)[0]!
-            .textContent?.includes('transaction-op-6')
-        ).toBeTruthy();
-      });
-    });
-
-    it('pinning a tab and clicking on a new node spawns a new tab', async () => {
-      const {virtualizedContainer} = await simpleTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(0);
-
-      await userEvent.click(rows[5]!);
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
-      });
-
-      await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
-      await userEvent.click(rows[7]!);
-
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
-      });
-      expect(
-        screen
-          .getAllByTestId(DRAWER_TABS_TEST_ID)[0]!
-          .textContent?.includes('transaction-op-4')
-      ).toBeTruthy();
-      expect(
-        screen
-          .getAllByTestId(DRAWER_TABS_TEST_ID)[1]!
-          .textContent?.includes('transaction-op-6')
-      ).toBeTruthy();
-    });
-
-    it('unpinning a tab removes it', async () => {
-      const {virtualizedContainer} = await simpleTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(0);
-
-      await userEvent.click(rows[5]!);
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
-      });
-
-      await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
-      await userEvent.click(rows[7]!);
-
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
-      });
-
-      const tabButtons = screen.queryAllByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID);
-      expect(tabButtons).toHaveLength(2);
-
-      await userEvent.click(tabButtons[0]!);
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
-      });
-    });
-
-    // TODO Abdullah Khan: This is flaky, and when it flakes it takes over 90s to run
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('clicking a node that is already open in a tab switches to that tab and persists the previous node', async () => {
-      const {virtualizedContainer} = await simpleTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(0);
-
-      await userEvent.click(rows[5]!);
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
-      });
-
-      await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
-      await userEvent.click(rows[7]!);
-
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
-      });
-      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)[1]).toHaveAttribute(
-        'aria-selected',
-        'true'
-      );
-
-      await userEvent.click(rows[5]!);
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)[1]).toHaveAttribute(
-          'aria-selected',
-          'true'
-        );
-      });
-      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
     });
   });
 });
