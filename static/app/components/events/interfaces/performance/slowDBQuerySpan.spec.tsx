@@ -230,9 +230,7 @@ describe('Slow-query evidence from the spans dataset', () => {
       screen.getByTestId('span-evidence-key-value-list.slow-db-query')
     ).toHaveTextContent('SELECT id FROM recorded_books');
     expect(request).not.toHaveBeenCalled();
-    expect(
-      screen.queryByRole('button', {name: 'View Full Trace'})
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View Full Trace'})).toBeInTheDocument();
   });
 
   it('uses the dataset group for summary links, independently of the detector hash', () => {

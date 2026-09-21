@@ -774,12 +774,11 @@ const makeTransactionNameRow = (
     organization,
   });
 
-  const actionButton =
-    projectSlug && traceSlug ? (
-      <LinkButton size="xs" to={eventDetailsLocation}>
-        {t('View Full Trace')}
-      </LinkButton>
-    ) : undefined;
+  const actionButton = projectSlug ? (
+    <LinkButton size="xs" to={eventDetailsLocation}>
+      {t('View Full Trace')}
+    </LinkButton>
+  ) : undefined;
 
   return makeRow(
     t('Transaction'),
