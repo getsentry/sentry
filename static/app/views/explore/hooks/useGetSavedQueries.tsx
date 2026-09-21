@@ -17,10 +17,15 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-enum SavedQueryType {
+export enum SavedQueryType {
   DISCOVER = 'discover',
   EXPLORE = 'explore',
 }
+
+export type SavedQueryRef = {
+  queryId: number;
+  queryType: SavedQueryType;
+};
 
 export type RawGroupBy = {
   groupBy: string;
@@ -129,6 +134,7 @@ export type ReadableSavedQuery = {
   position: number | null;
   projects: number[];
   query: [ReadableQuery, ...ReadableQuery[]];
+  queryType: SavedQueryType.EXPLORE;
   starred: boolean;
   agent?: string[];
   caseInsensitive?: CaseInsensitive;
@@ -228,13 +234,6 @@ function savedQueriesApiOptions<TData = ReadableSavedQuery[]>(
     path: {organizationIdOrSlug: organization.slug},
     query,
     staleTime: 0,
-  });
-}
-
-export function starredSavedQueriesApiOptions(organization: Organization) {
-  return savedQueriesApiOptions<SavedQuery[]>(organization, {
-    per_page: MAX_STARRED_SAVED_QUERIES_IN_NAV,
-    starred: 1,
   });
 }
 

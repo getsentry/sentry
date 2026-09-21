@@ -112,7 +112,7 @@ export function SavedQueriesTable({
           organization,
         });
       }
-      starQuery(id, starred).catch(() => {
+      starQuery({queryId: query.id, queryType: query.queryType}, starred).catch(() => {
         // If the starQuery call fails, we need to revert the starredKeys state
         addErrorMessage(t('Unable to star query'));
         if (starred) {
@@ -344,7 +344,10 @@ export function SavedQueriesTable({
                                   if (!isExploreSavedQuery(query)) {
                                     return;
                                   }
-                                  await deleteQuery(query.id);
+                                  await deleteQuery({
+                                    queryId: query.id,
+                                    queryType: query.queryType,
+                                  });
                                   addSuccessMessage(t('Query deleted'));
                                 } catch (error) {
                                   addErrorMessage(t('Unable to delete query'));
