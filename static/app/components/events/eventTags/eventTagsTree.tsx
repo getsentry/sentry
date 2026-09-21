@@ -8,6 +8,11 @@ import {
   type EventTagsTreeRowProps,
 } from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import {
+  TreeColumn as KeyValueTreeColumn,
+  TreeContainer,
+} from 'sentry/components/keyValueTree/styles';
+import {distributeRowGroupsIntoColumns} from 'sentry/components/keyValueTree/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
@@ -27,12 +32,6 @@ export interface TagTreeContent {
   // These will be omitted on pseudo tags (see addToTagTree)
   meta?: Record<string, any>;
   originalTag?: EventTagWithMeta;
-}
-
-interface TagTreeColumnData {
-  columns: React.ReactNode[];
-  runningTotal: number;
-  startIndex: number;
 }
 
 interface EventTagsTreeProps {
@@ -180,41 +179,13 @@ function TagTreeColumns({
       ([tagKey, content], i) =>
         getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project, event, config})
     );
-    // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
-    const tagTreeRowTotal = tagTreeRowGroups.reduce(
-      (sum, group) => sum + group.length,
-      0
+    return distributeRowGroupsIntoColumns(tagTreeRowGroups, columnCount).map(
+      (column, index) => (
+        <TreeColumn key={index} data-test-id="tag-tree-column">
+          {column}
+        </TreeColumn>
+      )
     );
-    const columnRowGoal = Math.ceil(tagTreeRowTotal / columnCount);
-
-    // Iterate through the row groups, splitting rows into columns when we exceed the goal size
-    const data = tagTreeRowGroups.reduce<TagTreeColumnData>(
-      ({startIndex, runningTotal, columns}, rowList, index) => {
-        // If it's the last entry, create a column with the remaining rows
-        if (index === tagTreeRowGroups.length - 1) {
-          columns.push(
-            <TreeColumn key={columns.length} data-test-id="tag-tree-column">
-              {tagTreeRowGroups.slice(startIndex)}
-            </TreeColumn>
-          );
-          return {startIndex, runningTotal, columns};
-        }
-        // If we reach the goal column size, wrap rows in a TreeColumn.
-        if (runningTotal >= columnRowGoal) {
-          columns.push(
-            <TreeColumn key={columns.length} data-test-id="tag-tree-column">
-              {tagTreeRowGroups.slice(startIndex, index)}
-            </TreeColumn>
-          );
-          runningTotal = 0;
-          startIndex = index;
-        }
-        runningTotal += rowList.length;
-        return {startIndex, runningTotal, columns};
-      },
-      {startIndex: 0, runningTotal: 0, columns: []}
-    );
-    return data.columns;
   }, [columnCount, isPending, project, event, tags, config]);
 
   return <Fragment>{assembledColumns}</Fragment>;
@@ -236,27 +207,10 @@ export function EventTagsTree(props: EventTagsTreeProps) {
   );
 }
 
-export const TreeContainer = styled('div')<{columnCount: number}>`
-  display: grid;
-  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-  align-items: start;
-`;
-
-export const TreeColumn = styled('div')`
-  display: grid;
+export const TreeColumn = styled(KeyValueTreeColumn)`
   grid-template-columns: minmax(auto, 175px) 1fr;
-  grid-column-gap: ${p => p.theme.space['2xl']};
   &:first-child {
     margin-left: -${p => p.theme.space.md};
-  }
-  &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-left: ${p => p.theme.space.xl};
-    margin-left: -1px;
-  }
-  &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-right: ${p => p.theme.space.xl};
   }
 `;
 

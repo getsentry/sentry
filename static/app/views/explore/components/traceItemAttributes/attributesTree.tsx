@@ -1,13 +1,28 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import {
+  TREE_VALUE_DROPDOWN_BUTTON_CLASS,
+  TreeBranchIcon,
+  TreeColumn as KeyValueTreeColumn,
+  TreeContainer as KeyValueTreeContainer,
+  TreeKey,
+  TreeKeyTrunk,
+  TreeRow,
+  TreeSearchKey,
+  TreeSpacer,
+  TreeValue,
+  TreeValueDropdown as KeyValueTreeValueDropdown,
+  TreeValueTrunk as KeyValueTreeValueTrunk,
+} from 'sentry/components/keyValueTree/styles';
+import {distributeRowGroupsIntoColumns} from 'sentry/components/keyValueTree/utils';
 import {IconEllipsis, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -40,12 +55,6 @@ export interface AttributesTreeContent {
   // These will be omitted on pseudo attributes (see addToAttributeTree)
   meta?: Record<any, any>;
   originalAttribute?: Attribute;
-}
-
-interface AttributesTreeColumnData {
-  columns: React.ReactNode[];
-  runningTotal: number;
-  startIndex: number;
 }
 
 type AttributeItem = {
@@ -268,41 +277,13 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
       })
     );
 
-    // Get the total number of TreeRow components to be rendered, and a goal size for each column
-    const attributeTreeRowTotal = attributeTreeRowGroups.reduce(
-      (sum, group) => sum + group.length,
-      0
+    return distributeRowGroupsIntoColumns(attributeTreeRowGroups, columnCount).map(
+      (column, index) => (
+        <TreeColumn key={index} data-test-id="attribute-tree-column">
+          {column}
+        </TreeColumn>
+      )
     );
-    const columnRowGoal = Math.ceil(attributeTreeRowTotal / columnCount);
-
-    // Iterate through the row groups, splitting rows into columns when we exceed the goal size
-    const data = attributeTreeRowGroups.reduce<AttributesTreeColumnData>(
-      ({startIndex, runningTotal, columns}, rowList, index) => {
-        // If it's the last entry, create a column with the remaining rows
-        if (index === attributeTreeRowGroups.length - 1) {
-          columns.push(
-            <TreeColumn key={columns.length} data-test-id="attribute-tree-column">
-              {attributeTreeRowGroups.slice(startIndex)}
-            </TreeColumn>
-          );
-          return {startIndex, runningTotal, columns};
-        }
-        // If we reach the goal column size, wrap rows in a TreeColumn.
-        if (runningTotal >= columnRowGoal) {
-          columns.push(
-            <TreeColumn key={columns.length} data-test-id="attribute-tree-column">
-              {attributeTreeRowGroups.slice(startIndex, index)}
-            </TreeColumn>
-          );
-          runningTotal = 0;
-          startIndex = index;
-        }
-        runningTotal += rowList.length;
-        return {startIndex, runningTotal, columns};
-      },
-      {startIndex: 0, runningTotal: 0, columns: []}
-    );
-    return data.columns;
   }, [
     attributes,
     columnCount,
@@ -461,7 +442,7 @@ function AttributesTreeRowDropdown({
           'aria-label': t('Attribute Actions Menu'),
           icon: <IconEllipsis />,
           showChevron: false,
-          className: 'attribute-button',
+          className: TREE_VALUE_DROPDOWN_BUTTON_CLASS,
         }}
         items={items}
       />
@@ -493,118 +474,20 @@ function getAttribute(
   };
 }
 
-const TreeContainer = styled('div')<{columnCount: number}>`
-  display: grid;
-  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-  align-items: start;
+const TreeContainer = styled(KeyValueTreeContainer)`
   white-space: normal;
 `;
 
-const TreeColumn = styled('div')`
-  display: grid;
+const TreeColumn = styled(KeyValueTreeColumn)`
   grid-template-columns: minmax(min-content, max-content) auto;
-  grid-column-gap: ${p => p.theme.space['2xl']};
-  &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-left: ${p => p.theme.space.xl};
-    margin-left: -1px;
-  }
-  &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-right: ${p => p.theme.space.xl};
-  }
 `;
 
-const TreeRow = styled('div')<{hasErrors: boolean}>`
-  border-radius: ${p => p.theme.space.xs};
-  padding-left: ${p => p.theme.space.md};
-  position: relative;
-  display: grid;
-  align-items: center;
-  grid-column: span 2;
-  column-gap: ${p => p.theme.space.lg};
-  grid-template-columns: subgrid;
-  :nth-child(odd) {
-    background-color: ${p =>
-      p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.secondary};
-  }
-  color: ${p => (p.hasErrors ? p.theme.colors.red500 : p.theme.tokens.content.secondary)};
-  background-color: ${p =>
-    p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.primary};
-  box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.colors.red200 : 'transparent')};
-`;
-
-const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
-  grid-column: span 1;
-  /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid
-    ${p => (p.hasStem ? p.theme.tokens.border.primary : 'transparent')};
-  margin-right: -1px;
-  height: 100%;
-  width: ${p => (p.spacerCount - 1) * 20 + 3}px;
-`;
-
-const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
-  border: 1px solid
-    ${p => (p.hasErrors ? p.theme.colors.red200 : p.theme.tokens.border.primary)};
-  border-width: 0 0 1px 1px;
-  border-radius: 0 0 0 5px;
-  grid-column: span 1;
-  height: 12px;
-  align-self: start;
-  margin-right: ${p => p.theme.space.xs};
-`;
-
-const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
-  grid-column: 1 / 2;
-  display: grid;
-  height: 100%;
-  align-items: center;
-  grid-template-columns: ${p => (p.spacerCount > 0 ? 'auto 1rem 1fr' : '1fr')};
-`;
-
-const TreeValueTrunk = styled('div')`
-  grid-column: 2 / 3;
-  display: grid;
-  height: 100%;
-  align-items: center;
-  min-height: 22px;
+const TreeValueTrunk = styled(KeyValueTreeValueTrunk)`
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-column-gap: ${p => p.theme.space.xs};
 `;
 
-const TreeValue = styled('div')<{hasErrors?: boolean}>`
-  padding: ${p => p.theme.space['2xs']} 0;
-  align-self: start;
-  font-family: ${p => p.theme.font.family.mono};
-  font-size: ${p => p.theme.font.size.sm};
-  word-break: break-word;
-  grid-column: span 1;
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};
-`;
-
-const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.secondary)};
-`;
-
-/**
- * Hidden element to allow browser searching for exact key name
- */
-const TreeSearchKey = styled('span')`
-  font-size: 0;
-  position: absolute;
-`;
-
-const TreeValueDropdown = styled(DropdownMenu)`
-  display: block;
-  margin: 1px;
-  height: 20px;
-  .attribute-button {
-    height: 20px;
-    min-height: 20px;
-    padding: 0 ${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.space.xs};
+const TreeValueDropdown = styled(KeyValueTreeValueDropdown)`
+  .${TREE_VALUE_DROPDOWN_BUTTON_CLASS} {
     z-index: 1;
   }
 `;

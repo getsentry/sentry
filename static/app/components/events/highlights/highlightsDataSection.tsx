@@ -10,10 +10,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
-import {
-  TreeColumn,
-  TreeContainer,
-} from 'sentry/components/events/eventTags/eventTagsTree';
+import {TreeColumn} from 'sentry/components/events/eventTags/eventTagsTree';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {EditHighlightsModal} from 'sentry/components/events/highlights/editHighlightsModal';
@@ -22,6 +19,7 @@ import {
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
+import {TreeContainer} from 'sentry/components/keyValueTree/styles';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconEdit} from 'sentry/icons';

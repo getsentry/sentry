@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
@@ -12,6 +12,18 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
+import {
+  TREE_VALUE_DROPDOWN_BUTTON_CLASS,
+  TreeBranchIcon,
+  TreeKey,
+  TreeKeyTrunk,
+  TreeRow as KeyValueTreeRow,
+  TreeSearchKey,
+  TreeSpacer,
+  TreeValue,
+  TreeValueDropdown as KeyValueTreeValueDropdown,
+  TreeValueTrunk as KeyValueTreeValueTrunk,
+} from 'sentry/components/keyValueTree/styles';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
@@ -326,7 +338,7 @@ function EventTagsTreeRowDropdown({
           'aria-label': t('Tag Actions Menu'),
           icon: <IconEllipsis />,
           showChevron: false,
-          className: 'tag-button',
+          className: TREE_VALUE_DROPDOWN_BUTTON_CLASS,
         }}
         items={items}
       />
@@ -447,99 +459,18 @@ function EventTagsTreeValue({
   );
 }
 
-const TreeRow = styled('div')<{hasErrors: boolean}>`
-  border-radius: ${p => p.theme.space.xs};
-  padding-left: ${p => p.theme.space.md};
-  position: relative;
+const TreeRow = styled(KeyValueTreeRow)`
   &:focus-within {
     z-index: 1;
   }
-  display: grid;
-  align-items: center;
-  grid-column: span 2;
-  column-gap: ${p => p.theme.space.lg};
-  grid-template-columns: subgrid;
-  :nth-child(odd) {
-    background-color: ${p =>
-      p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.secondary};
-  }
-  color: ${p => (p.hasErrors ? p.theme.colors.red500 : p.theme.tokens.content.secondary)};
-  background-color: ${p =>
-    p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.primary};
-  box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.colors.red200 : 'transparent')};
 `;
 
-const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
-  grid-column: span 1;
-  /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid
-    ${p => (p.hasStem ? p.theme.tokens.border.primary : 'transparent')};
-  margin-right: -1px;
-  height: 100%;
-  width: ${p => (p.spacerCount - 1) * 20 + 3}px;
-`;
-
-const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
-  border: 1px solid
-    ${p => (p.hasErrors ? p.theme.colors.red200 : p.theme.tokens.border.primary)};
-  border-width: 0 0 1px 1px;
-  border-radius: 0 0 0 5px;
-  grid-column: span 1;
-  height: 12px;
-  align-self: start;
-  margin-right: ${p => p.theme.space.xs};
-`;
-
-const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
-  grid-column: 1 / 2;
-  display: grid;
-  height: 100%;
-  align-items: center;
-  grid-template-columns: ${p => (p.spacerCount > 0 ? 'auto 1rem 1fr' : '1fr')};
-`;
-
-const TreeValueTrunk = styled('div')`
-  grid-column: 2 / 3;
-  display: grid;
-  height: 100%;
-  align-items: center;
-  min-height: 22px;
+const TreeValueTrunk = styled(KeyValueTreeValueTrunk)`
   grid-template-columns: 1fr auto;
-  grid-column-gap: ${p => p.theme.space.xs};
 `;
 
-const TreeValue = styled('div')<{hasErrors?: boolean}>`
-  padding: ${p => p.theme.space['2xs']} 0;
-  align-self: start;
-  font-family: ${p => p.theme.font.family.mono};
-  font-size: ${p => p.theme.font.size.sm};
-  word-break: break-word;
-  grid-column: span 1;
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};
-`;
-
-const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.secondary)};
-`;
-
-/**
- * Hidden element to allow browser searching for exact key name
- */
-const TreeSearchKey = styled('span')`
-  font-size: 0;
-  position: absolute;
-`;
-
-const TreeValueDropdown = styled(DropdownMenu)`
-  display: block;
-  margin: 1px;
-  height: 20px;
-  .tag-button {
-    height: 20px;
-    min-height: 20px;
-    padding: 0 ${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.space.xs};
+const TreeValueDropdown = styled(KeyValueTreeValueDropdown)`
+  .${TREE_VALUE_DROPDOWN_BUTTON_CLASS} {
     z-index: 0;
   }
 `;
