@@ -266,11 +266,7 @@ class TranslationVisitor(NodeVisitor):
         return column_switcheroo(node.text)[0]
 
     def visit_value(self, node, children):
-        value = column_switcheroo(node.text)[0]
-        # EAP searches read an unquoted //...// value as a regex, so a literal one is quoted
-        if len(value) >= 4 and value.startswith("//") and value.endswith("//"):
-            return f'"{value}"'
-        return value
+        return column_switcheroo(node.text)[0]
 
     def generic_visit(self, node, children):
         return children or node.text

@@ -159,7 +159,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "query": "message://^ERROR \\[\\d+\\]//",
                 "project": self.project.id,
                 "dataset": self.dataset,
-            }
+            },
+            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -183,7 +184,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "query": "!message://^ERROR \\[\\d+\\]//",
                 "project": self.project.id,
                 "dataset": self.dataset,
-            }
+            },
+            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -212,7 +214,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "orderby": "log.body",
                 "project": self.project.id,
                 "dataset": self.dataset,
-            }
+            },
+            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -241,7 +244,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "query": "tags[release,string]://^\\d+\\.\\d+//",
                 "project": self.project.id,
                 "dataset": self.dataset,
-            }
+            },
+            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -280,7 +284,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "query": "tags[log_tags,array][*]://^alpha-\\d+$//",
                 "project": self.project.id,
                 "dataset": self.dataset,
-            }
+            },
+            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -305,11 +310,30 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "caseInsensitive": "1",
                 "project": self.project.id,
                 "dataset": self.dataset,
-            }
+            },
+            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
         assert [log["log.body"] for log in response.data["data"]] == ["Error: disk full"]
+
+    def test_regex_shaped_value_is_a_literal_without_the_feature(self) -> None:
+        logs = [
+            self.create_ourlog({"body": "//^ERROR//"}, timestamp=self.ten_mins_ago),
+            self.create_ourlog({"body": "ERROR [1] disk full"}, timestamp=self.nine_mins_ago),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": "message://^ERROR//",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == ["//^ERROR//"]
 
     def test_regex_filter_rejects_an_invalid_pattern(self) -> None:
         response = self.do_request(
@@ -318,7 +342,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "query": "message://[a-//",
                 "project": self.project.id,
                 "dataset": self.dataset,
-            }
+            },
+            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 400, response.content
@@ -331,7 +356,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "query": "message://((a{100}){100}){100}//",
                 "project": self.project.id,
                 "dataset": self.dataset,
-            }
+            },
+            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 400, response.content

@@ -813,8 +813,8 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
     # Whether to wrap free_text_keys in asterisks
     wildcard_free_text: bool = False
 
-    # Whether key://pattern// values are regex matches. Only the EAP resolver compiles them,
-    # so other searches parse with a grammar that reads them as the literals they have always been.
+    # Whether key://pattern// values are regex matches. Only the logs resolver compiles them, so
+    # other searches parse with a grammar that reads them as the literals they have always been.
     allow_regex: bool = False
 
     # Disallow the use of the !has filter

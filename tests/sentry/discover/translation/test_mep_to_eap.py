@@ -90,16 +90,6 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "span.module:db",
             "(span.category:db) AND is_transaction:1",
         ),
-        pytest.param(
-            "transaction://api/users//",
-            '(transaction:"//api/users//") AND is_transaction:1',
-            id="regex-shaped literal is quoted",
-        ),
-        pytest.param(
-            "transaction://api/users/",
-            "(transaction://api/users/) AND is_transaction:1",
-            id="slash-prefixed literal stays unquoted",
-        ),
     ],
 )
 def test_mep_to_eap_simple_query(input: str, expected: str) -> None:

@@ -16,7 +16,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     Column,
 )
 from sentry_protos.snuba.v1.formula_pb2 import Literal as LiteralValue
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
@@ -35,6 +35,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry import features
 from sentry.api import event_search
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
@@ -283,11 +284,19 @@ class SearchResolver:
             config=event_search.SearchConfig.create_from(
                 event_search.default_config,
                 wildcard_free_text=True,
-                allow_regex=True,
+                allow_regex=self._allows_regex(),
             ),
             params=self.params.filter_params,
             get_field_type=self.get_field_type,
             get_function_result_type=self.get_field_type,
+        )
+
+    def _allows_regex(self) -> bool:
+        organization = self.params.organization
+        return (
+            self.definitions.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
+            and organization is not None
+            and features.has("organizations:ourlogs-regex-searches", organization)
         )
 
     def collect_terms(self, parsed_terms: Sequence[event_search.QueryToken]) -> list[str]:
