@@ -838,6 +838,8 @@ export type PaymentCreateResponse = {
   clientSecret: string;
   currency: string;
   returnUrl: string;
+  paymentIntentId?: string;
+  requiresAction?: boolean;
 };
 // Response from /organizations/:orgSlug/payments/setup/
 export type PaymentSetupCreateResponse = {

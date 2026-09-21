@@ -107,17 +107,6 @@ export function PrimaryNavigationHelpMenu({
             </MenuIcon>
           ),
         },
-        {
-          key: 'support',
-          label: t('Contact Support'),
-          ...contactSupportItem,
-          leadingItems: (
-            <MenuIcon>
-              <IconSupport />
-            </MenuIcon>
-          ),
-          hidden: !contactSupportItem,
-        },
       ],
     },
     {
@@ -211,6 +200,23 @@ export function PrimaryNavigationHelpMenu({
             });
             setAuthV2CookieState(state);
           },
+        },
+      ],
+    },
+    {
+      key: 'contact-support',
+      hidden: !contactSupportItem,
+      children: [
+        {
+          key: 'support',
+          label: t('Contact Support'),
+          ...contactSupportItem,
+          leadingItems: (
+            <MenuIcon>
+              <IconSupport />
+            </MenuIcon>
+          ),
+          hidden: !contactSupportItem,
         },
       ],
     },

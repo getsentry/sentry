@@ -8,7 +8,7 @@ from enum import StrEnum
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry.ingestion_delay.activity import has_accepted_outcomes
-from sentry.ingestion_delay.query import MEASUREMENT_LOOKBACK, measure_ingestion_delay
+from sentry.ingestion_delay.query import get_measurement_lookback, measure_ingestion_delay
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ def get_ingestion_delay_status(
             return result(IngestionStatus.UNKNOWN, None)
     else:
         evidence_end = now - STALL_GRACE
-        evidence_start = now - MEASUREMENT_LOOKBACK
+        evidence_start = now - get_measurement_lookback()
 
     accepted = has_accepted_outcomes(
         organization_id=organization_id,
