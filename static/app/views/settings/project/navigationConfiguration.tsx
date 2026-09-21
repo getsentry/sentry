@@ -28,6 +28,14 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/`,
           index: true,
           title: t('General Settings'),
+          keywords: [
+            t('slug'),
+            t('project slug'),
+            // CI/config environment variables whose value is the project slug.
+            // Fixed product tokens, not translatable prose.
+            'SENTRY_PROJECT',
+            'SENTRY_PROJECT_SLUG',
+          ],
           description: t('Configure general settings for a project'),
         },
         {
@@ -102,6 +110,12 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
+          keywords: [
+            t('data scrubbing'),
+            t('pii'),
+            t('ip address'),
+            t('prevent storing of ip addresses'),
+          ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing) for a project'
           ),
@@ -184,11 +198,14 @@ export function getNavigationConfiguration({
             'SENTRY_DSN',
             'Sentry DSN',
             'NEXT_PUBLIC_SENTRY_DSN',
+            'VITE_SENTRY_DSN',
+            'EXPO_PUBLIC_SENTRY_DSN',
             t('auth'),
             t('token'),
             t('client key'),
             t('dsn key'),
             t('allowed domains'),
+            t('sdk setup'),
           ],
         },
         {

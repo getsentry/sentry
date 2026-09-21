@@ -404,6 +404,10 @@ export function GlobalCommandPaletteActions() {
             display={{
               label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
             }}
+            // When Discover is deprecated the label becomes "Errors", so users
+            // searching "discover" no longer match. Keep the term reachable by
+            // routing it to the replacement Errors homepage.
+            keywords={getDiscoverDeprecation(organization) ? [t('discover')] : undefined}
             to={
               getDiscoverDeprecation(organization)
                 ? `${prefix}/explore/errors/homepage/`
@@ -448,7 +452,13 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
+        <CMDKAction
+          display={{label: t('Dashboards'), icon: <IconDashboard />}}
+          // Once the insights-to-dashboards migration is active the standalone
+          // Insights section is hidden and its content lives under Dashboards,
+          // so route "insights" searches here to avoid a no-result.
+          keywords={hasInsightsRollout ? [t('insights')] : undefined}
+        >
           <CMDKAction
             display={{label: t('All Dashboards')}}
             to={`${prefix}/dashboards/`}
@@ -683,6 +693,8 @@ export function GlobalCommandPaletteActions() {
                 'SENTRY_DSN',
                 'Sentry DSN',
                 'NEXT_PUBLIC_SENTRY_DSN',
+                'VITE_SENTRY_DSN',
+                'EXPO_PUBLIC_SENTRY_DSN',
                 project.slug,
               ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
