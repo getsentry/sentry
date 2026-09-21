@@ -90,7 +90,8 @@ def find_missing_configs(store: ConfigStore, subscription_id_prefix: str) -> Dri
         )
         .values_list("uptime_subscription__subscription_id", flat=True)
     ):
-        assert subscription_id is not None
+        if subscription_id is None:
+            continue
         subscription_ids.append(subscription_id)
         partition = get_partition_from_subscription_id(UUID(subscription_id))
         pipe.hexists(get_config_key(store.key_prefix, partition), subscription_id)
