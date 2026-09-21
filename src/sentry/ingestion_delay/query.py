@@ -22,6 +22,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
 )
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.snuba.referrer import Referrer
@@ -38,8 +39,10 @@ DELAY_AGGREGATE = Function.FUNCTION_P99
 
 LAST_INGESTED_LABEL = "last_ingested_at"
 
-# How far back the measurement window reaches.
-MEASUREMENT_LOOKBACK = timedelta(minutes=60)
+
+def get_measurement_lookback() -> timedelta:
+    """How far back the measurement window reaches."""
+    return timedelta(minutes=options.get("ingestion-delay.measurement-lookback-minutes"))
 
 
 def build_delay_expression() -> AttributeKeyExpression:
@@ -136,7 +139,8 @@ def measure_ingestion_delay(
     now: datetime,
 ) -> IngestionDelayMeasurement:
     """
-    The p99 ingestion delay and the most recent write, in the last 60 minutes for the given organization and item type.
+    The p99 ingestion delay and the most recent write, over the measurement window
+    for the given organization and item type.
     """
     project_ids = list(
         Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
@@ -150,7 +154,7 @@ def measure_ingestion_delay(
         organization_id=organization_id,
         project_ids=project_ids,
         item_type=item_type,
-        start=now - MEASUREMENT_LOOKBACK,
+        start=now - get_measurement_lookback(),
         end=now,
     )
 

@@ -36,6 +36,7 @@ RECENT_COMMIT_COUNT = 20
 class CursorOriginRepositoryProvider(IntegrationRepositoryProvider[CursorOriginIntegration]):
     name = "Cursor Origin"
     repo_provider = IntegrationProviderSlug.CURSOR_ORIGIN.value
+    can_transfer_repositories = True
 
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]
