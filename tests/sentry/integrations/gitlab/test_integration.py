@@ -15,6 +15,8 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.gitlab.client import GitLabApiClient, GitLabSetupApiClient
 from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_WEBHOOK_VERSION_KEY
 from sentry.integrations.gitlab.integration import GitlabIntegration, GitlabIntegrationProvider
+from sentry.integrations.gitlab.metrics import GitLabWebhookUpdateHaltReason
+from sentry.integrations.gitlab.tasks import update_all_project_webhooks
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -1413,6 +1415,84 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         assert secret
         # The inbound webhook token is "<instance>:<group>:<secret>".
         assert ":" not in secret
+
+    @responses.activate
+    def test_install_without_repositories_schedules_webhook_update(self) -> None:
+        with patch(
+            "sentry.integrations.gitlab.tasks.update_all_project_webhooks.delay"
+        ) as schedule:
+            resp = self._run_pipeline()
+
+        assert resp.data["status"] == "complete"
+        integration = Integration.objects.get(provider="gitlab")
+        schedule.assert_called_once_with(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        with (
+            assume_test_silo_mode(SiloMode.CELL),
+            patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay") as update,
+            patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt") as halt,
+        ):
+            update_all_project_webhooks(**schedule.call_args.kwargs)
+
+        halt.assert_called_once_with(GitLabWebhookUpdateHaltReason.NO_REPOSITORIES)
+        update.assert_not_called()
+
+    @responses.activate
+    def test_reinstall_updates_retained_webhooks_with_current_version(self) -> None:
+        self._run_pipeline()
+        integration = Integration.objects.get(provider="gitlab")
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+        config = {GITLAB_WEBHOOK_VERSION_KEY: GITLAB_WEBHOOK_VERSION, "sync_comments": True}
+        org_integration.update(config=config)
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:gitlab",
+            integration_id=integration.id,
+            external_id="gitlab.example.com:101",
+        )
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.update(config={"project_id": 101, "webhook_id": 99})
+        hook = responses.add(
+            responses.PUT,
+            f"{self.gitlab_url}/api/v4/projects/101/hooks/99",
+            json={"id": 99},
+        )
+
+        with patch(
+            "sentry.integrations.gitlab.tasks.update_all_project_webhooks.delay"
+        ) as schedule:
+            resp = self._run_pipeline()
+
+        assert resp.data["status"] == "complete"
+        schedule.assert_called_once_with(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        org_integration.refresh_from_db()
+        assert org_integration.config == config
+        with assume_test_silo_mode(SiloMode.CELL), self.tasks():
+            repo.refresh_from_db()
+            assert repo.integration_id == integration.id
+            update_all_project_webhooks(**schedule.call_args.kwargs)
+
+        assert hook.call_count == 1
+        payload = orjson.loads(responses.calls[-1].request.body)
+        assert payload["token"] == (
+            f"{integration.external_id}:{integration.metadata['webhook_secret']}"
+        )
+
+    @responses.activate
+    def test_failed_install_does_not_schedule_webhook_update(self) -> None:
+        with (
+            patch.object(Integration, "add_organization", side_effect=IntegrationError("Deleting")),
+            patch("sentry.integrations.gitlab.tasks.update_all_project_webhooks.delay") as schedule,
+        ):
+            resp = self._run_pipeline()
+
+        assert resp.data["status"] == "error"
+        schedule.assert_not_called()
 
     @responses.activate
     def test_reinstall_preserves_webhook_secret(self) -> None:

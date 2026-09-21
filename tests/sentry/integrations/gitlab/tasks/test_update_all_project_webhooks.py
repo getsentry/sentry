@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import responses
 
@@ -91,6 +91,25 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
         assert mock_delay.call_count == 0
         # No metrics should be recorded when integration is not found (early return)
         assert mock_record_event.call_count == 0
+
+    @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
+    def test_task_only_updates_active_repositories_for_installing_organization(self, mock_delay):
+        other_org = self.create_organization()
+        other_integration = self.create_provider_integration(provider="gitlab", external_id="other")
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.repo2.update(status=ObjectStatus.DISABLED)
+            self.repo3.update(integration_id=other_integration.id)
+            self.create_gitlab_repo(
+                name="other-org-repo", external_id=104, organization_id=other_org.id
+            )
+
+        update_all_project_webhooks(
+            integration_id=self.integration.id, organization_id=self.organization.id
+        )
+
+        assert mock_delay.call_args_list == [
+            call(self.integration.id, self.organization.id, self.repo1.id)
+        ]
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
