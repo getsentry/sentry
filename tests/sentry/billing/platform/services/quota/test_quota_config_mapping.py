@@ -3,12 +3,33 @@ from sentry_protos.billing.v1.data_category_pb2 import DataCategory as ProtoData
 from sentry_protos.billing.v1.quota_config_pb2 import QuotaConfig as ProtoQuotaConfig
 from sentry_protos.billing.v1.quota_config_pb2 import QuotaScope as ProtoQuotaScope
 
+from sentry.billing.platform.services.category_mapping import (
+    PROTO_TO_SENTRY_CATEGORY,
+    proto_to_sentry_category,
+)
 from sentry.billing.platform.services.quota.quota_config_mapping import (
     proto_to_sentry_quota_config,
     sentry_to_proto_quota_config,
 )
 from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope
+
+
+class TestProtoToSentryCategory:
+    @pytest.mark.parametrize("proto_category, sentry_category", PROTO_TO_SENTRY_CATEGORY.items())
+    def test_mapped_category(self, proto_category, sentry_category):
+        assert proto_to_sentry_category(proto_category) == sentry_category
+
+    @pytest.mark.parametrize(
+        "proto_category",
+        [
+            ProtoDataCategory.DATA_CATEGORY_UNKNOWN,
+            ProtoDataCategory.DATA_CATEGORY_SEER_USAGE_MICRO_CENTS,
+            9999,
+        ],
+    )
+    def test_unmapped_category_returns_negative_one(self, proto_category):
+        assert proto_to_sentry_category(proto_category) == -1
 
 
 class TestSentryToProtoQuotaConfig:

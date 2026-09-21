@@ -6,7 +6,7 @@ from sentry_protos.billing.v1.quota_config_pb2 import QuotaConfig as ProtoQuotaC
 from sentry_protos.billing.v1.quota_config_pb2 import QuotaScope as ProtoQuotaScope
 
 from sentry.billing.platform.services.category_mapping import (
-    PROTO_TO_SENTRY_CATEGORY,
+    proto_to_sentry_category,
     sentry_to_proto_category,
 )
 from sentry.constants import DataCategory
@@ -46,8 +46,8 @@ def proto_to_sentry_quota_config(proto_quota: ProtoQuotaConfig) -> QuotaConfig |
     for c in proto_quota.categories:
         # Proto and Relay category integers can refer to different categories.
         # Only explicit mappings are safe to include in Relay quotas.
-        sentry_cat = PROTO_TO_SENTRY_CATEGORY.get(c)
-        if sentry_cat is None:
+        sentry_cat = proto_to_sentry_category(c)
+        if sentry_cat == -1:
             logger.error(
                 "quota_config_mapping.unknown_category",
                 extra={"proto_category": c},
