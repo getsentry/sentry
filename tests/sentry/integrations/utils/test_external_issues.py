@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.integrations.utils.external_issues import (
     MAX_CONTEXT_LENGTH,
@@ -99,6 +100,7 @@ class MakeGenerateExternalIssueDetailsRequestTest(TestCase):
         assert len(request_body["prompt"]) <= MAX_CONTEXT_LENGTH + len(prompt_prefix)
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class GenerateExternalIssueDetailsTest(TestCase):
     def setUp(self) -> None:
         super().setUp()

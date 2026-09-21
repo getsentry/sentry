@@ -5,6 +5,7 @@ from typing import Any, TypedDict
 
 from sentry import features
 from sentry.models.group import Group
+from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import (
     LlmGenerateRequest,
     SeerViewerContext,
@@ -123,9 +124,7 @@ def maybe_generate_external_issue_details(
 ) -> GeneratedExternalIssueDetails:
     organization = group.organization
     empty_result = GeneratedExternalIssueDetails(title=None, description=None)
-    if not features.has("organizations:gen-ai-features", organization, actor=user):
-        return empty_result
-    if organization.get_option("sentry:hide_ai_features", False):
+    if not has_seer_access(organization, actor=user):
         return empty_result
     if not features.has("organizations:external-issues-ai-generate", organization, actor=user):
         return empty_result
