@@ -299,6 +299,28 @@ class RepositoryCreatedHandlerTest(TestCase):
         assert repo.integration_id == self.integration.id
         assert repo.config == {"name": REPO, "default_branch": "main"}
 
+    def test_a_repository_left_by_an_earlier_installation_is_reactivated(self) -> None:
+        """GitHub audits a reactivated repository as `REPO_ENABLED` rather than added."""
+        unlinked = Repository.objects.create(
+            organization_id=self.organization.id,
+            name=REPO,
+            provider="integrations:cursor_origin",
+            external_id=REPO_EXTERNAL_ID,
+            integration_id=None,
+            status=ObjectStatus.DISABLED,
+            config={"name": REPO},
+        )
+
+        with mock.patch(
+            "sentry.integrations.cursor_origin.repository_events.log_repo_change"
+        ) as mock_log:
+            self._handle()
+
+        repo = Repository.objects.get(id=unlinked.id)
+        assert repo.status == ObjectStatus.ACTIVE
+        assert repo.integration_id == self.integration.id
+        assert [call.kwargs["event_name"] for call in mock_log.call_args_list] == ["REPO_ENABLED"]
+
     def test_a_redelivery_adds_nothing(self) -> None:
         self._handle()
         self._handle()

@@ -120,18 +120,24 @@ class RepositoryCreatedHandler(WebhookEventHandler):
         for organization in Organization.objects.filter(
             id__in=[oi.organization_id for oi in org_integrations]
         ):
-            created, _, _ = provider.create_repositories(
+            created, reactivated, _ = provider.create_repositories(
                 configs=[config], organization=serialize_rpc_organization(organization)
             )
-            if not created:
-                continue
-
-            repository_service.auto_link_repos_by_name(
-                organization_id=organization.id, repo_ids=[repo.id for repo in created]
-            )
+            if created:
+                repository_service.auto_link_repos_by_name(
+                    organization_id=organization.id, repo_ids=[repo.id for repo in created]
+                )
             for repo in created:
                 log_repo_change(
                     event_name="REPO_ADDED",
+                    organization_id=organization.id,
+                    repo=repo,
+                    source="Cursor Origin webhook",
+                    provider=integration.provider,
+                )
+            for repo in reactivated:
+                log_repo_change(
+                    event_name="REPO_ENABLED",
                     organization_id=organization.id,
                     repo=repo,
                     source="Cursor Origin webhook",
