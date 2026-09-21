@@ -11,6 +11,7 @@ from sentry.integrations.msteams.card_builder.block import (
     Action,
     ActionType,
     AdaptiveCard,
+    Block,
     ContentAlignment,
     OpenUrlAction,
     TextSize,
@@ -24,6 +25,7 @@ from sentry.integrations.msteams.card_builder.block import (
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
 from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.project import Project
 from sentry.notifications.platform.msteams.provider import (
     MSTeamsNotificationProvider,
@@ -79,6 +81,8 @@ class IssueMSTeamsRendererTest(TestCase):
         group: Group,
         event: Any,
         notification_uuid: str = "test-uuid",
+        description: str | None = None,
+        assignee: str | None = None,
     ) -> AdaptiveCard:
         title_text = build_attachment_title(group)
         issue_url = group.get_absolute_url(
@@ -125,11 +129,24 @@ class IssueMSTeamsRendererTest(TestCase):
             ),
         )
 
+        fields: list[Block | None] = []
+        if description:
+            fields.append(
+                create_text_block(description, size=TextSize.MEDIUM, weight=TextWeight.BOLDER)
+            )
+        fields.append(footer)
+        if assignee:
+            fields.append(
+                create_text_block(
+                    IssueConstants.ASSIGNEE_NOTE.format(assignee=assignee), size=TextSize.SMALL
+                )
+            )
+
         actions: list[Action] = [
             OpenUrlAction(type=ActionType.OPEN_URL, title="View Issue", url=issue_url)
         ]
 
-        return MSTeamsMessageBuilder().build(title=title, fields=[footer], actions=actions)
+        return MSTeamsMessageBuilder().build(title=title, fields=fields, actions=actions)
 
     def test_render_raises_on_invalid_data(self) -> None:
         from sentry.notifications.platform.templates.seer import SeerAutofixError
@@ -169,6 +186,39 @@ class IssueMSTeamsRendererTest(TestCase):
         # Tags are not rendered in the MS Teams card (unlike Slack/Discord)
         # since the card builder doesn't use them. The card should still render.
         assert result == self._build_expected_card(group=group, event=event)
+
+    def test_render_with_description(self) -> None:
+        data, event, group = self._create_data(
+            event_data={
+                "exception": {
+                    "values": [{"type": "ValueError", "value": "something went wrong"}],
+                },
+            },
+        )
+        rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
+
+        result = IssueMSTeamsRenderer.render(
+            data=data,
+            rendered_template=rendered_template,
+        )
+
+        assert result == self._build_expected_card(
+            group=group, event=event, description="something went wrong"
+        )
+
+    def test_render_with_assignee(self) -> None:
+        data, event, group = self._create_data()
+        GroupAssignee.objects.assign(group, self.user)
+        rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
+
+        result = IssueMSTeamsRenderer.render(
+            data=data,
+            rendered_template=rendered_template,
+        )
+
+        assert result == self._build_expected_card(
+            group=group, event=event, assignee=self.user.get_display_name()
+        )
 
     def test_render_group_not_found(self) -> None:
         data = IssueNotificationData(
