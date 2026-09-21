@@ -14,7 +14,7 @@ import Feature from 'sentry/components/acl/feature';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {Count} from 'sentry/components/count';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {SeerPanelActions} from 'sentry/components/events/autofix/v3/header';
+import {SeerPanelActions} from 'sentry/components/events/autofix/v3/seerPanelActions';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';

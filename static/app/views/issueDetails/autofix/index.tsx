@@ -14,7 +14,7 @@ import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useGroupData} from 'sentry/views/issueDetails/groupDataContext';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-function GroupAutofix() {
+export default function GroupAutofix() {
   const organization = useOrganization();
   const {group} = useGroupData();
   const {baseUrl} = useGroupDetailsRoute();
@@ -63,5 +63,3 @@ function GroupAutofixContent({group}: {group: Group}) {
     </Stack>
   );
 }
-
-export default GroupAutofix;
