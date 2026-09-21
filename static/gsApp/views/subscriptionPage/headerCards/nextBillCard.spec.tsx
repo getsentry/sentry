@@ -133,7 +133,7 @@ describe('NextBillCard', () => {
     expect(screen.getByText('$40.00')).toBeInTheDocument();
   });
 
-  it('lists a one-time charge with its description', async () => {
+  it('lists a one-time adjustment with its description', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/next-bill/`,
       method: 'GET',
@@ -143,7 +143,7 @@ describe('NextBillCard', () => {
         invoiceItems: [
           {
             amount: 50_00,
-            type: 'one_time_charge',
+            type: 'one_time_adjustment',
             data: {},
             period_start: '',
             period_end: '',

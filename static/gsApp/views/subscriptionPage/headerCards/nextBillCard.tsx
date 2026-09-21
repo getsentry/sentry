@@ -69,7 +69,9 @@ export function NextBillCard({
     .filter(item => item.type.startsWith('ondemand_'))
     .reduce((acc, item) => acc + item.amount, 0);
   const seerItem = invoiceItems.find(item => item.type === 'activated_seer_users');
-  const oneTimeCharges = invoiceItems.filter(item => item.type === 'one_time_charge');
+  const oneTimeAdjustments = invoiceItems.filter(
+    item => item.type === 'one_time_adjustment'
+  );
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems}); // these should all be negative already
   const creditApplied =
@@ -155,7 +157,7 @@ export function NextBillCard({
                   </Text>
                 </Flex>
               )}
-              {[...oneTimeCharges, ...fees].map(item => (
+              {[...oneTimeAdjustments, ...fees].map(item => (
                 <Flex justify="between" align="center" key={item.description}>
                   <Text variant="muted" size="sm">
                     {item.description}

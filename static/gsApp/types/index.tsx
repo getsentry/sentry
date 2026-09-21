@@ -657,9 +657,9 @@ type SubscriptionInvoiceItemType = 'subscription';
 type BalanceChangeInvoiceItemType = 'balance_change';
 
 /**
- * A charge that neither the plan nor the usage of a period produces.
+ * An adjustment that neither the plan nor the usage of a period produces.
  */
-type OneTimeChargeInvoiceItemType = 'one_time_charge';
+type OneTimeAdjustmentInvoiceItemType = 'one_time_adjustment';
 
 /**
  * Unknown invoice item type (empty string).
@@ -674,7 +674,7 @@ type StaticInvoiceItemType =
   | UnknownInvoiceItemType
   | SubscriptionInvoiceItemType
   | BalanceChangeInvoiceItemType
-  | OneTimeChargeInvoiceItemType
+  | OneTimeAdjustmentInvoiceItemType
   | CreditInvoiceItemType
   | FeeInvoiceItemType
   | SeerInvoiceItemType
