@@ -92,22 +92,24 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
       return null;
     }
     const parsedData = parsed.data as EmbedOutput<N>;
-    // The clipboard pass returns text, not elements: a fallback rendered here
-    // would be pasted into the copied reply.
-    if (level === 'markdown') {
-      return render(parsedData, level);
-    }
     return (
       // One boundary per embed, so a throw inside a single widget costs the
-      // reader that widget rather than the whole message around it.
+      // reader that widget rather than the whole message around it. Every
+      // level is wrapped: the markdown pass renders as a real subtree (through
+      // a portal, in `useSeerMarkdownText`), so a throw there escapes into the
+      // surface that copies the reply.
       <ErrorBoundary
         mini
         message={t('Unable to render')}
-        customComponent={
-          // An inline embed sits inside a paragraph, where the block alert
-          // would both break the sentence and nest a div inside a <p>.
-          level === 'inline' ? () => <span>{t('Unable to render')}</span> : undefined
-        }
+        // Only a block embed can afford the alert. Inline sits inside a
+        // sentence, and the markdown pass is read back as text for the
+        // clipboard -- either would paste error prose into the user's reply --
+        // so both degrade to nothing. Dropping one embed's text from a copy is
+        // quieter than inventing words the reply never had, and there is no
+        // field to fall back to that every embed shares: the schemas disagree
+        // (`value`, `href`, `id`, `version`), and some of them hold DSNs and
+        // raw queries that have no business appearing mid-paragraph.
+        customComponent={level === 'block' ? undefined : null}
       >
         <SeerEmbedContent data={parsedData} level={level} render={render} />
       </ErrorBoundary>
