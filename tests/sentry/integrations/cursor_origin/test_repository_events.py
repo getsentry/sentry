@@ -7,6 +7,8 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.repository_events import (
+    RepositoryCreatedHandler,
+    RepositoryDeletedHandler,
     RepositoryMetadataUpdatedHandler,
     refresh_repository_name,
 )
@@ -15,6 +17,7 @@ from sentry.integrations.cursor_origin.webhook_types import (
     RepositoryMetadataEvent,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -199,3 +202,105 @@ class RefreshRepositoryNameTest(TestCase):
         self._refresh(payload)
 
         assert self._reloaded().name == REPO
+
+
+@cell_silo_test
+class RepositoryDeletedHandlerTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name=REPO,
+            provider="integrations:cursor_origin",
+            integration_id=self.integration.id,
+            external_id=REPO_EXTERNAL_ID,
+            config={"name": REPO},
+        )
+        context = integration_service.organization_contexts(
+            provider="cursor_origin", external_id=INSTALLATION_ID
+        )
+        assert context.integration is not None
+        self.rpc_integration = context.integration
+        self.org_integrations = context.organization_integrations
+
+    def _handle(self, payload: dict[str, Any]) -> None:
+        RepositoryDeletedHandler()(
+            payload, DELIVERY_ID, self.rpc_integration, self.org_integrations
+        )
+
+    def test_a_deleted_repository_is_disabled(self) -> None:
+        self._handle({"repository": {"id": REPO_EXTERNAL_ID, "name": "rocket"}})
+
+        assert Repository.objects.get(id=self.repo.id).status == ObjectStatus.DISABLED
+
+    def test_a_recently_active_repository_is_left_active(self) -> None:
+        """GitHub skips disabling a repository with activity in the last 30 days."""
+        Commit.objects.create(
+            organization_id=self.organization.id, repository_id=self.repo.id, key="abc"
+        )
+
+        self._handle({"repository": {"id": REPO_EXTERNAL_ID, "name": "rocket"}})
+
+        assert Repository.objects.get(id=self.repo.id).status == ObjectStatus.ACTIVE
+
+    def test_another_repository_is_left_active(self) -> None:
+        self._handle({"repository": {"id": "r_01other", "name": "other"}})
+
+        assert Repository.objects.get(id=self.repo.id).status == ObjectStatus.ACTIVE
+
+    def test_a_payload_with_no_repository_id_is_refused(self) -> None:
+        with pytest.raises(OriginPayloadError, match="repository -> id"):
+            self._handle({"repository": {"name": "rocket"}})
+
+
+@cell_silo_test
+class RepositoryCreatedHandlerTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+            status=ObjectStatus.ACTIVE,
+        )
+        context = integration_service.organization_contexts(
+            provider="cursor_origin", external_id=INSTALLATION_ID
+        )
+        assert context.integration is not None
+        self.rpc_integration = context.integration
+        self.org_integrations = context.organization_integrations
+
+    def _handle(self) -> None:
+        RepositoryCreatedHandler()(
+            _payload(), DELIVERY_ID, self.rpc_integration, self.org_integrations
+        )
+
+    def _repositories(self) -> list[Repository]:
+        return list(
+            Repository.objects.filter(
+                organization_id=self.organization.id, external_id=REPO_EXTERNAL_ID
+            )
+        )
+
+    def test_a_new_repository_is_added(self) -> None:
+        self._handle()
+
+        [repo] = self._repositories()
+        assert repo.name == REPO
+        assert repo.url == f"{WEB}/{REPO}"
+        assert repo.integration_id == self.integration.id
+        assert repo.config == {"name": REPO, "default_branch": "main"}
+
+    def test_a_redelivery_adds_nothing(self) -> None:
+        self._handle()
+        self._handle()
+
+        assert len(self._repositories()) == 1

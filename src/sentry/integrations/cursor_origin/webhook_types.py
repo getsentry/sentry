@@ -208,3 +208,14 @@ class InstallationEvent(OriginModel):
             return cls.parse_obj(payload)
         except ValidationError as e:
             raise OriginPayloadError(str(e)) from e
+
+
+class RepositoryDeletedEvent(OriginModel):
+    repository: Repository
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> RepositoryDeletedEvent:
+        try:
+            return cls.parse_obj(payload)
+        except ValidationError as e:
+            raise OriginPayloadError(str(e)) from e

@@ -129,7 +129,7 @@ class CursorOriginRequestParserTest(TestCase):
     def test_an_event_no_handler_reads_is_dropped(self) -> None:
         self._integration()
 
-        response = self._parser(**_headers("repository.created")).get_response()
+        response = self._parser(**_headers("repository.check_run.created")).get_response()
 
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_no_webhook_payloads()
