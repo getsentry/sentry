@@ -44,11 +44,7 @@ import {TraceTreeEventDispatcher} from './traceTreeEventDispatcher';
 
 /**
  *
- * This file implements the tree data structure that is used to represent a trace. We do
- * this both for performance reasons as well as flexibility. The requirement for a tree
- * is to support incremental patching and updates. This is important because we want to
- * be able to fetch more data as the user interacts with the tree, and we want to be able
- * efficiently update the tree as we receive more data.
+ * This file implements the tree data structure that is used to represent a trace.
  *
  * The trace is represented as a tree with different node value types (transaction, span, etc)
  * Each tree node contains a reference to its parent and a list of references to its children,
@@ -63,18 +59,6 @@ import {TraceTreeEventDispatcher} from './traceTreeEventDispatcher';
  *
  * An alternative, but not recommended approach is to call build() on the tree after each mutation,
  * which will iterate over all of the children and build a fresh list reference.
- *
- * In most cases, the initial tree is a list of transactions containing other transactions. Each transaction can
- * then be expanded into a list of spans which can also in some cases be expanded.
- *
- *  - trace                                          - trace
- *   |- parent transaction     --> when expanding     |- parent transaction
- *    |- child transaction                             |- span
- *                                                      |- span                     this used to be a transaction,
- *                                                     |- child transaction span <- but is now be a list of spans
- *                                                     |- span                      belonging to the transaction
- *                                                                                  this results in child txns to be lost,
- *                                                                                  which is a confusing user experience
  *
  * The tree supports autogrouping of spans vertically or as siblings. When that happens, a autogrouped node of either a vertical or
  * sibling type is inserted as an intermediary node. In the vertical case, the autogrouped node
@@ -103,10 +87,6 @@ import {TraceTreeEventDispatcher} from './traceTreeEventDispatcher';
  *                                                                        |- span 2
  *                                                                         |- span 3 (tail)
  *                                                                          |- other span (children of tail, parent points to tail)
- *
- * Notes and improvements:
- * - the notion of expanded and zoomed is confusing, they stand for the same idea from a UI pov
- * - ???
  */
 
 export declare namespace TraceTree {
