@@ -47,6 +47,9 @@ jobs:
         with:
           client-id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private-key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+          repositories: |
+            sentry
+            getsentry
 
       - name: Wait for PR merge commit
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
