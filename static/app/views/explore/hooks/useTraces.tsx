@@ -3,6 +3,7 @@ import {queryOptions} from '@tanstack/react-query';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -56,6 +57,7 @@ export interface TraceResults {
 interface UseTracesOptions {
   caseInsensitive?: CaseInsensitive;
   cursor?: string;
+  datetime?: PageFilterDatetime;
   limit?: number;
   logQuery?: string[];
   metricQuery?: string[];
@@ -67,6 +69,7 @@ interface UseTracesOptions {
 export function useTracesApiOptions({
   caseInsensitive,
   cursor,
+  datetime,
   limit,
   query,
   sort,
@@ -83,7 +86,7 @@ export function useTracesApiOptions({
       query: {
         project: selection.projects,
         environment: selection.environments,
-        ...normalizeDateTimeParams(selection.datetime),
+        ...normalizeDateTimeParams(datetime ?? selection.datetime),
         dataset: DiscoverDatasets.SPANS,
         query,
         sort,
