@@ -47,9 +47,12 @@ const JEST_TESTS: string[] | undefined = fs.existsSync(JEST_TEST_FILES_PATH)
   : undefined;
 
 // `GITHUB_PR_REF` is the head branch name on pull requests, but a fully qualified
-// ref (`refs/heads/master`) on pushes. Normalize both down to a bare branch name.
+// ref (`refs/heads/master`) on pushes. Normalize both down to a bare branch name
+// for tagging. Keep the master check on the raw ref: only a push to master is
+// `refs/heads/master`, so a pull request opened from a branch named `master`
+// stays `ci:pull_request`.
 const BRANCH = GITHUB_PR_REF?.replace(/^refs\/heads\//, '');
-const IS_MASTER_BRANCH = BRANCH === 'master';
+const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
 const optionalTags: {
   'ci.balancer_strategy'?: string;
@@ -337,7 +340,7 @@ const config: Config.InitialOptions = {
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)
-        dsn: Boolean(CI) && Boolean(BRANCH) && SENTRY_DSN ? SENTRY_DSN : false,
+        dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
         tracesSampleRate: CI ? 0.75 : 0,
