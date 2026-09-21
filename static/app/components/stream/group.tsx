@@ -35,7 +35,6 @@ import type {
   GroupReprocessing,
   InboxDetails,
   PriorityLevel,
-  ProgressState,
 } from 'sentry/types/group';
 import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -58,16 +57,11 @@ import {
   useOptionalIssueSelectionActions,
   useOptionalIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
-import {ProgressActivityTooltip} from 'sentry/views/issueList/progressActivityTooltip';
 import {
   createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
   isForReviewQuery,
 } from 'sentry/views/issueList/utils';
-import {
-  formatProgressState,
-  getProgressIcon,
-} from 'sentry/views/issueList/utils/progress';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 const COLUMNS: GroupListColumn[] = [
@@ -87,7 +81,6 @@ type Props = {
   memberList?: User[];
   onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
-  progressState?: ProgressState | null;
   query?: string;
   queryFilterDescription?: string;
   source?: string;
@@ -365,7 +358,6 @@ export function StreamGroup({
   useTintRow = true,
   onPriorityChange,
   onAssigneeChange,
-  progressState,
 }: Props) {
   const theme = useTheme();
 
@@ -844,18 +836,7 @@ export function StreamGroup({
               alignSelf="center"
               justify="start"
             >
-              {progressState ? (
-                <Container position="relative">
-                  <ProgressActivityTooltip group={group}>
-                    <Stack direction="row" align="center" gap="sm" wrap="nowrap">
-                      {getProgressIcon(progressState)}
-                      {formatProgressState(progressState)}
-                    </Stack>
-                  </ProgressActivityTooltip>
-                </Container>
-              ) : (
-                <Placeholder height="18px" />
-              )}
+              <Placeholder height="18px" />
             </Flex>
           )}
           {(withColumns.includes('assignee') ||

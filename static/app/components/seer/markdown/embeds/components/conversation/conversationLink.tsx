@@ -56,14 +56,9 @@ export function getConversationHref(
 
 interface ConversationLinkProps extends ResourceLinkFormatProps {
   data: ConversationData;
-  /**
-   * Overrides the tag's title. The block passes the API-provided title once it
-   * has loaded, which is fresher than whatever the model wrote into the tag.
-   */
-  title?: string | null;
 }
 
-export function ConversationLink({data, format, title}: ConversationLinkProps) {
+export function ConversationLink({data, format}: ConversationLinkProps) {
   const organization = useOrganization();
 
   return (
@@ -71,7 +66,7 @@ export function ConversationLink({data, format, title}: ConversationLinkProps) {
       format={format}
       icon={IconChat}
       href={getConversationHref(data, organization.slug)}
-      title={title ?? data.title ?? t('Conversation %s', data.id)}
+      title={data.title ?? t('Conversation %s', data.id)}
     />
   );
 }
