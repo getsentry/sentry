@@ -44,7 +44,7 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {hasConditionalAggregateFilter} from 'sentry/views/explore/utils/conditionalAggregate';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {getTraceDetailsUrl} from 'sentry/views/performance/newTraceDetails/traceUrl';
 import {
   createUnnamedTransactionsDiscoverTarget,
   DiscoverQueryPageSource,

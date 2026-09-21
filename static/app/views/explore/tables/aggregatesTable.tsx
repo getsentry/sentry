@@ -45,7 +45,7 @@ import {addValidatedFieldTypesToMeta} from 'sentry/views/explore/tables/spansTab
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {getTraceDetailsUrl} from 'sentry/views/performance/newTraceDetails/traceUrl';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;

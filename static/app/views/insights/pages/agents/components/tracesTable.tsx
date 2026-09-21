@@ -76,8 +76,8 @@ import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/Du
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/newTraceDetails/traceUrl';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface TableData {
   agents: string[];

@@ -27,10 +27,10 @@ import {
   type TracePreferencesState,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {getTraceTargetFromEvent} from 'sentry/views/performance/newTraceDetails/traceTarget';
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
-import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
 
 import {TraceLinkedIssues} from './traceLinkedIssues';
 

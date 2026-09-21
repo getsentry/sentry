@@ -40,7 +40,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {sortAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {getTraceDetailsUrl} from 'sentry/views/performance/newTraceDetails/traceUrl';
 
 const HIDDEN_SPAN_DETAIL_ATTRIBUTES = new Set(['is_segment', 'project_id', 'received']);
 

@@ -8,7 +8,7 @@ import type {Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
-import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
+import {getTraceTargetFromEvent} from 'sentry/views/performance/newTraceDetails/traceTarget';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 enum TraceContextKeys {
