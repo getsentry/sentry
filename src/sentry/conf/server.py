@@ -1922,22 +1922,8 @@ SENTRY_READONLY_SCOPES = {
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "org:read": {"org:read"},
-    "org:write": {
-        "org:read",
-        "org:write",
-        "dashboard:read",
-        "dashboard:write",
-        "dashboard:delete",
-    },
-    "org:admin": {
-        "org:read",
-        "org:write",
-        "org:admin",
-        "org:integrations",
-        "dashboard:read",
-        "dashboard:write",
-        "dashboard:delete",
-    },
+    "org:write": {"org:read", "org:write"},
+    "org:admin": {"org:read", "org:write", "org:admin", "org:integrations"},
     "org:integrations": {"org:integrations"},
     "org:ci": {"org:ci"},
     "member:invite": {"member:read", "member:invite"},
