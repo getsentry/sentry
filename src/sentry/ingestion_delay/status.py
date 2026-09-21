@@ -68,7 +68,7 @@ def get_ingestion_delay_status(
     if (
         complete_through is not None
         and last_ingested_at is not None
-        and last_ingested_at > complete_through - STALL_MARGIN
+        and last_ingested_at > complete_through
     ):
         return result(IngestionStatus.HEALTHY)
 
