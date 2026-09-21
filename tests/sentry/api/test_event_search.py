@@ -8,6 +8,7 @@ from django.test import SimpleTestCase
 from django.utils import timezone
 
 from sentry.api.event_search import (
+    MAX_REGEX_PATTERN_LENGTH,
     AggregateFilter,
     AggregateKey,
     ParenExpression,
@@ -1650,6 +1651,61 @@ def test_ends_a_regex_value_at_the_first_delimiter_followed_by_a_space() -> None
             key=SearchKey(name="message"), operator="=", value=SearchValue("a", is_regex=True)
         ),
         SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("b//")),
+    ]
+
+
+def test_parses_a_regex_pattern_at_the_length_limit() -> None:
+    pattern = "a" * MAX_REGEX_PATTERN_LENGTH
+
+    filters = parse_search_query(f"message://{pattern}//", config=regex_config)
+
+    assert filters == [
+        SearchFilter(
+            key=SearchKey(name="message"), operator="=", value=SearchValue(pattern, is_regex=True)
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    ["query", "key"],
+    [
+        pytest.param("message://{pattern}//", "message", id="plain"),
+        pytest.param(
+            "!message://{pattern}// env:prod", "message", id="negated then another filter"
+        ),
+        pytest.param("tags[foo,array][*]://{pattern}//", "tags[foo,array][*]", id="array key"),
+        pytest.param(
+            "url://a.com/ OR url://{pattern}//", "url", id="unquoted literal before a pattern"
+        ),
+    ],
+)
+def test_rejects_a_regex_pattern_over_the_length_limit(query: str, key: str) -> None:
+    pattern = "a" * (MAX_REGEX_PATTERN_LENGTH + 1)
+
+    with pytest.raises(InvalidSearchQuery) as err:
+        parse_search_query(query.format(pattern=pattern), config=regex_config)
+
+    assert str(err.value) == (
+        f"{key}: Regex patterns are limited to {MAX_REGEX_PATTERN_LENGTH} characters. "
+        'To search for a literal value that starts with //, quote it: "//..."'
+    )
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        pytest.param("url://{value}", id="unclosed"),
+        pytest.param("url:=//{value}//", id="explicit operator"),
+        pytest.param('url:"//{value}//"', id="quoted"),
+    ],
+)
+def test_parses_a_long_literal_that_starts_with_the_regex_delimiter(query: str) -> None:
+    value = "a" * (MAX_REGEX_PATTERN_LENGTH + 1)
+
+    filters = parse_search_query(query.format(value=value), config=regex_config)
+
+    assert [(f.key.name, f.value.is_regex) for f in filters if isinstance(f, SearchFilter)] == [
+        ("url", False)
     ]
 
 
