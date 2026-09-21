@@ -338,11 +338,7 @@ export function deleteDashboard(
   return promise;
 }
 
-export function validateWidgetRequest(
-  orgId: string,
-  widget: Widget,
-  selection: PageFilters
-) {
+function validateWidgetRequest(orgId: string, widget: Widget, selection: PageFilters) {
   return [
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/widgets/', {
       path: {organizationIdOrSlug: orgId},
