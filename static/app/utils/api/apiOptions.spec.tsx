@@ -156,7 +156,7 @@ describe('apiOptions', () => {
 
     expect(result.current.data).toEqual({
       json: ['Project 1', 'Project 2'],
-      headers: {Link: 'my-link', 'X-Hits': 14, 'X-Max-Hits': undefined},
+      headers: {Link: 'my-link', 'X-Hits': 14, 'X-Max-Hits': undefined, status: 200},
     });
 
     expectTypeOf(result.current.data!.headers).toEqualTypeOf<{
@@ -164,7 +164,28 @@ describe('apiOptions', () => {
       'X-Hits'?: number;
       'X-Max-Hits'?: number;
       'X-Sentry-Direct-Hit'?: string;
+      status?: number;
     }>();
+  });
+
+  it('should extract a non-200 success status', async () => {
+    const options = apiOptions.as<string[]>()('/projects/', {
+      staleTime: 0,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/',
+      body: ['Project 1'],
+      statusCode: 201,
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useQuery({...options, select: _ => _})
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(result.current.data!.headers.status).toBe(201);
   });
 
   describe('types', () => {
