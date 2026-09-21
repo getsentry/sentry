@@ -71,10 +71,28 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         self.assertTemplateNotUsed(resp, "sentry/login.html")
         assert b'<body class="theme-system">' in resp.content
 
+    @override_options({"auth.v2.enabled": True})
+    def test_renders_react_template_with_setting(self) -> None:
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+        self.assertTemplateNotUsed(response, "sentry/login.html")
+
+    @override_options({"auth.v2.enabled": True})
+    def test_cookie_disables_react_template_with_setting(self) -> None:
+        self.client.cookies["sentry_react_auth"] = "0"
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/login.html")
+        self.assertTemplateNotUsed(response, "sentry/base-react.html")
+
+    @override_options({"auth.v2.enabled": True})
     @with_feature("system:multi-region")
     def test_customer_domain_login_redirects_to_primary_domain(self) -> None:
         organization = self.create_organization(slug="customer-domain-org")
-        self.client.cookies["sentry_react_auth"] = "1"
 
         response = self.client.get(
             f"{self.path}?next=%2Fsettings%2Faccount%2F",
@@ -91,9 +109,9 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         ]
         self.assertTemplateUsed(response, "sentry/base-react.html")
 
+    @override_options({"auth.v2.enabled": True})
     def test_customer_domain_login_does_not_redirect_without_multi_region(self) -> None:
         organization = self.create_organization(slug="customer-domain-org")
-        self.client.cookies["sentry_react_auth"] = "1"
 
         response = self.client.get(
             self.path,

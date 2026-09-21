@@ -501,6 +501,11 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
                       tags: {
                         'feedback.source': `ai_query.${analyticsArea}`,
                         'feedback.owner': 'ml-ai',
+                        'feedback.natural_language_query': searchQuery.trim(),
+                        'feedback.raw_result': queries
+                          .map(query => JSON.stringify(query))
+                          .join('\n\n'),
+                        'feedback.num_queries_returned': queries.length,
                       },
                     })
                   }
