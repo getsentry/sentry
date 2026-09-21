@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from typing import Any, Literal
 
@@ -24,8 +25,12 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import json, metrics
 
+logger = logging.getLogger(__name__)
+
 FEATURE_FLAG = "organizations:seer-fixability-training-data"
 MAX_REVIEWS_PER_ORG_PER_RUN = 20
+ISSUES_PER_JUDGE_TASK = 10
+ORG_STAGGER_SECONDS = 10
 
 SYSTEM_PROMPT = """Night Shift reviews software issues and may trigger Autofix to investigate
 and open a pull request. Your job is to identify issues where opening a pull request would be
@@ -89,13 +94,17 @@ def schedule_judging() -> None:
         .values_list("organization_id", flat=True)
         .distinct()
     )
-    for organization in Organization.objects.filter(
+    organizations = Organization.objects.filter(
         id__in=organization_ids, status=OrganizationStatus.ACTIVE
+    )
+    for index, organization in enumerate(
+        org for org in organizations if features.has(FEATURE_FLAG, org)
     ):
-        if features.has(FEATURE_FLAG, organization):
-            schedule_judging_for_org.apply_async(
-                args=[organization.id], headers={"sentry-propagate-traces": False}
-            )
+        schedule_judging_for_org.apply_async(
+            args=[organization.id],
+            headers={"sentry-propagate-traces": False},
+            countdown=index * ORG_STAGGER_SECONDS,
+        )
 
 
 @instrumented_task(
@@ -108,6 +117,7 @@ def schedule_judging_for_org(organization_id: int, *args: Any, **kwargs: Any) ->
     if organization is None or not features.has(FEATURE_FLAG, organization):
         return
 
+    issues: list[tuple[int, str]] = []
     for issue_data in _select_candidates(organization.id):
         event_id = issue_data.raw_issue_data.get("event_id")
         if not isinstance(event_id, str):
@@ -118,8 +128,10 @@ def schedule_judging_for_org(organization_id: int, *args: Any, **kwargs: Any) ->
             window=12 * 60 * 60,
         ):
             break
+        issues.append((issue_data.id, event_id))
+    for start in range(0, len(issues), ISSUES_PER_JUDGE_TASK):
         judge_issue_data.apply_async(
-            args=[issue_data.id, event_id],
+            args=[issues[start : start + ISSUES_PER_JUDGE_TASK]],
             headers={"sentry-propagate-traces": False},
         )
 
@@ -134,10 +146,24 @@ def _parse_response(content: str) -> JudgeResponse:
 @instrumented_task(
     name="sentry.tasks.seer.autofix_issue_data.judge",
     namespace=seer_tasks,
-    processing_deadline_duration=60,
+    processing_deadline_duration=10 * 60,
     retry=Retry(times=2, delay=30, on=(Exception,)),
 )
-def judge_issue_data(issue_data_id: int, event_id: str, *args: Any, **kwargs: Any) -> None:
+def judge_issue_data(issues: list[tuple[int, str]], *args: Any, **kwargs: Any) -> None:
+    failed = False
+    for issue_data_id, event_id in issues:
+        try:
+            _judge_issue(issue_data_id, event_id)
+        except Exception:
+            logger.exception(
+                "autofix_issue_data.judge.failed", extra={"issue_data_id": issue_data_id}
+            )
+            failed = True
+    if failed:
+        raise RuntimeError("Some autofix issue data judge calls failed")
+
+
+def _judge_issue(issue_data_id: int, event_id: str) -> None:
     issue_data = (
         SeerAutofixIssueData.objects.select_related("organization").filter(id=issue_data_id).first()
     )

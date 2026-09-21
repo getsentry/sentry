@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 from django.utils import timezone
@@ -97,7 +97,7 @@ class TestAutofixIssueDataJudge(SentryTestCase):
             schedule_judging()
 
         mock_apply_async.assert_called_once_with(
-            args=[recent_org.id], headers={"sentry-propagate-traces": False}
+            args=[recent_org.id], headers={"sentry-propagate-traces": False}, countdown=0
         )
 
     def test_selects_bottom_half(self) -> None:
@@ -131,7 +131,10 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         with self.feature(FEATURE_FLAG):
             schedule_judging_for_org(self.organization.id)
 
-        assert mock_apply_async.call_count == 20
+        assert [len(call.kwargs["args"][0]) for call in mock_apply_async.call_args_list] == [
+            10,
+            10,
+        ]
 
     def test_accepts_all_verdicts(self) -> None:
         for verdict in ("fixable", "not_fixable", "uncertain"):
@@ -166,7 +169,7 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         mock_request.return_value = response
 
         with self.feature(FEATURE_FLAG):
-            judge_issue_data(issue_data.id, event_id)
+            judge_issue_data([(issue_data.id, event_id)])
 
         prompt = json.loads(mock_request.call_args.args[0]["prompt"])
         assert prompt == {
@@ -189,11 +192,20 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         issue_data = self.create_seer_autofix_issue_data(group)
 
         with self.feature(FEATURE_FLAG):
-            judge_issue_data(issue_data.id, "stale-event")
+            judge_issue_data([(issue_data.id, "stale-event")])
 
         mock_request.assert_not_called()
         issue_data.refresh_from_db()
         assert issue_data.judge_review is None
+
+    @patch("sentry.tasks.seer.autofix_issue_data._judge_issue")
+    def test_continues_batch_after_failure_then_raises(self, mock_judge: MagicMock) -> None:
+        mock_judge.side_effect = [ValueError("bad json"), None]
+
+        with pytest.raises(RuntimeError):
+            judge_issue_data([(1, "a"), (2, "b")])
+
+        assert mock_judge.call_args_list == [call(1, "a"), call(2, "b")]
 
 
 class TestConfigureSeerForExistingOrg(SentryTestCase):
