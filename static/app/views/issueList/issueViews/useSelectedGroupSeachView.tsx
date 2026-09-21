@@ -40,7 +40,7 @@ export function useSelectedGroupSearchView() {
               starred: true,
               visibility: GroupSearchViewVisibility.ORGANIZATION,
             },
-            headers: {},
+            headers: {status: 200},
           }
         : undefined;
     },

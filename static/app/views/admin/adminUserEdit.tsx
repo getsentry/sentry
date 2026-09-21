@@ -109,7 +109,7 @@ function AdminUserEditForm({
     onSuccess: response => {
       queryClient.setQueryData(userDetailsQueryOptions(user.id).queryKey, prev => ({
         json: response,
-        headers: prev?.headers ?? {},
+        headers: prev?.headers ?? {status: 200},
       }));
       form.reset(toFormValues(response));
       addSuccessMessage(t('User account updated.'));
@@ -149,7 +149,7 @@ function AdminUserEditForm({
     onSuccess: response => {
       queryClient.setQueryData(userDetailsQueryOptions(user.id).queryKey, prev => ({
         json: response,
-        headers: prev?.headers ?? {},
+        headers: prev?.headers ?? {status: 200},
       }));
       form.reset(toFormValues(response));
       addSuccessMessage(t("%s's account has been deactivated.", response.email));
@@ -287,7 +287,7 @@ function AdminUserEdit() {
         .getQueriesData<ApiResponse<User[]>>({queryKey: [getApiUrl('/users/')]})
         .flatMap(([, data]) => data?.json ?? [])
         .find(candidate => candidate.id === id);
-      return found ? {json: found, headers: {}} : undefined;
+      return found ? {json: found, headers: {status: 200}} : undefined;
     },
   });
 

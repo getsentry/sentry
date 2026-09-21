@@ -55,11 +55,11 @@ describe('useToggleDashboardFavorite', () => {
     act(() => {
       result.current.queryClient.setQueryData(starredQueryKey, {
         json: [existingFavorite],
-        headers: {},
+        headers: {status: 200},
       });
       result.current.queryClient.setQueryData(tableQueryKey, {
         json: [existingFavorite, dashboardToStar],
-        headers: {},
+        headers: {status: 200},
       });
     });
 
@@ -95,11 +95,11 @@ describe('useToggleDashboardFavorite', () => {
     act(() => {
       result.current.queryClient.setQueryData(starredQueryKey, {
         json: [existingFavorite],
-        headers: {},
+        headers: {status: 200},
       });
       result.current.queryClient.setQueryData(tableQueryKey, {
         json: [existingFavorite, dashboardToStar],
-        headers: {},
+        headers: {status: 200},
       });
     });
 

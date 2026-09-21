@@ -8,22 +8,22 @@ import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 
 export type ApiResponse<TResponseData = unknown> = {
   headers: {
-    Link?: string;
-    'X-Hits'?: number;
-    'X-Max-Hits'?: number;
-    'X-Sentry-Direct-Hit'?: string;
     /**
      * Not an HTTP header, but carried alongside them so callers can reach the
      * status code without re-plumbing the whole response object. Endpoints that
      * return more than one success code (201 created vs 200 already-exists)
      * need it to tell the cases apart.
      *
-     * Optional because `ApiResponse` doubles as the query-cache entry shape:
-     * `setApiQueryData` and other optimistic updates synthesize entries that
-     * never came from an HTTP response. Prefer a positive check (`=== 201`)
-     * over a negative one, since an unknown status reads as `undefined`.
+     * `ApiResponse` doubles as the query-cache entry shape, so entries that are
+     * synthesized rather than fetched (`setApiQueryData`, `initialData`,
+     * optimistic updates) report 200 because there is no real response behind
+     * them.
      */
-    status?: number;
+    status: number;
+    Link?: string;
+    'X-Hits'?: number;
+    'X-Max-Hits'?: number;
+    'X-Sentry-Direct-Hit'?: string;
   };
   json: TResponseData;
 };
@@ -37,7 +37,7 @@ function extractHeaders(response: ResponseMeta | undefined): ApiResponse['header
     'X-Max-Hits': typeof maxHits === 'string' ? Number(maxHits) : undefined,
     'X-Sentry-Direct-Hit':
       response?.getResponseHeader('X-Sentry-Direct-Hit') ?? undefined,
-    status: response?.status,
+    status: response?.status ?? 200,
   };
 }
 

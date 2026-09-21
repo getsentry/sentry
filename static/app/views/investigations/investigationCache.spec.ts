@@ -24,7 +24,7 @@ describe('updateInvestigationCache', () => {
     const queryClient = makeTestQueryClient();
     const options = getInvestigationDetailQueryOptions('org-slug', 'investigation-1');
     const cachedResponse = {
-      headers: {Link: 'preserved'},
+      headers: {Link: 'preserved', status: 200},
       json: investigation,
     };
     queryClient.setQueryData(options.queryKey, cachedResponse);
@@ -36,7 +36,7 @@ describe('updateInvestigationCache', () => {
 
     const updatedResponse = queryClient.getQueryData(options.queryKey);
     expect(updatedResponse).toEqual({
-      headers: {Link: 'preserved'},
+      headers: {Link: 'preserved', status: 200},
       json: {...investigation, isFavorited: true},
     });
     expect(updatedResponse).not.toBe(cachedResponse);

@@ -69,7 +69,7 @@ export default function LegacyWebhookDetails() {
       addSuccessMessage(shouldEnable ? t('Webhooks enabled') : t('Webhooks disabled'));
       queryClient.setQueryData(webhookQueryOptions.queryKey, {
         json: responseData,
-        headers: {},
+        headers: {status: 200},
       });
     },
     onError: (_error, shouldEnable) => {
@@ -96,7 +96,7 @@ export default function LegacyWebhookDetails() {
       setUrlsText(null);
       queryClient.setQueryData(webhookQueryOptions.queryKey, {
         json: responseData,
-        headers: {},
+        headers: {status: 200},
       });
     },
     onError: () => {

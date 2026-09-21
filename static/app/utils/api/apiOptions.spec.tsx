@@ -160,11 +160,11 @@ describe('apiOptions', () => {
     });
 
     expectTypeOf(result.current.data!.headers).toEqualTypeOf<{
+      status: number;
       Link?: string;
       'X-Hits'?: number;
       'X-Max-Hits'?: number;
       'X-Sentry-Direct-Hit'?: string;
-      status?: number;
     }>();
   });
 

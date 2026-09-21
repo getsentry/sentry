@@ -143,7 +143,7 @@ export function WeeklyReportProjectExclusions({
           projectSlug: '',
           dateAdded: '',
         })),
-        headers: {},
+        headers: {status: 200},
       });
       return {previousExclusions};
     },
