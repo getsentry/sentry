@@ -235,6 +235,27 @@ function savedQueriesApiOptions<TData = ReadableSavedQuery[]>(
     staleTime: 0,
   });
 }
+export type AllSavedQueryResponse =
+  | (ReadableSavedQuery & {queryType: SavedQueryType.EXPLORE})
+  | DiscoverSavedQuery;
+
+/**
+ * Returns both explore and discover saved queries. Use `savedQueriesApiOptions`
+ * if only explore saved queries are needed
+ */
+function allSavedQueriesApiOptions<TData = AllSavedQueryResponse[]>(
+  organization: Organization,
+  query?: Record<string, unknown>
+) {
+  return apiOptions.as<TData>()(
+    '/organizations/$organizationIdOrSlug/explore/all-queries/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      query,
+      staleTime: 0,
+    }
+  );
+}
 
 type Props = {
   cursor?: string;
@@ -254,28 +275,58 @@ export function useGetSavedQueries({
   query,
 }: Props) {
   const organization = useOrganization();
+  const migrateDiscoverQueries = organization.features.includes(
+    'discover-queries-in-all-queries'
+  );
 
-  const {data, isLoading, isFetched, isError} = useQuery({
-    ...savedQueriesApiOptions(organization, {
-      sortBy,
-      exclude,
-      per_page: perPage,
-      starred: starred ? 1 : undefined,
-      cursor,
-      query,
-    }),
+  const requestQuery = {
+    sortBy,
+    exclude,
+    per_page: perPage,
+    starred: starred ? 1 : undefined,
+    cursor,
+    query,
+  };
+
+  // Using enabled, only one of these fetches based on the feature flag
+  const combined = useQuery({
+    ...allSavedQueriesApiOptions(organization, requestQuery),
+    enabled: migrateDiscoverQueries,
     select: selectJsonWithHeaders,
   });
 
+  const explore = useQuery({
+    ...savedQueriesApiOptions(organization, requestQuery),
+    enabled: !migrateDiscoverQueries,
+    select: selectJsonWithHeaders,
+  });
+
+  const {data, isLoading, isFetched, isError} = migrateDiscoverQueries
+    ? combined
+    : explore;
+
   const pageLinks = data?.headers.Link;
 
-  const savedQueries = useMemo(
-    () =>
-      data?.json
-        ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
-        .map(q => new SavedQuery(q)),
-    [data?.json]
-  );
+  const savedQueries: AllSavedQuery[] | undefined = useMemo(() => {
+    if (migrateDiscoverQueries) {
+      return combined.data?.json
+        ?.filter(savedQuery =>
+          savedQuery.queryType === SavedQueryType.EXPLORE
+            ? Array.isArray(savedQuery.query) && savedQuery.query.length > 0
+            : true
+        )
+        .map(savedQuery =>
+          savedQuery.queryType === SavedQueryType.EXPLORE
+            ? new SavedQuery(savedQuery)
+            : savedQuery
+        );
+    }
+
+    return explore.data?.json
+      ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
+      .map(q => new SavedQuery(q));
+  }, [migrateDiscoverQueries, combined.data?.json, explore.data?.json]);
+
   return {data: savedQueries, isLoading, pageLinks, isFetched, isError};
 }
 
@@ -284,8 +335,12 @@ export function useInvalidateSavedQueries() {
   const queryClient = useQueryClient();
 
   return useCallback(() => {
-    const baseKey = savedQueriesApiOptions(organization).queryKey;
-    queryClient.invalidateQueries({queryKey: baseKey});
+    queryClient.invalidateQueries({
+      queryKey: savedQueriesApiOptions(organization).queryKey,
+    });
+    queryClient.invalidateQueries({
+      queryKey: allSavedQueriesApiOptions(organization).queryKey,
+    });
   }, [queryClient, organization]);
 }
 
