@@ -689,7 +689,7 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
     external_id = "dummy_id-123"
 
-    def test_install_schedules_webhook_update(self, *args) -> None:
+    def test_install_schedules_repo_sync_and_webhook_update(self, *args) -> None:
         self.pipeline.state.data = {
             "external_id": self.external_id,
             "name": "GitLab",
@@ -701,9 +701,12 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
                 "data": {},
             },
         }
-        with patch(
-            "sentry.integrations.gitlab.tasks.update_all_project_webhooks.delay"
-        ) as schedule:
+        with (
+            patch("sentry.integrations.gitlab.tasks.update_all_project_webhooks.delay") as schedule,
+            patch(
+                "sentry.integrations.source_code_management.sync_repos.sync_repos_for_org.delay"
+            ) as sync,
+        ):
             response = self.pipeline.finish_pipeline()
 
         self.assertDialogSuccess(response)
@@ -713,19 +716,27 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
         schedule.assert_called_once_with(
             organization_id=self.organization.id, integration_id=integration.id
         )
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+        sync.assert_called_once_with(organization_integration_id=org_integration.id)
 
-    def test_failed_install_does_not_schedule_webhook_update(self, *args) -> None:
+    def test_failed_install_does_not_schedule_repo_sync_or_webhook_update(self, *args) -> None:
         with (
             patch.object(
                 self.pipeline, "_install_integration", side_effect=IntegrationError("Deleting")
             ),
             patch("sentry.integrations.gitlab.tasks.update_all_project_webhooks.delay") as schedule,
+            patch(
+                "sentry.integrations.source_code_management.sync_repos.sync_repos_for_org.delay"
+            ) as sync,
         ):
             response = self.pipeline.finish_pipeline()
 
         assert isinstance(response, HttpResponse)
         assert b"Deleting" in response.content
         schedule.assert_not_called()
+        sync.assert_not_called()
 
     def test_different_user_same_external_id(self, *args) -> None:
         new_user = self.create_user()

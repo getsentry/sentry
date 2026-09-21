@@ -27,6 +27,7 @@ from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_
 from sentry.integrations.gitlab.types import GitLabIssueStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.referrer_ids import GITLAB_PR_BOT_REFERRER
 from sentry.integrations.services.integration import integration_service
@@ -41,6 +42,7 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -659,6 +661,12 @@ class GitlabIntegrationProvider(IntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=organization.id, integration_id=integration.id
+        )
+        # Discover and relink repositories without waiting for the daily sync cycle.
+        sync_repos_for_org.delay(organization_integration_id=org_integration.id)
+
         if not options.get("gitlab.webhook-update-on-install.enabled"):
             return
 
