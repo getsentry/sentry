@@ -231,6 +231,21 @@ describe('resolveLink', () => {
     ).toBeNull();
   });
 
+  it('returns null on a provider route', () => {
+    const subject: LinkSubject = {
+      kind: 'api',
+      method: 'GET',
+      path: '/api/v2/trace/{trace_id}',
+      params: {trace_id: 'dd-trace-1'},
+      provider: 'datadog',
+    };
+
+    expect(resolveLink(subject, ctx)).toBeNull();
+
+    // The same route with no provider is Sentry's own and still links.
+    expect(resolveLink({...subject, provider: undefined}, ctx)).not.toBeNull();
+  });
+
   // `/issues/{issue_id}/events/latest/` is not a concrete event (API-only alias), so the event rule
   // declines. Longest-prefix still finds `/issues/{issue_id}/` and links the issue page instead of
   // leaving the row dead — better than a 404 event URL, and matches nested issue inheritance.
@@ -447,6 +462,24 @@ describe('project links', () => {
     ).toEqual({
       id: 'get_project_details',
       label: 'Retrieve a Project',
+      url: {pathname: '/organizations/org-slug/insights/projects/python/'},
+    });
+  });
+
+  it('leads a navigable row with the agent line, not the generated title', () => {
+    // Without this the agent's own words are dropped on exactly the rows this is meant to
+    // elevate: any record a link rule matched.
+    expect(
+      resolveLink(
+        subjectFromCallRecord({
+          ...record({project_id_or_slug: 'python'}),
+          llm_description: 'Checking whether the python project still ingests',
+        }),
+        ctx
+      )
+    ).toEqual({
+      id: 'get_project_details',
+      label: 'Checking whether the python project still ingests',
       url: {pathname: '/organizations/org-slug/insights/projects/python/'},
     });
   });

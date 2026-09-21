@@ -1,5 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
+import {clamp} from 'sentry/utils/number/clamp';
 import {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 
@@ -252,7 +253,12 @@ export class CompressedTraceViewCalculations implements TraceViewCalculations {
     physicalDeltaPct: number
   ): {width: number; x: number} {
     const compressedView = context.getCompressedView();
-    const compressedDelta = physicalDeltaPct * compressedView.width;
+    // Clamping after conversion to real time would change the compressed viewport width.
+    const compressedDelta = clamp(
+      physicalDeltaPct * compressedView.width,
+      -compressedView.left,
+      context.timeCompression.compressedDuration - compressedView.right
+    );
     const nextCompressedLeft = compressedView.left + compressedDelta;
     const nextCompressedRight = compressedView.right + compressedDelta;
     const nextRealLeft = context.timeCompression.toRealTimestamp(nextCompressedLeft);
@@ -269,12 +275,13 @@ export class CompressedTraceViewCalculations implements TraceViewCalculations {
     x: number,
     width: number
   ): {width: number; x: number} {
-    const compressedPxRatio = context.spanToPx[0];
-    const paddingCompressedMs = 74 * compressedPxRatio;
     const realStart = x + context.view.to_origin;
     const realEnd = realStart + width;
     const compressedStart = context.timeCompression.toCompressedOffset(realStart);
     const compressedEnd = context.timeCompression.toCompressedOffset(realEnd);
+    const paddingCompressedMs =
+      (74 * (compressedEnd - compressedStart)) /
+      Math.max(context.view.trace_physical_space.width, 1);
     const paddedStart = context.timeCompression.toRealTimestamp(
       compressedStart - paddingCompressedMs
     );

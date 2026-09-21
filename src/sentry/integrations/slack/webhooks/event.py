@@ -305,9 +305,10 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         data = slack_request.data.get("event", {})
 
-        # TODO(mark) Add using_replica here
         ois = integration_service.get_organization_integrations(
-            integration_id=slack_request.integration.id, limit=1
+            integration_id=slack_request.integration.id,
+            using_replica=options.get("integration_service.get_integration.using_replica"),
+            limit=1,
         )
         organization_id = ois[0].organization_id if len(ois) > 0 else None
         organization_context = (

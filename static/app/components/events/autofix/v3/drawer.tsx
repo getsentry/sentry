@@ -83,6 +83,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
       background="secondary"
     >
       <SeerDrawerHeader
+        autofixState={aiAutofix.runState}
         enableBashTools={enableBashTools}
         onCopyMarkdown={handleCopyMarkdown}
         onEnableBashToolsChange={setEnableBashTools}

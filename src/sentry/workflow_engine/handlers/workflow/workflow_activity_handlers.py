@@ -1,4 +1,7 @@
 import logging
+from functools import partial
+
+from django.db import router, transaction
 
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -9,16 +12,31 @@ from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.processors.detector import get_preferred_detector
 from sentry.workflow_engine.registry import workflow_activity_registry
 from sentry.workflow_engine.tasks.workflows import process_workflow_activity
-from sentry.workflow_engine.types import DetectorId, WorkflowEventData
+from sentry.workflow_engine.types import DetectorId, GroupId, WorkflowEventData
 
 logger = logging.getLogger(__name__)
+
+
+def schedule_process_workflow_activity(
+    *, activity_id: int, group_id: GroupId, detector_id: DetectorId
+) -> None:
+    transaction.on_commit(
+        partial(
+            process_workflow_activity.delay,
+            activity_id=activity_id,
+            group_id=group_id,
+            detector_id=detector_id,
+        ),
+        using=router.db_for_write(Activity),
+    )
+
 
 # Seer runs on an issue and reaches the stage...
 SEER_WORKFLOW_ACTIVITIES = [
     ActivityType.SEER_RCA_COMPLETED,
     ActivityType.SEER_SOLUTION_COMPLETED,
     ActivityType.SEER_CODING_COMPLETED,
-    ActivityType.SEER_PR_CREATED,
+    ActivityType.SEER_PR_READY_FOR_REVIEW,
 ]
 
 # Activity types handled by the generic activity_handler.
@@ -72,7 +90,7 @@ def seer_activity_handler(
     logging_ctx["detector_id"] = detector.id
     logging_ctx["detector_type"] = detector.type
 
-    process_workflow_activity.delay(
+    schedule_process_workflow_activity(
         activity_id=activity.id,
         group_id=group.id,
         detector_id=detector.id,
@@ -184,7 +202,7 @@ def activity_handler(
     logging_ctx["detector_id"] = detector.id
     logging_ctx["detector_type"] = detector.type
 
-    process_workflow_activity.delay(
+    schedule_process_workflow_activity(
         activity_id=activity.id,
         group_id=group.id,
         detector_id=detector.id,

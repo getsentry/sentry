@@ -28,7 +28,7 @@ import {getResultsLimit} from 'sentry/views/dashboards/widgetBuilder/utils';
 export function fetchDashboards(
   api: Client,
   orgSlug: string,
-  query?: {filter?: DashboardFilter; sort?: string}
+  query?: {filter?: DashboardFilter}
 ) {
   const promise: Promise<DashboardListItem[]> = api.requestPromise(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
@@ -338,11 +338,7 @@ export function deleteDashboard(
   return promise;
 }
 
-export function validateWidgetRequest(
-  orgId: string,
-  widget: Widget,
-  selection: PageFilters
-) {
+function validateWidgetRequest(orgId: string, widget: Widget, selection: PageFilters) {
   return [
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/widgets/', {
       path: {organizationIdOrSlug: orgId},

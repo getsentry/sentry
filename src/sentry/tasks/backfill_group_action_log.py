@@ -5,7 +5,7 @@ from datetime import datetime
 from django.utils import timezone
 from taskbroker_client.state import current_task
 
-from sentry import features, options
+from sentry import features, options, projectoptions
 from sentry.constants import ObjectStatus
 from sentry.issues.action_log.backfill import (
     BACKFILL_ACTIVITY_SOURCE,
@@ -39,8 +39,8 @@ _GROUP_ACTION_LOG_WRITE_FEATURE = "projects:issue-action-log-write-to-db"
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.backfill_group_action_log_for_group",
-    namespace=issues_tasks,
-    alias_namespace=issues_long_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
 def backfill_group_action_log_for_group(
@@ -82,8 +82,8 @@ def backfill_group_action_log_for_group(
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.reset_and_backfill_group_action_log",
-    namespace=issues_tasks,
-    alias_namespace=issues_long_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
 def reset_and_backfill_group_action_log(
@@ -123,8 +123,8 @@ def reset_and_backfill_group_action_log(
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.backfill_group_action_log_for_project",
-    namespace=issues_tasks,
-    alias_namespace=issues_long_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=15 * 60,
     silo_mode=SiloMode.CELL,
 )
@@ -379,8 +379,8 @@ def _complete_project_backfill(project: Project, chain_pr_lifecycle: bool) -> No
         "sentry.tasks.backfill_group_action_log."
         "enroll_organization_projects_for_group_action_log_backfill"
     ),
-    namespace=issues_tasks,
-    alias_namespace=issues_long_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
@@ -442,36 +442,41 @@ def enroll_organization_projects_for_group_action_log_backfill(
         )
         return
 
-    eligible_project_ids = [
-        project.id for project in projects if features.has(_GROUP_ACTION_LOG_WRITE_FEATURE, project)
+    eligible_projects = [
+        project for project in projects if features.has(_GROUP_ACTION_LOG_WRITE_FEATURE, project)
     ]
 
-    # Track missing rows so we only invalidate caches for newly enrolled projects.
-    project_ids_with_option = set(
-        ProjectOption.objects.filter(
-            project_id__in=eligible_project_ids,
-            key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
-        ).values_list("project_id", flat=True)
+    backfill_states = ProjectOption.objects.get_value_bulk(
+        eligible_projects, GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
     )
-    project_ids_to_enroll = [
-        project_id
-        for project_id in eligible_project_ids
-        if project_id not in project_ids_with_option
-    ]
+    projects_to_enroll = []
+    for project in eligible_projects:
+        # Note that backfill_states[project] uses get_value_bulk, which will return None, ignoring the default
+        # project option value of True. This is good for us here, since we want to only enroll projects that
+        # explicitly have a None value.
+        if backfill_states[project] is not None:
+            continue
+        default_backfill_state = projectoptions.get_well_known_default(
+            GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+            project=project,
+        )
+        if default_backfill_state is not True:
+            projects_to_enroll.append(project)
+
     ProjectOption.objects.bulk_create(
         [
             ProjectOption(
-                project_id=project_id,
+                project_id=project.id,
                 key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
                 value=False,
             )
-            for project_id in project_ids_to_enroll
+            for project in projects_to_enroll
         ],
         ignore_conflicts=True,
     )
-    for project_id in project_ids_to_enroll:
+    for project in projects_to_enroll:
         ProjectOption.objects.reload_cache(
-            project_id,
+            project.id,
             "group_action_log_backfill.enrollment",
             GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
         )
@@ -481,7 +486,7 @@ def enroll_organization_projects_for_group_action_log_backfill(
         extra={
             "organization_id": organization_id,
             "batch_size": len(projects),
-            "eligible_projects": len(eligible_project_ids),
+            "eligible_projects": len(eligible_projects),
             "first_project_id": projects[0].id,
             "last_project_id": projects[-1].id,
         },
@@ -502,8 +507,8 @@ def enroll_organization_projects_for_group_action_log_backfill(
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.enroll_projects_for_group_action_log_backfill",
-    namespace=issues_tasks,
-    alias_namespace=issues_long_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
@@ -579,8 +584,8 @@ def enroll_projects_for_group_action_log_backfill(
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.backfill_group_action_log_for_all_projects",
-    namespace=issues_tasks,
-    alias_namespace=issues_long_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )

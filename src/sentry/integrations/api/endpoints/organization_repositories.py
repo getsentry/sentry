@@ -76,6 +76,11 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
                 description="Optional repository fields to expand, such as `settings`.",
             ),
             CursorQueryParam,
+            OpenApiParameter(
+                "per_page",
+                type=int,
+                description="The maximum number of repositories to return per page (1–100).",
+            ),
         ],
         responses={
             200: inline_sentry_response_serializer(

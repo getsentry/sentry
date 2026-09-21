@@ -5,8 +5,7 @@ from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
 from typing import Any, TypedDict
 
-from drf_spectacular.utils import extend_schema_serializer
-
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.utils.tracing import trace
 
 
@@ -54,7 +53,12 @@ class OTAUpdatesResponseType(TypedDict, total=False):
     update_id: str | None
 
 
-@extend_schema_serializer(exclude_fields=["info_ids", "warning_ids"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "info_ids": "Internal breadcrumb index used by the replay UI.",
+        "warning_ids": "Internal breadcrumb index used by the replay UI.",
+    }
+)
 class ReplayDetailsResponse(TypedDict, total=False):
     id: str
     project_id: str

@@ -15,7 +15,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.handlers.detector.base import (
-    BaseDetectorHandler,
+    DetectorHandler,
     DetectorOccurrence,
     GroupedDetectorEvaluationResult,
 )
@@ -25,6 +25,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
     process_data_condition_group,
 )
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorPriorityLevel,
     DetectorSettings,
@@ -191,7 +192,7 @@ SizeAnalysisEvaluation: TypeAlias = int | float
 
 
 class PreprodSizeAnalysisDetectorHandler(
-    BaseDetectorHandler[SizeAnalysisValue, SizeAnalysisEvaluation]
+    DetectorHandler[SizeAnalysisValue, SizeAnalysisEvaluation]
 ):
     def _matches_query(self, data_packet: SizeAnalysisDataPacket) -> bool:
         query = self.detector.config.get("query", "")
@@ -216,7 +217,7 @@ class PreprodSizeAnalysisDetectorHandler(
             )
             return False
 
-    def evaluate_impl(self, data_packet: SizeAnalysisDataPacket) -> GroupedDetectorEvaluationResult:
+    def evaluate(self, data_packet: SizeAnalysisDataPacket) -> GroupedDetectorEvaluationResult:
         if not self._matches_query(data_packet):
             return GroupedDetectorEvaluationResult(result={}, tainted=False)
 
@@ -395,9 +396,6 @@ class PreprodSizeAnalysisDetectorHandler(
 
         return occurrence, event_data
 
-    def extract_dedupe_value(self, data_packet: SizeAnalysisDataPacket) -> int:
-        raise NotImplementedError
-
 
 class PreprodSizeAnalysisDetectorValidator(BaseDetectorTypeValidator):
     data_source_required = False
@@ -417,30 +415,32 @@ class PreprodSizeAnalysisGroupType(GroupType):
         context=[],
         text_code_formatted=False,
     )
-    detector_settings = DetectorSettings(
-        handler=PreprodSizeAnalysisDetectorHandler,
-        validator=PreprodSizeAnalysisDetectorValidator,
-        config_schema={
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "Configuration for preprod static analysis detector",
-            "type": "object",
-            "properties": {
-                "threshold_type": {
-                    "type": "string",
-                    "enum": ["absolute_diff", "absolute", "relative_diff"],
-                    "description": "The type of threshold to apply",
-                },
-                "measurement": {
-                    "type": "string",
-                    "enum": ["install_size", "download_size"],
-                    "description": "The measurement to track",
-                },
-                "query": {
-                    "type": "string",
-                    "description": "Search query to filter which artifacts are monitored",
-                },
+
+
+@detector_settings_registry.register(PreprodSizeAnalysisGroupType.slug)
+class PreprodSizeAnalysisDetectorSettings(DetectorSettings):
+    handler = PreprodSizeAnalysisDetectorHandler
+    validator = PreprodSizeAnalysisDetectorValidator
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "Configuration for preprod static analysis detector",
+        "type": "object",
+        "properties": {
+            "threshold_type": {
+                "type": "string",
+                "enum": ["absolute_diff", "absolute", "relative_diff"],
+                "description": "The type of threshold to apply",
             },
-            "required": ["threshold_type", "measurement"],
-            "additionalProperties": False,
+            "measurement": {
+                "type": "string",
+                "enum": ["install_size", "download_size"],
+                "description": "The measurement to track",
+            },
+            "query": {
+                "type": "string",
+                "description": "Search query to filter which artifacts are monitored",
+            },
         },
-    )
+        "required": ["threshold_type", "measurement"],
+        "additionalProperties": False,
+    }

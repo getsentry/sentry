@@ -23,6 +23,8 @@ export function OrganizationSlugInput({onCancel, onSelect}: OrganizationSlugInpu
   const normalizedSlug = slug.trim();
   const organizationQuery = useAuthOrganization(submittedSlug);
   const hasError = Boolean(submittedSlug && organizationQuery.isError);
+  const isLocating =
+    organizationQuery.isFetching || Boolean(submittedSlug && organizationQuery.isSuccess);
   const organizationNotFound = hasError && isNotFoundError(organizationQuery.error);
   const errorMessage = hasError
     ? organizationNotFound
@@ -93,7 +95,7 @@ export function OrganizationSlugInput({onCancel, onSelect}: OrganizationSlugInpu
           autoFocus
           data-1p-ignore
           placeholder={t('Organization Slug')}
-          readOnly={organizationQuery.isFetching}
+          readOnly={isLocating}
           spellCheck={false}
           value={slug}
           aria-invalid={hasError}
@@ -113,12 +115,7 @@ export function OrganizationSlugInput({onCancel, onSelect}: OrganizationSlugInpu
             </Tooltip>
           ) : null}
           {!organizationNotFound && normalizedSlug ? (
-            <Button
-              busy={organizationQuery.isFetching}
-              size="zero"
-              type="submit"
-              variant="transparent"
-            >
+            <Button busy={isLocating} size="zero" type="submit" variant="transparent">
               {t('Locate')}
             </Button>
           ) : null}

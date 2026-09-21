@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
@@ -11,11 +12,13 @@ import {
   fullWidthCellStyle,
   Table,
   type TableColumnConfig,
+  useIsColumnHidden,
 } from '@sentry/scraps/table';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
+  type ColumnAlign,
   HeaderCellContent,
   type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
@@ -38,8 +41,12 @@ interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
 type HeaderCellVariant = 'default' | 'first' | 'remaining' | 'full-width';
 
 export function SimpleTable({children, columns, header, ...props}: TableProps) {
+  // Cells name their column so it can be hidden, which is not an invitation to
+  // resize it: this shell has no resize affordance of its own.
+  const unresizableColumns = columns?.map(column => ({resizable: false, ...column}));
+
   return (
-    <StyledTable columns={columns} {...props}>
+    <StyledTable columns={unresizableColumns} {...props}>
       <PanelProvider>
         {header && <Table.Head>{header}</Table.Head>}
         <Table.Body>{children}</Table.Body>
@@ -61,29 +68,36 @@ function HeaderRow({
 }
 
 function HeaderCell({
+  align,
   children,
   sort,
   handleSortClick,
+  to,
   variant = 'default',
   divider = defined(children) ? true : false,
   ...props
 }: HTMLAttributes<HTMLTableCellElement> & {
+  align?: ColumnAlign;
   children?: React.ReactNode;
+  columnKey?: string;
   divider?: boolean;
-  handleSortClick?: () => void;
+  handleSortClick?: (event: React.MouseEvent) => void;
   sort?: SortDirection;
+  to?: LocationDescriptor;
   variant?: HeaderCellVariant;
 }) {
   return (
     <ColumnHeaderCell
       {...props}
+      align={align}
       onSort={handleSortClick}
       overlays={
         <Fragment>
           {divider && <HeaderDivider />}
-          {handleSortClick && <InteractionStateLayer />}
+          {(handleSortClick || to) && <InteractionStateLayer />}
         </Fragment>
       }
+      to={to}
       scope="col"
       sort={sort}
       variant={variant}
@@ -103,12 +117,22 @@ function Row({children, variant = 'default', ref, ...props}: RowProps) {
 
 function RowCell({
   children,
+  columnKey,
   ...props
 }: ComponentProps<typeof Flex> & {
   children: React.ReactNode;
+  columnKey?: string;
 }) {
   return (
-    <Flex as="td" role="cell" align="center" overflow="hidden" padding="lg xl" {...props}>
+    <Flex
+      as="td"
+      role="cell"
+      align="center"
+      overflow="hidden"
+      padding="lg xl"
+      hidden={useIsColumnHidden(columnKey)}
+      {...props}
+    >
       {children}
     </Flex>
   );
@@ -171,7 +195,7 @@ const HeaderDivider = styled('div')`
 
 const ColumnHeaderCell = styled(Table.HeadCell, {
   shouldForwardProp: prop => prop !== 'variant',
-})<{variant: HeaderCellVariant}>`
+})<{variant: HeaderCellVariant; align?: ColumnAlign}>`
   outline: none;
   padding: 0 ${p => p.theme.space.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -187,9 +211,16 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
   ${HeaderCellContent} {
     flex: 1;
     height: 100%;
-    justify-content: space-between;
     min-width: 0;
   }
+
+  ${p =>
+    !p.align &&
+    css`
+      ${HeaderCellContent} {
+        justify-content: space-between;
+      }
+    `}
 
   ${HeaderCellContent}:focus-visible {
     box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.focus.default};

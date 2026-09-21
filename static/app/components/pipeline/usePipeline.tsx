@@ -70,7 +70,6 @@ interface UsePipelineOptions<
    * Copy override forwarded to step components that render descriptive intro text.
    */
   description?: string;
-  enabled?: boolean;
   /**
    * Data that will be passed through to the initialization call.
    */
@@ -111,7 +110,7 @@ interface UsePipelineOptions<
  *
  * ## How this hook works
  *
- * On mount (when `enabled`), the hook initializes the pipeline and enters
+ * On mount, the hook initializes the pipeline and enters
  * the `active` state with the first step's data. It looks up the matching
  * step component from the frontend pipeline definition (registered in
  * `registry.tsx`) and renders it via the returned `view` property.
@@ -136,10 +135,11 @@ export function usePipeline<
   const [state, setState] = useState<PipelineState<T, P>>({status: 'idle'});
   const initializedRef = useRef(false);
   const onCompleteRef = useRef(options.onComplete);
+  // oxlint-disable-next-line react/refs
   onCompleteRef.current = options.onComplete;
   const generationRef = useRef(0);
 
-  const {enabled = true, initialData, description} = options;
+  const {initialData, description} = options;
 
   const pipelineName = getBackendPipelineType(type);
   const apiUrl = getApiUrl(
@@ -279,13 +279,13 @@ export function usePipeline<
     initializeMutate();
   }, [initializeMutate, resetAdvance]);
 
-  // Initialize the pipeline on mount when enabled
+  // Initialize the pipeline on mount
   useEffect(() => {
-    if (enabled && !initializedRef.current) {
+    if (!initializedRef.current) {
       initializedRef.current = true;
       restart();
     }
-  }, [enabled, restart]);
+  }, [restart]);
 
   const stepDefinition = useMemo(() => {
     if (state.status === 'active') {

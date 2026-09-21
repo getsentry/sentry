@@ -2,14 +2,15 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DataTable} from 'sentry/components/tables/dataTable';
+import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
@@ -156,8 +157,7 @@ export function AggregatesTable({
               const direction = sorts.find(s => s.field === field)?.kind;
 
               function updateSort() {
-                const kind = direction === 'desc' ? 'asc' : 'desc';
-                setSorts([{field, kind}]);
+                setSorts([{field, kind: getNextDirection(direction)}]);
               }
 
               return (

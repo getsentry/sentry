@@ -394,20 +394,16 @@ function gettextComponentTemplate(
   components: ComponentMap
 ): React.JSX.Element {
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(parsedTemplate, components));
-}
-
-/**
- * Helper over `gettextComponentTemplate` with a pre-populated `<code />` component that
- * is commonly used.
- */
-export function tctCode(template: string, components: ComponentMap = {}) {
-  return gettextComponentTemplate(template, {code: <code />, ...components});
+  return mark(
+    renderTemplate(parsedTemplate, {
+      ...components,
+    })
+  );
 }
 
 /**
  * Translates a string without formatting support. Used for translating
- * pre-extracted strings like attribute descriptions from @sentry/conventions.
+ * pre-extracted strings like attribute descriptions from @sentry/conventions/attributes/search.
  * This function is intentionally not included in the gettext extraction script.
  */
 function gettextDescription(string: string): string {

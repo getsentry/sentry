@@ -13,7 +13,7 @@ import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment, IssueCategory, IssueType, UserReport} from './group';
+import type {IssueAttachment, IssueCategory, UserReport} from './group';
 import type {PlatformKey} from './platform';
 import type {Release} from './release';
 import type {StackTraceMechanism, StacktraceType} from './stacktrace';
@@ -219,6 +219,11 @@ export type EventMetadata = {
   message?: string;
   origin?: string;
   stripped_crash?: boolean;
+  /**
+   * Set when the SDK fabricated the exception to carry a stacktrace. Its `type` is then a
+   * platform label (`SIGSEGV`, `AppHang`) rather than the identity of what went wrong.
+   */
+  synthetic?: boolean;
   title?: string;
   type?: string;
   uri?: string;
@@ -690,13 +695,6 @@ type EventUser = {
   username?: string | null;
 };
 
-type PerformanceDetectorData = {
-  causeSpanIds: string[];
-  offenderSpanIds: string[];
-  parentSpanIds: string[];
-  issueType?: IssueType;
-};
-
 export type EventEvidenceDisplay = {
   important: boolean;
   name: string;
@@ -765,7 +763,6 @@ interface EventBase {
   _meta?: Record<string, any>;
   context?: Record<string, any>;
   dateCreated?: string;
-  device?: Record<string, any>;
   endTimestamp?: number;
   formatted?: {content: string; format: string};
   groupID?: string;
@@ -810,7 +807,6 @@ export interface EventTransaction extends Omit<
   >;
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  perfProblem?: PerformanceDetectorData;
 }
 
 export interface AggregateEventTransaction extends Omit<

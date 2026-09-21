@@ -213,7 +213,6 @@ class TeamExamples:
                             "isBookmarked": False,
                             "isMember": False,
                             "features": [
-                                "alert-filters",
                                 "custom-inbound-filters",
                                 "discard-groups",
                                 "minidump",
@@ -277,7 +276,6 @@ class TeamExamples:
                             "isBookmarked": False,
                             "isMember": False,
                             "features": [
-                                "alert-filters",
                                 "custom-inbound-filters",
                                 "discard-groups",
                                 "minidump",

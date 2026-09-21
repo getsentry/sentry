@@ -68,6 +68,7 @@ function UpsellModal(props: Props) {
       // We want to track analytics right away, cannot wait for the network.
       has_price_change: loading ? undefined : previewData?.billedAmount !== 0,
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, subscription]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -181,13 +182,11 @@ type ActionButtonsProps = {
   hasPriceChange: boolean;
   organization: Organization;
   subscription: Subscription;
-  isActionDisabled?: boolean;
   onComplete?: () => void;
 };
 
 function ActionButtons({
   hasPriceChange,
-  isActionDisabled,
   onComplete,
   organization,
   subscription,
@@ -251,11 +250,7 @@ function ActionButtons({
 
   return hasBillingAccess ? (
     <ButtonRow>
-      <Button
-        variant="primary"
-        onClick={onUpdatePlan}
-        disabled={isActionDisabled === true}
-      >
+      <Button variant="primary" onClick={onUpdatePlan}>
         {t('Update Now')}
       </Button>
       <LinkButton

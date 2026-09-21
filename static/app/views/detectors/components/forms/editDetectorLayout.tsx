@@ -2,7 +2,8 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {Observer} from 'mobx-react-lite';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Separator} from '@sentry/scraps/separator';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {FormModel} from 'sentry/components/forms/model';
@@ -14,15 +15,18 @@ import type {
   BaseDetectorUpdatePayload,
   Detector,
 } from 'sentry/types/workflowEngine/detectors';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DeleteDetectorAction,
   DisableDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
+import {MonitorBuilderNode} from 'sentry/views/detectors/components/forms/common/monitorBuilderLLMContext';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
-import {TopBar} from 'sentry/views/navigation/topBar';
+import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   children: React.ReactNode;
@@ -48,6 +52,7 @@ export function EditDetectorLayout<
   extraFooterButton,
 }: EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload>) {
   const theme = useTheme();
+  const organization = useOrganization();
   const maxWidth = theme.breakpoints.xl;
   const [formModel] = useState(() => new FormModel());
   const {onFieldChange} = useFormEagerValidation(formModel);
@@ -56,6 +61,15 @@ export function EditDetectorLayout<
     detector,
     formDataToEndpointPayload,
   });
+
+  // Without edit access, the disable and delete buttons are hidden,
+  // so we should not show the separator
+  const canEditDetector = useCanEditDetector({
+    detectorType: detector.type,
+    projectId: detector.projectId,
+  });
+
+  const shouldShowSeparator = canEditDetector || Boolean(extraFooterButton);
 
   const initialData = useMemo(() => {
     return savedDetectorToFormData(detector);
@@ -72,9 +86,7 @@ export function EditDetectorLayout<
   return (
     <EditLayoutDeprecated formProps={formProps}>
       <EditLayoutDeprecated.Header maxWidth={maxWidth}>
-        <TopBar.Slot name="title">
-          <DetectorFormBreadcrumbs />
-        </TopBar.Slot>
+        <DetectorFormBreadcrumbs />
 
         <div>
           <EditLayoutDeprecated.Actions>
@@ -89,6 +101,8 @@ export function EditDetectorLayout<
         )}
       </EditLayoutDeprecated.Header>
 
+      <MonitorBuilderNode detector={detector} />
+
       <EditLayoutDeprecated.Body maxWidth={maxWidth}>
         {children}
       </EditLayoutDeprecated.Body>
@@ -99,6 +113,14 @@ export function EditDetectorLayout<
             <DisableDetectorAction detector={detector} />
             <DeleteDetectorAction detector={detector} />
             {extraFooterButton}
+            {shouldShowSeparator && <Separator orientation="vertical" />}
+            <LinkButton
+              variant="secondary"
+              size="sm"
+              to={makeMonitorDetailsPathname(organization.slug, detector.id)}
+            >
+              {t('Cancel')}
+            </LinkButton>
             <Observer>
               {() => (
                 <Button

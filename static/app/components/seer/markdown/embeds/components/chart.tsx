@@ -128,6 +128,10 @@ export function ChartContent({
           })
           .filter((plottable): plottable is Plottable => plottable !== null)}
         showReleaseAs="none"
+        // An embed's chart is as wide as the card it sits in, which is narrow
+        // and clips. Left to size itself to a model-written series name, the
+        // legend's "+n more" menu grows past the card and is cut off.
+        truncateLegendMenuLabels
       />
     );
 
@@ -145,7 +149,19 @@ export function ChartContent({
           ) : null}
         </Stack>
       ) : null}
-      <Container data-test-id="seer-chart-content" height="220px" width="100%">
+      {/*
+        Inline-size containment: without it a wide legend sets this box's
+        min-content width, which no ancestor can shrink below, and the chart
+        overflows its container. Containment computes the width as if the box
+        were empty, so the legend measures against the container instead of
+        dictating it.
+      */}
+      <Container
+        containerType="inline-size"
+        data-test-id="seer-chart-content"
+        height="220px"
+        width="100%"
+      >
         {visualizationComponent}
       </Container>
     </Stack>
@@ -154,19 +170,26 @@ export function ChartContent({
 
 export const Chart = defineSeerEmbed({
   name: 'chart',
-  render(data) {
-    return (
-      <Container
-        as="section"
-        background="primary"
-        border="primary"
-        data-test-id="seer-chart-embed"
-        margin="lg 0"
-        padding="lg xl md"
-        radius="md"
-      >
-        <ChartContent data={data} />
-      </Container>
-    );
+  render(data, level) {
+    switch (level) {
+      case 'markdown':
+        // A plot has no text form; the heading names the data being cited.
+        return data.subtitle ? `${data.title}: ${data.subtitle}` : data.title;
+      case 'block':
+      case 'inline':
+        return (
+          <Container
+            as="section"
+            background="primary"
+            border="primary"
+            data-test-id="seer-chart-embed"
+            margin="lg 0"
+            padding="lg xl md"
+            radius="md"
+          >
+            <ChartContent data={data} />
+          </Container>
+        );
+    }
   },
 });

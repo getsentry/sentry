@@ -575,7 +575,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
         group = Group.objects.select_related("project__organization").filter(id=group_id).first()
         if group:
             integration = integration_service.get_integration(
-                integration_id=integration.id, status=ObjectStatus.ACTIVE
+                integration_id=integration.id,
+                status=ObjectStatus.ACTIVE,
+                using_replica=options.get("integration_service.get_integration.using_replica"),
             )
             if integration is None:
                 group = None
@@ -718,7 +720,10 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
 
     def link_user_handler(self, input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
         linked_identity = identity_service.get_identity(
-            filter={"identity_ext_id": self.teams_user_id}
+            filter={
+                "identity_ext_id": self.teams_user_id,
+                "provider_type": IntegrationProviderSlug.MSTEAMS.value,
+            }
         )
         has_linked_identity = linked_identity is not None
 

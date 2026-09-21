@@ -168,6 +168,18 @@ describe('useSeerExplorer', () => {
       '/explore/logs/trace/:traceSlug/',
       '/explore/replays/',
       '/explore/replays/:replaySlug/',
+      '/monitors/',
+      '/monitors/:detectorId/',
+      '/monitors/:detectorId/edit/',
+      '/monitors/alerts/',
+      '/monitors/alerts/:automationId/',
+      '/monitors/alerts/:automationId/edit/',
+      '/monitors/crons/',
+      '/monitors/errors/',
+      '/monitors/metrics/',
+      '/monitors/mobile-builds/',
+      '/monitors/my-monitors/',
+      '/monitors/uptime/',
     ])('sends structured JSON on structured-context route %s', async (route: string) => {
       jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
         getPageReferrer: () => route,
@@ -206,7 +218,7 @@ describe('useSeerExplorer', () => {
 
     it('falls back to ASCII screenshot on non-structured-context page', async () => {
       jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-        getPageReferrer: () => '/monitors/mobile-builds/',
+        getPageReferrer: () => '/settings/account/details/',
       });
       const org = OrganizationFixture({
         features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
@@ -235,7 +247,7 @@ describe('useSeerExplorer', () => {
       });
 
       await waitFor(() => {
-        // /monitors/mobile-builds/ is not in STRUCTURED_CONTEXT_ROUTES — falls back to ASCII snapshot
+        // /settings/account/details/ is not in STRUCTURED_CONTEXT_ROUTES — falls back to ASCII snapshot
         const ctx = postMock.mock.calls[0][1].data.on_page_context;
         expect(() => JSON.parse(ctx)).toThrow();
       });
@@ -243,7 +255,7 @@ describe('useSeerExplorer', () => {
 
     it('sends page_location even on a non-structured-context page', async () => {
       jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-        getPageReferrer: () => '/monitors/mobile-builds/',
+        getPageReferrer: () => '/settings/account/details/',
       });
       const org = OrganizationFixture({features: ['seer-explorer']});
       MockApiClient.addMockResponse({
@@ -400,6 +412,31 @@ describe('useSeerExplorer', () => {
         expect(result.current.runId).toBe(456);
         expect(result.current.hasSentInterrupt).toBe(false);
       });
+    });
+
+    it('reads a session that carries no blocks as an empty conversation', async () => {
+      // A run with no Seer state behind it (still mirroring, or failed to
+      // start) comes back as a status-only session. Reading `blocks` off it
+      // unguarded used to throw and take the whole page down with it.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/789/`,
+        method: 'GET',
+        body: {session: {status: 'error'}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.switchToRun(789);
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('error');
+      });
+      expect(result.current.sessionData?.blocks).toEqual([]);
     });
 
     it('URL-encodes the runId when building explorer-update URLs', async () => {

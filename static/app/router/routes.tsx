@@ -347,6 +347,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'authorizations/',
+      name: t('Authorized Applications'),
       component: make(
         () => import('sentry/views/settings/account/accountAuthorizations')
       ),

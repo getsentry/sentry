@@ -2,9 +2,9 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
@@ -247,7 +247,7 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
             })}
           </SectionSubtext>
         </SpanDetailsItem>
-        <QuestionTooltip
+        <InfoTip
           position="top"
           size="xs"
           title={t(

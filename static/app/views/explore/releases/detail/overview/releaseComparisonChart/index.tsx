@@ -64,6 +64,23 @@ export type ReleaseComparisonRow = {
   tooltip?: React.ReactNode;
 };
 
+function ChartDiff({
+  diff,
+  diffColor,
+  diffDirection,
+}: Pick<ReleaseComparisonRow, 'diff' | 'diffColor' | 'diffDirection'>) {
+  return (
+    <Change color={defined(diffColor) ? diffColor : undefined}>
+      {diff}{' '}
+      {defined(diffDirection) ? (
+        <IconArrow direction={diffDirection} size="xs" />
+      ) : diff === '0%' ? null : (
+        <StyledNotAvailable />
+      )}
+    </Change>
+  );
+}
+
 type Props = {
   allSessions: SessionApiResponse | null;
   api: Client;
@@ -142,6 +159,7 @@ export function ReleaseComparisonChart({
         ReleaseComparisonChartType.UNHANDLED_SESSIONS,
       ].includes(chartInUrl)
     ) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setExpanded(e => new Set(e.add(ReleaseComparisonChartType.CRASH_FREE_SESSIONS)));
     }
 
@@ -192,18 +210,18 @@ export function ReleaseComparisonChart({
           query: {
             field: ['failure_rate()', 'count()'],
             query: new MutableSearch([
-              'event.type:transaction',
+              'is_transaction:true',
               `release:${release.version}`,
             ]).formatString(),
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
+            dataset: DiscoverDatasets.SPANS,
             ...commonQuery,
           },
         }),
         api.requestPromise(url, {
           query: {
             field: ['failure_rate()', 'count()'],
-            query: new MutableSearch(['event.type:transaction']).formatString(),
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
+            query: new MutableSearch(['is_transaction:true']).formatString(),
+            dataset: DiscoverDatasets.SPANS,
             ...commonQuery,
           },
         }),
@@ -295,6 +313,7 @@ export function ReleaseComparisonChart({
 
   useEffect(() => {
     if (hasDiscover || hasPerformance) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchEventsTotals();
       fetchIssuesTotals();
     }
@@ -968,32 +987,27 @@ export function ReleaseComparisonChart({
 
   function getTableHeaders(withExpanders: boolean) {
     const headers = [
-      <DescriptionCell key="description">{t('Description')}</DescriptionCell>,
-      <Cell key="releases">{t('All Releases')}</Cell>,
-      <Cell key="release">{t('This Release')}</Cell>,
-      <Cell key="change">{t('Change')}</Cell>,
+      <SimpleTable.HeaderCell key="description">
+        <DescriptionCell>{t('Description')}</DescriptionCell>
+      </SimpleTable.HeaderCell>,
+      <SimpleTable.HeaderCell align="right" key="releases">
+        <Cell>{t('All Releases')}</Cell>
+      </SimpleTable.HeaderCell>,
+      <SimpleTable.HeaderCell align="right" key="release">
+        <Cell>{t('This Release')}</Cell>
+      </SimpleTable.HeaderCell>,
+      <SimpleTable.HeaderCell align="right" key="change">
+        <Cell>{t('Change')}</Cell>
+      </SimpleTable.HeaderCell>,
     ];
     if (withExpanders) {
-      headers.push(<Cell key="expanders" />);
+      headers.push(
+        <SimpleTable.HeaderCell align="right" key="expanders">
+          <Cell />
+        </SimpleTable.HeaderCell>
+      );
     }
     return headers;
-  }
-
-  function getChartDiff(
-    diff: ReleaseComparisonRow['diff'],
-    diffColor: ReleaseComparisonRow['diffColor'],
-    diffDirection: ReleaseComparisonRow['diffDirection']
-  ) {
-    return diff ? (
-      <Change color={defined(diffColor) ? diffColor : undefined}>
-        {diff}{' '}
-        {defined(diffDirection) ? (
-          <IconArrow direction={diffDirection} size="xs" />
-        ) : diff === '0%' ? null : (
-          <StyledNotAvailable />
-        )}
-      </Change>
-    ) : null;
   }
 
   // if there are no sessions, we do not need to do row toggling because there won't be as many rows
@@ -1032,17 +1046,16 @@ export function ReleaseComparisonChart({
   }
 
   const titleChartDiff =
-    chart.diff !== '0%' && chart.thisRelease !== '0%'
-      ? getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)
-      : null;
+    chart.diff && chart.diff !== '0%' && chart.thisRelease !== '0%' ? (
+      <ChartDiff
+        diff={chart.diff}
+        diffColor={chart.diffColor}
+        diffDirection={chart.diffDirection}
+      />
+    ) : null;
 
-  function renderChartRow({
-    diff,
-    diffColor,
-    diffDirection,
-    ...rest
-  }: ReleaseComparisonRow) {
-    return (
+  const chartRows = [...charts, ...(isOtherExpanded ? additionalCharts : [])].map(
+    ({diff, diffColor, diffDirection, ...rest}) => (
       <ReleaseComparisonChartRow
         {...rest}
         key={rest.type}
@@ -1050,13 +1063,17 @@ export function ReleaseComparisonChart({
         showPlaceholders={showPlaceholders}
         activeChart={activeChart}
         onChartChange={handleChartChange}
-        chartDiff={getChartDiff(diff, diffColor, diffDirection)}
+        chartDiff={
+          diff ? (
+            <ChartDiff diff={diff} diffColor={diffColor} diffDirection={diffDirection} />
+          ) : null
+        }
         onExpanderToggle={handleExpanderToggle}
         expanded={expanded.has(rest.type)}
         withExpanders={withExpanders}
       />
-    );
-  }
+    )
+  );
 
   return (
     <Fragment>
@@ -1109,17 +1126,24 @@ export function ReleaseComparisonChart({
       </ChartPanel>
       <ChartTable
         data-test-id="release-comparison-table"
-        withExpanders={withExpanders}
+        columns={[
+          {
+            key: 'description',
+            width: {
+              zero: 'minmax(min-content, 1fr)',
+              '4xl': 'minmax(400px, auto)',
+            },
+          },
+          {key: 'releases', width: 'minmax(min-content, 1fr)'},
+          {key: 'release', width: 'minmax(min-content, 1fr)'},
+          {key: 'change', width: 'minmax(min-content, 1fr)'},
+          {key: 'expanders', visible: withExpanders, width: '75px'},
+        ]}
         header={
-          <SimpleTable.HeaderRow>
-            {getTableHeaders(withExpanders).map((header, i) => (
-              <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
-            ))}
-          </SimpleTable.HeaderRow>
+          <SimpleTable.HeaderRow>{getTableHeaders(withExpanders)}</SimpleTable.HeaderRow>
         }
       >
-        {charts.map(chartRow => renderChartRow(chartRow))}
-        {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
+        {chartRows}
         {additionalCharts.length > 0 && (
           <ShowMoreRow onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
             <SimpleTable.RowCell>
@@ -1171,29 +1195,9 @@ const Change = styled('div')<{color?: string}>`
   ${p => p.color && `color: ${p.color}`}
 `;
 
-const ChartTable = styled(SimpleTable, {
-  shouldForwardProp: prop => prop !== 'withExpanders',
-})<{withExpanders: boolean}>`
+const ChartTable = styled(SimpleTable)`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-
-  && {
-    grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
-        p.withExpanders ? '75px' : ''};
-  }
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    && {
-      grid-template-columns: minmax(400px, auto) repeat(
-          3,
-          minmax(min-content, 1fr)
-        ) ${p => (p.withExpanders ? '75px' : '')};
-    }
-  }
-
-  > * {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
 `;
 
 const StyledNotAvailable = styled(NotAvailable)`

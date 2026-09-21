@@ -71,3 +71,49 @@ class GetAggregationValueTest(TestCase):
             mock_logger.info.assert_called_once()
             call_args = mock_logger.info.call_args
             assert "non-existent issue IDs" in call_args[0][0]
+
+
+class GetAggregationValueHelperTest(TestCase):
+    def _update(self, value):
+        from sentry.incidents.utils.types import QuerySubscriptionUpdate
+
+        update: QuerySubscriptionUpdate = {
+            "entity": "events",
+            "subscription_id": "test-sub-id",
+            "timestamp": timezone.now(),
+            "values": {"data": [{"max_transaction_duration": value}]},
+        }
+        return update
+
+    def test_none_defaults_to_zero(self) -> None:
+        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
+
+        assert get_aggregation_value_helper(self._update(None)) == 0.0
+
+    def test_numeric_values(self) -> None:
+        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
+
+        assert get_aggregation_value_helper(self._update(12.5)) == 12.5
+        assert get_aggregation_value_helper(self._update(3)) == 3.0
+
+    def test_empty_string_returns_none(self) -> None:
+        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
+
+        assert get_aggregation_value_helper(self._update("")) is None
+        assert get_aggregation_value_helper(self._update("   ")) is None
+
+    def test_numeric_string(self) -> None:
+        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
+
+        assert get_aggregation_value_helper(self._update("42.5")) == 42.5
+
+    def test_non_numeric_string_returns_none(self) -> None:
+        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
+
+        assert get_aggregation_value_helper(self._update("not-a-number")) is None
+
+    def test_bool_values(self) -> None:
+        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
+
+        assert get_aggregation_value_helper(self._update(True)) == 1.0
+        assert get_aggregation_value_helper(self._update(False)) == 0.0

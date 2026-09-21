@@ -1,25 +1,25 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useId, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
 import {
   IconArrow,
-  IconChevron,
   IconClose,
+  IconCompass,
   IconEllipsis,
   IconReturn,
   IconSeer,
@@ -37,6 +37,7 @@ import {
 } from 'sentry/views/investigations/api';
 import type {
   InvestigationBlock,
+  InvestigationBlockKind,
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationExecutionStatus,
@@ -46,6 +47,7 @@ import type {
 import {visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {MessagePlaceholder} from 'sentry/views/seerExplorer/components/chat/shared';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -102,11 +104,6 @@ export function InvestigationCell({
     block.title ||
     chartTitle ||
     (block.kind === 'query' ? t('Untitled query') : t('Untitled cell'));
-  const rerunMutation = useRunInvestigationBlockMutation(
-    organizationSlug,
-    investigation.id,
-    {onError: () => addErrorMessage(t('Unable to rerun this cell.'))}
-  );
   const deleteMutation = useDeleteInvestigationBlockMutation(
     organizationSlug,
     investigation.id,
@@ -134,35 +131,7 @@ export function InvestigationCell({
     setPrompt(block.outputStatus === 'notRun' ? block.generationPrompt : '');
   }
 
-  async function rerun() {
-    try {
-      const execution = await rerunMutation.mutateAsync({
-        block,
-        investigationVersion: investigation.version,
-      });
-      setPanelOpen(true);
-      setTraceExecutionId(execution.id);
-      setShowPrompt(false);
-      autoOpenedExecutionId.current = execution.id;
-    } catch {
-      // The mutation owns user-facing error handling.
-    }
-  }
-
-  const actionItems: MenuItemProps[] = [];
-  if (block.kind === 'query') {
-    actionItems.push({
-      key: 'rerun',
-      label: t('Rerun'),
-      disabled:
-        !canRun ||
-        rerunMutation.isPending ||
-        isExecutionActive(block.currentExecution?.status) ||
-        !(block.generationPrompt || block.content).trim(),
-      onAction: () => void rerun(),
-    });
-  }
-  actionItems.push(
+  const actionItems: MenuItemProps[] = [
     {
       key: 'refine',
       label: t('Refine'),
@@ -188,8 +157,8 @@ export function InvestigationCell({
               investigationVersion: investigation.version,
             }),
         }),
-    }
-  );
+    },
+  ];
 
   const cellActions = (
     <CellActions flexShrink={0}>
@@ -227,10 +196,8 @@ export function InvestigationCell({
     <Stack
       as="section"
       width="100%"
-      padding={block.kind === 'query' ? 'xl 0' : '0'}
-      borderBottom={block.kind === 'query' ? 'primary' : undefined}
+      padding="0"
       data-test-id={`investigation-cell-${block.id}`}
-      data-has-divider={block.kind === 'query'}
     >
       {block.kind === 'query' ? (
         <Fragment>
@@ -304,8 +271,11 @@ function QueryResult({
   block: InvestigationBlock;
   progressState: CellProgressState;
 }) {
-  const [expanded, setExpanded] = useState(block.config.autoRun !== true);
+  const [expanded, setExpanded] = useState(true);
+  const [showQuery, setShowQuery] = useState(false);
+  const queryDetailsId = useId();
   const output = getQueryOutput(block.output);
+  const queries = output?.queries ?? [];
   const chart =
     output?.preferredView === 'chart' ? getRenderableChart(output.chart) : null;
   const title = block.title || chart?.title || t('Untitled query');
@@ -316,68 +286,116 @@ function QueryResult({
     getChartMetadata(chart);
 
   return (
-    <CellHoverSurface width="100%" gap="sm">
-      <Flex width="100%" align="center" gap="xs" data-test-id="query-cell-toolbar">
-        <QueryDisclosureButton
-          size="sm"
-          variant="transparent"
-          icon={<IconChevron direction={expanded ? 'down' : 'right'} size="xs" />}
-          aria-label={t('Toggle %s', title)}
-          aria-expanded={expanded}
-          onClick={() => setExpanded(value => !value)}
-        >
-          <Text data-test-id="query-cell-title" size="sm" tabular>
-            {title}
-          </Text>
-        </QueryDisclosureButton>
-        {actions}
-      </Flex>
-      {expanded ? (
-        <Stack
-          width="100%"
-          flex={1}
-          minWidth={0}
-          gap="0"
-          overflow="hidden"
-          border="primary"
-          radius="md"
-          data-test-id="query-cell-result"
-          data-cell-variant="bordered"
-        >
-          <Flex
-            align="start"
-            justify="between"
-            gap="md"
-            padding="md lg"
-            background="secondary"
-            borderBottom="primary"
-            data-test-id="query-cell-header"
+    <CellHoverSurface width="100%">
+      <Disclosure
+        width="100%"
+        border="primary"
+        radius="md"
+        background="secondary"
+        overflow="hidden"
+        expanded={expanded}
+        onExpandedChange={setExpanded}
+        data-test-id="query-cell"
+      >
+        <QueryToolbar width="100%" padding="md lg" data-test-id="query-cell-toolbar">
+          <QueryDisclosureTitle
+            aria-label={t('Toggle %s', title)}
+            trailingItems={
+              <Flex align="center" gap="md">
+                {expanded ? (
+                  <Button
+                    size="xs"
+                    variant="link"
+                    icon={<IconCompass size="xs" />}
+                    disabled={queries.length === 0}
+                    tooltipProps={{
+                      title:
+                        queries.length === 0
+                          ? t('Query details are not available for this result.')
+                          : undefined,
+                    }}
+                    aria-expanded={showQuery}
+                    aria-controls={queryDetailsId}
+                    onClick={() => setShowQuery(value => !value)}
+                  >
+                    {showQuery ? t('Hide query') : t('Show query')}
+                  </Button>
+                ) : null}
+                {actions}
+              </Flex>
+            }
           >
-            <Stack gap="2xs" minWidth={0} flex={1}>
-              <Heading as="h3" size="md">
-                {chartHeaderTitle || title}
-              </Heading>
-              {chartHeaderMetadata ? (
-                <Text size="sm" variant="muted">
-                  {chartHeaderMetadata}
-                </Text>
+            <Text
+              data-test-id="query-cell-title"
+              size="md"
+              density="compressed"
+              align="center"
+              wrap="normal"
+              bold
+              tabular
+            >
+              {title}
+            </Text>
+          </QueryDisclosureTitle>
+        </QueryToolbar>
+        <QueryDisclosureContent>
+          {expanded ? (
+            <Stack
+              width="100%"
+              background="primary"
+              borderTop="primary"
+              padding="lg"
+              gap="lg"
+              data-test-id="query-cell-result"
+            >
+              {showQuery ? (
+                <Stack id={queryDetailsId} gap="md">
+                  {queries.map(query => (
+                    <Flex key={query} align="center" gap="md">
+                      <Text variant="muted">{t('Query:')}</Text>
+                      <Container
+                        border="primary"
+                        radius="md"
+                        padding="xs sm"
+                        minWidth={0}
+                      >
+                        <Text wordBreak="break-word">{query}</Text>
+                      </Container>
+                    </Flex>
+                  ))}
+                </Stack>
               ) : null}
-            </Stack>
-          </Flex>
-          <Container width="100%" overflow="hidden" padding={chart ? 'md lg' : '0'}>
-            <CellExecutionAlert block={block} />
-            {chart ? (
-              <ChartContent data={chart} showHeader={false} />
-            ) : output?.tableMarkdown ? (
-              <SeerMarkdown raw={output.tableMarkdown} components={{Table: FlushTable}} />
-            ) : (
-              <Container padding="md lg">
-                <CellProgress state={progressState} />
+              {(chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
+                <Stack gap="2xs" data-test-id="query-cell-header">
+                  {chartHeaderTitle && chartHeaderTitle !== title ? (
+                    <Heading as="h3" size="md">
+                      {chartHeaderTitle}
+                    </Heading>
+                  ) : null}
+                  {chartHeaderMetadata ? (
+                    <Text size="sm" variant="muted">
+                      {chartHeaderMetadata}
+                    </Text>
+                  ) : null}
+                </Stack>
+              ) : null}
+              <Container width="100%" overflow="hidden">
+                <CellExecutionAlert block={block} />
+                {chart ? (
+                  <ChartContent data={chart} showHeader={false} />
+                ) : output?.tableMarkdown ? (
+                  <SeerMarkdown
+                    raw={output.tableMarkdown}
+                    components={{Table: FlushTable}}
+                  />
+                ) : (
+                  <CellProgress state={progressState} />
+                )}
               </Container>
-            )}
-          </Container>
-        </Stack>
-      ) : null}
+            </Stack>
+          ) : null}
+        </QueryDisclosureContent>
+      </Disclosure>
     </CellHoverSurface>
   );
 }
@@ -427,7 +445,7 @@ function CellProgress({state}: {state: CellProgressState}) {
     <Flex align="center" gap="xs" data-test-id={`cell-progress-${state}`}>
       <IconSeer
         size="xs"
-        animation={['running', 'waiting'].includes(state) ? 'waiting' : undefined}
+        animation={['running', 'waiting'].includes(state) ? 'idle' : undefined}
       />
       <Text variant="muted">{message}</Text>
     </Flex>
@@ -463,13 +481,18 @@ function getCellProgressState(
   return 'waiting';
 }
 
-export function shouldDisplayInvestigationBlock(
-  block: InvestigationBlock,
-  blocks: InvestigationBlock[]
-) {
-  // Waiting cells have no useful content yet. Dependency failures and cancellations
-  // remain visible so users can understand why downstream work stopped.
-  return getCellProgressState(block, blocks) !== 'waiting';
+export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
+  if (block.kind === 'text') {
+    return Boolean((getTextOutput(block.output) ?? block.content).trim());
+  }
+  const output = getQueryOutput(block.output);
+  if (!output || output.isEmpty) {
+    return false;
+  }
+  return Boolean(
+    output.tableMarkdown.trim() ||
+    (output.preferredView === 'chart' && getRenderableChart(output.chart))
+  );
 }
 
 export function shouldPollInvestigationBlocks(blocks: InvestigationBlock[]) {
@@ -713,7 +736,7 @@ function RefinementPanel({
   return (
     <RefinementDisclosure defaultExpanded size="sm">
       <AgentActivityDisclosureTitle
-        leadingItems={<IconSeer size="xs" animation={active ? 'waiting' : undefined} />}
+        leadingItems={<IconSeer size="xs" animation={active ? 'idle' : undefined} />}
         trailingItems={
           <Flex align="center" gap="sm">
             {elapsed === null ? null : <ElapsedDuration milliseconds={elapsed} />}
@@ -732,6 +755,7 @@ function RefinementPanel({
       <RefinementDisclosureContent>
         <Stack gap="md">
           <Transcript
+            blockKind={block.kind}
             blocks={execution?.blocks ?? []}
             completedAt={currentExecution?.completedAt ?? null}
             active={active}
@@ -867,17 +891,22 @@ function PendingInvestigationQuestion({
 
 function Transcript({
   active,
+  blockKind,
   blocks,
   completedAt,
 }: {
   active: boolean;
+  blockKind: InvestigationBlockKind;
   blocks: InvestigationTranscriptBlock[];
   completedAt: string | null;
 }) {
   const now = useNow(active);
   const visibleBlocks = useMemo(
-    () => blocks.filter(isRenderableTranscriptBlock),
-    [blocks]
+    () =>
+      blocks.filter((block, index) =>
+        isRenderableTranscriptBlock(block, index, blockKind)
+      ),
+    [blocks, blockKind]
   );
   const explorerBlocks = useMemo(
     () => visibleBlocks.map(adaptTranscriptBlock),
@@ -897,18 +926,33 @@ function Transcript({
       data-test-id="investigation-transcript"
     >
       {explorerBlocks.map((block, index) => {
+        const currentVisibleBlock = visibleBlocks[index];
+        if (!currentVisibleBlock) {
+          return null;
+        }
         const end =
           visibleBlocks[index + 1]?.timestamp ?? completedAt ?? (active ? now : null);
         const duration = getElapsedMilliseconds(block.timestamp, end);
+        // Still streaming in: the raw JSON is unreadable as prose, so this row is rendered as a
+        // plain loading placeholder instead of routing it through `BlockComponent`, which would
+        // otherwise show it as assistant markdown. `isRenderableTranscriptBlock` drops the row
+        // outright once the object is complete, since `QueryResult` above already renders it.
+        const isBuildingChart =
+          currentVisibleBlock.loading &&
+          isStructuredQueryResultBlock(currentVisibleBlock, blockKind);
         return (
           <Grid key={block.id} columns="minmax(0, 1fr) auto" align="start" gap="md">
-            <BlockComponent
-              block={block}
-              blockIndex={index}
-              blocks={explorerBlocks}
-              readOnly
-              showThinking
-            />
+            {isBuildingChart ? (
+              <MessagePlaceholder content={t('Building chart…')} />
+            ) : (
+              <BlockComponent
+                block={block}
+                blockIndex={index}
+                blocks={explorerBlocks}
+                readOnly
+                showThinking
+              />
+            )}
             {duration === null ? null : <ElapsedDuration milliseconds={duration} />}
           </Grid>
         );
@@ -926,8 +970,34 @@ function isInternalPromptBlock(block: InvestigationTranscriptBlock, index: numbe
   );
 }
 
-function isRenderableTranscriptBlock(block: InvestigationTranscriptBlock, index: number) {
+/**
+ * A query block's final answer is always a single raw JSON object (see `QUERY_INSTRUCTIONS` in
+ * `agent.py`), never prose meant to be read as-is — `QueryResult` above already renders its
+ * parsed chart or table. Detected by role and a `{` prefix so a legitimate inline clarification
+ * question (plain markdown, never JSON) still renders normally.
+ */
+function isStructuredQueryResultBlock(
+  block: InvestigationTranscriptBlock,
+  blockKind: InvestigationBlockKind
+): boolean {
+  return (
+    blockKind === 'query' &&
+    block.message.role === 'assistant' &&
+    Boolean(block.message.content?.trim().startsWith('{'))
+  );
+}
+
+function isRenderableTranscriptBlock(
+  block: InvestigationTranscriptBlock,
+  index: number,
+  blockKind: InvestigationBlockKind
+) {
   if (isInternalPromptBlock(block, index)) {
+    return false;
+  }
+  // Once it has finished streaming, this is the redundant raw JSON dump described above — the
+  // rendered chart/table already stands in for it, so the row is dropped rather than shown.
+  if (!block.loading && isStructuredQueryResultBlock(block, blockKind)) {
     return false;
   }
   if (block.loading || block.message.content?.trim()) {
@@ -1040,8 +1110,8 @@ function getTextOutput(output: unknown): string | null {
 
 type RenderableQueryOutput = Pick<
   InvestigationQueryOutput,
-  'chart' | 'preferredView' | 'tableMarkdown'
->;
+  'chart' | 'preferredView' | 'tableMarkdown' | 'isEmpty'
+> & {queries: string[]};
 
 function getQueryOutput(output: unknown): RenderableQueryOutput | null {
   if (
@@ -1060,6 +1130,21 @@ function getQueryOutput(output: unknown): RenderableQueryOutput | null {
       : null;
   return {
     chart,
+    queries: [
+      ...new Set(
+        'queryLinks' in output && Array.isArray(output.queryLinks)
+          ? output.queryLinks.flatMap(link =>
+              isRecord(link) &&
+              isRecord(link.params) &&
+              typeof link.params.query === 'string' &&
+              link.params.query.trim()
+                ? [link.params.query.trim()]
+                : []
+            )
+          : []
+      ),
+    ],
+    isEmpty: 'isEmpty' in output && output.isEmpty === true,
     preferredView: output.preferredView,
     tableMarkdown: output.tableMarkdown,
   };
@@ -1124,11 +1209,35 @@ function getSeriesName(series: {label: string} | {name: string}) {
   return 'label' in series ? series.label : series.name;
 }
 
-const QueryDisclosureButton = styled(Button)`
-  flex: 1;
-  justify-content: flex-start;
-  padding-inline: ${p => p.theme.space.xs};
-  text-align: left;
+const QueryToolbar = styled(Container)`
+  &:hover {
+    background: ${p => p.theme.tokens.background.tertiary};
+  }
+
+  && > div {
+    padding: 0;
+    background: transparent;
+  }
+`;
+
+const QueryDisclosureTitle = styled(Disclosure.Title)`
+  && {
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    gap: ${p => p.theme.space.xs};
+  }
+
+  > span > [aria-hidden] {
+    order: 1;
+    margin: 0;
+  }
+`;
+
+const QueryDisclosureContent = styled(Disclosure.Content)`
+  && {
+    padding: 0;
+  }
 `;
 
 const CellActions = styled(Flex)`

@@ -8,7 +8,7 @@ from sentry.projectoptions import register
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 15
+LATEST_EPOCH = 16
 
 register(key="sentry:grouping_config", default=DEFAULT_GROUPING_CONFIG)
 register(key="sentry:grouping_enhancements", default="")
@@ -27,7 +27,11 @@ register(key="sentry:secondary_grouping_config", default=None)
 # it can be flipped on in the backfill script, unlike inclusion in a getsentry feature handler.)
 register(key="sentry:similarity_backfill_completed", default=None)
 
-register(key="sentry:group_action_log_backfill_completed", default=None)
+register(
+    key="sentry:group_action_log_backfill_completed",
+    default=None,
+    epoch_defaults={16: True},
+)
 
 
 # The JavaScript loader version that is the project default.  This option

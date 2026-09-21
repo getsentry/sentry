@@ -77,7 +77,6 @@ export function DetectorListHeader({
             title: canCreateDetector
               ? undefined
               : getNoPermissionToCreateMonitorsTooltip(),
-            isHoverable: true,
           }}
         >
           {t('Create Monitor')}

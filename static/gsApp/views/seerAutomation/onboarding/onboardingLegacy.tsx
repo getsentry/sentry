@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {useInfiniteQuery} from '@tanstack/react-query';
-import {useQueryClient} from '@tanstack/react-query';
+import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -275,7 +274,7 @@ function ProjectsWithoutRepos({
   );
 
   const handleUpdateProjectState = useCallback(
-    (projectId: string, preference: any, codeMappingRepos?: SeerRepoDefinition[]) => {
+    (projectId: string, preference: any) => {
       setProjectStates(prev => {
         const existingState = prev[projectId];
         return {
@@ -289,7 +288,7 @@ function ProjectsWithoutRepos({
       });
       const project = projects.find(p => p.id === projectId);
       if (project) {
-        onProjectStateUpdate(project, preference, false, codeMappingRepos);
+        onProjectStateUpdate(project, preference, false);
       }
     },
     [projects, onProjectStateUpdate]

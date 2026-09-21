@@ -8,9 +8,11 @@ import {
   screen,
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ModalStore} from 'sentry/stores/modalStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import * as intercom from 'sentry/utils/intercom';
 import {
   PrimaryNavigationHelpMenu,
@@ -25,17 +27,14 @@ function HelpMenuWithWhatsNew() {
 jest.mock('sentry/utils/intercom', () => ({
   showIntercom: jest.fn(),
 }));
-
-async function expandResourcesSubmenu() {
-  await userEvent.click(screen.getByRole('button', {name: 'Help'}));
-  await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Resources'}));
-}
+jest.mock('sentry/utils/analytics');
 
 describe('PrimaryNavigationHelpMenu', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     ModalStore.reset();
     ConfigStore.set('supportEmail', 'support@sentry.io');
+    setWindowLocation('https://example.test');
     Cookies.remove('sentry_react_auth', {path: '/'});
   });
 
@@ -48,11 +47,21 @@ describe('PrimaryNavigationHelpMenu', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Enable new login'}));
 
     expect(Cookies.get('sentry_react_auth')).toBe('1');
+    expect(trackAnalytics).toHaveBeenCalledWith('auth_v2.rollout.changed', {
+      organization,
+      source: 'help_menu',
+      state: 'enabled',
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'Help'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Disable new login'}));
 
-    expect(Cookies.get('sentry_react_auth')).toBeUndefined();
+    expect(Cookies.get('sentry_react_auth')).toBe('0');
+    expect(trackAnalytics).toHaveBeenCalledWith('auth_v2.rollout.changed', {
+      organization,
+      source: 'help_menu',
+      state: 'disabled',
+    });
   });
 
   it('hides the new login toggle when the feature is disabled', async () => {
@@ -70,7 +79,7 @@ describe('PrimaryNavigationHelpMenu', () => {
 
     render(<PrimaryNavigationHelpMenu />, {organization});
 
-    await expandResourcesSubmenu();
+    await userEvent.click(screen.getByRole('button', {name: 'Help'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Contact Support'}));
 
     expect(intercom.showIntercom).toHaveBeenCalledWith(organization.slug);

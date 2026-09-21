@@ -5,21 +5,21 @@ import type {LocationDescriptor} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {GroupList} from 'sentry/components/issues/groupList';
 import {Placeholder} from 'sentry/components/placeholder';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
@@ -61,7 +61,10 @@ import {
 } from 'sentry/views/investigations/api';
 import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/cell';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
-import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
+import type {
+  InvestigationCandidate,
+  MetricOpenPeriodInvestigationSource,
+} from 'sentry/views/investigations/types';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
@@ -216,6 +219,7 @@ function useZoomTimeRangeToOpenPeriod({
 
   useEffect(() => {
     zoomTimeRangeToOpenPeriod();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [openPeriodStart, openPeriodEnd, intervalSeconds]);
 }
 
@@ -245,7 +249,7 @@ function BooleanLogicError({discoverUrl}: {discoverUrl: LocationDescriptor}) {
         }
       >
         {t('Contributing issues unavailable for this detector.')}{' '}
-        <QuestionTooltip
+        <InfoTip
           title={t(
             'Issues do not support AND/OR queries. Modify your query to see contributing issues.'
           )}
@@ -462,7 +466,8 @@ function TriggeredConditionDetails({
           </Flex>
         }
       >
-        <KeyValueList
+        <KeyValueTableDataList
+          margin
           shouldSort={false}
           data={[
             {
@@ -564,6 +569,34 @@ function TriggeredConditionDetails({
 const GroupListWrapper = styled('div')`
   margin-top: ${p => p.theme.space.md};
 `;
+
+/**
+ * Why the launch button is off, or undefined when it is available.
+ *
+ * Both queries have settled by the time the button renders — a pending one
+ * shows a placeholder instead — so this is never "not yet".
+ *
+ * `unavailable` covers several situations the server deliberately does not
+ * separate: an issue that cannot be investigated at all, an existing
+ * investigation in a project the viewer cannot see, and a viewer who may not
+ * create one. Saying which would reveal whether an issue the viewer has no
+ * access to exists, so that wording stays vague on purpose. A missing open
+ * period is safe to name: the page already lists them.
+ */
+function getLaunchDisabledReason(
+  source: MetricOpenPeriodInvestigationSource | null,
+  candidateStatus: InvestigationCandidate['status'] | undefined
+): string | undefined {
+  if (source === null) {
+    return t('This issue has no open period to investigate.');
+  }
+  if (candidateStatus === 'unavailable') {
+    return t(
+      'Seer cannot investigate this issue. It may not be linked to an active monitor, or you may not have access.'
+    );
+  }
+  return undefined;
+}
 
 function SeerInvestigationSection({
   eventId,
@@ -686,6 +719,8 @@ function SeerInvestigationSection({
         )
       : null;
 
+  const launchDisabledReason = getLaunchDisabledReason(source, candidate?.status);
+
   return (
     <FoldSection
       title={
@@ -731,7 +766,10 @@ function SeerInvestigationSection({
                 size="md"
                 variant="primary"
                 busy={launchMutation.isPending}
-                disabled={!source || candidate?.status === 'unavailable'}
+                disabled={Boolean(launchDisabledReason)}
+                // Button drops the tooltip when there is no title, so an
+                // available button carries none.
+                tooltipProps={{title: launchDisabledReason}}
                 onClick={() => source && launchMutation.mutate(source)}
               >
                 {t('Launch Investigation')}

@@ -2,8 +2,7 @@ import {Fragment, type PropsWithChildren, type RefObject, useMemo, useRef} from 
 import {mergeProps} from '@react-aria/utils';
 import {motion, type MotionProps} from 'framer-motion';
 
-import {Stack} from '@sentry/scraps/layout';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack, Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
 import Feature from 'sentry/components/acl/feature';
@@ -29,8 +28,6 @@ import {
 import {
   NavigationTour,
   NavigationTourElement,
-} from 'sentry/views/navigation/navigationTour';
-import {
   useNavigationTour,
   useNavigationTourModal,
 } from 'sentry/views/navigation/navigationTour';

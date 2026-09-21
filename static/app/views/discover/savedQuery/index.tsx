@@ -137,39 +137,29 @@ const SavedQueryButtonGroup = memo(function SavedQueryButtonGroupImpl({
   disabled = false,
   organization,
 }: Props) {
-  function renderButtonViewSaved(isDisabled: boolean) {
-    return (
-      <LinkButton
-        onClick={() => {
-          trackAnalytics('discover_v2.view_saved_queries', {organization});
-        }}
-        data-test-id="discover2-savedquery-button-view-saved"
-        disabled={isDisabled}
-        size="sm"
-        icon={<IconStar isSolid />}
-        to={getDiscoverQueriesUrl(organization)}
-      >
-        {t('Saved Queries')}
-      </LinkButton>
-    );
-  }
-
-  function renderQueryButton(renderFunc: (isDisabled: boolean) => React.ReactNode) {
-    return (
+  return (
+    <Grid flow="column" align="center" gap="md">
       <Feature
         organization={organization}
         features="discover-query"
         overrideName="feature-disabled:discover-saved-query-create"
         renderDisabled={renderDisabled}
       >
-        {({hasFeature}) => renderFunc(!hasFeature || disabled)}
+        {({hasFeature}) => (
+          <LinkButton
+            onClick={() => {
+              trackAnalytics('discover_v2.view_saved_queries', {organization});
+            }}
+            data-test-id="discover2-savedquery-button-view-saved"
+            disabled={!hasFeature || disabled}
+            size="sm"
+            icon={<IconStar isSolid />}
+            to={getDiscoverQueriesUrl(organization)}
+          >
+            {t('Saved Queries')}
+          </LinkButton>
+        )}
       </Feature>
-    );
-  }
-
-  return (
-    <Grid flow="column" align="center" gap="md">
-      {renderQueryButton(isDisabled => renderButtonViewSaved(isDisabled))}
     </Grid>
   );
 });

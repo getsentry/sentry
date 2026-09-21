@@ -19,10 +19,8 @@ import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
 } from 'sentry/views/investigations/api';
-import type {
-  InvestigationDetail,
-  InvestigationListItem,
-} from 'sentry/views/investigations/types';
+import {InvestigationListItemFixture as InvestigationFixture} from 'sentry/views/investigations/fixtures';
+import type {InvestigationDetail} from 'sentry/views/investigations/types';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
 const organization = OrganizationFixture({
@@ -50,27 +48,6 @@ function renderView({
   });
 
   return {...result, queryClient};
-}
-
-function InvestigationFixture(
-  overrides: Partial<InvestigationListItem> = {}
-): InvestigationListItem {
-  return {
-    id: '1',
-    title: 'Database latency investigation',
-    status: 'active',
-    sourceType: 'manual',
-    createdBy: '1',
-    dateCreated: '2026-08-13T20:00:00Z',
-    dateUpdated: '2026-08-13T21:00:00Z',
-    version: 3,
-    blockCount: 4,
-    isFavorited: false,
-    summary: null,
-    summaryDescription: null,
-    titleGeneration: {status: null},
-    ...overrides,
-  };
 }
 
 describe('Explore Investigations', () => {
@@ -254,7 +231,10 @@ describe('Explore Investigations', () => {
     await waitFor(() =>
       expect(createRequest).toHaveBeenCalledWith(
         listUrl,
-        expect.objectContaining({data: {title: 'Untitled investigation'}})
+        expect.objectContaining({
+          // A source with no templateKey is what makes this agentic.
+          data: {title: 'Untitled investigation', source: {type: 'manual'}},
+        })
       )
     );
     expect(await screen.findByText('Untitled investigation')).toBeInTheDocument();

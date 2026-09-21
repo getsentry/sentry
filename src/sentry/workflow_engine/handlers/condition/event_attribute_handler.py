@@ -23,7 +23,7 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowEventData]):
             "attribute": {"type": "string", "enum": list(ATTR_CHOICES.keys())},
             "match": {
                 "type": "string",
-                "enum": [*MatchType],
+                "enum": list(MATCH_CHOICES),
             },
             "value": {
                 "type": "string",

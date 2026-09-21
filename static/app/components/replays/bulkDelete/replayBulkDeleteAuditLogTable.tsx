@@ -7,8 +7,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import {RequestError} from 'sentry/utils/requestError/requestError';
-import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
+import {RequestError, ERROR_MAP} from 'sentry/utils/requestError/requestError';
 
 const AUDIT_LOG_COLUMNS: TableColumnConfig[] = [
   {key: 'id', width: 'max-content'},

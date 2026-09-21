@@ -211,6 +211,157 @@ describe('utils/tokenizeSearch', () => {
         },
       },
       {
+        name: 'should not split a bracketed list on whitespace between items',
+        string: 'span.op:pageload transaction:[/issues/, /issues/:groupId/] python',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'span.op', value: 'pageload'},
+            {
+              type: TokenType.FILTER,
+              key: 'transaction',
+              value: '[/issues/, /issues/:groupId/]',
+            },
+            {type: TokenType.FREE_TEXT, value: 'python'},
+          ],
+        },
+      },
+      {
+        name: 'should not split a bracketed list of quoted items on whitespace',
+        string: 'sentry.segment.name:["/issues/", "/issues/:groupId/"]',
+        object: {
+          tokens: [
+            {
+              type: TokenType.FILTER,
+              key: 'sentry.segment.name',
+              value: '["/issues/", "/issues/:groupId/"]',
+            },
+          ],
+        },
+      },
+      {
+        name: 'should ignore a closing bracket inside a quoted list item',
+        string: 'key:["a ]", b] c',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'key', value: '["a ]", b]'},
+            {type: TokenType.FREE_TEXT, value: 'c'},
+          ],
+        },
+      },
+      {
+        name: 'should treat an unclosed bracket as plain text',
+        string: 'key:[a, b c',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'key', value: '[a,'},
+            {type: TokenType.FREE_TEXT, value: 'b'},
+            {type: TokenType.FREE_TEXT, value: 'c'},
+          ],
+        },
+      },
+      {
+        name: 'should not let a later explicit tag key close an unclosed bracket',
+        string: 'key:[a, b tags[foo]:bar',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'key', value: '[a,'},
+            {type: TokenType.FREE_TEXT, value: 'b'},
+            {type: TokenType.FILTER, key: 'tags[foo]', value: 'bar'},
+          ],
+        },
+      },
+      {
+        name: 'should handle a nested list inside a bracketed list',
+        string: 'key:[[a, b], c] d',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'key', value: '[[a, b], c]'},
+            {type: TokenType.FREE_TEXT, value: 'd'},
+          ],
+        },
+      },
+      {
+        name: 'should not treat a bracket inside quotes as a list',
+        string: 'key:"[a, b" c',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'key', value: '[a, b'},
+            {type: TokenType.FREE_TEXT, value: 'c'},
+          ],
+        },
+      },
+      {
+        name: 'should keep an explicit typed key whole when it contains a space',
+        string: 'tags[foo, string]:bar span.op:pageload',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'tags[foo, string]', value: 'bar'},
+            {type: TokenType.FILTER, key: 'span.op', value: 'pageload'},
+          ],
+        },
+      },
+      {
+        name: 'should keep an explicit typed flag key whole when it contains a space',
+        string: 'flags[foo, number]:>10',
+        object: {
+          tokens: [{type: TokenType.FILTER, key: 'flags[foo, number]', value: '>10'}],
+        },
+      },
+      {
+        name: 'should keep an array membership typed key whole when it contains a space',
+        string: 'tags[foo, array][*]:x',
+        object: {
+          tokens: [{type: TokenType.FILTER, key: 'tags[foo, array][*]', value: 'x'}],
+        },
+      },
+      {
+        name: 'should not treat a bracket after a word ending in tags as a typed key',
+        string: 'mytags[a, b] c',
+        object: {
+          tokens: [
+            {type: TokenType.FREE_TEXT, value: 'mytags[a,'},
+            {type: TokenType.FREE_TEXT, value: 'b]'},
+            {type: TokenType.FREE_TEXT, value: 'c'},
+          ],
+        },
+      },
+      {
+        name: 'should keep splitting free text that contains a bracketed span',
+        string: 'foo [bar baz] qux',
+        object: {
+          tokens: [
+            {type: TokenType.FREE_TEXT, value: 'foo'},
+            {type: TokenType.FREE_TEXT, value: '[bar'},
+            {type: TokenType.FREE_TEXT, value: 'baz]'},
+            {type: TokenType.FREE_TEXT, value: 'qux'},
+          ],
+        },
+      },
+      {
+        name: 'should not let a stray bracket pair with the closer of a later list',
+        string: '[stray key:[a], b]',
+        object: {
+          tokens: [
+            {type: TokenType.FREE_TEXT, value: '[stray'},
+            {type: TokenType.FILTER, key: 'key', value: '[a],'},
+            {type: TokenType.FREE_TEXT, value: 'b]'},
+          ],
+        },
+      },
+      {
+        name: 'should tokenize around a stray bracket between two filters',
+        string: 'a:1 [stray b:[x], y] c:2',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'a', value: '1'},
+            {type: TokenType.FREE_TEXT, value: '[stray'},
+            {type: TokenType.FILTER, key: 'b', value: '[x],'},
+            {type: TokenType.FREE_TEXT, value: 'y]'},
+            {type: TokenType.FILTER, key: 'c', value: '2'},
+          ],
+        },
+      },
+      {
         name: 'should handle quoted filter keys containing colons',
         string: '"imaginary.attribute:made_up_key":asdf',
         object: {
@@ -242,6 +393,16 @@ describe('utils/tokenizeSearch', () => {
         object: {
           tokens: [
             {type: TokenType.CONTAINS_FILTER, key: 'message', value: 'test value'},
+          ],
+        },
+      },
+      {
+        name: 'should keep a bracketed list whole behind a wildcard operator',
+        string: 'message:Contains[a, b] c',
+        object: {
+          tokens: [
+            {type: TokenType.CONTAINS_FILTER, key: 'message', value: '[a, b]'},
+            {type: TokenType.FREE_TEXT, value: 'c'},
           ],
         },
       },
@@ -300,6 +461,12 @@ describe('utils/tokenizeSearch', () => {
   });
 
   describe('QueryResults operations', () => {
+    it('round-trips a bracketed list with whitespace between items unchanged', () => {
+      const query =
+        'span.op:pageload sentry.segment.name:["/issues/", "/issues/:groupId/"]';
+      expect(new MutableSearch(query).formatString()).toBe(query);
+    });
+
     it('add tokens to query object', () => {
       const results = new MutableSearch([]);
 
@@ -636,6 +803,19 @@ describe('utils/tokenizeSearch', () => {
         name: 'correctly preserve filters with functions',
         object: new MutableSearch(['country:>canada', 'OR', 'coronaFree():<newzealand']),
         string: 'country:>canada OR coronaFree():<newzealand',
+      },
+      {
+        name: 'preserves grouping parens after aggregate filters',
+        object: new MutableSearch(
+          '(transaction:"Example Transaction" count(span.duration):>100) AND is_transaction:1'
+        ),
+        string:
+          '( transaction:"Example Transaction" count(span.duration):>100 ) AND is_transaction:1',
+      },
+      {
+        name: 'preserves grouping parens when a quoted value ends with a backslash',
+        object: new MutableSearch('(key:"value\\\\")'),
+        string: '( key:"value\\\\" )',
       },
       {
         name: 'should quote tags with parens and spaces',

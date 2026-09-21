@@ -1,5 +1,7 @@
 import orderBy from 'lodash/orderBy';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import type {Relay, RelayActivity} from 'sentry/types/relay';
 
 import {ActivityList} from './activityList';
@@ -18,6 +20,22 @@ type Props = {
 } & Pick<CardHeaderProps, 'onDelete' | 'onEdit'> &
   Pick<WaitingActivityProps, 'onRefresh'>;
 
+function RelayCardContent({
+  activities,
+  disabled,
+  onRefresh,
+}: {
+  activities: RelayActivity[];
+  disabled: boolean;
+  onRefresh: WaitingActivityProps['onRefresh'];
+}) {
+  if (!activities.length) {
+    return <WaitingActivity onRefresh={onRefresh} disabled={disabled} />;
+  }
+
+  return <ActivityList activities={activities} />;
+}
+
 export function List({
   relays,
   relayActivities,
@@ -31,21 +49,13 @@ export function List({
 
   const relaysByPublicKey = getRelaysByPublicKey(orderedRelays, relayActivities);
 
-  const renderCardContent = (activities: RelayActivity[]) => {
-    if (!activities.length) {
-      return <WaitingActivity onRefresh={onRefresh} disabled={disabled} />;
-    }
-
-    return <ActivityList activities={activities} />;
-  };
-
   return (
-    <div>
+    <Stack gap="xl">
       {Object.keys(relaysByPublicKey).map(relayByPublicKey => {
         const {name, description, created, activities} =
           relaysByPublicKey[relayByPublicKey]!;
         return (
-          <div key={relayByPublicKey}>
+          <Stack key={relayByPublicKey} gap="md">
             <CardHeader
               publicKey={relayByPublicKey}
               name={name}
@@ -60,10 +70,14 @@ export function List({
                   : undefined
               }
             />
-            {renderCardContent(activities)}
-          </div>
+            <RelayCardContent
+              activities={activities}
+              disabled={disabled}
+              onRefresh={onRefresh}
+            />
+          </Stack>
         );
       })}
-    </div>
+    </Stack>
   );
 }

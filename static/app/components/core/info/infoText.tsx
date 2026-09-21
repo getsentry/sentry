@@ -46,7 +46,6 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'sp
       showOnlyOnOverflow={isOverflowOnly}
       onOverflowChange={isOverflowOnly ? setIsOverflowing : undefined}
       skipWrapper
-      isHoverable
       showUnderline={!isOverflowOnly}
       underlineColor={textProps.variant === 'inherit' ? undefined : textProps.variant}
     >

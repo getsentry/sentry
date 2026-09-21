@@ -219,11 +219,11 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Connectors'),
           description: t('Connect monitoring providers to Seer'),
           id: 'seer-connectors',
+          badge: () => <FeatureBadge type="beta" />,
           show: ({organization}) =>
             !!organization &&
             showNewSeer(organization) &&
-            organization.features.includes('seer-infra-telemetry') &&
-            organization.features.includes('seer-infra-telemetry-user-level-auth'),
+            organization.features.includes('seer-infra-telemetry'),
         },
         {
           path: `${organizationSettingsPathPrefix}/seer/advanced/`,

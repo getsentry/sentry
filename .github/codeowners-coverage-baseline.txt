@@ -543,14 +543,6 @@ static/app/components/discover/transactionsList.spec.tsx
 static/app/components/discover/transactionsList.tsx
 static/app/components/discover/transactionsTable.tsx
 static/app/components/discoverButton.tsx
-static/app/components/dropdownButton.tsx
-static/app/components/dropdownMenu/footer.tsx
-static/app/components/dropdownMenu/index.spec.tsx
-static/app/components/dropdownMenu/index.stories.tsx
-static/app/components/dropdownMenu/index.tsx
-static/app/components/dropdownMenu/item.tsx
-static/app/components/dropdownMenu/list.tsx
-static/app/components/dropdownMenu/section.tsx
 static/app/components/duration.tsx
 static/app/components/duration/duration.spec.tsx
 static/app/components/duration/duration.stories.tsx
@@ -1825,7 +1817,6 @@ tests/js/fixtures/vercelIntegration.ts
 tests/js/fixtures/widget.ts
 tests/js/fixtures/widgetQuery.ts
 tests/js/fixtures/workflowEngine.ts
-tests/js/instrumentedEnv/userEventIntegration.ts
 tests/js/jest-pegjs-transform.js
 tests/js/setup.ts
 tests/js/setupFramework.ts
@@ -1951,7 +1942,6 @@ tests/sentry/digests/test_utilities.py
 tests/sentry/discover/__init__.py
 tests/sentry/discover/test_arithmetic.py
 tests/sentry/discover/test_compare_tables.py
-tests/sentry/discover/test_compare_timeseries.py
 tests/sentry/discover/test_dashboard_widget_split.py
 tests/sentry/discover/test_dataset_split.py
 tests/sentry/discover/test_models.py

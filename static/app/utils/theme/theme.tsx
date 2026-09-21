@@ -12,9 +12,7 @@ import {css} from '@emotion/react';
 import {spring, type Transition} from 'framer-motion';
 
 import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants/env';
-// eslint-disable-next-line no-restricted-imports
 import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
-// eslint-disable-next-line no-restricted-imports
 import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/light';
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
 import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
@@ -258,7 +256,7 @@ const commonTheme = {
   },
 
   ...typography,
-};
+} as const;
 
 export interface SentryTheme extends Omit<
   typeof lightThemeDefinition,
@@ -650,13 +648,11 @@ function makeChartColorPalette<T extends ChartColorPalette>(
     length: Length | number | 'all'
   ): T[Length] {
     if (length === 'all') {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       return palette.at(-1) as unknown as T[Length];
     }
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
     const index = Math.max(0, Math.min(palette.length - 1, length));
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     return palette[index] as unknown as T[Length];
   };
 }
@@ -879,6 +875,7 @@ declare module '@emotion/react' {
 }
 
 export type StrictCSSObject = {
+  // eslint-disable-next-line eslint-js/no-restricted-syntax
   [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
 } & Partial<{
   [key: `&${string}`]: StrictCSSObject; // Allow nested selectors

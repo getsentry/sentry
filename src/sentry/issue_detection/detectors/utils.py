@@ -8,6 +8,7 @@ from typing import Any, TypedDict
 from urllib.parse import ParseResult, parse_qs, urlparse
 
 from sentry.utils.http import is_valid_ip
+from sentry.utils.safe import get_path
 
 from ..types import Span
 
@@ -568,3 +569,17 @@ def get_numeric_value_from_span[T: (int, float)](
             ),
         )
         return default
+
+
+def get_browser_name(event: dict[str, Any]) -> str:
+    return get_path(event, "contexts", "browser", "name") or next(
+        (
+            tag[1]
+            for tag in event.get("tags") or []
+            if tag is not None
+            and len(tag) == 2
+            and tag[0] == "browser.name"
+            and isinstance(tag[1], str)
+        ),
+        "",
+    )

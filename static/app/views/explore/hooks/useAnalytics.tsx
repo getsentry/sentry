@@ -234,6 +234,7 @@ function useTrackAnalytics({
     if (
       queryType !== 'samples' ||
       spansTableResult.result.isPending ||
+      spansTableResult.result.isPlaceholderData ||
       timeseriesResult.isPending ||
       isLoadingSubscriptionDetails ||
       isLoadingSeerSetup
@@ -332,6 +333,7 @@ function useTrackAnalytics({
     query_status,
     spansTableResult.result.data?.length,
     spansTableResult.result.isPending,
+    spansTableResult.result.isPlaceholderData,
     spansTableResult.result.meta?.dataScanned,
     tableErrorBox,
     chartErrorBox,
@@ -1048,6 +1050,7 @@ export function useMetricsPanelAnalytics({
     }
   }, [
     organization,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     dataset,
     mode,
     metricSamplesTableResult.result.isFetching,
@@ -1105,6 +1108,7 @@ export function useMetricsPanelAnalytics({
     }
   }, [
     organization,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     dataset,
     mode,
     metricAggregatesTableResult.result.isPending,
@@ -1226,6 +1230,7 @@ export function useMetricsAnalytics({
 
 function useBox<T>(value: T): RefObject<T> {
   const box = useRef(value);
+  // oxlint-disable-next-line react/refs
   box.current = value;
   return box;
 }
