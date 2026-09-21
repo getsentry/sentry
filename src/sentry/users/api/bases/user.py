@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
@@ -13,6 +13,7 @@ from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.auth.system import is_system_auth
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -77,12 +78,27 @@ class UserDisplayPreferencesPermission(UserPermission):
     caller to their own preferences.
     """
 
+    @staticmethod
+    def _demo_blocked(request: Request) -> bool:
+        """Mirrors `DemoSafePermission`, which the scope-free check below skips.
+
+        Demo sessions are read-only across the product, and that is a separate rule
+        from scopes — dropping the scope requirement must not hand them a write.
+        """
+        return is_demo_user(request.user) and (
+            not is_demo_mode_enabled() or request.method not in SAFE_METHODS
+        )
+
     def has_permission(self, request: Request, view: APIView) -> bool:
+        if self._demo_blocked(request):
+            return False
         return request.user.is_authenticated
 
     def has_object_permission(
         self, request: Request, view: APIView, user: User | RpcUser | None
     ) -> bool:
+        if self._demo_blocked(request):
+            return False
         if user is None:
             return False
         if agent_token.is_agent_auth(request.auth):

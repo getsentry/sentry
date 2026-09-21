@@ -4,6 +4,7 @@ from django.test import override_settings
 
 from sentry.seer import agent_token
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
@@ -294,3 +295,31 @@ class UserDisplayPreferencesSuperuserTest(APITestCase):
         self.get_error_response(victim.id, method="put", theme="dark", status_code=403)
 
         assert UserOption.objects.get_value(user=victim, key="theme") is None
+
+
+@control_silo_test
+class UserDisplayPreferencesDemoModeTest(APITestCase):
+    """Demo sessions stay read-only. Dropping the scope requirement must not change that."""
+
+    endpoint = "sentry-api-0-user-display-preferences"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user(email="demo@example.com")
+        self.login_as(user=self.user)
+
+    def test_demo_user_can_read_own_preferences(self) -> None:
+        with override_options({"demo-mode.enabled": True, "demo-mode.users": [self.user.id]}):
+            self.get_success_response("me", method="get")
+
+    def test_demo_user_cannot_write_own_preferences(self) -> None:
+        with override_options({"demo-mode.enabled": True, "demo-mode.users": [self.user.id]}):
+            self.get_error_response("me", method="put", theme="dark", status_code=403)
+
+        assert UserOption.objects.get_value(user=self.user, key="theme") is None
+
+    def test_demo_user_cannot_write_when_demo_mode_is_off(self) -> None:
+        with override_options({"demo-mode.enabled": False, "demo-mode.users": [self.user.id]}):
+            self.get_error_response("me", method="put", theme="dark", status_code=403)
+
+        assert UserOption.objects.get_value(user=self.user, key="theme") is None
