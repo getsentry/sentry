@@ -53,7 +53,6 @@ export function getWebhookSubjectLabel(subjectType?: string | null) {
 interface WebhookSubjectProps {
   isInternal: boolean; // We only want to render links for internal apps (i.e the same org)
   organization: Organization;
-  disableLink?: boolean;
   display?: 'full' | 'id';
   subjectId?: string | null;
   subjectType?: string | null;
@@ -64,7 +63,6 @@ export function WebhookSubject({
   subjectId,
   isInternal,
   organization,
-  disableLink = false,
   display = 'full',
 }: WebhookSubjectProps) {
   if (!subjectId) {
@@ -79,7 +77,7 @@ export function WebhookSubject({
   const label = getWebhookSubjectLabel(subjectType);
   const content = display === 'id' ? subjectId : `${label} ${subjectId}`;
 
-  if (!disableLink && isInternal && spec?.getUrl) {
+  if (isInternal && spec?.getUrl) {
     return (
       <SubjectLink to={spec.getUrl(subjectId, organization)}>
         <Text ellipsis variant="inherit">
