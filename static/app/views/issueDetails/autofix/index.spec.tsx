@@ -3,12 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {
-  render,
-  screen,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import GroupAutofix from 'sentry/views/issueDetails/autofix';
@@ -100,13 +95,10 @@ describe('GroupAutofix', () => {
       })
     );
 
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    // The toolbar now lives in the issue navigation row, so the tab itself
-    // renders only the analysis.
-    expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+    // The toolbar renders in the issue navigation row, not in the tab.
+    expect(
+      await screen.findByRole('button', {name: 'Start Analysis'})
+    ).toBeInTheDocument();
     expect(screen.queryByText('Seer Autofix')).not.toBeInTheDocument();
   });
 
