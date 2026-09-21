@@ -39,7 +39,7 @@ class ApiScopes(Sequence[str]):
 
     alerts = (("alerts:read"), ("alerts:write"))
 
-    dashboard = (("dashboard:read"), ("dashboard:write"))
+    dashboard = (("dashboard:read"), ("dashboard:write"), ("dashboard:delete"))
 
     def __init__(self) -> None:
         self.scopes = (
@@ -104,6 +104,7 @@ class HasApiScopes(models.Model):
             "org:ci": bool,
             "dashboard:read": bool,
             "dashboard:write": bool,
+            "dashboard:delete": bool,
         },
     )
     assert set(ScopesDict.__annotations__) == set(ApiScopes())
