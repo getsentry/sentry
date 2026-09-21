@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {TraceNode} from './traceTreeNode/traceNode';
 import {TraceTree} from './traceTree';
 import {makeEAPSpan, makeEAPTrace} from './traceTreeTestUtils';
 
@@ -32,7 +33,7 @@ describe('incremental trace fetch', () => {
           ],
         }),
       ]),
-      {replay: null, meta: null, organization}
+      {replay: null, organization}
     );
 
     // Mock the API calls
@@ -64,7 +65,7 @@ describe('incremental trace fetch', () => {
         makeEAPSpan({
           event_id: '5',
           start_timestamp: 0,
-          end_timestamp: 1,
+          end_timestamp: 3,
           op: 'op5',
         }),
       ]),
@@ -75,6 +76,9 @@ describe('incremental trace fetch', () => {
     // 1 root trace node + 2 eap spans
     expect(tree.list).toHaveLength(3);
 
+    const timelineChange = jest.fn();
+    tree.on('trace timeline change', timelineChange);
+
     tree.fetchAdditionalTraces({
       replayTraces: traces,
       api: new MockApiClient(),
@@ -82,13 +86,15 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {},
-      meta: null,
     });
 
-    await waitFor(() => expect(tree.root.children[0]!.fetchStatus).toBe('idle'));
+    await waitFor(() =>
+      expect((tree.root.children[0] as TraceNode).fetchStatus).toBe('idle')
+    );
 
     // 1 root trace node + 2 eap spans + 3 newly fetched eap spans
     expect(tree.list).toHaveLength(6);
+    expect(timelineChange).toHaveBeenCalledWith([0, 3000]);
   });
   it('EAP - Does not infinitely fetch on error', async () => {
     const traces = [
@@ -115,7 +121,7 @@ describe('incremental trace fetch', () => {
           ],
         }),
       ]),
-      {replay: null, meta: null, organization}
+      {replay: null, organization}
     );
 
     // Mock the API calls
@@ -160,10 +166,11 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {},
-      meta: null,
     });
 
-    await waitFor(() => expect(tree.root.children[0]!.fetchStatus).toBe('idle'));
+    await waitFor(() =>
+      expect((tree.root.children[0] as TraceNode).fetchStatus).toBe('idle')
+    );
     tree.build();
 
     // 1 root trace node + 2 eap spans + 2 newly fetched eap spans

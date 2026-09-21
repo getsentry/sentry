@@ -43,7 +43,7 @@ export function makeExampleTrace(organization: Organization): TraceTree {
     start = end;
   }
 
-  return TraceTree.FromTrace(trace, {meta: null, replay: null, organization});
+  return TraceTree.FromTrace(trace, {replay: null, organization});
 }
 
 function partialEAPSpan(

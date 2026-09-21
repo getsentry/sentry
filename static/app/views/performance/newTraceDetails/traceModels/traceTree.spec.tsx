@@ -16,7 +16,7 @@ import {
 
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
 const organization = OrganizationFixture();
-const traceOptions = {replay: null, meta: null, organization};
+const traceOptions = {replay: null, organization};
 
 const eapTrace = makeEAPTrace([
   makeEAPSpan({
@@ -177,7 +177,7 @@ describe('TraceTree', () => {
             ],
           }),
         ]),
-        {meta: null, replay: null, organization}
+        {replay: null, organization}
       );
 
       // eap-span-1 is a transaction/segment and should be collapsed
@@ -376,7 +376,7 @@ describe('TraceTree', () => {
             ],
           }),
         ]),
-        {meta: null, replay: null, organization}
+        {replay: null, organization}
       );
 
       expect(tree.vitals.size).toBe(1);
@@ -430,7 +430,7 @@ describe('TraceTree', () => {
             children: [],
           }),
         ]),
-        {meta: null, replay: null, organization}
+        {replay: null, organization}
       );
 
       const span1 = tree.root.findChild(n => n.id === 'eap-span-1');
@@ -464,7 +464,7 @@ describe('TraceTree', () => {
             children: [],
           }),
         ]),
-        {meta: null, replay: null, organization}
+        {replay: null, organization}
       );
 
       const span1 = tree.root.findChild(n => n.id === 'eap-span-1');
@@ -518,7 +518,7 @@ describe('TraceTree', () => {
             children: [],
           }),
         ]),
-        {meta: null, replay: null, organization}
+        {replay: null, organization}
       );
 
       const lcpIndicators = tree.indicators.filter(i => i.type === 'lcp');
@@ -572,7 +572,7 @@ describe('TraceTree', () => {
               children: [],
             }),
           ]),
-          {meta: null, replay: null, organization}
+          {replay: null, organization}
         );
 
         const lcpIndicators = tree.indicators.filter(i => i.type === 'lcp');
@@ -598,7 +598,7 @@ describe('TraceTree', () => {
             children: [cyclicSpan],
           }),
         ]),
-        {meta: null, replay: null, organization}
+        {replay: null, organization}
       );
 
       expect(tree.build()).toBeDefined();

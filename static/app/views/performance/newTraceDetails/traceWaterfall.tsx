@@ -178,7 +178,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       organization: props.organization,
       urlParams: qs.parse(location.search),
       rerender: forceRerender,
-      meta: props.meta,
       preferences: traceState.preferences,
     });
 

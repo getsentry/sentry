@@ -1,6 +1,5 @@
 import type {Theme} from '@emotion/react';
 
-import type {Client} from 'sentry/api';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -44,21 +43,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
    * The value of the node.
    */
   value: T;
-
-  /**
-   * Whether this node can fetch further children. An example is fetching embedded spans for a transaction node.
-   */
-  canFetchChildren = false;
-
-  /**
-   * This is the status of the node's fetch children operation.
-   */
-  fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
-
-  /**
-   * Whether this node has fetched further children.
-   */
-  hasFetchedChildren = false;
 
   /**
    * Whether this node is expanded.
@@ -534,10 +518,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return null;
   }
 
-  findClosestParentTransaction(): EapSpanNode | null {
-    return this.findParentEapTransaction();
-  }
-
   findParentEapTransaction(): EapSpanNode | null {
     return this.findParent(
       (p): p is EapSpanNode => isEAPSpanNode(p) && p.value.is_transaction
@@ -547,8 +527,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   expand(expanding: boolean, tree: TraceTree): boolean {
     const index = tree.list.indexOf(this);
 
-    // Expanding is not allowed for zoomed in nodes
-    if (expanding === this.expanded || this.hasFetchedChildren) {
+    if (expanding === this.expanded) {
       return false;
     }
 
@@ -580,33 +559,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return pickBarColor('default', theme);
   }
 
-  /**
-   * Fetches and adds children to this node.
-   * Returns the bounds of the added subtree as [start, end] timestamps.
-   * This can be used by the tree to update its overall bounds if the new children
-   * extend beyond the tree's current bounds.
-   */
-  fetchChildren(
-    _fetching: boolean,
-    _tree: TraceTree,
-    _options: {
-      api: Client;
-    }
-  ): Promise<[number, number] | null> {
-    return Promise.resolve(null);
-  }
-
   pathToNode(): TraceTree.NodePath[] {
     const path = this.path;
 
     if (!path) {
       return [];
-    }
-
-    const closestFetchableParent = this.findParent(p => p.canFetchChildren);
-
-    if (closestFetchableParent) {
-      return [path, ...closestFetchableParent.pathToNode()];
     }
 
     return [path];

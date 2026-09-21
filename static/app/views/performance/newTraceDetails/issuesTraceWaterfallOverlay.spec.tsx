@@ -4,7 +4,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
+import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
+import {
+  makeEAPTrace,
+  makeUptimeCheck,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import {IssueTraceWaterfallOverlay} from './issuesTraceWaterfallOverlay';
@@ -16,6 +20,9 @@ describe('IssueTraceWaterfallOverlay', () => {
         trace: {
           trace_id: '123',
         },
+      },
+      occurrence: {
+        evidenceData: {offenderSpanIds: ['offender-span-id']},
       },
     });
     const organization = OrganizationFixture({features: ['performance-view']});
@@ -57,7 +64,46 @@ describe('IssueTraceWaterfallOverlay', () => {
     expect(url.searchParams.get('groupId')).toBe(event.groupID);
     expect(url.searchParams.get('referrer')).toBe('issue-stream');
     expect(url.searchParams.get('source')).toBe('issue_details');
+    expect(url.searchParams.getAll('node')).toEqual(['span-offender-span-id']);
     expect(url.searchParams.has('project')).toBe(false);
     expect(url.searchParams.has('query')).toBe(false);
+  });
+
+  it('uses the matching trace node path when there is no offender span', () => {
+    const event = EventFixture({
+      contexts: {
+        trace: {
+          trace_id: '123',
+        },
+      },
+    });
+    const organization = OrganizationFixture({features: ['performance-view']});
+    const viewManager = {
+      row_measurer: {
+        off: jest.fn(),
+        on: jest.fn(),
+      },
+    } as unknown as VirtualizedViewManager;
+    const tree = IssuesTraceTree.FromTrace(
+      makeEAPTrace([makeUptimeCheck({event_id: event.eventID})]),
+      {organization, replay: null}
+    );
+
+    render(
+      <IssueTraceWaterfallOverlay
+        containerRef={createRef<HTMLDivElement>()}
+        event={event}
+        groupId={event.groupID}
+        tree={tree}
+        viewManager={viewManager}
+        source="issues"
+      />,
+      {organization}
+    );
+
+    const link = screen.getByRole('link');
+    const url = new URL(link.getAttribute('href')!, 'https://example.com');
+
+    expect(url.searchParams.getAll('node')).toEqual([`uptime-check-${event.eventID}`]);
   });
 });

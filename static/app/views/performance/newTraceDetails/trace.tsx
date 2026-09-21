@@ -356,7 +356,6 @@ export function Trace({
           manager={manager}
           theme={theme}
           onExpand={onNodeExpand}
-          onZoomIn={onNodeExpand}
           onRowClick={onRowClick}
           onRowKeyDown={onRowKeyDown}
           tree={trace}
@@ -564,7 +563,6 @@ function RenderTraceRow(props: {
     index: number
   ) => void;
   onRowKeyDown: (event: React.KeyboardEvent, index: number, node: BaseNode) => void;
-  onZoomIn: (event: React.MouseEvent, node: BaseNode, value: boolean) => void;
   organization: Organization;
   previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>;
   projects: Record<Project['slug'], Project['platform']>;
@@ -659,7 +657,6 @@ function RenderTraceRow(props: {
   const rowProps: TraceRowProps<BaseNode> = {
     pinnedAttributeCell: <TracePinnedAttributeCell node={node} />,
     onExpand,
-    onZoomIn: onExpand,
     onRowClick,
     onRowKeyDown,
     previouslyFocusedNodeRef: props.previouslyFocusedNodeRef,

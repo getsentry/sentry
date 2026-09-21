@@ -38,7 +38,6 @@ export function useTraceTree({trace, replay}: UseTraceTreeParams): TraceTree {
 
     if (trace.data) {
       const newTree = TraceTree.FromTrace(trace.data, {
-        meta: null,
         replay,
         preferences: traceState.preferences,
         organization,

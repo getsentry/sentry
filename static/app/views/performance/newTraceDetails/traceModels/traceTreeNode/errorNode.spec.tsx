@@ -312,7 +312,6 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
 
       expect(node.matchByPath('error-errorId')).toBe(true);
-      expect(node.matchByPath('txn-errorId')).toBe(false);
     });
 
     it('should return correct pathToNode', () => {

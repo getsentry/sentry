@@ -566,7 +566,6 @@ describe('TraceMetaDataHeader', () => {
           }),
         ]),
         {
-          meta: null,
           replay: null,
           organization,
         }

@@ -7,7 +7,7 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 
 // Span keys
 type TransactionPrefix = 'Transaction';
-type LegacyTraceSearchKey =
+type TraceSearchCompatibilityKey =
   | 'duration'
   | 'exclusive_time'
   | 'hash'
@@ -23,7 +23,7 @@ type LegacyTraceSearchKey =
   | 'transaction.duration'
   | 'transaction.op'
   | 'transaction.status';
-type EAPSpanSearchKey = keyof TraceTree.EAPSpan | LegacyTraceSearchKey;
+type EAPSpanSearchKey = keyof TraceTree.EAPSpan | TraceSearchCompatibilityKey;
 // The keys can be prefixed by the entity type they belong to, this ensures that
 // conflicting keys on different entities are resolved to the correct entity.
 type TransactionKey = `${TransactionPrefix}.${EAPSpanSearchKey}` | EAPSpanSearchKey;
@@ -64,6 +64,7 @@ type SpanKey = `${SpanPrefix}.${EAPSpanSearchKey}` | EAPSpanSearchKey;
 const SPAN_TEXT_KEYS: SpanKey[] = [
   'hash',
   'description',
+  'name',
   'op',
   'origin',
   'parent_span_id',
@@ -78,11 +79,6 @@ const SPAN_DURATION_KEYS: SpanKey[] = ['exclusive_time'];
 // The keys below are not real keys returned by the API, but are instead
 // mapped by the frontend to the correct keys for convenience and UX reasons
 const SPAN_DURATION_SYNTHETIC_KEYS: SpanKey[] = ['duration', 'total_time', 'self_time'];
-
-// New span keys that are available on Span-First SDK and OTLP SDK spans for
-// now. In the future we'll backfill the `name` key for all spans, and this can
-// be moved into `SPAN_TEXT_KEYS`
-const SPAN_FIRST_TEXT_KEYS = ['name'];
 
 // @TODO the current date parsing does not support timestamps, so we
 // exclude these keys for now and parse them as numeric keys
@@ -106,7 +102,6 @@ const TEXT_KEYS = new Set([
   ...SYNTHETIC_KEYS,
   ...withPrefixedPermutation('transaction', TRANSACTION_TEXT_KEYS),
   ...withPrefixedPermutation('span', SPAN_TEXT_KEYS),
-  ...withPrefixedPermutation('span', SPAN_FIRST_TEXT_KEYS),
 ]);
 const NUMERIC_KEYS = new Set([
   ...withPrefixedPermutation('transaction', TRANSACTION_NUMERIC_KEYS),

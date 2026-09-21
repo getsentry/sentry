@@ -104,9 +104,6 @@ describe('BaseNode', () => {
       expect(node.value).toBe(value);
       expect(node.extra).toBe(extra);
       expect(node.expanded).toBe(true);
-      expect(node.canFetchChildren).toBe(false);
-      expect(node.fetchStatus).toBe('idle');
-      expect(node.hasFetchedChildren).toBe(false);
       expect(node.canAutogroup).toBe(false);
       expect(node.allowNoInstrumentationNodes).toBe(false);
       expect(node.children).toEqual([]);
@@ -690,29 +687,6 @@ describe('BaseNode', () => {
       const node = new TestNode(null, createMockValue({event_id: '1-event-id'}), extra);
 
       expect(node.pathToNode()).toEqual(['test-1-event-id']);
-    });
-
-    it('should generate path to node with canFetchChildren=true parent', () => {
-      const extra = createMockExtra();
-      const node = new TestNode(null, createMockValue({event_id: '1-event-id'}), extra);
-      const parent = new TestNode(null, createMockValue({event_id: '2-event-id'}), extra);
-
-      node.parent = parent;
-      parent.canFetchChildren = true;
-
-      expect(node.path).toBe('test-1-event-id');
-      expect(node.pathToNode()).toEqual(['test-1-event-id', 'test-2-event-id']);
-    });
-
-    it('should return promise for fetchChildren', async () => {
-      const extra = createMockExtra();
-      const node = new TestNode(null, createMockValue({event_id: 'test-id'}), extra);
-
-      const result = await node.fetchChildren(false, {} as TraceTree, {
-        api: {} as any,
-      });
-
-      expect(result).toBeNull();
     });
   });
 
@@ -1548,21 +1522,6 @@ describe('BaseNode', () => {
       expect(parent.expanded).toBe(false);
     });
 
-    it('should return false when node has already fetched children', () => {
-      const extra = createMockExtra();
-      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
-      parent.expanded = false;
-      parent.hasFetchedChildren = true;
-
-      const tree = createMockTraceTree();
-      tree.list = [parent];
-
-      const result = parent.expand(true, tree as any);
-
-      expect(result).toBe(false);
-      expect(parent.expanded).toBe(false);
-    });
-
     it('should invalidate node and children after expansion', () => {
       const extra = createMockExtra();
       const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
@@ -1615,8 +1574,6 @@ describe('BaseNode', () => {
       const extra = createMockExtra();
       const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
 
-      expect(node.canFetchChildren).toBe(false);
-      expect(node.hasFetchedChildren).toBe(false);
       expect(node.expanded).toBe(true);
       expect(node.allowNoInstrumentationNodes).toBe(false);
       expect(node.canAutogroup).toBe(false);
@@ -1626,14 +1583,10 @@ describe('BaseNode', () => {
       const extra = createMockExtra();
       const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
 
-      node.canFetchChildren = true;
-      node.hasFetchedChildren = true;
       node.expanded = false;
       node.allowNoInstrumentationNodes = true;
       node.canAutogroup = true;
 
-      expect(node.canFetchChildren).toBe(true);
-      expect(node.hasFetchedChildren).toBe(true);
       expect(node.expanded).toBe(false);
       expect(node.allowNoInstrumentationNodes).toBe(true);
       expect(node.canAutogroup).toBe(true);

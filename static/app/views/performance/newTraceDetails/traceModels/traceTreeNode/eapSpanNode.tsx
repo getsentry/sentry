@@ -201,7 +201,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
     return this.value.is_transaction
       ? undefined
-      : this.findClosestParentTransaction()?.profileId;
+      : this.findParentEapTransaction()?.profileId;
   }
 
   get hasHttpError(): boolean {
@@ -228,7 +228,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
     return this.value.is_transaction
       ? undefined
-      : this.findClosestParentTransaction()?.profilerId;
+      : this.findParentEapTransaction()?.profilerId;
   }
 
   get transactionId(): string | undefined {
@@ -236,7 +236,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     // otherwise we use the transaction_id of the closest parent transaction.
     return this.value.is_transaction
       ? this.value.transaction_id
-      : this.findClosestParentTransaction()?.transactionId;
+      : this.findParentEapTransaction()?.transactionId;
   }
 
   get traceHeaderTitle(): {
@@ -273,8 +273,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   expand(expanding: boolean, tree: TraceTree): boolean {
     const index = tree.list.indexOf(this);
 
-    // Expanding is not allowed for zoomed in nodes
-    if (expanding === this.expanded || this.hasFetchedChildren) {
+    if (expanding === this.expanded) {
       return false;
     }
 

@@ -125,7 +125,7 @@ describe('useTrace', () => {
       ['?targetId='],
       ['?someOtherParam=foo'],
       [`?eventId=${invalidUUid}`],
-      [`?node=txn-${invalidUUid}`],
+      [`?node=span-${invalidUUid}`],
       [`?node=span-${invalidUUid}`],
       [`?node=error-${invalidUUid}`],
     ])('does NOT call EAP endpoint with errorId when URL has %s', async search => {
@@ -162,7 +162,7 @@ describe('useTrace', () => {
       {search: `?targetId=${validUUid}`, expectedParamKey: 'errorId'},
       {search: `?eventId=${validUUid}`, expectedParamKey: 'errorId'},
       {search: `?node=error-${validUUid}`, expectedParamKey: 'errorId'},
-      {search: `?node=txn-${validUUid}`, expectedParamKey: 'errorId'},
+      {search: `?node=span-${validUUid}`, expectedParamKey: 'errorId'},
     ])(
       'calls tracing endpoint with query param options %s',
       async ({search, expectedParamKey}) => {

@@ -111,14 +111,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     // Construct the visual representation of the tree
     props.tree.build();
 
-    // Find all the nodes that match the event id from the error so that we can try and
-    // link the user to the most specific one.
-    const nodes = props.tree.root.findAllChildren(n => n.matchById(props.event.eventID));
-
-    // By order of priority, we want to find the error node, then the span node, then the transaction node.
-    // This is because the error node as standalone is the most specific one, otherwise we look for the span that
-    // the error may have been attributed to, otherwise we look at the transaction.
-    const node = nodes.sort((a, b) => b.searchPriority - a.searchPriority)[0];
+    const node = IssuesTraceTree.findEventNode(props.tree, props.event.eventID);
 
     const index = node ? IssuesTraceTree.EnforceVisibility(props.tree, node) : -1;
 

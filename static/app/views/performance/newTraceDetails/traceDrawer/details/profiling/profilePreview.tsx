@@ -72,7 +72,7 @@ export function ProfilePreview({
   }, [profileGroup.profiles, profileGroup.activeProfileIndex, spanThreadId]);
 
   const transactionHasProfile = useMemo(() => {
-    const parentTransaction = missingInstrumentationNode.findClosestParentTransaction();
+    const parentTransaction = missingInstrumentationNode.findParentEapTransaction();
     return !!parentTransaction?.hasProfiles;
   }, [missingInstrumentationNode]);
 

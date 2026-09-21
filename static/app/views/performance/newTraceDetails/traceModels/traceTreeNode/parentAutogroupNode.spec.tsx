@@ -545,34 +545,6 @@ describe('ParentAutogroupNode', () => {
       expect(node.expanded).toBe(false);
     });
 
-    it('should return false when node has fetched children', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeParentAutogroup({});
-      const headSpanValue = makeEAPSpan({event_id: 'head'});
-      const tailSpanValue = makeEAPSpan({event_id: 'tail'});
-
-      const headNode = new EapSpanNode(null, headSpanValue, extra);
-      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
-
-      const node = new ParentAutogroupNode(
-        null,
-        autogroupValue,
-        extra,
-        headNode,
-        tailNode
-      );
-
-      const tree = createMockTraceTree();
-
-      node.hasFetchedChildren = true;
-      node.expanded = false;
-
-      const result = node.expand(true, tree);
-
-      expect(result).toBe(false);
-      expect(node.expanded).toBe(false);
-    });
-
     it('should handle expand/collapse when node not in tree list', () => {
       const extra = createMockExtra();
       const autogroupValue = makeParentAutogroup({});
