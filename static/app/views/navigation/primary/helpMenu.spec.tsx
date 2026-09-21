@@ -29,11 +29,6 @@ jest.mock('sentry/utils/intercom', () => ({
 }));
 jest.mock('sentry/utils/analytics');
 
-async function expandResourcesSubmenu() {
-  await userEvent.click(screen.getByRole('button', {name: 'Help'}));
-  await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Resources'}));
-}
-
 describe('PrimaryNavigationHelpMenu', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -84,7 +79,7 @@ describe('PrimaryNavigationHelpMenu', () => {
 
     render(<PrimaryNavigationHelpMenu />, {organization});
 
-    await expandResourcesSubmenu();
+    await userEvent.click(screen.getByRole('button', {name: 'Help'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Contact Support'}));
 
     expect(intercom.showIntercom).toHaveBeenCalledWith(organization.slug);

@@ -60,7 +60,6 @@ class RpcUserProfile(RpcModel):
 
 
 class RpcUser(RpcUserProfile):
-    roles: frozenset[str] = frozenset()
     permissions: frozenset[str] = frozenset()
     avatar: RpcAvatar | None = None
     emails: frozenset[str] = frozenset()
