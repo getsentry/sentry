@@ -770,6 +770,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         }
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.API_INVALID_REQUEST_ERROR,
+            internal_failure=False,
             count=1,
             mock_metrics=mock_metrics,
             tags={"provider": "example"},
