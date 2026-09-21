@@ -452,7 +452,10 @@ describe('Slow-query evidence from the spans dataset', () => {
             entries: hasSnapshot ? recordedSpanEntries() : [],
             formatted: {
               format: 'markdown',
-              content: 'SELECT id FROM server_recorded_books',
+              content:
+                '## Title\nServer title\n**Date:** 2023-01-01 00:00:00 UTC\n\n' +
+                '## Span Evidence\nSELECT id FROM server_recorded_books\n\n' +
+                '## Contexts\nServer context',
             },
           })
         );
@@ -467,6 +470,10 @@ describe('Slow-query evidence from the spans dataset', () => {
         expect(markdown).toContain('25% of txn');
         expect(markdown).toContain('/app/books.py:42 getBooks');
         expect(markdown).not.toContain('recorded_books');
+        expect(markdown).toContain(
+          '## Title\nServer title\n**Date:** 2023-01-01 00:00:00 UTC'
+        );
+        expect(markdown).toContain('## Contexts\nServer context');
 
         await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
         expect(writeText).toHaveBeenLastCalledWith(markdown);

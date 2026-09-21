@@ -29,6 +29,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat, getUserTimezone} from 'sentry/utils/dates';
+import {MarkedLexer} from 'sentry/utils/marked/marked';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSpanEvidenceToMarkdown} from 'sentry/views/issueDetails/hooks/spanEvidenceMarkdown';
@@ -261,6 +262,46 @@ function formatEventToMarkdown(event: Event, activeThreadId: number | undefined)
   return markdownText;
 }
 
+/** Replace only the server's evidence section, retaining all other source text. */
+function replaceSpanEvidenceMarkdown(markdown: string, evidence: string): string {
+  // The lexer normalizes line endings. Keep offsets into the original document
+  // so its formatting and line endings survive outside the replaced section.
+  const crlfOffsets = Array.from(
+    markdown.matchAll(/\r\n/g),
+    (match, index) => match.index - index
+  );
+  const originalOffset = (index: number) =>
+    index + crlfOffsets.filter(offset => offset < index).length;
+  const normalized = markdown.replace(/\r\n?/g, '\n');
+  let offset = 0;
+  let start: number | undefined;
+
+  for (const token of MarkedLexer.lex(normalized)) {
+    // Reference definitions can be omitted by the lexer. Locate each token in
+    // the original source rather than reconstructing the document from tokens.
+    const tokenStart = normalized.indexOf(token.raw, offset);
+    offset = tokenStart + token.raw.length;
+    if (token.type !== 'heading' || token.depth > 2) {
+      continue;
+    }
+    if (start !== undefined) {
+      return (
+        markdown.slice(0, originalOffset(start)) +
+        evidence.trim() +
+        '\n\n' +
+        markdown.slice(originalOffset(tokenStart))
+      );
+    }
+    if (token.depth === 2 && token.text === 'Span Evidence') {
+      start = tokenStart;
+    }
+  }
+
+  return start === undefined
+    ? `${markdown}\n\n${evidence.trim()}`
+    : markdown.slice(0, originalOffset(start)) + evidence.trim();
+}
+
 interface IssueAndEventToMarkdownOptions {
   group: Group;
   organization: Organization;
@@ -280,16 +321,18 @@ export const issueAndEventToMarkdown = ({
   slowDBQuerySpan,
 }: IssueAndEventToMarkdownOptions): string => {
   const formatted = event?.formatted?.content;
-  // Server-rendered Markdown includes the recorded span snapshot. Use the
-  // client formatter when the pane resolves its evidence from the spans dataset.
-  if (formatted && slowDBQuerySpan === undefined) {
+  if (formatted) {
     let llmMarkdown = `**Issue ID:** ${group.id}\n`;
     if (group.project?.slug) {
       llmMarkdown += `**Project:** ${group.project.slug}\n`;
     }
     // no date here: the server-rendered body already opens with a `Date` field in UTC, and a
     // second one formatted in the viewer's timezone would just disagree with it
-    llmMarkdown += `\n${formatted}`;
+    const evidence =
+      event && slowDBQuerySpan !== undefined
+        ? formatSpanEvidenceToMarkdown(event, group, slowDBQuerySpan)
+        : '';
+    llmMarkdown += `\n${evidence ? replaceSpanEvidenceMarkdown(formatted, evidence) : formatted}`;
     if (autofixFormatted) {
       llmMarkdown += `\n\n${autofixFormatted}`;
     }
