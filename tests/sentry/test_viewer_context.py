@@ -48,6 +48,19 @@ class TestViewerContext:
         assert ctx.user_id == 42
         assert ctx.actor_type is ActorType.SYSTEM
 
+    def test_serialize_round_trips_early_adopter(self):
+        ctx = ViewerContext(organization_id=10, organization_is_early_adopter=True)
+        data = ctx.serialize()
+        assert data["organization_is_early_adopter"] is True
+        assert ViewerContext.deserialize(data).organization_is_early_adopter is True
+
+    def test_serialize_omits_early_adopter_when_false(self):
+        assert "organization_is_early_adopter" not in ViewerContext(organization_id=10).serialize()
+        assert (
+            ViewerContext.deserialize({"organization_id": 10}).organization_is_early_adopter
+            is False
+        )
+
 
 class TestViewerContextScope:
     def test_get_returns_none_outside_scope(self):
@@ -133,7 +146,7 @@ class TestViewerContextScope:
         ctx = ViewerContext(user_id=1, actor_type=ActorType.USER)
 
         with viewer_context_scope(ctx):
-            set_viewer_context_organization(42)
+            set_viewer_context_organization(42, is_early_adopter=False)
             updated = get_viewer_context()
 
             assert updated is not None
@@ -143,8 +156,17 @@ class TestViewerContextScope:
 
         assert get_viewer_context() is None
 
+    def test_set_organization_records_early_adopter(self):
+        with viewer_context_scope(ViewerContext(user_id=1)):
+            set_viewer_context_organization(42, is_early_adopter=True)
+            updated = get_viewer_context()
+
+            assert updated is not None
+            assert updated.organization_id == 42
+            assert updated.organization_is_early_adopter is True
+
     def test_set_organization_is_noop_without_context(self):
-        set_viewer_context_organization(42)
+        set_viewer_context_organization(42, is_early_adopter=False)
 
         assert get_viewer_context() is None
 

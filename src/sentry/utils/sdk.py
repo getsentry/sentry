@@ -555,7 +555,9 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     scope = sentry_sdk.get_isolation_scope()
-    set_viewer_context_organization(organization.id)
+    set_viewer_context_organization(
+        organization.id, is_early_adopter=bool(organization.flags.early_adopter)
+    )
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
     with start_span(op="other", name="bind_organization_context"):

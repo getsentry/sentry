@@ -61,6 +61,7 @@ class ViewerContext:
     project_id: int | None = None
     user_id: int | None = None
     actor_type: ActorType = ActorType.UNKNOWN
+    organization_is_early_adopter: bool = False
 
     # Carries scopes/kind for in-process permission checks.
     # NOT propagated across process/service boundaries.
@@ -75,6 +76,8 @@ class ViewerContext:
             result["project_id"] = self.project_id
         if self.user_id is not None:
             result["user_id"] = self.user_id
+        if self.organization_is_early_adopter:
+            result["organization_is_early_adopter"] = True
         return result
 
     @classmethod
@@ -89,6 +92,7 @@ class ViewerContext:
             project_id=data.get("project_id"),
             user_id=data.get("user_id"),
             actor_type=actor_type,
+            organization_is_early_adopter=data.get("organization_is_early_adopter") is True,
         )
 
 
@@ -174,13 +178,17 @@ def observe_viewer_context_propagation(
         logger.warning("viewer_context.missing", extra=log_extra)
 
 
-def set_viewer_context_organization(organization_id: int) -> None:
-    """Update the current ``ViewerContext`` with a resolved organization id."""
+def set_viewer_context_organization(organization_id: int, *, is_early_adopter: bool) -> None:
+    """Update the current ``ViewerContext`` with a resolved organization."""
     ctx = get_viewer_context()
-    if ctx is None or ctx.organization_id == organization_id:
+    if ctx is None:
         return
 
-    _viewer_context_var.set(dataclasses.replace(ctx, organization_id=organization_id))
+    updated = dataclasses.replace(
+        ctx, organization_id=organization_id, organization_is_early_adopter=is_early_adopter
+    )
+    if updated != ctx:
+        _viewer_context_var.set(updated)
 
 
 def set_viewer_context_project(project_id: int) -> None:

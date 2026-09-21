@@ -267,7 +267,13 @@ class TestResolveViewerContext:
             scopes=["org:read"],
             allowed_origins=[],
         )
-        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER, token=token)
+        ctx = ViewerContext(
+            organization_id=42,
+            user_id=7,
+            actor_type=ActorType.USER,
+            token=token,
+            organization_is_early_adopter=True,
+        )
         with viewer_context_scope(ctx):
             result = _resolve_viewer_context(
                 SeerViewerContext(organization_id=999), endpoint="/v1/automation/summarize"
@@ -276,6 +282,7 @@ class TestResolveViewerContext:
         assert result is not None
         assert result.organization_id == 999
         assert result.token is None
+        assert result.organization_is_early_adopter is False
         mock_logger.warning.assert_called_once()
         assert mock_logger.warning.call_args[0][0] == "seer.viewer_context_mismatch"
         assert mock_logger.warning.call_args[1]["extra"]["endpoint"] == "/v1/automation/summarize"
@@ -315,6 +322,14 @@ class TestResolveViewerContext:
             "seer.viewer_context_resolution",
             tags={"outcome": "match", "has_project": "false", "endpoint": "unknown"},
         )
+
+    def test_no_mismatch_carries_early_adopter(self) -> None:
+        ctx = ViewerContext(organization_id=42, user_id=7, organization_is_early_adopter=True)
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(SeerViewerContext(organization_id=42, user_id=7))
+
+        assert result is not None
+        assert result.organization_is_early_adopter is True
 
     def test_no_mismatch_keeps_token(self) -> None:
         token = AuthenticatedToken(
