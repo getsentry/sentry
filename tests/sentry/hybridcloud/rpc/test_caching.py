@@ -4,6 +4,7 @@ from random import Random
 import pytest
 from django.core.cache import cache
 
+from sentry.hybridcloud.models.cacheversion import CellCacheVersion
 from sentry.hybridcloud.rpc.caching import (
     back_with_silo_cache,
     back_with_silo_cache_list,
@@ -72,16 +73,6 @@ def get_active_user(user_id: int, is_active: bool) -> RpcUser | None:
 
 
 @back_with_silo_cache(
-    base_key="this-base-key-is-quite-long-and-will-overflow", silo_mode=SiloMode.CELL, t=RpcUser
-)
-def get_active_user_long_basekey(user_id: int, is_active: bool) -> RpcUser | None:
-    results = user_service.get_many(filter=dict(user_ids=[user_id], is_active=is_active))
-    if len(results):
-        return results[0]
-    return None
-
-
-@back_with_silo_cache(
     base_key="this-base-key-is-32-chars-loonng", silo_mode=SiloMode.CELL, t=RpcUser
 )
 def get_active_user_equal(user_id: int, padding: str) -> RpcUser | None:
@@ -125,35 +116,21 @@ def test_caching_function_multiple_parameters() -> None:
 
 
 @django_db_all(transaction=True)
-def test_caching_function_long_base_key() -> None:
+def test_caching_function_with_overflow_parameters() -> None:
     cache.clear()
-    user = Factories.create_user()
 
-    first = get_active_user_long_basekey(user.id, True)
+    user = Factories.create_user()
+    # The json encoding will push the key past max length
+    padding_len = MAX_CACHE_KEY_LENGTH - len(str(user.id))
+
+    first = get_active_user_equal(user.id, "a" * padding_len)
     assert first
     assert first.id == user.id
     assert first.username == user.username
 
-    cached = get_active_user_long_basekey(user.id, True)
-    assert cached
-    assert cached.id == user.id
-
-
-@django_db_all(transaction=True)
-def test_caching_function_equal_length() -> None:
-    cache.clear()
-    user = Factories.create_user()
-    id_len = len(str(user.id))
-
-    # 6 accounts for :[,""]
-    first = get_active_user_equal(user.id, "a" * (32 - id_len - 6))
-    assert first
-    assert first.id == user.id
-    assert first.username == user.username
-
-    cached = get_active_user_equal(user.id, "a" * (32 - id_len - 6))
-    assert cached
-    assert cached.id == user.id
+    reload = get_active_user_equal(user.id, "a" * padding_len)
+    assert reload
+    assert reload.id == first.id
 
 
 @django_db_all(transaction=True)
@@ -211,6 +188,19 @@ def get_by_two_params(first: object, second: object) -> RpcUser | None:
     return None
 
 
+def test_base_key_length_check() -> None:
+    key_len = MAX_BASE_KEY_LENGTH + 1
+    base_key = "a" * key_len
+
+    with pytest.raises(ValueError) as err:
+
+        @back_with_silo_cache(base_key=base_key, silo_mode=SiloMode.CELL, t=RpcUser)
+        def get_thing(value: str) -> RpcUser | None:
+            return None
+
+    assert f"base_key '{base_key}' is {key_len} characters" in str(err.value)
+
+
 def test_key_from_distinguishes_parameters() -> None:
     # Single key signature work with str representation so these keys are the same.
     # In practice this doesn't matter as a function's signature should prevent shadowing
@@ -255,14 +245,33 @@ def test_key_from_is_memcached_safe() -> None:
     assert get_thing.key_from("has a space") != get_thing.key_from("has-a-space")
 
 
-def test_base_key_too_long_is_rejected() -> None:
-    with pytest.raises(ValueError):
+@django_db_all(transaction=True)
+def test_key_from_equal_to_max_length() -> None:
+    cache.clear()
+    user = Factories.create_user()
+    id_len = len(str(user.id))
+    # 6 accounts for :[,""]
+    padding_len = MAX_CACHE_KEY_LENGTH - id_len - 6
 
-        @back_with_silo_cache(
-            base_key="a" * (MAX_BASE_KEY_LENGTH + 1), silo_mode=SiloMode.CELL, t=RpcUser
-        )
-        def get_thing(value: int) -> RpcUser | None:
-            return None
+    key = get_active_user_equal.key_from(user.id, "a" * padding_len)
+    assert len(key) <= MAX_CACHE_KEY_LENGTH
+    version = CellCacheVersion.incr_version(key)
+    assert version > 0
+
+
+@django_db_all(transaction=True)
+def test_key_from_parameter_overflow_key_length() -> None:
+    cache.clear()
+    user = Factories.create_user()
+    # The combined length of padding + id_len + wrapping json will overflow key length
+    id_len = len(str(user.id))
+    padding_len = MAX_CACHE_KEY_LENGTH - id_len + 1
+
+    key = get_active_user_equal.key_from(user.id, "a" * padding_len)
+    assert len(key) <= MAX_CACHE_KEY_LENGTH
+
+    version = CellCacheVersion.incr_version(key)
+    assert version > 0
 
 
 @django_db_all(transaction=True)

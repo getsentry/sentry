@@ -44,12 +44,12 @@ class CellCachingService(RpcService):
 _R = TypeVar("_R", bound=pydantic.BaseModel)
 _Params = TypeVarTuple("_Params")
 
-# Cache keys are stored in ``CacheVersionBase.key``, a varchar(64). Keys longer than
+# Cache keys are stored in ``CacheVersionBase.keyname``, a varchar(200). Keys longer than
 # this raise a DataError when a version row is created during cache invalidation.
-MAX_CACHE_KEY_LENGTH = 64
+MAX_CACHE_KEY_LENGTH = 200
 
-# We can go as low as 16 bytes of md5 without risking collisions
-MAX_BASE_KEY_LENGTH = MAX_CACHE_KEY_LENGTH - 16
+# Method keys must be shorter than 200 - len(md5 digest)
+MAX_BASE_KEY_LENGTH = MAX_CACHE_KEY_LENGTH - 32
 
 # Memcached rejects whitespace and control characters in keys, so any parameter
 # encoding containing them has to be hashed rather than used verbatim.
@@ -86,7 +86,7 @@ class SiloCacheBackedCallable(Generic[*_Params, _R]):
     ):
         if len(base_key) > MAX_BASE_KEY_LENGTH:
             raise ValueError(
-                f"base_key {base_key!r} is {len(base_key)} characters; it must be at most "
+                f"base_key '{base_key}' is {len(base_key)} characters. It must be at most "
                 f"{MAX_BASE_KEY_LENGTH} so that hashed parameters fit within the "
                 f"{MAX_CACHE_KEY_LENGTH} character CacheVersion.key column"
             )
@@ -121,7 +121,6 @@ class SiloCacheBackedCallable(Generic[*_Params, _R]):
             arg_str
         ):
             arg_str = hashlib.md5(arg_str.encode("utf-8")).hexdigest()
-
         return f"{self.base_key}:{arg_str}"[:MAX_CACHE_KEY_LENGTH]
 
     def resolve_from(
