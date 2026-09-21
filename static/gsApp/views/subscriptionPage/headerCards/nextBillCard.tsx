@@ -157,8 +157,8 @@ export function NextBillCard({
                   </Text>
                 </Flex>
               )}
-              {[...oneTimeAdjustments, ...fees].map(item => (
-                <Flex justify="between" align="center" key={item.description}>
+              {[...oneTimeAdjustments, ...fees].map((item, index) => (
+                <Flex justify="between" align="center" key={index}>
                   <Text variant="muted" size="sm">
                     {item.description}
                   </Text>
