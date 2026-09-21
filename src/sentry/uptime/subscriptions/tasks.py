@@ -74,7 +74,7 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     retry=Retry(times=5, delay=5),
 )
 def update_remote_uptime_subscription(
-    uptime_subscription_id, region_slugs: list[str] | None = None, **kwargs
+    uptime_subscription_id: int, region_slugs: list[str] | None = None, **kwargs
 ):
     """
     Pushes details of an uptime subscription to uptime subscription regions. When
@@ -385,7 +385,8 @@ def repair_missing_configs(
         uptime_subscription__status=UptimeSubscription.Status.ACTIVE.value,
         region_slug__in=store.region_slugs,
     ).values_list("uptime_subscription__subscription_id", "uptime_subscription_id", "region_slug"):
-        assert subscription_id is not None
+        if subscription_id is None:
+            continue
         slugs_by_subscription[(pk, subscription_id)].add(region_slug)
 
     for (pk, subscription_id), slugs in slugs_by_subscription.items():
