@@ -31,8 +31,8 @@ interface ChartVisualizationProps {
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   droppedData?: Annotation[];
-  showDroppedData?: boolean;
   onDroppedDataClick?: (bucket: AnnotationBucket) => void;
+  showDroppedData?: boolean;
 }
 
 export function useChartVisualizationPlottables(chartInfo: ChartInfo) {

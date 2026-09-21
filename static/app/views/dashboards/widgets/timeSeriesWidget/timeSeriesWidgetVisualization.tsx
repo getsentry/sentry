@@ -109,6 +109,8 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    */
   legendSelection?: LegendSelection;
 
+  onDroppedDataClick?: (bucket: AnnotationBucket) => void;
+
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
    */
@@ -136,8 +138,6 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Defaults to true when `droppedData` is provided.
    */
   showDroppedData?: boolean;
-
-  onDroppedDataClick?: (bucket: AnnotationBucket) => void;
 
   /**
    * Defines the legend's visibility.
