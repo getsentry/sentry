@@ -4,6 +4,7 @@ from typing import Any, TypedDict, cast
 from unittest.mock import Mock, patch
 
 import pytest
+from django.test import override_settings
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.integrations.types import ExternalProviders
@@ -109,6 +110,7 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
         MockCachePayload(**cache_payload)
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class SeerOperatorTest(TestCase):
     def setUp(self) -> None:
         self.entrypoint = MockAutofixEntrypoint()
@@ -940,6 +942,7 @@ class MockAgentEntrypoint(SeerAgentEntrypoint[MockCachePayload]):
         return None
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestSeerAgentOperatorAccess(TestCase):
     def setUp(self) -> None:
         self.entrypoint = MockAgentEntrypoint()
