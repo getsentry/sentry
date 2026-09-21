@@ -65,17 +65,20 @@ class UserDisplayPreferencesPermission(UserPermission):
     rejection is lifted here for the display-preferences resource only, and replaced
     with an explicit self-only check against the credential.
 
-    Two deliberate narrowings relative to `UserAndStaffPermission`:
+    No staff or superuser bypass, unlike `UserAndStaffPermission`: display preferences
+    are personal, so there is no operator reason to write somebody else's.
 
-    * No staff or superuser bypass. Display preferences are personal, so there is no
-      operator reason to write somebody else's.
-    * `PUT` requires a write scope, so an agent holding only the default read-only scopes
-      gets Sentry's insufficient-scope challenge and the user is asked to approve first.
+    Reads and writes take the same scopes on purpose. A signed-in user changes their own
+    preferences with no scope at all — session auth never reaches the scope map — so
+    requiring one of an agent acting for that same user would be stricter than the
+    person it acts for. No write scope is available to ask for in any case: grants are
+    capped at the approving user's own scopes, and `org:write` belongs to manager and
+    owner only, so a member could never approve one.
     """
 
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
     }
 
     def has_permission(self, request: Request, view: APIView) -> bool:

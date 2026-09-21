@@ -151,11 +151,14 @@ class UserDisplayPreferencesPermissionTest(DRFPermissionTestCase):
 
         assert self.options_permission.has_permission(request, APIView())
 
-    def test_read_scope_does_not_allow_put(self) -> None:
+    def test_read_scope_allows_put(self) -> None:
+        # Reads and writes take the same scopes: a signed-in user needs none to change
+        # their own preferences, and no write scope exists that a plain member could
+        # ever approve.
         auth = self._agent_auth(self.normal_user.id, ["org:read"])
         request = self.make_request(user=self.normal_user, auth=auth, method="PUT")
 
-        assert not self.options_permission.has_permission(request, APIView())
+        assert self.options_permission.has_permission(request, APIView())
 
     def test_write_scope_allows_put(self) -> None:
         auth = self._agent_auth(self.normal_user.id, ["org:write"])

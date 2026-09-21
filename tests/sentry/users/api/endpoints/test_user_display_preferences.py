@@ -176,20 +176,20 @@ class UserDisplayPreferencesAgentTokenTest(APITestCase):
         assert response.data["theme"] == "dark"
         assert UserOption.objects.get_value(user=self.user, key="theme") == "dark"
 
-    def test_read_only_token_cannot_write_and_is_told_why(self) -> None:
+    def test_default_read_only_token_can_write(self) -> None:
+        # A default agent token carries only SENTRY_READONLY_SCOPES, and that is enough
+        # here: the user it acts for needs no scope to change their own preferences, and
+        # no write scope exists that a plain member could approve.
         with self.feature(agent_token.FEATURE_FLAG):
-            response = self.get_error_response(
+            response = self.get_success_response(
                 "me",
                 method="put",
                 theme="dark",
-                status_code=403,
                 extra_headers=self._headers(self.user, ["org:read"]),
             )
 
-        # Seer turns this challenge into a user-facing approval prompt, so the header
-        # matters as much as the status code.
-        assert "insufficient_scope" in response["WWW-Authenticate"]
-        assert UserOption.objects.get_value(user=self.user, key="theme") is None
+        assert response.data["theme"] == "dark"
+        assert UserOption.objects.get_value(user=self.user, key="theme") == "dark"
 
     def test_cannot_read_another_users_preferences(self) -> None:
         other_user = self.create_user()
