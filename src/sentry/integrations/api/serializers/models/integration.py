@@ -37,7 +37,6 @@ class MissingFeature(TypedDict):
     tier it falls short of, so the update-permissions modal can list them."""
 
     key: str
-    name: str
     description: str
 
 
@@ -119,8 +118,7 @@ class IntegrationSerializer(Serializer):
                     obj.metadata.get("permissions", {}), GITHUB_APP_LATEST_PERMISSIONS
                 )
                 missing_features = [
-                    {"key": tier.key, "name": tier.name, "description": tier.description}
-                    for tier in reversed(tiers)
+                    {"key": tier.key, "description": tier.description} for tier in reversed(tiers)
                 ]
             case "slack":
                 out_of_date = SlackScope.APP_MENTIONS_READ not in (obj.metadata.get("scopes") or [])

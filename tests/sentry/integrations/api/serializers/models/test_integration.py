@@ -82,7 +82,6 @@ class IntegrationSerializerTest(TestCase):
         assert result["missingFeatures"] == [
             {
                 "key": PR_ITERATION_TIER.key,
-                "name": PR_ITERATION_TIER.name,
                 "description": PR_ITERATION_TIER.description,
             }
         ]
