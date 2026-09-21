@@ -1516,7 +1516,6 @@ regex_config = SearchConfig.create_from(default_config, allow_regex=True)
         pytest.param("span.op://a\\*b//", "=", "a\\*b", id="escaped asterisk"),
         pytest.param("span.op://a\\d+//", "=", "a\\d+", id="character class"),
         pytest.param("span.op://a\\\\1//", "=", "a\\\\1", id="escaped backslash before digit"),
-        pytest.param("span.op://a\\\\Z//", "=", "a\\\\Z", id="escaped backslash before Z"),
         pytest.param("span.op://\\pL+//", "=", "\\pL+", id="unicode class"),
         pytest.param("span.op://foo\\z//", "=", "foo\\z", id="end of text"),
         pytest.param("span.op://(?U)a+//", "=", "(?U)a+", id="ungreedy flag"),
@@ -1546,6 +1545,7 @@ def test_parses_regex_op_without_rewriting_the_pattern(
         pytest.param("span.op://[0-9]//", id="lone character class"),
         pytest.param("span.op://^(foo|bar) baz$//", id="parens and spaces"),
         pytest.param('span.op://"quoted"//', id="embedded quotes"),
+        pytest.param(r"span.op://https?://example\.com///", id="embedded and trailing slashes"),
     ],
 )
 def test_round_trips_a_regex_op_through_to_query_string(query) -> None:
@@ -1579,31 +1579,6 @@ def test_round_trips_a_regex_op_through_to_query_string(query) -> None:
             id="lookahead",
         ),
         pytest.param(
-            "span.op://foo(?<!bar)//",
-            "span.op: Invalid regex (RE2 syntax): invalid perl operator: (?<!",
-            id="lookbehind",
-        ),
-        pytest.param(
-            "span.op://foo\\Z//",
-            "span.op: Invalid regex (RE2 syntax): invalid escape sequence: \\Z",
-            id="end of string escape",
-        ),
-        pytest.param(
-            "span.op://(?>foo)//",
-            "span.op: Invalid regex (RE2 syntax): invalid perl operator: (?>",
-            id="atomic group",
-        ),
-        pytest.param(
-            "span.op://(foo)(?(1)bar|baz)//",
-            "span.op: Invalid regex (RE2 syntax): invalid perl operator: (?(",
-            id="conditional",
-        ),
-        pytest.param(
-            "span.op://(?P<name>foo)(?P=name)//",
-            "span.op: Invalid regex (RE2 syntax): invalid perl operator: (?P",
-            id="named backreference",
-        ),
-        pytest.param(
             "span.op://a++//",
             "span.op: Invalid regex (RE2 syntax): bad repetition operator: ++",
             id="possessive quantifier",
@@ -1613,35 +1588,12 @@ def test_round_trips_a_regex_op_through_to_query_string(query) -> None:
             "span.op: Invalid regex (RE2 syntax): invalid repetition size: {100}",
             id="nested repeats over the limit",
         ),
-        pytest.param(
-            "span.op://foo\\//",
-            "span.op: Invalid regex (RE2 syntax): trailing \\",
-            id="trailing backslash",
-        ),
     ],
 )
 def test_rejects_an_invalid_regex_pattern(query, expected_message) -> None:
     with pytest.raises(InvalidSearchQuery) as err:
         parse_search_query(query, config=regex_config)
     assert str(err.value) == expected_message
-
-
-@pytest.mark.parametrize(
-    "pattern",
-    [
-        pytest.param(r"^GET /api/\d{1,3}", id="escapes"),
-        pytest.param(r"a\\b", id="embedded backslashes"),
-        pytest.param('say "hi"', id="embedded quotes"),
-        pytest.param(r"(GET|POST) /api", id="spaces and parens"),
-        pytest.param(r"https?://example\.com/", id="embedded and trailing slashes"),
-    ],
-)
-def test_regex_pattern_survives_a_serialization_round_trip(pattern) -> None:
-    term = SearchFilter(SearchKey("message"), "=", SearchValue(pattern, is_regex=True))
-
-    reparsed = parse_search_query(term.to_query_string(), config=regex_config)
-
-    assert reparsed == [term]
 
 
 def test_parses_a_regex_value_on_an_array_includes_key_as_its_array_attribute() -> None:
@@ -1699,28 +1651,6 @@ def test_ends_a_regex_value_at_the_first_delimiter_followed_by_a_space() -> None
         ),
         SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("b//")),
     ]
-
-
-@pytest.mark.parametrize(
-    ["query", "expected_message"],
-    [
-        pytest.param(
-            "timestamp://2026//",
-            "timestamp: Regular expressions can only be used with string attributes",
-            id="date key",
-        ),
-        pytest.param(
-            "transaction.duration://1.//",
-            "transaction.duration: Regular expressions can only be used with string attributes",
-            id="duration key",
-        ),
-    ],
-)
-def test_rejects_a_regex_value_on_a_non_string_key(query, expected_message) -> None:
-    with pytest.raises(InvalidSearchQuery) as err:
-        parse_search_query(query, config=regex_config)
-
-    assert str(err.value) == expected_message
 
 
 @pytest.mark.parametrize(

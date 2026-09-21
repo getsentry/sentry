@@ -928,13 +928,10 @@ class SearchResolver:
             )
         )
 
-        if term.operator == "=":
-            return match
-        elif term.operator == "!=":
+        if term.operator == "!=":
             # There is no OP_NOT_REGEXP, so negation is expressed by wrapping the match
             return TraceItemFilter(not_filter=NotFilter(filters=[match]))
-
-        raise InvalidSearchQuery(f"Cannot use operator: {term.operator} with regular expressions")
+        return match
 
     def _resolve_search_value(
         self,

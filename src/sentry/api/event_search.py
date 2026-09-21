@@ -18,7 +18,6 @@ from sentry.search.events.constants import (
     DURATION_UNITS,
     NOT_HAS_FILTER_ERROR_MESSAGE,
     OPERATOR_NEGATION_MAP,
-    REGEX_DELIMITER,
     SEARCH_MAP,
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
@@ -455,11 +454,6 @@ def validate_regex_pattern(key: str, pattern: str) -> None:
         raise InvalidSearchQuery(f"{key}: Invalid regex (RE2 syntax): {detail}")
 
 
-def as_regex_value(key: str, value: SearchValue) -> SearchValue:
-    validate_regex_pattern(key, str(value.raw_value))
-    return value._replace(is_regex=True)
-
-
 def add_leading_wildcard(value: str) -> str:
     if value.startswith('"') and value.endswith('"'):
         return f"*{value[1:-1]}"
@@ -511,24 +505,6 @@ def gen_wildcard_value(value: str, wildcard_op: str) -> str:
         value = add_trailing_wildcard(value)
     elif wildcard_op == WILDCARD_OPERATOR_MAP["ends_with"]:
         value = add_leading_wildcard(value)
-    return value
-
-
-def apply_wildcard_op(value: SearchValue, wildcard_op: Node | Sequence[Node]) -> SearchValue:
-    if not has_wildcard_op(wildcard_op):
-        return value
-
-    found_wildcard_op = get_wildcard_op(wildcard_op)
-    if isinstance(value.raw_value, str):
-        return value._replace(raw_value=gen_wildcard_value(value.raw_value, found_wildcard_op))
-    if isinstance(value.raw_value, list):
-        return value._replace(
-            raw_value=[
-                gen_wildcard_value(item, found_wildcard_op)
-                for item in value.raw_value
-                if isinstance(item, str)
-            ]
-        )
     return value
 
 
@@ -612,16 +588,13 @@ class SearchValue(NamedTuple):
         # we do that because a simple str() would not be usable for strings
         # str(["a","b"]) == "['a', 'b']" but we would like "[a,b]"
         if isinstance(self.raw_value, (list, tuple)):
-            ret_val = ", ".join(self._serialize(x) for x in self.raw_value)
+            ret_val = ", ".join(str(x) for x in self.raw_value)
             ret_val = f"[{ret_val}]"
             return ret_val
         elif isinstance(self.raw_value, datetime):
             return self.raw_value.isoformat()
         else:
-            return self._serialize(self.value)
-
-    def _serialize(self, value: Any) -> str:
-        return f"{REGEX_DELIMITER}{value}{REGEX_DELIMITER}" if self.is_regex else str(value)
+            return str(self.value)
 
     def is_wildcard(self) -> bool:
         # The raw value is never a wildcard, and a `*` in a regex is a quantifier
@@ -733,7 +706,7 @@ class SearchFilter(NamedTuple):
     def to_query_string(self) -> str:
         if self.value.is_regex:
             negation = "!" if self.operator == "!=" else ""
-            return f"{negation}{self.key.name}:{self.value.to_query_string()}"
+            return f"{negation}{self.key.name}://{self.value.raw_value}//"
         if self.operator == "IN":
             return f"{self.key.name}:{self.value.to_query_string()}"
         elif self.operator == "NOT IN":
@@ -1516,7 +1489,14 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         operator = handle_negation(negation, operator)
 
-        search_value = apply_wildcard_op(search_value, wildcard_op)
+        if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, list):
+            wildcarded_values = []
+            found_wildcard_op = get_wildcard_op(wildcard_op)
+            for value in search_value.raw_value:
+                if isinstance(value, str):
+                    wildcarded_values.append(gen_wildcard_value(value, found_wildcard_op))
+
+            search_value = search_value._replace(raw_value=wildcarded_values)
 
         return self._handle_basic_filter(search_key, operator, search_value)
 
@@ -1548,7 +1528,11 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         operator_s = handle_negation(negation, operator_s)
 
-        search_value = apply_wildcard_op(search_value, wildcard_op)
+        if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
+            wildcarded_value = gen_wildcard_value(
+                search_value.raw_value, get_wildcard_op(wildcard_op)
+            )
+            search_value = search_value._replace(raw_value=wildcarded_value)
 
         return self._handle_basic_filter(search_key, operator_s, search_value)
 
@@ -1563,20 +1547,9 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchFilter:
         (negation, (search_key,), _sep, pattern) = children
-        key = search_key.name
-        if (
-            self.is_date_key(key)
-            or self.is_boolean_key(key)
-            or self.is_numeric_key(key)
-            or self.is_duration_key(key)
-            or self.is_size_key(key)
-        ):
-            raise InvalidSearchQuery(
-                f"{key}: Regular expressions can only be used with string attributes"
-            )
-
+        validate_regex_pattern(search_key.name, pattern)
         operator = handle_negation(negation, "=")
-        return SearchFilter(search_key, operator, as_regex_value(key, SearchValue(pattern)))
+        return SearchFilter(search_key, operator, SearchValue(pattern, is_regex=True))
 
     def visit_regex_value(self, node: RegexNode, children: object) -> str:
         return node.match.group(1)
@@ -2035,7 +2008,11 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             raise InvalidSearchQuery("In Array Queries, only EQUAL/NOT_EQUAL operators are allowed")
         operator_s = handle_negation(negation, operator_s)
 
-        search_value = apply_wildcard_op(search_value, wildcard_op)
+        if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
+            wildcard_value = gen_wildcard_value(
+                search_value.raw_value, get_wildcard_op(wildcard_op)
+            )
+            search_value = search_value._replace(raw_value=wildcard_value)
         return SearchFilter(search_key, operator_s, search_value)
 
     def generic_visit(self, node: Node, children: Sequence[Any]) -> Any:

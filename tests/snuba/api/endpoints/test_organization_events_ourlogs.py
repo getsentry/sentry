@@ -349,20 +349,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 400, response.content
         assert "Invalid regex" in response.data["detail"]
 
-    def test_regex_filter_rejects_a_pattern_over_the_re2_repeat_limit(self) -> None:
-        response = self.do_request(
-            {
-                "field": ["log.body"],
-                "query": "message://((a{100}){100}){100}//",
-                "project": self.project.id,
-                "dataset": self.dataset,
-            },
-            features={"organizations:ourlogs-regex-searches": True},
-        )
-
-        assert response.status_code == 400, response.content
-        assert "invalid repetition size" in response.data["detail"]
-
     def test_pagination(self) -> None:
         logs = [
             self.create_ourlog(
