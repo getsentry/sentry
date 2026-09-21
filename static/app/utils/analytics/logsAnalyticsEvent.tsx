@@ -77,7 +77,7 @@ export type LogsAnalyticsEventParameters = {
   'logs.save_query_modal': {
     action: 'open' | 'submit';
     save_type: 'save_new_query' | 'rename_query';
-    ui_source: 'toolbar' | 'table';
+    ui_source: 'toolbar' | 'table' | 'explorer';
   };
   'logs.table.row_copied_as_json': {
     log_id: string;
