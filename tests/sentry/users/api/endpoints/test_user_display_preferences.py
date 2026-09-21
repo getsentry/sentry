@@ -176,10 +176,11 @@ class UserDisplayPreferencesAgentTokenTest(APITestCase):
         assert response.data["theme"] == "dark"
         assert UserOption.objects.get_value(user=self.user, key="theme") == "dark"
 
-    def test_default_read_only_token_can_write(self) -> None:
+    def test_default_agent_token_can_write_with_read_scope(self) -> None:
         # A default agent token carries only SENTRY_READONLY_SCOPES, and that is enough
         # here: the user it acts for needs no scope to change their own preferences, and
-        # no write scope exists that a plain member could approve.
+        # no write scope exists that a plain member could approve. Ordinary tokens do
+        # not get this exception — see UserDisplayPreferencesTokenScopeTest below.
         with self.feature(agent_token.FEATURE_FLAG):
             response = self.get_success_response(
                 "me",
@@ -215,3 +216,48 @@ class UserDisplayPreferencesAgentTokenTest(APITestCase):
             )
 
         assert UserOption.objects.get_value(user=other_user, key="theme") is None
+
+
+@control_silo_test
+class UserDisplayPreferencesTokenScopeTest(APITestCase):
+    """An ordinary bearer token, to prove the agent write exception did not widen it."""
+
+    endpoint = "sentry-api-0-user-display-preferences"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user(email="a@example.com")
+        self.organization = self.create_organization(owner=self.user)
+        # No `login_as`: the bearer token must be the only credential on the request.
+
+    def _headers(self, scopes: list[str]) -> dict[str, str]:
+        token = self.create_user_auth_token(user=self.user, scope_list=scopes)
+        return {"HTTP_AUTHORIZATION": f"Bearer {token.token}"}
+
+    def test_read_scope_can_read(self) -> None:
+        UserOption.objects.set_value(user=self.user, key="theme", value="dark")
+
+        response = self.get_success_response(
+            "me", method="get", extra_headers=self._headers(["org:read"])
+        )
+
+        assert response.data["theme"] == "dark"
+
+    def test_read_scope_cannot_persist_a_write(self) -> None:
+        response = self.get_error_response(
+            "me",
+            method="put",
+            theme="dark",
+            status_code=403,
+            extra_headers=self._headers(["org:read"]),
+        )
+
+        assert "insufficient_scope" in response["WWW-Authenticate"]
+        assert UserOption.objects.get_value(user=self.user, key="theme") is None
+
+    def test_write_scope_can_write(self) -> None:
+        self.get_success_response(
+            "me", method="put", theme="dark", extra_headers=self._headers(["org:write"])
+        )
+
+        assert UserOption.objects.get_value(user=self.user, key="theme") == "dark"

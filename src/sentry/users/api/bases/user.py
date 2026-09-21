@@ -68,25 +68,30 @@ class UserDisplayPreferencesPermission(UserPermission):
     No staff or superuser bypass, unlike `UserAndStaffPermission`: display preferences
     are personal, so there is no operator reason to write somebody else's.
 
-    Reads and writes take the same scopes on purpose. A signed-in user changes their own
-    preferences with no scope at all — session auth never reaches the scope map — so
-    requiring one of an agent acting for that same user would be stricter than the
-    person it acts for. No write scope is available to ask for in any case: grants are
-    capped at the approving user's own scopes, and `org:write` belongs to manager and
-    owner only, so a member could never approve one.
+    Ordinary tokens keep a write-capable requirement for `PUT`. Agent credentials are
+    the single exception, and only for writes: an agent acts for one user on that
+    user's own preferences, which the user themselves changes with no scope at all,
+    since session auth never reaches a scope map. Requiring a write scope of the agent
+    would be stricter than the person it acts for, and unaskable — grants are capped at
+    the approving user's own scopes, and `org:write` belongs to manager and owner only,
+    so a member could never approve one.
     """
 
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:write", "org:admin"],
     }
+
+    # What an agent credential may hold for either method. Deliberately wider than
+    # `scope_map["PUT"]`; see the class docstring.
+    agent_scopes = frozenset({"org:read", "org:write", "org:admin"})
 
     def has_permission(self, request: Request, view: APIView) -> bool:
         if agent_token.is_agent_auth(request.auth):
-            # Skip UserPermission's blanket rejection of agent credentials while keeping
-            # every other check, including the scope_map above. has_object_permission
-            # is what confines the request to the delegating user's own preferences.
-            return super(UserPermission, self).has_permission(request, view)
+            # Checked here rather than through `scope_map` so the relaxed write rule
+            # reaches agent credentials only. `has_object_permission` is what confines
+            # the request to the delegating user's own preferences.
+            return bool(self.agent_scopes.intersection(request.auth.get_scopes()))
         return super().has_permission(request, view)
 
     def has_object_permission(

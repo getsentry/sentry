@@ -151,11 +151,27 @@ class UserDisplayPreferencesPermissionTest(DRFPermissionTestCase):
 
         assert self.options_permission.has_permission(request, APIView())
 
-    def test_read_scope_allows_put(self) -> None:
-        # Reads and writes take the same scopes: a signed-in user needs none to change
-        # their own preferences, and no write scope exists that a plain member could
-        # ever approve.
+    def test_agent_read_scope_allows_put(self) -> None:
+        # The relaxed write rule is for agent credentials only: the user it acts for
+        # needs no scope at all, and no write scope exists that a member could approve.
         auth = self._agent_auth(self.normal_user.id, ["org:read"])
+        request = self.make_request(user=self.normal_user, auth=auth, method="PUT")
+
+        assert self.options_permission.has_permission(request, APIView())
+
+    def test_ordinary_token_read_scope_does_not_allow_put(self) -> None:
+        # The exception above must not widen ordinary token access.
+        auth = AuthenticatedToken(
+            kind="api_token", scopes=["org:read"], user_id=self.normal_user.id
+        )
+        request = self.make_request(user=self.normal_user, auth=auth, method="PUT")
+
+        assert not self.options_permission.has_permission(request, APIView())
+
+    def test_ordinary_token_write_scope_allows_put(self) -> None:
+        auth = AuthenticatedToken(
+            kind="api_token", scopes=["org:write"], user_id=self.normal_user.id
+        )
         request = self.make_request(user=self.normal_user, auth=auth, method="PUT")
 
         assert self.options_permission.has_permission(request, APIView())
