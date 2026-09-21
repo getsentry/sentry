@@ -173,6 +173,25 @@ describe('ScmFeatureSelectionCards', () => {
     expect(screen.getByText('Usage-based')).toBeInTheDocument();
   });
 
+  it('describes a card with its volume tooltip without adding it to the name', () => {
+    render(
+      <ScmFeatureSelectionCards
+        availableFeatures={ALL_FEATURES}
+        selectedFeatures={[ProductSolution.ERROR_MONITORING]}
+        disabledProducts={NO_DISABLED}
+        onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
+        isOnboarding
+      />
+    );
+
+    const tracingCard = screen.getByRole('checkbox', {name: /Tracing/});
+    expect(tracingCard).toHaveAccessibleDescription(
+      'Free plan includes 5M spans / month. Upgrade to Team or Business to send more.'
+    );
+    expect(tracingCard).not.toHaveAccessibleName(/Free plan includes/);
+  });
+
   it('renders skeletons in place of volume tags while loading', () => {
     render(
       <ScmFeatureSelectionCards
