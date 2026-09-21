@@ -1,3 +1,4 @@
+import pytest
 from sentry_protos.billing.v1.data_category_pb2 import DataCategory as ProtoDataCategory
 from sentry_protos.billing.v1.quota_config_pb2 import QuotaConfig as ProtoQuotaConfig
 from sentry_protos.billing.v1.quota_config_pb2 import QuotaScope as ProtoQuotaScope
@@ -97,9 +98,16 @@ class TestProtoToSentryQuotaConfig:
         assert result is not None
         assert result.scope == QuotaScope.ORGANIZATION
 
-    def test_unknown_category_skipped(self):
-        """Unmapped proto category values are skipped instead of raising."""
-        unmapped_value = ProtoDataCategory.ValueType(9999)
+    @pytest.mark.parametrize(
+        "unmapped_value",
+        [
+            ProtoDataCategory.DATA_CATEGORY_UNKNOWN,
+            ProtoDataCategory.DATA_CATEGORY_SEER_USAGE_MICRO_CENTS,
+            ProtoDataCategory.ValueType(9999),
+        ],
+    )
+    def test_unknown_category_skipped(self, unmapped_value):
+        """Skip unmapped categories even when their ints match Sentry categories."""
         proto = ProtoQuotaConfig(
             id="q",
             categories=[
@@ -117,11 +125,19 @@ class TestProtoToSentryQuotaConfig:
         assert len(result.categories) == 1
         assert DataCategory.ERROR in result.categories
 
-    def test_all_categories_unmapped_returns_none(self):
+    @pytest.mark.parametrize(
+        "unmapped_value",
+        [
+            ProtoDataCategory.DATA_CATEGORY_UNKNOWN,
+            ProtoDataCategory.DATA_CATEGORY_SEER_USAGE_MICRO_CENTS,
+            ProtoDataCategory.ValueType(9999),
+        ],
+    )
+    def test_all_categories_unmapped_returns_none(self, unmapped_value):
         """If all categories are unmapped, return None to avoid broadening quota."""
         proto = ProtoQuotaConfig(
             id="q",
-            categories=[ProtoDataCategory.ValueType(9999), ProtoDataCategory.ValueType(9998)],
+            categories=[unmapped_value],
             scope=ProtoQuotaScope.QUOTA_SCOPE_ORGANIZATION,
             limit=100,
             window=60,
@@ -130,6 +146,19 @@ class TestProtoToSentryQuotaConfig:
         result = proto_to_sentry_quota_config(proto)
 
         assert result is None
+
+    def test_default_category_preserved(self):
+        proto = ProtoQuotaConfig(
+            categories=[ProtoDataCategory.DATA_CATEGORY_DEFAULT],
+            limit=0,
+            reason_code="blocked",
+        )
+
+        result = proto_to_sentry_quota_config(proto)
+
+        assert result is not None
+        assert result.categories == {DataCategory.DEFAULT}
+        assert result.limit == 0
 
     def test_empty_categories_preserved(self):
         """Proto with no categories should map to empty (all-data quota), not None."""
