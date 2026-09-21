@@ -441,8 +441,7 @@ export function useDeleteInvestigationBlockMutation(
 
 export function useRunInvestigationBlockMutation(
   organizationSlug: string,
-  investigationId: string,
-  options?: MutationOptions<InvestigationBlockExecutionStart, RunBlockVariables>
+  investigationId: string
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -451,7 +450,6 @@ export function useRunInvestigationBlockMutation(
   );
 
   return useMutation({
-    ...options,
     mutationFn: ({block, investigationVersion}) =>
       fetchMutation<InvestigationBlockExecutionStart>({
         url: getApiUrl(
@@ -470,7 +468,7 @@ export function useRunInvestigationBlockMutation(
           version: block.version,
         },
       }),
-    onSuccess: async (execution, variables, onMutateResult, context) => {
+    onSuccess: async (execution, variables) => {
       queryClient.setQueryData(detailOptions.queryKey, current =>
         current
           ? {
@@ -497,11 +495,9 @@ export function useRunInvestigationBlockMutation(
           : current
       );
       await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-      await options?.onSuccess?.(execution, variables, onMutateResult, context);
     },
-    onError: async (error, variables, onMutateResult, context) => {
+    onError: async () => {
       await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-      await options?.onError?.(error, variables, onMutateResult, context);
     },
   });
 }
