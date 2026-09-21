@@ -19,8 +19,15 @@ function IssueLink({format, id}: {id: string} & ResourceLinkFormatProps) {
   );
 }
 
+// Seer is asked for the issue short ID, but it often emits the numeric group ID
+// instead. The `issue:` filter only accepts short IDs, so anything numeric has to
+// go through `issue.id:` or the issue search rejects the query outright.
+function issueQuery(id: string) {
+  return /^\d+$/.test(id) ? `issue.id:${id}` : `issue:${id}`;
+}
+
 function SingleIssueBlock({id}: {id: string}) {
-  const queryParams = useMemo(() => ({query: `issue:${id}`, limit: '1'}), [id]);
+  const queryParams = useMemo(() => ({query: issueQuery(id), limit: '1'}), [id]);
 
   return (
     <LazyLoad
