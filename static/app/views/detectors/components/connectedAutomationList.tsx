@@ -46,14 +46,14 @@ function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: num
           <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell columnKey="last-triggered">
+          <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell columnKey="action-filters">
+          <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
           {canEdit && (
-            <SimpleTable.RowCell columnKey="connected">
+            <SimpleTable.RowCell>
               <Placeholder height="20px" />
             </SimpleTable.RowCell>
           )}
@@ -110,7 +110,7 @@ export function ConnectedAutomationsList({
     {key: 'name', width: '1fr'},
     {key: 'last-triggered', visible: {xl: true}, width: '200px'},
     {key: 'action-filters', visible: {sm: true}, width: '180px'},
-    {key: 'connected', visible: canEdit, width: '140px'},
+    ...(canEdit ? [{key: 'connected', width: '140px'} satisfies TableColumnConfig] : []),
   ];
 
   return (
@@ -120,13 +120,9 @@ export function ConnectedAutomationsList({
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell columnKey="last-triggered">
-              {t('Last Triggered')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell columnKey="action-filters">
-              {t('Actions')}
-            </SimpleTable.HeaderCell>
-            {canEdit && <SimpleTable.HeaderCell columnKey="connected" />}
+            <SimpleTable.HeaderCell>{t('Last Triggered')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Actions')}</SimpleTable.HeaderCell>
+            {canEdit && <SimpleTable.HeaderCell />}
           </SimpleTable.HeaderRow>
         }
       >
@@ -157,14 +153,14 @@ export function ConnectedAutomationsList({
                   openInNewTab={openInNewTab}
                 />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell columnKey="last-triggered">
+              <SimpleTable.RowCell>
                 <TimeAgoCell date={automation.lastTriggered} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell columnKey="action-filters">
+              <SimpleTable.RowCell>
                 <ActionCell actions={getAutomationActions(automation)} />
               </SimpleTable.RowCell>
               {canEdit && (
-                <SimpleTable.RowCell columnKey="connected" justify="end">
+                <SimpleTable.RowCell justify="end">
                   <Button onClick={() => toggleConnected?.({automation})} size="sm">
                     {connectedAutomationIds?.has(automation.id)
                       ? t('Disconnect')

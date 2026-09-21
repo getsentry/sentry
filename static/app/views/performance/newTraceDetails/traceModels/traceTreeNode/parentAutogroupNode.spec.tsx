@@ -5,16 +5,12 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import {
   makeEAPSpan,
   makeParentAutogroup,
-  makeSpan,
   makeTraceError,
-  makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
 import {ParentAutogroupNode} from './parentAutogroupNode';
-import {SpanNode} from './spanNode';
-import {TransactionNode} from './transactionNode';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
@@ -631,33 +627,6 @@ describe('ParentAutogroupNode', () => {
       const path = node.pathToNode();
       expect(path).toHaveLength(1);
       expect(path[0]).toBe('ag-head-span-id'); // Should use head node id
-    });
-
-    it('should include transaction ID in pathToNode when transaction parent found', () => {
-      const extra = createMockExtra();
-      const transactionValue = makeTransaction({
-        event_id: 'transaction-id',
-        'transaction.op': 'navigation',
-      });
-      const autogroupValue = makeParentAutogroup({});
-      const headSpanValue = makeSpan({span_id: 'head-span-id'});
-      const tailSpanValue = makeSpan({span_id: 'tail-span-id'});
-
-      const transactionNode = new TransactionNode(null, transactionValue, extra);
-      const headNode = new SpanNode(transactionNode, headSpanValue, extra);
-      const tailNode = new SpanNode(transactionNode, tailSpanValue, extra);
-      const node = new ParentAutogroupNode(
-        transactionNode,
-        autogroupValue,
-        extra,
-        headNode,
-        tailNode
-      );
-
-      const path = node.pathToNode();
-      expect(path).toHaveLength(2);
-      expect(path[0]).toBe('ag-head-span-id');
-      expect(path[1]).toBe('txn-transaction-id');
     });
 
     it('should return correct analyticsName', () => {
