@@ -3,7 +3,10 @@ import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
+import type {
+  Organization,
+  SavedQuery as DiscoverSavedQueryBase,
+} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
@@ -13,6 +16,11 @@ import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSave
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+enum SavedQueryType {
+  DISCOVER = 'discover',
+  EXPLORE = 'explore',
+}
 
 export type RawGroupBy = {
   groupBy: string;
@@ -135,6 +143,7 @@ export type ReadableSavedQuery = {
 };
 
 export class SavedQuery {
+  queryType = SavedQueryType.EXPLORE as const;
   dateAdded: string;
   dateUpdated: string;
   id: number;
@@ -181,6 +190,28 @@ export class SavedQuery {
     this.start = savedQuery.start;
     this.dataset = savedQuery.dataset;
   }
+}
+
+export type DiscoverSavedQuery = DiscoverSavedQueryBase & {
+  id: string;
+  queryType: SavedQueryType.DISCOVER;
+  lastVisited?: string;
+  position?: number | null;
+  starred?: boolean;
+};
+
+/**
+ * This is for the all-queries view. If you aren't dealing with discover
+ * queries, use SavedQuery instead.
+ */
+export type AllSavedQuery = SavedQuery | DiscoverSavedQuery;
+
+export function isExploreSavedQuery(savedQuery: AllSavedQuery): savedQuery is SavedQuery {
+  return savedQuery.queryType === SavedQueryType.EXPLORE;
+}
+
+export function getSavedQueryKey(savedQuery: AllSavedQuery): string {
+  return `${savedQuery.queryType}:${savedQuery.id}`;
 }
 
 export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['dataset']) {
@@ -325,6 +356,8 @@ const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
   ai_conversations: TraceItemDataset.SPANS,
 };
 
-export function getSavedQueryDatasetLabel(dataset: ReadableSavedQuery['dataset']) {
+export function getSavedQueryDatasetLabel(
+  dataset: ReadableSavedQuery['dataset']
+): string {
   return DATASET_LABEL_MAP[dataset];
 }
