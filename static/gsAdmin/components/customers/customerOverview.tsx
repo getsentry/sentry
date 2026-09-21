@@ -5,6 +5,7 @@ import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -24,7 +25,6 @@ import {ChangeContractEndDateAction} from 'admin/components/changeContractEndDat
 import {CustomerContact} from 'admin/components/customerContact';
 import {CustomerStatus} from 'admin/components/customerStatus';
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {ExtendProductTrialAction} from 'admin/components/extendProductTrialAction';
 import {getLogQuery} from 'admin/utils';
@@ -110,7 +110,7 @@ function SoftCapTypeDetail({
 function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
   return (
     <div>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Balance">
           {formatBalance(customer.accountBalance)}
           {customer.type === BillingType.INVOICED && (
@@ -163,7 +163,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
             yesNo={customer.msaUpdatedForDataConsent}
           />
         )}
-      </DetailList>
+      </DescriptionList>
     </div>
   );
 }
@@ -194,7 +194,7 @@ function ReservedData({customer}: ReservedDataProps) {
         return (
           <Fragment key={category}>
             <h6>{categoryName}</h6>
-            <DetailList>
+            <DescriptionList gap="md">
               <DetailLabel title={`Reserved ${categoryName}`}>
                 {formatReservedWithUnits(categoryHistory.reserved, category)}
               </DetailLabel>
@@ -241,7 +241,7 @@ function ReservedData({customer}: ReservedDataProps) {
                   })}
                 </DetailLabel>
               }
-            </DetailList>
+            </DescriptionList>
           </Fragment>
         );
       })}
@@ -284,7 +284,7 @@ function ReservedBudgetData({
   return (
     <Fragment>
       <h6>{budgetName}</h6>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Reserved Budget">
           {displayPriceWithCents({cents: reservedBudget.reservedBudget})}
         </DetailLabel>
@@ -298,7 +298,7 @@ function ReservedBudgetData({
           })}{' '}
           ({(reservedBudget.percentUsed * 100).toFixed(2)}%)
         </DetailLabel>
-      </DetailList>
+      </DescriptionList>
     </Fragment>
   );
 }
@@ -344,7 +344,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
   return (
     <div data-test-id="seer-plan-summary">
       <h6>Seer</h6>
-      <DetailList>
+      <DescriptionList gap="md">
         {!seatStatus && !legacyStatus && (
           <DetailLabel title="Plan">
             <Tag variant="muted">
@@ -407,7 +407,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
               ) : null)}
           </Fragment>
         )}
-      </DetailList>
+      </DescriptionList>
     </div>
   );
 }
@@ -825,7 +825,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
   return (
     <DetailsContainer>
       <div>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Status">
             <CustomerStatus customer={customer} />
             {isTrial(customer) && (
@@ -852,31 +852,31 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               </span>
             )}
           </DetailLabel>
-        </DetailList>
+        </DescriptionList>
 
         <h6>Subscription</h6>
         <SubscriptionSummary customer={customer} onAction={onAction} />
         <ReservedData customer={customer} />
         <ReservedBudgetsData customer={customer} />
         <h6>PCSS</h6>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Custom Price PCSS">
             {typeof customer.customPricePcss === 'number'
               ? displayPriceWithCents({cents: customer.customPricePcss})
               : 'None'}
           </DetailLabel>
-        </DetailList>
+        </DescriptionList>
         <h6>Total</h6>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Custom Price (Total)">
             {typeof customer.customPrice === 'number'
               ? displayPriceWithCents({cents: customer.customPrice})
               : 'None'}
           </DetailLabel>
-        </DetailList>
+        </DescriptionList>
       </div>
       <div>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Short name">
             <ExternalLink href={orgUrl}>{customer.slug}</ExternalLink>
           </DetailLabel>
@@ -916,10 +916,10 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {organization.samplingMode ?? 'n/a'}
           </DetailLabel>
           <DynamicSampling organization={organization} />
-        </DetailList>
+        </DescriptionList>
 
         <h6>Linked Accounts</h6>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Stripe ID">
             {customer.stripeCustomerID ? (
               <ExternalLink
@@ -991,10 +991,10 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               {customer.id}
             </ExternalLink>
           </DetailLabel>
-        </DetailList>
+        </DescriptionList>
 
         <h6>Queries</h6>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Looker">
             <ExternalLink
               href={`https://sentryio.cloud.looker.com/dashboards/724?Organization%20ID=${customer.id}`}
@@ -1023,11 +1023,11 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               Auth
             </ExternalLink>
           </DetailLabel>
-        </DetailList>
+        </DescriptionList>
         {productTrialCategories.length + productTrialAddOns.length > 0 && (
           <Fragment>
             <h6>Product Trials</h6>
-            <ProductTrialsDetailListContainer>
+            <ProductTrialsList gap="md">
               {productTrialCategories.map(categoryInfo => {
                 const categoryName = getPlanCategoryName({
                   plan: customer.planDetails,
@@ -1066,7 +1066,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                 }
                 return null;
               })}
-            </ProductTrialsDetailListContainer>
+            </ProductTrialsList>
           </Fragment>
         )}
         <Fragment>
@@ -1118,8 +1118,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
   );
 }
 
-const ProductTrialsDetailListContainer = styled(DetailList)`
-  align-items: baseline;
+const ProductTrialsList = styled(DescriptionList)`
   dt {
     justify-self: start;
     display: flex;
@@ -1146,12 +1145,12 @@ type ThresholdLabelProps = {
 function ThresholdLabel({label, positive, children}: ThresholdLabelProps) {
   return (
     <Fragment>
-      <dt>{label}:</dt>
+      <DescriptionList.Term>{label}</DescriptionList.Term>
       <ThresholdValue positive={positive}>{children}</ThresholdValue>
     </Fragment>
   );
 }
 
-const ThresholdValue = styled('dd')<{positive: boolean}>`
+const ThresholdValue = styled(DescriptionList.Details)<{positive: boolean}>`
   color: ${p => (p.positive ? p.theme.colors.green500 : p.theme.colors.red500)};
 `;

@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
@@ -14,7 +15,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {PolicyRevisionModal} from 'admin/components/policies/policyRevisionModal';
@@ -68,14 +68,14 @@ export function PolicyDetails() {
 
   const overviewPanel = (
     <DetailsContainer>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Slug">
           <code>{policy.slug}</code>
         </DetailLabel>
         <DetailLabel title="Name">{policy.name}</DetailLabel>
         <DetailLabel title="Updated">{moment(policy.updatedAt).fromNow()}</DetailLabel>
-      </DetailList>
-      <DetailList>
+      </DescriptionList>
+      <DescriptionList gap="md">
         <DetailLabel title="Active?" yesNo={policy.active} />
         <DetailLabel title="Parent Policy?">
           {policy.parent ? (
@@ -86,7 +86,7 @@ export function PolicyDetails() {
         </DetailLabel>
         <DetailLabel title="Standalone?" yesNo={policy.standalone} />
         <DetailLabel title="Has Signature?" yesNo={policy.hasSignature} />
-      </DetailList>
+      </DescriptionList>
     </DetailsContainer>
   );
 

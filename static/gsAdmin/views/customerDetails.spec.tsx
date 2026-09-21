@@ -1115,7 +1115,9 @@ describe('Customer Details', () => {
     });
 
     expect(await screen.findByText('Legacy Billing')).toBeInTheDocument();
-    expect(screen.queryByText('Billing Platform')).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole('banner')).queryByText('Billing Platform')
+    ).not.toBeInTheDocument();
 
     await openCustomerActions();
 
@@ -1386,11 +1388,12 @@ describe('Customer Details', () => {
       await screen.findByRole('heading', {name: 'Customers'});
 
       const isMigrated = name.includes('Unmigrate');
+      const header = within(screen.getByRole('banner'));
       expect(
-        screen.getByText(isMigrated ? 'Billing Platform' : 'Legacy Billing')
+        header.getByText(isMigrated ? 'Billing Platform' : 'Legacy Billing')
       ).toBeInTheDocument();
       expect(
-        screen.queryByText(isMigrated ? 'Legacy Billing' : 'Billing Platform')
+        header.queryByText(isMigrated ? 'Legacy Billing' : 'Billing Platform')
       ).not.toBeInTheDocument();
 
       await userEvent.click(
