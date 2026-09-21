@@ -113,13 +113,13 @@ class IntegrationSerializer(Serializer):
         match provider.key:
             case "github":
                 out_of_date = bool(get_missing_github_app_permissions(obj.metadata))
-                # Oldest feature first, matching the PR-iteration comment's order.
-                tiers = get_permission_tiers(
-                    obj.metadata.get("permissions", {}), GITHUB_APP_LATEST_PERMISSIONS
-                )
-                missing_features = [
-                    {"key": tier.key, "description": tier.description} for tier in reversed(tiers)
-                ]
+                permissions = obj.metadata.get("permissions")
+                if permissions is not None:
+                    tiers = get_permission_tiers(permissions, GITHUB_APP_LATEST_PERMISSIONS)
+                    missing_features = [
+                        {"key": tier.key, "description": tier.description}
+                        for tier in reversed(tiers)
+                    ]
             case "slack":
                 out_of_date = SlackScope.APP_MENTIONS_READ not in (obj.metadata.get("scopes") or [])
 

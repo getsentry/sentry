@@ -86,6 +86,18 @@ class IntegrationSerializerTest(TestCase):
             }
         ]
 
+    def test_github_missing_features_unknown_when_permissions_are_null(self) -> None:
+        integration = self.create_provider_integration(
+            provider="github",
+            external_id="4",
+            name="octocat",
+            metadata={"permissions": None},
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["missingFeatures"] is None
+
     def test_non_github_provider_has_no_missing_features(self) -> None:
         integration = self.create_provider_integration(
             provider="opsgenie", external_id="opsgenie:2", name="Team B", metadata={}
