@@ -32,6 +32,7 @@ class TestViewerContext:
         assert ctx.user_id is None
         assert ctx.actor_type is ActorType.UNKNOWN
         assert ctx.token is None
+        assert ctx.organization_is_early_adopter is None
 
     def test_frozen(self):
         ctx = ViewerContext(user_id=1)
@@ -54,11 +55,15 @@ class TestViewerContext:
         assert data["organization_is_early_adopter"] is True
         assert ViewerContext.deserialize(data).organization_is_early_adopter is True
 
-    def test_serialize_omits_early_adopter_when_false(self):
+    def test_serialize_round_trips_known_false(self):
+        data = ViewerContext(organization_id=10, organization_is_early_adopter=False).serialize()
+        assert data["organization_is_early_adopter"] is False
+        assert ViewerContext.deserialize(data).organization_is_early_adopter is False
+
+    def test_serialize_omits_unknown_early_adopter(self):
         assert "organization_is_early_adopter" not in ViewerContext(organization_id=10).serialize()
         assert (
-            ViewerContext.deserialize({"organization_id": 10}).organization_is_early_adopter
-            is False
+            ViewerContext.deserialize({"organization_id": 10}).organization_is_early_adopter is None
         )
 
 

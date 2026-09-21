@@ -16,6 +16,43 @@ from sentry.viewer_context import (
 )
 
 
+class TestEncodeResolvesEarlyAdopter(TestCase):
+    @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
+    def test_unknown_flag_is_looked_up_from_organization(self):
+        organization = self.create_organization()
+        organization.flags.early_adopter = True
+        organization.save()
+
+        token = encode_viewer_context(ViewerContext(organization_id=organization.id))
+
+        assert decode_viewer_context(token).organization_is_early_adopter is True
+
+    @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
+    def test_unknown_flag_on_regular_organization_resolves_false(self):
+        organization = self.create_organization()
+
+        token = encode_viewer_context(ViewerContext(organization_id=organization.id))
+
+        assert decode_viewer_context(token).organization_is_early_adopter is False
+
+    @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
+    def test_known_flag_is_not_overridden_by_lookup(self):
+        organization = self.create_organization()
+        organization.flags.early_adopter = True
+        organization.save()
+        vc = ViewerContext(organization_id=organization.id, organization_is_early_adopter=False)
+
+        token = encode_viewer_context(vc)
+
+        assert decode_viewer_context(token).organization_is_early_adopter is False
+
+    @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
+    def test_missing_organization_resolves_false(self):
+        token = encode_viewer_context(ViewerContext(organization_id=987654321))
+
+        assert decode_viewer_context(token).organization_is_early_adopter is False
+
+
 class TestEncodeDecodeRoundtrip(TestCase):
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
     def test_roundtrip(self):
