@@ -508,12 +508,19 @@ export function SeerExplorerContent({
 
   const handleStartNewChat = useCallback(() => {
     startNewSession();
-    // The composer may be disabled right now (the error screen), and that branch
-    // renders a different textarea which never takes `textareaRef` - so focusing
-    // here would be a no-op. Ask for it once the real composer is back instead.
-    pendingComposerFocusRef.current = true;
+    if (readOnly) {
+      // The composer stays disabled either way; nothing to focus.
+      return;
+    }
+    if (showLoadError) {
+      // `InputSection`'s disabled branch renders a different textarea which never
+      // takes `textareaRef`, so focusing now would be a no-op. Ask for it once the
+      // real composer is back. Armed only here, so it cannot outlive the request.
+      pendingComposerFocusRef.current = true;
+      return;
+    }
     focusInput();
-  }, [startNewSession, focusInput]);
+  }, [startNewSession, focusInput, readOnly, showLoadError]);
 
   const handleRetry = useCallback(() => {
     if (!retryTarget || readOnly) {
@@ -536,9 +543,18 @@ export function SeerExplorerContent({
   }, []);
 
   // Focus the composer once a new chat has actually replaced the error screen.
-  // Only on an explicit request, so unrelated transitions never steal focus.
+  // `handleStartNewChat` only arms this while that screen is up, and starting a
+  // chat takes it down, so the request is consumed on the very next render.
   useEffect(() => {
-    if (!pendingComposerFocusRef.current || readOnly || showLoadError) {
+    if (!pendingComposerFocusRef.current) {
+      return;
+    }
+    if (readOnly) {
+      // The composer is not coming back; drop the request rather than hold it.
+      pendingComposerFocusRef.current = false;
+      return;
+    }
+    if (showLoadError) {
       return;
     }
     pendingComposerFocusRef.current = false;
