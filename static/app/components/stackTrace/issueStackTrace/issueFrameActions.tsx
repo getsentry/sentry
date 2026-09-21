@@ -18,17 +18,23 @@ import {IssueSourceMapsDebuggerAction} from './issueSourceMapsDebuggerAction';
 
 interface IssueFrameActionsProps {
   isHovering: boolean;
+  // These actions require an actual event (e.g. an error) in context, so they
+  // won't work when rendering for e.g. a span.
+  includeIssueOnlyActions?: boolean;
 }
 
-export function IssueFrameActions({isHovering}: IssueFrameActionsProps) {
+export function IssueFrameActions({
+  isHovering,
+  includeIssueOnlyActions = true,
+}: IssueFrameActionsProps) {
   const {hasAnyExpandableFrames} = useStackTraceContext();
   const {frame, hiddenFrameCount, timesRepeated} = useStackTraceFrameContext();
 
   return (
     <Fragment>
       <IssueSourceLinkAction isHovering={isHovering} />
-      <IssueSourceMapsDebuggerAction />
-      <AnrFrameAction />
+      {includeIssueOnlyActions ? <IssueSourceMapsDebuggerAction /> : null}
+      {includeIssueOnlyActions ? <AnrFrameAction /> : null}
       {hiddenFrameCount ? <HiddenFramesToggleAction /> : null}
       {timesRepeated > 0 ? (
         <Tooltip
