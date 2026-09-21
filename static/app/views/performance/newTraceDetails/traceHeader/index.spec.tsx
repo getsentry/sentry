@@ -215,7 +215,9 @@ describe('TraceMetaDataHeader', () => {
         </TopBar.Slot.Provider>,
         {
           initialRouterConfig: {
-            location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+            location: {
+              pathname: '/organizations/org-slug/traces/trace/trace-slug',
+            },
           },
           organization: pageFrameOrganization,
         }
@@ -248,10 +250,7 @@ describe('TraceMetaDataHeader', () => {
       tree.root = treeRoot;
 
       // Create a mock trace node as first child of root
-      const traceNodeValue = {
-        transactions: [],
-        orphan_errors: [],
-      };
+      const traceNodeValue: TraceTree.EAPTrace = [];
       const traceNode = new TraceNode(treeRoot, traceNodeValue, {
         organization,
       });
@@ -271,7 +270,9 @@ describe('TraceMetaDataHeader', () => {
 
       render(<TraceMetaDataHeader {...props} organization={organization} />, {
         initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+          location: {
+            pathname: '/organizations/org-slug/traces/trace/trace-slug',
+          },
         },
       });
 
@@ -308,7 +309,9 @@ describe('TraceMetaDataHeader', () => {
 
       render(<TraceMetaDataHeader {...props} organization={overviewOrganization} />, {
         initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+          location: {
+            pathname: '/organizations/org-slug/traces/trace/trace-slug',
+          },
         },
       });
 
@@ -349,7 +352,9 @@ describe('TraceMetaDataHeader', () => {
 
       render(<TraceMetaDataHeader {...props} organization={overviewOrganization} />, {
         initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+          location: {
+            pathname: '/organizations/org-slug/traces/trace/trace-slug',
+          },
         },
       });
 
@@ -371,7 +376,9 @@ describe('TraceMetaDataHeader', () => {
 
       render(<TraceMetaDataHeader {...props} organization={organization} />, {
         initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+          location: {
+            pathname: '/organizations/org-slug/traces/trace/trace-slug',
+          },
         },
       });
 
@@ -432,7 +439,9 @@ describe('TraceMetaDataHeader', () => {
 
       render(<TraceMetaDataHeader {...props} organization={logsOrganization} />, {
         initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+          location: {
+            pathname: '/organizations/org-slug/traces/trace/trace-slug',
+          },
         },
       });
 
@@ -472,7 +481,9 @@ describe('TraceMetaDataHeader', () => {
 
       render(<TraceMetaDataHeader {...props} organization={logsOrganization} />, {
         initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+          location: {
+            pathname: '/organizations/org-slug/traces/trace/trace-slug',
+          },
         },
       });
 
@@ -505,7 +516,9 @@ describe('TraceMetaDataHeader', () => {
 
       render(<TraceMetaDataHeader {...props} organization={metricsOrganization} />, {
         initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+          location: {
+            pathname: '/organizations/org-slug/traces/trace/trace-slug',
+          },
         },
       });
 
@@ -534,7 +547,9 @@ describe('TraceMetaDataHeader', () => {
 
       render(<TraceMetaDataHeader {...props} organization={organization} />, {
         initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+          location: {
+            pathname: '/organizations/org-slug/traces/trace/trace-slug',
+          },
         },
       });
 
@@ -574,7 +589,9 @@ describe('TraceMetaDataHeader', () => {
       } as TraceMetadataHeaderProps;
       render(<TraceMetaDataHeader {...props} organization={organization} />, {
         initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+          location: {
+            pathname: '/organizations/org-slug/traces/trace/trace-slug',
+          },
         },
       });
 

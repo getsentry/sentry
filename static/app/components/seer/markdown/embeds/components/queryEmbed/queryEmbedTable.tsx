@@ -138,8 +138,8 @@ export function QueryEmbedTable<Row>({
 }: QueryEmbedTableProps<Row>) {
   // The widths here are only a default; the split a query actually needs is
   // something only the reader knows. `SimpleTable` makes its columns
-  // unresizable by default, so opt each one back in and name it from its head
-  // cell, which is what carries the handle.
+  // unresizable by default, so opt each one back in and point its head cell,
+  // which is what carries the handle, at it by index.
   const columnConfig = columns.map((column, index) => ({
     key: column.key,
     resizable: true,
@@ -151,8 +151,8 @@ export function QueryEmbedTable<Row>({
       columns={columnConfig}
       header={
         <SimpleTable.HeaderRow>
-          {columns.map(column => (
-            <SimpleTable.HeaderCell columnKey={column.key} key={column.key}>
+          {columns.map((column, index) => (
+            <SimpleTable.HeaderCell columnIndex={index} key={column.key}>
               <Text ellipsis>{column.label ?? column.key}</Text>
             </SimpleTable.HeaderCell>
           ))}
