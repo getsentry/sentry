@@ -41,8 +41,7 @@ def get_data_sources_by_detector_and_source_id(
         else:
             metrics_tags["cache_hit"] = "true"
 
-        metrics_tags["detector_id"] = detector_id
-        metrics_tags["source_id"] = source_id
+        metrics_tags["source_type"] = data_sources[0].type if data_sources else None
 
     return data_sources
 
