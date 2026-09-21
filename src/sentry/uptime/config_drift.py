@@ -118,3 +118,8 @@ def find_orphaned_configs(store: ConfigStore, partition: int) -> DriftResult:
             .values_list("uptime_subscription__subscription_id", flat=True)
         )
     return DriftResult(checked=len(stored), drifted_ids=frozenset(stored - live))
+
+
+def get_sentinel_key(key_prefix: str, partition: int) -> str:
+    # Hash-tagged so it shares a cluster slot with the partition hash it stands for.
+    return f"{{{get_config_key(key_prefix, partition)}}}:sentinel"

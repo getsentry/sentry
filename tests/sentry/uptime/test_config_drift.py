@@ -8,11 +8,13 @@ from uuid import UUID, uuid4
 from django.db import connections, router
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
+from rediscluster.nodemanager import NodeManager
 
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.uptime.config_drift import get_sentinel_key
 from sentry.uptime.config_producer import (
     get_config_key,
     get_partition_from_subscription_id,
@@ -342,3 +344,13 @@ class ConfigDriftTasksReadOnlyTest(UptimeTestCase):
             if q["sql"].startswith(("INSERT", "UPDATE", "DELETE"))
         ]
         assert writes == []
+
+
+def test_sentinel_shares_slot_with_partition_hash() -> None:
+    # Offline slot math; the node is never contacted.
+    keyslot = NodeManager(startup_nodes=[{"host": "localhost", "port": 1}]).keyslot
+    for key_prefix in ("", "a"):
+        for partition in range(128):
+            assert keyslot(get_sentinel_key(key_prefix, partition)) == keyslot(
+                get_config_key(key_prefix, partition)
+            )
