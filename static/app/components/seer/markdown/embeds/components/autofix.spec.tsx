@@ -1,9 +1,11 @@
+import {Fragment, useState} from 'react';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {AutofixRef} from 'sentry/components/seer/markdown/embeds/components/autofix';
 import type {Group} from 'sentry/types/group';
@@ -118,6 +120,108 @@ function InboxBehindThePanel({step = 'root_cause'}: {step?: string}) {
   );
 }
 
+/**
+ * A finished solution step, optionally followed by the code_changes step it
+ * leads to. Both blocks sit in the one run state every embed for the issue
+ * reads, which is how duplicate embeds are meant to agree.
+ */
+function makeSolutionRun({
+  withCodeChanges,
+}: {
+  withCodeChanges: boolean;
+}): ExplorerAutofixState {
+  return {
+    run_id: 42,
+    status: 'completed',
+    updated_at: '2026-01-01T00:00:00Z',
+    blocks: [
+      {
+        id: 'block-1',
+        timestamp: '2026-01-01T00:00:00Z',
+        message: {
+          role: 'assistant',
+          content: 'Seed the reduction with 0',
+          metadata: {step: 'solution'},
+        },
+        artifacts: [
+          {
+            key: 'artifact-1',
+            reason: 'Planned a fix',
+            data: {
+              one_line_summary: 'Seed the reduction with an initial accumulator',
+              steps: [],
+            },
+          },
+        ],
+      },
+      ...(withCodeChanges
+        ? [
+            {
+              id: 'block-2',
+              timestamp: '2026-01-01T00:00:01Z',
+              message: {
+                role: 'assistant' as const,
+                content: 'Applied the patch',
+                metadata: {step: 'code_changes'},
+              },
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
+/**
+ * Two embeds of the same step, as a conversation that revisited the issue ends
+ * up holding.
+ */
+function DuplicateSolutionEmbeds({
+  isBusy = false,
+  sendMessage,
+}: {
+  isBusy?: boolean;
+  sendMessage?: (query: string) => void;
+}) {
+  return (
+    <AutofixChatProvider isBusy={isBusy} sendMessage={sendMessage}>
+      {['first', 'second'].map(key => (
+        <AutofixRef
+          key={key}
+          name="autofixRef"
+          level="block"
+          data={{id: GROUP_ID, shortId: 'JAVASCRIPT-1', runId: 42, step: 'solution'}}
+        />
+      ))}
+    </AutofixChatProvider>
+  );
+}
+
+/**
+ * Flips `isBusy` without remounting, as the chat provider does when the agent
+ * stops working.
+ */
+function SettlingAgent() {
+  const [isBusy, setIsBusy] = useState(true);
+  return (
+    <Fragment>
+      <button onClick={() => setIsBusy(false)}>agent settled</button>
+      <DuplicateSolutionEmbeds isBusy={isBusy} sendMessage={jest.fn()} />
+    </Fragment>
+  );
+}
+
+/**
+ * The embed shell renders collapsed, and a collapsed disclosure hides its
+ * contents from role queries. Open both before looking for the step buttons.
+ */
+async function expandBothPlans() {
+  const triggers = await screen.findAllByRole('button', {name: /Plan/});
+  expect(triggers).toHaveLength(2);
+  for (const trigger of triggers) {
+    await userEvent.click(trigger);
+  }
+}
+
 describe('AutofixRef embed', () => {
   let issuesMock: jest.Mock;
 
@@ -182,6 +286,93 @@ describe('AutofixRef embed', () => {
     await waitFor(() => expect(autofixMock).toHaveBeenCalledTimes(3), {timeout: 5000});
     expect(issuesMock).toHaveBeenCalledTimes(1);
   }, 20_000);
+
+  describe('duplicate embeds of the same step', () => {
+    it('offers the next step from every copy while it has not been started', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
+        body: {autofix: makeSolutionRun({withCodeChanges: false})},
+      });
+
+      render(<DuplicateSolutionEmbeds sendMessage={jest.fn()} />, {organization});
+      await expandBothPlans();
+
+      const buttons = screen.getAllByRole('button', {name: 'Continue: Code Changes'});
+      expect(buttons).toHaveLength(2);
+      for (const button of buttons) {
+        expect(button).toBeEnabled();
+      }
+    });
+
+    it('drops the offer from every copy once the step exists in the run', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
+        body: {autofix: makeSolutionRun({withCodeChanges: true})},
+      });
+
+      render(<DuplicateSolutionEmbeds sendMessage={jest.fn()} />, {organization});
+
+      // The plan itself still renders, so this is the button going away rather
+      // than the embeds failing to load.
+      await expandBothPlans();
+
+      expect(
+        screen.queryByRole('button', {name: 'Continue: Code Changes'})
+      ).not.toBeInTheDocument();
+    });
+
+    // The agent starts the step in the backend, so the run state still reads as
+    // it did before the click. Without this the other copies stay clickable and
+    // each click queues another prompt for work already underway.
+    it('disables every copy while the agent is working', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
+        body: {autofix: makeSolutionRun({withCodeChanges: false})},
+      });
+
+      render(<DuplicateSolutionEmbeds isBusy sendMessage={jest.fn()} />, {organization});
+      await expandBothPlans();
+
+      const buttons = screen.getAllByRole('button', {name: 'Continue: Code Changes'});
+      expect(buttons).toHaveLength(2);
+      for (const button of buttons) {
+        expect(button).toBeDisabled();
+      }
+    });
+
+    it('re-reads the run state once the agent settles', async () => {
+      // One mock throughout, so its call count stays comparable: re-adding a
+      // mock for the same URL hands later calls to the replacement.
+      let withCodeChanges = false;
+      const autofixMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
+        body: () => ({autofix: makeSolutionRun({withCodeChanges})}),
+      });
+
+      render(<SettlingAgent />, {organization});
+
+      await expandBothPlans();
+      expect(
+        screen.getAllByRole('button', {name: 'Continue: Code Changes'})
+      ).toHaveLength(2);
+      const callsWhileBusy = autofixMock.mock.calls.length;
+
+      // The step the agent started is only visible once the run state is read
+      // again; an idle run arms no poll to do that on its own.
+      withCodeChanges = true;
+
+      await userEvent.click(screen.getByRole('button', {name: 'agent settled'}));
+
+      await waitFor(() =>
+        expect(autofixMock.mock.calls.length).toBeGreaterThan(callsWhileBusy)
+      );
+      await waitFor(() =>
+        expect(
+          screen.queryAllByRole('button', {name: 'Continue: Code Changes'})
+        ).toHaveLength(0)
+      );
+    });
+  });
 
   it('refreshes again when a pr_iteration embed swaps onto the PR section', async () => {
     MockApiClient.addMockResponse({

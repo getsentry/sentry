@@ -1,4 +1,5 @@
-import {useEffect, useMemo, type ComponentType, type ReactNode} from 'react';
+import {useEffect, useMemo, useRef, type ComponentType, type ReactNode} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -8,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
 import {
   collectPatches,
+  explorerAutofixApiOptions,
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   isCodeChangesArtifact,
@@ -207,15 +209,39 @@ function useRefreshOnStepResult(groupId: string, section: AutofixSection | undef
   }, [step, status, refreshAutofixProgressQueries]);
 }
 
+/**
+ * Re-reads the run state once the agent stops working.
+ *
+ * The agent starts and finishes steps through the backend, and an idle run arms
+ * no poll to notice — so without this the embeds keep showing the run as it was
+ * before the agent touched it. Every embed for the issue shares the one query,
+ * so they refetch once between them.
+ */
+function useRefetchRunStateWhenAgentSettles(groupId: string, isBusy: boolean) {
+  const queryClient = useQueryClient();
+  const organization = useOrganization();
+  const wasBusy = useRef(isBusy);
+
+  useEffect(() => {
+    if (wasBusy.current && !isBusy) {
+      queryClient.invalidateQueries({
+        queryKey: explorerAutofixApiOptions(organization.slug, groupId).queryKey,
+      });
+    }
+    wasBusy.current = isBusy;
+  }, [groupId, isBusy, organization.slug, queryClient]);
+}
+
 function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const autofix = useExplorerAutofix({id, shortId});
   const {runState, isLoading, isPolling} = autofix;
-  const {sendMessage} = useAutofixChat();
+  const {isBusy, sendMessage} = useAutofixChat();
 
   const sections = useMemo(() => getOrderedAutofixSections(runState), [runState]);
   const section = useMemo(() => findStepSection(sections, step), [sections, step]);
 
   useRefreshOnStepResult(id, section);
+  useRefetchRunStateWhenAgentSettles(id, !!isBusy);
 
   const handleRetry = () => {
     sendMessage?.(t('Retry the %s step for %s.', STEP_LABELS[step], shortId));
@@ -229,8 +255,22 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
     sendMessage?.(t('Draft a pull request for %s.', shortId));
   };
 
+  /**
+   * A conversation can hold several embeds of the same step. Offering work
+   * based on whether the run already contains it, rather than on this embed's
+   * own section, is what keeps those copies agreeing — and stops a step being
+   * offered again once it has run.
+   */
   const nextStep = NEXT_STEP[step];
-  const canAct = !!sendMessage && !isPolling;
+  const pendingNextStep =
+    nextStep && !findStepSection(sections, nextStep) ? nextStep : undefined;
+  const canCreatePR = step === 'code_changes' && !sections.some(isPullRequestsSection);
+
+  /**
+   * `isBusy` covers the gap the run state cannot: a step the agent has just
+   * started leaves `isPolling` false until a poll brings the news back.
+   */
+  const canAct = !!sendMessage && !isPolling && !isBusy;
 
   return (
     <AutofixBlock id={id} shortId={shortId} step={step}>
@@ -243,9 +283,9 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
             </Button>
           </Flex>
         )}
-        {section?.status === 'completed' && (
+        {section?.status === 'completed' && (canCreatePR || pendingNextStep) && (
           <Flex gap="sm">
-            {step === 'code_changes' && (
+            {canCreatePR && (
               <Button
                 size="sm"
                 variant="primary"
@@ -255,14 +295,14 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
                 {t('Draft a pull request')}
               </Button>
             )}
-            {nextStep && (
+            {pendingNextStep && (
               <Button
                 size="sm"
                 variant="primary"
-                onClick={() => handleContinue(nextStep)}
+                onClick={() => handleContinue(pendingNextStep)}
                 disabled={!canAct}
               >
-                {t('Continue: %s', STEP_LABELS[nextStep])}
+                {t('Continue: %s', STEP_LABELS[pendingNextStep])}
               </Button>
             )}
           </Flex>
