@@ -61,6 +61,14 @@ def get_snapshot_pr_comment_reporting_criteria(project: Project) -> SnapshotChan
     )
 
 
+def _record_provider_head_check(status: _ProviderHeadStatus) -> None:
+    metrics.incr(
+        "preprod.snapshot_pr_comments.provider_head_check",
+        sample_rate=1.0,
+        tags={"result": status},
+    )
+
+
 def _check_provider_pr_head(
     *,
     client: GitHubBaseClient,
@@ -83,11 +91,7 @@ def _check_provider_pr_head(
     try:
         pull_request = client.get_pull_request(repo_name, str(pr_number))
     except Exception as e:
-        metrics.incr(
-            "preprod.snapshot_pr_comments.provider_head_check",
-            sample_rate=1.0,
-            tags={"result": "unavailable"},
-        )
+        _record_provider_head_check("unavailable")
         logger.exception(
             "preprod.snapshot_pr_comments.post.provider_head_check_failed",
             extra={**log_extra, "error_type": type(e).__name__},
@@ -97,11 +101,7 @@ def _check_provider_pr_head(
     provider_head = pull_request.get("head") if isinstance(pull_request, dict) else None
     provider_head_sha = provider_head.get("sha") if isinstance(provider_head, dict) else None
     if not isinstance(provider_head_sha, str) or not provider_head_sha:
-        metrics.incr(
-            "preprod.snapshot_pr_comments.provider_head_check",
-            sample_rate=1.0,
-            tags={"result": "unavailable"},
-        )
+        _record_provider_head_check("unavailable")
         logger.warning(
             "preprod.snapshot_pr_comments.post.provider_head_check_invalid_response",
             extra=log_extra,
@@ -109,22 +109,14 @@ def _check_provider_pr_head(
         return "unavailable"
 
     if provider_head_sha != comparison_head_sha:
-        metrics.incr(
-            "preprod.snapshot_pr_comments.provider_head_check",
-            sample_rate=1.0,
-            tags={"result": "mismatched"},
-        )
+        _record_provider_head_check("mismatched")
         logger.info(
             "preprod.snapshot_pr_comments.post.provider_head_mismatch",
             extra={**log_extra, "provider_head_sha": provider_head_sha},
         )
         return "mismatched"
 
-    metrics.incr(
-        "preprod.snapshot_pr_comments.provider_head_check",
-        sample_rate=1.0,
-        tags={"result": "matched"},
-    )
+    _record_provider_head_check("matched")
     return "matched"
 
 
