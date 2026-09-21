@@ -283,6 +283,14 @@ describe('formatQueryToNaturalLanguage', () => {
       query: `!path:${WildcardOperators.ENDS_WITH}.js`,
       expected: 'path does not end with .js ',
     },
+    {
+      query: 'message://^GET /api// level:error',
+      expected: 'message matches regex ^GET /api, level is error ',
+    },
+    {
+      query: '!message://^GET /api//',
+      expected: 'message does not match regex ^GET /api ',
+    },
   ])('formats $query as $expected', ({query, expected}) => {
     expect(formatQueryToNaturalLanguage(query)).toBe(expected);
   });

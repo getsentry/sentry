@@ -67,6 +67,7 @@ filter
   / aggregate_filter
   / has_filter
   / is_filter
+  / regex_filter
   / array_includes_filter
   / text_in_filter
   / text_filter
@@ -225,6 +226,27 @@ array_includes_filter
         undefined,
       );
     }
+
+regex_filter
+  = negation:negation?
+    key:(array_includes_key / text_key)
+    sep
+    value:regex_value {
+      return tc.tokenRegexFilter(key, value.literal, value.pattern, !!negation);
+    }
+
+regex_value
+  = "//" pattern:regex_pattern "//" &regex_value_end {
+      return {pattern, literal: tc.tokenValueText(text(), false)};
+    }
+
+regex_pattern
+  = (!("//" regex_value_end) [^\n])* {
+      return tc.tokenValueText(text(), false);
+    }
+
+regex_value_end
+  = [\t\n )] / !.
 
 // in filter key:[val1, val2]
 text_in_filter

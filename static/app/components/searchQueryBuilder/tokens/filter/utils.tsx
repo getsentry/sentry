@@ -4,6 +4,7 @@ import {
   filterTypeConfig,
   interchangeableFilterOperators,
   isInterchangeableFilterOperator,
+  regexOperators,
   TermOperator,
   Token,
   wildcardOperators,
@@ -30,6 +31,8 @@ export const OP_LABELS = {
   [TermOperator.DOES_NOT_START_WITH]: 'does not start with',
   [TermOperator.ENDS_WITH]: 'ends with',
   [TermOperator.DOES_NOT_END_WITH]: 'does not end with',
+  [TermOperator.MATCHES]: 'matches regex',
+  [TermOperator.DOES_NOT_MATCH]: 'does not match regex',
 };
 
 export const DATE_OP_LABELS = {
@@ -68,9 +71,11 @@ export function isAggregateFilterToken(
 export function getValidOpsForFilter({
   filterToken,
   fieldDefinition,
+  allowRegexOperators,
 }: {
   fieldDefinition: FieldDefinition | null;
   filterToken: TokenResult<Token.FILTER>;
+  allowRegexOperators?: boolean;
 }): readonly TermOperator[] {
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
@@ -96,13 +101,17 @@ export function getValidOpsForFilter({
 
   // Conditionally remove wildcard operators unless the effective field value
   // type is string and the field definition has not opted out.
-  if (
-    !areWildcardOperatorsAllowed(
-      fieldDefinition,
-      getFilterValueType(filterToken, fieldDefinition)
-    )
-  ) {
+  const patternOperatorsAllowed = areWildcardOperatorsAllowed(
+    fieldDefinition,
+    getFilterValueType(filterToken, fieldDefinition)
+  );
+
+  if (!patternOperatorsAllowed) {
     wildcardOperators.forEach(op => validOps.delete(op));
+  }
+
+  if (!patternOperatorsAllowed || !allowRegexOperators) {
+    regexOperators.forEach(op => validOps.delete(op));
   }
 
   return [...validOps];
@@ -279,6 +288,8 @@ export function getLabelAndOperatorFromToken(token: TokenResult<Token.FILTER>) {
     operator = TermOperator.DOES_NOT_START_WITH;
   } else if (token.negated && token.operator === TermOperator.ENDS_WITH) {
     operator = TermOperator.DOES_NOT_END_WITH;
+  } else if (token.negated && token.operator === TermOperator.MATCHES) {
+    operator = TermOperator.DOES_NOT_MATCH;
   } else if (token.operator === TermOperator.ENDS_WITH) {
     operator = TermOperator.ENDS_WITH;
   } else if (token.negated) {

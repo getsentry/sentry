@@ -1,8 +1,11 @@
 import type {LocationRange} from 'peggy';
 
 import {
+  regexOperators,
+  TermOperator,
   Token,
   wildcardOperators,
+  type RegexOperator,
   type TokenResult,
   type WildcardOperator,
 } from './parser';
@@ -318,6 +321,10 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
   stringifiedToken += stringifyToken(token.key);
   stringifiedToken += ':';
 
+  if (token.operator === TermOperator.MATCHES && token.value.type === Token.VALUE_TEXT) {
+    return `${stringifiedToken}//${token.value.value}//`;
+  }
+
   stringifiedToken += token.operator;
   stringifiedToken += stringifyToken(token.value);
 
@@ -326,6 +333,10 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
 
 export function isWildcardOperator(value: unknown): value is WildcardOperator {
   return wildcardOperators.includes(value as never);
+}
+
+export function isRegexOperator(value: unknown): value is RegexOperator {
+  return regexOperators.includes(value as never);
 }
 
 export function stringifyToken(token: TokenResult<Token>): string {

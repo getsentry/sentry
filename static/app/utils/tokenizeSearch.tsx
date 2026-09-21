@@ -19,6 +19,7 @@ export enum TokenType {
   CONTAINS_FILTER = 3,
   STARTS_WITH_FILTER = 4,
   ENDS_WITH_FILTER = 5,
+  REGEX_FILTER = 6,
 }
 
 const FILTER_TOKENS = [
@@ -26,6 +27,7 @@ const FILTER_TOKENS = [
   TokenType.CONTAINS_FILTER,
   TokenType.STARTS_WITH_FILTER,
   TokenType.ENDS_WITH_FILTER,
+  TokenType.REGEX_FILTER,
 ];
 
 type Token = {
@@ -81,6 +83,28 @@ function countUnquotedUnmatchedClosingParens(s: string): number {
   }
 
   return unmatchedClosingParenCount;
+}
+
+const REGEX_VALUE_RE = /^\/\/((?:(?!\/\/(?:[\t\n )]|$))[^\n])*)\/\/(?=[\t\n )]|$)/;
+
+function parseRegexFilter(token: string) {
+  const colonIndex = token.indexOf(':');
+  if (colonIndex <= 0) {
+    return null;
+  }
+
+  const value = token.slice(colonIndex + 1);
+  const match = value.match(REGEX_VALUE_RE);
+  if (!match) {
+    return null;
+  }
+
+  const trailingParens = value.slice(match[0].length);
+  if (!/^\)*$/.test(trailingParens)) {
+    return null;
+  }
+
+  return {key: token.slice(0, colonIndex), pattern: match[1]!, trailingParens};
 }
 
 function isProperlyBracketed(value: string): boolean {
@@ -194,6 +218,13 @@ export class MutableSearch {
         }
       }
 
+      const regexFilter = parseRegexFilter(token);
+      if (regexFilter) {
+        this.addRegexFilterValue(regexFilter.key, regexFilter.pattern);
+        regexFilter.trailingParens.split('').map(paren => this.addOp(paren));
+        continue;
+      }
+
       // Traverse the token and check if it's a filter condition or free text
       for (let i = 0, len = token.length; i < len; i++) {
         const char = token[i];
@@ -299,6 +330,9 @@ export class MutableSearch {
           formattedTokens.push(
             generateFilterValue(token, `:${WildcardOperators.ENDS_WITH}`)
           );
+          break;
+        case TokenType.REGEX_FILTER:
+          formattedTokens.push(`${quoteFilterKey(token.key!)}://${token.value}//`);
           break;
         case TokenType.FREE_TEXT:
           if (requiresQuotes(token.value)) {
@@ -419,6 +453,11 @@ export class MutableSearch {
   addEndsWithFilterValue(key: string, value: string, shouldEscape = true) {
     const escaped = shouldEscape ? escapeFilterValue(value) : value;
     const token: Token = {type: TokenType.ENDS_WITH_FILTER, key, value: escaped};
+    this.tokens.push(token);
+  }
+
+  addRegexFilterValue(key: string, pattern: string) {
+    const token: Token = {type: TokenType.REGEX_FILTER, key, value: pattern};
     this.tokens.push(token);
   }
 
@@ -709,6 +748,19 @@ function splitSearchIntoTokens(query: string) {
     const char = queryChars[idx]!;
     const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1]! : null;
     token += char;
+
+    if (!quoteEnclosed && bracketDepth === 0 && char === ':' && nextChar === '/') {
+      const regexValue = queryChars
+        .slice(idx + 1)
+        .join('')
+        .match(REGEX_VALUE_RE)?.[0];
+      if (regexValue) {
+        token += regexValue;
+        idx += Array.from(regexValue).length;
+        endOfPrevWord = '/';
+        continue;
+      }
+    }
 
     if (!quoteEnclosed && char === '[') {
       if (bracketDepth > 0) {

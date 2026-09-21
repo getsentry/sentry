@@ -73,7 +73,7 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -297,7 +297,7 @@ export function tokenSupportsMultipleValues(
   keys: TagCollection,
   fieldDefinition: FieldDefinition | null
 ): boolean {
-  if (fieldDefinition?.allowMultipleValues === false) {
+  if (fieldDefinition?.allowMultipleValues === false || isRegexOperator(token.operator)) {
     return false;
   }
 
@@ -397,8 +397,12 @@ function useFilterSuggestions({
   // every key loaded. So we should try to fetch values for it even if it
   // doesn't exist in the list of available keys.
   const shouldFetchTagKeys = token.filter === FilterType.HAS && !!getTagKeys;
+  const isRegexValue = isRegexOperator(token.operator);
   const shouldFetchValues =
-    !shouldFetchTagKeys && predefinedValues === null && (key ? !key.predefined : true);
+    !shouldFetchTagKeys &&
+    !isRegexValue &&
+    predefinedValues === null &&
+    (key ? !key.predefined : true);
   const shouldUseDefaultSuggestionOrder = shouldUseDefaultNumericSuggestions(
     filterValue,
     valueType
@@ -502,6 +506,10 @@ function useFilterSuggestions({
   );
 
   const suggestionGroups = useMemo(() => {
+    if (isRegexValue) {
+      return [];
+    }
+
     let groups: SuggestionSection[];
     if (shouldFetchTagKeys) {
       const suggestions =
@@ -543,6 +551,7 @@ function useFilterSuggestions({
   }, [
     data,
     asyncKeys,
+    isRegexValue,
     predefinedValues,
     shouldFetchTagKeys,
     shouldFetchValues,
@@ -670,7 +679,7 @@ export function getInitialInputValue(
   if (canSelectMultipleValues) {
     return getMultiSelectInputValue(token);
   }
-  if (isNumericFilterToken(token)) {
+  if (isNumericFilterToken(token) || isRegexOperator(token.operator)) {
     return token.value.text;
   }
   return '';
@@ -708,9 +717,11 @@ export function SearchQueryBuilderValueCombobox({
     fieldDefinition
   );
   const valueType = getFilterValueType(token, fieldDefinition);
-  const canUseWildcard = disallowWildcard
-    ? false
-    : keySupportsWildcard(fieldDefinition, valueType);
+  const isRegexValue = isRegexOperator(token.operator);
+  const canUseWildcard =
+    disallowWildcard || isRegexValue
+      ? false
+      : keySupportsWildcard(fieldDefinition, valueType);
   // Multi-select renders committed values as chips, so the input starts empty
   // and only holds the value being typed.
   const [inputValue, setInputValue] = useState(() =>
@@ -735,7 +746,7 @@ export function SearchQueryBuilderValueCombobox({
     return false;
   });
 
-  const filterValue = unescapeAsteriskSearchValue(inputValue);
+  const filterValue = isRegexValue ? inputValue : unescapeAsteriskSearchValue(inputValue);
 
   const selectedValues = useMemo(
     () =>
@@ -997,6 +1008,12 @@ export function SearchQueryBuilderValueCombobox({
         return true;
       }
 
+      if (isRegexValue) {
+        dispatch({type: 'UPDATE_TOKEN_VALUE', token, value, op});
+        onCommit();
+        return true;
+      }
+
       const valueForSaving =
         escapeSearchValue && valueType === FieldValueType.STRING
           ? escapeTagValueForSearch(value)
@@ -1069,6 +1086,7 @@ export function SearchQueryBuilderValueCombobox({
     [
       token,
       fieldDefinition,
+      isRegexValue,
       valueType,
       getSuggestedFilterKey,
       filterKeys,
@@ -1221,7 +1239,7 @@ export function SearchQueryBuilderValueCombobox({
       const isUnchanged = value === getInitialInputValue(token, canSelectMultipleValues);
 
       // If there's no user input and the token has no value, set a default one
-      if (!value && !token.value.text) {
+      if (!value && !token.value.text && !isRegexValue) {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token,
@@ -1249,6 +1267,7 @@ export function SearchQueryBuilderValueCombobox({
       canSelectMultipleValues,
       dispatch,
       fieldDefinition,
+      isRegexValue,
       onCommit,
       token,
       updateFilterValue,

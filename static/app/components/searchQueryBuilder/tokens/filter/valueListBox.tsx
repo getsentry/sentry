@@ -10,7 +10,7 @@ import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {type Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
-import {isWildcardOperator} from 'sentry/components/searchSyntax/utils';
+import {isRegexOperator, isWildcardOperator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 
 interface ConstrainAndAlignListBoxArgs {
@@ -71,6 +71,10 @@ function WildcardFooter({
   canUseWildcard: boolean;
   token: TokenResult<Token.FILTER>;
 }) {
+  if (isRegexOperator(token.operator)) {
+    return <Label>{t('Regular expression (RE2 syntax)')}</Label>;
+  }
+
   if (isWildcardOperator(token.operator)) {
     return <Label>{t('Switch to "is" operator to use wildcard (*) matching')}</Label>;
   }
@@ -101,7 +105,7 @@ function Footer({
   isMultiSelect: boolean;
   token: TokenResult<Token.FILTER>;
 }) {
-  if (!isMultiSelect && !canUseWildcard) {
+  if (!isMultiSelect && !canUseWildcard && !isRegexOperator(token.operator)) {
     return null;
   }
 
@@ -169,7 +173,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     [listBoxRef, popoverRef, wrapperRef]
   );
 
-  if (!isOpen || (!anyItemsShowing && !isLoading)) {
+  if (!isOpen || (!anyItemsShowing && !isLoading && !isRegexOperator(token.operator))) {
     return null;
   }
 

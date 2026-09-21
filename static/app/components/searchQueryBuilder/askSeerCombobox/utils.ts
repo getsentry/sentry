@@ -259,9 +259,27 @@ function formatWildcardToken(token: string, isNegated: boolean): string | null {
   return null;
 }
 
+function formatRegexToken(token: string, isNegated: boolean): string | null {
+  const match = token.match(/^([^:]+):\/\/(.*)\/\/$/s);
+  if (!match) {
+    return null;
+  }
+
+  const description =
+    OP_LABELS[isNegated ? TermOperator.DOES_NOT_MATCH : TermOperator.MATCHES];
+
+  return `${match[1]} ${description} ${match[2]}`;
+}
+
 function formatToken(token: string): string {
   const isNegated = token.startsWith('!') && token.includes(':');
   const actualToken = isNegated ? token.slice(1) : token;
+  const regexToken = formatRegexToken(actualToken, isNegated);
+
+  if (regexToken) {
+    return regexToken;
+  }
+
   const wildcardToken = formatWildcardToken(actualToken, isNegated);
 
   if (wildcardToken) {
@@ -305,12 +323,17 @@ function formatToken(token: string): string {
 }
 
 /**
- * Splits a query on whitespace while keeping quoted phrases ("a b") and
- * bracketed lists ([a, b]) intact, so `key:"a b"` and `key:[a, b]` each stay a
- * single token even with internal spaces. Shared by the format/parse pair below.
+ * Splits a query on whitespace while keeping quoted phrases ("a b"), bracketed
+ * lists ([a, b]), and regex values (//a b//) intact, so `key:"a b"`, `key:[a, b]`,
+ * and `key://a b//` each stay a single token even with internal spaces. Shared
+ * by the format/parse pair below.
  */
 function tokenize(input: string): string[] {
-  return input.match(/(?:"[^"]*"|\[[^\]]*\]|[^\s"])+/g) ?? [];
+  return (
+    input.match(
+      /(?::\/\/(?:(?!\/\/(?:[\t\n )]|$))[^\n])*\/\/(?=[\t\n )]|$)|"[^"]*"|\[[^\]]*\]|[^\s"])+/g
+    ) ?? []
+  );
 }
 
 export function formatQueryToNaturalLanguage(query: string): string {
@@ -403,6 +426,8 @@ const FILTER_PHRASES: ReadonlyArray<{
     phrase: 'does not end with',
     esq: (k, v) => `!${k}:${WildcardOperators.ENDS_WITH}${v}`,
   },
+  {phrase: 'does not match regex', esq: (k, v) => `!${k}://${v}//`},
+  {phrase: 'matches regex', esq: (k, v) => `${k}://${v}//`},
   {phrase: 'contains', esq: (k, v) => `${k}:${WildcardOperators.CONTAINS}${v}`},
   {phrase: 'starts with', esq: (k, v) => `${k}:${WildcardOperators.STARTS_WITH}${v}`},
   {phrase: 'ends with', esq: (k, v) => `${k}:${WildcardOperators.ENDS_WITH}${v}`},
