@@ -77,7 +77,7 @@ function LiveDuration({seconds, active}: {active: boolean; seconds: number}) {
   return (
     <Text
       size="sm"
-      variant="disabled"
+      variant="muted"
       tabular
       monospace
       bold={false}
