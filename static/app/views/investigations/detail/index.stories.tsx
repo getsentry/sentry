@@ -246,7 +246,7 @@ const runningInvestigation = InvestigationRunningDetailFixture({
 // one. Both times are relative to page load, so the counter reads like a live
 // run rather than one dated to whenever this fixture was written.
 const agenticRunStartedAt = new Date(Date.now() - 12 * 1000).toISOString();
-// A finished run's total is measured to the projection's last update.
+// A finished run's total is measured to its last heartbeat.
 const agenticRunFinishedAt = new Date(
   Date.parse(agenticRunStartedAt) + 47_300
 ).toISOString();
@@ -456,7 +456,7 @@ export default Storybook.story('Investigations — Detail', story => {
           investigationId: agenticCompletedInvestigation.id,
           status: 'completed',
           phase: 'completed',
-          updatedAt: agenticRunFinishedAt,
+          heartbeatAt: agenticRunFinishedAt,
         }),
       }}
     >

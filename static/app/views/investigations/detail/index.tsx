@@ -174,15 +174,21 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     investigation.orchestration && orchestration
       ? getSeerStatusBlock(orchestration)
       : null;
-  // A stopped run's total is frozen at the projection's last update, which is
-  // the closest thing the contract carries to a finish time. How long a run went
-  // before it failed or was cancelled is worth the same as how long a successful
-  // one took, so all three keep the number. Without that timestamp there is no
-  // total to state, and the header says nothing rather than leaving a counter
-  // running on a run that has stopped.
+  // A stopped run's total is frozen at its last heartbeat: the projection has no
+  // dedicated finish timestamp, and of the two it carries, only this one is
+  // written by the agent itself — `updatedAt` is the orchestration row's
+  // `auto_now`, which a later rename bumps (`update_investigation_with_orchestration`
+  // saves the row), so a two-minute run would read as thirty after a rename and a
+  // reload. The last event a run emits is the one that ends it, which makes this
+  // the finish time in all but name.
+  //
+  // How long a run went before it failed or was cancelled is worth the same as
+  // how long a successful one took, so all three keep the number. Without that
+  // timestamp there is no total to state, and the header says nothing rather
+  // than leaving a counter running on a run that has stopped.
   const runEndedAt =
     runStatus && RUN_ENDED_VARIANTS.includes(runStatus.variant)
-      ? (orchestration?.updatedAt ?? null)
+      ? (orchestration?.heartbeatAt ?? null)
       : null;
   const showRunTimer = runStatus?.variant === 'running' || Boolean(runEndedAt);
 

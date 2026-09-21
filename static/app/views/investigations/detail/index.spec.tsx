@@ -1874,7 +1874,10 @@ describe('Investigation detail', () => {
         body: InvestigationOrchestrationFixture({
           status,
           phase: status,
-          updatedAt: '2026-08-13T20:04:00Z',
+          heartbeatAt: '2026-08-13T20:04:00Z',
+          // A rename bumps `updatedAt` long after the run stopped, so the total
+          // must not be measured against it.
+          updatedAt: '2026-08-13T20:30:00Z',
         }),
       });
 
