@@ -55,7 +55,6 @@ export enum MEPState {
 }
 
 const METRIC_SETTING_PARAM = 'metricSetting';
-export const METRIC_SEARCH_SETTING_PARAM = 'metricSearchSetting'; // TODO: Clean this up since we don't need multiple params in practice.
 
 export function canUseMetricsData(organization: Organization) {
   const isRollingOut = organization.features.includes('dynamic-sampling'); // Exists on AM2 plans only.
