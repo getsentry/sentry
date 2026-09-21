@@ -1098,18 +1098,6 @@ export class EventView {
     }));
   }
 
-  // returns query input for the search
-  getQuery(): string {
-    if (this.query) {
-      if (this.additionalConditions) {
-        return this.getQueryWithAdditionalConditions();
-      }
-      return this.query;
-    }
-
-    return '';
-  }
-
   getFacetsAPIPayload(
     location: Location
   ): Exclude<EventQuery & LocationQuery, 'sort' | 'cursor'> {

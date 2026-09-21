@@ -2554,31 +2554,6 @@ describe('EventView.getSorts()', () => {
   });
 });
 
-describe('EventView.getQuery()', () => {
-  it('with query', () => {
-    const eventView = new EventView({
-      ...REQUIRED_CONSTRUCTOR_PROPS,
-      fields: [],
-      sorts: [],
-      project: [],
-      query: 'event.type:error',
-    });
-
-    expect(eventView.getQuery()).toBe('event.type:error');
-  });
-
-  it('without query', () => {
-    const eventView = new EventView({
-      ...REQUIRED_CONSTRUCTOR_PROPS,
-      fields: [],
-      sorts: [],
-      project: [],
-    });
-
-    expect(eventView.getQuery()).toBe('');
-  });
-});
-
 describe('EventView.getQueryWithAdditionalConditions', () => {
   it('with overlapping conditions', () => {
     const eventView = new EventView({
