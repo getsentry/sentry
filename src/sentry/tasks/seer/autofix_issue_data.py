@@ -24,13 +24,14 @@ from sentry.seer.signed_seer_api import (
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import json, metrics
+from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger(__name__)
 
 FEATURE_FLAG = "organizations:seer-fixability-training-data"
 MAX_REVIEWS_PER_ORG_PER_RUN = 20
 ISSUES_PER_JUDGE_TASK = 10
-ORG_STAGGER_SECONDS = 10
+ORG_STAGGER_SPREAD_DURATION = timedelta(hours=1)
 
 SYSTEM_PROMPT = """Night Shift reviews software issues and may trigger Autofix to investigate
 and open a pull request. Your job is to identify issues where opening a pull request would be
@@ -97,13 +98,13 @@ def schedule_judging() -> None:
     organizations = Organization.objects.filter(
         id__in=organization_ids, status=OrganizationStatus.ACTIVE
     )
-    for index, organization in enumerate(
-        org for org in organizations if features.has(FEATURE_FLAG, org)
-    ):
+    spread_seconds = int(ORG_STAGGER_SPREAD_DURATION.total_seconds())
+    for organization in (org for org in organizations if features.has(FEATURE_FLAG, org)):
+        delay = int(md5_text(str(organization.id)).hexdigest(), 16) % spread_seconds
         schedule_judging_for_org.apply_async(
             args=[organization.id],
             headers={"sentry-propagate-traces": False},
-            countdown=index * ORG_STAGGER_SECONDS,
+            countdown=delay,
         )
 
 

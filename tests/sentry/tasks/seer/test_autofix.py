@@ -96,9 +96,11 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         with self.feature({FEATURE_FLAG: [recent_org.slug, stale_org.slug]}):
             schedule_judging()
 
-        mock_apply_async.assert_called_once_with(
-            args=[recent_org.id], headers={"sentry-propagate-traces": False}, countdown=0
-        )
+        assert mock_apply_async.call_count == 1
+        call_kwargs = mock_apply_async.call_args.kwargs
+        assert call_kwargs["args"] == [recent_org.id]
+        assert call_kwargs["headers"] == {"sentry-propagate-traces": False}
+        assert 0 <= call_kwargs["countdown"] < 3600
 
     def test_selects_bottom_half(self) -> None:
         for index in range(11):
