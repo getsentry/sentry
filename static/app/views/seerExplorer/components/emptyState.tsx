@@ -18,10 +18,9 @@ const SUGGESTED_QUESTIONS = [
 interface EmptyStateProps {
   displaySlackAgentReminder?: boolean;
   errorStatusCode?: number | null;
+  /** The conversation could not be loaded: the request failed, or it came back errored. */
   isError?: boolean;
   isLoading?: boolean;
-  /** The session loaded, but came back errored with nothing to show. */
-  isSessionError?: boolean;
   /** Resets to a fresh session. Rendered as the recovery action on error states. */
   onStartNewChat?: () => void;
   onSuggestionClick?: (question: string) => void;
@@ -31,7 +30,6 @@ interface EmptyStateProps {
 export function EmptyState({
   isLoading = false,
   isError = false,
-  isSessionError = false,
   errorStatusCode = null,
   displaySlackAgentReminder = false,
   runId,
@@ -41,7 +39,7 @@ export function EmptyState({
   const runIdDisplay = runId?.toString() ?? 'null';
   return (
     <Container>
-      {isError || isSessionError ? (
+      {isError ? (
         // Checked before `isLoading`: a failed load can still be polling with
         // backoff, and a spinner there would sit next to a disabled composer
         // with no way out.

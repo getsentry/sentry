@@ -648,8 +648,7 @@ export function SeerExplorerContent({
           {isEmptyState ? (
             <EmptyState
               isLoading={isPolling}
-              isError={isError}
-              isSessionError={hasSessionLoadError}
+              isError={showLoadError}
               errorStatusCode={errorStatusCode}
               onStartNewChat={showLoadError ? handleStartNewChat : undefined}
               runId={runId}
