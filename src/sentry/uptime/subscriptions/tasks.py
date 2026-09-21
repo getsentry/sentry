@@ -333,7 +333,8 @@ def check_missing_configs(subscription_id_prefix: str, cluster: str, key_prefix:
 def check_orphaned_configs(cluster: str, key_prefix: str, partition: int, **kwargs):
     """
     Redis → Postgres direction of the drift sweep: for one config partition in one store,
-    count configs that no ACTIVE subscription owns in a region served by that store.
+    count configs that no ACTIVE, CREATING or UPDATING subscription owns in a region served
+    by that store.
     """
     store = _find_store(cluster, key_prefix)
     if store is None:
