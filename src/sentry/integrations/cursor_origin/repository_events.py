@@ -57,6 +57,8 @@ def reconcile_repository(repo: Repository, snapshot: RepositorySnapshot, deliver
             "repository_id": repo.id,
             "previous_name": repo.name,
             "new_name": snapshot.full_name,
+            "previous_default_branch": repo.config.get("default_branch"),
+            "new_default_branch": snapshot.default_branch,
         },
     )
     repo.update(name=snapshot.full_name, url=url, config=config)
