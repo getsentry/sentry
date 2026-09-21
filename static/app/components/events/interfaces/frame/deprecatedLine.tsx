@@ -206,8 +206,8 @@ export function DeprecatedLine({
         >
           {isExpandable ? <InteractionStateLayer /> : null}
           <Text italic={!data.inApp} variant={data.inApp ? 'inherit' : 'muted'}>
-            {({className: textClassName}) => (
-              <Flex className={textClassName} align="center" minWidth={0}>
+            {textProps => (
+              <Flex {...textProps} align="center" minWidth={0}>
                 <div>
                   <LeadHint
                     nextFrame={nextFrame}
@@ -378,41 +378,42 @@ function RepeatsIndicator({timesRepeated}: {timesRepeated: number}) {
   );
 }
 
-function DefaultLine(props: React.ComponentProps<typeof StyledDefaultLine>) {
+type DefaultLineProps = React.ComponentProps<typeof Grid> & {
+  isExpandable: boolean;
+  isSubFrame: boolean;
+};
+
+function DefaultLine({isExpandable, isSubFrame, ...props}: DefaultLineProps) {
   return (
     <Grid
       align="center"
       columns="var(--default-line-columns, minmax(0, 1fr) max-content)"
+      css={theme => css`
+        background: ${
+          isSubFrame ? theme.colors.surface200 : theme.tokens.background.tertiary
+        };
+        word-break: break-word;
+        font-size: ${theme.font.size.sm};
+        line-height: 16px;
+        cursor: ${isExpandable ? 'pointer' : 'default'};
+        code {
+          font-family: ${theme.font.family.sans};
+        }
+
+        @container (max-width: ${theme.container.xl}) {
+          &:has([data-has-setup]) {
+            --default-line-columns: 1fr;
+            row-gap: ${theme.space.xs};
+          }
+        }
+      `}
       minHeight="40px"
       padding="sm lg"
       position="relative"
-    >
-      {({className}) => <StyledDefaultLine {...props} className={className} />}
-    </Grid>
+      {...props}
+    />
   );
 }
-
-const StyledDefaultLine = styled('div')<{
-  isExpandable: boolean;
-  isSubFrame: boolean;
-}>`
-  background: ${p =>
-    p.isSubFrame ? p.theme.colors.surface200 : p.theme.tokens.background.tertiary};
-  word-break: break-word;
-  font-size: ${p => p.theme.font.size.sm};
-  line-height: 16px;
-  cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
-  code {
-    font-family: ${p => p.theme.font.family.sans};
-  }
-
-  @container (max-width: ${p => p.theme.container.xl}) {
-    &:has([data-has-setup]) {
-      --default-line-columns: 1fr;
-      row-gap: ${p => p.theme.space.xs};
-    }
-  }
-`;
 
 const ToggleContextButton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
