@@ -283,6 +283,7 @@ class SearchResolver:
             config=event_search.SearchConfig.create_from(
                 event_search.default_config,
                 wildcard_free_text=True,
+                allow_regex=True,
             ),
             params=self.params.filter_params,
             get_field_type=self.get_field_type,
@@ -907,32 +908,22 @@ class SearchResolver:
                 f"Cannot use regular expressions with {term.key.name}, it is not a string attribute"
             )
 
-        patterns = to_list(term.value.raw_value)
         # Snuba's `ignore_case` lowercases the pattern along with the value, rewriting `[A-Z]`
         # and inverting escapes like `\D`. RE2's inline flag leaves the pattern intact.
         prefix = "(?i)" if self.params.case_insensitive else ""
-        matches = [
-            TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=resolved_column.proto_definition,
-                    op=ComparisonFilter.OP_REGEXP,
-                    value=AttributeValue(val_str=f"{prefix}{pattern}"),
-                )
+        match = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=resolved_column.proto_definition,
+                op=ComparisonFilter.OP_REGEXP,
+                value=AttributeValue(val_str=f"{prefix}{term.value.raw_value}"),
             )
-            for pattern in patterns
-        ]
-
-        matches_any = (
-            matches[0]
-            if len(matches) == 1
-            else TraceItemFilter(or_filter=OrFilter(filters=matches))
         )
 
-        if term.operator in ("=", "IN"):
-            return matches_any
-        elif term.operator in ("!=", "NOT IN"):
+        if term.operator == "=":
+            return match
+        elif term.operator == "!=":
             # There is no OP_NOT_REGEXP, so negation is expressed by wrapping the match
-            return TraceItemFilter(not_filter=NotFilter(filters=[matches_any]))
+            return TraceItemFilter(not_filter=NotFilter(filters=[match]))
 
         raise InvalidSearchQuery(f"Cannot use operator: {term.operator} with regular expressions")
 

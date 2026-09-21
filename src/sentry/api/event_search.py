@@ -196,7 +196,8 @@ array_includes_filter = negation? array_includes_key sep wildcard_op? operator? 
 wildcard_op            = wildcard_unicode (contains / starts_with / ends_with) wildcard_unicode
 
 regex_key    = "regex_match" open_paren spaces (array_includes_key / text_key) spaces closed_paren
-regex_filter = negation? regex_key sep (text_in_list / search_value)
+# No IN-list form: `[0-9]` would read as a one-item list, and `a|b` already covers it
+regex_filter = negation? regex_key sep search_value
 
 # See: https://stackoverflow.com/a/39617181/790169
 in_value_termination = in_value_char (!in_value_end in_value_char)* in_value_end
@@ -469,10 +470,7 @@ def validate_regex_pattern(key: str, pattern: str) -> None:
 
 
 def as_regex_value(key: str, value: SearchValue) -> SearchValue:
-    patterns = value.raw_value if isinstance(value.raw_value, (list, tuple)) else [value.raw_value]
-    for pattern in patterns:
-        if isinstance(pattern, str):
-            validate_regex_pattern(key, pattern)
+    validate_regex_pattern(key, str(value.raw_value))
     return value._replace(is_regex=True)
 
 
@@ -838,6 +836,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     # Whether to wrap free_text_keys in asterisks
     wildcard_free_text: bool = False
+
+    # Whether regex_match(key):pattern filters are allowed. Only the EAP resolver compiles
+    # them to a regex match; other search backends would treat the pattern as a literal.
+    allow_regex: bool = False
 
     # Disallow the use of the !has filter
     allow_not_has_filter: bool = True
@@ -1546,19 +1548,29 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             Node | tuple[Node],  # ! if present
             SearchKey,
             Node,  # :
-            tuple[list[str] | SearchValue],
+            SearchValue,
         ],
     ) -> SearchFilter:
-        (negation, search_key, _sep, (value,)) = children
-        if isinstance(value, SearchValue):
-            operator = handle_negation(negation, "=")
-            search_value = value
-        else:
-            operator = handle_negation(negation, "IN")
-            search_value = SearchValue(value)
+        (negation, search_key, _sep, search_value) = children
+        if not self.config.allow_regex:
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Regular expressions are not supported in this search"
+            )
 
-        search_value = as_regex_value(search_key.name, search_value)
-        return self._handle_basic_filter(search_key, operator, search_value)
+        key = search_key.name
+        if (
+            self.is_date_key(key)
+            or self.is_boolean_key(key)
+            or self.is_numeric_key(key)
+            or self.is_duration_key(key)
+            or self.is_size_key(key)
+        ):
+            raise InvalidSearchQuery(
+                f"{key}: Regular expressions can only be used with string attributes"
+            )
+
+        operator = handle_negation(negation, "=")
+        return SearchFilter(search_key, operator, as_regex_value(key, search_value))
 
     def visit_regex_key(
         self,

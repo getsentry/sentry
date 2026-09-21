@@ -190,7 +190,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 200, response.content
         assert [log["log.body"] for log in response.data["data"]] == ["WARN [7] disk filling up"]
 
-    def test_regex_filter_in_list(self) -> None:
+    def test_regex_filter_with_alternation(self) -> None:
         logs = [
             self.create_ourlog(
                 {"body": "ERROR [42] disk full"},
@@ -209,7 +209,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         response = self.do_request(
             {
                 "field": ["log.body"],
-                "query": 'regex_match(message):["^ERROR", "^WARN"]',
+                "query": 'regex_match(message):"^(ERROR|WARN)"',
                 "orderby": "log.body",
                 "project": self.project.id,
                 "dataset": self.dataset,

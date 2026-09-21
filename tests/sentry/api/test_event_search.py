@@ -1502,6 +1502,9 @@ def test_handles_starts_with_wildcard_op_translations(query, expected) -> None:
     assert actual == expected
 
 
+regex_config = SearchConfig.create_from(default_config, allow_regex=True)
+
+
 @pytest.mark.parametrize(
     ["query", "expected_operator", "expected_value"],
     [
@@ -1522,16 +1525,14 @@ def test_handles_starts_with_wildcard_op_translations(query, expected) -> None:
         pytest.param('regex_match(span.op):"(?U)a+"', "=", "(?U)a+", id="ungreedy flag"),
         pytest.param("regex_match(span.op):\\x{263A}", "=", "\\x{263A}", id="braced hex escape"),
         pytest.param('regex_match(span.op):"a b|c"', "=", "a b|c", id="quoted"),
-        pytest.param("regex_match(span.op):[^foo, bar$]", "IN", ["^foo", "bar$"], id="in list"),
-        pytest.param(
-            "!regex_match(span.op):[^foo, bar$]", "NOT IN", ["^foo", "bar$"], id="not in list"
-        ),
+        pytest.param("regex_match(span.op):[0-9]", "=", "[0-9]", id="lone character class"),
+        pytest.param("regex_match(span.op):[a-z]+", "=", "[a-z]+", id="quantified character class"),
     ],
 )
 def test_parses_regex_op_without_rewriting_the_pattern(
     query, expected_operator, expected_value
 ) -> None:
-    filters = parse_search_query(query)
+    filters = parse_search_query(query, config=regex_config)
     assert len(filters) == 1
     assert isinstance(filters[0], SearchFilter)
     assert filters[0].operator == expected_operator
@@ -1545,18 +1546,16 @@ def test_parses_regex_op_without_rewriting_the_pattern(
     [
         pytest.param("regex_match(span.op):^test$", id="scalar"),
         pytest.param("!regex_match(span.op):^test$", id="negated"),
-        pytest.param("regex_match(span.op):[^foo, bar$]", id="in list"),
-        pytest.param("!regex_match(span.op):[^foo, bar$]", id="not in list"),
+        pytest.param("regex_match(span.op):[0-9]", id="lone character class"),
         pytest.param('regex_match(span.op):"^(foo|bar) baz$"', id="parens and spaces"),
         pytest.param('regex_match(span.op):"\\"quoted\\""', id="embedded quotes"),
-        pytest.param('regex_match(span.op):["^(a|b)", "(c|d)$"]', id="parens in list"),
     ],
 )
 def test_round_trips_a_regex_op_through_to_query_string(query) -> None:
-    filters = parse_search_query(query)
+    filters = parse_search_query(query, config=regex_config)
     assert len(filters) == 1
     assert isinstance(filters[0], SearchFilter)
-    assert parse_search_query(filters[0].to_query_string()) == filters
+    assert parse_search_query(filters[0].to_query_string(), config=regex_config) == filters
 
 
 UNSUPPORTED_REGEX_MESSAGE = (
@@ -1614,6 +1613,11 @@ UNSUPPORTED_REGEX_MESSAGE = (
             id="named backreference",
         ),
         pytest.param(
+            "regex_match(span.op):[^foo, bar$]",
+            "span.op: Invalid regex: unterminated character set",
+            id="list syntax",
+        ),
+        pytest.param(
             'regex_match(span.op):""',
             "span.op: Empty regex pattern",
             id="empty quoted pattern",
@@ -1627,7 +1631,7 @@ UNSUPPORTED_REGEX_MESSAGE = (
 )
 def test_rejects_an_invalid_regex_pattern(query, expected_message) -> None:
     with pytest.raises(InvalidSearchQuery) as err:
-        parse_search_query(query)
+        parse_search_query(query, config=regex_config)
     assert str(err.value) == expected_message
 
 
@@ -1643,14 +1647,14 @@ def test_rejects_an_invalid_regex_pattern(query, expected_message) -> None:
 def test_regex_pattern_survives_a_serialization_round_trip(pattern) -> None:
     query = f"regex_match(message):{quote_regex_pattern(pattern)}"
 
-    term = parse_search_query(query)[0]
+    term = parse_search_query(query, config=regex_config)[0]
 
     assert isinstance(term, SearchFilter)
     assert term.value.raw_value == pattern
 
 
 def test_parses_a_regex_match_on_an_array_includes_key_as_its_array_attribute() -> None:
-    filters = parse_search_query('regex_match(tags[foo,array][*]):"^a"')
+    filters = parse_search_query('regex_match(tags[foo,array][*]):"^a"', config=regex_config)
 
     assert filters == [
         SearchFilter(
@@ -1662,7 +1666,9 @@ def test_parses_a_regex_match_on_an_array_includes_key_as_its_array_attribute() 
 
 
 def test_parses_a_regex_match_alongside_aggregate_and_plain_filters() -> None:
-    filters = parse_search_query("count():>5 regex_match(message):^ERROR env:prod")
+    filters = parse_search_query(
+        "count():>5 regex_match(message):^ERROR env:prod", config=regex_config
+    )
 
     assert filters == [
         AggregateFilter(key=AggregateKey(name="count()"), operator=">", value=SearchValue(5.0)),
@@ -1673,6 +1679,35 @@ def test_parses_a_regex_match_alongside_aggregate_and_plain_filters() -> None:
         ),
         SearchFilter(key=SearchKey(name="env"), operator="=", value=SearchValue("prod")),
     ]
+
+
+def test_rejects_a_regex_match_when_the_config_does_not_allow_regex() -> None:
+    with pytest.raises(InvalidSearchQuery) as err:
+        parse_search_query("regex_match(transaction):^/api")
+
+    assert str(err.value) == "transaction: Regular expressions are not supported in this search"
+
+
+@pytest.mark.parametrize(
+    ["query", "expected_message"],
+    [
+        pytest.param(
+            "regex_match(timestamp):2026",
+            "timestamp: Regular expressions can only be used with string attributes",
+            id="date key",
+        ),
+        pytest.param(
+            "regex_match(transaction.duration):1.",
+            "transaction.duration: Regular expressions can only be used with string attributes",
+            id="duration key",
+        ),
+    ],
+)
+def test_rejects_a_regex_match_on_a_non_string_key(query, expected_message) -> None:
+    with pytest.raises(InvalidSearchQuery) as err:
+        parse_search_query(query, config=regex_config)
+
+    assert str(err.value) == expected_message
 
 
 @pytest.mark.parametrize(
