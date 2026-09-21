@@ -104,6 +104,18 @@ describe('FrameVariablesGrid', () => {
         )
       )
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: '[Replace] [Password fields] with [Scrubbed] from [password]',
+      })
+    ).toHaveAttribute(
+      'href',
+      '/settings/org-slug/projects/project-slug/security-and-privacy/advanced-data-scrubbing/0/'
+    );
+    expect(screen.getByRole('link', {name: 'project-slug'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/projects/project-slug/security-and-privacy/'
+    );
   });
 
   it('renders python variables correctly', () => {
@@ -134,6 +146,79 @@ describe('FrameVariablesGrid', () => {
     ).toBeInTheDocument();
     expect(
       within(screen.getByTestId('value-unformatted')).getByText('<Class at 0x12345>')
+    ).toBeInTheDocument();
+  });
+
+  it('renders node variables correctly', () => {
+    render(
+      <FrameVariablesGrid
+        data={{
+          null: '<null>',
+          undefined: '<undefined>',
+          bool: true,
+          number: 123.45,
+          str: 'string',
+        }}
+        platform="node"
+      />
+    );
+
+    const nullValues = screen.getAllByTestId('value-null');
+
+    expect(within(nullValues[0]!).getByText('null')).toBeInTheDocument();
+    expect(within(nullValues[1]!).getByText('undefined')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-boolean')).getByText('true')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-number')).getByText('123.45')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-unformatted')).getByText('string')
+    ).toBeInTheDocument();
+  });
+
+  it('renders ruby variables correctly', () => {
+    render(
+      <FrameVariablesGrid
+        data={{
+          null: 'nil',
+          bool: 'true',
+          str: 'string',
+        }}
+        platform="ruby"
+      />
+    );
+
+    expect(within(screen.getByTestId('value-null')).getByText('nil')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-boolean')).getByText('true')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-unformatted')).getByText('string')
+    ).toBeInTheDocument();
+  });
+
+  it('renders php variables correctly', () => {
+    render(
+      <FrameVariablesGrid
+        data={{
+          null: 'null',
+          bool: 'true',
+          str: 'string',
+        }}
+        platform="php"
+      />
+    );
+
+    expect(
+      within(screen.getByTestId('value-null')).getByText('null')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-boolean')).getByText('true')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-unformatted')).getByText('string')
     ).toBeInTheDocument();
   });
 
