@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
+import type {Primitive} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -90,6 +91,7 @@ export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> {
   queries: T[];
   searchQuery: string;
   submitQuery: (query: string) => void;
+  additionalFeedbackTags?: Record<string, Primitive>;
   className?: string;
   onReset?: () => void;
   unsupportedReason?: string | null;
@@ -109,6 +111,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   searchQuery,
   submitQuery,
   unsupportedReason,
+  additionalFeedbackTags,
   ...props
 }: BaseAskSeerComboBoxProps<T>) {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -506,6 +509,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
                           .map(query => JSON.stringify(query))
                           .join('\n\n'),
                         'feedback.num_queries_returned': queries.length,
+                        ...additionalFeedbackTags,
                       },
                     })
                   }
