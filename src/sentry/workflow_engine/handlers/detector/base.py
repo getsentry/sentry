@@ -9,6 +9,7 @@ from uuid import UUID, uuid4, uuid5
 
 from django.utils import timezone
 
+from sentry import options
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.issues.grouptype import GroupType
@@ -18,7 +19,7 @@ from sentry.utils import metrics
 from sentry.workflow_engine.caches.data_source import (
     get_data_sources_by_detector_and_source_id,
 )
-from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
+from sentry.workflow_engine.models import DataConditionGroup, DataPacket, DataSource, Detector
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
@@ -429,7 +430,7 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
 
     def _build_evidence_data_sources(self, source_id: str) -> list[dict[str, Any]]:
         try:
-            data_sources = get_data_sources_by_detector_and_source_id(self.detector.id, source_id)
+            data_sources = self._fetch_evidence_data_sources(source_id)
 
             if not data_sources:
                 logger.warning(
@@ -450,6 +451,12 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
             )
 
             return []
+
+    def _fetch_evidence_data_sources(self, source_id: str) -> list[DataSource]:
+        if options.get("workflow_engine.data_source_by_detector_and_source_id_cache.enabled"):
+            return get_data_sources_by_detector_and_source_id(self.detector.id, source_id)
+
+        return list(DataSource.objects.filter(detectors=self.detector, source_id=source_id))
 
     def _build_event_data(
         self,

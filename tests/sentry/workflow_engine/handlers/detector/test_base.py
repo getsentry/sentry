@@ -10,6 +10,7 @@ from sentry.issues.producer import _prepare_occurrence_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.organization import Organization
 from sentry.testutils.abstract import Abstract
+from sentry.testutils.helpers.options import override_options
 from sentry.types.group import PriorityLevel
 from sentry.utils.registry import AlreadyRegisteredError
 from sentry.workflow_engine.handlers.detector import (
@@ -1036,8 +1037,18 @@ class TestDetectorHandlerEvidenceData(BaseGroupTypeTest):
             "Failed to serialize data source definition when building workflow engine evidence data"
         )
 
-    def test_build_evidence_data_sources__reads_through_the_cache(self) -> None:
+    @override_options({"workflow_engine.data_source_by_detector_and_source_id_cache.enabled": True})
+    def test_build_evidence_data_sources__reads_through_the_cache_when_enabled(self) -> None:
         self.handler._build_evidence_data_sources(self.source_id)
 
         with self.assertNumQueries(0):
+            assert len(self.handler._build_evidence_data_sources(self.source_id)) == 1
+
+    @override_options(
+        {"workflow_engine.data_source_by_detector_and_source_id_cache.enabled": False}
+    )
+    def test_build_evidence_data_sources__queries_directly_when_the_cache_is_disabled(self) -> None:
+        self.handler._build_evidence_data_sources(self.source_id)
+
+        with self.assertNumQueries(1):
             assert len(self.handler._build_evidence_data_sources(self.source_id)) == 1
