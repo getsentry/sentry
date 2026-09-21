@@ -75,5 +75,13 @@ describe('issue embed', () => {
     it('looks a bare short id up with the issue filter', async () => {
       await expectQuery({id: 'JAVASCRIPT-22SP'}, 'issue:JAVASCRIPT-22SP');
     });
+
+    it('accepts a group id emitted as a bare number', async () => {
+      await expectQuery({id: 7716642857}, 'issue.id:7716642857');
+    });
+
+    it('ignores a group id handed over as the short id', async () => {
+      await expectQuery({id: '7716642857', shortId: '7716642857'}, 'issue.id:7716642857');
+    });
   });
 });

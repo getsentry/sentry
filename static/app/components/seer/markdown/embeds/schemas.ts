@@ -199,14 +199,11 @@ export const SEER_EMBED_SCHEMAS = {
       'Never use `docs` or markdown links for issue references.',
     level: ['inline', 'block'],
     schema: z.object({
-      id: z
-        .string()
-        .min(1)
-        .describe(
-          'The issue ID exactly as the issues API returns it in `id` — normally ' +
-            'the numeric group ID (e.g. "7716642857"). A short ID is accepted here ' +
-            'when that is the only id you have.'
-        ),
+      id: idString.describe(
+        'The issue ID exactly as the issues API returns it in `id` — normally ' +
+          'the numeric group ID (e.g. "7716642857"). A short ID is accepted here ' +
+          'when that is the only id you have.'
+      ),
       shortId: z
         .string()
         .min(1)

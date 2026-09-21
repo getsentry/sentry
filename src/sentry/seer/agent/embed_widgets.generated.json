@@ -168,8 +168,14 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string",
-          "minLength": 1,
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ],
           "description": "The issue ID exactly as the issues API returns it in `id` — normally the numeric group ID (e.g. \"7716642857\"). A short ID is accepted here when that is the only id you have."
         },
         "shortId": {
