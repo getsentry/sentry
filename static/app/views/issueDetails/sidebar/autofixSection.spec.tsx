@@ -22,7 +22,6 @@ describe('AutofixSection', () => {
   const mockProject = DetailedProjectFixture();
   const organization = OrganizationFixture({
     hideAiFeatures: false,
-    features: ['gen-ai-features'],
   });
 
   let mockGroup: ReturnType<typeof GroupFixture>;
@@ -71,7 +70,6 @@ describe('AutofixSection', () => {
   it('renders Resources section when AI features are disabled', () => {
     const customOrganization = OrganizationFixture({
       hideAiFeatures: true,
-      features: ['gen-ai-features'],
     });
 
     const performanceGroup: Group = {
@@ -124,7 +122,6 @@ describe('AutofixSection', () => {
   it('returns null when AI features are disabled and no resources exist', () => {
     const customOrganization = OrganizationFixture({
       hideAiFeatures: true,
-      features: ['gen-ai-features'],
     });
 
     const {container} = render(
@@ -446,7 +443,7 @@ describe('AutofixSection', () => {
   it('shows org setup UI when SCM integration is missing', async () => {
     const seatBasedOrg = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['gen-ai-features', 'seat-based-seer-enabled'],
+      features: ['seat-based-seer-enabled'],
     });
 
     MockApiClient.addMockResponse({
@@ -479,7 +476,7 @@ describe('AutofixSection', () => {
   it('shows project setup UI when repos are not linked', async () => {
     const seatBasedOrg = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['gen-ai-features', 'seat-based-seer-enabled'],
+      features: ['seat-based-seer-enabled'],
     });
 
     MockApiClient.addMockResponse({
@@ -512,7 +509,7 @@ describe('AutofixSection', () => {
   it('skips setup UI for legacy seer plan orgs without SCM integration', async () => {
     const legacyOrg = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['gen-ai-features', 'seer-added'],
+      features: ['seer-added'],
     });
 
     MockApiClient.addMockResponse({

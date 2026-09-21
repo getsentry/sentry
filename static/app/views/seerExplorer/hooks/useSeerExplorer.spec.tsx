@@ -31,7 +31,7 @@ describe('useSeerExplorer', () => {
   });
 
   const organization = OrganizationFixture({
-    features: ['seer-explorer', 'gen-ai-features'],
+    features: ['seer-explorer'],
     hideAiFeatures: false,
     openMembership: true,
   });
