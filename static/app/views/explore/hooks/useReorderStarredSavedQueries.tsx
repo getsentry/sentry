@@ -4,6 +4,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  SavedQueryType,
   useInvalidateSavedQueries,
   type SavedQueryRef,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -40,7 +41,9 @@ export function useReorderStarredSavedQueries() {
             ),
             method: 'PUT',
             data: {
-              query_ids: queries.map(({queryId}) => Number(queryId)),
+              query_ids: queries
+                .filter(({queryType}) => queryType === SavedQueryType.EXPLORE)
+                .map(({queryId}) => Number(queryId)),
             },
           }),
     onSettled: () => {
