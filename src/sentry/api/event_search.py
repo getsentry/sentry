@@ -242,7 +242,7 @@ end_value = ~r"[\t\n )]|$"
 
 event_search_grammar = Grammar(_event_search_rules)
 
-MAX_REGEX_PATTERN_LENGTH = 128
+MAX_REGEX_PATTERN_LENGTH = 32
 
 # key://pattern// runs to the first `//` that ends the value, so patterns can hold spaces and
 # parens unquoted. A quoted "//...//" stays a literal. There's no IN-list form, since `a|b`
