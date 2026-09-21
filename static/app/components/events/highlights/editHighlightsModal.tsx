@@ -10,7 +10,6 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {ColumnGrid} from 'sentry/components/columnGrid';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
@@ -28,6 +27,7 @@ import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -121,18 +121,17 @@ function EditPreviewHighlightSection({
   const rows = [...highlightTagRows, ...highlightContextRows];
   return (
     <EditHighlightPreview {...props}>
-      <ColumnGrid
-        columnCount={previewColumnCount}
-        columnMinWidth="0"
-        items={rows}
-        renderColumn={column => <EditPreviewColumn>{column}</EditPreviewColumn>}
-      >
-        {rows.length === 0 && (
+      <Grid align="start" columns={`repeat(${previewColumnCount}, minmax(0, 1fr))`}>
+        {rows.length > 0 ? (
+          splitIntoColumns(rows, previewColumnCount).map((column, index) => (
+            <EditPreviewColumn key={index}>{column}</EditPreviewColumn>
+          ))
+        ) : (
           <EmptyHighlightMessage data-test-id="highlights-empty-preview">
             {t('Promote tags or context keys to highlights for quicker debugging!')}
           </EmptyHighlightMessage>
         )}
-      </ColumnGrid>
+      </Grid>
     </EditHighlightPreview>
   );
 }
@@ -168,12 +167,9 @@ function EditTagHighlightSection({
           data-test-id="highlights-tag-search"
         />
       </Subtitle>
-      <ColumnGrid
-        columnCount={columnCount}
-        columnMinWidth="0"
-        items={tagData}
-        renderColumn={columnTagKeys => (
-          <EditHighlightColumn>
+      <Grid align="start" columns={`repeat(${columnCount}, minmax(0, 1fr))`}>
+        {splitIntoColumns(tagData, columnCount).map((columnTagKeys, index) => (
+          <EditHighlightColumn key={index}>
             <Stack gap="2xs">
               {columnTagKeys.map((tagKey, j) => {
                 const isDisabled = highlightTagsSet.has(tagKey);
@@ -201,14 +197,13 @@ function EditTagHighlightSection({
               })}
             </Stack>
           </EditHighlightColumn>
-        )}
-      >
+        ))}
         {tagData.length === 0 && (
           <EmptyHighlightMessage extraMargin data-test-id="highlights-empty-tags">
             {t('No matching event tags found.')}
           </EmptyHighlightMessage>
         )}
-      </ColumnGrid>
+      </Grid>
     </EditHighlightSection>
   );
 }
@@ -265,12 +260,9 @@ function EditContextHighlightSection({
           data-test-id="highlights-context-search"
         />
       </Subtitle>
-      <ColumnGrid
-        columnCount={columnCount}
-        columnMinWidth="0"
-        items={filteredCtxItems}
-        renderColumn={columnCtxItems => (
-          <EditHighlightColumn>
+      <Grid align="start" columns={`repeat(${columnCount}, minmax(0, 1fr))`}>
+        {splitIntoColumns(filteredCtxItems, columnCount).map((columnCtxItems, index) => (
+          <EditHighlightColumn key={index}>
             {columnCtxItems.map(([contextType, contextKeys]) => (
               <EditContextContainer key={contextType}>
                 <ContextType>{contextType}</ContextType>
@@ -301,14 +293,13 @@ function EditContextHighlightSection({
               </EditContextContainer>
             ))}
           </EditHighlightColumn>
-        )}
-      >
+        ))}
         {filteredCtxItems.length === 0 && (
           <EmptyHighlightMessage extraMargin data-test-id="highlights-empty-context">
             {t('No matching event context found.')}
           </EmptyHighlightMessage>
         )}
-      </ColumnGrid>
+      </Grid>
     </EditHighlightSection>
   );
 }

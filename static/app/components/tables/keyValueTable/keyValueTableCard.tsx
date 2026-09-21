@@ -2,11 +2,12 @@ import {Children, useRef, useState, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container as LayoutContainer} from '@sentry/scraps/layout';
+import {Grid, Container as LayoutContainer} from '@sentry/scraps/layout';
 
-import {ColumnGrid, useContainerColumnCount} from 'sentry/components/columnGrid';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
+import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 
 import {
   KeyValueTableDataRow,
@@ -85,13 +86,18 @@ export function KeyValueTableCardGrid({children}: {children: React.ReactNode}) {
   );
 
   return (
-    <ColumnGrid
-      columnCount={columnCount}
+    <Grid
+      align="start"
+      columns={`repeat(${columnCount}, 1fr)`}
       gap="lg"
-      items={cards}
       ref={containerRef}
-      renderColumn={column => <LayoutContainer column="span 1">{column}</LayoutContainer>}
-    />
+    >
+      {splitIntoColumns(cards, columnCount).map((column, index) => (
+        <LayoutContainer column="span 1" key={index}>
+          {column}
+        </LayoutContainer>
+      ))}
+    </Grid>
   );
 }
 

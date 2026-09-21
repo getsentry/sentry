@@ -7,7 +7,6 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ColumnGrid, useContainerColumnCount} from 'sentry/components/columnGrid';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
@@ -26,8 +25,10 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
+import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
@@ -216,14 +217,13 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   const rows = [...highlightTagRows, ...highlightContextRows];
 
   return (
-    <ColumnGrid
-      columnCount={columnCount}
-      items={hasDisabledHighlights ? [] : rows}
+    <Grid
+      align="start"
+      columns={`repeat(${columnCount}, 1fr)`}
       marginBottom="xl"
       ref={containerRef}
-      renderColumn={column => <HighlightColumn>{column}</HighlightColumn>}
     >
-      {hasDisabledHighlights && (
+      {hasDisabledHighlights ? (
         <EmptyHighlights align="center" justify="center">
           <EmptyHighlightsContent>
             {t("There's nothing here...")}
@@ -236,8 +236,12 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
             </AddHighlightsButton>
           </EmptyHighlightsContent>
         </EmptyHighlights>
+      ) : (
+        splitIntoColumns(rows, columnCount).map((column, index) => (
+          <HighlightColumn key={index}>{column}</HighlightColumn>
+        ))
       )}
-    </ColumnGrid>
+    </Grid>
   );
 }
 
@@ -284,15 +288,16 @@ function HighlightsDataLoading() {
   const columnCount = useContainerColumnCount(containerRef);
 
   return (
-    <ColumnGrid
-      columnCount={columnCount}
+    <Grid
+      align="start"
+      columns={`repeat(${columnCount}, 1fr)`}
       data-test-id="highlights-loading"
-      items={Array.from({length: columnCount * 4}, (_, rowIndex) => rowIndex)}
       marginBottom="xl"
       ref={containerRef}
-      renderColumn={rowIndexes => (
-        <HighlightColumn>
-          {rowIndexes.map(rowIndex => (
+    >
+      {Array.from({length: columnCount}, (_, columnIndex) => (
+        <HighlightColumn key={columnIndex}>
+          {Array.from({length: 4}, (_row, rowIndex) => (
             <HighlightLoadingRow key={rowIndex} align="center" columns="subgrid">
               <HighlightLoadingKey>
                 <HighlightKeyPlaceholder
@@ -309,8 +314,8 @@ function HighlightsDataLoading() {
             </HighlightLoadingRow>
           ))}
         </HighlightColumn>
-      )}
-    />
+      ))}
+    </Grid>
   );
 }
 

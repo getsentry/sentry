@@ -1,7 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {useContainerColumnCount} from 'sentry/components/columnGrid';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   type EventTagTreeRowConfig,
@@ -14,6 +13,7 @@ import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MAX_TREE_DEPTH = 4;

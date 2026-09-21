@@ -1,11 +1,14 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {ColumnGrid, useContainerColumnCount} from 'sentry/components/columnGrid';
+import {Grid} from '@sentry/scraps/layout';
+
 import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -55,11 +58,11 @@ export function EventPackageData({event}: Props) {
       ref={containerRef}
       initialCollapse
     >
-      <ColumnGrid
-        columnCount={columnCount}
-        items={componentItems}
-        renderColumn={column => <Column>{column}</Column>}
-      />
+      <Grid align="start" columns={`repeat(${columnCount}, 1fr)`}>
+        {splitIntoColumns(componentItems, columnCount).map((column, index) => (
+          <Column key={index}>{column}</Column>
+        ))}
+      </Grid>
     </FoldSection>
   );
 }
