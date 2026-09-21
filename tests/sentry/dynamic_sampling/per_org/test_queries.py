@@ -14,6 +14,7 @@ from sentry.dynamic_sampling.per_org.configuration import (
 from sentry.dynamic_sampling.per_org.queries import (
     DynamicSamplingQueryFields,
     DynamicSamplingQueryFilters,
+    OrganizationDataVolume,
     ProjectTransactionCounts,
     ProjectVolume,
     get_eap_organization_volume,
@@ -22,7 +23,6 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_outcomes_organization_volume,
     run_eap_spans_table_query_in_chunks,
 )
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.models.organization import Organization
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
@@ -638,7 +638,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ),
         ]
 
-    def test_get_eap_transaction_volumes_reads_cap_from_legacy_option(self) -> None:
+    def test_get_eap_transaction_volumes_reads_cap_from_option(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         timestamp = before_now(minutes=15)

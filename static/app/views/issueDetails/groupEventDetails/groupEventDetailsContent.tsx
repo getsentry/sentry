@@ -4,7 +4,6 @@ import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
-import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -348,7 +347,6 @@ export function EventDetailsContent({
       <EventInsightDiff event={event} project={project} />
       <EventXrayDiff event={event} project={project} />
       <EventPackageData event={event} />
-      <EventDevice event={event} />
       <EventAttachments event={event} project={project} group={group} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       <EventProcessingErrors event={event} project={project} isShare={false} />

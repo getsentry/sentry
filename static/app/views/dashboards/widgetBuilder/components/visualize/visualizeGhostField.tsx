@@ -7,11 +7,7 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
-  generateFieldAsString,
-  parseFunction,
-  type QueryFieldValue,
-} from 'sentry/utils/discover/fields';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
 import {
   AggregateCompactSelect,
@@ -25,6 +21,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/index';
 import {ColumnCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 
 type VisualizeGhostFieldProps = {
   activeId: number;
@@ -47,6 +44,12 @@ export function VisualizeGhostField({
     return fields?.[Number(activeId)];
   }, [activeId, fields]);
 
+  // Strip Explore-style `_if` filters so the overlay matches live SelectRow
+  // (avg_if(`span.op:db`,span.duration) → avg / span.duration).
+  const parsedDraggingFunction = parseConditionalAggregate(
+    stringFields?.[Number(activeId)] ?? ''
+  );
+
   const draggableMatchingAggregate = useMemo(() => {
     let matchingAggregate: any;
     if (
@@ -54,14 +57,12 @@ export function VisualizeGhostField({
       FieldValueKind.FUNCTION in draggingField!
     ) {
       matchingAggregate = aggregates.find(
-        option =>
-          option.value.meta.name ===
-          parseFunction(stringFields?.[Number(activeId)] ?? '')?.name
+        option => option.value.meta.name === parsedDraggingFunction?.name
       );
     }
 
     return matchingAggregate;
-  }, [draggingField, aggregates, stringFields, activeId]);
+  }, [draggingField, aggregates, parsedDraggingFunction?.name]);
 
   const draggableHasColumnParameter = useMemo(() => {
     const isApdexOrUserMisery =
@@ -111,18 +112,11 @@ export function VisualizeGhostField({
                   disabled
                   options={[
                     {
-                      label:
-                        parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                          ?.name ?? '',
-                      value:
-                        parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                          ?.name ?? '',
+                      label: parsedDraggingFunction?.name ?? '',
+                      value: parsedDraggingFunction?.name ?? '',
                     },
                   ]}
-                  value={
-                    parseFunction(fields?.map(generateFieldAsString)[activeId]!)?.name ??
-                    ''
-                  }
+                  value={parsedDraggingFunction?.name ?? ''}
                   onChange={() => {}}
                 />
                 {draggableHasColumnParameter && (
@@ -133,22 +127,17 @@ export function VisualizeGhostField({
                       {
                         label:
                           draggingField?.kind === FieldValueKind.FUNCTION
-                            ? (parseFunction(
-                                fields?.map(generateFieldAsString)[activeId]!
-                              )?.arguments[0] ?? '')
+                            ? (parsedDraggingFunction?.arguments[0] ?? '')
                             : draggingField?.field,
                         value:
                           draggingField?.kind === FieldValueKind.FUNCTION
-                            ? (parseFunction(
-                                fields?.map(generateFieldAsString)[activeId]!
-                              )?.arguments[0] ?? '')
+                            ? (parsedDraggingFunction?.arguments[0] ?? '')
                             : draggingField?.field!,
                       },
                     ]}
                     value={
                       draggingField?.kind === FieldValueKind.FUNCTION
-                        ? (parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                            ?.arguments[0] ?? '')
+                        ? (parsedDraggingFunction?.arguments[0] ?? '')
                         : draggingField?.field
                     }
                     onChange={() => {}}

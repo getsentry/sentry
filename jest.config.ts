@@ -242,6 +242,7 @@ if (
  * transformed.
  */
 const ESM_NODE_MODULES = [
+  'oxlint',
   'screenfull',
   'cbor2',
   'nuqs',

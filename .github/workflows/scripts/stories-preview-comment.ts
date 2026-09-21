@@ -92,13 +92,17 @@ export const STORIES_COMMENT_MARKER = '<!-- STORIES_PREVIEW -->';
 // (static/app/stories/view/useStoriesLoader.tsx).
 const STORY_FILE_RE = /^static\/app\/.*(\.stories\.tsx|\.mdx)$/;
 
-// A component source file (not a story, test, or spec) whose edit should also
+// Snapshot, test, and spec files exercise components without changing their
+// implementation, so they should not surface story previews on their own.
+const TEST_FILE_RE = /\.(snapshots?|spec|test)\.[jt]sx?$/;
+
+// A component source file (not a story or test file) whose edit should also
 // surface its colocated story, if one exists.
 function isComponentFile(path: string): boolean {
   return (
     /^static\/app\/.*\.tsx$/.test(path) &&
     !/\.stories\.tsx$/.test(path) &&
-    !/\.(spec|test)\.tsx$/.test(path)
+    !TEST_FILE_RE.test(path)
   );
 }
 
@@ -311,8 +315,9 @@ const STORY_DEPENDENCIES: ReadonlyArray<{prefix: string; story: string}> = [
 // Surface a dependency's story when any file under its directory changed, even
 // though the story itself wasn't edited.
 function findDependencyStories(changed: string[]): string[] {
+  const implementationChanges = changed.filter(file => !TEST_FILE_RE.test(file));
   const matches = STORY_DEPENDENCIES.filter(({prefix}) =>
-    changed.some(file => file.startsWith(prefix))
+    implementationChanges.some(file => file.startsWith(prefix))
   ).map(({story}) => story);
   return [...new Set(matches)];
 }

@@ -62,7 +62,7 @@ export function SimilarStackTraceItem({
       variant={busy ? 'faded' : 'default'}
       onClick={handleToggle}
     >
-      <SimpleTable.RowCell gap="md" cursor="pointer">
+      <SimpleTable.RowCell columnKey="merge" gap="md" cursor="pointer">
         <Checkbox id={issue.id} value={issue.id} checked={checked} onChange={() => {}} />
         <Stack minWidth="0" flex="1">
           <GroupHeaderRow data={issue} source="similar-issues" />
@@ -70,7 +70,7 @@ export function SimilarStackTraceItem({
         </Stack>
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell justify="center">
+      <SimpleTable.RowCell columnKey="events" justify="center">
         <Count value={issue.count} />
       </SimpleTable.RowCell>
 
@@ -90,7 +90,11 @@ export function SimilarStackTraceItem({
         }
 
         return (
-          <SimpleTable.RowCell justify="center" key={interfaceName}>
+          <SimpleTable.RowCell
+            columnKey={interfaceName}
+            justify="center"
+            key={interfaceName}
+          >
             {hasSimilarityEmbeddingsFeature ? (
               <ScoreBar vertical score={scoreValue} />
             ) : (
@@ -106,7 +110,7 @@ export function SimilarStackTraceItem({
         );
       })}
 
-      <SimpleTable.RowCell justify="center">
+      <SimpleTable.RowCell columnKey="actions" justify="center">
         <Button onClick={handleShowDiff} size="xs">
           {t('Diff')}
         </Button>
@@ -120,25 +124,31 @@ export function SimilarStackTraceItemSkeleton({
 }: {
   hasSimilarityEmbeddingsFeature: boolean;
 }) {
-  const scoreColumns = hasSimilarityEmbeddingsFeature ? 1 : 2;
+  const scoreColumns = hasSimilarityEmbeddingsFeature
+    ? (['exception'] as const)
+    : (['exception', 'message'] as const);
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell gap="md">
+      <SimpleTable.RowCell columnKey="merge" gap="md">
         <Placeholder height="16px" width="16px" />
         <Stack gap="xs" flex="1" minWidth="0">
           <Placeholder height="16px" width="60%" />
           <Placeholder height="12px" width="40%" />
         </Stack>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="center">
+      <SimpleTable.RowCell columnKey="events" justify="center">
         <Placeholder height="16px" width="32px" />
       </SimpleTable.RowCell>
-      {Array.from({length: scoreColumns}).map((_, i) => (
-        <SimpleTable.RowCell justify="center" key={i}>
+      {scoreColumns.map(interfaceName => (
+        <SimpleTable.RowCell
+          columnKey={interfaceName}
+          justify="center"
+          key={interfaceName}
+        >
           <Placeholder height="24px" width="40px" />
         </SimpleTable.RowCell>
       ))}
-      <SimpleTable.RowCell justify="center">
+      <SimpleTable.RowCell columnKey="actions" justify="center">
         <Placeholder height="24px" width="44px" />
       </SimpleTable.RowCell>
     </SimpleTable.Row>

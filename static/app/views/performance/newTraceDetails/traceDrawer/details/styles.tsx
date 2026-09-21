@@ -4,20 +4,20 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {
+  DropdownMenu,
+  type DropdownMenuProps,
+  type MenuItemProps,
+} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Markdown} from '@sentry/scraps/markdown';
+import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {
-  DropdownMenu,
-  type DropdownMenuProps,
-  type MenuItemProps,
-} from 'sentry/components/dropdownMenu';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
@@ -54,7 +54,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {markdownRendersVisibleContent} from 'sentry/utils/marked/marked';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -783,7 +782,7 @@ function KeyValueAction({
         traceAnalytics.trackExploreSearch(
           organization,
           rowKey,
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+          // oxlint-disable-next-line typescript/no-base-to-string
           rowValue.toString(),
           key as TraceDrawerActionKind,
           'drawer'
@@ -1015,7 +1014,7 @@ function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   );
 }
 
-export type SectionCardKeyValueList = KeyValueListData;
+type SectionCardKeyValueList = KeyValueListData;
 
 const SECTION_CARD_TRUNCATE_LENGTH = 5;
 

@@ -124,6 +124,46 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert len(queued) == 1
         assert queued[0].feedback.text == "fix it"
 
+    def test_counts_one_enqueued_step_per_item(self) -> None:
+        with patch(f"{QUEUE_PATH}.metrics") as mock_metrics:
+            for _ in range(3):
+                self._enqueue(
+                    run_id=4747,
+                    feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="go")),
+                )
+
+        step_calls = [
+            call
+            for call in mock_metrics.incr.call_args_list
+            if call.args[0] == "autofix.pr_iteration.step"
+        ]
+        assert len(step_calls) == 3
+        assert step_calls[0].kwargs["tags"] == {
+            "checkpoint": "enqueued",
+            "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+            "feedback_kind": "manual",
+        }
+
+    def test_tags_an_automated_enqueue_by_kind(self) -> None:
+        run_state = _run_state(
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
+        )
+        feedback = Feedback(source=_resolved_check_suite_source(run_state=run_state))
+
+        with patch(f"{QUEUE_PATH}.metrics") as mock_metrics:
+            assert self._enqueue(run_id=4949, feedback=feedback, run_state=run_state) is True
+
+        assert mock_metrics.incr.call_args.kwargs["tags"]["feedback_kind"] == "automated"
+
+    def test_a_refused_enqueue_counts_nothing(self) -> None:
+        with patch(f"{QUEUE_PATH}.metrics") as mock_metrics:
+            assert (
+                self._enqueue(run_id=4848, feedback=Feedback(source=_resolved_check_suite_source()))
+                is False
+            )
+
+        mock_metrics.incr.assert_not_called()
+
     def test_skips_stale_feedback(self) -> None:
         feedback = Feedback(source=_resolved_check_suite_source())
 
