@@ -35,6 +35,33 @@ function rawReplay(overrides: Record<string, unknown> = {}) {
 }
 
 describe('replays query embed', () => {
+  /**
+   * Mount the block once, outside any assertion, and throw it away.
+   *
+   * The block level renders through `LazyLoad`, so its first mount in this file
+   * suspends: React compiles the chunk's module graph and then — because a
+   * Suspense fallback was committed — deliberately withholds the resolved
+   * content for `FALLBACK_THROTTLE_MS` (300ms) before committing it, so a
+   * loading state never flashes. Together that is most of a second in which the
+   * embed has not yet issued its request, and it all lands inside whichever
+   * test mounts the block first: that test's `findBy*` spends RTL's 1s budget
+   * on module loading instead of on the fetch it is asserting about, and a
+   * loaded CI worker pushes it over.
+   *
+   * Mounting here resolves `lazy()`'s payload once, so no later mount suspends
+   * and every test renders the block synchronously.
+   */
+  beforeAll(async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replays/',
+      body: {data: []},
+    });
+
+    const {unmount} = renderEmbed({name: 'replaysQuery', data: {query: ''}});
+    await screen.findByText('No matching replays', undefined, {timeout: 30_000});
+    unmount();
+  }, 60_000);
+
   beforeEach(() => {
     ProjectsStore.loadInitialData([ProjectFixture({id: '2', slug: 'web'})]);
   });
