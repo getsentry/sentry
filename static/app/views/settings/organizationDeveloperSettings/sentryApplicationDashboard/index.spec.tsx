@@ -96,9 +96,9 @@ describe('Sentry Application Dashboard', () => {
       // renders (first the app, then the stats). Use a longer timeout so the
       // test stays green under CI load, and verify the stats mock was actually
       // called to catch URL-mismatch regressions early.
-      expect(await screen.findByTestId('installs', {}, {timeout: 3000})).toHaveTextContent(
-        'Total installs5'
-      );
+      expect(
+        await screen.findByTestId('installs', {}, {timeout: 3000})
+      ).toHaveTextContent('Total installs5');
       expect(statsMock).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId('uninstalls')).toHaveTextContent('Total uninstalls2');
     });
