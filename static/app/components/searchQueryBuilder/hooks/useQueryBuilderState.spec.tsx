@@ -438,6 +438,22 @@ describe('regex filters', () => {
     ).toBe('message://GET /api//');
   });
 
+  it('unescapes quotes when switching a quoted value to matches regex', () => {
+    const query = 'message:"say \\"hi\\""';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.MATCHES)
+    ).toBe('message://say "hi"//');
+  });
+
+  it('quotes a character class pattern when switching away from matches regex', () => {
+    const query = 'message://[0-9]//';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.DEFAULT)
+    ).toBe('message:"[0-9]"');
+  });
+
   it('negates the filter when switching to does not match regex', () => {
     const query = 'message:foo';
 

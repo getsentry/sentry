@@ -322,7 +322,10 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
   stringifiedToken += ':';
 
   if (token.operator === TermOperator.MATCHES && token.value.type === Token.VALUE_TEXT) {
-    return `${stringifiedToken}//${token.value.value}//`;
+    const pattern = token.value.quoted
+      ? token.value.value.replaceAll('\\"', '"')
+      : token.value.value;
+    return `${stringifiedToken}//${pattern}//`;
   }
 
   stringifiedToken += token.operator;
