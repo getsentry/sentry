@@ -1,6 +1,7 @@
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {areAiFeaturesAllowed as computeAreAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface OrganizationSeerSetupResponse {
@@ -24,8 +25,7 @@ export function useOrganizationSeerSetup(
 ) {
   const organization = useOrganization();
   const orgSlug = organization.slug;
-  const areAiFeaturesAllowed =
-    !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
+  const areAiFeaturesAllowed = computeAreAiFeaturesAllowed(organization);
 
   const queryData = useApiQuery<OrganizationSeerSetupResponse>(
     makeOrganizationSeerSetupQueryKey(orgSlug),
