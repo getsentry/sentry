@@ -744,7 +744,10 @@ describe('Investigation detail', () => {
     const toggle = await screen.findByRole('button', {name: 'Toggle Latency query'});
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('820ms')).toBeVisible();
-    expect(screen.getByRole('button', {name: 'Show query'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Show query'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(screen.getByTestId('query-cell')).toContainElement(
       screen.getByRole('button', {name: 'Cell actions for Latency query'})
     );
@@ -786,7 +789,7 @@ describe('Investigation detail', () => {
     renderView();
 
     const showQuery = await screen.findByRole('button', {name: 'Show query'});
-    expect(showQuery).toBeEnabled();
+    expect(showQuery).not.toHaveAttribute('aria-disabled', 'true');
     expect(screen.queryByText('transaction:/api/checkout')).not.toBeInTheDocument();
 
     await userEvent.click(showQuery);

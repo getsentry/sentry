@@ -358,7 +358,10 @@ describe('AutomationDetail', () => {
 
     await screen.findByRole('heading', {name: /Test Automation/i});
 
-    expect(screen.getByRole('button', {name: 'Disable'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Disable'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
       'aria-disabled',
       'true'
