@@ -17,6 +17,11 @@ export type ApiResponse<TResponseData = unknown> = {
      * status code without re-plumbing the whole response object. Endpoints that
      * return more than one success code (201 created vs 200 already-exists)
      * need it to tell the cases apart.
+     *
+     * Optional because `ApiResponse` doubles as the query-cache entry shape:
+     * `setApiQueryData` and other optimistic updates synthesize entries that
+     * never came from an HTTP response. Prefer a positive check (`=== 201`)
+     * over a negative one, since an unknown status reads as `undefined`.
      */
     status?: number;
   };

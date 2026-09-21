@@ -344,8 +344,17 @@ export class Client {
         sudo: code === SUDO_REQUIRED,
         retryRequest: async () => {
           try {
-            const data = await this.requestPromise(path, requestOptions);
-            requestOptions.success?.(data);
+            // Forward the retry's own response rather than just its body, so
+            // callers still see the real status code and headers after a sudo
+            // prompt interrupts the original request.
+            const [retryData, retryTextStatus, retryResponse] = await this.requestPromise(
+              path,
+              {
+                ...requestOptions,
+                includeAllArgs: true,
+              }
+            );
+            requestOptions.success?.(retryData, retryTextStatus, retryResponse);
             didSuccessfullyRetry = true;
           } catch (err) {
             requestOptions.error?.(err);
