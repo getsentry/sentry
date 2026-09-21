@@ -186,12 +186,12 @@ export const SEER_EMBED_SCHEMAS = {
   issue: {
     description:
       'The ONLY way to reference a Sentry issue. ' +
-      '`id` is the issue SHORT ID — the `shortId` field the issues API returns, ' +
-      'a project slug, a hyphen, and a short alphanumeric suffix ' +
-      '(e.g. "JAVASCRIPT-22SP"). It is NEVER the numeric group ID ' +
-      '(e.g. "7716642857"), which is what the API returns as `id`. ' +
-      'If you only have the numeric group ID, do not guess a short ID: ' +
-      'use `issuesQuery` with `issue.id:<numeric id>` instead. ' +
+      'Pass BOTH ids the issues API returns for the issue: `id` is the numeric ' +
+      'group ID (e.g. "7716642857") and `shortId` is the short ID (e.g. ' +
+      '"JAVASCRIPT-22SP"). Copy each one from the field of the same name — never ' +
+      'put the numeric ID in `shortId`, and never invent a short ID you have not ' +
+      'seen. Omit `shortId` when you genuinely do not have it; the embed reads ' +
+      'better with it, since it labels the link. ' +
       'Inline: renders a compact link with the short id. ' +
       'Block: renders a full interactive issue row with title, events, ' +
       'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
@@ -203,13 +203,31 @@ export const SEER_EMBED_SCHEMAS = {
         .string()
         .min(1)
         .describe(
-          'The issue short ID, exactly as the issues API returns it in `shortId` ' +
-            '(e.g. "JAVASCRIPT-22SP"). Not the numeric group ID.'
+          'The issue ID exactly as the issues API returns it in `id` — normally ' +
+            'the numeric group ID (e.g. "7716642857"). A short ID is accepted here ' +
+            'when that is the only id you have.'
+        ),
+      shortId: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          'The issue short ID exactly as the issues API returns it in `shortId` ' +
+            '(e.g. "JAVASCRIPT-22SP"): a project slug, a hyphen, and a short ' +
+            'alphanumeric suffix. Omit it rather than guessing one.'
         ),
     }),
     examples: [
-      {label: 'Inline', level: 'inline', data: {id: 'JAVASCRIPT-22SP'}},
-      {label: 'Block', level: 'block', data: {id: 'JAVASCRIPT-22SP'}},
+      {
+        label: 'Inline',
+        level: 'inline',
+        data: {id: '7716642857', shortId: 'JAVASCRIPT-22SP'},
+      },
+      {
+        label: 'Block',
+        level: 'block',
+        data: {id: '7716642857', shortId: 'JAVASCRIPT-22SP'},
+      },
     ],
   },
   replay: {
