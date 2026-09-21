@@ -98,7 +98,9 @@ export function SdkVersions({orgSlug, projectId, release}: Props) {
                 >
                   <Flex gap="md" minWidth="0">
                     <Text ellipsis>{row['sdk.name']}</Text>
-                    <Text variant="muted">{row['sdk.version']}</Text>
+                    <Text variant="muted" wrap="nowrap">
+                      {row['sdk.version']}
+                    </Text>
                   </Flex>
                   <Text>{rowPercent < 1 ? '<1' : rowPercent}%</Text>
                 </Flex>

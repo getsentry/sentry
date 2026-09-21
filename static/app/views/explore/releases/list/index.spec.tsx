@@ -147,9 +147,9 @@ describe('ReleasesList', () => {
     const items = await screen.findAllByTestId('release-panel');
 
     expect(
-      await within(items.at(1)!).findByText('SDK: sentry.javascript.react 9.12.0')
+      await within(items.at(1)!).findByText('SDK 9.12.0 · sentry.javascript.react')
     ).toBeInTheDocument();
-    expect(within(items.at(0)!).queryByText(/^SDK:/)).not.toBeInTheDocument();
+    expect(within(items.at(0)!).queryByText(/^SDK /)).not.toBeInTheDocument();
     expect(sdkVersionsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({

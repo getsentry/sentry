@@ -10,7 +10,7 @@ describe('ReleaseCardSdkVersion', () => {
       />
     );
 
-    expect(screen.getByText('SDK: sentry.javascript.react 9.12.0')).toBeInTheDocument();
+    expect(screen.getByText('SDK 9.12.0 · sentry.javascript.react')).toBeInTheDocument();
     expect(screen.queryByText(/^\+/)).not.toBeInTheDocument();
   });
 
@@ -26,7 +26,7 @@ describe('ReleaseCardSdkVersion', () => {
     );
 
     expect(
-      screen.getByText('SDK: sentry.javascript.react-native 6.0.0')
+      screen.getByText('SDK 6.0.0 · sentry.javascript.react-native')
     ).toBeInTheDocument();
     expect(screen.getByText('+2')).toBeInTheDocument();
   });

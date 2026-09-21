@@ -16,21 +16,6 @@ export function ReleaseCardSdkVersion({sdkVersions}: Props) {
     return null;
   }
 
-  const content = (
-    <Flex gap="xs">
-      <Text size="sm">{t('SDK: %s %s', primary.name, primary.version)}</Text>
-      {others.length > 0 && (
-        <Text size="sm" variant="muted">
-          {t('+%s', others.length)}
-        </Text>
-      )}
-    </Flex>
-  );
-
-  if (!others.length) {
-    return content;
-  }
-
   return (
     <Tooltip
       title={
@@ -43,7 +28,16 @@ export function ReleaseCardSdkVersion({sdkVersions}: Props) {
         </Stack>
       }
     >
-      {content}
+      <Flex gap="xs" minWidth="0">
+        <Text size="sm" ellipsis>
+          {t('SDK %s · %s', primary.version, primary.name)}
+        </Text>
+        {others.length > 0 && (
+          <Text size="sm" variant="muted" wrap="nowrap">
+            {t('+%s', others.length)}
+          </Text>
+        )}
+      </Flex>
     </Tooltip>
   );
 }
