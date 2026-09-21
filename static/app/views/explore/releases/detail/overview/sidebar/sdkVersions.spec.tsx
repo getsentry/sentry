@@ -19,7 +19,7 @@ describe('SdkVersions', () => {
   });
   const releaseBounds = getReleaseBounds(release);
 
-  function renderSdkVersions() {
+  function renderSdkVersions(query: Record<string, string> = {}) {
     return render(
       <ReleaseContext
         value={{
@@ -34,7 +34,7 @@ describe('SdkVersions', () => {
       >
         <SdkVersions organization={organization} version={release.version} />
       </ReleaseContext>,
-      {organization}
+      {organization, initialRouterConfig: {location: {pathname: '/', query}}}
     );
   }
 
@@ -76,6 +76,23 @@ describe('SdkVersions', () => {
           start: releaseBounds.releaseStart,
           end: releaseBounds.releaseEnd,
         }),
+      })
+    );
+  });
+
+  it('ignores the page cursor when the URL has one from another panel', async () => {
+    const eventsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: []},
+    });
+
+    renderSdkVersions({cursor: '0:25:0'});
+
+    await waitFor(() => expect(eventsRequest).toHaveBeenCalled());
+    expect(eventsRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.not.objectContaining({cursor: '0:25:0'}),
       })
     );
   });

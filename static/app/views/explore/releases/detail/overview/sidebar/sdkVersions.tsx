@@ -1,5 +1,6 @@
 import {useContext} from 'react';
 import {useInfiniteQuery} from '@tanstack/react-query';
+import omit from 'lodash/omit';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -35,7 +36,7 @@ export function SdkVersions({organization, version}: Props) {
   const result = useInfiniteQuery({
     ...releaseSdkVersionsApiOptions({
       organization,
-      pageFilterParams: getReleaseParams({location, releaseBounds}),
+      pageFilterParams: omit(getReleaseParams({location, releaseBounds}), 'cursor'),
       referrer: 'api.releases.release-details-sdk-versions',
       versions: [version],
     }),
