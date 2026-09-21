@@ -59,7 +59,6 @@ class NotificationRendererRegistry:
         """
         if self._loaded:
             return
-        self._loaded = True
 
         import sentry.notifications.platform.discord.renderers.issue  # noqa: F401
         import sentry.notifications.platform.discord.renderers.metric_alert  # noqa: F401
@@ -67,6 +66,8 @@ class NotificationRendererRegistry:
         import sentry.notifications.platform.slack.renderers.metric_alert  # noqa: F401
         import sentry.notifications.platform.slack.renderers.seer  # noqa: F401
         import sentry.notifications.platform.slack.renderers.seer_agent_write_approval  # noqa: F401
+
+        self._loaded = True
 
     def register[RenderableT](
         self, provider_key: NotificationProviderKey, sources: Sequence[NotificationSource]
