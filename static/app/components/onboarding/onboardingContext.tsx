@@ -90,17 +90,12 @@ const OnboardingContext = createContext<OnboardingContextProps>({
 
 type ProviderProps = {
   children: React.ReactNode;
-  /**
-   * Optional initial session state. Primarily used in tests to seed the context
-   * without touching session storage directly.
-   */
-  initialValue?: OnboardingSessionState;
 };
 
-export function OnboardingContextProvider({children, initialValue}: ProviderProps) {
+export function OnboardingContextProvider({children}: ProviderProps) {
   const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage<
     LegacyOnboardingSessionState | undefined
-  >(ONBOARDING_SESSION_KEY, initialValue);
+  >(ONBOARDING_SESSION_KEY, undefined);
 
   // A session written before createdProject existed holds only the slug under
   // createdProjectSlug. Lift it once on load so the docs step still resolves
