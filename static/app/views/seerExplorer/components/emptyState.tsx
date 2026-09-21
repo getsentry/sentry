@@ -20,6 +20,8 @@ interface EmptyStateProps {
   errorStatusCode?: number | null;
   isError?: boolean;
   isLoading?: boolean;
+  /** The session loaded, but came back errored with nothing to show. */
+  isSessionError?: boolean;
   onSuggestionClick?: (question: string) => void;
   runId?: SeerExplorerRunId | null;
 }
@@ -27,6 +29,7 @@ interface EmptyStateProps {
 export function EmptyState({
   isLoading = false,
   isError = false,
+  isSessionError = false,
   errorStatusCode = null,
   displaySlackAgentReminder = false,
   runId,
@@ -40,17 +43,22 @@ export function EmptyState({
           <LoadingIndicator size={32} />
           <Text>{t('Ask Seer anything about your application.')}</Text>
         </Fragment>
-      ) : isError ? (
+      ) : isError || isSessionError ? (
         <Fragment>
           <IconSeer size="xl" />
           <Text>
-            {errorStatusCode === 404
-              ? tct('Session not found (run_id=[runIdDisplay]).', {
-                  runIdDisplay,
-                })
-              : tct(`Error loading this session (run_id=[runIdDisplay]).`, {
-                  runIdDisplay,
-                })}
+            {!isError && isSessionError
+              ? tct(
+                  "We couldn't load this conversation — it ended in an error (run_id=[runIdDisplay]). Start a new chat to keep going.",
+                  {runIdDisplay}
+                )
+              : errorStatusCode === 404
+                ? tct('Session not found (run_id=[runIdDisplay]).', {
+                    runIdDisplay,
+                  })
+                : tct(`Error loading this session (run_id=[runIdDisplay]).`, {
+                    runIdDisplay,
+                  })}
           </Text>
         </Fragment>
       ) : (

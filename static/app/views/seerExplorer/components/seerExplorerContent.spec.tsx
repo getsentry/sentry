@@ -21,6 +21,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   sessionData: null,
   isPolling: false,
   isError: false,
+  hasSessionLoadError: false,
   errorStatusCode: undefined,
   isTimedOut: false,
   runId: null,
@@ -332,6 +333,41 @@ describe('SeerExplorerContent', () => {
         await screen.findByText(/Error loading this session \(run_id=123\)./)
       ).toBeInTheDocument();
       expect(screen.queryByText(/444/)).not.toBeInTheDocument();
+    });
+
+    it('shows a load failure when the session itself came back errored', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        sessionData: {
+          status: 'error',
+          updated_at: new Date().toISOString(),
+          blocks: [],
+        },
+        hasSessionLoadError: true,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText(/We couldn't load this conversation/)
+      ).toBeInTheDocument();
+      // The idle suggestions must not stand in for a failed load.
+      expect(
+        screen.queryByText('What are my slowest DB queries?')
+      ).not.toBeInTheDocument();
     });
   });
 

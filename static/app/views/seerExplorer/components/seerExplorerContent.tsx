@@ -200,6 +200,7 @@ export function SeerExplorerContent({
     sessionData,
     isPolling,
     isError,
+    hasSessionLoadError,
     errorStatusCode,
     isTimedOut,
     sendMessage,
@@ -627,6 +628,7 @@ export function SeerExplorerContent({
             <EmptyState
               isLoading={isPolling}
               isError={isError}
+              isSessionError={hasSessionLoadError}
               errorStatusCode={errorStatusCode}
               runId={runId}
               displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
