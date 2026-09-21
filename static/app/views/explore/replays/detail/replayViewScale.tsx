@@ -1,7 +1,7 @@
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {CountTooltipContent} from 'sentry/components/replays/countTooltipContent';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconRuler} from 'sentry/icons/iconRuler';
 import {t} from 'sentry/locale';
@@ -24,14 +24,14 @@ export function ReplayViewScale({isLoading}: Props) {
     <Tooltip
       skipWrapper
       title={
-        <CountTooltipContent>
-          <dt>{t('Original size:')}</dt>
-          <dd>
+        <DescriptionList gap="md 2xl">
+          <DescriptionList.Term>{t('Original size')}</DescriptionList.Term>
+          <DescriptionList.Details>
             {dimensions.width} &times; {dimensions.height}
-          </dd>
-          <dt>{t('Rendered size:')}</dt>
-          <dd>{toPercent(scale, 1)}</dd>
-        </CountTooltipContent>
+          </DescriptionList.Details>
+          <DescriptionList.Term>{t('Rendered size')}</DescriptionList.Term>
+          <DescriptionList.Details>{toPercent(scale, 1)}</DescriptionList.Details>
+        </DescriptionList>
       }
     >
       <IconRuler size="md" />
