@@ -7,6 +7,7 @@ import pytest
 import responses
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.cursor_origin.client import OriginCommit
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_API_BASE_URL
 from sentry.integrations.cursor_origin.push import RepositoryPushedHandler
 from sentry.integrations.cursor_origin.webhook_types import (
@@ -37,7 +38,7 @@ def _head_commit(sha: str, message: str = "a change") -> dict[str, Any]:
     }
 
 
-def _listed_commit(sha: str, message: str = "a change") -> dict[str, Any]:
+def _listed_commit(sha: str, message: str = "a change") -> OriginCommit:
     return {
         "sha": sha,
         "commit": {
@@ -131,7 +132,7 @@ class RepositoryPushedHandlerTest(TestCase):
             json={"status": status_name, "aheadBy": ahead_by, "behindBy": 0},
         )
 
-    def _stub_commits(self, *commits: dict[str, Any]) -> None:
+    def _stub_commits(self, *commits: OriginCommit) -> None:
         responses.add(
             responses.GET,
             f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/commits",
