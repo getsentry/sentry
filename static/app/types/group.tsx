@@ -707,11 +707,12 @@ export interface GroupActivityIntegrationData {
   provider_key?: string;
 }
 
-interface GroupActivityNote extends GroupActivityBase {
+export interface GroupActivityNote extends GroupActivityBase {
   data: {
     text: string;
   };
   type: GroupActivityType.NOTE;
+  commentId?: string;
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {

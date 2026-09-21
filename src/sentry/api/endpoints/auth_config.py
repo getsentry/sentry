@@ -61,9 +61,6 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         """
         Get context required to show a login page. Registration is handled elsewhere.
         """
-        if request.user.is_authenticated:
-            return self.respond_authenticated(request)
-
         user_pending_2fa = get_pending_2fa_user(request)
         if user_pending_2fa is not None:
             interfaces = Authenticator.objects.all_interfaces_for_user(user_pending_2fa)
@@ -74,6 +71,9 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
             payload["pendingMfa"] = pending_mfa
             # Preserve the pending MFA and redirect state that initiate_login clears below.
             return self.respond_with_login_context(request, payload)
+
+        if request.user.is_authenticated:
+            return self.respond_authenticated(request)
 
         next_uri = self.get_next_uri(request)
 

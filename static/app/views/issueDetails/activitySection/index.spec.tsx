@@ -1,3 +1,4 @@
+import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -180,17 +181,32 @@ describe('ActivitySection', () => {
     );
   });
 
-  it('renders note and allows for delete', async () => {
+  it.each([
+    {id: '123', commentId: undefined},
+    {id: '987', commentId: '123'},
+  ])('deletes only the comment with identity %j', async identity => {
     jest.spyOn(indicators, 'addSuccessMessage');
+    const note = ActivityFeedFixture({...identity, user, data: {text: 'Test Note'}});
+    const resolution = ActivityFeedFixture({
+      id: '123',
+      type: GroupActivityType.SET_RESOLVED,
+      data: {},
+      user,
+    });
+    const deleteGroup = GroupFixture({
+      ...group,
+      activity: [note, resolution],
+    });
+    const onActivityChange = jest.fn();
 
     const deleteMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/1337/comments/note-1/',
+      url: '/organizations/org-slug/issues/1337/comments/123/',
       method: 'DELETE',
     });
 
     render(
-      <GroupDataContextProvider group={group} project={group.project}>
-        <ActivitySection group={group} />
+      <GroupDataContextProvider group={deleteGroup} project={project}>
+        <ActivitySection group={deleteGroup} onActivityChange={onActivityChange} />
       </GroupDataContextProvider>
     );
     renderGlobalModal();
@@ -208,6 +224,7 @@ describe('ActivitySection', () => {
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalledTimes(1));
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment removed');
+    expect(onActivityChange).toHaveBeenCalledWith([resolution]);
   });
 
   it('keeps the comment and modal open when deletion fails', async () => {
@@ -775,31 +792,37 @@ describe('ActivitySection', () => {
   it('renders note and allows for edit', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
 
+    const note = ActivityFeedFixture({
+      id: '123',
+      commentId: '123',
+      data: {text: 'Group Test'},
+      user,
+    });
+    const resolution = ActivityFeedFixture({
+      id: '987',
+      type: GroupActivityType.SET_RESOLVED,
+      data: {},
+      user,
+    });
+    const onActivityChange = jest.fn();
     const editGroup = GroupFixture({
       id: '1123',
-      activity: [
-        {
-          type: GroupActivityType.NOTE,
-          id: 'note-1',
-          data: {text: 'Group Test'},
-          dateCreated: '2020-01-01T00:00:00',
-          user,
-        },
-      ],
+      activity: [note, resolution],
       project,
     });
     const editMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/1123/comments/note-1/',
+      url: '/organizations/org-slug/issues/1123/comments/123/',
       method: 'PUT',
       body: {
-        id: 'note-1',
+        ...note,
+        id: '987',
         data: {text: 'Group Test Updated'},
       },
     });
 
     render(
       <GroupDataContextProvider group={editGroup} project={editGroup.project}>
-        <ActivitySection group={editGroup} />
+        <ActivitySection group={editGroup} onActivityChange={onActivityChange} />
       </GroupDataContextProvider>
     );
     expect(await screen.findByText('Group Test')).toBeInTheDocument();
@@ -822,6 +845,10 @@ describe('ActivitySection', () => {
 
     await waitFor(() => expect(editMock).toHaveBeenCalledTimes(1));
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
+    expect(onActivityChange).toHaveBeenCalledWith([
+      {...note, data: {text: 'Group Test Updated'}},
+      resolution,
+    ]);
 
     // Editor closes only after the update succeeds.
     await waitFor(() =>
@@ -1004,6 +1031,14 @@ describe('ActivitySection', () => {
       user: UserFixture({id: '2'}),
       project,
     }));
+    const olderComment = ActivityFeedFixture({
+      id: '987',
+      commentId: '123',
+      data: {text: 'Test Note 1'},
+      dateCreated: tenMinutesAgo(),
+      user,
+    });
+    activities[0] = olderComment;
     const embeddedActivities: GroupActivity[] = Array.from({length: 100}, (_, index) => ({
       type: GroupActivityType.SET_RESOLVED,
       id: `resolved-${index + 1}`,
@@ -1053,6 +1088,26 @@ describe('ActivitySection', () => {
     expect(screen.getAllByText('10 minutes ago')).toHaveLength(7);
     expect(screen.queryByText('10m ago')).not.toBeInTheDocument();
     expect(commentsMock).toHaveBeenCalledTimes(1);
+
+    const editedComment = {...olderComment, data: {text: 'Older comment updated'}};
+    const editMock = MockApiClient.addMockResponse({
+      url: `${commentsUrl}123/`,
+      method: 'PUT',
+      body: editedComment,
+    });
+    MockApiClient.addMockResponse({
+      url: commentsUrl,
+      body: [editedComment, ...activities.slice(1)],
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
+    const editor = getCommentEditor('Edit comment');
+    await userEvent.clear(editor);
+    await userEvent.type(editor, 'Older comment updated');
+    await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
+
+    expect(await screen.findByText('Older comment updated')).toBeInTheDocument();
+    expect(editMock).toHaveBeenCalledTimes(1);
   });
 
   it('filters comments correctly', async () => {

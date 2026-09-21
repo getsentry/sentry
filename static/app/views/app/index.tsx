@@ -238,6 +238,7 @@ export function App() {
     <Profiler id="App" onRender={onRenderCallback}>
       <AppProviders preloadData={preloadData}>
         <MainContainer tabIndex={-1}>
+          <Override name="component:feedback-init" />
           <AppAlerts />
           <GlobalModal />
           <Override name="component:replay-init" />

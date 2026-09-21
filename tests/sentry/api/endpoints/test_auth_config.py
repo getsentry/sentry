@@ -1,3 +1,4 @@
+from time import time
 from unittest.mock import patch
 
 import pytest
@@ -86,6 +87,22 @@ class AuthConfigEndpointTest(APITestCase):
         }
         assert self.client.session["_pending_2fa"][0] == self.user.id
         assert self.client.session["_next"] == "/settings/account/"
+
+    def test_pending_mfa_for_authenticated_user(self) -> None:
+        TotpInterface().enroll(self.user)
+        self.login_as(self.user)
+        pending_2fa = [self.user.id, time()]
+        self.session["_pending_2fa"] = pending_2fa
+        self.save_session()
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["pendingMfa"] == {
+            "mfaRequired": True,
+            "mfaMethods": [{"id": "totp"}],
+        }
+        assert self.client.session["_pending_2fa"] == pending_2fa
 
     def test_pending_mfa_consumes_session_expired_warning(self) -> None:
         TotpInterface().enroll(self.user)
