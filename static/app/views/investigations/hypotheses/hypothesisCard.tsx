@@ -189,8 +189,8 @@ const EvidenceStep = styled(Flex)`
     width: 10px;
     height: 10px;
     color: ${p => p.theme.tokens.content.secondary};
-    border: 1px solid currentColor;
-    border-radius: 50%;
+    border: ${p => p.theme.border.md} solid currentColor;
+    border-radius: ${p => p.theme.radius.full};
     background: ${p => p.theme.tokens.background.primary};
     z-index: 1;
   }
