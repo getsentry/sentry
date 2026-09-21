@@ -1422,6 +1422,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert payload["author"] == {
             "name": self.user.get_display_name(),
             "email": "583231+octocat@users.noreply.github.com",
+            "login": "octocat",
         }
 
     def test_open_pr_no_run_id(self) -> None:

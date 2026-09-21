@@ -89,6 +89,7 @@ class CommitAuthorTest(TestCase):
         assert commit_author_for_github_actor(login="octocat", external_id=583231) == {
             "name": "octocat",
             "email": OCTOCAT_EMAIL,
+            "login": "octocat",
         }
         # A missing or non-numeric id degrades to the login-only noreply form, which
         # GitHub still attributes to the account -- it's the address GitHub itself
@@ -96,27 +97,42 @@ class CommitAuthorTest(TestCase):
         assert commit_author_for_github_actor(login="octocat") == {
             "name": "octocat",
             "email": LOGIN_ONLY_EMAIL,
+            "login": "octocat",
         }
         assert commit_author_for_github_actor(login="octocat", external_id="nope") == {
             "name": "octocat",
             "email": LOGIN_ONLY_EMAIL,
+            "login": "octocat",
         }
         assert commit_author_for_github_actor(login="@octocat", external_id="1", name="Mona") == {
             "name": "Mona",
             "email": "1+octocat@users.noreply.github.com",
+            "login": "octocat",
         }
 
     def test_user_resolves_via_external_actor(self) -> None:
         external_actor = self._link_github()
-        assert self._for_user(self.actor) == {"name": "Mona Lisa", "email": OCTOCAT_EMAIL}
+        assert self._for_user(self.actor) == {
+            "name": "Mona Lisa",
+            "email": OCTOCAT_EMAIL,
+            "login": "octocat",
+        }
 
         external_actor.update(external_id=None)
-        assert self._for_user(self.actor) == {"name": "Mona Lisa", "email": LOGIN_ONLY_EMAIL}
+        assert self._for_user(self.actor) == {
+            "name": "Mona Lisa",
+            "email": LOGIN_ONLY_EMAIL,
+            "login": "octocat",
+        }
 
     @patch("sentry.seer.autofix.commit_author.get_github_username_for_user", return_value="octocat")
     def test_user_resolved_by_login_only_has_no_id(self, mock_lookup) -> None:
         # The CommitAuthor email fallback yields a login with no ExternalActor row.
-        assert self._for_user(self.actor) == {"name": "Mona Lisa", "email": LOGIN_ONLY_EMAIL}
+        assert self._for_user(self.actor) == {
+            "name": "Mona Lisa",
+            "email": LOGIN_ONLY_EMAIL,
+            "login": "octocat",
+        }
 
     def test_github_enterprise_only_user_has_no_author(self) -> None:
         # A GHE login has no github.com account, so the noreply form would misattribute.
@@ -134,7 +150,11 @@ class CommitAuthorTest(TestCase):
 
         # A github.com link alongside the enterprise one still resolves.
         self._link_github()
-        assert self._for_user(self.actor) == {"name": "Mona Lisa", "email": OCTOCAT_EMAIL}
+        assert self._for_user(self.actor) == {
+            "name": "Mona Lisa",
+            "email": OCTOCAT_EMAIL,
+            "login": "octocat",
+        }
 
     def test_user_without_github_identity(self) -> None:
         assert self._for_user(self.actor) is None
@@ -151,7 +171,7 @@ class CommitAuthorTest(TestCase):
     def test_feedback_single_github_commenter(self) -> None:
         assert commit_author_for_feedback(
             [comment_feedback("octocat", 583231)], self.organization.id
-        ) == {"name": "octocat", "email": OCTOCAT_EMAIL}
+        ) == {"name": "octocat", "email": OCTOCAT_EMAIL, "login": "octocat"}
 
         # Two comments from the same human, one of them a review body.
         review_body = Feedback(
@@ -165,7 +185,7 @@ class CommitAuthorTest(TestCase):
         )
         assert commit_author_for_feedback(
             [comment_feedback("octocat", 583231), review_body], self.organization.id
-        ) == {"name": "octocat", "email": OCTOCAT_EMAIL}
+        ) == {"name": "octocat", "email": OCTOCAT_EMAIL, "login": "octocat"}
 
     def test_feedback_same_commenter_with_and_without_id(self) -> None:
         # One item carries the numeric id and the other doesn't; still one person.
@@ -176,6 +196,7 @@ class CommitAuthorTest(TestCase):
         assert commit_author_for_feedback(items, self.organization.id) == {
             "name": "octocat",
             "email": OCTOCAT_EMAIL,
+            "login": "octocat",
         }
 
     def test_feedback_from_github_and_ui_same_person(self) -> None:
@@ -206,6 +227,7 @@ class CommitAuthorTest(TestCase):
         assert commit_author_for_feedback(items, self.organization.id) == {
             "name": "Mona Lisa",
             "email": OCTOCAT_EMAIL,
+            "login": "octocat",
         }
 
     @patch(METRICS_PATH)
@@ -288,6 +310,9 @@ class CommitAuthorTest(TestCase):
             "name": "Mona",
             "email": "mona@example.com",
         }
+        assert parse_commit_author(
+            '{"name": "Mona", "email": "mona@example.com", "login": "octocat"}'
+        ) == {"name": "Mona", "email": "mona@example.com", "login": "octocat"}
         assert parse_commit_author(None) is None
         assert parse_commit_author("") is None
         assert parse_commit_author("not json") is None
