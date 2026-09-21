@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 from unittest import mock
+from urllib.parse import urlsplit
 
 import responses
+from rest_framework.response import Response
 
+from sentry.integrations.bitbucket.client import BitbucketApiClient
 from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegrationProvider, scopes
 from sentry.integrations.models.integration import Integration
@@ -89,8 +92,12 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert BitbucketInstalledEndpoint.authentication_classes == ()
         assert BitbucketInstalledEndpoint.permission_classes == ()
 
+    def install(self, data: dict[str, Any]) -> Response:
+        with mock.patch.object(BitbucketApiClient, "get_workspace_hooks"):
+            return self.client.post(self.path, data=data)
+
     def test_installed_with_public_key(self) -> None:
-        response = self.client.post(self.path, data=self.team_data_from_bitbucket)
+        response = self.install(self.team_data_from_bitbucket)
         assert response.status_code == 200
         integration = Integration.objects.get(provider=self.provider, external_id=self.client_key)
         assert integration.name == self.username
@@ -132,7 +139,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         # Remove username to simulate privacy mode
         del self.user_data_from_bitbucket["principal"]["username"]
 
-        response = self.client.post(self.path, data=self.user_data_from_bitbucket)
+        response = self.install(self.user_data_from_bitbucket)
         assert response.status_code == 200
         integration = Integration.objects.get(provider=self.provider, external_id=self.client_key)
         assert integration.name == self.user_display_name
@@ -141,12 +148,51 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
     @mock.patch("sentry.integrations.bitbucket.integration.generate_token", return_value="0" * 64)
     def test_installed_with_secret(self, mock_generate_token: mock.MagicMock) -> None:
-        response = self.client.post(self.path, data=self.team_data_from_bitbucket)
+        response = self.install(self.team_data_from_bitbucket)
         assert mock_generate_token.called
         assert response.status_code == 200
         integration = Integration.objects.get(provider=self.provider, external_id=self.client_key)
         assert integration.name == self.username
         assert integration.metadata["webhook_secret"] == "0" * 64
+
+    @responses.activate
+    def test_installed_verifies_shared_secret(self) -> None:
+        responses.add(
+            responses.GET,
+            f"https://api.bitbucket.org/2.0/workspaces/{self.team_data['uuid']}/hooks",
+            json={},
+        )
+
+        response = self.client.post(self.path, data=self.team_data_from_bitbucket)
+
+        assert response.status_code == 200
+        assert Integration.objects.filter(
+            provider=self.provider, external_id=self.client_key
+        ).exists()
+        request = responses.calls[0].request
+        token = request.headers["Authorization"].removeprefix("JWT ")
+        assert jwt.decode(token, self.shared_secret) == {
+            "iss": "testserver.bitbucket",
+            "iat": mock.ANY,
+            "exp": mock.ANY,
+            "qsh": get_query_hash(urlsplit(request.url).path, method="GET", query_params={}),
+            "sub": self.client_key,
+        }
+
+    @responses.activate
+    def test_installed_rejects_invalid_shared_secret(self) -> None:
+        responses.add(
+            responses.GET,
+            f"https://api.bitbucket.org/2.0/workspaces/{self.team_data['uuid']}/hooks",
+            status=401,
+        )
+
+        response = self.client.post(self.path, data=self.team_data_from_bitbucket)
+
+        assert response.status_code == 401
+        assert not Integration.objects.filter(
+            provider=self.provider, external_id=self.client_key
+        ).exists()
 
     @responses.activate
     def test_plugin_migration(self) -> None:
@@ -169,7 +215,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
                 config={"name": "otheruser/otherrepo"},
             )
 
-        self.client.post(self.path, data=self.team_data_from_bitbucket)
+        self.install(self.team_data_from_bitbucket)
 
         integration = Integration.objects.get(provider=self.provider, external_id=self.client_key)
 

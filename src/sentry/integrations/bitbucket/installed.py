@@ -15,7 +15,9 @@ from sentry.integrations.utils.atlassian_connect import (
     get_integration_from_jwt,
     get_token,
 )
+from sentry.shared_integrations.exceptions import ApiError
 
+from .client import BitbucketApiClient
 from .integration import BitbucketIntegrationProvider
 
 
@@ -63,6 +65,22 @@ class BitbucketInstalledEndpoint(Endpoint):
                 return self.respond(status=403)
 
         data = BitbucketIntegrationProvider().build_integration(state)
+        if not existing:
+            pending_integration = Integration(
+                provider=IntegrationProviderSlug.BITBUCKET.value,
+                external_id=client_key,
+                name=data.get("name", client_key),
+                metadata=data.get("metadata", {}),
+            )
+            try:
+                BitbucketApiClient(pending_integration).get_workspace_hooks(
+                    state["principal"]["uuid"]
+                )
+            except ApiError as error:
+                if error.code is not None and 400 <= error.code < 500 and error.code != 429:
+                    return self.respond(status=401)
+                raise
+
         ensure_integration(
             IntegrationProviderSlug.BITBUCKET.value,
             data,
