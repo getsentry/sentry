@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -37,12 +39,19 @@ function makeChartInfo(meta?: Record<string, unknown>): ChartInfo {
   };
 }
 
+function renderTooltipDetails(
+  chartInfo: ChartInfo,
+  features: string[] = ['measured-ingestion-delay-ui']
+) {
+  return renderHookWithProviders(() => useIncompleteBucketTooltipDetails(chartInfo), {
+    organization: OrganizationFixture({features}),
+  });
+}
+
 describe('useIncompleteBucketTooltipDetails', () => {
   it('annotates incomplete buckets when the ingestion delay was measured', () => {
-    const {result} = renderHookWithProviders(() =>
-      useIncompleteBucketTooltipDetails(
-        makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP})
-      )
+    const {result} = renderTooltipDetails(
+      makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP})
     );
 
     expect(result.current).toBeDefined();
@@ -52,13 +61,11 @@ describe('useIncompleteBucketTooltipDetails', () => {
   });
 
   it('names the measured delay, rounded to the largest unit', () => {
-    const {result} = renderHookWithProviders(() =>
-      useIncompleteBucketTooltipDetails(
-        makeChartInfo({
-          completeThrough: INCOMPLETE_TIMESTAMP,
-          estimatedIngestionDelaySeconds: 355.4,
-        })
-      )
+    const {result} = renderTooltipDetails(
+      makeChartInfo({
+        completeThrough: INCOMPLETE_TIMESTAMP,
+        estimatedIngestionDelaySeconds: 355.4,
+      })
     );
 
     expect(result.current!(['count(span.duration)'], INCOMPLETE_TIMESTAMP)).toContain(
@@ -67,10 +74,8 @@ describe('useIncompleteBucketTooltipDetails', () => {
   });
 
   it('says how long until the bucket settles', () => {
-    const {result} = renderHookWithProviders(() =>
-      useIncompleteBucketTooltipDetails(
-        makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP})
-      )
+    const {result} = renderTooltipDetails(
+      makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP})
     );
 
     expect(result.current!(['count(span.duration)'], INCOMPLETE_TIMESTAMP)).toContain(
@@ -83,9 +88,7 @@ describe('useIncompleteBucketTooltipDetails', () => {
       completeThrough: INCOMPLETE_TIMESTAMP + 3600000,
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useIncompleteBucketTooltipDetails(chartInfo)
-    );
+    const {result} = renderTooltipDetails(chartInfo);
 
     const html = result.current!(['count(span.duration)'], INCOMPLETE_TIMESTAMP);
 
@@ -94,10 +97,8 @@ describe('useIncompleteBucketTooltipDetails', () => {
   });
 
   it('falls back to seconds for a short wait', () => {
-    const {result} = renderHookWithProviders(() =>
-      useIncompleteBucketTooltipDetails(
-        makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP + 3600000 - 45000})
-      )
+    const {result} = renderTooltipDetails(
+      makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP + 3600000 - 45000})
     );
 
     expect(result.current!(['count(span.duration)'], INCOMPLETE_TIMESTAMP)).toContain(
@@ -106,10 +107,8 @@ describe('useIncompleteBucketTooltipDetails', () => {
   });
 
   it('styles the headline and the follow-up differently', () => {
-    const {result} = renderHookWithProviders(() =>
-      useIncompleteBucketTooltipDetails(
-        makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP})
-      )
+    const {result} = renderTooltipDetails(
+      makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP})
     );
 
     const html = result.current!(['count(span.duration)'], INCOMPLETE_TIMESTAMP);
@@ -119,10 +118,8 @@ describe('useIncompleteBucketTooltipDetails', () => {
   });
 
   it('separates the note from the series rows with a divider', () => {
-    const {result} = renderHookWithProviders(() =>
-      useIncompleteBucketTooltipDetails(
-        makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP})
-      )
+    const {result} = renderTooltipDetails(
+      makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP})
     );
 
     const html = result.current!(['count(span.duration)'], INCOMPLETE_TIMESTAMP);
@@ -132,10 +129,8 @@ describe('useIncompleteBucketTooltipDetails', () => {
   });
 
   it('gives the note a floor width and fills anything wider', () => {
-    const {result} = renderHookWithProviders(() =>
-      useIncompleteBucketTooltipDetails(
-        makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP})
-      )
+    const {result} = renderTooltipDetails(
+      makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP})
     );
 
     const html = result.current!(['count(span.duration)'], INCOMPLETE_TIMESTAMP);
@@ -147,19 +142,15 @@ describe('useIncompleteBucketTooltipDetails', () => {
   });
 
   it('leaves complete buckets alone', () => {
-    const {result} = renderHookWithProviders(() =>
-      useIncompleteBucketTooltipDetails(
-        makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP})
-      )
+    const {result} = renderTooltipDetails(
+      makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP})
     );
 
     expect(result.current!(['count(span.duration)'], COMPLETE_TIMESTAMP)).toBe('');
   });
 
   it('does not annotate when the delay is the static fallback', () => {
-    const {result} = renderHookWithProviders(() =>
-      useIncompleteBucketTooltipDetails(makeChartInfo({}))
-    );
+    const {result} = renderTooltipDetails(makeChartInfo({}));
 
     expect(result.current).toBeUndefined();
   });
@@ -170,8 +161,15 @@ describe('useIncompleteBucketTooltipDetails', () => {
       value.incomplete = false;
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useIncompleteBucketTooltipDetails(chartInfo)
+    const {result} = renderTooltipDetails(chartInfo);
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it('does not annotate without the UI feature flag', () => {
+    const {result} = renderTooltipDetails(
+      makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP}),
+      []
     );
 
     expect(result.current).toBeUndefined();

@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import {escape} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 
 type SeriesDetailsRenderer = (seriesNames: string[], timestamp: number) => string;
@@ -44,11 +45,15 @@ export function useIncompleteBucketTooltipDetails(
   chartInfo: ChartInfo
 ): SeriesDetailsRenderer | undefined {
   const theme = useTheme();
+  const organization = useOrganization();
+  const hasMeasuredIngestionDelayUi = organization.features.includes(
+    'measured-ingestion-delay-ui'
+  );
   const {completeThrough, estimatedIngestionDelaySeconds} =
     chartInfo.timeseriesResult.meta ?? {};
 
   return useMemo<SeriesDetailsRenderer | undefined>(() => {
-    if (!defined(completeThrough)) {
+    if (!hasMeasuredIngestionDelayUi || !defined(completeThrough)) {
       return;
     }
 
@@ -88,5 +93,11 @@ export function useIncompleteBucketTooltipDetails(
     }
 
     return (_seriesNames, timestamp) => notes.get(timestamp) ?? '';
-  }, [chartInfo.series, completeThrough, estimatedIngestionDelaySeconds, theme]);
+  }, [
+    chartInfo.series,
+    completeThrough,
+    estimatedIngestionDelaySeconds,
+    hasMeasuredIngestionDelayUi,
+    theme,
+  ]);
 }
