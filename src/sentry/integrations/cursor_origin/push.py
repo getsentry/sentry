@@ -33,6 +33,8 @@ logger = logging.getLogger("sentry.integrations.cursor_origin")
 
 EMPTY_SHA = "0" * 40
 
+MAX_AUTHOR_EMAIL_LENGTH = 75
+
 
 class RepositoryPushedHandler(WebhookEventHandler):
     """Record the commits a push added.
@@ -105,12 +107,15 @@ class RepositoryPushedHandler(WebhookEventHandler):
     ) -> Sequence[PushedCommit]:
         """The commits this ref update added, oldest first."""
         after = ref_update.after
-        head_commit = ref_update.head_commit
         if not after or after == EMPTY_SHA:
             return []
 
+        head_commit = ref_update.head_commit
+        if head_commit is not None and not head_commit.author_email:
+            head_commit = None
+
         name = repo.config["name"]
-        if ref_update.created:
+        if ref_update.created or not ref_update.before or ref_update.before == EMPTY_SHA:
             # A new branch reports no useful range, so only its tip is recorded. Origin
             # documents the payload tip as best-effort, so read it back when it is absent.
             if head_commit:
@@ -186,7 +191,7 @@ class RepositoryPushedHandler(WebhookEventHandler):
                 post_bulk_create(rows)
 
     def _author(self, repo: Repository, commit: PushedCommit) -> CommitAuthor | None:
-        if not commit.author_email or len(commit.author_email) > 75:
+        if not commit.author_email or len(commit.author_email) > MAX_AUTHOR_EMAIL_LENGTH:
             return None
 
         commit_author, _ = CommitAuthor.objects.get_or_create(

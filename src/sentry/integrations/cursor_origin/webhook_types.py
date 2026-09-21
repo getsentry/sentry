@@ -28,6 +28,11 @@ class PushedCommit(OriginModel):
     author_email: str = ""
     authored_at: datetime | None = None
 
+    @validator("authored_at", pre=True)
+    def _absent_date(cls, value: Any) -> Any:
+        """Origin sends an empty string for an absent scalar."""
+        return value or None
+
     @classmethod
     def from_head_commit(cls, head_commit: Mapping[str, Any]) -> PushedCommit | None:
         sha = head_commit.get("sha")

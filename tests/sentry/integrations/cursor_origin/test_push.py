@@ -227,6 +227,41 @@ class RepositoryPushedHandlerTest(TestCase):
         assert not [path for path in self._paths() if "/compare/" in path]
 
     @responses.activate
+    def test_an_empty_author_date_is_absent_rather_than_invalid(self) -> None:
+        """Origin sends an empty string for an absent scalar."""
+        tip = _head_commit("bbb")
+        tip["author"]["date"] = ""
+        self._stub_compare(ahead_by=1)
+        self._stub_files("bbb")
+
+        self._handle(_payload(_ref_update(headCommit=tip)))
+
+        assert [c.key for c in self._commits()] == ["bbb"]
+
+    @responses.activate
+    def test_a_tip_with_no_author_is_read_back_instead_of_recorded(self) -> None:
+        """A partial tip would store a commit with no message for `#skipsentry` to read."""
+        self._stub_compare(ahead_by=1)
+        self._stub_commits(_listed_commit("bbb", "fix: a thing"))
+        self._stub_files("bbb")
+
+        self._handle(_payload(_ref_update(headCommit={"sha": "bbb"})))
+
+        commit = self._commits()[0]
+        assert commit.message == "fix: a thing"
+        assert commit.author is not None
+
+    @responses.activate
+    def test_an_all_zero_before_is_a_new_branch_even_without_the_flag(self) -> None:
+        """Origin has shipped these booleans unset before, so the shas are the backstop."""
+        self._stub_files("bbb")
+
+        self._handle(_payload(_ref_update(before=EMPTY_SHA, headCommit=_head_commit("bbb"))))
+
+        assert [c.key for c in self._commits()] == ["bbb"]
+        assert not [path for path in self._paths() if "/compare/" in path]
+
+    @responses.activate
     def test_a_ref_that_gained_nothing_records_nothing(self) -> None:
         self._stub_compare(ahead_by=0, status_name="identical")
 
