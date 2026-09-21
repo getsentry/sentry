@@ -783,6 +783,9 @@ describe('ToolUseBlock', () => {
     expect(url.searchParams.get('project')).toBe('2');
     expect(url.searchParams.get('statsPeriod')).toBe('30d');
     expect(url.searchParams.get('mode')).toBe('aggregate');
+    // The aggregate table sorts from its own key, not the samples `sort`.
+    expect(url.searchParams.get('aggregateSort')).toBe('-count()');
+    expect(url.searchParams.get('sort')).toBeNull();
     expect(
       url.searchParams.getAll('aggregateField').map(value => JSON.parse(value))
     ).toEqual([{yAxes: ['count()']}, {groupBy: 'span.op'}]);

@@ -6,6 +6,7 @@ import {getReadableQueryParamsFromLocation} from 'sentry/views/explore/logs/logs
 import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {getReadableQueryParamsFromLocation as getSpansQueryParamsFromLocation} from 'sentry/views/explore/spans/spansQueryParams';
 import {
   LINK_RULES,
   type LinkSubject,
@@ -1065,7 +1066,8 @@ describe('search links', () => {
           project: ['2', '3'],
           environment: ['production', 'staging'],
           statsPeriod: '30d',
-          sort: '-count()',
+          // Aggregate mode reads its own sort key; `sort` only orders the samples table.
+          aggregateSort: '-count()',
           mode: 'aggregate',
           visualize: ['"count()"'],
           yAxes: ['"count()"'],
@@ -1074,6 +1076,35 @@ describe('search links', () => {
         },
       },
     });
+  });
+
+  it('reproduces a span aggregation using the Spans page query parser', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        // Sorting on the group by, ascending: the one ordering that cannot be confused with the
+        // default, which is the first y-axis descending.
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=spans&field=span.op&field=count()&query=span.op%3Adb&sort=span.op',
+      }),
+      ctx
+    );
+
+    const decoded = getSpansQueryParamsFromLocation(
+      LocationFixture(result?.url as LocationDescriptorObject)
+    );
+    expect(decoded.mode).toBe(Mode.AGGREGATE);
+    expect(decoded.query).toBe('span.op:db');
+    expect(decoded.aggregateFields).toEqual([
+      new VisualizeFunction('count()'),
+      {groupBy: 'span.op'},
+    ]);
+    // Regression: the sort used to be written to the samples key, so the aggregate table silently
+    // fell back to its default ordering.
+    expect(decoded.aggregateSortBys).toEqual([{field: 'span.op', kind: 'asc'}]);
   });
 
   it.each(['events-stats', 'events-timeseries'])(

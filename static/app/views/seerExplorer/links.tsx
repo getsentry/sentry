@@ -632,6 +632,9 @@ export const LINK_RULES: LinkRule[] = [
     resolve: (subject, {organization, projects}) => {
       const {query = {}, title} = subject;
       const projectIds = projectIdsFromApiCall(subject, projects);
+      if (projectIds === null) {
+        return null;
+      }
       return {
         label: title ?? t('View replays'),
         url: {
@@ -996,7 +999,9 @@ function searchParamsFromApiCall(
     fields: fields.length ? fields : undefined,
     y_axes: yAxes.length ? yAxes : undefined,
     group_by: groupBy,
-    mode: isAggregate ? 'aggregates' : getApiScalar(query.mode),
+    // No events route takes a `mode`; it is ours to infer, and anything else would be coerced to
+    // `samples` on the way out anyway.
+    mode: isAggregate ? 'aggregates' : undefined,
   };
 }
 
@@ -1136,13 +1141,15 @@ function logsQuery(
   if (params.fields && mode !== 'aggregates') {
     next[LOGS_FIELDS_KEY] = getStringArray(params.fields);
   }
+  // `aggregateField` carries the group bys alongside the axes, and the Logs page ignores
+  // `logsGroupBy` whenever it is present. Only fall back to the older key when there is no axis to
+  // hang an aggregateField on.
   if (y_axes) {
     next.aggregateField = [
       JSON.stringify({yAxes: getStringArray(y_axes)}),
       ...getStringArray(group_by).map(groupBy => JSON.stringify({groupBy})),
     ];
-  }
-  if (group_by) {
+  } else if (group_by) {
     next[LOGS_GROUP_BY_KEY] = getStringArray(group_by);
   }
   if (mode) {
@@ -1157,8 +1164,15 @@ function spansQuery(
   params: Record<string, any>
 ): Record<string, any> {
   const {y_axes, group_by, mode} = params;
-  const next = {...queryParams};
+  const {sort, ...rest} = queryParams;
+  const next: Record<string, any> = {...rest};
   const aggregateFields: string[] = [];
+
+  // Aggregate mode orders the aggregate table from its own key; `sort` only orders the samples
+  // table, so leaving an aggregate sort there drops the ordering the call asked for.
+  if (sort) {
+    next[mode === 'aggregates' ? 'aggregateSort' : 'sort'] = sort;
+  }
 
   if (params.fields && mode !== 'aggregates') {
     next.field = getStringArray(params.fields);
