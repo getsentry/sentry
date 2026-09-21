@@ -37,27 +37,27 @@ export function CredentialRow({
       </SimpleTable.RowCell>
 
       <SimpleTable.RowCell justify="end">
-        <Tooltip
-          title={t('You do not have permission to remove credentials.')}
-          disabled={!!removeCredential}
+        <Confirm
+          message={t('Are you sure you want to remove the credentials?')}
+          onConfirm={
+            removeCredential ? () => removeCredential({id: credential.id}) : undefined
+          }
+          disabled={isRemoving || !removeCredential}
         >
-          <Confirm
-            message={t('Are you sure you want to remove the credentials?')}
-            onConfirm={
-              removeCredential ? () => removeCredential({id: credential.id}) : undefined
-            }
+          <Button
+            size="xs"
             disabled={isRemoving || !removeCredential}
+            aria-label={t('Remove credentials')}
+            icon={isRemoving ? <LoadingIndicator mini /> : <IconSubtract size="xs" />}
+            tooltipProps={{
+              title: removeCredential
+                ? undefined
+                : t('You do not have permission to remove credentials.'),
+            }}
           >
-            <Button
-              size="xs"
-              disabled={isRemoving || !removeCredential}
-              aria-label={t('Remove credentials')}
-              icon={isRemoving ? <LoadingIndicator mini /> : <IconSubtract size="xs" />}
-            >
-              {t('Remove')}
-            </Button>
-          </Confirm>
-        </Tooltip>
+            {t('Remove')}
+          </Button>
+        </Confirm>
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );

@@ -63,22 +63,21 @@ export function Actions({
           >
             {t('Download')}
           </LinkButton>
-          <Tooltip disabled={hasAccess} title={noPermissionToDeleteDebugFilesInfo}>
-            <Confirm
-              confirmText={t('Delete')}
-              message={debugFileDeleteConfirmationInfo}
-              onConfirm={() => onDelete(debugFileId)}
+          <Confirm
+            confirmText={t('Delete')}
+            message={debugFileDeleteConfirmationInfo}
+            onConfirm={() => onDelete(debugFileId)}
+            disabled={!hasAccess}
+          >
+            <Button
+              variant="danger"
+              icon={<IconDelete />}
+              size="xs"
               disabled={!hasAccess}
-            >
-              <Button
-                variant="danger"
-                icon={<IconDelete />}
-                size="xs"
-                disabled={!hasAccess}
-                aria-label={t('Delete')}
-              />
-            </Confirm>
-          </Tooltip>
+              aria-label={t('Delete')}
+              tooltipProps={{title: noPermissionToDeleteDebugFilesInfo}}
+            />
+          </Confirm>
         </Grid>
       )}
     </Access>

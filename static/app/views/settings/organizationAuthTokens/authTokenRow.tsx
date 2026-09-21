@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Confirm} from 'sentry/components/confirm';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -119,28 +118,28 @@ export function OrganizationAuthTokensAuthTokenRow({
       </SimpleTable.RowCell>
 
       <SimpleTable.RowCell justify="end">
-        <Tooltip
-          title={t('You must be an organization owner or manager to revoke a token.')}
-          disabled={!!revokeToken}
+        <Confirm
+          disabled={!revokeToken || isRevoking}
+          onConfirm={revokeToken ? () => revokeToken(token) : undefined}
+          message={t(
+            'Are you sure you want to revoke %s token? It will not be usable anymore, and this cannot be undone.',
+            tokenPreview(token.tokenLastCharacters || '', 'sntrys_')
+          )}
         >
-          <Confirm
-            disabled={!revokeToken || isRevoking}
-            onConfirm={revokeToken ? () => revokeToken(token) : undefined}
-            message={t(
-              'Are you sure you want to revoke %s token? It will not be usable anymore, and this cannot be undone.',
-              tokenPreview(token.tokenLastCharacters || '', 'sntrys_')
-            )}
+          <Button
+            size="sm"
+            disabled={isRevoking || !revokeToken}
+            aria-label={t('Revoke %s', token.name)}
+            icon={<IconDelete />}
+            tooltipProps={{
+              title: revokeToken
+                ? undefined
+                : t('You must be an organization owner or manager to revoke a token.'),
+            }}
           >
-            <Button
-              size="sm"
-              disabled={isRevoking || !revokeToken}
-              aria-label={t('Revoke %s', token.name)}
-              icon={<IconDelete />}
-            >
-              {t('Revoke')}
-            </Button>
-          </Confirm>
-        </Tooltip>
+            {t('Revoke')}
+          </Button>
+        </Confirm>
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
