@@ -85,6 +85,7 @@ class StatusActionTest(APITestCase):
         resolve_input: str | None = None,
         archive_input: str | None = None,
         assign_input: str | None = None,
+        include_integration_id: bool = True,
     ) -> Response:
         replyToId = "12345"
 
@@ -103,19 +104,22 @@ class StatusActionTest(APITestCase):
             json={},
         )
 
+        action_payload: dict[str, Any] = {
+            "groupId": group_id or self.group1.id,
+            "eventId": self.event1.event_id,
+            "actionType": action_type,
+            "rules": [],
+        }
+        if include_integration_id:
+            action_payload["integrationId"] = self.integration.id
+
         payload = {
             "type": "message",
             "from": {"id": user_id},
             "channelData": channel_data,
             "conversation": {"conversationType": conversation_type, "id": conversation_id},
             "value": {
-                "payload": {
-                    "groupId": group_id or self.group1.id,
-                    "eventId": self.event1.event_id,
-                    "actionType": action_type,
-                    "rules": [],
-                    "integrationId": self.integration.id,
-                },
+                "payload": action_payload,
                 "resolveInput": resolve_input,
                 "archiveInput": archive_input,
                 "assignInput": assign_input,
@@ -405,6 +409,37 @@ class StatusActionTest(APITestCase):
         assert resp.status_code == 200, resp.content
         assert self.group1.get_status() == GroupStatus.RESOLVED
         assert b"Unresolve" in responses.calls[0].request.body
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_resolve_issue_without_integration_id(self, verify: MagicMock) -> None:
+        resp = self.post_webhook(
+            action_type=ACTION_TYPE.RESOLVE,
+            resolve_input="resolved",
+            include_integration_id=False,
+        )
+        self.group1 = Group.objects.get(id=self.group1.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group1.get_status() == GroupStatus.RESOLVED
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_resolve_issue_without_integration_id_in_personal_chat(self, verify: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(external_id="m17hr4nd1r")
+            self.idp.update(external_id="m17hr4nd1r")
+
+        resp = self.post_webhook(
+            action_type=ACTION_TYPE.RESOLVE,
+            resolve_input="resolved",
+            conversation_type="personal",
+            include_integration_id=False,
+        )
+        self.group1 = Group.objects.get(id=self.group1.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group1.get_status() == GroupStatus.RESOLVED
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
