@@ -22,6 +22,8 @@ interface EmptyStateProps {
   isLoading?: boolean;
   /** The session loaded, but came back errored with nothing to show. */
   isSessionError?: boolean;
+  /** Resets to a fresh session. Rendered as the recovery action on error states. */
+  onStartNewChat?: () => void;
   onSuggestionClick?: (question: string) => void;
   runId?: SeerExplorerRunId | null;
 }
@@ -33,6 +35,7 @@ export function EmptyState({
   errorStatusCode = null,
   displaySlackAgentReminder = false,
   runId,
+  onStartNewChat,
   onSuggestionClick,
 }: EmptyStateProps) {
   const runIdDisplay = runId?.toString() ?? 'null';
@@ -47,19 +50,21 @@ export function EmptyState({
         <Fragment>
           <IconSeer size="xl" />
           <Text>
-            {!isError && isSessionError
-              ? tct(
-                  "We couldn't load this conversation — it ended in an error (run_id=[runIdDisplay]). Start a new chat to keep going.",
-                  {runIdDisplay}
-                )
-              : errorStatusCode === 404
-                ? tct('Session not found (run_id=[runIdDisplay]).', {
-                    runIdDisplay,
-                  })
-                : tct(`Error loading this session (run_id=[runIdDisplay]).`, {
-                    runIdDisplay,
-                  })}
+            {errorStatusCode === 404
+              ? tct('Session not found (run_id=[runIdDisplay]).', {
+                  runIdDisplay,
+                })
+              : t('There was a problem loading the conversation.')}
           </Text>
+          {onStartNewChat && (
+            // The composer is disabled on this screen: sending would post into the
+            // run that just failed rather than open a fresh one, so this is the way out.
+            <Text>
+              <Button variant="link" size="zero" onClick={onStartNewChat}>
+                {t('Start a new chat')}
+              </Button>
+            </Text>
+          )}
         </Fragment>
       ) : (
         <Fragment>

@@ -251,6 +251,9 @@ export function SeerExplorerContent({
   const isAgentWriteApprovalPending =
     isAwaitingUserInput && pendingInput?.input_type === 'agent_write_approval';
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
+  // Only when the error empty state is what's on screen. A live conversation that hits a
+  // transient poll error still has its transcript and must keep its composer.
+  const showLoadError = isEmptyState && (isError || hasSessionLoadError);
 
   // Whether the org has an active Slack integration installed. Slack is an
   // org-level integration, so this reflects the organization, not the user.
@@ -293,8 +296,21 @@ export function SeerExplorerContent({
       return;
     }
     lastAutoSubmittedQueryRef.current = query;
-    sendMessage(query, blocks.length);
-  }, [initialQuery, appendInitialQuery, isEmptyState, sendMessage, blocks.length]);
+    // The open run failed to load, so appending to it would post into a dead run.
+    // A forwarded query still deserves an answer: start it in a fresh one.
+    sendMessage(
+      query,
+      showLoadError ? 0 : blocks.length,
+      showLoadError ? null : undefined
+    );
+  }, [
+    initialQuery,
+    appendInitialQuery,
+    isEmptyState,
+    showLoadError,
+    sendMessage,
+    blocks.length,
+  ]);
 
   // The panel is already open here, so append by default; a `null` run id is how
   // `sendMessage` starts a fresh one.
@@ -455,7 +471,7 @@ export function SeerExplorerContent({
   }, [closeMenu]);
 
   // - Input section handlers -------------------------------------------------
-  const canSendMessage = !readOnly && !isPolling && !!inputValue.trim();
+  const canSendMessage = !readOnly && !showLoadError && !isPolling && !!inputValue.trim();
   const handleSend = useCallback(() => {
     if (!canSendMessage) {
       return;
@@ -487,6 +503,11 @@ export function SeerExplorerContent({
     focusInput();
     closeMenu();
   };
+
+  const handleStartNewChat = useCallback(() => {
+    startNewSession();
+    focusInput();
+  }, [startNewSession, focusInput]);
 
   const handleRetry = useCallback(() => {
     if (!retryTarget || readOnly) {
@@ -630,6 +651,7 @@ export function SeerExplorerContent({
               isError={isError}
               isSessionError={hasSessionLoadError}
               errorStatusCode={errorStatusCode}
+              onStartNewChat={showLoadError ? handleStartNewChat : undefined}
               runId={runId}
               displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
               onSuggestionClick={readOnly ? undefined : sendMessage}
@@ -738,7 +760,10 @@ export function SeerExplorerContent({
         )}
         <InputSection
           blocks={blocks}
-          enabled={!readOnly}
+          enabled={!readOnly && !showLoadError}
+          disabledPlaceholder={
+            showLoadError ? t('Start a new chat to keep talking to Seer') : undefined
+          }
           inputValue={inputValue}
           canSendMessage={canSendMessage}
           interruptState={interruptState}
