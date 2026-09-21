@@ -113,7 +113,7 @@ const rowStateStyles = ({theme, hasErrors, isSuspectFlag}: RowState & {theme: Th
   const [content, tint] = hasErrors
     ? [theme.colors.red500, theme.colors.red100]
     : isSuspectFlag
-      ? [theme.colors.yellow500, theme.colors.yellow100]
+      ? [theme.tokens.content.warning, theme.tokens.background.transparent.warning.muted]
       : [theme.tokens.content.secondary, null];
 
   return css`
