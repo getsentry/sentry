@@ -78,6 +78,7 @@ export type KnownGetsentryApiUrls =
   | '/organizations/$organizationIdOrSlug/low-value-spans-costs/'
   | '/organizations/$organizationIdOrSlug/monitor-count/'
   | '/organizations/$organizationIdOrSlug/partnership-agreements/'
+  | '/organizations/$organizationIdOrSlug/payments/$paymentId/confirm/'
   | '/organizations/$organizationIdOrSlug/payments/$paymentId/new/'
   | '/organizations/$organizationIdOrSlug/payments/setup/'
   | '/organizations/$organizationIdOrSlug/pendo-details/'

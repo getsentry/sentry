@@ -11,7 +11,7 @@ const createMockExtra = (): TraceTreeNodeExtra => ({
   organization: OrganizationFixture(),
 });
 
-const createMockTraceValue = (): TraceTree.Trace => [
+const createMockTraceValue = (): TraceTree.EAPTrace => [
   makeEAPSpan({
     event_id: 'test-trace-id',
     project_slug: 'test-project',
@@ -82,19 +82,6 @@ describe('TraceNode', () => {
   });
 
   describe('printNode', () => {
-    it('should return "trace root" for trace split result', () => {
-      const traceNode = new TraceNode(
-        null,
-        {
-          transactions: [],
-          orphan_errors: [],
-        },
-        createMockExtra()
-      );
-
-      expect(traceNode.printNode()).toBe('trace root');
-    });
-
     it('should return "eap trace root" for EAP trace', () => {
       const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
 
