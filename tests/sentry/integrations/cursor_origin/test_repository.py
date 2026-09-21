@@ -18,6 +18,7 @@ from sentry.integrations.cursor_origin.repository import (
 )
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import bindings
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.testutils.cases import TestCase
@@ -96,6 +97,57 @@ class CursorOriginRepositoryProviderTest(TestCase):
         url = self.provider.pull_request_url(Repository(name=REPO), PullRequest(key="7"))
 
         assert url == f"{WEB}/{REPO}/pull/7"
+
+
+class ReinstallTransferTest(TestCase):
+    """No silo decorator: `Repository` is a region model and this writes one."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.provider = CursorOriginRepositoryProvider("integrations:cursor_origin")
+
+    def test_a_reinstall_adopts_the_old_installation_s_repository(self) -> None:
+        """Origin issues a new installation id, and a repository is unique per org."""
+        stranded_integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id="i_01previous",
+            status=ObjectStatus.DISABLED,
+        )
+        stranded = Repository.objects.create(
+            organization_id=self.organization.id,
+            name=REPO,
+            provider="integrations:cursor_origin",
+            integration_id=stranded_integration.id,
+            external_id=ORIGIN_REPO["id"],
+            status=ObjectStatus.DISABLED,
+        )
+
+        _, repo = self.provider.create_repository(
+            {
+                "installation": self.integration.id,
+                "identifier": REPO,
+                "external_id": ORIGIN_REPO["id"],
+                "name": REPO,
+                "default_branch": "main",
+                "integration_id": self.integration.id,
+            },
+            serialize_rpc_organization(self.organization),
+        )
+
+        assert repo.id == stranded.id
+        assert Repository.objects.count() == 1
+        stranded.refresh_from_db()
+        assert stranded.integration_id == self.integration.id
+        assert stranded.status == ObjectStatus.ACTIVE
 
 
 def _commit(sha: str, message: str = "a change", email: str = "dev@example.com") -> dict[str, Any]:

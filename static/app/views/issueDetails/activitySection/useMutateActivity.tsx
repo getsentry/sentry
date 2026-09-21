@@ -1,7 +1,7 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import type {NoteType} from 'sentry/types/alerts';
-import type {Group, GroupActivity} from 'sentry/types/group';
+import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -53,7 +53,7 @@ export function useMutateActivity({organization, group}: Props) {
               },
             });
 
-      return fetchMutation<GroupActivity>({
+      return fetchMutation<GroupActivityNote>({
         method: mutation.method,
         url,
         options: {},
@@ -86,15 +86,24 @@ export function useMutateActivity({organization, group}: Props) {
           case 'PUT':
             return updateGroup(
               prev.json.activity.map(item =>
-                item.id === result.id && item.type === GroupActivityType.NOTE
-                  ? {...item, data: {...item.data, ...result.data}}
+                item.type === GroupActivityType.NOTE &&
+                (item.commentId ?? item.id) === mutation.noteId
+                  ? {
+                      ...item,
+                      commentId: mutation.noteId,
+                      data: {...item.data, ...result.data},
+                    }
                   : item
               ),
               prev.json.numComments
             );
           case 'DELETE':
             return updateGroup(
-              prev.json.activity.filter(item => item.id !== mutation.noteId),
+              prev.json.activity.filter(
+                item =>
+                  item.type !== GroupActivityType.NOTE ||
+                  (item.commentId ?? item.id) !== mutation.noteId
+              ),
               prev.json.numComments - 1
             );
         }

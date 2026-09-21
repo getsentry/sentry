@@ -102,8 +102,7 @@ describe('GroupAutofix', () => {
       })
     );
 
-    // The toolbar now lives in the issue navigation row, so the tab itself
-    // renders only the analysis.
+    // The toolbar renders in the issue navigation row, not in the tab.
     expect(
       await screen.findByRole('button', {name: 'Start Analysis'})
     ).toBeInTheDocument();

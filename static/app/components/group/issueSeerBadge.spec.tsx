@@ -4,12 +4,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueSeerBadge} from 'sentry/components/group/issueSeerBadge';
-import type {Group} from 'sentry/types/group';
 
 describe('IssueSeerBadge', () => {
   // The badge only renders once Seer has something to show, which
   // `getAutofixRunExists` reads off the seer autofix summary.
-  const group: Group = GroupFixture({
+  const group = GroupFixture({
     id: '101',
     seerAutofixLastTriggered: '2026-07-20T12:00:00Z',
   });

@@ -21,7 +21,7 @@ const AiSetupDataConsent = OverrideOrDefault({
   overrideName: 'component:ai-setup-data-consent',
 });
 
-function GroupAutofix() {
+export default function GroupAutofix() {
   const organization = useOrganization();
   const {group} = useGroupData();
   const {baseUrl} = useGroupDetailsRoute();
@@ -98,5 +98,3 @@ function GroupAutofixContent({group}: {group: Group}) {
     </Stack>
   );
 }
-
-export default GroupAutofix;

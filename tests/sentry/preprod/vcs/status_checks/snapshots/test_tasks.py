@@ -918,3 +918,56 @@ class CreateSnapshotStatusCheckGracePeriodTest(SnapshotTasksTestBase):
         mock_get_client.assert_not_called()
         mock_get_provider.assert_not_called()
         mock_post_task.delay.assert_not_called()
+
+
+@cell_silo_test
+class CreateSnapshotStatusCheckTargetUrlTest(SnapshotTasksTestBase):
+    @patch(f"{TASK_MODULE}.post_snapshot_status_check_task")
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_target_url_includes_selected_types(
+        self, mock_get_client, mock_get_provider, mock_post_task
+    ):
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = Mock()
+
+        head_cc = self.create_commit_comparison(
+            head_sha="head123" + "0" * 33,
+            base_sha="base456" + "0" * 33,
+            head_repo_name="getsentry/sentry",
+            provider="github",
+        )
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=head_cc,
+            app_id="com.example.app",
+        )
+        metrics = PreprodSnapshotMetrics.objects.create(preprod_artifact=artifact, image_count=10)
+        base_cc = self.create_commit_comparison(
+            head_sha="base456" + "0" * 33,
+            head_repo_name="getsentry/sentry",
+            provider="github",
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=base_cc,
+            app_id="com.example.app",
+        )
+        base_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=base_artifact, image_count=10
+        )
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=metrics,
+            base_snapshot_metrics=base_metrics,
+            state=PreprodSnapshotComparison.State.SUCCESS,
+            images_added=1,
+            images_changed=2,
+            images_unchanged=10,
+        )
+
+        create_preprod_snapshot_status_check_task(preprod_artifact_id=artifact.id)
+
+        mock_post_task.delay.assert_called_once()
+        assert mock_post_task.delay.call_args[1]["target_url"].endswith(
+            f"/preprod/snapshots/{artifact.id}?selectedTypes=added,changed"
+        )

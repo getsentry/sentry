@@ -47,6 +47,10 @@ describe('makeSeerLocation', () => {
       }).query
     ).toEqual({project: '1', referrer: 'inbox', seerDrawer: 'true'});
   });
+});
+
+describe('makeSeerQuery', () => {
+  const withPage = OrganizationFixture({features: ['autofix-page']});
 
   it('omits the action param when no action is given', () => {
     expect(makeSeerQuery(withPage)).not.toHaveProperty('seerDrawerAction');
