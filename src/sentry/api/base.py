@@ -447,8 +447,12 @@ class Endpoint(APIView):
             request = self.initialize_request(request, *args, **kwargs)
             # XXX: without this seemingly useless access to `.body` we are
             # unable to access `request.body` later on due to `rest_framework`
-            # loading the request body via `request.read()`
-            request.body
+            # loading the request body via `request.read()`. Multipart bodies
+            # are the exception: nothing reads their raw form, and touching
+            # `.body` here would hold the whole upload in memory instead of
+            # letting Django stream it to a temporary file.
+            if not request.content_type.startswith("multipart/"):
+                request.body
             self.request = request
             self.headers = self.default_response_headers  # deprecate?
 
