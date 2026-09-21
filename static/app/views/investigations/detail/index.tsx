@@ -42,6 +42,7 @@ import {
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
+import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
@@ -368,9 +369,14 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 aria-busy={renameMutation.isPending}
               />
               {runStatus ? (
-                <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
-                  {runStatus.statusLabel}
-                </Tag>
+                <Flex align="center" gap="md" wrap="nowrap">
+                  <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
+                    {runStatus.statusLabel}
+                  </Tag>
+                  {orchestration ? (
+                    <InvestigationRunTimer orchestration={orchestration} />
+                  ) : null}
+                </Flex>
               ) : null}
             </Grid>
             <Flex align="center" justify="between" gap="md" wrap="wrap">
