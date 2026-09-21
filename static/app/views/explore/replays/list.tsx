@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -32,6 +32,7 @@ import {
   ExploreContentSection,
 } from 'sentry/views/explore/components/styles';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -61,6 +62,13 @@ function ReplaysHeader() {
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
+
+  const visitQuery = useVisitQuery();
+  useEffect(() => {
+    if (defined(pageId)) {
+      visitQuery(pageId);
+    }
+  }, [pageId, visitQuery]);
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;

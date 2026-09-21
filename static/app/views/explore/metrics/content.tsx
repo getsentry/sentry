@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -17,6 +17,7 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
@@ -88,6 +89,13 @@ function MetricsHeader() {
   const {data: savedQuery} = useGetSavedQuery(pageId);
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
+
+  const visitQuery = useVisitQuery();
+  useEffect(() => {
+    if (defined(pageId)) {
+      visitQuery(pageId);
+    }
+  }, [pageId, visitQuery]);
 
   const documentTitle = hasSavedQueryTitle ? (
     <SentryDocumentTitle
