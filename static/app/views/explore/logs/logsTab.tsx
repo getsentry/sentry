@@ -7,7 +7,6 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -538,19 +537,14 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
               {tableTab === 'logs' && (
                 <TableActionsContainer>
                   <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
-                  <Tooltip
-                    title={manualRefreshDisabledReason}
-                    disabled={!manualRefreshDisabledReason}
-                    skipWrapper
-                  >
-                    <Button
-                      size="sm"
-                      icon={<IconRefresh />}
-                      disabled={!canManuallyRefresh}
-                      onClick={refreshTable}
-                      aria-label={t('Refresh')}
-                    />
-                  </Tooltip>
+                  <Button
+                    size="sm"
+                    icon={<IconRefresh />}
+                    disabled={!canManuallyRefresh}
+                    onClick={refreshTable}
+                    aria-label={t('Refresh')}
+                    tooltipProps={{title: manualRefreshDisabledReason}}
+                  />
                   <TableActionButton
                     mobile={
                       <Button
