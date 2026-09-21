@@ -42,7 +42,7 @@ function renderMutation(currentRepositoryCount = 0) {
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
-  queryClient.setQueryData(queryKey, {headers: {status: 200}, json: project});
+  queryClient.setQueryData(queryKey, {headers: {}, status: 200, json: project});
 
   const hook = renderHookWithProviders(
     () => useUpdateCustomRepositoriesMutation(project, currentRepositoryCount),

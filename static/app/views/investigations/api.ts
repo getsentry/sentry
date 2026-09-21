@@ -359,7 +359,7 @@ export function useRenameInvestigationMutation(
         }
 
         return {
-          headers: current.headers,
+          ...current,
           json: {
             ...updated,
             // Preserve newer optimistic block state while the rename was in flight.

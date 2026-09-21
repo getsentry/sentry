@@ -356,11 +356,13 @@ describe('useLiveRefresh', () => {
 
     queryClient.setQueryData(replayOptions.queryKey, {
       json: {data: replay},
-      headers: {status: 200},
+      headers: {},
+      status: 200,
     });
     queryClient.setQueryData(segmentsOptions.queryKey, {
       json: [],
-      headers: {status: 200},
+      headers: {},
+      status: 200,
     });
 
     const {result} = renderHook(() => useLiveRefresh({replay}), {wrapper: Wrapper});

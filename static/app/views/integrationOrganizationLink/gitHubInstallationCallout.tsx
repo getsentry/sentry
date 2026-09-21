@@ -51,8 +51,8 @@ function gitHubInstallationOptions(installationId: string) {
         json: json as GitHubIntegrationInstallation,
         headers: {
           Link: response?.getResponseHeader('Link') ?? undefined,
-          status: response?.status ?? 200,
         },
+        status: response?.status ?? 200,
       };
     },
     staleTime: Infinity,

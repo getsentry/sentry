@@ -156,11 +156,11 @@ describe('apiOptions', () => {
 
     expect(result.current.data).toEqual({
       json: ['Project 1', 'Project 2'],
-      headers: {Link: 'my-link', 'X-Hits': 14, 'X-Max-Hits': undefined, status: 200},
+      headers: {Link: 'my-link', 'X-Hits': 14, 'X-Max-Hits': undefined},
+      status: 200,
     });
 
     expectTypeOf(result.current.data!.headers).toEqualTypeOf<{
-      status: number;
       Link?: string;
       'X-Hits'?: number;
       'X-Max-Hits'?: number;
@@ -185,7 +185,7 @@ describe('apiOptions', () => {
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
 
-    expect(result.current.data!.headers.status).toBe(201);
+    expect(result.current.data!.status).toBe(201);
   });
 
   describe('types', () => {

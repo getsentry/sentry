@@ -448,11 +448,13 @@ describe('ScmMessaging', () => {
     );
     queryClient.setQueryData(integrationOptions.queryKey, {
       json: integration,
-      headers: {status: 200},
+      headers: {},
+      status: 200,
     });
     queryClient.setQueryData(validateOptions.queryKey, {
       json: {valid: true},
-      headers: {status: 200},
+      headers: {},
+      status: 200,
     });
 
     MockApiClient.addMockResponse({

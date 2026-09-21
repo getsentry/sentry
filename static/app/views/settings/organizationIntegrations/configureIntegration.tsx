@@ -177,7 +177,8 @@ function ConfigureIntegration() {
               organizationId: Number(organization.id),
               externalId: cachedIntegration.externalId ?? '',
             },
-            headers: {status: 200},
+            headers: {},
+            status: 200,
           }
         : undefined;
     },

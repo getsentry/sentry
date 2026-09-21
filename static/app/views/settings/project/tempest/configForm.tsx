@@ -20,7 +20,7 @@ interface ConfigFormProps {
 export function ConfigForm({organization, project}: ConfigFormProps) {
   const {data: currentProject = project} = useDetailedProject(
     {orgSlug: organization.slug, projectSlug: project.slug},
-    {initialData: {headers: {status: 200}, json: project}}
+    {initialData: {headers: {}, status: 200, json: project}}
   );
   const projectMutationOptions = useUpdateProjectMutationOptions(currentProject);
 

@@ -935,7 +935,8 @@ export function useExplorerAutofix(
           addErrorMessage(errorMessage);
         } else {
           queryClient.setQueryData(queryKey, prev => ({
-            headers: prev?.headers ?? {status: 200},
+            headers: prev?.headers ?? {},
+            status: prev?.status ?? 200,
             json: makeErrorExplorerAutofixData(errorMessage),
           }));
         }
@@ -1002,7 +1003,8 @@ export function useExplorerAutofix(
     queryClient.setQueryData(
       explorerAutofixApiOptions(orgSlug, groupId).queryKey,
       prev => ({
-        headers: prev?.headers ?? {status: 200},
+        headers: prev?.headers ?? {},
+        status: prev?.status ?? 200,
         json: makeInitialExplorerAutofixData(),
       })
     );

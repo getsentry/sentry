@@ -323,7 +323,7 @@ export default function ProjectSecurityAndPrivacy() {
             prev =>
               prev
                 ? {...prev, json: {...prev.json, ...data}}
-                : {headers: {status: 200}, json: updatedProject}
+                : {headers: {}, status: 200, json: updatedProject}
           );
         }}
       />

@@ -51,7 +51,8 @@ describe('useCancelSecondFactorAuth', () => {
       mfaMethods: [{id: 'totp' as const}],
     };
     queryClient.setQueryData(secondFactorMethodsQueryOptions.queryKey, {
-      headers: {status: 200},
+      headers: {},
+      status: 200,
       json: methodsResponse,
     });
     const cancelRequest = MockApiClient.addMockResponse({

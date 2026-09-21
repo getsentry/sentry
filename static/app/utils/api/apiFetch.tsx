@@ -8,24 +8,22 @@ import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 
 export type ApiResponse<TResponseData = unknown> = {
   headers: {
-    /**
-     * Not an HTTP header, but carried alongside them so callers can reach the
-     * status code without re-plumbing the whole response object. Endpoints that
-     * return more than one success code (201 created vs 200 already-exists)
-     * need it to tell the cases apart.
-     *
-     * `ApiResponse` doubles as the query-cache entry shape, so entries that are
-     * synthesized rather than fetched (`setApiQueryData`, `initialData`,
-     * optimistic updates) report 200 because there is no real response behind
-     * them.
-     */
-    status: number;
     Link?: string;
     'X-Hits'?: number;
     'X-Max-Hits'?: number;
     'X-Sentry-Direct-Hit'?: string;
   };
   json: TResponseData;
+  /**
+   * The HTTP status code. Endpoints that return more than one success code
+   * (201 created vs 200 already-exists) need it to tell the cases apart.
+   *
+   * `ApiResponse` doubles as the query-cache entry shape, so entries that are
+   * synthesized rather than fetched (`setApiQueryData`, `initialData`,
+   * optimistic updates) report 200 because there is no real response behind
+   * them.
+   */
+  status: number;
 };
 
 function extractHeaders(response: ResponseMeta | undefined): ApiResponse['headers'] {
@@ -37,7 +35,6 @@ function extractHeaders(response: ResponseMeta | undefined): ApiResponse['header
     'X-Max-Hits': typeof maxHits === 'string' ? Number(maxHits) : undefined,
     'X-Sentry-Direct-Hit':
       response?.getResponseHeader('X-Sentry-Direct-Hit') ?? undefined,
-    status: response?.status ?? 200,
   };
 }
 
@@ -56,7 +53,11 @@ export async function apiFetch<TQueryFnData = unknown>(
     headers: options?.headers,
   });
 
-  return {headers: extractHeaders(response), json: json as TQueryFnData};
+  return {
+    headers: extractHeaders(response),
+    json: json as TQueryFnData,
+    status: response?.status ?? 200,
+  };
 }
 
 export async function apiFetchInfinite<TQueryFnData = unknown>(
@@ -77,7 +78,11 @@ export async function apiFetchInfinite<TQueryFnData = unknown>(
     headers: options?.headers,
   });
 
-  return {headers: extractHeaders(response), json: json as TQueryFnData};
+  return {
+    headers: extractHeaders(response),
+    json: json as TQueryFnData,
+    status: response?.status ?? 200,
+  };
 }
 
 export function useFetchAllPages<TQueryFnData = unknown>({
