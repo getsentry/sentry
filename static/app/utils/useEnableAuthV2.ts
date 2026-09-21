@@ -39,7 +39,6 @@ function getCookieDomain() {
 
 export function useEnableAuthV2() {
   const [authV2CookieState, setAuthV2CookieStateValue] = useState(getAuthV2CookieState);
-  const isAuthV2Enabled = authV2CookieState === AuthV2CookieState.ENABLED;
 
   const setAuthV2CookieState = useCallback((state: AuthV2CookieState) => {
     const domain = getCookieDomain();
@@ -68,7 +67,6 @@ export function useEnableAuthV2() {
 
   return {
     authV2CookieState,
-    isAuthV2Enabled,
     setAuthV2CookieState,
   };
 }
