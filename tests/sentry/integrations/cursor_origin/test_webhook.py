@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import time
 from base64 import b64encode
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -19,22 +20,27 @@ from sentry.testutils.silo import control_silo_test
 KEYS = "sentry.integrations.cursor_origin.webhook.signing_keys_for"
 APP_ID = "app_01example"
 DELIVERY_ID = "whd_01example"
+INSTALLATION_ID = "i_01example"
 
 
-def _envelope(app_id: str = APP_ID, event_type: str = "installation.deleted") -> bytes:
-    return orjson.dumps(
-        {
-            "deliveryId": DELIVERY_ID,
-            "appId": app_id,
-            "installationId": "i_01example",
-            "event": {
-                "id": "evt_01example",
-                "type": event_type,
-                "eventTime": "2026-09-16T10:03:00Z",
-                "payload": {"installation": {"id": "i_01example"}},
-            },
-        }
-    )
+def _envelope(
+    app_id: str = APP_ID,
+    event_type: str = "installation.deleted",
+    installation_id: str | None = INSTALLATION_ID,
+) -> bytes:
+    envelope: dict[str, Any] = {
+        "deliveryId": DELIVERY_ID,
+        "appId": app_id,
+        "event": {
+            "id": "evt_01example",
+            "type": event_type,
+            "eventTime": "2026-09-16T10:03:00Z",
+            "payload": {"installation": {"id": installation_id}},
+        },
+    }
+    if installation_id is not None:
+        envelope["installationId"] = installation_id
+    return orjson.dumps(envelope)
 
 
 BODY = _envelope()
@@ -94,7 +100,7 @@ class CursorOriginWebhookTest(APITestCase):
             organization=self.organization,
             provider="cursor_origin",
             name="acme",
-            external_id="i_01example",
+            external_id=INSTALLATION_ID,
         )
 
         assert self._post(body=_envelope(event_type="installation.deleted")) == 204
@@ -102,13 +108,56 @@ class CursorOriginWebhookTest(APITestCase):
         assert Integration.objects.get(id=integration.id).status == ObjectStatus.DISABLED
 
     def test_a_failed_handler_leaves_the_delivery_for_the_retry(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+        )
+
         with mock.patch(
-            "sentry.integrations.cursor_origin.handlers.integration_service.organization_contexts",
+            "sentry.integrations.cursor_origin.handlers.integration_service.update_integration",
             side_effect=ValueError("boom"),
         ):
             assert self._post(body=_envelope(event_type="installation.deleted")) == 500
 
         assert not has_already_processed(DELIVERY_ID)
+
+    def test_a_failed_installation_lookup_leaves_the_delivery_for_the_retry(self) -> None:
+        """The lookup is an RPC, so a control-silo failure must not claim the delivery."""
+        with mock.patch(
+            "sentry.integrations.cursor_origin.webhook.integration_service.organization_contexts",
+            side_effect=ValueError("boom"),
+        ):
+            assert self._post(body=_envelope(event_type="installation.deleted")) == 500
+
+        assert not has_already_processed(DELIVERY_ID)
+
+    def test_a_delivery_for_an_installation_sentry_does_not_have_is_accepted(self) -> None:
+        """A half-finished install, or one already removed from this side."""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+        )
+
+        assert self._post(body=_envelope(installation_id="i_01someone_else")) == 204
+
+        assert Integration.objects.get(id=integration.id).status == ObjectStatus.ACTIVE
+
+    def test_a_delivery_with_no_installation_is_accepted(self) -> None:
+        """Origin marks `installationId` required, so a missing one is theirs to fix."""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+        )
+
+        assert self._post(body=_envelope(installation_id=None)) == 204
+
+        assert Integration.objects.get(id=integration.id).status == ObjectStatus.ACTIVE
 
     def test_get_is_not_allowed(self) -> None:
         assert self.client.get(self.url).status_code == 405

@@ -27,6 +27,7 @@ from sentry.integrations.cursor_origin.constants import (
 )
 from sentry.integrations.cursor_origin.handlers import HANDLERS
 from sentry.integrations.cursor_origin.keys import signing_keys_for
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.utils import metrics
@@ -190,13 +191,38 @@ class CursorOriginWebhookEndpoint(Endpoint):
         if handler_cls is None:
             return HttpResponse(status=204)
 
+        installation_id = envelope.get("installationId")
+
         try:
+            # Resolved once here, so no handler reads the envelope, and every lookup
+            # downstream is organization-scoped.
+            context = (
+                integration_service.organization_contexts(
+                    provider=IntegrationProviderSlug.CURSOR_ORIGIN.value,
+                    external_id=installation_id,
+                )
+                if installation_id
+                else None
+            )
+            if context is None or context.integration is None:
+                logger.info(
+                    "cursor_origin.webhook.unknown_installation",
+                    extra={"delivery_id": delivery_id, "installation_id": installation_id},
+                )
+                metrics.incr("cursor_origin.webhook.unknown_installation", sample_rate=1.0)
+                return HttpResponse(status=204)
+
             with IntegrationWebhookEvent(
                 interaction_type=handler_cls.EVENT_TYPE,
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                 provider_key=IntegrationProviderSlug.CURSOR_ORIGIN.value,
             ).capture():
-                handler_cls()(event.get("payload") or {}, delivery_id)
+                handler_cls()(
+                    event.get("payload") or {},
+                    delivery_id,
+                    context.integration,
+                    context.organization_integrations,
+                )
         except Exception:
             _release_delivery(delivery_id)
             raise
