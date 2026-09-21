@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
-  getAllSavedQueryKey,
+  getSavedQueryKey,
   type AllSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useReorderStarredSavedQueries} from 'sentry/views/explore/hooks/useReorderStarredSavedQueries';
@@ -35,7 +35,7 @@ export function ExploreSavedQueryNavigationItems({queries}: Props) {
   const reorderStarredSavedQueries = useReorderStarredSavedQueries();
 
   const items: ReorderableItem[] = useMemo(
-    () => queries.map(query => ({id: getAllSavedQueryKey(query), query})),
+    () => queries.map(query => ({id: getSavedQueryKey(query), query})),
     [queries]
   );
 
