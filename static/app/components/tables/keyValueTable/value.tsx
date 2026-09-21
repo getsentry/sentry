@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {StructuredData, StructuredEventData} from 'sentry/components/structuredEventData';
+import {StructuredData} from 'sentry/components/structuredEventData';
 import type {KeyValueListDataItem} from 'sentry/types/group';
 
 interface ValueProps {
@@ -31,18 +31,6 @@ export function Value({value, meta, disableFormattedData}: ValueProps) {
   }
 
   return <AnnotatedText value={value as string} meta={meta} />;
-}
-
-export function ContextDataValue({
-  value,
-  meta,
-  subjectIcon,
-}: Pick<ValueProps, 'value' | 'meta'> & {subjectIcon?: React.ReactNode}) {
-  return (
-    <StructuredEventData data={value} meta={meta} withAnnotatedText>
-      {subjectIcon}
-    </StructuredEventData>
-  );
 }
 
 export function PreformattedValue({

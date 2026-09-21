@@ -148,16 +148,6 @@ describe('KeyValueTable', () => {
   );
 
   it.snapshot(
-    'list-context-data',
-    () => (
-      <div style={{padding: 8, width: 500}}>
-        <KeyValueTableDataList data={listData} isContextData />
-      </div>
-    ),
-    {tags: {area: 'core', variant: 'list'}}
-  );
-
-  it.snapshot(
     'list-multi-value',
     () => (
       <div style={{padding: 8, width: 500}}>

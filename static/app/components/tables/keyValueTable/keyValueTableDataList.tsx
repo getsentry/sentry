@@ -7,19 +7,17 @@ import {Flex} from '@sentry/scraps/layout';
 import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 
-import {ContextDataValue, PreformattedValue, ValueLink} from './value';
+import {PreformattedValue, ValueLink} from './value';
 
 interface KeyValueTableDataListProps {
   className?: string;
   data?: KeyValueListData;
-  isContextData?: boolean;
   margin?: boolean;
   shouldSort?: boolean;
 }
 
 export function KeyValueTableDataList({
   data,
-  isContextData = false,
   shouldSort = true,
   margin = false,
   className,
@@ -39,20 +37,14 @@ export function KeyValueTableDataList({
     >
       <tbody>
         {rows.map((item, index) => (
-          <Row key={`${item.key}-${index}`} item={item} isContextData={isContextData} />
+          <Row key={`${item.key}-${index}`} item={item} />
         ))}
       </tbody>
     </Table>
   );
 }
 
-function Row({
-  item,
-  isContextData,
-}: {
-  isContextData: boolean;
-  item: KeyValueListDataItem;
-}) {
+function Row({item}: {item: KeyValueListDataItem}) {
   const {
     subject,
     subjectNode,
@@ -65,12 +57,9 @@ function Row({
     isMultiValue,
   } = item;
 
-  const renderValue = (v: KeyValueListDataItem['value']) =>
-    item.isContextData || isContextData ? (
-      <ContextDataValue value={v} meta={meta} subjectIcon={subjectIcon} />
-    ) : (
-      <PreformattedValue value={v} meta={meta} subjectIcon={subjectIcon} />
-    );
+  const renderValue = (v: KeyValueListDataItem['value']) => (
+    <PreformattedValue value={v} meta={meta} subjectIcon={subjectIcon} />
+  );
 
   const rendered =
     isMultiValue && Array.isArray(value) ? (

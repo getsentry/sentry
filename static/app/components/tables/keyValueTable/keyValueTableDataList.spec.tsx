@@ -67,7 +67,7 @@ describe('KeyValueTableDataList', () => {
       {key: 'a', value: [3, 2, 1], subject: 'a'},
     ];
 
-    render(<KeyValueTableDataList isContextData data={data} />);
+    render(<KeyValueTableDataList data={data} />);
 
     const rows = screen.getAllByRole('row');
 

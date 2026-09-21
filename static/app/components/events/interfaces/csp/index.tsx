@@ -2,7 +2,8 @@ import {useState} from 'react';
 
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
+import {StructuredData} from 'sentry/components/structuredEventData';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -18,17 +19,22 @@ function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
   switch (view) {
     case 'report':
       return (
-        <KeyValueTableDataList
-          margin
-          data={Object.entries(data).map(([key, value]) => {
-            return {
+        <KeyValueTableCard
+          contentItems={Object.entries(data).map(([key, value]) => ({
+            item: {
               key,
               subject: key,
-              value,
-              meta: meta?.[key]?.[''],
-            };
-          })}
-          isContextData
+              value: (
+                <StructuredData
+                  withAnnotatedText
+                  value={value}
+                  maxDefaultDepth={2}
+                  meta={meta?.[key]?.['']}
+                />
+              ),
+            },
+          }))}
+          sortAlphabetically
         />
       );
     case 'raw':
