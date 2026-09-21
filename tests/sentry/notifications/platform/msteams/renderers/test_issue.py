@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from sentry import eventstore
-from sentry.integrations.messaging.message_builder import build_attachment_title, build_footer
-from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
+from sentry.integrations.messaging.message_builder import (
+    build_attachment_title,
+    build_footer,
+    format_actor_options_non_slack,
+)
+from sentry.integrations.msteams.card_builder import ME, MSTEAMS_URL_FORMAT
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import (
     Action,
@@ -15,19 +19,24 @@ from sentry.integrations.msteams.card_builder.block import (
     AdaptiveCard,
     Block,
     ContentAlignment,
-    OpenUrlAction,
+    ShowCardAction,
+    SubmitAction,
     TextSize,
     TextWeight,
+    create_action_set_block,
     create_column_block,
     create_column_set_block,
+    create_container_block,
     create_footer_column_block,
     create_footer_logo_block,
     create_footer_text_block,
     create_text_block,
 )
+from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
+from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.project import Project
 from sentry.notifications.platform.msteams.provider import (
@@ -133,6 +142,70 @@ class IssueMSTeamsRendererTest(TestCase):
             ),
         )
 
+        def payload(action_type: ACTION_TYPE) -> dict[str, Any]:
+            return {
+                "payload": {
+                    "actionType": action_type,
+                    "groupId": group.id,
+                    "eventId": event.event_id,
+                    "rules": [1],
+                }
+            }
+
+        teams = group.project.teams.all().order_by("slug")
+        assignee_choices = [("Me", ME)] + [
+            (team["text"], team["value"]) for team in format_actor_options_non_slack(teams)
+        ]
+
+        assign_action: Action
+        if assignee:
+            assign_action = SubmitAction(
+                type=ActionType.SUBMIT,
+                title=IssueConstants.UNASSIGN,
+                data=payload(ACTION_TYPE.UNASSIGN),
+            )
+        else:
+            assign_action = ShowCardAction(
+                type=ActionType.SHOW_CARD,
+                title=IssueConstants.ASSIGN,
+                card=MSTeamsIssueMessageBuilder.build_input_choice_card(
+                    data=payload(ACTION_TYPE.ASSIGN),
+                    card_title=IssueConstants.ASSIGN_INPUT_TITLE,
+                    submit_button_title=IssueConstants.ASSIGN,
+                    input_id=IssueConstants.ASSIGN_INPUT_ID,
+                    choices=assignee_choices,
+                    default_choice=ME,
+                ),
+            )
+
+        actions = create_container_block(
+            create_action_set_block(
+                ShowCardAction(
+                    type=ActionType.SHOW_CARD,
+                    title=IssueConstants.RESOLVE,
+                    card=MSTeamsIssueMessageBuilder.build_input_choice_card(
+                        data=payload(ACTION_TYPE.RESOLVE),
+                        card_title=IssueConstants.RESOLVE,
+                        submit_button_title=IssueConstants.RESOLVE,
+                        input_id=IssueConstants.RESOLVE_INPUT_ID,
+                        choices=IssueConstants.RESOLVE_INPUT_CHOICES,
+                    ),
+                ),
+                ShowCardAction(
+                    type=ActionType.SHOW_CARD,
+                    title=IssueConstants.ARCHIVE,
+                    card=MSTeamsIssueMessageBuilder.build_input_choice_card(
+                        data=payload(ACTION_TYPE.ARCHIVE),
+                        card_title=IssueConstants.ARCHIVE_INPUT_TITLE,
+                        submit_button_title=IssueConstants.ARCHIVE,
+                        input_id=IssueConstants.ARCHIVE_INPUT_ID,
+                        choices=IssueConstants.ARCHIVE_INPUT_CHOICES,
+                    ),
+                ),
+                assign_action,
+            )
+        )
+
         fields: list[Block | None] = []
         if description:
             fields.append(
@@ -145,12 +218,9 @@ class IssueMSTeamsRendererTest(TestCase):
                     IssueConstants.ASSIGNEE_NOTE.format(assignee=assignee), size=TextSize.SMALL
                 )
             )
+        fields.append(actions)
 
-        actions: list[Action] = [
-            OpenUrlAction(type=ActionType.OPEN_URL, title="View Issue", url=issue_url)
-        ]
-
-        return MSTeamsMessageBuilder().build(title=title, fields=fields, actions=actions)
+        return MSTeamsMessageBuilder().build(title=title, fields=fields)
 
     def test_render_raises_on_invalid_data(self) -> None:
         from sentry.notifications.platform.templates.seer import SeerAutofixError
@@ -174,6 +244,45 @@ class IssueMSTeamsRendererTest(TestCase):
         )
 
         assert result == self._build_expected_card(group=group, event=event)
+
+    def _card_actions(self, card: AdaptiveCard) -> list[Any]:
+        container = cast(Any, card["body"][-1])
+        return cast(list[Any], container["items"][0]["actions"])
+
+    def test_render_offers_reverse_actions_for_resolved_issue(self) -> None:
+        data, _, group = self._create_data()
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+
+        result = IssueMSTeamsRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
+        )
+
+        actions = self._card_actions(result)
+        assert [action["title"] for action in actions] == [
+            IssueConstants.UNRESOLVE,
+            IssueConstants.ARCHIVE,
+            IssueConstants.ASSIGN,
+        ]
+
+        resolve_action = actions[0]
+        assert resolve_action["type"] == ActionType.SUBMIT
+        assert resolve_action["data"]["payload"]["actionType"] == ACTION_TYPE.UNRESOLVE
+        assert "integrationId" not in resolve_action["data"]["payload"]
+
+    def test_render_offers_unassign_for_assigned_issue(self) -> None:
+        data, _, group = self._create_data()
+        GroupAssignee.objects.assign(group, self.user)
+
+        result = IssueMSTeamsRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
+        )
+
+        assign_action = self._card_actions(result)[-1]
+        assert assign_action["type"] == ActionType.SUBMIT
+        assert assign_action["title"] == IssueConstants.UNASSIGN
+        assert assign_action["data"]["payload"]["actionType"] == ACTION_TYPE.UNASSIGN
 
     def test_render_with_tags(self) -> None:
         data, event, group = self._create_data(
