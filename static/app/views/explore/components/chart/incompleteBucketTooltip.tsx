@@ -60,7 +60,7 @@ export function useIncompleteBucketTooltipDetails(
     const delayLine = defined(estimatedIngestionDelaySeconds)
       ? t(
           'Event ingestion for this bucket is incomplete and currently takes ~%s.',
-          getDuration(estimatedIngestionDelaySeconds + 60)
+          getDuration(estimatedIngestionDelaySeconds)
         )
       : t('Event ingestion for this bucket is incomplete.');
 
