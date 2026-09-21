@@ -60,6 +60,18 @@ def inline_sentry_response_serializer(name: str, t: ResponseTypeHint) -> type:
     return serializer_class
 
 
+def is_internal_build() -> bool:
+    """
+    True when the OpenAPI spec is being built for internal consumers (frontend
+    type generation) rather than for the published public API reference.
+
+    Internal builds include every endpoint method that declares a schema, not just
+    the ones marked ``ApiPublishStatus.PUBLIC``, and describe TypedDict responses
+    as closed objects. See ``make build-internal-api-docs``.
+    """
+    return bool(os.environ.get("SENTRY_OPENAPI_INTERNAL"))
+
+
 class SentryApiBuildError(UnableToProceedError):
     def __init__(self, msg: str = "", *args: Any, **kwargs: Any) -> None:
         super().__init__(
