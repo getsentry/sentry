@@ -12,17 +12,9 @@
     background-color: @heading-bg-color;
     border-color: @heading-border;
 
-    + .panel-collapse > .panel-body {
-      border-top-color: @border;
-    }
     .badge {
       color: @heading-bg-color;
       background-color: @heading-text-color;
-    }
-  }
-  & > .panel-footer {
-    + .panel-collapse > .panel-body {
-      border-bottom-color: @border;
     }
   }
 }
@@ -85,8 +77,7 @@
 // any kind of custom content between the two.
 
 .panel {
-  > .list-group,
-  > .panel-collapse > .list-group {
+  > .list-group {
     margin-bottom: 0;
 
     .list-group-item {
@@ -110,12 +101,6 @@
         border-bottom-right-radius: (@panel-border-radius - 1);
         border-bottom-left-radius: (@panel-border-radius - 1);
       }
-    }
-  }
-  > .panel-heading + .panel-collapse > .list-group {
-    .list-group-item:first-child {
-      border-top-left-radius: 0;
-      border-top-right-radius: 0;
     }
   }
 }
@@ -149,18 +134,10 @@
 
   .panel-heading {
     border-bottom: 0;
-
-    + .panel-collapse > .panel-body,
-    + .panel-collapse > .list-group {
-      border-top: 1px solid @panel-inner-border;
-    }
   }
 
   .panel-footer {
     border-top: 0;
-    + .panel-collapse .panel-body {
-      border-bottom: 1px solid @panel-inner-border;
-    }
   }
 }
 
