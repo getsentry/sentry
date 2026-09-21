@@ -1234,7 +1234,7 @@ function buildRoutes(): RouteObject[] {
 
   const traceView: SentryRouteObject = {
     path: 'trace/:traceSlug/',
-    component: make(() => import('sentry/views/performance/newTraceDetails/index')),
+    component: make(() => import('sentry/views/performance/traceDetails/index')),
   };
 
   const dashboardChildren: SentryRouteObject[] = [

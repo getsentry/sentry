@@ -4,10 +4,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {useTrace} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
+import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 
 interface UseAITraceResult {
   error: boolean;

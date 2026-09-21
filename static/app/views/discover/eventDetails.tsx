@@ -16,7 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {getTraceDetailsUrl} from 'sentry/views/performance/newTraceDetails/traceUrl';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 export default function EventDetails() {
   const organization = useOrganization();
