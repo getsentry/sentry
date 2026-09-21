@@ -285,9 +285,17 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         )
 
         # callers (link_all_repos) treat the third return value as "configs I asked for that
-        # weren't created". a repo that was already active on this integration counts
+        # weren't created". only a repo that was already active on this integration counts —
+        # capture status and integration_id before _update_existing_repositories, which
+        # mutates both in place via _apply_repo_config. unlinked/legacy rows (integration_id
+        # is None) are adopted here and must not be reported as not-created.
         already_active = [
-            config for repo, config in repos_to_update if repo.status == ObjectStatus.ACTIVE
+            config
+            for repo, config in repos_to_update
+            if (
+                repo.status == ObjectStatus.ACTIVE
+                and repo.integration_id == config["integration_id"]
+            )
         ]
 
         updated_repos = self._update_existing_repositories(organization, repos_to_update)
