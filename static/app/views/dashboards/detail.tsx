@@ -1194,17 +1194,15 @@ class DashboardDetail extends Component<Props, State> {
                   <TopBar.Slot name="title">
                     <DashboardBreadcrumbTitle
                       dashboard={modifiedDashboard ?? dashboard}
-                      hasUnsavedFilters={hasUnsavedFilters}
                       isEditing={this.isEditingDashboard}
                       isPreview={this.isPreview}
-                      isSaving={isCommittingChanges}
                       onChange={newTitle =>
                         this.setModifiedDashboard({
                           ...(modifiedDashboard ?? dashboard),
                           title: newTitle,
                         })
                       }
-                      onEdit={this.onEdit}
+                      onChangeEditAccess={this.onChangeEditAccess}
                     />
                   </TopBar.Slot>
                 </Fragment>
@@ -1342,7 +1340,6 @@ class DashboardDetail extends Component<Props, State> {
                                   onCommit={this.onCommit}
                                   onAddWidget={this.onAddWidget}
                                   onDelete={this.onDelete(dashboard)}
-                                  onChangeEditAccess={this.onChangeEditAccess}
                                   dashboardState={dashboardState}
                                   widgetLimitReached={widgetLimitReached}
                                   isSaving={isCommittingChanges}
