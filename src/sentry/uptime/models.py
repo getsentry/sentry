@@ -4,7 +4,7 @@ from datetime import timedelta
 from typing import ClassVar, Literal, Self, cast, override
 
 from django.db import models
-from django.db.models import Count
+from django.db.models import Count, Value
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -91,7 +91,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
         models.CharField(max_length=20, choices=SupportedHTTPMethods, db_default="GET")
     )
     # HTTP headers to send when performing the check
-    headers = EncryptedJSONField(db_default=[])
+    headers = EncryptedJSONField(db_default=Value([], output_field=models.JSONField()))
     # HTTP body to send when performing the check
     body = EncryptedTextField(null=True)
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
