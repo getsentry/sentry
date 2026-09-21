@@ -869,6 +869,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## End of Frontend Platform
 
 # Agent Interfaces
+/static/app/views/investigations/                         @getsentry/agent-interfaces-sentry-frontend
+/static/app/components/seer/                              @getsentry/agent-interfaces-sentry-frontend
 /static/app/components/prevent/                           @getsentry/agent-interfaces-sentry-frontend
 /static/app/views/prevent/                                @getsentry/agent-interfaces-sentry-frontend
 /static/app/views/nav/secondary/sections/prevent/         @getsentry/agent-interfaces-sentry-frontend
