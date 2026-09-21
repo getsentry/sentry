@@ -211,11 +211,7 @@ export function UserDetails() {
             identities?.filter(
               i => i.id !== identity.id || i.category !== identity.category
             ) ?? [];
-          setApiQueryData(
-            queryClient,
-            makeFetchUserIdentitiesQueryKey(),
-            newIdentities
-          );
+          setApiQueryData(queryClient, makeFetchUserIdentitiesQueryKey(), newIdentities);
         } catch {
           addErrorMessage('Unable to remove identity from account.');
         }
