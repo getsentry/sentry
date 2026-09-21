@@ -361,6 +361,27 @@ describe('ConversationDetailPage summary aggregates', () => {
     expect(await screen.findByText(/No cost recorded/)).toBeInTheDocument();
   });
 
+  it('does not render an empty model breakdown when there are no LLM calls', async () => {
+    mockApis(null, [
+      spanFixture({
+        span_id: 'span-tool',
+        'span.name': 'tool call',
+        'gen_ai.operation.type': 'tool',
+        'gen_ai.tool.name': 'test_tool',
+        'precise.start_ts': 1000,
+        'precise.finish_ts': 1000.5,
+      }),
+    ]);
+    renderPage();
+
+    const llmCallsStat = (await screen.findByText('LLM Calls')).parentElement!;
+    const llmCalls = await within(llmCallsStat).findByText('0');
+    expect(llmCalls).toHaveAttribute('title', '0');
+
+    await userEvent.hover(llmCalls);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
   it('renders the fire icon in the summary when a span errored', async () => {
     mockApis(null, [
       ...CONVERSATION_BODY,

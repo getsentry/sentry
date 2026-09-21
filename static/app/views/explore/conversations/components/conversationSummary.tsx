@@ -713,6 +713,10 @@ function ModelCallBreakdown({
   breakdowns: ModelBreakdownDetails[];
   total: number;
 }) {
+  if (total === 0) {
+    return <Count value={total} />;
+  }
+
   const sortedBreakdowns = [...breakdowns].sort((a, b) => b.calls - a.calls);
 
   return (
