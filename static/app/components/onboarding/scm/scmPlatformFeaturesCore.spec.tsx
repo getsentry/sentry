@@ -293,6 +293,48 @@ describe('ScmPlatformFeaturesCore', () => {
     expect(screen.getByRole('radio', {name: /Python/})).toHaveFocus();
   });
 
+  it('does not move focus to a card that detection mounts after the return', async () => {
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    let finishDetection!: () => void;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+      asyncDelay: new Promise<void>(resolve => {
+        finishDetection = resolve;
+      }),
+    });
+
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({selectedRepository: repository, selectedPlatform: undefined})}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Skip detection and select manually'})
+    );
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Back to recommended platforms'})
+    );
+    // The cards are not mounted while detection is pending, so the view's
+    // only control takes focus.
+    const skipButton = screen.getByRole('button', {
+      name: 'Skip detection and select manually',
+    });
+    expect(skipButton).toHaveFocus();
+
+    // Detection finishing is not a user action, so the cards it mounts must
+    // not pull focus from the user's current position.
+    await userEvent.tab();
+    expect(skipButton).not.toHaveFocus();
+    finishDetection();
+    expect(await screen.findByRole('radio', {name: /Python/})).not.toHaveFocus();
+  });
+
   it('does not offer a clear button when a platform was auto-detected', async () => {
     const repository = RepositoryFixture({
       id: '123',

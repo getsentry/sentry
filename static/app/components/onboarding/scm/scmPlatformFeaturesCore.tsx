@@ -57,7 +57,7 @@ const SKIP_DETECTION_CLICKED_EVENT = {
   'project-creation': 'project_creation.skip_detection_clicked',
 } as const;
 
-type FocusTarget = 'manualPicker' | 'selectedCard';
+type FocusTarget = 'manualPicker' | 'selectedCard' | 'changePlatformButton';
 
 interface ScmPlatformFeaturesCoreProps {
   analyticsFlow: ScmAnalyticsFlow;
@@ -309,7 +309,11 @@ export function ScmPlatformFeaturesCore({
 
   function handleBackToRecommended() {
     setShowManualPicker(false);
-    requestFocus('selectedCard');
+    // While detection is still pending the cards are not mounted yet, so the
+    // view's only control takes focus. The request must not wait for the
+    // cards: detection finishing later is not a user action, and a card
+    // mounting with focus then would pull focus from wherever the user is.
+    requestFocus(isDetecting ? 'changePlatformButton' : 'selectedCard');
     // If the host already has a detected platform committed, just reopen the
     // cards view with it still selected. The user may have committed a non-top
     // detection (or the auto-adopted default), so forcing the top detection here
@@ -440,7 +444,12 @@ export function ScmPlatformFeaturesCore({
             {t('Auto-detected from your repository')}
           </Heading>
         </Flex>
-        <Button size="xs" variant="link" onClick={handleChangePlatformClick}>
+        <Button
+          size="xs"
+          variant="link"
+          onClick={handleChangePlatformClick}
+          autoFocus={focusTarget === 'changePlatformButton'}
+        >
           {isDetecting
             ? t('Skip detection and select manually')
             : t("Doesn't look right? Change platform")}
