@@ -88,6 +88,11 @@ export default Storybook.story('KeyValueTable', story => {
             <code>sortAlphabetically</code> - Enable to sort items based on{' '}
             <code>subject</code>
           </li>
+          <li>
+            <code>children</code> - free-form content rendered below the rows, spanning
+            the full card width. Use it for bodies that aren't key/value pairs, or for
+            loading and empty states.
+          </li>
         </ul>
         <KeyValueTableCardGrid>
           <KeyValueTableCard
@@ -119,6 +124,9 @@ export default Storybook.story('KeyValueTable', story => {
             contentItems={contentItems}
             truncateLength={4}
           />
+          <KeyValueTableCard title="Free-form Body">
+            <pre>{'{\n  "free": "form"\n}'}</pre>
+          </KeyValueTableCard>
         </KeyValueTableCardGrid>
       </Fragment>
     );

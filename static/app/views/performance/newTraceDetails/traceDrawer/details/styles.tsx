@@ -33,10 +33,7 @@ import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {
   KeyValueTableCard,
   KeyValueTableCardGrid,
-  KeyValueTableCardPanel,
   type KeyValueTableDataRowProps,
-  KeyValueTableSubject,
-  KeyValueTableValueSection,
 } from 'sentry/components/tables/keyValueTable';
 import {
   IconCircleFill,
@@ -1032,37 +1029,14 @@ function SectionCard({
   const contentItems = items.map(item => ({item, ...itemProps}));
 
   return (
-    <CardWrapper>
-      <KeyValueTableCard
-        title={title}
-        contentItems={contentItems}
-        sortAlphabetically={sortAlphabetically}
-        truncateLength={SECTION_CARD_TRUNCATE_LENGTH}
-      />
-    </CardWrapper>
+    <KeyValueTableCard
+      title={title}
+      contentItems={contentItems}
+      sortAlphabetically={sortAlphabetically}
+      truncateLength={SECTION_CARD_TRUNCATE_LENGTH}
+    />
   );
 }
-
-// This is trace-view specific styling. The card is rendered in a number of different places
-// with tests failing otherwise, since @container queries are not supported by the version of
-// jsdom currently used by jest.
-const CardWrapper = styled('div')`
-  ${KeyValueTableCardPanel} {
-    container-type: inline-size;
-  }
-
-  ${KeyValueTableSubject} {
-    display: flex;
-    align-items: center;
-    @container (width < 350px) {
-      max-width: 200px;
-    }
-  }
-
-  ${KeyValueTableValueSection} {
-    align-items: center;
-  }
-`;
 
 function SectionCardGroup({children}: {children: React.ReactNode}) {
   return <KeyValueTableCardGrid>{children}</KeyValueTableCardGrid>;

@@ -11,8 +11,6 @@ import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {
   KeyValueTableCard,
-  KeyValueTableCardPanel,
-  KeyValueTableCardTitle,
   type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
@@ -31,19 +29,22 @@ function BodySection({title, body}: {body: string; title: string}) {
   const {parsed, raw, maybeTruncated} = decodeWebhookBody(body);
 
   return (
-    <KeyValueTableCardPanel block>
-      <KeyValueTableCardTitle>
-        {title}
-        {maybeTruncated && (
-          <Text variant="muted" size="xs">{` (${t('truncated')})`}</Text>
-        )}
-      </KeyValueTableCardTitle>
+    <KeyValueTableCard
+      title={
+        <Fragment>
+          {title}
+          {maybeTruncated && (
+            <Text variant="muted" size="xs">{` (${t('truncated')})`}</Text>
+          )}
+        </Fragment>
+      }
+    >
       {parsed === null ? (
         <CodeBlock>{raw}</CodeBlock>
       ) : (
         <JsonEventData data={parsed} showCopyButton />
       )}
-    </KeyValueTableCardPanel>
+    </KeyValueTableCard>
   );
 }
 

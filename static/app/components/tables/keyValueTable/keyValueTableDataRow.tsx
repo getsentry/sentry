@@ -146,14 +146,14 @@ const RowWrapper = styled('div')<RowState & {expandLeft?: boolean}>`
   }
 `;
 
-export const KeyValueTableSubject = styled('div')`
+const KeyValueTableSubject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.font.family.mono};
   word-break: break-word;
   min-width: 100px;
 `;
 
-export const KeyValueTableValueSection = styled('div')<{
+const KeyValueTableValueSection = styled('div')<{
   hasEmptySubject: boolean;
   hasErrors: boolean;
 }>`

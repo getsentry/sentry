@@ -5,7 +5,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -44,10 +43,10 @@ function getEstimatedCostTooltip(pricingBasis: PricingBasis | null): string {
 }
 
 /**
- * Fetches and renders the estimated cost row for a low-value span issue. The
+ * Fetches and renders the estimated cost value for a low-value span issue. The
  * caller gates this behind billing access and a known span volume, so the
- * request always runs while the component is mounted and the row is always
- * rendered (as a skeleton, an error, or the value).
+ * request always runs while the component is mounted and the value is always
+ * rendered (as a skeleton, an error, or the cost).
  */
 export function LowValueSpanEstimatedCost({
   extrapolatedSpanCount,
@@ -64,24 +63,18 @@ export function LowValueSpanEstimatedCost({
     )
   );
 
-  let value: React.ReactNode;
   if (costQuery.isPending) {
-    value = <Placeholder height="1rem" width="80px" />;
-  } else if (costQuery.isError) {
-    value = <Text variant="danger">{t('Unable to load estimate')}</Text>;
-  } else {
-    value = (
-      <Flex align="center" gap="xs">
-        <Text monospace>{formatEstimatedCostUsd(costQuery.data.estimatedCostUsd)}</Text>
-        <InfoTip size="xs" title={getEstimatedCostTooltip(costQuery.data.pricingBasis)} />
-      </Flex>
-    );
+    return <Placeholder height="1rem" width="80px" />;
+  }
+
+  if (costQuery.isError) {
+    return <Text variant="danger">{t('Unable to load estimate')}</Text>;
   }
 
   return (
-    <KeyValueTableDataRow
-      disableFormattedData
-      item={{key: 'estimated-cost', subject: t('Estimated cost'), value}}
-    />
+    <Flex align="center" gap="xs">
+      <Text monospace>{formatEstimatedCostUsd(costQuery.data.estimatedCostUsd)}</Text>
+      <InfoTip size="xs" title={getEstimatedCostTooltip(costQuery.data.pricingBasis)} />
+    </Flex>
   );
 }

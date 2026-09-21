@@ -1,5 +1,4 @@
 import {Children, useRef, useState, type ReactNode} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container as LayoutContainer} from '@sentry/scraps/layout';
@@ -16,9 +15,13 @@ import {
 
 interface KeyValueTableCardProps {
   /**
+   * Free-form content rendered below the rows, spanning the full card width.
+   */
+  children?: React.ReactNode;
+  /**
    * KeyValueTableDataRowProps items to be rendered in this card.
    */
-  contentItems: KeyValueTableDataRowProps[];
+  contentItems?: KeyValueTableDataRowProps[];
   /**
    * If true, expands the left side of the cards to take up more space.
    */
@@ -38,7 +41,8 @@ interface KeyValueTableCardProps {
 }
 
 export function KeyValueTableCard({
-  contentItems,
+  children,
+  contentItems = [],
   title,
   truncateLength = Infinity,
   sortAlphabetically = false,
@@ -46,7 +50,7 @@ export function KeyValueTableCard({
 }: KeyValueTableCardProps) {
   const [isTruncated, setIsTruncated] = useState(contentItems.length > truncateLength);
 
-  if (contentItems.length === 0) {
+  if (contentItems.length === 0 && !children) {
     return null;
   }
 
@@ -59,8 +63,8 @@ export function KeyValueTableCard({
     : truncatedItems;
 
   return (
-    <KeyValueTableCardPanel>
-      {title && <KeyValueTableCardTitle>{title}</KeyValueTableCardTitle>}
+    <CardPanel>
+      {title && <CardTitle>{title}</CardTitle>}
       {orderedItems.map((itemProps, index) => (
         <KeyValueTableDataRow
           expandLeft={expandLeft}
@@ -73,7 +77,8 @@ export function KeyValueTableCard({
           {isTruncated ? t('Show more...') : t('Show less')}
         </TruncateWrapper>
       )}
-    </KeyValueTableCardPanel>
+      {children && <CardBody>{children}</CardBody>}
+    </CardPanel>
   );
 }
 
@@ -96,27 +101,28 @@ export function KeyValueTableCardGrid({children}: {children: React.ReactNode}) {
   );
 }
 
-export const KeyValueTableCardPanel = styled(Panel)<{block?: boolean}>`
+const CardPanel = styled(Panel)`
   padding: ${p => p.theme.space.sm};
-  display: ${p => (p.block ? 'block' : 'grid')};
+  display: grid;
   column-gap: ${p => p.theme.space.lg};
   grid-template-columns: fit-content(50%) 1fr;
   font-size: ${p => p.theme.font.size.sm};
-
-  ${p =>
-    p.block &&
-    css`
-      pre {
-        margin: 0;
-      }
-    `}
 `;
 
-export const KeyValueTableCardTitle = styled('div')`
+const CardTitle = styled('div')`
   grid-column: span 2;
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.font.weight.sans.medium};
+`;
+
+const CardBody = styled('div')`
+  grid-column: 1 / -1;
+  min-width: 0;
+
+  pre {
+    margin: 0;
+  }
 `;
 
 const TruncateWrapper = styled('a')`

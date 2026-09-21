@@ -1,10 +1,10 @@
 import {Alert} from '@sentry/scraps/alert';
 import {InfoTip} from '@sentry/scraps/info';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -61,50 +61,67 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
           'Sentry found a frequently created span that adds little value. It can make traces harder to read and increases stored span volume.'
         )}
       </Alert>
-      <Grid columns="fit-content(50%) 1fr" border="primary" radius="md" padding="sm">
-        <KeyValueTableDataRow
-          disableFormattedData
-          item={{
-            action: affectedSpanExploreUrl ? {link: affectedSpanExploreUrl} : undefined,
-            key: 'affected-span',
-            subject: t('Affected span'),
-            value: getSpanLabel(evidenceData),
-          }}
-        />
-        <KeyValueTableDataRow
-          disableFormattedData
-          item={{
-            key: 'span-count',
-            subject: t('Span count'),
-            value: (
-              <Flex align="center" gap="xs">
-                <Text monospace>
-                  {spanCount === null ? t('Unknown') : formatAbbreviatedNumber(spanCount)}
-                </Text>
-                {extrapolatedCount !== null && (
-                  <InfoTip
-                    size="xs"
-                    title={t(
-                      'Projected 30-day volume based on a recent sample. Actual volume may differ.'
-                    )}
-                  />
-                )}
-              </Flex>
-            ),
-          }}
-        />
-        {canViewEstimatedCost && extrapolatedCount !== null && (
-          <LowValueSpanEstimatedCost extrapolatedSpanCount={extrapolatedCount} />
-        )}
-        <KeyValueTableDataRow
-          disableFormattedData
-          item={{
-            key: 'average-duration',
-            subject: t('Average duration'),
-            value: formatDurationMs(evidenceData.avgDurationMs),
-          }}
-        />
-      </Grid>
+      <KeyValueTableCard
+        contentItems={[
+          {
+            disableFormattedData: true,
+            item: {
+              action: affectedSpanExploreUrl ? {link: affectedSpanExploreUrl} : undefined,
+              key: 'affected-span',
+              subject: t('Affected span'),
+              value: getSpanLabel(evidenceData),
+            },
+          },
+          {
+            disableFormattedData: true,
+            item: {
+              key: 'span-count',
+              subject: t('Span count'),
+              value: (
+                <Flex align="center" gap="xs">
+                  <Text monospace>
+                    {spanCount === null
+                      ? t('Unknown')
+                      : formatAbbreviatedNumber(spanCount)}
+                  </Text>
+                  {extrapolatedCount !== null && (
+                    <InfoTip
+                      size="xs"
+                      title={t(
+                        'Projected 30-day volume based on a recent sample. Actual volume may differ.'
+                      )}
+                    />
+                  )}
+                </Flex>
+              ),
+            },
+          },
+          ...(canViewEstimatedCost && extrapolatedCount !== null
+            ? [
+                {
+                  disableFormattedData: true,
+                  item: {
+                    key: 'estimated-cost',
+                    subject: t('Estimated cost'),
+                    value: (
+                      <LowValueSpanEstimatedCost
+                        extrapolatedSpanCount={extrapolatedCount}
+                      />
+                    ),
+                  },
+                },
+              ]
+            : []),
+          {
+            disableFormattedData: true,
+            item: {
+              key: 'average-duration',
+              subject: t('Average duration'),
+              value: formatDurationMs(evidenceData.avgDurationMs),
+            },
+          },
+        ]}
+      />
     </Stack>
   );
 }
