@@ -1,5 +1,6 @@
 // create a basic test for filters bar
 
+import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
@@ -16,6 +17,7 @@ import {
   type GlobalFilter,
 } from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {WEB_VITALS_NAVIGATION_TYPE_FEATURE} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 
 describe('FiltersBar', () => {
   let organization: Organization;
@@ -46,6 +48,45 @@ describe('FiltersBar', () => {
 
     return render(<FiltersBar {...props} />, {organization});
   };
+
+  describe('web vitals navigation type switcher', () => {
+    // How the insights route renders the bar: the dashboard is passed, but
+    // `prebuiltDashboardId` is not.
+    function renderLikeInsightsRoute() {
+      return renderFilterBar({
+        dashboard: DashboardFixture([], {
+          id: 'prebuilt-dashboard-6',
+          prebuiltId: PrebuiltDashboardId.WEB_VITALS,
+        }),
+      });
+    }
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {data: [], meta: {fields: {}}},
+      });
+    });
+
+    it('renders on the insights route when the flag is on', async () => {
+      organization.features = [
+        ...organization.features,
+        WEB_VITALS_NAVIGATION_TYPE_FEATURE,
+      ];
+
+      renderLikeInsightsRoute();
+
+      expect(
+        await screen.findByRole('button', {name: /Measured on/})
+      ).toBeInTheDocument();
+    });
+
+    it('stays off without the flag', () => {
+      renderLikeInsightsRoute();
+
+      expect(screen.queryByRole('button', {name: /Measured on/})).not.toBeInTheDocument();
+    });
+  });
 
   it('should render basic global filter', async () => {
     const newLocation = LocationFixture({
