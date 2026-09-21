@@ -79,9 +79,9 @@ function SingleIssueBlock({id, shortId}: IssueEmbedProps) {
   );
 
   return (
+    // Left expanded, the card's default: one row, with nothing worth hiding
+    // behind a closed panel.
     <SeerEmbedBlock
-      // One row: there is nothing here worth hiding behind a closed panel.
-      defaultExpanded
       href={getIssueHref(id)}
       icon={IconIssues}
       linkLabel={t('View Issue')}

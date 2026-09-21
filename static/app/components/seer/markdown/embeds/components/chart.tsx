@@ -183,14 +183,9 @@ export const Chart = defineSeerEmbed({
           // is no page in Sentry showing the same thing. The card's header band
           // takes the chart's title -- it has no second line for the subtitle,
           // which moves into the panel above the plot.
-          <SeerEmbedBlock
-            // A chart is the point of the sentence that introduces it, so it
-            // opens expanded.
-            defaultExpanded
-            gap="sm"
-            testId="seer-chart-embed"
-            title={data.title}
-          >
+          // Left expanded, the card's default: a chart is the point of the
+          // sentence that introduces it.
+          <SeerEmbedBlock gap="sm" testId="seer-chart-embed" title={data.title}>
             {data.subtitle ? (
               <Text size="sm" variant="muted">
                 {data.subtitle}

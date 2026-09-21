@@ -72,10 +72,10 @@ function ReplayBlockPreview({id, eventTimestamp}: EmbedOutput<'replay'>) {
 
   return (
     <ReplayAccess fallback={<ReplayLink id={id} eventTimestamp={eventTimestamp} />}>
+      {/* Left expanded, the card's default: the clip is the reason the block
+          was emitted, and collapsing it would not save the load -- the panel
+          keeps its contents mounted. */}
       <SeerEmbedBlock
-        // The clip is the reason the block was emitted, and collapsing it does
-        // not save the load -- the panel keeps its contents mounted.
-        defaultExpanded
         href={href}
         icon={IconPlay}
         linkLabel={t('View Replay')}
