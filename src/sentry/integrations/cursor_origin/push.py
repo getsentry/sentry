@@ -13,6 +13,7 @@ from sentry.integrations.cursor_origin.client import CursorOriginApiClient
 from sentry.integrations.cursor_origin.handlers import WebhookEventHandler
 from sentry.integrations.cursor_origin.repository import (
     MAX_COMPARE_COMMITS_OPTION_KEY,
+    active_repositories,
     file_changes_from,
 )
 from sentry.integrations.cursor_origin.webhook_types import PushedCommit, PushEvent, RefUpdate
@@ -20,7 +21,6 @@ from sentry.integrations.services.integration.model import (
     RpcIntegration,
     RpcOrganizationIntegration,
 )
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEventType
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -63,12 +63,7 @@ class RepositoryPushedHandler(WebhookEventHandler):
             )
             return
 
-        repositories = Repository.objects.filter(
-            organization_id__in=[oi.organization_id for oi in org_integrations],
-            provider=f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}",
-            external_id=push.repository_id,
-            status=ObjectStatus.ACTIVE,
-        )
+        repositories = active_repositories(push.repository_id, org_integrations)
         if not repositories:
             logger.info(
                 "cursor_origin.push.unknown_repository",
