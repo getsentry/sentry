@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, overload
 
+import re2
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
@@ -27,7 +28,6 @@ from sentry.search.events.constants import (
     WILDCARD_OPERATOR_MAP,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS
-from sentry.search.events.re2_syntax import RE2SyntaxError, check_re2_syntax
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.search.utils import (
     InvalidQuery,
@@ -440,11 +440,19 @@ def get_wildcard_op(node: Node | Sequence[Node]) -> str:
     return ""
 
 
+_re2_options = re2.Options()
+_re2_options.log_errors = False
+
+
 def validate_regex_pattern(key: str, pattern: str) -> None:
+    # ClickHouse matches with RE2, which rejects syntax Python's `re` accepts (lookaround,
+    # backreferences) and accepts syntax it rejects (`\pL`, `\z`), so only RE2 can vouch for a
+    # pattern before it reaches ClickHouse
     try:
-        check_re2_syntax(pattern)
-    except RE2SyntaxError as exc:
-        raise InvalidSearchQuery(f"{key}: {exc}")
+        re2.compile(pattern, _re2_options)
+    except re2.error as exc:
+        detail = exc.args[0].decode() if isinstance(exc.args[0], bytes) else str(exc.args[0])
+        raise InvalidSearchQuery(f"{key}: Invalid regex (RE2 syntax): {detail}")
 
 
 def as_regex_value(key: str, value: SearchValue) -> SearchValue:

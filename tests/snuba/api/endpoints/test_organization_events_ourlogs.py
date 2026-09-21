@@ -361,7 +361,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         )
 
         assert response.status_code == 400, response.content
-        assert "repetition counts are limited to 1000" in response.data["detail"]
+        assert "invalid repetition size" in response.data["detail"]
 
     def test_pagination(self) -> None:
         logs = [

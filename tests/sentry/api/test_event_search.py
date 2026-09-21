@@ -1555,63 +1555,67 @@ def test_round_trips_a_regex_op_through_to_query_string(query) -> None:
     assert parse_search_query(filters[0].to_query_string(), config=regex_config) == filters
 
 
-UNSUPPORTED_REGEX_MESSAGE = (
-    "Patterns are matched with RE2, which has no backreferences, lookaround, "
-    "or other PCRE extensions."
-)
-
-
 @pytest.mark.parametrize(
     ["query", "expected_message"],
     [
         pytest.param(
             "span.op://[a-//",
-            "span.op: Invalid regex: unterminated character set",
+            "span.op: Invalid regex (RE2 syntax): missing ]: [a-",
             id="unterminated character set",
         ),
         pytest.param(
             "span.op://(foo//",
-            "span.op: Invalid regex: missing ), unterminated subpattern",
+            "span.op: Invalid regex (RE2 syntax): missing ): (foo",
             id="unterminated group",
         ),
         pytest.param(
             "span.op://(foo)\\1//",
-            "span.op: Invalid regex: `\\1` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            "span.op: Invalid regex (RE2 syntax): invalid escape sequence: \\1",
             id="backreference",
         ),
         pytest.param(
             "span.op://foo(?=bar)//",
-            "span.op: Invalid regex: `(?=` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            "span.op: Invalid regex (RE2 syntax): invalid perl operator: (?=",
             id="lookahead",
         ),
         pytest.param(
             "span.op://foo(?<!bar)//",
-            "span.op: Invalid regex: `(?<!` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            "span.op: Invalid regex (RE2 syntax): invalid perl operator: (?<!",
             id="lookbehind",
         ),
         pytest.param(
             "span.op://foo\\Z//",
-            "span.op: Invalid regex: `\\Z` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            "span.op: Invalid regex (RE2 syntax): invalid escape sequence: \\Z",
             id="end of string escape",
         ),
         pytest.param(
             "span.op://(?>foo)//",
-            "span.op: Invalid regex: `(?>` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            "span.op: Invalid regex (RE2 syntax): invalid perl operator: (?>",
             id="atomic group",
         ),
         pytest.param(
             "span.op://(foo)(?(1)bar|baz)//",
-            "span.op: Invalid regex: `(?(` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            "span.op: Invalid regex (RE2 syntax): invalid perl operator: (?(",
             id="conditional",
         ),
         pytest.param(
             "span.op://(?P<name>foo)(?P=name)//",
-            "span.op: Invalid regex: `(?P=` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            "span.op: Invalid regex (RE2 syntax): invalid perl operator: (?P",
             id="named backreference",
         ),
         pytest.param(
+            "span.op://a++//",
+            "span.op: Invalid regex (RE2 syntax): bad repetition operator: ++",
+            id="possessive quantifier",
+        ),
+        pytest.param(
+            "span.op://(a{11}){100}//",
+            "span.op: Invalid regex (RE2 syntax): invalid repetition size: {100}",
+            id="nested repeats over the limit",
+        ),
+        pytest.param(
             "span.op://foo\\//",
-            "span.op: Invalid regex: trailing backslash",
+            "span.op: Invalid regex (RE2 syntax): trailing \\",
             id="trailing backslash",
         ),
     ],
