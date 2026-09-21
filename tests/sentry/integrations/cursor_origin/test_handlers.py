@@ -7,6 +7,7 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.webhook import HANDLERS
+from sentry.integrations.cursor_origin.webhook_types import OriginPayloadError
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
@@ -127,9 +128,10 @@ class InstallationEventHandlerTest(TestCase):
         assert metadata["expires_at"] == "2026-09-16T23:00:00Z"
         assert metadata["repo_selection_mode"] == "all"
 
-    def test_an_update_without_a_slug_keeps_the_domain(self) -> None:
-        """`source_url_matches` reads `domain_name` directly, so it must not be dropped."""
-        self._handle("installation.updated", _installation(target={"id": "ns_01example"}))
+    def test_an_update_without_a_slug_is_refused(self) -> None:
+        """Origin documents the target's slug as always present."""
+        with pytest.raises(OriginPayloadError, match="installation -> target -> slug"):
+            self._handle("installation.updated", _installation(target={"id": "ns_01example"}))
 
         integration = self._integration()
         assert integration.metadata["domain_name"] == f"{WEB}/acme"
@@ -225,7 +227,10 @@ class InstallationEventHandlerTest(TestCase):
                 config={"name": "acme/booster", "default_branch": "main"},
             )
 
-        self._handle("installation.updated", _installation(target={"slug": "rocketry"}))
+        self._handle(
+            "installation.updated",
+            _installation(target={"slug": "rocketry", "id": "ns_01example", "type": "team"}),
+        )
 
         with assume_test_silo_mode_of(Repository):
             renamed = Repository.objects.get(id=other.id)
@@ -243,11 +248,17 @@ class InstallationEventHandlerTest(TestCase):
             ),
             pytest.raises(ValueError),
         ):
-            self._handle("installation.updated", _installation(target={"slug": "rocketry"}))
+            self._handle(
+                "installation.updated",
+                _installation(target={"slug": "rocketry", "id": "ns_01example", "type": "team"}),
+            )
 
         assert self._integration().name == "acme"
 
-        self._handle("installation.updated", _installation(target={"slug": "rocketry"}))
+        self._handle(
+            "installation.updated",
+            _installation(target={"slug": "rocketry", "id": "ns_01example", "type": "team"}),
+        )
 
         assert self._integration().name == "rocketry"
         with assume_test_silo_mode_of(Repository):
@@ -274,7 +285,10 @@ class InstallationEventHandlerTest(TestCase):
                 config={"name": "elsewhere/thing"},
             )
 
-        self._handle("installation.updated", _installation(target={"slug": "rocketry"}))
+        self._handle(
+            "installation.updated",
+            _installation(target={"slug": "rocketry", "id": "ns_01example", "type": "team"}),
+        )
 
         with assume_test_silo_mode_of(Repository):
             assert Repository.objects.get(id=odd.id).name == "elsewhere/thing"
