@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import bisect
 import functools
 import re
 from collections.abc import Callable, Generator, Mapping, Sequence
@@ -246,15 +245,13 @@ MAX_REGEX_PATTERN_LENGTH = 64
 
 # key://pattern// runs to the first `//` that ends the value, so patterns can hold spaces and
 # parens unquoted. A quoted "//...//" stays a literal. There's no IN-list form, since `a|b`
-# already covers it. The length cap keeps a query full of unclosed `key://` values from
-# rescanning the rest of the line at every one of them; longer patterns are rejected by
-# SearchVisitor instead.
-_regex_rules = rf"""
+# already covers it. The scan cap only keeps a query full of unclosed `key://` values from
+# rescanning the rest of the line at every one of them; SearchVisitor enforces the real
+# MAX_REGEX_PATTERN_LENGTH.
+_regex_rules = r"""
 regex_filter = negation? (array_includes_key / text_key) sep regex_value
-regex_value  = ~r"//((?:(?!//(?:[\t\n )]|$))[^\n]){{1,{MAX_REGEX_PATTERN_LENGTH}}})//(?=[\t\n )]|$)"
+regex_value  = ~r"//((?:(?!//(?:[\t\n )]|$))[^\n]){1,1024})//(?=[\t\n )]|$)"
 """
-
-REGEX_CLOSING_DELIMITER = re.compile(r"//(?=[\t\n )]|\Z)")
 
 # Only searches that compile regex patterns get the regex rules, so every other search parses
 # `//...//` exactly as it always has
@@ -862,7 +859,6 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         super().__init__()
 
         self.config = config
-        self._regex_closing_offsets: list[int] | None = None
 
         if TYPE_CHECKING:
             from sentry.search.events.builder.discover import UnresolvedQuery
@@ -1520,7 +1516,6 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchFilter:
         (negation, search_key, _sep, wildcard_op, operator, search_value) = children
-        self._raise_if_regex_pattern_is_too_long(node)
         operator_s = get_operator_value(operator)
 
         # XXX: We check whether the text in the node itself is actually empty, so
@@ -1555,41 +1550,17 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchFilter:
         (negation, (search_key,), _sep, pattern) = children
+        if len(pattern) > MAX_REGEX_PATTERN_LENGTH:
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Regex patterns are limited to {MAX_REGEX_PATTERN_LENGTH} "
+                'characters. To search for a literal value that starts with //, quote it: "//..."'
+            )
         validate_regex_pattern(search_key.name, pattern)
         operator = handle_negation(negation, "=")
         return SearchFilter(search_key, operator, SearchValue(pattern, is_regex=True))
 
     def visit_regex_value(self, node: RegexNode, children: object) -> str:
         return node.match.group(1)
-
-    def _raise_if_regex_pattern_is_too_long(self, node: Node) -> None:
-        """The grammar only reads a pattern up to MAX_REGEX_PATTERN_LENGTH, so a longer one lands
-        in a text filter instead. It shows up there as an unquoted `//` value, with no operator,
-        whose closing `//` sits further along the same line."""
-        wildcard_op, operator, value = node.children[3:6]
-        if (
-            not self.config.allow_regex
-            or wildcard_op.text
-            or operator.text
-            or not value.text.startswith("//")
-        ):
-            return
-
-        text = node.full_text
-        if self._regex_closing_offsets is None:
-            self._regex_closing_offsets = [
-                match.start() for match in REGEX_CLOSING_DELIMITER.finditer(text)
-            ]
-        closing = bisect.bisect_left(self._regex_closing_offsets, value.start + 3)
-        line_end = text.find("\n", value.start)
-        if closing < len(self._regex_closing_offsets) and (
-            line_end == -1 or self._regex_closing_offsets[closing] < line_end
-        ):
-            raise InvalidSearchQuery(
-                f"{node.children[1].text}: Regex patterns are limited to "
-                f"{MAX_REGEX_PATTERN_LENGTH} characters. To search for a literal value that "
-                'starts with //, quote it: "//..."'
-            )
 
     # --- End of filter visitors
 
@@ -2037,7 +2008,6 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchFilter:
         (negation, search_key, _, wildcard_op, operator, search_value) = children
-        self._raise_if_regex_pattern_is_too_long(node)
         operator_s = get_operator_value(operator)
         if not search_value.raw_value:
             raise InvalidSearchQuery(f"Empty value for {search_key.name}[*]")

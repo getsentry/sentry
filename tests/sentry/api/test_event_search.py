@@ -1673,7 +1673,7 @@ def test_parses_a_regex_pattern_at_the_length_limit() -> None:
         pytest.param(
             "!message://{pattern}// env:prod", "message", id="negated then another filter"
         ),
-        pytest.param("tags[foo,array][*]://{pattern}//", "tags[foo,array][*]", id="array key"),
+        pytest.param("tags[foo,array][*]://{pattern}//", "tags[foo,array]", id="array key"),
         pytest.param(
             "url://a.com/ OR url://{pattern}//", "url", id="unquoted literal before a pattern"
         ),
