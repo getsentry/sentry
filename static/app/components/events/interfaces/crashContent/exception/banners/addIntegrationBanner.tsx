@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconClose} from 'sentry/icons';
@@ -20,19 +20,19 @@ interface AddIntegrationBannerProps {
 export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerProps) {
   return (
     <Banner>
-      <Container>
-        <Container marginBottom="md">
+      <Stack gap="lg">
+        <Stack gap="md">
           <Text as="div" bold size="xl">
             {t('Connect with Git Providers')}
           </Text>
-        </Container>
-        <Container marginBottom="lg" maxWidth="340px">
-          <Text as="div">
-            {t(
-              'Install Git providers (GitHub, GitLab…) to enable features like code mapping and stack trace linking.'
-            )}
-          </Text>
-        </Container>
+          <Container maxWidth="340px">
+            <Text as="div">
+              {t(
+                'Install Git providers (GitHub, GitLab…) to enable features like code mapping and stack trace linking.'
+              )}
+            </Text>
+          </Container>
+        </Stack>
         <LinkButton
           to={{
             pathname: `/settings/${orgSlug}/integrations/`,
@@ -43,7 +43,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
         >
           {t('Get Started')}
         </LinkButton>
-      </Container>
+      </Stack>
       <Container
         bottom="0"
         display={{zero: 'none', xl: 'block'}}
