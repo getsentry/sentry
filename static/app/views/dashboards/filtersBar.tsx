@@ -199,9 +199,8 @@ export function FiltersBar({
 
   const hasTemporaryFilters = activeGlobalFilters.some(filter => filter.isTemporary);
 
-  // The insights route renders this bar without `prebuiltDashboardId`, since
-  // passing it would also surface the prebuilt filter chips there. The switcher
-  // still belongs on that route, so it falls back to the dashboard's own ID.
+  // The insights route omits `prebuiltDashboardId`, since passing it would
+  // surface the prebuilt chips there, so fall back to the dashboard's own ID.
   const {isEnabled: isNavigationTypeExperimentEnabled} = useNavigationTypeExperiment(
     prebuiltDashboardId ?? dashboard?.prebuiltId
   );

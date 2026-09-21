@@ -119,8 +119,7 @@ describe('NavigationTypeGate', () => {
   });
 
   it('shows the banner but never takes over the grid on a duplicated dashboard', async () => {
-    // Zero bfcache spans would take over a web vitals dashboard. A copy keeps
-    // its widgets: they may not be about web vitals any more.
+    // Zero bfcache spans, which would take over a web vitals dashboard.
     mockCounts([{[SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate', 'count()': 10}]);
 
     render(

@@ -32,18 +32,9 @@ interface Props {
 }
 
 /**
- * Wraps the widget grid while a narrowed navigation type selection is active.
- *
- * Anything other than page loads on their own gets a banner saying the numbers
- * are either a different population or a blend of several, and that the
- * thresholds and performance scores were calibrated against page loads. It
- * shows exactly when the thresholds are hidden, which includes dashboards
- * duplicated from web vitals.
- *
- * On the web vitals dashboards themselves, a selection with no data explains
- * why it's empty instead of rendering a grid of blank charts. That takes over
- * the whole grid and only counts web vitals spans, so it stays off on other
- * dashboards, where the widgets may no longer be about web vitals at all.
+ * The banner shows exactly when thresholds are hidden, copies included. The
+ * empty state takes over the whole grid and only counts web vitals spans, so it
+ * stays off outside the web vitals dashboards.
  */
 export function NavigationTypeGate({children, prebuiltId}: Props) {
   const organization = useOrganization();

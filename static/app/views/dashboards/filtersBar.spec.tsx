@@ -51,8 +51,7 @@ describe('FiltersBar', () => {
   };
 
   describe('web vitals navigation type switcher', () => {
-    // How the insights route renders the bar: the dashboard is passed, but
-    // `prebuiltDashboardId` is not.
+    // Like the insights route: `dashboard` is passed, `prebuiltDashboardId` isn't.
     function renderLikeInsightsRoute() {
       return renderFilterBar({
         dashboard: DashboardFixture([], {

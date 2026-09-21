@@ -34,19 +34,13 @@ type Props = {
   onChange: (globalFilters: GlobalFilter[]) => void;
 };
 
-/**
- * Experimental control that splits web vitals by the kind of navigation they
- * were measured on. Selecting more than one is allowed, but a mixed selection
- * is a blend of populations rather than a single measurement, which is why the
- * dashboard drops its thresholds outside a page loads only selection.
- */
+/** Splits web vitals by the kind of navigation they were measured on. */
 export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
   const organization = useOrganization();
   const buckets = getBucketsFromGlobalFilters(globalFilters);
   const isAll = isAllBucketsSelected(buckets);
 
-  // The other spans filters (browser, subregion, ...) so the counts in the menu
-  // match the numbers the widgets will render.
+  // So the counts match what the widgets render.
   const additionalQuery = useMemo(
     () =>
       spanFilterQueryFromGlobalFilters(
@@ -103,7 +97,7 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
         );
         trackAnalytics('insight.vital.select_navigation_type', {
           organization,
-          // Empty selection reads as "All", same as the other filter chips.
+          // An empty selection is "All".
           navigation_types: (nextBuckets.length ? nextBuckets : ['all']).join(','),
         });
       }}

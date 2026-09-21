@@ -27,10 +27,8 @@ export const ISSUE_TYPES = [
 ];
 
 /**
- * The experimental navigation type switcher's filter, in its default "All"
- * state (no value, so it filters nothing). It lives in the config so dashboards
- * duplicated from web vitals carry it. Kept as a literal rather than imported
- * from the switcher's settings, which import this module's index.
+ * Lives in the config so duplicated dashboards carry it. A literal rather than
+ * an import from the switcher's settings, which import this module's index.
  */
 export const WEB_VITALS_NAVIGATION_TYPE_FILTER: GlobalFilter = {
   dataset: WidgetType.SPANS,

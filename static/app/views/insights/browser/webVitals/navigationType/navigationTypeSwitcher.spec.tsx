@@ -178,8 +178,7 @@ describe('NavigationTypeSwitcher', () => {
     await userEvent.click(screen.getByRole('button', {name: /Measured on/}));
     await userEvent.click(await screen.findByRole('option', {name: /Page loads/}));
 
-    // Exactly the prebuilt default, not a temporary filter: a temporary one
-    // would keep the dashboard's save controls hidden.
+    // Not temporary, or the dashboard's save controls would stay hidden.
     expect(onChange).toHaveBeenCalledWith([
       browserFilter,
       WEB_VITALS_NAVIGATION_TYPE_FILTER,

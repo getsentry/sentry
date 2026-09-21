@@ -11,10 +11,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
-  /**
-   * Extra query fragment (the other active global filters) so the counts match
-   * what the widgets will actually show.
-   */
+  /** The other active global filters, so the counts match the widgets. */
   additionalQuery?: string;
   enabled?: boolean;
 };
@@ -26,10 +23,6 @@ export type NavigationTypeCounts = {
   untaggedCount: number;
 };
 
-/**
- * Counts web vital spans per navigation type bucket, so the switcher can show
- * how much data each population has before it is selected.
- */
 export function useNavigationTypeCounts({
   additionalQuery,
   enabled = true,

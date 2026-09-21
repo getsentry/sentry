@@ -20,7 +20,6 @@ import {
   type NavigationTypeBucket,
 } from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 
-/** Joins the spans-dataset global filters into a single query fragment. */
 export function spanFilterQueryFromGlobalFilters(filters: GlobalFilter[]): string {
   return filters
     .filter(filter => filter.dataset === WidgetType.SPANS && filter.value)
@@ -29,7 +28,6 @@ export function spanFilterQueryFromGlobalFilters(filters: GlobalFilter[]): strin
 }
 
 type NavigationTypeExperiment = {
-  /** Currently selected populations. Defaults to page loads only. */
   buckets: NavigationTypeBucket[];
   isEnabled: boolean;
   /** The other active spans filters, for keeping side queries in sync. */
@@ -37,11 +35,7 @@ type NavigationTypeExperiment = {
   supportsThresholds: boolean;
 };
 
-/**
- * Reads the navigation type experiment state off the URL. Returns
- * `isEnabled: false` on any dashboard the experiment doesn't apply to, in which
- * case the rest of the fields should be ignored.
- */
+/** `isEnabled` is false outside the web vitals dashboards or without the flag. */
 export function useNavigationTypeExperiment(
   prebuiltId?: PrebuiltDashboardId
 ): NavigationTypeExperiment {
@@ -67,17 +61,8 @@ export function useNavigationTypeExperiment(
   };
 }
 
-/**
- * Whether the web vital thresholds should be hidden for the current selection.
- * The good/needs improvement/poor boundaries come from page load data, so a
- * bfcache restore scored against them reads "good" every time and a mixed
- * selection is a blend of populations rather than one measurement.
- *
- * Only the switcher's own filter counts. It is the only thing that writes a
- * temporary navigation type filter, so a chip someone added by hand (on a
- * duplicated dashboard, say) filters data but never touches thresholds, and
- * neither does anything in an org without the flag.
- */
+// Only the switcher's own filter counts, so a hand-added chip filters data
+// without touching thresholds.
 export function navigationTypeSuppressesThresholds(
   dashboardFilters: DashboardFilters | undefined,
   organization: Organization | null
@@ -93,12 +78,8 @@ export function navigationTypeSuppressesThresholds(
   return !bucketsKeepThresholds(getBucketsFromGlobalFilters([switcherFilter]));
 }
 
-/**
- * The navigation type filter the switcher wrote, if any. Only a narrowed
- * selection is written as temporary, and nothing else writes a temporary
- * navigation type filter, so this is also "is a narrowed selection active".
- * Returns nothing in an org without the flag.
- */
+// Nothing else writes a temporary navigation type filter, and only a narrowed
+// selection is temporary, so this also answers "is a narrowed selection active".
 export function getSwitcherFilter(
   globalFilters: GlobalFilter[] | undefined,
   organization: Organization | null
@@ -112,12 +93,8 @@ export function getSwitcherFilter(
   );
 }
 
-/**
- * Whether the filter bar shows the switcher. Always on the web vitals
- * dashboards, and anywhere else the navigation type filter holds a value the
- * switcher can represent: a dashboard duplicated from web vitals carries the
- * filter in its default state, so the copy gets the same control.
- */
+// A dashboard duplicated from web vitals carries the filter in its default
+// state, which is how the copy gets the switcher too.
 export function showsNavigationTypeSwitcher(
   globalFilters: GlobalFilter[],
   organization: Organization,
@@ -136,13 +113,9 @@ export function showsNavigationTypeSwitcher(
 }
 
 /**
- * Whether the filter bar should leave out this filter's generic chip.
- *
- * Wherever the switcher is shown it replaces the chip. Without the flag, the
- * empty default the prebuilt config seeds stays hidden too, since a static
- * config can't be flag gated and would otherwise put the chip on every org's
- * web vitals dashboard. A chip that actually filters is always shown: hiding it
- * would leave an active filter nobody can see.
+ * The prebuilt config can't be flag gated, so without the flag its empty
+ * default stays hidden. A chip that actually filters always shows, or it would
+ * be an active filter nobody can see.
  */
 export function hidesNavigationTypeChip(
   filter: GlobalFilter,
