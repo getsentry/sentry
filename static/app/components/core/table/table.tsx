@@ -159,15 +159,23 @@ export function Table({
   // Responsive `width` and `visible` are resolved here rather than emitted as
   // `@container` rules because the grid template is an inline style, which any
   // stylesheet rule would lose to.
-  const resolvedColumns: ResolvedColumn[] = columns.map(
-    ({visible, width, ...column}) => ({
+  const resolvedColumns: ResolvedColumn[] = [];
+  const visibleColumns: ResolvedColumn[] = [];
+
+  for (const {visible, width, ...column} of columns) {
+    const resolved = {
       ...column,
       hidden: !resolveResponsiveProp(withHiddenBase(visible)),
       width: resolveResponsiveProp(width),
-    })
-  );
+    };
 
-  const visibleColumns = resolvedColumns.filter(column => !column.hidden);
+    resolvedColumns.push(resolved);
+
+    if (!resolved.hidden) {
+      visibleColumns.push(resolved);
+    }
+  }
+
   const lastVisibleIndex = resolvedColumns.findLastIndex(column => !column.hidden);
 
   // A hidden column keeps its place in `columns` — a cell is still rendered for
