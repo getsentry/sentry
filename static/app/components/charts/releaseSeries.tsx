@@ -1,8 +1,6 @@
-import {Component} from 'react';
-import type {Theme} from '@emotion/react';
-import {withTheme} from '@emotion/react';
-import type {Location, Query} from 'history';
-import isEqual from 'lodash/isEqual';
+import {useEffect, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import type {Query} from 'history';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 
@@ -18,12 +16,11 @@ import {escape} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getFormat, getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {withApi} from 'sentry/utils/withApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 type ReleaseMetaBasic = {
@@ -80,16 +77,11 @@ const getOrganizationReleasesMemoized = memoize(
 );
 
 export interface ReleaseSeriesProps {
-  api: Client;
-  children: (s: State) => React.ReactNode;
+  children: (s: ReleaseSeriesState) => React.ReactNode;
   end: DateString;
   environments: readonly string[];
-  location: Location;
-  navigate: ReactRouter3Navigate;
-  organization: Organization;
   projects: readonly number[];
   start: DateString;
-  theme: Theme;
   emphasizeReleases?: string[];
   enabled?: boolean;
   memoized?: boolean;
@@ -102,251 +94,302 @@ export interface ReleaseSeriesProps {
   utc?: boolean | null;
 }
 
-type State = {
+type ReleaseSeriesState = {
   releaseSeries: Series[];
   releases: ReleaseMetaBasic[] | null;
 };
 
+type UseReleaseSeriesProps = Omit<ReleaseSeriesProps, 'children'>;
+
 /**
- * @deprecated use useReleaseBubbles instead
+ * Hook that fetches releases and builds ECharts series data for release markers.
  */
-class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
-  state: State = {
+export function useReleaseSeries({
+  start,
+  end,
+  period,
+  environments,
+  projects,
+  query,
+  releases: propReleases,
+  enabled = true,
+  memoized,
+  emphasizeReleases,
+  preserveQueryParams,
+  queryExtra,
+  tooltip,
+  utc,
+}: UseReleaseSeriesProps): ReleaseSeriesState {
+  const api = useApi();
+  const organization = useOrganization();
+  const theme = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Keep utc in a ref so tooltip formatters always read the latest value
+  // without needing to be re-created (same pattern as original class used this.props.utc)
+  const utcRef = useRef(utc);
+  useEffect(() => {
+    utcRef.current = utc;
+  }, [utc]);
+
+  const [state, setState] = useState<ReleaseSeriesState>({
     releases: null,
     releaseSeries: [],
-  };
+  });
 
-  componentDidMount() {
-    this._isMounted = true;
-    const {releases, enabled = true} = this.props;
+  // Serialize non-primitive deps to stable strings so useEffect deps use
+  // value-equality instead of referential equality. The original class used
+  // lodash isEqual for these comparisons; callers like Discover rebuild Date
+  // objects and arrays on every render, so reference equality would re-fetch
+  // even when nothing logically changed.
+  const startKey = start ? getUtcDateString(start) : '';
+  const endKey = end ? getUtcDateString(end) : '';
+  const projectsKey = [...projects].join(',');
+  const environmentsKey = [...environments].join(',');
+  const emphasizeReleasesKey = emphasizeReleases?.join(',') ?? '';
 
-    if (releases) {
-      // No need to fetch releases if passed in from props
-      this.setReleasesWithSeries(releases);
-      return;
-    }
+  // Stable refs for values used inside closures passed to echarts
+  const organizationRef = useRef(organization);
+  const locationRef = useRef(location);
+  const navigateRef = useRef(navigate);
+  const themeRef = useRef(theme);
+  const preserveQueryParamsRef = useRef(preserveQueryParams);
+  const queryExtraRef = useRef(queryExtra);
+  const tooltipRef = useRef(tooltip);
+  const environmentsRef = useRef(environments);
+  const startRef = useRef(start);
+  const endRef = useRef(end);
+  const periodRef = useRef(period);
 
-    if (enabled) {
-      this.fetchData();
-    }
-  }
+  useEffect(() => {
+    organizationRef.current = organization;
+    locationRef.current = location;
+    navigateRef.current = navigate;
+    themeRef.current = theme;
+    preserveQueryParamsRef.current = preserveQueryParams;
+    queryExtraRef.current = queryExtra;
+    tooltipRef.current = tooltip;
+    environmentsRef.current = environments;
+    startRef.current = start;
+    endRef.current = end;
+    periodRef.current = period;
+  });
 
-  componentDidUpdate(prevProps: any) {
-    const {enabled = true} = this.props;
-
-    if (
-      (!isEqual(prevProps.projects, this.props.projects) ||
-        !isEqual(prevProps.environments, this.props.environments) ||
-        !isEqual(prevProps.start, this.props.start) ||
-        !isEqual(prevProps.end, this.props.end) ||
-        !isEqual(prevProps.period, this.props.period) ||
-        !isEqual(prevProps.query, this.props.query) ||
-        (!prevProps.enabled && this.props.enabled)) &&
-      enabled
-    ) {
-      this.fetchData();
-    } else if (!isEqual(prevProps.emphasizeReleases, this.props.emphasizeReleases)) {
-      this.setReleasesWithSeries(this.state.releases);
-    }
-  }
-
-  componentWillUnmount() {
-    this._isMounted = false;
-    this.props.api.clear();
-  }
-
-  _isMounted = false;
-
-  async fetchData() {
-    const {
-      api,
-      organization,
-      projects,
-      environments,
-      period,
-      start,
-      end,
-      memoized,
-      query,
-    } = this.props;
-    const conditions: ReleaseConditions = {
-      start,
-      end,
-      project: projects,
-      environment: environments,
-      statsPeriod: period,
-      query,
-    };
-    let hasMore = true;
-    const releases: ReleaseMetaBasic[] = [];
-    while (hasMore) {
-      try {
-        const getReleases = memoized
-          ? getOrganizationReleasesMemoized
-          : getOrganizationReleases;
-        const [newReleases, , resp] = await getReleases(api, organization, conditions);
-        releases.push(...newReleases);
-        if (this._isMounted) {
-          this.setReleasesWithSeries(releases);
-        }
-
-        const pageLinks = resp?.getResponseHeader('Link');
-        if (pageLinks) {
-          const paginationObject = parseLinkHeader(pageLinks);
-          hasMore = paginationObject?.next?.results ?? false;
-          conditions.cursor = paginationObject.next!.cursor;
-        } else {
-          hasMore = false;
-        }
-      } catch {
-        addErrorMessage(t('Error fetching releases'));
-        hasMore = false;
-      }
-    }
-  }
-
-  setReleasesWithSeries(releases: any) {
-    const {emphasizeReleases = []} = this.props;
+  function buildReleaseSeries(releases: ReleaseMetaBasic[]): Series[] {
     const releaseSeries: Series[] = [];
 
-    if (emphasizeReleases.length) {
+    function makeOneSeries(items: ReleaseMetaBasic[], lineStyle = {}): Series {
+      const org = organizationRef.current;
+      const loc = locationRef.current;
+      const nav = navigateRef.current;
+      const currentTheme = themeRef.current;
+      const currentPreserveQueryParams = preserveQueryParamsRef.current;
+      const currentQueryExtra = queryExtraRef.current;
+      const currentTooltip = tooltipRef.current;
+      const currentEnvironments = environmentsRef.current;
+      const currentStart = startRef.current;
+      const currentEnd = endRef.current;
+      const currentPeriod = periodRef.current;
+
+      const extraQuery: Query = {...currentQueryExtra};
+      extraQuery.project = loc.query.project;
+      if (currentPreserveQueryParams) {
+        extraQuery.environment = [...currentEnvironments];
+        extraQuery.start = currentStart ? getUtcDateString(currentStart) : undefined;
+        extraQuery.end = currentEnd ? getUtcDateString(currentEnd) : undefined;
+        extraQuery.statsPeriod = currentPeriod || undefined;
+      }
+
+      const markLine = createMarkLine({
+        animation: false,
+        lineStyle: {
+          color: currentTheme.tokens.dataviz.semantic.release,
+          opacity: 0.3,
+          type: 'solid',
+          ...lineStyle,
+        },
+        label: {
+          show: false,
+        },
+        data: items.map((release: ReleaseMetaBasic) => ({
+          xAxis: +new Date(release.date),
+          name: formatVersion(release.version, true),
+          value: formatVersion(release.version, true),
+
+          onClick: () => {
+            nav({
+              pathname: makeReleasesPathname({
+                organization: org,
+                path: `/${encodeURIComponent(release.version)}/`,
+              }),
+              query: extraQuery,
+            });
+          },
+
+          label: {
+            formatter: () => formatVersion(release.version, true),
+          },
+        })),
+        tooltip: currentTooltip || {
+          trigger: 'item',
+          formatter: ({data}: any) => {
+            // Should only happen when navigating pages
+            if (!data) {
+              return '';
+            }
+            // Read utc from ref so formatter always gets the latest value
+            // even though this closure is long-lived inside echarts
+            const time = getFormattedDate(
+              data.value,
+              getFormat({timeZone: true, year: true}),
+              {
+                local: !utcRef.current,
+              }
+            );
+            const version = escape(formatVersion(data.name, true));
+            return [
+              '<div class="tooltip-series">',
+              `<div><span class="tooltip-label"><strong>${t(
+                'Release'
+              )}</strong></span> ${version}</div>`,
+              '</div>',
+              '<div class="tooltip-footer">',
+              time,
+              '</div>',
+              '<div class="tooltip-arrow"></div>',
+            ].join('');
+          },
+        },
+      });
+
+      return {
+        id: 'release-lines',
+        seriesName: 'Releases',
+        color: currentTheme.tokens.dataviz.semantic.release,
+        data: [],
+        markLine,
+      };
+    }
+
+    if (emphasizeReleases?.length) {
       const [unemphasizedReleases, emphasizedReleases] = partition(
         releases,
-        release => !emphasizeReleases.includes(release.version)
+        release => !emphasizeReleases!.includes(release.version)
       );
       if (unemphasizedReleases.length) {
-        releaseSeries.push(this.getReleaseSeries(unemphasizedReleases, {type: 'dotted'}));
+        releaseSeries.push(makeOneSeries(unemphasizedReleases, {type: 'dotted'}));
       }
       if (emphasizedReleases.length) {
         releaseSeries.push(
-          this.getReleaseSeries(emphasizedReleases, {
+          makeOneSeries(emphasizedReleases, {
             opacity: 0.8,
           })
         );
       }
     } else {
-      releaseSeries.push(this.getReleaseSeries(releases));
+      releaseSeries.push(makeOneSeries(releases));
     }
 
-    this.setState({
-      releases,
-      releaseSeries,
-    });
+    return releaseSeries;
   }
 
-  getReleaseSeries = (releases: any, lineStyle = {}) => {
-    const {
-      organization,
-      location,
-      navigate,
-      tooltip,
-      environments,
-      start,
-      end,
-      period,
-      preserveQueryParams,
-      queryExtra,
-      theme,
-    } = this.props;
-
-    const query = {...queryExtra};
-    query.project = location.query.project;
-    if (preserveQueryParams) {
-      query.environment = [...environments];
-      query.start = start ? getUtcDateString(start) : undefined;
-      query.end = end ? getUtcDateString(end) : undefined;
-      query.statsPeriod = period || undefined;
+  useEffect(() => {
+    // If releases are passed directly via props, skip fetching
+    if (propReleases) {
+      setState({
+        releases: propReleases,
+        releaseSeries: buildReleaseSeries(propReleases),
+      });
+      return undefined;
     }
 
-    const markLine = createMarkLine({
-      animation: false,
-      lineStyle: {
-        color: theme.tokens.dataviz.semantic.release,
-        opacity: 0.3,
-        type: 'solid',
-        ...lineStyle,
-      },
-      label: {
-        show: false,
-      },
-      data: releases.map((release: any) => ({
-        xAxis: +new Date(release.date),
-        name: formatVersion(release.version, true),
-        value: formatVersion(release.version, true),
+    if (!enabled) {
+      return undefined;
+    }
 
-        onClick: () => {
-          navigate({
-            pathname: makeReleasesPathname({
-              organization,
-              path: `/${encodeURIComponent(release.version)}/`,
-            }),
-            query,
-          });
-        },
+    let cancelled = false;
 
-        label: {
-          formatter: () => formatVersion(release.version, true),
-        },
-      })),
-      tooltip: tooltip || {
-        trigger: 'item',
-        formatter: ({data}: any) => {
-          // Should only happen when navigating pages
-          if (!data) {
-            return '';
+    async function fetchData() {
+      const conditions: ReleaseConditions = {
+        start,
+        end,
+        project: projects,
+        environment: environments,
+        statsPeriod: period,
+        query,
+      };
+
+      let hasMore = true;
+      const releases: ReleaseMetaBasic[] = [];
+      while (hasMore) {
+        try {
+          const getReleases = memoized
+            ? getOrganizationReleasesMemoized
+            : getOrganizationReleases;
+          const [newReleases, , resp] = await getReleases(api, organization, conditions);
+          releases.push(...newReleases);
+          if (!cancelled) {
+            setState({
+              releases,
+              releaseSeries: buildReleaseSeries(releases),
+            });
           }
-          // XXX using this.props here as this function does not get re-run
-          // unless projects are changed. Using a closure variable would result
-          // in stale values.
-          const time = getFormattedDate(
-            data.value,
-            getFormat({timeZone: true, year: true}),
-            {
-              local: !this.props.utc,
-            }
-          );
-          const version = escape(formatVersion(data.name, true));
-          return [
-            '<div class="tooltip-series">',
-            `<div><span class="tooltip-label"><strong>${t(
-              'Release'
-            )}</strong></span> ${version}</div>`,
-            '</div>',
-            '<div class="tooltip-footer">',
-            time,
-            '</div>',
-            '<div class="tooltip-arrow"></div>',
-          ].join('');
-        },
-      },
-    });
 
-    return {
-      id: 'release-lines',
-      seriesName: 'Releases',
-      color: theme.tokens.dataviz.semantic.release,
-      data: [],
-      markLine,
+          const pageLinks = resp?.getResponseHeader('Link');
+          if (pageLinks) {
+            const paginationObject = parseLinkHeader(pageLinks);
+            hasMore = paginationObject?.next?.results ?? false;
+            conditions.cursor = paginationObject.next!.cursor;
+          } else {
+            hasMore = false;
+          }
+        } catch {
+          addErrorMessage(t('Error fetching releases'));
+          hasMore = false;
+        }
+      }
+    }
+
+    fetchData();
+
+    return () => {
+      cancelled = true;
+      api.clear();
     };
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startKey, endKey, period, projectsKey, environmentsKey, query, propReleases, enabled, memoized]);
 
-  render() {
-    const {children, enabled = true} = this.props;
-
-    return children({
-      releases: enabled ? this.state.releases : [],
-      releaseSeries: enabled ? this.state.releaseSeries : [],
+  // Rebuild series when emphasizeReleases changes without re-fetching.
+  // We use the serialized key (not the array reference) so this effect only
+  // fires when the actual contents change, not on every render.
+  useEffect(() => {
+    setState(prev => {
+      if (prev.releases === null) {
+        return prev;
+      }
+      return {
+        ...prev,
+        releaseSeries: buildReleaseSeries(prev.releases),
+      };
     });
-  }
-}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emphasizeReleasesKey]);
 
-function WithRouter(props: Omit<ReleaseSeriesProps, 'location' | 'navigate'>) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  return <ReleaseSeries {...props} location={location} navigate={navigate} />;
+  if (!enabled) {
+    return {releases: [], releaseSeries: []};
+  }
+
+  return state;
 }
 
 /**
- * @deprecated use useReleaseBubbles instead
+ * Render-prop component backed by useReleaseSeries. Prefer the hook directly
+ * in new functional components.
+ *
+ * @deprecated use useReleaseSeries hook instead
  */
-export default withOrganization(withApi(withTheme(WithRouter)));
+export default function ReleaseSeries({children, ...props}: ReleaseSeriesProps) {
+  const state = useReleaseSeries(props);
+  return <>{children(state)}</>;
+}
