@@ -149,7 +149,7 @@ describe('apiOptions', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useQuery({...options, select: _ => _})
+      useQuery({...options, select: selectJsonWithHeaders})
     );
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
