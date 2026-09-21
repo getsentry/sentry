@@ -165,6 +165,7 @@ describe('ReleasesList', () => {
         query: expect.objectContaining({
           query:
             'has:sdk.version ( release:1.0.0 OR release:1.0.1 OR release:af4f231ec9a8 )',
+          statsPeriod: '90d',
         }),
       })
     );

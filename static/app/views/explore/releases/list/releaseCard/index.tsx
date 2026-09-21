@@ -29,8 +29,8 @@ import {useUser} from 'sentry/utils/useUser';
 import {useFinalizeRelease} from 'sentry/views/explore/releases/components/useFinalizeRelease';
 import type {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from 'sentry/views/explore/releases/list/releasesRequest';
-import type {ReleaseSdkVersion} from 'sentry/views/explore/releases/list/useReleasesSdkVersions';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
+import type {ReleaseSdkVersion} from 'sentry/views/explore/releases/utils/releaseSdkVersionsApiOptions';
 
 import {ReleaseCardCommits} from './releaseCardCommits';
 import {ReleaseCardProjectRow} from './releaseCardProjectRow';
@@ -63,7 +63,7 @@ type Props = {
   organization: Organization;
   release: Release;
   reloading: boolean;
-  sdkVersions: ReleaseSdkVersion[] | undefined;
+  sdkVersions: ReleaseSdkVersion[];
   selection: PageFilters;
   showHealthPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;

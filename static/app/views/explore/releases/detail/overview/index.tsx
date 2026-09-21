@@ -449,11 +449,7 @@ function ReleaseOverview() {
                   releaseMeta={releaseMeta}
                   project={project}
                 />
-                <SdkVersions
-                  orgSlug={organization.slug}
-                  projectId={project.id}
-                  release={release}
-                />
+                <SdkVersions organization={organization} version={version} />
                 {commitCount > 0 && (
                   <CommitAuthorBreakdown
                     version={version}

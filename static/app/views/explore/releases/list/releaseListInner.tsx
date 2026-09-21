@@ -54,10 +54,14 @@ export function ReleaseListInner({
 }: Props) {
   const location = useLocation();
   const hasReleasesSetup = selectedProject?.features.includes('releases');
-  const getSdkVersions = useReleasesSdkVersions(organization, releases ?? []);
-
   const shouldShowLoadingIndicator =
     (loading && !reloading) || (loading && !releases?.length);
+  const sdkVersionsByRelease = useReleasesSdkVersions({
+    enabled: !shouldShowLoadingIndicator && !shouldShowQuickstart,
+    organization,
+    releases,
+    selection,
+  });
 
   if (shouldShowLoadingIndicator) {
     return <LoadingIndicator />;
@@ -116,7 +120,7 @@ export function ReleaseListInner({
                 location={location}
                 selection={selection}
                 reloading={reloading}
-                sdkVersions={getSdkVersions(release)}
+                sdkVersions={sdkVersionsByRelease.get(release) ?? []}
                 showHealthPlaceholders={isHealthLoading}
                 isTopRelease={index === 0}
                 getHealthData={getHealthData}

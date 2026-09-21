@@ -1,79 +1,76 @@
-import {useCallback} from 'react';
-import {skipToken, useQuery} from '@tanstack/react-query';
-import pick from 'lodash/pick';
+import {useMemo} from 'react';
+import {useInfiniteQuery, type InfiniteData} from '@tanstack/react-query';
 import uniq from 'lodash/uniq';
 
-import {URL_PARAM} from 'sentry/components/pageFilters/constants';
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {MAX_PICKABLE_DAYS} from 'sentry/constants';
+import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
+import {useFetchAllPages, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {
+  mergeSdkVersionRows,
+  releaseSdkVersionsApiOptions,
+  selectSdkVersionRows,
+  type ReleaseSdkVersion,
+  type SdkVersionRow,
+} from 'sentry/views/explore/releases/utils/releaseSdkVersionsApiOptions';
 
-export type ReleaseSdkVersion = {
-  count: number;
-  name: string;
-  version: string;
-};
-
-type SdkVersionRow = {
-  'count()': number;
-  'project.id': number;
-  release: string;
-  'sdk.name': string;
-  'sdk.version': string;
-};
-
-function getKey(projectId: number | string, version: string) {
+function getRowKey(projectId: number | string, version: string) {
   return `${projectId}:${version}`;
 }
 
-export function useReleasesSdkVersions(organization: Organization, releases: Release[]) {
-  const location = useLocation();
-  const versions = uniq(releases.map(release => release.version));
+function selectRowsByKey(data: InfiniteData<ApiResponse<{data: SdkVersionRow[]}>>) {
+  return Map.groupBy(selectSdkVersionRows(data), row =>
+    getRowKey(row['project.id'], row.release)
+  );
+}
 
-  const search = new MutableSearch('has:sdk.version');
-  search.addDisjunctionFilterValues('release', versions);
+interface Params {
+  enabled: boolean;
+  organization: Organization;
+  releases: Release[];
+  selection: PageFilters;
+}
 
-  const {data: rowsByKey} = useQuery({
-    ...apiOptions.as<{data: SdkVersionRow[]}>()(
-      '/organizations/$organizationIdOrSlug/events/',
-      {
-        path: versions.length ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {
-          referrer: 'api.releases.releases-list-sdk-versions',
-          dataset: DiscoverDatasets.ERRORS,
-          field: ['project.id', 'release', 'sdk.name', 'sdk.version', 'count()'],
-          query: search.formatString(),
-          sort: '-count()',
-          per_page: 100,
-          ...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM))),
-        },
-        staleTime: 0,
-      }
-    ),
-    select: response =>
-      Map.groupBy(response.json.data, row => getKey(row['project.id'], row.release)),
+export function useReleasesSdkVersions({
+  enabled,
+  organization,
+  releases,
+  selection,
+}: Params) {
+  const options = releaseSdkVersionsApiOptions({
+    organization,
+    // The releases list isn't scoped to the page's date range, so look back over
+    // the whole retention window rather than just the selected period.
+    pageFilterParams: {
+      project: selection.projects,
+      environment: selection.environments,
+      statsPeriod: `${MAX_PICKABLE_DAYS}d`,
+    },
+    referrer: 'api.releases.releases-list-sdk-versions',
+    versions: uniq(releases.map(release => release.version)),
   });
 
-  return useCallback(
-    (release: Release): ReleaseSdkVersion[] => {
-      const counts = new Map<string, ReleaseSdkVersion>();
-      for (const project of release.projects) {
-        for (const row of rowsByKey?.get(getKey(project.id, release.version)) ?? []) {
-          const key = `${row['sdk.name']}@${row['sdk.version']}`;
-          const existing = counts.get(key);
-          counts.set(key, {
-            count: (existing?.count ?? 0) + row['count()'],
-            name: row['sdk.name'],
-            version: row['sdk.version'],
-          });
-        }
-      }
-      return [...counts.values()].sort((a, b) => b.count - a.count);
-    },
-    [rowsByKey]
+  const result = useInfiniteQuery({
+    ...options,
+    enabled: enabled && options.enabled,
+    select: selectRowsByKey,
+  });
+  useFetchAllPages({result});
+  const rowsByKey = result.data;
+
+  return useMemo(
+    () =>
+      new Map<Release, ReleaseSdkVersion[]>(
+        releases.map(release => [
+          release,
+          mergeSdkVersionRows(
+            release.projects.flatMap(
+              project => rowsByKey?.get(getRowKey(project.id, release.version)) ?? []
+            )
+          ),
+        ])
+      ),
+    [releases, rowsByKey]
   );
 }

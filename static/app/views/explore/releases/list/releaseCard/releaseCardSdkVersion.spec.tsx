@@ -32,7 +32,7 @@ describe('ReleaseCardSdkVersion', () => {
   });
 
   it('renders nothing when there are no SDK versions', () => {
-    const {container} = render(<ReleaseCardSdkVersion sdkVersions={undefined} />);
+    const {container} = render(<ReleaseCardSdkVersion sdkVersions={[]} />);
 
     expect(container).toBeEmptyDOMElement();
   });

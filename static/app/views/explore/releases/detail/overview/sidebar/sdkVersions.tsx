@@ -1,4 +1,5 @@
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {useContext} from 'react';
+import {useInfiniteQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -9,58 +10,39 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
-import type {ReleaseWithHealth} from 'sentry/types/release';
-import {percent} from 'sentry/utils';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-
-type SdkVersionRow = {
-  'count()': number;
-  'sdk.name': string;
-  'sdk.version': string;
-};
+import type {Organization} from 'sentry/types/organization';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {useLocation} from 'sentry/utils/useLocation';
+import {ReleaseContext} from 'sentry/views/explore/releases/detail';
+import {getReleaseParams} from 'sentry/views/explore/releases/utils';
+import {
+  getSdkVersionKey,
+  mergeSdkVersionRows,
+  releaseSdkVersionsApiOptions,
+  selectSdkVersionRows,
+} from 'sentry/views/explore/releases/utils/releaseSdkVersionsApiOptions';
 
 type Props = {
-  orgSlug: string;
-  projectId: string | number;
-  release: ReleaseWithHealth;
+  organization: Organization;
+  version: string;
 };
 
-export function SdkVersions({orgSlug, projectId, release}: Props) {
-  const hasEvents = Boolean(release.firstEvent && release.lastEvent);
+export function SdkVersions({organization, version}: Props) {
+  const location = useLocation();
+  const {releaseBounds} = useContext(ReleaseContext);
 
-  // lastEvent is truncated to whole seconds, while events carry ms precision.
-  const end = new Date(release.lastEvent);
-  end.setSeconds(end.getSeconds() + 1);
-
-  const search = new MutableSearch('has:sdk.version');
-  search.addFilterValue('release', release.version);
-
-  const {data, isPending, isError} = useQuery(
-    apiOptions.as<{data: SdkVersionRow[]}>()(
-      '/organizations/$organizationIdOrSlug/events/',
-      {
-        path: hasEvents ? {organizationIdOrSlug: orgSlug} : skipToken,
-        query: {
-          referrer: 'api.releases.release-details-sdk-versions',
-          dataset: DiscoverDatasets.ERRORS,
-          field: ['sdk.name', 'sdk.version', 'count()'],
-          query: search.formatString(),
-          project: projectId,
-          start: release.firstEvent,
-          end: hasEvents ? end.toISOString() : undefined,
-          sort: '-count()',
-          per_page: 20,
-        },
-        staleTime: 0,
-      }
-    )
-  );
-
-  if (!hasEvents) {
-    return null;
-  }
+  const result = useInfiniteQuery({
+    ...releaseSdkVersionsApiOptions({
+      organization,
+      pageFilterParams: getReleaseParams({location, releaseBounds}),
+      referrer: 'api.releases.release-details-sdk-versions',
+      versions: [version],
+    }),
+    select: data => mergeSdkVersionRows(selectSdkVersionRows(data)),
+  });
+  useFetchAllPages({result});
+  const {data: sdkVersions, isPending, isError} = result;
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -70,11 +52,11 @@ export function SdkVersions({orgSlug, projectId, release}: Props) {
     return <LoadingError />;
   }
 
-  if (!data.data.length) {
+  if (!sdkVersions.length) {
     return null;
   }
 
-  const total = data.data.reduce((sum, row) => sum + row['count()'], 0);
+  const total = sdkVersions.reduce((sum, sdk) => sum + sdk.count, 0);
 
   return (
     <SidebarSection.Wrap>
@@ -88,24 +70,19 @@ export function SdkVersions({orgSlug, projectId, release}: Props) {
               </Button>
             )}
           >
-            {data.data.map(row => {
-              const rowPercent = Math.round(percent(row['count()'], total));
-              return (
-                <Flex
-                  key={`${row['sdk.name']}@${row['sdk.version']}`}
-                  justify="between"
-                  gap="md"
-                >
-                  <Flex gap="md" minWidth="0">
-                    <Text ellipsis>{row['sdk.name']}</Text>
-                    <Text variant="muted" wrap="nowrap">
-                      {row['sdk.version']}
-                    </Text>
-                  </Flex>
-                  <Text>{rowPercent < 1 ? '<1' : rowPercent}%</Text>
+            {sdkVersions.map(sdk => (
+              <Flex key={getSdkVersionKey(sdk)} justify="between" gap="md">
+                <Flex gap="md" minWidth="0">
+                  <Text ellipsis>{sdk.name}</Text>
+                  <Text variant="muted" wrap="nowrap">
+                    {sdk.version}
+                  </Text>
                 </Flex>
-              );
-            })}
+                <Text>
+                  {formatPercentage(sdk.count / total, 0, {minimumValue: 0.01})}
+                </Text>
+              </Flex>
+            ))}
           </Collapsible>
         </Stack>
       </SidebarSection.Content>

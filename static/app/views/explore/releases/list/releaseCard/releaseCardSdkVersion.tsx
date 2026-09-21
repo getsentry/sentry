@@ -3,14 +3,17 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import type {ReleaseSdkVersion} from 'sentry/views/explore/releases/list/useReleasesSdkVersions';
+import {
+  getSdkVersionKey,
+  type ReleaseSdkVersion,
+} from 'sentry/views/explore/releases/utils/releaseSdkVersionsApiOptions';
 
 type Props = {
-  sdkVersions: ReleaseSdkVersion[] | undefined;
+  sdkVersions: ReleaseSdkVersion[];
 };
 
 export function ReleaseCardSdkVersion({sdkVersions}: Props) {
-  const [primary, ...others] = sdkVersions ?? [];
+  const [primary, ...others] = sdkVersions;
 
   if (!primary) {
     return null;
@@ -20,8 +23,8 @@ export function ReleaseCardSdkVersion({sdkVersions}: Props) {
     <Tooltip
       title={
         <Stack gap="xs" align="start">
-          {sdkVersions?.map(sdk => (
-            <Text key={`${sdk.name}@${sdk.version}`} size="sm">
+          {sdkVersions.map(sdk => (
+            <Text key={getSdkVersionKey(sdk)} size="sm">
               {sdk.name} {sdk.version}
             </Text>
           ))}
