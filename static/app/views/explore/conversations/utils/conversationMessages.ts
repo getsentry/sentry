@@ -159,30 +159,75 @@ function parseAssistantSteps(rawOutput: string): string[] | null {
     .map(message => JSON.stringify([message]));
 }
 
+// Groups each agent's generation (ai_client) children under the agent's span id,
+// sorted by start time so an agent's assistant output maps onto them in order.
+function groupGenerationChildrenByAgent(
+  nodes: AITraceSpanNode[]
+): Map<string, AITraceSpanNode[]> {
+  const childrenByAgentId = new Map<string, AITraceSpanNode[]>();
+  for (const node of nodes) {
+    const parentId = node.value?.parent_span_id;
+    if (!parentId || !getIsAiGenerationSpan(getGenAiOpType(node))) {
+      continue;
+    }
+    const siblings = childrenByAgentId.get(parentId);
+    if (siblings) {
+      siblings.push(node);
+    } else {
+      childrenByAgentId.set(parentId, [node]);
+    }
+  }
+  for (const siblings of childrenByAgentId.values()) {
+    siblings.sort((a, b) => getNodeStartTimestamp(a) - getNodeStartTimestamp(b));
+  }
+  return childrenByAgentId;
+}
+
+// Distributes one agent's input/output across its generation children. With one
+// assistant message per generation they map 1:1, and the user input anchors the
+// first child. Otherwise there is no safe per-step mapping, so fall back to the
+// question on the first child and the whole output on the last.
+function buildAgentChildOverrides(
+  children: AITraceSpanNode[],
+  rawInput: string | undefined,
+  rawOutput: string
+): Map<string, Record<string, string>> {
+  const overrides = new Map<string, Record<string, string>>();
+  const assistantSteps = parseAssistantSteps(rawOutput);
+
+  if (assistantSteps && assistantSteps.length === children.length) {
+    children.forEach((child, index) => {
+      overrides.set(child.id, {
+        [SpanFields.GEN_AI_OUTPUT_MESSAGES]: assistantSteps[index]!,
+        ...(index === 0 && rawInput
+          ? {[SpanFields.GEN_AI_INPUT_MESSAGES]: rawInput}
+          : {}),
+      });
+    });
+    return overrides;
+  }
+
+  if (rawInput) {
+    overrides.set(children[0]!.id, {[SpanFields.GEN_AI_INPUT_MESSAGES]: rawInput});
+  }
+  const lastChild = children.at(-1)!;
+  overrides.set(lastChild.id, {
+    ...overrides.get(lastChild.id),
+    [SpanFields.GEN_AI_OUTPUT_MESSAGES]: rawOutput,
+  });
+  return overrides;
+}
+
 /**
  * Anthropic's OTel SDK records a turn's messages on the `invoke_agent` span and
  * leaves its `ai_client` children empty. Backfilling each child from the agent
- * span (assistant output split one message per generation, user input onto the
- * first child) lets the unchanged turn-building pipeline render these
- * conversations like any fully instrumented agent, so inference stays the
- * default source everywhere else.
+ * span lets the unchanged turn-building pipeline render these conversations like
+ * any fully instrumented agent, so inference stays the default source elsewhere.
  */
 export function enrichAnthropicAgentMessages(
   nodes: AITraceSpanNode[]
 ): AITraceSpanNode[] {
-  const childrenByParent = new Map<string, AITraceSpanNode[]>();
-  for (const node of nodes) {
-    const parentId = node.value?.parent_span_id;
-    if (parentId) {
-      const siblings = childrenByParent.get(parentId);
-      if (siblings) {
-        siblings.push(node);
-      } else {
-        childrenByParent.set(parentId, [node]);
-      }
-    }
-  }
-
+  const childrenByAgentId = groupGenerationChildrenByAgent(nodes);
   const overridesById = new Map<string, Record<string, string>>();
 
   for (const node of nodes) {
@@ -194,45 +239,24 @@ export function enrichAnthropicAgentMessages(
     if (!rawOutput || rawOutput === FILTERED) {
       continue;
     }
-    const rawInput =
-      getStringAttr(node, SpanFields.GEN_AI_INPUT_MESSAGES) ||
-      getStringAttr(node, SpanFields.GEN_AI_REQUEST_MESSAGES);
 
-    const children = (childrenByParent.get(node.id) ?? [])
-      .filter(child => getIsAiGenerationSpan(getGenAiOpType(child)))
-      .sort((a, b) => getNodeStartTimestamp(a) - getNodeStartTimestamp(b));
-
-    // Never override a generation span that has its own messages.
+    const children = childrenByAgentId.get(node.id) ?? [];
+    // Keep inference the default: only reconstruct when every generation child
+    // is missing its own messages.
     if (children.length === 0 || children.some(nodeHasOwnMessages)) {
       continue;
     }
 
-    const assistantSteps = parseAssistantSteps(rawOutput);
+    const rawInput =
+      getStringAttr(node, SpanFields.GEN_AI_INPUT_MESSAGES) ||
+      getStringAttr(node, SpanFields.GEN_AI_REQUEST_MESSAGES);
 
-    if (assistantSteps && assistantSteps.length === children.length) {
-      children.forEach((child, index) => {
-        overridesById.set(child.id, {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: assistantSteps[index]!,
-          ...(index === 0 && rawInput
-            ? {[SpanFields.GEN_AI_INPUT_MESSAGES]: rawInput}
-            : {}),
-        });
-      });
-    } else {
-      // Without a 1:1 mapping, show the question and the final answer rather
-      // than risk mis-slicing intermediate steps onto the wrong generation.
-      const firstChild = children[0]!;
-      const lastChild = children[children.length - 1]!;
-      if (rawInput) {
-        overridesById.set(firstChild.id, {
-          ...overridesById.get(firstChild.id),
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: rawInput,
-        });
-      }
-      overridesById.set(lastChild.id, {
-        ...overridesById.get(lastChild.id),
-        [SpanFields.GEN_AI_OUTPUT_MESSAGES]: rawOutput,
-      });
+    for (const [childId, overrides] of buildAgentChildOverrides(
+      children,
+      rawInput,
+      rawOutput
+    )) {
+      overridesById.set(childId, overrides);
     }
   }
 
