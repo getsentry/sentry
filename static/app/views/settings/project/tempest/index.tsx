@@ -75,25 +75,6 @@ export default function TempestSettings() {
     );
   }
 
-  const renderPlayStationSettings = () => {
-    return <PlayStationSettings organization={organization} project={project} />;
-  };
-
-  const renderDevKitCrashesSettings = () => {
-    return <DevKitSettings organization={organization} project={project} />;
-  };
-
-  const renderTabContent = () => {
-    switch (tab) {
-      case 'retail':
-        return renderPlayStationSettings();
-      case 'devkit-crashes':
-        return renderDevKitCrashesSettings();
-      default:
-        return renderPlayStationSettings();
-    }
-  };
-
   const getPageTitle = () => {
     switch (tab) {
       case 'devkit-crashes':
@@ -157,7 +138,11 @@ export default function TempestSettings() {
         />
       </Flex>
 
-      {renderTabContent()}
+      {tab === 'devkit-crashes' ? (
+        <DevKitSettings organization={organization} project={project} />
+      ) : (
+        <PlayStationSettings organization={organization} project={project} />
+      )}
     </Fragment>
   );
 }

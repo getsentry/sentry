@@ -95,62 +95,46 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
     });
   };
 
-  const renderAttachmentsTable = () => {
-    if (isError) {
-      return <LoadingError onRetry={refetch} message={t('Error loading attachments')} />;
-    }
+  const attachmentsTable = isError ? (
+    <LoadingError onRetry={refetch} message={t('Error loading attachments')} />
+  ) : (
+    <GroupEventAttachmentsTable
+      isLoading={isPending}
+      attachments={attachments}
+      projectSlug={project.slug}
+      groupId={group.id}
+      onDelete={handleDelete}
+      emptyMessage={
+        activeAttachmentsTab === EventAttachmentFilter.CRASH_REPORTS
+          ? t('No matching crash reports found')
+          : t('No matching attachments found')
+      }
+    />
+  );
 
-    return (
-      <GroupEventAttachmentsTable
-        isLoading={isPending}
-        attachments={attachments}
-        projectSlug={project.slug}
-        groupId={group.id}
-        onDelete={handleDelete}
-        emptyMessage={
-          activeAttachmentsTab === EventAttachmentFilter.CRASH_REPORTS
-            ? t('No matching crash reports found')
-            : t('No matching attachments found')
-        }
-      />
-    );
-  };
-
-  const renderScreenshotGallery = () => {
-    if (isError) {
-      return <LoadingError onRetry={refetch} message={t('Error loading screenshots')} />;
-    }
-
-    if (isPending) {
-      return <LoadingIndicator />;
-    }
-
-    if (attachments.length > 0) {
-      return (
-        <ScreenshotGrid>
-          {attachments.map(screenshot => {
-            return (
-              <ScreenshotCard
-                key={screenshot.id}
-                eventAttachment={screenshot}
-                eventId={screenshot.event_id}
-                projectSlug={project.slug}
-                groupId={group.id}
-                onDelete={handleDelete}
-                attachments={attachments}
-              />
-            );
-          })}
-        </ScreenshotGrid>
-      );
-    }
-
-    return (
-      <EmptyStateWarning>
-        <p>{t('No screenshots found')}</p>
-      </EmptyStateWarning>
-    );
-  };
+  const screenshotGallery = isError ? (
+    <LoadingError onRetry={refetch} message={t('Error loading screenshots')} />
+  ) : isPending ? (
+    <LoadingIndicator />
+  ) : attachments.length > 0 ? (
+    <ScreenshotGrid>
+      {attachments.map(screenshot => (
+        <ScreenshotCard
+          key={screenshot.id}
+          eventAttachment={screenshot}
+          eventId={screenshot.event_id}
+          projectSlug={project.slug}
+          groupId={group.id}
+          onDelete={handleDelete}
+          attachments={attachments}
+        />
+      ))}
+    </ScreenshotGrid>
+  ) : (
+    <EmptyStateWarning>
+      <p>{t('No screenshots found')}</p>
+    </EmptyStateWarning>
+  );
 
   return (
     <Stack gap="xl">
@@ -164,8 +148,8 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
         />
       </Flex>
       {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOT
-        ? renderScreenshotGallery()
-        : renderAttachmentsTable()}
+        ? screenshotGallery
+        : attachmentsTable}
       <NoMarginPagination pageLinks={pageLinks} />
     </Stack>
   );

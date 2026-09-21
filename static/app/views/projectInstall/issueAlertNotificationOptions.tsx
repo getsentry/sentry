@@ -30,7 +30,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 import {MessagingIntegrationAlertRule} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
-type ChannelIdentityField = 'channelId' | 'channelName';
+export type ChannelIdentityField = 'channelId' | 'channelName';
 
 interface MessagingProviderDetail {
   action: IssueAlertActionType;
@@ -43,18 +43,10 @@ interface MessagingProviderDetail {
 }
 
 /**
- * Maps a stored destination field onto its counterpart in the raw `/channels/`
- * response, so a stored value can be matched back to a channel.
- */
-export const RAW_CHANNEL_FIELD = {
-  channelName: 'display',
-  channelId: 'id',
-} as const satisfies Record<ChannelIdentityField, 'display' | 'id'>;
-
-/**
- * Providers disagree on what identifies a channel. MS Teams is the only row
- * that is not uniform: it validates by name but is addressed by id, because
- * Sentry built a name-to-id resolver for it while all three send by id.
+ * Providers disagree on what identifies a channel. Slack and MS Teams resolve
+ * a channel by name (`find_channel_id` matches Teams channels by name only),
+ * Discord by id. Each picker is keyed by the field its backend resolves, so a
+ * picked channel and its action target are the same value.
  */
 export const providerDetails = {
   slack: {
@@ -94,10 +86,10 @@ export const providerDetails = {
   msteams: {
     name: t('MS Teams'),
     action: IssueAlertActionType.MS_TEAMS,
-    placeholder: t('channel name'),
-    channelSelectedBy: 'channelId',
+    placeholder: t('channel, e.g. General'),
+    channelSelectedBy: 'channelName',
     channelValidatedBy: 'channelName',
-    channelTargetedBy: 'channelId',
+    channelTargetedBy: 'channelName',
     makeSentence: ({providerName, integrationName, target}: any) =>
       tct('Send [providerName] notification to the [integrationName] team to [target]', {
         providerName,
@@ -120,6 +112,23 @@ export function getChannelSelectedBy(provider: string | undefined): ChannelIdent
   );
 }
 
+/**
+ * The value an action carries for a channel: the field the provider's backend
+ * resolves (`channelTargetedBy`) when the channel carries both identifiers,
+ * else `value`, which for a typed channel or one restored from an action
+ * target already is the target.
+ */
+export function getChannelTarget(
+  provider: string | undefined,
+  channel: IntegrationChannel | undefined
+): string | undefined {
+  if (!channel) {
+    return undefined;
+  }
+  const targetedBy = providerDetails[provider as MessagingProviderKey]?.channelTargetedBy;
+  return (targetedBy && channel[targetedBy]) || channel.value;
+}
+
 export const enum MultipleCheckboxOptions {
   EMAIL = 'email',
   INTEGRATION = 'integration',
@@ -127,7 +136,14 @@ export const enum MultipleCheckboxOptions {
 
 export type IntegrationChannel = {
   label: ReactNode;
+  /** The picker key: the field named by the provider's `channelSelectedBy`. */
   value: string;
+  /**
+   * Both identifiers, when the channel was resolved from the `/channels/` list
+   * or seeded from a saved destination. Absent for a typed channel and for one
+   * restored from an action target alone, whose `value` already is the target.
+   */
+  channelId?: string;
   channelName?: string;
   new?: boolean;
 };
@@ -147,50 +163,55 @@ export type IssueAlertNotificationProps = {
   channel?: IntegrationChannel;
 };
 
-/**
- * Builds the serializable IntegrationAction for the current messaging
- * selection. Returns undefined if the provider is unrecognised or unset.
- */
-function buildIntegrationAction({
-  provider,
-  integration,
-  channel,
-}: Pick<IssueAlertNotificationProps, 'provider' | 'integration' | 'channel'>):
-  | IntegrationAction
-  | undefined {
-  switch (provider) {
-    case 'slack':
-      return {
-        id: IssueAlertActionType.SLACK,
-        workspace: integration?.id,
-        channel: channel?.value,
-      };
-    case 'discord':
-      return {
-        id: IssueAlertActionType.DISCORD,
-        server: integration?.id,
-        channel_id: channel?.value,
-      };
-    case 'msteams':
-      return {
-        id: IssueAlertActionType.MS_TEAMS,
-        team: integration?.id,
-        channel: channel?.channelName ?? channel?.value,
-      };
-    default:
-      return undefined;
-  }
-}
-
 export type NotificationSelection = {
+  /** The action target for the channel (see `getChannelTarget`). */
   channel: string;
   integrationId: string;
   provider: string;
 };
 
 /**
+ * Builds the serializable IntegrationAction for a messaging selection.
+ * Returns undefined if any required selection field is absent or the provider
+ * is not recognized.
+ */
+export function buildIntegrationAction({
+  provider,
+  integrationId,
+  channel,
+}: Partial<NotificationSelection>): IntegrationAction | undefined {
+  if (!provider || !integrationId || !channel) {
+    return undefined;
+  }
+
+  switch (provider) {
+    case 'slack':
+      return {
+        id: IssueAlertActionType.SLACK,
+        workspace: integrationId,
+        channel,
+      };
+    case 'discord':
+      return {
+        id: IssueAlertActionType.DISCORD,
+        server: integrationId,
+        channel_id: channel,
+      };
+    case 'msteams':
+      return {
+        id: IssueAlertActionType.MS_TEAMS,
+        team: integrationId,
+        channel,
+      };
+    default:
+      return undefined;
+  }
+}
+
+/**
  * Builds the raw {provider, integrationId, channel} snapshot of the current
- * messaging selection. Returns undefined if any of the three fields are absent.
+ * messaging selection, with `channel` as the action target. Returns undefined
+ * if any of the three fields are absent.
  */
 export function buildNotificationSelection({
   provider,
@@ -199,10 +220,11 @@ export function buildNotificationSelection({
 }: Pick<IssueAlertNotificationProps, 'provider' | 'integration' | 'channel'>):
   | NotificationSelection
   | undefined {
-  if (!provider || !integration || !channel?.value) {
+  const target = getChannelTarget(provider, channel);
+  if (!provider || !integration || !target) {
     return undefined;
   }
-  return {provider, integrationId: integration.id, channel: channel.value};
+  return {provider, integrationId: integration.id, channel: target};
 }
 
 /**
@@ -287,6 +309,7 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
       // the setup CTA and do NOT latch, so this effect re-runs after a
       // refetch delivers it. Don't half-apply the restore, so the picker
       // can't look submittable with an unresolved integration.
+      // oxlint-disable-next-line react/set-state-in-effect
       setShouldRenderSetupButton(true);
       return;
     }
@@ -330,7 +353,11 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
         return;
       }
 
-      const integrationAction = buildIntegrationAction({provider, integration, channel});
+      const integrationAction = buildIntegrationAction({
+        provider,
+        integrationId: integration?.id,
+        channel: getChannelTarget(provider, channel),
+      });
       if (!integrationAction) {
         return;
       }

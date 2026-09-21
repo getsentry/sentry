@@ -35,6 +35,7 @@ export {IconControl} from './iconControl';
 export {IconCopy} from './iconCopy';
 export {IconCopyId} from './iconCopyId';
 export {IconCreditCard} from './iconCreditCard';
+export {IconCursor} from './iconCursor';
 export {IconCursorArrow} from './iconCursorArrow';
 export {IconDashboard} from './iconDashboard';
 export {IconDelete} from './iconDelete';

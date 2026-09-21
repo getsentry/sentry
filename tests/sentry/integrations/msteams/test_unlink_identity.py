@@ -6,7 +6,7 @@ from sentry.integrations.msteams.constants import SALT
 from sentry.integrations.msteams.unlink_identity import build_unlinking_url
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.identity import Identity, IdentityStatus
+from sentry.users.models.identity import Identity
 from sentry.utils.signing import unsign
 
 
@@ -55,9 +55,7 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
     @responses.activate
     def test_basic_flow(self) -> None:
         teams_user_id = "my-teams-user-id"
-        Identity.objects.create(
-            user=self.user1, idp=self.idp, external_id=teams_user_id, status=IdentityStatus.VALID
-        )
+        self.create_identity(self.user1, self.idp, teams_user_id)
 
         unlink_url = build_unlinking_url(
             self.conversation_id, "https://smba.trafficmanager.net/amer", teams_user_id
@@ -95,9 +93,8 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
     def test_no_identity(self) -> None:
         teams_user_id = "my-teams-user-id"
         # identity for a different user
-        Identity.objects.create(
-            user=self.user2, idp=self.idp, external_id=teams_user_id, status=IdentityStatus.VALID
-        )
+        self.create_identity(self.user2, self.idp, teams_user_id)
+        own_identity = self.create_identity(self.user1, self.idp, "other-teams-user-id")
 
         unlink_url = build_unlinking_url(
             self.conversation_id, "https://smba.trafficmanager.net/amer", teams_user_id
@@ -117,6 +114,7 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
         identity = Identity.objects.filter(external_id=teams_user_id, user=self.user2)
 
         assert len(identity) == 1
+        assert Identity.objects.filter(id=own_identity.id).exists()
         assert len(responses.calls) == 0
 
     @responses.activate

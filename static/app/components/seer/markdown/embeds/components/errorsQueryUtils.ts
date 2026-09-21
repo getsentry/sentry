@@ -1,12 +1,10 @@
 import type {Query} from 'history';
 import * as qs from 'query-string';
 
-import type {ChartUnit} from 'sentry/components/seer/markdown/embeds/components/chartTypes';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 
 export type ErrorsQueryData = EmbedOutput<'errorsQuery'>;
@@ -121,17 +119,4 @@ export function buildErrorsChartQuery(eventView: EventView, yAxis: string[]): Qu
   } = eventView.generateQueryStringObject();
 
   return {...rest, yAxis};
-}
-
-export function toChartUnit(outputType: AggregationOutputType): ChartUnit {
-  switch (outputType) {
-    case 'duration':
-      return 'duration';
-    case 'percentage':
-      return 'percentage';
-    case 'size':
-      return 'bytes';
-    default:
-      return 'number';
-  }
 }

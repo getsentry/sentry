@@ -7,6 +7,7 @@ import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {singleLineRenderer} from '@sentry/scraps/markdown';
 
 import {Access} from 'sentry/components/acl/access';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
@@ -22,7 +23,6 @@ import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
@@ -108,12 +108,8 @@ export function SentryAppDetailsModal(props: Props) {
     permissions.write.length > 0 ||
     permissions.admin.length > 0;
 
-  const renderPermissions = () => {
-    if (!hasStandardPermissions && specialPermissions.length === 0) {
-      return null;
-    }
-
-    return (
+  const permissionsContent =
+    !hasStandardPermissions && specialPermissions.length === 0 ? null : (
       <Fragment>
         <Title>Permissions</Title>
         {permissions.read.length > 0 && (
@@ -163,7 +159,6 @@ export function SentryAppDetailsModal(props: Props) {
         ))}
       </Fragment>
     );
-  };
 
   // Prepare the features list
   const features = (featureData || []).map(f => ({
@@ -192,7 +187,7 @@ export function SentryAppDetailsModal(props: Props) {
       <IntegrationFeatures {...featureProps}>
         {({disabled, disabledReason}) => (
           <Fragment>
-            {!disabled && renderPermissions()}
+            {!disabled && permissionsContent}
             <Footer>
               <Author>{t('Authored By %s', sentryApp.author)}</Author>
               <div>

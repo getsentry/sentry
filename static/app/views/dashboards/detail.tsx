@@ -111,7 +111,7 @@ const OverrideHeader = OverrideOrDefault({
 });
 
 const DATA_SET_TO_WIDGET_TYPE = {
-  [DataSet.EVENTS]: WidgetType.DISCOVER,
+  [DataSet.EVENTS]: WidgetType.ERRORS,
   [DataSet.ISSUES]: WidgetType.ISSUE,
   [DataSet.RELEASES]: WidgetType.RELEASE,
   [DataSet.METRICS]: WidgetType.METRICS,
@@ -356,7 +356,7 @@ class DashboardDetail extends Component<Props, State> {
         });
         trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,
-          widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+          widget_type: widget.widgetType ?? WidgetType.ERRORS,
           display_type: widget.displayType,
         });
       } else {
@@ -1194,17 +1194,15 @@ class DashboardDetail extends Component<Props, State> {
                   <TopBar.Slot name="title">
                     <DashboardBreadcrumbTitle
                       dashboard={modifiedDashboard ?? dashboard}
-                      hasUnsavedFilters={hasUnsavedFilters}
                       isEditing={this.isEditingDashboard}
                       isPreview={this.isPreview}
-                      isSaving={isCommittingChanges}
                       onChange={newTitle =>
                         this.setModifiedDashboard({
                           ...(modifiedDashboard ?? dashboard),
                           title: newTitle,
                         })
                       }
-                      onEdit={this.onEdit}
+                      onChangeEditAccess={this.onChangeEditAccess}
                     />
                   </TopBar.Slot>
                 </Fragment>
@@ -1342,7 +1340,6 @@ class DashboardDetail extends Component<Props, State> {
                                   onCommit={this.onCommit}
                                   onAddWidget={this.onAddWidget}
                                   onDelete={this.onDelete(dashboard)}
-                                  onChangeEditAccess={this.onChangeEditAccess}
                                   dashboardState={dashboardState}
                                   widgetLimitReached={widgetLimitReached}
                                   isSaving={isCommittingChanges}

@@ -46,27 +46,32 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
         )  # This test makes assertions based on the current default window size.
 
         with self.feature(self.FEATURES):
+            root_span_id = self.trace_id[:16]
             self.create_event(
                 trace_id=self.trace_id,
                 transaction="root",
+                span_id=root_span_id,
                 start_timestamp=self.start_minus_two_minutes,
-                spans=[
-                    {
-                        "same_process_as_parent": True,
-                        "op": "http.server",
-                        "description": f"GET gen1-{root_span_id}",
-                        "span_id": root_span_id,
-                        "trace_id": self.trace_id,
-                    }
-                    for i, root_span_id in enumerate(self.root_span_ids)
-                ],
+                spans=[],
                 parent_span_id=None,
                 project_id=self.project.id,
                 milliseconds=3000,
             )
+            for child_span_id in self.root_span_ids:
+                self.create_event(
+                    trace_id=self.trace_id,
+                    transaction=f"GET gen1-{child_span_id}",
+                    span_id=child_span_id,
+                    start_timestamp=self.start_minus_two_minutes,
+                    spans=[],
+                    parent_span_id=root_span_id,
+                    project_id=self.project.id,
+                    milliseconds=3000,
+                )
 
             # Visit the trace view and wait till waterfall loads
             self.page.visit_trace_view(self.organization.slug, self.trace_id)
+            self.page.expand_trace_rows()
 
             # Check root span row exists and has the correct text
             root_span_row = self.page.get_trace_span_row("http.server", "root")

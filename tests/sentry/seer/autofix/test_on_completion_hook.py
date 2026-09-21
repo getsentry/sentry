@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Literal
 from unittest.mock import patch
 
 from sentry.seer.agent.client_models import (
@@ -14,9 +15,14 @@ from sentry.seer.agent.client_models import (
     ToolLink,
     ToolResult,
 )
-from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+from sentry.seer.autofix.pr_iteration.emit import PrIterationOutcome
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
+from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.seer.models.seer_api_models import SeerAutomationHandoffConfiguration
 from sentry.testutils.cases import TestCase
@@ -64,6 +70,7 @@ def _iteration_block(
     repos: Sequence[str] = (),
     function: str = "tool",
     commit_sha: str | None = None,
+    feedback: Sequence[Feedback] = (),
 ) -> MemoryBlock:
     """An iteration block. When `failed`, holds one errored tool call per repo in
     `repos` (each carrying that repo in its args); with no repos, a single errored
@@ -89,6 +96,7 @@ def _iteration_block(
             metadata={
                 "step": AutofixStep.PR_ITERATION.value,
                 "iteration_index": str(index),
+                "feedback": serialize_feedback(feedback),
             },
         ),
         timestamp="2023-07-18T12:00:00Z",
@@ -225,5 +233,195 @@ class TestRecordFailedToolCalls(TestCase):
             "autofix.pr_iteration.failed_tool_call",
             amount=1,
             tags={"tool": "get_pr_diff"},
+            sample_rate=1.0,
+        )
+
+
+HOOK_PATH = "sentry.seer.autofix.on_completion_hook"
+
+
+def _step_checkpoints(mock_metrics) -> list[str]:
+    return [
+        call.kwargs["tags"]["checkpoint"]
+        for call in mock_metrics.incr.call_args_list
+        if call.args and call.args[0] == "autofix.pr_iteration.step"
+    ]
+
+
+def _step_feedback_kinds(mock_metrics) -> list[str]:
+    return [
+        call.kwargs["tags"].get("feedback_kind")
+        for call in mock_metrics.incr.call_args_list
+        if call.args and call.args[0] == "autofix.pr_iteration.step"
+    ]
+
+
+def _manual_feedback() -> list[Feedback]:
+    return [Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="go"))]
+
+
+def _check_suite_feedback() -> Feedback:
+    return Feedback(
+        source=CheckSuiteFeedbackSource(
+            event={
+                "check_suite": {
+                    "id": 1,
+                    "head_sha": "abc",
+                    "check_runs_url": "https://github.com/owner/repo/check-runs",
+                    "app": {"name": "CI"},
+                    "updated_at": "2024-01-01T00:00:00Z",
+                    "pull_requests": [{"id": 99}],
+                },
+                "repository": {
+                    "html_url": "https://github.com/owner/repo",
+                    "full_name": "owner/repo",
+                    "id": 123,
+                },
+            }
+        )
+    )
+
+
+def _unsynced_state(
+    status: Literal["processing", "completed", "error", "awaiting_user_input"] = "completed",
+    feedback: Sequence[Feedback] = (),
+) -> SeerRunState:
+    state = _state(
+        [_iteration_block(0, commit_sha="iteration-sha", feedback=feedback)],
+        repo_pr_states={"test-repo": RepoPRState(repo_name="test-repo", commit_sha="synced-sha")},
+    )
+    state.status = status
+    return state
+
+
+def _synced_state(feedback: Sequence[Feedback] = ()) -> SeerRunState:
+    return _state(
+        [_iteration_block(0, commit_sha="synced-sha", feedback=feedback)],
+        repo_pr_states={"test-repo": RepoPRState(repo_name="test-repo", commit_sha="synced-sha")},
+    )
+
+
+@patch(f"{HOOK_PATH}.complete_pr_iteration_details")
+@patch(f"{HOOK_PATH}.metrics")
+class TestPrIterationStepMetrics(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.group = self.create_group(project=self.project)
+
+    def _run(self, state: SeerRunState) -> None:
+        AutofixOnCompletionHook._maybe_continue_pipeline(
+            self.organization,
+            1,
+            state,
+            self.group,
+            fallback_referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+        )
+
+    def test_an_accepted_push_counts_the_code_change(self, mock_metrics, _mock_complete) -> None:
+        with patch.object(AutofixOnCompletionHook, "_pr_iteration_push_outcome", return_value=None):
+            self._run(_unsynced_state(feedback=_manual_feedback()))
+
+        assert _step_checkpoints(mock_metrics) == ["code_change_completed"]
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.step",
+            tags={
+                "checkpoint": "code_change_completed",
+                "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+                "feedback_kind": "manual",
+            },
+            sample_rate=1.0,
+        )
+
+    def test_the_re_fire_counts_the_iteration_only(self, mock_metrics, _mock_complete) -> None:
+        with (
+            patch.object(
+                AutofixOnCompletionHook,
+                "_pr_iteration_push_outcome",
+                return_value=PrIterationOutcome.ALREADY_PUSHED,
+            ),
+            patch.object(AutofixOnCompletionHook, "_consume_queued_feedback"),
+        ):
+            self._run(_synced_state())
+
+        assert _step_checkpoints(mock_metrics) == ["iteration_completed"]
+
+    def _complete_iteration(self, state: SeerRunState) -> None:
+        with (
+            patch.object(
+                AutofixOnCompletionHook,
+                "_pr_iteration_push_outcome",
+                return_value=PrIterationOutcome.ALREADY_PUSHED,
+            ),
+            patch.object(AutofixOnCompletionHook, "_consume_queued_feedback"),
+        ):
+            self._run(state)
+
+    def test_the_iteration_is_tagged_by_its_feedback_kind(
+        self, mock_metrics, _mock_complete
+    ) -> None:
+        self._complete_iteration(_synced_state(_manual_feedback()))
+
+        assert _step_feedback_kinds(mock_metrics) == ["manual"]
+
+    def test_an_iteration_of_both_kinds_is_tagged_mixed(self, mock_metrics, _mock_complete) -> None:
+        self._complete_iteration(_synced_state([*_manual_feedback(), _check_suite_feedback()]))
+
+        assert _step_feedback_kinds(mock_metrics) == ["mixed"]
+
+    def test_an_iteration_with_no_feedback_is_tagged_unknown(
+        self, mock_metrics, _mock_complete
+    ) -> None:
+        self._complete_iteration(_synced_state())
+
+        assert _step_feedback_kinds(mock_metrics) == ["unknown"]
+
+    def test_an_errored_run_counts_nothing(self, mock_metrics, _mock_complete) -> None:
+        with (
+            patch(f"{HOOK_PATH}.pause_pr_iteration", return_value=True),
+            patch(f"{HOOK_PATH}.fetch_run_status", return_value=_unsynced_state(status="error")),
+        ):
+            AutofixOnCompletionHook.execute(self.organization, 1)
+
+        assert _step_checkpoints(mock_metrics) == []
+
+    def test_no_code_changes_counts_the_no_change_branch(
+        self, mock_metrics, _mock_complete
+    ) -> None:
+        with patch.object(AutofixOnCompletionHook, "_consume_queued_feedback"):
+            self._run(
+                _state(
+                    [_iteration_block(0, feedback=[_check_suite_feedback()])],
+                    repo_pr_states={"test-repo": RepoPRState(repo_name="test-repo")},
+                )
+            )
+
+        assert _step_checkpoints(mock_metrics) == ["no_code_change"]
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.step",
+            tags={
+                "checkpoint": "no_code_change",
+                "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+                "feedback_kind": "automated",
+            },
+            sample_rate=1.0,
+        )
+
+    def test_a_failed_push_counts_the_start_only(self, mock_metrics, _mock_complete) -> None:
+        with (
+            patch(f"{HOOK_PATH}.iteration_prs_any_closed", return_value=False),
+            patch(f"{HOOK_PATH}.trigger_push_changes", side_effect=RuntimeError("seer is down")),
+        ):
+            self._run(_unsynced_state(feedback=_manual_feedback()))
+
+        assert _step_checkpoints(mock_metrics) == ["code_change_started"]
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.step",
+            tags={
+                "checkpoint": "code_change_started",
+                "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+                "feedback_kind": "manual",
+            },
             sample_rate=1.0,
         )

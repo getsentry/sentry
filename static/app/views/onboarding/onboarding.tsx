@@ -50,6 +50,13 @@ import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 // this window, so gating exposure on org age keeps them out of the experiment.
 const NEW_ORG_ONBOARDING_WINDOW_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
+/**
+ * On now that the messaging experiment has a rollout segment. Keep this as the
+ * one place to turn reporting off again if the rollout is pulled, so the
+ * experiment population does not fill with rows from a control-only config.
+ */
+const SCM_MESSAGING_EXPOSURE_ENABLED = true;
+
 const legacyOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
@@ -111,8 +118,8 @@ function ScmPlatformFeaturesAdapter({
     setSelectedPlatform,
     selectedFeatures,
     setSelectedFeatures,
-    createdProjectSlug,
-    setCreatedProjectSlug,
+    createdProject,
+    setCreatedProject,
   } = useOnboardingContext();
 
   return (
@@ -120,11 +127,11 @@ function ScmPlatformFeaturesAdapter({
       selectedRepository={selectedRepository}
       selectedPlatform={selectedPlatform}
       selectedFeatures={selectedFeatures}
-      createdProjectSlug={createdProjectSlug}
+      createdProject={createdProject}
       deferProjectCreation={deferProjectCreation}
       onPlatformChange={setSelectedPlatform}
       onFeaturesChange={setSelectedFeatures}
-      onProjectCreated={setCreatedProjectSlug}
+      onCreatedProjectChange={setCreatedProject}
       onComplete={onComplete}
       genBackButton={genBackButton}
     />
@@ -139,8 +146,16 @@ function ScmPlatformFeaturesTreatmentAdapter(props: StepProps) {
   return <ScmPlatformFeaturesAdapter {...props} deferProjectCreation />;
 }
 
-function ScmMessagingAdapter({genBackButton}: StepProps) {
-  const {messagingSetup, selectedPlatform, setMessagingSetup} = useOnboardingContext();
+function ScmMessagingAdapter({genBackButton, onComplete}: StepProps) {
+  const {
+    createdProject,
+    messagingSetup,
+    selectedFeatures,
+    selectedPlatform,
+    selectedRepository,
+    setCreatedProject,
+    setMessagingSetup,
+  } = useOnboardingContext();
 
   // Type-narrowing only. `isInvalidMessagingStep` below redirects away from
   // this step before it renders without a platform, so this is unreachable —
@@ -151,9 +166,14 @@ function ScmMessagingAdapter({genBackButton}: StepProps) {
 
   return (
     <ScmMessaging
+      createdProject={createdProject}
       messagingSetup={messagingSetup}
+      onCreatedProjectChange={setCreatedProject}
       onMessagingSetupChange={setMessagingSetup}
+      onComplete={onComplete}
+      selectedFeatures={selectedFeatures}
       selectedPlatform={selectedPlatform}
+      selectedRepository={selectedRepository}
       genBackButton={genBackButton}
     />
   );
@@ -288,7 +308,7 @@ export function OnboardingWithoutContext() {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug =
-    onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
+    onboardingContext.createdProject?.slug ?? onboardingContext.selectedPlatform?.key;
 
   // Only report experiment exposure for genuine new-org onboarding. Existing
   // orgs can land on /onboarding via stale links, which would
@@ -306,11 +326,26 @@ export function OnboardingWithoutContext() {
     reportExposure: isNewOrgOnboarding,
   });
 
-  // VDY-146 owns treatment exposure and interaction analytics. For now the
-  // host consumes the nested assignment without reporting it.
+  // The arms first differ after platform/features: treatment continues to the
+  // messaging step, control to SDK setup. Exposure is reported once the user
+  // is past that fork, from the route rather than the step list because the
+  // list itself depends on this assignment.
+  //
+  // The route alone is not enough: the invalid-state guards below redirect off
+  // both of these steps, and the redirect runs in an effect, so a bare route
+  // check reports exposure for a user who is sent back before either arm
+  // renders. Repeat the same staged-state conditions here.
+  const isPastPlatformFeatures =
+    (stepId === OnboardingStepId.SCM_MESSAGING &&
+      defined(onboardingContext.selectedPlatform)) ||
+    (stepId === OnboardingStepId.SETUP_DOCS && defined(selectedProjectSlug));
   const {inExperiment: hasScmMessaging} = useExperiment({
     feature: 'onboarding-scm-messaging-experiment',
-    reportExposure: false,
+    reportExposure:
+      SCM_MESSAGING_EXPOSURE_ENABLED &&
+      isNewOrgOnboarding &&
+      hasScmOnboarding &&
+      isPastPlatformFeatures,
   });
 
   const onboardingSteps = getOnboardingSteps({hasScmOnboarding, hasScmMessaging});

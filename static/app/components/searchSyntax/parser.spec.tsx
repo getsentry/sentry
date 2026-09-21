@@ -101,6 +101,11 @@ function treeTransformer({tree, transform}: TreeTransformerOpts) {
           ...token,
           key: nodeVisitor(token.key),
         });
+      case Token.KEY_ARRAY_INCLUDES:
+        return transform({
+          ...token,
+          key: nodeVisitor(token.key),
+        });
       case Token.LOGIC_GROUP:
         return transform({
           ...token,

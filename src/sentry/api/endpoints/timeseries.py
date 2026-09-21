@@ -5,10 +5,29 @@ INGESTION_DELAY = 90
 INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
 
 
+class Annotation(TypedDict):
+    """One time bucket's volume for a system data-fidelity annotation."""
+
+    type: Literal["system"]
+    category: str
+    outcome: str
+    reason: str
+    start: float
+    end: float
+    eventCount: float
+    # Only present for datasets with a paired byte category (logs today).
+    byteSize: NotRequired[float]
+
+
 class StatsMeta(TypedDict):
     dataset: str
     start: float
     end: float
+    droppedAnnotations: NotRequired[list[Annotation]]
+    acceptedAnnotations: NotRequired[list[Annotation]]
+    estimatedIngestionDelaySeconds: NotRequired[float]
+    completeThrough: NotRequired[float]
+    ingestionDelayStatus: NotRequired[str]
 
 
 class Row(TypedDict):

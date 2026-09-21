@@ -1,4 +1,3 @@
-import type {Client} from 'sentry/api';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
@@ -36,7 +35,7 @@ export class IssuesTraceTree extends TraceTree {
   }
 
   static FromTrace(
-    trace: TraceTree.Trace,
+    trace: TraceTree.EAPTrace,
     options: {
       meta: TraceMetaQueryResults['data'] | null;
       organization: Organization;
@@ -52,27 +51,14 @@ export class IssuesTraceTree extends TraceTree {
     return issuesTree;
   }
 
-  static ExpandToEvent(
-    tree: IssuesTraceTree,
-    event: Event,
-    options: {
-      api: Client;
-      organization: Organization;
-      preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
-    }
-  ): Promise<void> {
+  static ExpandToEvent(tree: IssuesTraceTree, event: Event): void {
     const node = tree.root.findChild(n => {
       return n.matchById(event.eventID);
     });
 
     if (node) {
-      if (node.canFetchChildren) {
-        return node.fetchChildren(true, tree, options).then(() => {});
-      }
       node.expand(true, tree);
     }
-
-    return Promise.resolve();
   }
 
   /**

@@ -1,6 +1,6 @@
 from typing import Any
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -46,11 +46,8 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     This is meant to be used over ExploreSavedQueryStarredOrderEndpoint
 
 
-    Discover and Explore stars share a single ``position``. A payload naming one
-    product can permute that product's queries. Thus, send the complete starred list
-    to reorder all the queries.
-
-    Currently not exposed in urls.py.
+    Discover and Explore stars share a single ``position``. A payload containing
+    a subset of starred queries will only permute on that subset.
     """
 
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
@@ -84,7 +81,7 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
             # DiscoverSavedQueryStarred should be in the same db as ExploreSavedQueryStarred.
             with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
                 utils.reorder_starred_queries(organization, request.user.id, refs)
-        except ValueError:
+        except (IntegrityError, ValueError):
             raise ParseError("Mismatch between existing and provided starred queries.")
 
         return Response(status=status.HTTP_204_NO_CONTENT)

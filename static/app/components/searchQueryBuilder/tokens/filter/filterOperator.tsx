@@ -295,10 +295,12 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
 
   useLayoutEffect(() => {
     if (focusOverride?.itemKey === item.key && focusOverride.part === 'op') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setAutoFocus(true);
       initialOpSettingRef.current = true;
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [dispatch, focusOverride, item.key, onOpenChange]);
 
   return (

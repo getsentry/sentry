@@ -197,6 +197,7 @@ describe('SnapshotMainContent', () => {
     expect(screen.getByText('feature/snapshot-updates')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Pick overlay color'})).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Split'})).toBeChecked();
+    expect(screen.getByRole('radiogroup', {name: 'Diff mode'})).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Wipe'})).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Onion'})).toBeInTheDocument();
 
@@ -279,6 +280,40 @@ describe('SnapshotMainContent', () => {
         'false'
       );
     }
+  });
+
+  it('toggles the overlay off and restores the previous opacity', async () => {
+    const onOverlayOpacityChange = jest.fn();
+    const changedItem = {
+      key: 'changed-buttons',
+      name: 'Buttons',
+      displayName: 'Buttons',
+      pairs: [changedPair],
+      type: 'changed' as const,
+    };
+    const props = {
+      comparisonType: 'diff' as const,
+      diffMode: 'split' as const,
+      isSoloView: false,
+      listItems: [changedItem],
+      selectedItem: changedItem,
+      onOverlayOpacityChange,
+      viewMode: 'single' as const,
+    };
+
+    const {rerender} = renderSnapshotMainContent({...props, overlayOpacity: 100});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Hide overlay'}));
+    expect(onOverlayOpacityChange).toHaveBeenLastCalledWith(0);
+
+    rerender(
+      <Container containerType="inline-size">
+        <SnapshotMainContent {...buildProps({...props, overlayOpacity: 0})} />
+      </Container>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show overlay'}));
+    expect(onOverlayOpacityChange).toHaveBeenLastCalledWith(100);
   });
 
   it('hides the color picker and opacity presets outside of split mode', () => {

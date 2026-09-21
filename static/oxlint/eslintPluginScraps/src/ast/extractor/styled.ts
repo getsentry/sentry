@@ -1,3 +1,4 @@
+import type {ESTree, Visitor} from '@oxlint/plugins';
 /**
  * @file Extracts style declarations from styled-components/emotion patterns.
  *
@@ -9,8 +10,6 @@
  * - styled(Component)`...`
  * - css`...`
  */
-
-import type {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
 import {normalizePropertyName} from '../utils/normalizePropertyName.ts';
 import {getStyledCallInfo} from '../utils/styled.ts';
@@ -25,7 +24,7 @@ export function createStyledExtractor({
   collector,
   themeTracker,
   ruleContext,
-}: ExtractorContext): TSESLint.RuleListener {
+}: ExtractorContext): Visitor {
   /**
    * Extract CSS property from template literal quasi text.
    * Must correctly handle nested selectors (a:hover) and only match actual properties.
@@ -42,7 +41,7 @@ export function createStyledExtractor({
    * Check if we're in a lookup table pattern that should be excluded.
    * e.g., ({ none: theme.tokens.content.primary })[status]
    */
-  function isLookupTablePattern(node: TSESTree.Node) {
+  function isLookupTablePattern(node: ESTree.Node) {
     let current = node;
     while (current?.parent) {
       current = current.parent;
@@ -61,8 +60,8 @@ export function createStyledExtractor({
    * Process a template literal and extract style declarations.
    */
   function processTemplateLiteral(
-    templateNode: TSESTree.TemplateLiteral,
-    sourceNode: TSESTree.Node
+    templateNode: ESTree.TemplateLiteral,
+    sourceNode: ESTree.Node
   ) {
     templateNode.expressions?.forEach((expr, index) => {
       const precedingQuasi = templateNode.quasis[index];
@@ -109,8 +108,8 @@ export function createStyledExtractor({
    * Process an object expression from styled.div({ ... }) syntax.
    */
   function processObjectExpression(
-    objNode: TSESTree.ObjectExpression,
-    sourceNode: TSESTree.Node
+    objNode: ESTree.ObjectExpression,
+    sourceNode: ESTree.Node
   ) {
     // Skip lookup table patterns
     if (isLookupTablePattern(objNode)) {
@@ -158,7 +157,7 @@ export function createStyledExtractor({
   }
 
   return {
-    TaggedTemplateExpression(node: TSESTree.TaggedTemplateExpression) {
+    TaggedTemplateExpression(node: ESTree.TaggedTemplateExpression) {
       if (!getStyledCallInfo(node)) {
         return;
       }
@@ -166,7 +165,7 @@ export function createStyledExtractor({
     },
 
     // Handle styled.div({ ... }) object syntax
-    CallExpression(node: TSESTree.CallExpression) {
+    CallExpression(node: ESTree.CallExpression) {
       if (!getStyledCallInfo(node)) {
         return;
       }

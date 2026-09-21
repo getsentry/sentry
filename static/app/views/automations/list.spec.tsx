@@ -25,6 +25,16 @@ import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationsList from 'sentry/views/automations/list';
+import {
+  LLM_CONTEXT_MAX_ROWS,
+  useLLMContext,
+} from 'sentry/views/seerExplorer/contexts/llmContext';
+
+// Cells the container is too narrow to show are hidden rather than dropped, so
+// the row still holds every column in order: name, last triggered, action,
+// projects, connected monitors.
+const projectsCell = (row: HTMLElement) =>
+  within(row).getAllByRole('cell', {hidden: true})[3]!;
 
 describe('AutomationsList', () => {
   const organization = OrganizationFixture();
@@ -96,8 +106,16 @@ describe('AutomationsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [
-        AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']}),
-        AutomationFixture({id: '101', name: 'Automation 2', detectorIds: ['2']}),
+        AutomationFixture({
+          id: '100',
+          name: 'Automation 1',
+          detectorIds: ['1'],
+        }),
+        AutomationFixture({
+          id: '101',
+          name: 'Automation 2',
+          detectorIds: ['2'],
+        }),
       ],
     });
 
@@ -119,10 +137,16 @@ describe('AutomationsList', () => {
     // Projects column should show the correct project for each row
     await waitFor(() => {
       expect(
-        within(rows[0]!).getByRole('link', {name: 'View Project Details', hidden: true})
+        within(rows[0]!).getByRole('link', {
+          name: 'View Project Details',
+          hidden: true,
+        })
       ).toHaveAttribute('aria-description', 'project-1');
       expect(
-        within(rows[1]!).getByRole('link', {name: 'View Project Details', hidden: true})
+        within(rows[1]!).getByRole('link', {
+          name: 'View Project Details',
+          hidden: true,
+        })
       ).toHaveAttribute('aria-description', 'project-2');
     });
 
@@ -141,8 +165,7 @@ describe('AutomationsList', () => {
     const row = await screen.findByTestId('automation-list-row');
 
     // Projects column should show em dash for automation with no detectors
-    const projectsColumn = row.querySelector('[data-column-name="projects"]')!;
-    expect(within(projectsColumn as HTMLElement).getByText('—')).toBeInTheDocument();
+    expect(within(projectsCell(row)).getByText('—')).toBeInTheDocument();
   });
 
   it('shows all projects for an all-projects detector', async () => {
@@ -160,9 +183,8 @@ describe('AutomationsList', () => {
     render(<AutomationsList />, {organization});
 
     const row = await screen.findByTestId('automation-list-row');
-    const projectsColumn = row.querySelector('[data-column-name="projects"]')!;
     expect(
-      await within(projectsColumn as HTMLElement).findByText('All Projects')
+      await within(projectsCell(row)).findByText('All Projects')
     ).toBeInTheDocument();
   });
 
@@ -674,5 +696,117 @@ describe('AutomationsList', () => {
     expect(screen.getByRole('columnheader', {name: 'Name'})).toBeInTheDocument();
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Delete'})).not.toBeInTheDocument();
+  });
+
+  it('does not enable bulk controls for project-scoped alert writers', async () => {
+    const teamAdminOrg = OrganizationFixture({
+      access: ['org:read', 'alerts:read'],
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        ...project,
+        access: ['project:read', 'alerts:write'],
+      }),
+    ]);
+
+    render(<AutomationsList />, {organization: teamAdminOrg});
+
+    expect(await screen.findByRole('button', {name: 'Create Alert'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await screen.findByTestId('automation-list-row');
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Delete'})).not.toBeInTheDocument();
+  });
+
+  describe('Seer page context', () => {
+    /**
+     * Renders the list under a component that captures `getLLMContext`, which is
+     * how Seer reads the page. Returns a getter for the `alert-list` node's data
+     * so each test can assert on what the node actually published.
+     */
+    function renderAndReadNode() {
+      let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
+      function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+        ({getLLMContext} = useLLMContext());
+        return <AutomationsList />;
+      }
+
+      render(<Component />, {organization});
+
+      return () =>
+        getLLMContext!().nodes.find(node => node.nodeType === 'alert-list')?.data as
+          | Record<string, unknown>
+          | undefined;
+    }
+
+    it('publishes an alert-list node with the filter state and visible rows', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/workflows/',
+        body: [AutomationFixture({id: '42', name: 'Checkout latency alert'})],
+        headers: {'X-Hits': '1'},
+      });
+
+      const readNode = renderAndReadNode();
+      await screen.findByText('Checkout latency alert');
+
+      await waitFor(() => {
+        const data = readNode();
+        expect(data).toBeDefined();
+        expect(data!.query).toBe('');
+        // Default sort, which lives in the hook rather than the URL.
+        expect(data!.sort).toBe('-lastTriggered');
+        expect(data!.alertCount).toBe(1);
+        expect(data!.contextHint).toEqual(expect.any(String));
+        expect(data!.projectSlugs).toEqual(['project-1']);
+        expect(data!.displayedAlerts).toBe(
+          'id|name|enabled|lastTriggered\n42|Checkout latency alert|true|2025-01-01T00:00:00.000Z'
+        );
+      });
+    });
+
+    it('caps the row sample while still reporting the full total', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/workflows/',
+        body: Array.from({length: LLM_CONTEXT_MAX_ROWS + 5}, (_, i) =>
+          AutomationFixture({id: `${i}`, name: `Automation ${i}`})
+        ),
+        headers: {'X-Hits': '400'},
+      });
+
+      const readNode = renderAndReadNode();
+      await screen.findByText('Automation 0');
+
+      await waitFor(() => {
+        const data = readNode();
+        // Header row plus exactly LLM_CONTEXT_MAX_ROWS alerts.
+        expect((data!.displayedAlerts as string).split('\n')).toHaveLength(
+          LLM_CONTEXT_MAX_ROWS + 1
+        );
+        // The cap does not move the total, so Seer can tell a truncated sample
+        // from a complete one and fall back to a tool call.
+        expect(data!.alertCount).toBe(400);
+      });
+    });
+
+    it('publishes the node with an empty sample when nothing matches', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/workflows/',
+        body: [],
+        headers: {'X-Hits': '0'},
+      });
+
+      const readNode = renderAndReadNode();
+      await screen.findByText('No alerts found.');
+
+      await waitFor(() => {
+        const data = readNode();
+        expect(data!.alertCount).toBe(0);
+        // Header row only, so an empty list reads as empty rather than missing.
+        expect(data!.displayedAlerts).toBe('id|name|enabled|lastTriggered');
+      });
+    });
   });
 });

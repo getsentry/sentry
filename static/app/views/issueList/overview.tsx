@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
@@ -14,7 +13,7 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
-import type {GroupListColumn} from 'sentry/components/issues/groupList';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
@@ -44,7 +43,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -56,8 +54,6 @@ import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
-import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergroupDrawer';
-import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -95,7 +91,6 @@ interface Props {
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
-  withColumns?: GroupListColumn[];
 }
 
 interface EndpointParams extends Partial<PageFilterDatetime> {
@@ -145,7 +140,6 @@ function IssueListOverviewInner({
   title = t('Issues'),
   titleDescription,
   headerActions,
-  withColumns,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -192,11 +186,6 @@ function IssueListOverviewInner({
 
   useIssuesINPObserver();
 
-  const {data: supergroupLookup, isLoading: supergroupsLoading} =
-    useSuperGroups(groupIds);
-
-  useSupergroupDrawer({lookup: supergroupLookup, memberList});
-
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
       // Note: We do not update state with cursors from polling,
@@ -226,7 +215,7 @@ function IssueListOverviewInner({
   const hasRecommendedSortDefault = organization.features.includes(
     'issue-stream-recommended-sort-default'
   );
-  const hasIssueInbox = orgHasIssueInbox(organization);
+  const hasIssueInbox = organization.features.includes('issue-inbox');
   // The stored sort is the user's preferred sort for the unsaved feed.
   // Saved views persist their own sort, so they neither read nor write it.
   const defaultSort = urlParams.viewId
@@ -571,11 +560,6 @@ function IssueListOverviewInner({
     num_issues: groups.length,
     group_ids: groups.map(group => group.id),
     total_issues_count: queryCount,
-    total_issue_group_count: new Set(
-      Object.values(supergroupLookup)
-        .filter(sg => sg !== null)
-        .map(sg => sg.id)
-    ).size,
     sort,
     realtime_active: realtimeActive,
     is_view: urlParams.viewId ? true : false,
@@ -991,57 +975,57 @@ function IssueListOverviewInner({
           onRealtimeChange={onRealtimeChange}
           headerActions={headerActions}
         />
-        <StyledBody>
-          <Grid area="content" padding={{'screen:sm': 'md lg', 'screen:md': 'lg xl'}}>
-            <IssuesDataConsentBanner source="issues" />
-            <IssueListFilters
-              query={query}
-              sort={sort}
-              onSortChange={onSortChange}
-              onSearch={onSearch}
-            />
-            <IssueListTable
-              selection={selection}
-              query={query}
-              queryCount={modifiedQueryCount}
-              onSelectStatsPeriod={onSelectStatsPeriod}
-              onActionTaken={onActionTaken}
-              onDelete={onDelete}
-              statsPeriod={getGroupStatsPeriod()}
-              groupIds={groupIds}
-              allResultsVisible={allResultsVisible()}
-              displayReprocessingActions={displayReprocessingActions}
-              memberList={memberList}
-              issuesLoading={issuesLoading || supergroupsLoading}
-              statsLoading={statsLoading}
-              supergroupLookup={supergroupLookup}
-              error={error}
-              refetchGroups={fetchData}
-              withColumns={withColumns}
-              paginationCaption={
-                !issuesLoading && modifiedQueryCount > 0
-                  ? tct('[start]-[end] of [total]', {
-                      start: numPreviousIssues + 1,
-                      end: numPreviousIssues + numIssuesOnPage,
-                      total: (
-                        <QueryCount
-                          hideParens
-                          hideIfEmpty={false}
-                          count={modifiedQueryCount}
-                          max={queryMaxCount || 100}
-                        />
-                      ),
-                    })
-                  : null
-              }
-              pageLinks={pageLinks}
-              onCursor={onCursorChange}
-              paginationAnalyticsEvent={paginationAnalyticsEvent}
-              issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
-              pageSize={MAX_ITEMS}
-            />
-          </Grid>
-        </StyledBody>
+        <Layout.Body>
+          <Layout.Main width="full">
+            <Grid>
+              <IssuesDataConsentBanner source="issues" />
+              <IssueListFilters
+                query={query}
+                sort={sort}
+                onSortChange={onSortChange}
+                onSearch={onSearch}
+              />
+              <IssueListTable
+                selection={selection}
+                query={query}
+                queryCount={modifiedQueryCount}
+                onSelectStatsPeriod={onSelectStatsPeriod}
+                onActionTaken={onActionTaken}
+                onDelete={onDelete}
+                statsPeriod={getGroupStatsPeriod()}
+                groupIds={groupIds}
+                allResultsVisible={allResultsVisible()}
+                displayReprocessingActions={displayReprocessingActions}
+                memberList={memberList}
+                issuesLoading={issuesLoading}
+                statsLoading={statsLoading}
+                error={error}
+                refetchGroups={fetchData}
+                paginationCaption={
+                  !issuesLoading && modifiedQueryCount > 0
+                    ? tct('[start]-[end] of [total]', {
+                        start: numPreviousIssues + 1,
+                        end: numPreviousIssues + numIssuesOnPage,
+                        total: (
+                          <QueryCount
+                            hideParens
+                            hideIfEmpty={false}
+                            count={modifiedQueryCount}
+                            max={queryMaxCount || 100}
+                          />
+                        ),
+                      })
+                    : null
+                }
+                pageLinks={pageLinks}
+                onCursor={onCursorChange}
+                paginationAnalyticsEvent={paginationAnalyticsEvent}
+                issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
+                pageSize={MAX_ITEMS}
+              />
+            </Grid>
+          </Layout.Main>
+        </Layout.Body>
       </Stack>
     </IssueSelectionProvider>
   );
@@ -1050,8 +1034,3 @@ function IssueListOverviewInner({
 const IssueListOverview = registerLLMContext('issue-list', IssueListOverviewInner);
 
 export default Sentry.withProfiler(IssueListOverview);
-
-const StyledBody = styled('div')`
-  background-color: ${p => p.theme.tokens.background.primary};
-  flex: 1;
-`;

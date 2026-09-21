@@ -99,8 +99,10 @@ function BoundTooltip({
 
   const containerBoundsRef = useRef(DEFAULT_BOUNDS);
 
+  // oxlint-disable-next-line react/refs
   if (containerBoundsRef.current.isEmpty()) {
     // using the innerWidth and innerHeight here because we only want the size of the visible portions
+    // oxlint-disable-next-line react/refs
     containerBoundsRef.current = new Rect(0, 0, window.innerWidth, window.innerHeight);
   }
 
@@ -140,6 +142,7 @@ function BoundTooltip({
         fontSize: flamegraphTheme.SIZES.TOOLTIP_FONT_SIZE,
         fontFamily: flamegraphTheme.FONTS.FONT,
         zIndex: theme.zIndex.tooltip,
+        // oxlint-disable-next-line react/refs
         maxWidth: containerBoundsRef.current.width - 2 * WIDTH_OFFSET,
       }}
     >

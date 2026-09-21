@@ -113,7 +113,7 @@ class ShiftPositionsTest(StarredHelpersTestBase):
         above = self.explore_star(3)
         above2 = self.explore_star(4)
 
-        utils.shift_starred_positions_by_one(self.org, self.user.id, from_position=1)
+        utils.shift_starred_positions(self.org, self.user.id, from_position=1, delta=-1)
 
         below.refresh_from_db()
         above.refresh_from_db()
@@ -121,6 +121,22 @@ class ShiftPositionsTest(StarredHelpersTestBase):
         assert below.position == 1
         assert above.position == 2
         assert above2.position == 3
+
+    def test_inclusive_gap(self) -> None:
+        below = self.explore_star(1)
+        above = self.discover_star(2)
+        above2 = self.explore_star(3)
+
+        utils.shift_starred_positions(
+            self.org, self.user.id, from_position=2, delta=1, inclusive=True
+        )
+
+        below.refresh_from_db()
+        above.refresh_from_db()
+        above2.refresh_from_db()
+        assert below.position == 1
+        assert above.position == 3
+        assert above2.position == 4
 
 
 class ReorderTest(StarredHelpersTestBase):
@@ -159,22 +175,65 @@ class ReorderTest(StarredHelpersTestBase):
 
         assert self.ordered_refs() == refs
 
-    def test_rejects_duplicate_ref(self) -> None:
-        discover = self.discover_star(1)
-        self.explore_star(2)
+    def test_reorders_a_subset_and_leaves_the_rest(self) -> None:
+        # The nav only renders a page of the starred list, so it can only reorder
+        # what it shows. Queries outside the payload keep their place.
+        first = self.explore_star(1)
+        second = self.discover_star(2)
+        third = self.explore_star(3)
+        untouched = self.discover_star(4)
 
-        ref = SavedQueryRef(SavedQueryType.DISCOVER, discover.discover_saved_query_id)
+        refs = [
+            SavedQueryRef(SavedQueryType.EXPLORE, third.explore_saved_query_id),
+            SavedQueryRef(SavedQueryType.EXPLORE, first.explore_saved_query_id),
+            SavedQueryRef(SavedQueryType.DISCOVER, second.discover_saved_query_id),
+        ]
 
-        with pytest.raises(ValueError, match="multiple positions"):
-            utils.reorder_starred_queries(self.org, self.user.id, [ref, ref])
+        utils.reorder_starred_queries(self.org, self.user.id, refs)
 
-    def test_rejects_missing_refs(self) -> None:
-        # The failure mode this module exists to prevent: a caller that knows about one
-        # product sends only its own queries, and the other product's positions are lost.
+        assert self.ordered_refs() == [
+            *refs,
+            SavedQueryRef(SavedQueryType.DISCOVER, untouched.discover_saved_query_id),
+        ]
+        untouched.refresh_from_db()
+        assert untouched.position == 4
+
+    def test_subset_only_permutes_the_slots_it_holds(self) -> None:
+        first = self.explore_star(1)
+        second = self.discover_star(2)
+        third = self.explore_star(3)
+        fourth = self.discover_star(4)
+
+        utils.reorder_starred_queries(
+            self.org,
+            self.user.id,
+            [
+                SavedQueryRef(SavedQueryType.DISCOVER, fourth.discover_saved_query_id),
+                SavedQueryRef(SavedQueryType.EXPLORE, first.explore_saved_query_id),
+            ],
+        )
+
+        assert self.ordered_refs() == [
+            SavedQueryRef(SavedQueryType.DISCOVER, fourth.discover_saved_query_id),
+            SavedQueryRef(SavedQueryType.DISCOVER, second.discover_saved_query_id),
+            SavedQueryRef(SavedQueryType.EXPLORE, third.explore_saved_query_id),
+            SavedQueryRef(SavedQueryType.EXPLORE, first.explore_saved_query_id),
+        ]
+
+    def test_rejects_unstarred_refs(self) -> None:
         self.discover_star(1)
-        explore = self.explore_star(2)
+        unstarred = self.explore_star(None, starred=False)
+
+        refs = [SavedQueryRef(SavedQueryType.EXPLORE, unstarred.explore_saved_query_id)]
+
+        with pytest.raises(ValueError, match="Mismatch between existing and provided"):
+            utils.reorder_starred_queries(self.org, self.user.id, refs)
+
+    def test_rejects_duplicate_refs(self) -> None:
+        explore = self.explore_star(1)
+        self.discover_star(2)
 
         explore_ref = SavedQueryRef(SavedQueryType.EXPLORE, explore.explore_saved_query_id)
 
-        with pytest.raises(ValueError, match="Mismatch between existing and provided"):
-            utils.reorder_starred_queries(self.org, self.user.id, [explore_ref])
+        with pytest.raises(ValueError, match="multiple positions"):
+            utils.reorder_starred_queries(self.org, self.user.id, [explore_ref, explore_ref])

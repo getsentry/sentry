@@ -28,10 +28,16 @@ interface FlamegraphPreviewProps {
   flamegraph: FlamegraphModel;
   relativeStartTimestamp: number;
   relativeStopTimestamp: number;
+  /**
+   * Start the preview at the root instead of the innermost frames in the
+   * window. Use it when previewing a whole profile rather than a span.
+   */
+  anchorAtRoot?: boolean;
   updateFlamegraphView?: (canvasView: CanvasView<FlamegraphModel> | null) => void;
 }
 
 export function FlamegraphPreview({
+  anchorAtRoot,
   flamegraph,
   relativeStartTimestamp,
   relativeStopTimestamp,
@@ -69,7 +75,8 @@ export function FlamegraphPreview({
       flamegraph,
       canvasView.configView,
       formatTo(relativeStartTimestamp, 'second', flamegraph.unit),
-      formatTo(relativeStopTimestamp, 'second', flamegraph.unit)
+      formatTo(relativeStopTimestamp, 'second', flamegraph.unit),
+      {anchorAtRoot}
     );
 
     canvasView.setConfigView(configView);
@@ -77,6 +84,7 @@ export function FlamegraphPreview({
 
     return canvasView;
   }, [
+    anchorAtRoot,
     flamegraph,
     flamegraphCanvas,
     flamegraphTheme,
@@ -264,17 +272,23 @@ export function FlamegraphPreview({
  *   on using the maximum depth of the whole flamechart and adjusting the config
  *   view because the window selected may be shallower and would result in the
  *   preview to show a lot of whitespace.
+ *
+ * Both of those bias towards the innermost frames, which is what a preview
+ * scoped to a span wants. A preview of a whole profile wants the opposite: pass
+ * `anchorAtRoot` to start at the root, so the wide top frames make the preview
+ * legible as a flamechart instead of opening on a slab of leaf frames.
  */
 export function computePreviewConfigView(
   flamegraph: FlamegraphModel,
   configView: Rect,
   relativeStartNs: number,
-  relativeStopNs: number
+  relativeStopNs: number,
+  {anchorAtRoot = false}: {anchorAtRoot?: boolean} = {}
 ): {
   configView: Rect;
   mode: CanvasView<FlamegraphModel>['mode'];
 } {
-  if (flamegraph.depth < configView.height) {
+  if (anchorAtRoot || flamegraph.depth < configView.height) {
     // if the flamegraph height is less than the config view height,
     // the whole flamechart will fit on the view so we can just use y = 0
     return {

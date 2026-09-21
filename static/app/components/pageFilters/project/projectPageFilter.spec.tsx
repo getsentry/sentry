@@ -417,7 +417,7 @@ describe('ProjectPageFilter', () => {
       },
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'No Projects'}));
 
     expect(
       screen.queryByRole('checkbox', {name: 'Select All Projects'})
@@ -587,7 +587,6 @@ describe('ProjectPageFilter', () => {
       memberCount: 52,
       nonMemberCount: 1,
       urlProjects: [] as number[],
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       urlQuery: {} as Record<string, string>,
       triggerName: 'My Projects',
     },
@@ -807,6 +806,11 @@ describe('ProjectPageFilter', () => {
 
     // Open menu
     await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
+
+    // Let deferred autofocus finish before moving focus by hovering a row.
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
+    });
 
     // All projects are members so no special items are shown
     let projectRows = screen.getAllByRole('row');

@@ -2,7 +2,8 @@ import {
   DropdownMenu,
   type DropdownMenuProps,
   type MenuItemProps,
-} from 'sentry/components/dropdownMenu';
+} from '@sentry/scraps/dropdownMenu';
+
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import {

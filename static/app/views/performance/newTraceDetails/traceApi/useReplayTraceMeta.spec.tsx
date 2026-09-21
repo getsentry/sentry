@@ -3,14 +3,8 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-
 import {getReplayTraceSearchQuery} from './replayTraceSearch';
 import {useReplayTraceMeta} from './useReplayTraceMeta';
-
-jest.mock('sentry/utils/useSyncedLocalStorageState', () => ({
-  useSyncedLocalStorageState: jest.fn(),
-}));
 
 const organization = OrganizationFixture();
 const replayRecord = ReplayRecordFixture();
@@ -18,7 +12,6 @@ const replayTraceQuery = getReplayTraceSearchQuery(replayRecord.id);
 
 describe('useReplayTraceMeta', () => {
   beforeEach(() => {
-    jest.mocked(useSyncedLocalStorageState).mockReturnValue(['non-eap', jest.fn()]);
     jest.clearAllMocks();
   });
 
@@ -37,17 +30,18 @@ describe('useReplayTraceMeta', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/trace1/',
+      url: '/organizations/org-slug/trace-meta/trace1/',
       body: {
-        errors: 1,
-        performance_issues: 2,
-        projects: 1,
-        transactions: 3,
-        transaction_child_count_map: [],
-        span_count: 4,
-        span_count_map: {
+        errorsCount: 1,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 2,
+        spansCount: 4,
+        spansCountMap: {
           op1: 4,
         },
+        transactionChildCountMap: [],
+        uptimeCount: 0,
       },
     });
 
@@ -66,15 +60,16 @@ describe('useReplayTraceMeta', () => {
       sort: ['min_precise_start_ts', 'trace'],
     });
     expect(result.current.data).toEqual({
-      errors: 1,
-      performance_issues: 2,
-      projects: 1,
-      transactions: 3,
-      transaction_child_count_map: {},
-      span_count: 4,
-      span_count_map: {
+      errorsCount: 1,
+      logsCount: 0,
+      metricsCount: 0,
+      performanceIssuesCount: 2,
+      spansCount: 4,
+      spansCountMap: {
         op1: 4,
       },
+      transactionChildCountMap: {},
+      uptimeCount: 0,
     });
   });
 });

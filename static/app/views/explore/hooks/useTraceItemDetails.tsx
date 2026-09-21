@@ -46,6 +46,8 @@ interface UseTraceItemDetailsProps {
    * Alias for `enabled` in react-query.
    */
   enabled?: boolean;
+  /** Opaque hint from the events response that returned this item. */
+  routingHint?: string;
   /**
    * Optional Unix timestamp in seconds to disambiguate trace item lookup.
    */
@@ -96,6 +98,7 @@ type TraceItemDetailsQueryParams = {
   traceId: string;
   traceItemType: TraceItemDataset;
   end?: string;
+  routingHint?: string;
   start?: string;
   statsPeriod?: string | null;
   timestamp?: number;
@@ -148,6 +151,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
       traceItemType: props.traceItemType,
       referrer: props.referrer,
       traceId: props.traceId,
+      routingHint: props.routingHint,
       ...timeQueryParams,
     }),
     enabled,
@@ -165,6 +169,7 @@ function traceItemDetailsApiOptions({
   traceItemType,
   referrer,
   traceId,
+  routingHint,
   timestamp,
   statsPeriod,
   start,
@@ -196,6 +201,7 @@ function traceItemDetailsApiOptions({
         item_type: traceItemType,
         referrer,
         trace_id: traceId,
+        routing_hint: routingHint || undefined,
         ...timeQuery,
       },
       staleTime: Infinity,
@@ -210,6 +216,7 @@ function useTraceItemDetailsPrefetch({
   traceItemType,
   referrer,
   timestamp,
+  routingHint,
 }: UseTraceItemDetailsProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -224,6 +231,7 @@ function useTraceItemDetailsPrefetch({
     traceItemType,
     referrer,
     traceId,
+    routingHint,
     ...(timestamp
       ? {timestamp: normalizeTimestampToSeconds(timestamp)}
       : normalizeDateTimeParams(selection.datetime)),
@@ -261,6 +269,7 @@ export function usePrefetchTraceItemDetailsOnHover({
   traceItemType,
   referrer,
   timestamp,
+  routingHint,
   hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
   timeout,
@@ -287,6 +296,7 @@ export function usePrefetchTraceItemDetailsOnHover({
       traceItemType,
       referrer,
       timestamp,
+      routingHint,
     });
 
   const ownHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -344,6 +354,7 @@ export function usePrefetchTraceItemDetailsOnMount({
   enabled?: boolean;
 }) {
   const hasPrefetched = useRef(false);
+  // oxlint-disable-next-line react/refs
   if (enabled && isProjectReady && !hasPrefetched.current) {
     hasPrefetched.current = true;
     prefetch();

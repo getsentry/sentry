@@ -1,9 +1,9 @@
-import {ESLintUtils} from '@typescript-eslint/utils';
+import {defineRule} from '@oxlint/plugins';
 
 import {shouldAnalyze} from '../ast/extractor/index.ts';
 import {getStyledCallInfo} from '../ast/utils/styled.ts';
 
-export const noDoubleDollarInterpolation = ESLintUtils.RuleCreator.withoutDocs({
+export const noDoubleDollarInterpolation = defineRule({
   meta: {
     type: 'problem',
     fixable: 'code',
@@ -17,7 +17,6 @@ export const noDoubleDollarInterpolation = ESLintUtils.RuleCreator.withoutDocs({
         'Doubled `$` before interpolation emits a literal "$" into the CSS, producing an invalid declaration. Use `${...}`.',
     },
   },
-  defaultOptions: [],
   create(context) {
     if (!shouldAnalyze(context)) {
       return {};
