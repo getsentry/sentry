@@ -32,6 +32,7 @@ from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import (
     ApiForbiddenError,
     ApiHostError,
+    ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiRestrictedIPError,
     ApiTimeoutError,
@@ -548,9 +549,13 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             if integration is not None:
                 lifecycle.add_extras({"provider": integration.provider})
 
-            response = self._call_third_party_api(
-                request=request, full_url=full_url, headers=headers
-            )
+            try:
+                response = self._call_third_party_api(
+                    request=request, full_url=full_url, headers=headers
+                )
+            except ApiInvalidRequestError as error:
+                lifecycle.record_halt(error)
+                raise
 
         self._record_success(response)
         return response
@@ -587,6 +592,15 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             response = self.respond(status=exc.code)
             self._record_failure(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR, response)
             return response
+        elif isinstance(exc, ApiInvalidRequestError):
+            logger.info(
+                "hybrid_cloud.integration_proxy.api_invalid_request_error", extra=self.log_extra
+            )
+            response = self.respond(status=exc.code)
+            self._record_failure(
+                IntegrationProxyFailureMetricType.API_INVALID_REQUEST_ERROR, response
+            )
+            return self.respond(exc.json if exc.json is not None else exc.text, status=exc.code)
         elif isinstance(exc, ApiUnauthorized):
             logger.info("hybrid_cloud.integration_proxy.unauthorized_error", extra=self.log_extra)
             response = self.respond(status=exc.code)
