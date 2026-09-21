@@ -301,11 +301,11 @@ export function useReleaseSeries({
         releases: propReleases,
         releaseSeries: buildReleaseSeries(propReleases),
       });
-      return undefined;
+      return;
     }
 
     if (!enabled) {
-      return undefined;
+      return;
     }
 
     let cancelled = false;
@@ -358,7 +358,17 @@ export function useReleaseSeries({
       api.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startKey, endKey, period, projectsKey, environmentsKey, query, propReleases, enabled, memoized]);
+  }, [
+    startKey,
+    endKey,
+    period,
+    projectsKey,
+    environmentsKey,
+    query,
+    propReleases,
+    enabled,
+    memoized,
+  ]);
 
   // Rebuild series when emphasizeReleases changes without re-fetching.
   // We use the serialized key (not the array reference) so this effect only
@@ -389,7 +399,7 @@ export function useReleaseSeries({
  *
  * @deprecated use useReleaseSeries hook instead
  */
-export default function ReleaseSeries({children, ...props}: ReleaseSeriesProps) {
+export function ReleaseSeries({children, ...props}: ReleaseSeriesProps) {
   const state = useReleaseSeries(props);
-  return <>{children(state)}</>;
+  return <React.Fragment>{children(state)}</React.Fragment>;
 }

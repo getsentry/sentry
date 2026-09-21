@@ -129,9 +129,7 @@ function ProjectBaseSessionsChart({
                         reloading={reloading}
                         timeSeries={timeseriesData}
                         previousTimeSeries={
-                          previousTimeseriesData
-                            ? [previousTimeseriesData]
-                            : undefined
+                          previousTimeseriesData ? [previousTimeseriesData] : undefined
                         }
                         releaseSeries={releaseSeries}
                         displayMode={displayMode}
