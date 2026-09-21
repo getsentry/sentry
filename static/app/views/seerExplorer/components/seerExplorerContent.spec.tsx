@@ -372,6 +372,39 @@ describe('SeerExplorerContent', () => {
       expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
     });
 
+    it('shows the failure, not a spinner, when a failed load is still polling', async () => {
+      // A 5xx load backs off and keeps polling for up to a minute. The composer is
+      // already disabled by then, so a spinner would leave no way out of the panel.
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
+        errorStatusCode: 500,
+        isPolling: true,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText('There was a problem loading the conversation.')
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Start a new chat'})).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
+    });
+
     it('starts a new chat from the error state', async () => {
       const startNewSession = jest.fn();
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({

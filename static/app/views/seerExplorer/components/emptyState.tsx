@@ -41,12 +41,10 @@ export function EmptyState({
   const runIdDisplay = runId?.toString() ?? 'null';
   return (
     <Container>
-      {isLoading ? (
-        <Fragment>
-          <LoadingIndicator size={32} />
-          <Text>{t('Ask Seer anything about your application.')}</Text>
-        </Fragment>
-      ) : isError || isSessionError ? (
+      {isError || isSessionError ? (
+        // Checked before `isLoading`: a failed load can still be polling with
+        // backoff, and a spinner there would sit next to a disabled composer
+        // with no way out.
         <Fragment>
           <IconSeer size="xl" />
           <Text>
@@ -65,6 +63,11 @@ export function EmptyState({
               </Button>
             </Text>
           )}
+        </Fragment>
+      ) : isLoading ? (
+        <Fragment>
+          <LoadingIndicator size={32} />
+          <Text>{t('Ask Seer anything about your application.')}</Text>
         </Fragment>
       ) : (
         <Fragment>
