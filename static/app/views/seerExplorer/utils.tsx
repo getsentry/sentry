@@ -11,6 +11,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
@@ -767,9 +768,8 @@ export function getExplorerFeedbackOptions(
 /**
  * Checks if Seer Explorer is enabled for the organization.
  * Requires the rollout flag and:
- * - 'gen-ai-features' feature flag
+ * - AI features allowed for the organization (see areAiFeaturesAllowed)
  * - Organization has not disabled open membership
- * - Organization has not disabled AI features (hideAiFeatures is false)
  */
 export function isSeerExplorerEnabled(organization: Organization | null): boolean {
   if (!organization) {
@@ -778,8 +778,7 @@ export function isSeerExplorerEnabled(organization: Organization | null): boolea
 
   return (
     organization.openMembership &&
-    !organization.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
+    areAiFeaturesAllowed(organization) &&
     organization.features.includes('seer-explorer')
   );
 }

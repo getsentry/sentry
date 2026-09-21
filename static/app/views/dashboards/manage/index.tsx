@@ -28,6 +28,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
@@ -110,9 +111,6 @@ function ManageDashboards() {
     : isOnlyCustom
       ? CUSTOM_DASHBOARD_LABEL
       : t('All Dashboards');
-
-  const areAiFeaturesAllowed =
-    !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
 
   const {hasProjectAccess, projectsLoaded} = useHasProjectAccess();
 
@@ -283,7 +281,7 @@ function ManageDashboards() {
         position="bottom-end"
         data-test-id="sort-by-select"
       />
-      {areAiFeaturesAllowed ? (
+      {areAiFeaturesAllowed(organization) ? (
         <DashboardCreateLimitWrapper>
           {({
             hasReachedDashboardLimit,
