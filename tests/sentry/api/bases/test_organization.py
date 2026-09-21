@@ -507,21 +507,6 @@ class OrganizationEndpointViewerContextTest(BaseOrganizationEndpointTest):
         assert ctx is not None
         assert ctx.user_id == self.owner.id
         assert ctx.organization_id == self.org.id
-        assert ctx.organization_is_early_adopter is False
-
-    def test_convert_args_records_early_adopter_organization(self) -> None:
-        self.org.flags.early_adopter = True
-        self.org.save()
-        request = drf_request_from_request(self.build_request(user=self.owner))
-        request._request.organization = None
-
-        with viewer_context_scope(ViewerContext(user_id=self.owner.id)):
-            self.endpoint.convert_args(request, self.org.slug)
-            ctx = get_viewer_context()
-
-        assert ctx is not None
-        assert ctx.organization_id == self.org.id
-        assert ctx.organization_is_early_adopter is True
 
 
 class GetProjectIdsTest(BaseOrganizationEndpointTest):

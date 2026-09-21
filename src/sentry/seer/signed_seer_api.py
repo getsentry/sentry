@@ -133,14 +133,7 @@ def _resolve_viewer_context(
     )
 
     if has_mismatch:
-        return replace(
-            vc,
-            organization_id=org_id,
-            user_id=user_id,
-            project_id=None,
-            token=None,
-            organization_is_early_adopter=False,
-        )
+        return replace(vc, organization_id=org_id, user_id=user_id, project_id=None, token=None)
     return replace(vc, organization_id=org_id, user_id=user_id)
 
 
