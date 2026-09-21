@@ -2,7 +2,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {KeyValueTable, KeyValueTableRow} from './keyValueTable';
 import {KeyValueTableCard} from './keyValueTableCard';
-import {KeyValueTableDataList} from './keyValueTableDataList';
 import {
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
@@ -14,12 +13,6 @@ const contentItems: KeyValueTableDataRowProps[] = [
   {item: {key: 'dict', subject: 'dict', value: {primary: 'alpha', secondary: 2}}},
   {item: {key: 'null', subject: 'null', value: null}},
   {item: {key: 'nested', subject: 'nested', value: {region: 'us', retries: 3}}},
-];
-
-const listData = [
-  {key: 'browser', subject: 'Browser', value: 'Chrome 131.0.0'},
-  {key: 'os', subject: 'OS', value: 'macOS 15.1'},
-  {key: 'runtime', subject: 'Runtime', value: {name: 'node', version: '22.11.0'}},
 ];
 
 describe('KeyValueTable', () => {
@@ -135,15 +128,5 @@ describe('KeyValueTable', () => {
       </div>
     ),
     {tags: {area: 'core', variant: 'card'}}
-  );
-
-  it.snapshot(
-    'list',
-    () => (
-      <div style={{padding: 8, width: 500}}>
-        <KeyValueTableDataList data={listData} />
-      </div>
-    ),
-    {tags: {area: 'core', variant: 'list'}}
   );
 });

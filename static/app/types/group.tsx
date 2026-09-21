@@ -1475,9 +1475,7 @@ export type KeyValueListDataItem = {
    * If true, the action button will always be visible, not just on hover.
    */
   actionButtonAlwaysVisible?: boolean;
-  meta?: Meta;
   subjectDataTestId?: string;
-  subjectIcon?: React.ReactNode;
   subjectNode?: React.ReactNode;
   value?: React.ReactNode | Record<string, string | number>;
 };

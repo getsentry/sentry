@@ -33,28 +33,6 @@ export function Value({value, meta, disableFormattedData}: ValueProps) {
   return <AnnotatedText value={value as string} meta={meta} />;
 }
 
-export function PreformattedValue({
-  value = null,
-  meta,
-  subjectIcon,
-}: Pick<ValueProps, 'value' | 'meta'> & {subjectIcon?: React.ReactNode}) {
-  const dataValue =
-    typeof value === 'object' && !isValidElement(value)
-      ? JSON.stringify(value, null, 2)
-      : value;
-
-  if (typeof dataValue !== 'string' && isValidElement(dataValue)) {
-    return <Fragment>{dataValue}</Fragment>;
-  }
-
-  return (
-    <pre className="val-string">
-      <AnnotatedText value={dataValue} meta={meta} />
-      {subjectIcon}
-    </pre>
-  );
-}
-
 export const ValueLink = styled(Link)`
   text-decoration: ${p => p.theme.tokens.interactive.link.accent.rest} underline dotted;
 `;
