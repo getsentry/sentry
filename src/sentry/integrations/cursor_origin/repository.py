@@ -7,6 +7,7 @@ from typing import Any
 from django.utils import timezone
 
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.client import (
     CursorOriginApiClient,
     OriginCommit,
@@ -14,6 +15,7 @@ from sentry.integrations.cursor_origin.client import (
 )
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_WEB_BASE_URL
 from sentry.integrations.cursor_origin.integration import CursorOriginIntegration
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
@@ -31,6 +33,19 @@ logger = logging.getLogger("sentry.integrations.cursor_origin")
 
 MAX_COMPARE_COMMITS_OPTION_KEY = "cursor-origin-app.fetch-commits.max-compare-commits"
 RECENT_COMMIT_COUNT = 20
+
+
+def active_repositories(
+    external_id: str, org_integrations: Sequence[RpcOrganizationIntegration]
+) -> Sequence[Repository]:
+    return list(
+        Repository.objects.filter(
+            organization_id__in=[oi.organization_id for oi in org_integrations],
+            provider=f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}",
+            external_id=external_id,
+            status=ObjectStatus.ACTIVE,
+        )
+    )
 
 
 def file_changes_from(files: Sequence[OriginCommitFile]) -> list[CommitPatchFile]:
