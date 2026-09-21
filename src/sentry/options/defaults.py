@@ -1434,7 +1434,7 @@ register(
 register(
     "issues.action_log.use_db_sequence_for_outbox_identifier",
     type=Bool,
-    default=True,
+    default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
