@@ -1,6 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 
-import {screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Issue} from './issue';
 import {
@@ -10,6 +10,28 @@ import {
 } from './resourceEmbedTestUtils';
 
 describe('issue embed', () => {
+  it('collapses the issue row behind the short id', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [GroupFixture({shortId: 'JAVASCRIPT-22SP'})],
+    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
+
+    renderEmbed({name: 'issue', data: {id: 'JAVASCRIPT-22SP'}});
+
+    const toggle = screen.getByRole('button', {name: 'JAVASCRIPT-22SP'});
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    // The short id is the toggle; navigating out is the separate header link.
+    expect(screen.getByRole('link', {name: 'View Issue'})).toHaveAttribute(
+      'href',
+      '/issues/JAVASCRIPT-22SP/'
+    );
+
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('serializes to a markdown link at the markdown level', () => {
     expect(renderEmbedMarkdown(Issue, 'issue', {id: 'JAVASCRIPT-22SP'})).toBe(
       `[JAVASCRIPT-22SP](${window.location.origin}/issues/JAVASCRIPT-22SP/)`

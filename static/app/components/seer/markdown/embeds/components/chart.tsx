@@ -1,6 +1,7 @@
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {
   defineSeerEmbed,
   type EmbedOutput,
@@ -178,17 +179,25 @@ export const Chart = defineSeerEmbed({
       case 'block':
       case 'inline':
         return (
-          <Container
-            as="section"
-            background="primary"
-            border="primary"
-            data-test-id="seer-chart-embed"
-            margin="lg 0"
-            padding="lg xl md"
-            radius="md"
+          // No link out: the chart is drawn from data in the answer, so there
+          // is no page in Sentry showing the same thing. The card's header band
+          // takes the chart's title -- it has no second line for the subtitle,
+          // which moves into the panel above the plot.
+          <SeerEmbedBlock
+            // A chart is the point of the sentence that introduces it, so it
+            // opens expanded.
+            defaultExpanded
+            gap="sm"
+            testId="seer-chart-embed"
+            title={data.title}
           >
-            <ChartContent data={data} />
-          </Container>
+            {data.subtitle ? (
+              <Text size="sm" variant="muted">
+                {data.subtitle}
+              </Text>
+            ) : null}
+            <ChartContent data={data} showHeader={false} />
+          </SeerEmbedBlock>
         );
     }
   },
