@@ -833,14 +833,14 @@ describe('useWidgetBuilderState', () => {
       act(() => {
         result.current.dispatch({
           type: BuilderStateAction.SET_DATASET,
-          payload: WidgetType.METRICS,
+          payload: WidgetType.TRACEMETRICS,
         });
       });
 
       flushUrlUpdates();
 
       expect(router.location.query).toEqual(
-        expect.objectContaining({dataset: WidgetType.METRICS})
+        expect.objectContaining({dataset: WidgetType.TRACEMETRICS})
       );
     });
 

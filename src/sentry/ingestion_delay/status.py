@@ -8,11 +8,11 @@ from enum import StrEnum
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry.ingestion_delay.activity import has_accepted_outcomes
-from sentry.ingestion_delay.query import MEASUREMENT_LOOKBACK, measure_ingestion_delay
+from sentry.ingestion_delay.query import get_measurement_lookback, measure_ingestion_delay
 
 logger = logging.getLogger(__name__)
 
-# Buffer for outlier ingestion delays.
+# Buffer for outlier ingestion delays and other delays not captured by received_at and ingested_at attributes.
 STALL_MARGIN = timedelta(seconds=60)
 
 # Buffer for projects just exiting idle.
@@ -82,7 +82,7 @@ def get_ingestion_delay_status(
             return result(IngestionStatus.UNKNOWN, None)
     else:
         evidence_end = now - STALL_GRACE
-        evidence_start = now - MEASUREMENT_LOOKBACK
+        evidence_start = now - get_measurement_lookback()
 
     accepted = has_accepted_outcomes(
         organization_id=organization_id,

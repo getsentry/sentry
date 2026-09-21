@@ -3,7 +3,7 @@ from unittest import mock
 
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
-from sentry.ingestion_delay.query import MEASUREMENT_LOOKBACK, IngestionDelayMeasurement
+from sentry.ingestion_delay.query import IngestionDelayMeasurement, get_measurement_lookback
 from sentry.ingestion_delay.status import (
     STALL_GRACE,
     STALL_MARGIN,
@@ -109,7 +109,7 @@ class GetIngestionDelayStatusTest(TestCase):
         assert status.status == Status.STALLED
         assert status.delay_seconds is None
         assert status.complete_through is None
-        assert self.mock_accepted.call_args.kwargs["start"] == self.now - MEASUREMENT_LOOKBACK
+        assert self.mock_accepted.call_args.kwargs["start"] == self.now - get_measurement_lookback()
         assert self.mock_accepted.call_args.kwargs["end"] == self.now - STALL_GRACE
 
     def test_no_rows_without_accepted_data_is_idle(self) -> None:
@@ -118,7 +118,7 @@ class GetIngestionDelayStatusTest(TestCase):
         assert status.status == Status.IDLE
         assert status.delay_seconds is None
         assert status.complete_through is None
-        assert self.mock_accepted.call_args.kwargs["start"] == self.now - MEASUREMENT_LOOKBACK
+        assert self.mock_accepted.call_args.kwargs["start"] == self.now - get_measurement_lookback()
         assert self.mock_accepted.call_args.kwargs["end"] == self.now - STALL_GRACE
 
     def test_failed_measurement_is_unknown(self) -> None:
