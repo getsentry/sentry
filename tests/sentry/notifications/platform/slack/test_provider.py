@@ -24,6 +24,7 @@ from sentry.notifications.platform.provider import (
 from sentry.notifications.platform.slack.provider import (
     SlackNotificationProvider,
     SlackRenderable,
+    SlackRenderer,
     SlackStagingNotificationProvider,
 )
 from sentry.notifications.platform.slack.renderers.metric_alert import SlackMetricAlertRenderer
@@ -47,9 +48,8 @@ class SlackRendererTest(TestCase):
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
         rendered_template = template.render(data)
-        renderer = SlackNotificationProvider.get_renderer(data=data)
 
-        rendererable = renderer.render(data=data, rendered_template=rendered_template)
+        rendererable = SlackRenderer.render(data=data, rendered_template=rendered_template)
         rendererable_dict = [block.to_dict() for block in rendererable.get("blocks", [])]
 
         assert rendererable_dict == [
