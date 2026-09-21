@@ -260,15 +260,16 @@ function formatWildcardToken(token: string, isNegated: boolean): string | null {
 }
 
 function formatRegexToken(token: string, isNegated: boolean): string | null {
-  const match = token.match(/^([^:]+):\/\/(.*)\/\/$/s);
+  const match = token.match(/^(\(*)([^:]+):\/\/(.*)\/\/(\)*)$/s);
   if (!match) {
     return null;
   }
 
+  const [, openParens, key, pattern, closeParens] = match;
   const description =
     OP_LABELS[isNegated ? TermOperator.DOES_NOT_MATCH : TermOperator.MATCHES];
 
-  return `${match[1]} ${description} ${match[2]}`;
+  return `${openParens}${key} ${description} ${pattern}${closeParens}`;
 }
 
 function formatToken(token: string): string {

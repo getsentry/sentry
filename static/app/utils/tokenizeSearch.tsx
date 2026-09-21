@@ -139,7 +139,7 @@ function generateFilterValue(token: Token, operator: string): string {
     return `${key}${operator}${value}`;
   }
 
-  if (requiresQuotes(value)) {
+  if (requiresQuotes(value) || value.startsWith('//')) {
     return `${key}${operator}"${escapeDoubleQuotes(value)}"`;
   }
   return `${key}${operator}${value}`;

@@ -490,6 +490,17 @@ describe('utils/tokenizeSearch', () => {
       ]);
     });
 
+    it('keeps a quoted literal that starts with the regex delimiter quoted', () => {
+      expect(new MutableSearch('url:"//a b//"').formatString()).toBe('url:"//a b//"');
+    });
+
+    it('quotes an added value that starts with the regex delimiter', () => {
+      const search = new MutableSearch('');
+      search.addFilterValue('url', '//a//');
+
+      expect(search.formatString()).toBe('url:"//a//"');
+    });
+
     it('keeps a regex filter unescaped when another filter is added', () => {
       const search = new MutableSearch('message://^ERROR.*//');
       search.addFilterValue('level', 'error');

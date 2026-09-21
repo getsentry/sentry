@@ -381,10 +381,12 @@ export function modifyFilterOperatorQuery(
     !isRegexOperator(internalOp) &&
     newToken.value.type === Token.VALUE_TEXT
   ) {
+    const {value} = newToken.value;
+    const quoted = !value.endsWith('\\');
     newToken.value = {
       ...newToken.value,
-      quoted: true,
-      value: newToken.value.value.replaceAll('"', '\\"'),
+      quoted,
+      value: quoted ? value.replaceAll('"', '\\"') : value,
     };
   }
 

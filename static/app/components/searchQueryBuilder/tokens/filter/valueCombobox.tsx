@@ -1009,6 +1009,9 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       if (isRegexValue) {
+        if (/\/\/[\t\n )]/.test(value)) {
+          return false;
+        }
         dispatch({type: 'UPDATE_TOKEN_VALUE', token, value, op});
         onCommit();
         return true;

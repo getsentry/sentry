@@ -193,6 +193,10 @@ describe('getValidOpsForFilter regex operators', () => {
 });
 
 describe('escapeTagValueForSearch', () => {
+  it('quotes a value that starts with the regex delimiter', () => {
+    expect(escapeTagValueForSearch('//a//')).toBe('"//a//"');
+  });
+
   it('escapes unescaped asterisks', () => {
     expect(escapeTagValueForSearch('foo*bar')).toBe('foo\\*bar');
   });

@@ -8446,6 +8446,27 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  describe('regex operators with an early delimiter', () => {
+    it('does not commit a pattern that the closing delimiter would cut short', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://firefox//"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      await userEvent.keyboard('{Control>}a{/Control}a// b{enter}');
+
+      expect(mockOnChange).not.toHaveBeenCalled();
+    });
+  });
+
   describe('async filter keys (getTagKeys)', () => {
     const asyncTags = [
       {key: 'async_tag_one', name: 'Async Tag One', kind: FieldKind.TAG},

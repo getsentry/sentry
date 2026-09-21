@@ -124,6 +124,7 @@ function shouldEscapeTagValue(
   const {allowArrayValue = true} = options;
   return (
     SHOULD_ESCAPE_REGEX.test(value) ||
+    value.startsWith('//') ||
     (allowArrayValue && value.startsWith('[') && value.endsWith(']'))
   );
 }

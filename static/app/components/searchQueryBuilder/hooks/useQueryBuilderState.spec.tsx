@@ -454,6 +454,14 @@ describe('regex filters', () => {
     ).toBe('message:"[0-9]"');
   });
 
+  it('leaves a pattern ending in a backslash unquoted when switching away from matches regex', () => {
+    const query = 'message://a\\//';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.DEFAULT)
+    ).toBe('message:a\\');
+  });
+
   it('negates the filter when switching to does not match regex', () => {
     const query = 'message:foo';
 
