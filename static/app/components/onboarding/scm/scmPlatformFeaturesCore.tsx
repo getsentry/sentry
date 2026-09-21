@@ -416,8 +416,6 @@ export function ScmPlatformFeaturesCore({
     !isDetectionError &&
     hasDetectedPlatforms &&
     (!currentPlatformKey || currentPlatformIsDetected);
-  // "Back to recommended platforms" focuses the selected card, or the first
-  // card when nothing is selected yet.
   const focusedDetectedPlatform = currentPlatformKey ?? resolvedPlatforms[0]?.platform;
 
   return showDetectedPlatforms ? (

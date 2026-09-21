@@ -20,7 +20,6 @@ interface ScmCardButtonProps extends Omit<
   /**
    * Rendered as aria-disabled rather than disabled, so the card stays
    * focusable and a tooltip that says why it is disabled opens on focus.
-   * Activating it does nothing: onClick is dropped while disabled.
    */
   disabled?: boolean;
 }
