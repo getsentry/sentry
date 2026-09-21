@@ -7,15 +7,12 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {ColumnGrid, useContainerColumnCount} from 'sentry/components/columnGrid';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
-import {
-  TreeColumn,
-  TreeContainer,
-} from 'sentry/components/events/eventTags/eventTagsTree';
+import {TreeColumn} from 'sentry/components/events/eventTags/eventTagsTree';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {EditHighlightsModal} from 'sentry/components/events/highlights/editHighlightsModal';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
@@ -123,7 +120,7 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   const organization = useOrganization();
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
+  const columnCount = useContainerColumnCount(containerRef);
   const {openEditHighlightsModal, editProps} = useOpenEditHighlightsModal({
     highlightsProject,
     event,
@@ -217,19 +214,16 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   ));
 
   const rows = [...highlightTagRows, ...highlightContextRows];
-  const columns: React.ReactNode[] = [];
-  const columnSize = Math.ceil(rows.length / columnCount);
-  for (let i = 0; i < rows.length; i += columnSize) {
-    columns.push(
-      <HighlightColumn key={`highlight-column-${i}`}>
-        {rows.slice(i, i + columnSize)}
-      </HighlightColumn>
-    );
-  }
 
   return (
-    <HighlightContainer columnCount={columnCount} ref={containerRef}>
-      {hasDisabledHighlights ? (
+    <ColumnGrid
+      columnCount={columnCount}
+      items={hasDisabledHighlights ? [] : rows}
+      marginBottom="xl"
+      ref={containerRef}
+      renderColumn={column => <HighlightColumn>{column}</HighlightColumn>}
+    >
+      {hasDisabledHighlights && (
         <EmptyHighlights align="center" justify="center">
           <EmptyHighlightsContent>
             {t("There's nothing here...")}
@@ -242,10 +236,8 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
             </AddHighlightsButton>
           </EmptyHighlightsContent>
         </EmptyHighlights>
-      ) : (
-        columns
       )}
-    </HighlightContainer>
+    </ColumnGrid>
   );
 }
 
@@ -289,17 +281,18 @@ export function HighlightsDataSection({event, project}: HighlightsDataSectionPro
 
 function HighlightsDataLoading() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
+  const columnCount = useContainerColumnCount(containerRef);
 
   return (
-    <HighlightContainer
+    <ColumnGrid
       columnCount={columnCount}
-      ref={containerRef}
       data-test-id="highlights-loading"
-    >
-      {Array.from({length: columnCount}, (_, columnIndex) => (
-        <HighlightColumn key={columnIndex}>
-          {Array.from({length: 4}, (_row, rowIndex) => (
+      items={Array.from({length: columnCount * 4}, (_, rowIndex) => rowIndex)}
+      marginBottom="xl"
+      ref={containerRef}
+      renderColumn={rowIndexes => (
+        <HighlightColumn>
+          {rowIndexes.map(rowIndex => (
             <HighlightLoadingRow key={rowIndex} align="center" columns="subgrid">
               <HighlightLoadingKey>
                 <HighlightKeyPlaceholder
@@ -316,15 +309,10 @@ function HighlightsDataLoading() {
             </HighlightLoadingRow>
           ))}
         </HighlightColumn>
-      ))}
-    </HighlightContainer>
+      )}
+    />
   );
 }
-
-const HighlightContainer = styled(TreeContainer)<{columnCount: number}>`
-  margin-top: 0;
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const EmptyHighlights = styled(Flex)`
   padding: ${p => p.theme.space.xl} ${p => p.theme.space.md};

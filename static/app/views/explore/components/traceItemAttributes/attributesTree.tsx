@@ -7,7 +7,7 @@ import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import {useContainerColumnCount} from 'sentry/components/columnGrid';
 import {IconEllipsis, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -321,7 +321,7 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>(
   props: AttributesTreeProps<RendererExtra>
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const widthBasedColumnCount = useIssueDetailsColumnCount(containerRef);
+  const widthBasedColumnCount = useContainerColumnCount(containerRef);
   const columnCount = props.columnCount ?? widthBasedColumnCount;
   return (
     <TreeContainer

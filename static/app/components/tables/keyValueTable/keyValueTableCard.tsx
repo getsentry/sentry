@@ -4,10 +4,9 @@ import styled from '@emotion/styled';
 
 import {Container as LayoutContainer} from '@sentry/scraps/layout';
 
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import {ColumnGrid, useContainerColumnCount} from 'sentry/components/columnGrid';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 
 import {
   KeyValueTableDataRow,
@@ -79,20 +78,20 @@ export function KeyValueTableCard({
 
 export function KeyValueTableCardGrid({children}: {children: React.ReactNode}) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
+  const columnCount = useContainerColumnCount(containerRef);
 
   const cards = Children.toArray(children).filter(
     (child: ReactNode) => child !== null && child !== undefined
   );
 
   return (
-    <CardGridWrapper columnCount={columnCount} ref={containerRef}>
-      {splitIntoColumns(cards, columnCount).map((column, index) => (
-        <LayoutContainer column="span 1" key={index}>
-          {column}
-        </LayoutContainer>
-      ))}
-    </CardGridWrapper>
+    <ColumnGrid
+      columnCount={columnCount}
+      gap="lg"
+      items={cards}
+      ref={containerRef}
+      renderColumn={column => <LayoutContainer column="span 1">{column}</LayoutContainer>}
+    />
   );
 }
 
@@ -125,11 +124,4 @@ const TruncateWrapper = styled('a')`
   margin: ${p => p.theme.space.xs} 0;
   justify-content: center;
   font-family: ${p => p.theme.font.family.sans};
-`;
-
-const CardGridWrapper = styled('div')<{columnCount: number}>`
-  display: grid;
-  align-items: start;
-  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-  gap: 10px;
 `;

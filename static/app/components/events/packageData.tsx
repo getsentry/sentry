@@ -1,11 +1,10 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import {ColumnGrid, useContainerColumnCount} from 'sentry/components/columnGrid';
 import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -16,7 +15,7 @@ type Props = {
 
 export function EventPackageData({event}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef) + 1;
+  const columnCount = useContainerColumnCount(containerRef) + 1;
   let title: string;
 
   const packages = Object.entries(event.packages || {}).map(([key, value]) => ({
@@ -56,20 +55,14 @@ export function EventPackageData({event}: Props) {
       ref={containerRef}
       initialCollapse
     >
-      <ColumnsContainer columnCount={columnCount}>
-        {splitIntoColumns(componentItems, columnCount).map((column, i) => (
-          <Column key={`highlight-column-${i}`}>{column}</Column>
-        ))}
-      </ColumnsContainer>
+      <ColumnGrid
+        columnCount={columnCount}
+        items={componentItems}
+        renderColumn={column => <Column>{column}</Column>}
+      />
     </FoldSection>
   );
 }
-
-const ColumnsContainer = styled('div')<{columnCount: number}>`
-  display: grid;
-  align-items: start;
-  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-`;
 
 const Column = styled('div')`
   display: grid;

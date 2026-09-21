@@ -134,8 +134,8 @@ export default Storybook.story('KeyValueTable', story => {
           <code>{'<KeyValueTableCardGrid/>'}</code> can be used in combination with{' '}
           <code>{'<KeyValueTableCard/>'}</code> components to create a 'masonry' style
           layout for space efficiency. They leverage the{' '}
-          <code>useIssueDetailsColumnCount</code> hook to distribute cards into the
-          available space evenly. They don't accept any props, and just require{' '}
+          <code>useContainerColumnCount</code> hook to distribute cards into the available
+          space evenly. They don't accept any props, and just require{' '}
           <code>children</code>.
         </p>
         <p>
