@@ -190,3 +190,22 @@ class InstallationEventHandlerTest(TestCase):
 
         with assume_test_silo_mode_of(Repository):
             assert Repository.objects.get(id=other_repo.id).status == ObjectStatus.ACTIVE
+
+    def test_an_update_does_not_overwrite_a_token_refreshed_since(self) -> None:
+        """The endpoint resolves the integration once, and a refresh can land after it."""
+        context = integration_service.organization_contexts(
+            provider="cursor_origin", external_id=INSTALLATION_ID
+        )
+        assert context.integration is not None
+        stale = context.integration
+
+        integration_service.update_integration(
+            integration_id=self.integration.id,
+            metadata={**stale.metadata, "access_token": "oit_refreshed"},
+        )
+
+        HANDLERS["installation.updated"]()(
+            _installation(), DELIVERY_ID, stale, context.organization_integrations
+        )
+
+        assert self._integration().metadata["access_token"] == "oit_refreshed"

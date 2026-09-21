@@ -127,8 +127,11 @@ class InstallationUpdatedHandler(InstallationEventHandler):
             changed["domain_name"] = f"{CURSOR_ORIGIN_WEB_BASE_URL}/{name}"
 
         # `update_integration` replaces metadata rather than merging it, which would
-        # drop the cached access token and, without a slug, `domain_name`.
-        metadata = {**integration.metadata, **changed}
+        # drop the cached access token and, without a slug, `domain_name`. Read the row
+        # again rather than merging onto the copy the endpoint resolved: a token refresh
+        # between the two would be overwritten with the stale token.
+        stored = integration_service.get_integration(integration_id=integration.id)
+        metadata = {**(stored.metadata if stored else integration.metadata), **changed}
 
         logger.info(
             "cursor_origin.webhook.updating_integration",
