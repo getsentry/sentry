@@ -276,6 +276,17 @@ def encode_viewer_context(
 
 
 def _organization_is_early_adopter(organization_id: int) -> bool:
+    from sentry.silo.base import SiloMode
+
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        from sentry.models.organizationmapping import OrganizationMapping
+
+        try:
+            mapping = OrganizationMapping.objects.get_from_cache(organization_id=organization_id)
+        except OrganizationMapping.DoesNotExist:
+            return False
+        return mapping.early_adopter
+
     from sentry.models.organization import Organization
 
     try:
