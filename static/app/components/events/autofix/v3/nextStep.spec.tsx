@@ -10,11 +10,20 @@ import type {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {SeerDrawerNextStep} from './nextStep';
 
 jest.mock('sentry/utils/analytics');
+jest.mock('sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer');
+
+const mockOpenSeerExplorerDrawer = jest.fn();
+jest.mocked(useSeerExplorerDrawer).mockReturnValue({
+  openSeerExplorerDrawer: mockOpenSeerExplorerDrawer,
+  closeSeerExplorerDrawer: jest.fn(),
+  isSeerExplorerDrawerOpen: false,
+} as unknown as ReturnType<typeof useSeerExplorerDrawer>);
 
 function makeAutofix(
   overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
@@ -183,6 +192,61 @@ describe('SeerDrawerNextStep', () => {
       expect(screen.getByText('Are you happy with this root cause?')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'No'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeInTheDocument();
+    });
+
+    describe('code mode', () => {
+      const codeModeOrganization = OrganizationFixture({
+        features: ['seer-explorer-code-mode-tools'],
+      });
+
+      it('relabels no as Ask Seer and hands the rethink to the agent', async () => {
+        const autofix = makeAutofix();
+        render(
+          <SeerDrawerNextStep
+            group={GroupFixture()}
+            sections={[makeSection('root_cause')]}
+            autofix={autofix}
+          />,
+          {organization: codeModeOrganization}
+        );
+
+        expect(screen.queryByRole('button', {name: 'No'})).not.toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', {name: 'Ask Seer'}));
+
+        expect(mockOpenSeerExplorerDrawer).toHaveBeenCalledWith({
+          initialQuery: 'Rethink root cause',
+          appendToOpenRun: true,
+        });
+
+        // The agent takes the question, so no further Autofix step is started
+        // and the context textarea never appears.
+        expect(autofix.startStep).not.toHaveBeenCalled();
+        expect(
+          screen.queryByPlaceholderText(
+            'Give seer additional context to improve this root cause.'
+          )
+        ).not.toBeInTheDocument();
+      });
+
+      it('hands the yes to the agent instead of starting the next step', async () => {
+        const autofix = makeAutofix();
+        render(
+          <SeerDrawerNextStep
+            group={GroupFixture()}
+            sections={[makeSection('root_cause')]}
+            autofix={autofix}
+          />,
+          {organization: codeModeOrganization}
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Yes, make a plan'}));
+
+        expect(mockOpenSeerExplorerDrawer).toHaveBeenCalledWith({
+          initialQuery: 'Run the next Autofix step',
+          appendToOpenRun: true,
+        });
+        expect(autofix.startStep).not.toHaveBeenCalled();
+      });
     });
 
     it('calls startStep with solution on yes click', async () => {
