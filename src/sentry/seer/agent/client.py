@@ -375,7 +375,7 @@ class SeerAgentClient:
             raise ValueError("category_key and category_value must be provided together")
 
         # Validate base Seer access on init (agent-specific flag checks are done at the endpoint level)
-        has_access, error = has_seer_access_with_detail(organization, user)
+        has_access, error = has_seer_access_with_detail(organization)
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
 

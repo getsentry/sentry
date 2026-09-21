@@ -129,7 +129,7 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
+        has_seer_access, detail = has_seer_access_with_detail(organization)
         if not has_seer_access:
             return Response(
                 {"detail": detail},

@@ -28,14 +28,15 @@ def get_seer_automation_ineligibility_reason(
     group: Group,
 ) -> SeerAutomationIneligibilityReason | None:
     """Return the reason an issue is ineligible for Seer automation, or None if eligible."""
-    from sentry import features, quotas
+    from sentry import quotas
     from sentry.constants import DataCategory
     from sentry.seer.autofix.utils import is_issue_category_eligible
+    from sentry.seer.seer_setup import is_seer_available
 
     if not is_issue_category_eligible(group):
         return "not_eligible.issue_category_ineligible"
 
-    if not features.has("organizations:gen-ai-features", group.organization):
+    if not is_seer_available():
         return "not_eligible.gen_ai_feature_disabled"
 
     gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")

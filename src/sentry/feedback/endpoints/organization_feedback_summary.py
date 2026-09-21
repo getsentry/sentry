@@ -90,7 +90,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         :auth: required
         """
 
-        if not has_seer_access(organization, actor=request.user):
+        if not has_seer_access(organization):
             return Response(
                 {"detail": "AI summaries are not available for this organization."}, status=403
             )

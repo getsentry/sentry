@@ -8,7 +8,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -16,6 +15,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
+from sentry.seer.seer_setup import is_seer_available
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     TranslateQueryRequest,
@@ -97,9 +97,7 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if not features.has(
-            "organizations:gen-ai-features", organization=organization, actor=request.user
-        ):
+        if not is_seer_available():
             return Response(
                 {"detail": "Organization does not have access to this feature"},
                 status=status.HTTP_403_FORBIDDEN,

@@ -84,8 +84,7 @@ class OrganizationUptimeAssertionSuggestionsEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
     ) -> Response:
-        # Check if AI features are enabled (includes gen-ai-features flag + hide_ai_features opt-out)
-        if not has_seer_access(organization, actor=request.user):
+        if not has_seer_access(organization):
             return self.respond(
                 {"detail": "AI features are not enabled for this organization"},
                 status=403,

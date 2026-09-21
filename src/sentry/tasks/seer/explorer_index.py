@@ -35,7 +35,6 @@ EXPLORER_INDEX_PROJECTS_PER_BATCH = 100
 EXPLORER_INDEX_DISPATCH_STEP = timedelta(seconds=37)
 
 FEATURE_NAMES = [
-    "organizations:gen-ai-features",
     "organizations:seer-explorer-index",
     "organizations:seat-based-seer-enabled",
     "organizations:seer-added",
@@ -73,43 +72,18 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
         if bool(project.organization.get_option("sentry:hide_ai_features")):
             continue
 
-        is_eligible = False
         with start_span(
             op="seer_explorer_index.has_feature", name="seer_explorer_index.has_feature"
         ):
             batch_result = features.batch_has(FEATURE_NAMES, organization=project.organization)
-
             if batch_result:
-                org_key = f"organization:{project.organization.id}"
-                org_features = batch_result.get(org_key, {})
-                has_gen_ai = org_features.get("organizations:gen-ai-features", False)
-                has_explorer_index = org_features.get("organizations:seer-explorer-index", False)
-
-                if has_explorer_index and has_gen_ai:
-                    is_eligible = True
-
-                has_seer_plan = org_features.get(
-                    "organizations:seat-based-seer-enabled", False
-                ) or org_features.get("organizations:seer-added", False)
-
-                if has_seer_plan and has_gen_ai:
-                    is_eligible = True
-
+                org_features = batch_result.get(f"organization:{project.organization.id}", {})
             else:
-                has_gen_ai = features.has("organizations:gen-ai-features", project.organization)
-                has_explorer_index = features.has(
-                    "organizations:seer-explorer-index", project.organization
-                )
+                org_features = {
+                    name: features.has(name, project.organization) for name in FEATURE_NAMES
+                }
 
-                if has_explorer_index and has_gen_ai:
-                    is_eligible = True
-
-                has_seer_plan = features.has(
-                    "organizations:seat-based-seer-enabled", project.organization
-                ) or features.has("organizations:seer-added", project.organization)
-
-                if has_seer_plan and has_gen_ai:
-                    is_eligible = True
+        is_eligible = any(org_features.get(name, False) for name in FEATURE_NAMES)
 
         if not is_eligible:
             continue
