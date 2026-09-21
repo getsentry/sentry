@@ -93,7 +93,6 @@ export function SavedQueriesTable({
       if (!isExploreSavedQuery(query)) {
         return;
       }
-      const id = query.id;
       if (starred) {
         setStarredKeys(prev => [...prev, key]);
       } else {

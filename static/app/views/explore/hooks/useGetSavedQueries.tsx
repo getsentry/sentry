@@ -134,7 +134,6 @@ export type ReadableSavedQuery = {
   position: number | null;
   projects: number[];
   query: [ReadableQuery, ...ReadableQuery[]];
-  queryType: SavedQueryType.EXPLORE;
   starred: boolean;
   agent?: string[];
   caseInsensitive?: CaseInsensitive;
