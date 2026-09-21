@@ -296,13 +296,13 @@ export function SeerExplorerContent({
       return;
     }
     lastAutoSubmittedQueryRef.current = query;
-    // The open run failed to load, so appending to it would post into a dead run.
-    // A forwarded query still deserves an answer: start it in a fresh one.
-    sendMessage(
-      query,
-      showLoadError ? 0 : blocks.length,
-      showLoadError ? null : undefined
-    );
+    if (showLoadError) {
+      // The open run failed to load, so appending to it would post into a dead run.
+      // A forwarded query still deserves an answer: start it in a fresh one.
+      sendMessage(query, 0, null);
+      return;
+    }
+    sendMessage(query, blocks.length);
   }, [
     initialQuery,
     appendInitialQuery,
