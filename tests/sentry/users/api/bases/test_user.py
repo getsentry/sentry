@@ -159,14 +159,15 @@ class UserDisplayPreferencesPermissionTest(DRFPermissionTestCase):
 
         assert self.options_permission.has_permission(request, APIView())
 
-    def test_ordinary_token_read_scope_does_not_allow_put(self) -> None:
-        # The exception above must not widen ordinary token access.
+    def test_ordinary_token_read_scope_allows_put(self) -> None:
+        # No scope is required for anyone: these are the caller's own settings, and
+        # has_object_permission is what keeps a caller to their own.
         auth = AuthenticatedToken(
             kind="api_token", scopes=["org:read"], user_id=self.normal_user.id
         )
         request = self.make_request(user=self.normal_user, auth=auth, method="PUT")
 
-        assert not self.options_permission.has_permission(request, APIView())
+        assert self.options_permission.has_permission(request, APIView())
 
     def test_ordinary_token_write_scope_allows_put(self) -> None:
         auth = AuthenticatedToken(

@@ -68,31 +68,17 @@ class UserDisplayPreferencesPermission(UserPermission):
     No staff or superuser bypass, unlike `UserAndStaffPermission`: display preferences
     are personal, so there is no operator reason to write somebody else's.
 
-    Ordinary tokens keep a write-capable requirement for `PUT`. Agent credentials are
-    the single exception, and only for writes: an agent acts for one user on that
-    user's own preferences, which the user themselves changes with no scope at all,
-    since session auth never reaches a scope map. Requiring a write scope of the agent
-    would be stricter than the person it acts for, and unaskable — grants are capped at
-    the approving user's own scopes, and `org:write` belongs to manager and owner only,
-    so a member could never approve one.
+    No scope is required, and there is no `scope_map`. These are one user's own
+    settings, which that user already changes with no scope at all — session auth never
+    reaches a scope check. Requiring one of a token acting for the same user would be
+    stricter than the person it acts for, and there is no scope that expresses "may
+    change my own settings": every Sentry scope describes an organization resource.
+    Authentication is the requirement, and `has_object_permission` confines every
+    caller to their own preferences.
     """
 
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:write", "org:admin"],
-    }
-
-    # What an agent credential may hold for either method. Deliberately wider than
-    # `scope_map["PUT"]`; see the class docstring.
-    agent_scopes = frozenset({"org:read", "org:write", "org:admin"})
-
     def has_permission(self, request: Request, view: APIView) -> bool:
-        if agent_token.is_agent_auth(request.auth):
-            # Checked here rather than through `scope_map` so the relaxed write rule
-            # reaches agent credentials only. `has_object_permission` is what confines
-            # the request to the delegating user's own preferences.
-            return bool(self.agent_scopes.intersection(request.auth.get_scopes()))
-        return super().has_permission(request, view)
+        return request.user.is_authenticated
 
     def has_object_permission(
         self, request: Request, view: APIView, user: User | RpcUser | None

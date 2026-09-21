@@ -220,7 +220,7 @@ class UserDisplayPreferencesAgentTokenTest(APITestCase):
 
 @control_silo_test
 class UserDisplayPreferencesTokenScopeTest(APITestCase):
-    """An ordinary bearer token, to prove the agent write exception did not widen it."""
+    """An ordinary bearer token: no scope is required, same as every other caller."""
 
     endpoint = "sentry-api-0-user-display-preferences"
 
@@ -243,17 +243,14 @@ class UserDisplayPreferencesTokenScopeTest(APITestCase):
 
         assert response.data["theme"] == "dark"
 
-    def test_read_scope_cannot_persist_a_write(self) -> None:
-        response = self.get_error_response(
-            "me",
-            method="put",
-            theme="dark",
-            status_code=403,
-            extra_headers=self._headers(["org:read"]),
+    def test_read_scope_can_persist_a_write(self) -> None:
+        # No scope is required for this resource, so a read-only token writing the
+        # token owner's own preferences is expected, not an escalation.
+        self.get_success_response(
+            "me", method="put", theme="dark", extra_headers=self._headers(["org:read"])
         )
 
-        assert "insufficient_scope" in response["WWW-Authenticate"]
-        assert UserOption.objects.get_value(user=self.user, key="theme") is None
+        assert UserOption.objects.get_value(user=self.user, key="theme") == "dark"
 
     def test_write_scope_can_write(self) -> None:
         self.get_success_response(
