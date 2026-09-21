@@ -3,6 +3,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
 interface DroppedDataPanelProps {
@@ -21,10 +22,10 @@ export function DroppedDataPanelContent({onClose}: DroppedDataPanelProps) {
         borderBottom="primary"
       >
         <Button variant="transparent" size="sm" icon={<IconClose />} onClick={onClose}>
-          Close
+          {t('Close')}
         </Button>
         <Divider />
-        <Text size="md">Dropped Data</Text>
+        <Text size="md">{t('Dropped Data')}</Text>
       </Flex>
     </Stack>
   );
