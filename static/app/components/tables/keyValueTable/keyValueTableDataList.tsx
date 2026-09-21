@@ -14,7 +14,6 @@ interface KeyValueTableDataListProps {
   data?: KeyValueListData;
   isContextData?: boolean;
   margin?: boolean;
-  raw?: boolean;
   shouldSort?: boolean;
 }
 
@@ -22,7 +21,6 @@ export function KeyValueTableDataList({
   data,
   isContextData = false,
   shouldSort = true,
-  raw = false,
   margin = false,
   className,
   ...props
@@ -41,12 +39,7 @@ export function KeyValueTableDataList({
     >
       <tbody>
         {rows.map((item, index) => (
-          <Row
-            key={`${item.key}-${index}`}
-            item={item}
-            isContextData={isContextData}
-            raw={raw}
-          />
+          <Row key={`${item.key}-${index}`} item={item} isContextData={isContextData} />
         ))}
       </tbody>
     </Table>
@@ -56,11 +49,9 @@ export function KeyValueTableDataList({
 function Row({
   item,
   isContextData,
-  raw,
 }: {
   isContextData: boolean;
   item: KeyValueListDataItem;
-  raw: boolean;
 }) {
   const {
     subject,
@@ -76,7 +67,7 @@ function Row({
 
   const renderValue = (v: KeyValueListDataItem['value']) =>
     item.isContextData || isContextData ? (
-      <ContextDataValue value={v} meta={meta} raw={raw} subjectIcon={subjectIcon} />
+      <ContextDataValue value={v} meta={meta} subjectIcon={subjectIcon} />
     ) : (
       <PreformattedValue value={v} meta={meta} subjectIcon={subjectIcon} />
     );

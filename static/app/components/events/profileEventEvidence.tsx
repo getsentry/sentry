@@ -1,6 +1,6 @@
 import {LinkButton} from '@sentry/scraps/button';
 
-import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -41,6 +41,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
                 {t('View Transaction')}
               </LinkButton>
             ) : null,
+            actionButtonAlwaysVisible: true,
           },
         ]
       : []),
@@ -68,6 +69,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
                 {t('View Profile')}
               </LinkButton>
             ),
+            actionButtonAlwaysVisible: true,
           },
         ]
       : []),
@@ -80,7 +82,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
 
   return (
     <FoldSection title={t('Function Evidence')} sectionKey={SectionKey.EVIDENCE}>
-      <KeyValueTableDataList margin data={keyValueListData} shouldSort={false} />
+      <KeyValueTableCard contentItems={keyValueListData.map(item => ({item}))} />
     </FoldSection>
   );
 }

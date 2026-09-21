@@ -36,18 +36,10 @@ export function Value({value, meta, disableFormattedData}: ValueProps) {
 export function ContextDataValue({
   value,
   meta,
-  raw,
   subjectIcon,
-}: Pick<ValueProps, 'value' | 'meta'> & {
-  raw?: boolean;
-  subjectIcon?: React.ReactNode;
-}) {
+}: Pick<ValueProps, 'value' | 'meta'> & {subjectIcon?: React.ReactNode}) {
   return (
-    <StructuredEventData
-      data={raw ? JSON.stringify(value) : value}
-      meta={meta}
-      withAnnotatedText
-    >
+    <StructuredEventData data={value} meta={meta} withAnnotatedText>
       {subjectIcon}
     </StructuredEventData>
   );

@@ -47,11 +47,7 @@ describe('EventEvidence', () => {
   it('renders evidenceDisplay data in a key/value table', () => {
     render(<EventEvidence {...defaultProps} />);
 
-    expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('cell', {
-        name: '/api/0/transaction-test-endpoint/',
-      })
-    ).toBeInTheDocument();
+    expect(screen.getByText('Transaction')).toBeInTheDocument();
+    expect(screen.getByText('/api/0/transaction-test-endpoint/')).toBeInTheDocument();
   });
 });
