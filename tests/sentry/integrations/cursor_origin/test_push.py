@@ -296,21 +296,21 @@ class PushEventTest(TestCase):
         payload = _payload(_ref_update())
         del payload["repository"]["id"]
 
-        with pytest.raises(OriginPayloadError, match="repository.id"):
+        with pytest.raises(OriginPayloadError, match="repository -> id"):
             PushEvent.from_payload(payload)
 
     def test_a_ref_update_with_no_ref_is_refused(self) -> None:
         payload = _payload(_ref_update())
         del payload["refUpdates"][0]["ref"]
 
-        with pytest.raises(OriginPayloadError, match=r"refUpdates\[0\].ref"):
+        with pytest.raises(OriginPayloadError, match="refUpdates -> 0 -> ref"):
             PushEvent.from_payload(payload)
 
     def test_ref_updates_of_the_wrong_type_is_refused(self) -> None:
         payload = _payload()
         payload["refUpdates"] = "refs/heads/main"
 
-        with pytest.raises(OriginPayloadError, match="refUpdates must be an array"):
+        with pytest.raises(OriginPayloadError, match="refUpdates\\n  value is not a valid list"):
             PushEvent.from_payload(payload)
 
 
