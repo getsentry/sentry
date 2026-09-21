@@ -1,22 +1,4 @@
-import type {EventTag, Level, Measurement} from 'sentry/types/event';
-
-/**
- * `EventLite` represents the type of a simplified event from
- * the `events-trace` endpoint.
- */
-type EventLite = {
-  event_id: string;
-  generation: number | null;
-  parent_event_id: string | null;
-  parent_span_id: string | null;
-  performance_issues: TracePerformanceIssue[];
-  project_id: number;
-  project_slug: string;
-  span_id: string;
-  timestamp: number;
-  transaction: string;
-  'transaction.duration': number;
-};
+import type {Level} from 'sentry/types/event';
 
 export type TraceError = {
   event_id: string;
@@ -44,42 +26,6 @@ export type TracePerformanceIssue = Omit<TraceError, 'issue' | 'span'> & {
   issue_short_id?: string;
 };
 
-type QuickTraceEvent = EventLite & {
-  errors?: TraceError[];
-};
-
-/**
- * The `events-trace` endpoint returns a tree structure that gives
- * the parent-child relationships between events.
- *
- * This is the type returned with `detailed=0`
- */
-type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
-  /**
-   * In the full trace, generation, children and errors are always defined.
-   */
-  children: TraceFull[];
-  errors: TraceError[];
-  generation: number;
-};
-
-/**
- * The `events-trace` endpoint has a parameter to get
- * additional information by setting `detailed=1`.
- */
-export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
-  children: TraceFullDetailed[];
-  sdk_name: string;
-  start_timestamp: number;
-  timestamp: number;
-  'transaction.op': string;
-  'transaction.status': string;
-  measurements?: Record<string, Measurement>;
-  profile_id?: string;
-  tags?: EventTag[];
-  transaction?: string;
-};
-
 export type EAPTraceMeta = {
   errorsCount: number;
   logsCount: number;
@@ -87,13 +33,7 @@ export type EAPTraceMeta = {
   performanceIssuesCount: number;
   spansCount: number;
   spansCountMap: Record<string, number>;
-  transactionChildCountMap: Record<string, number>;
   uptimeCount: number;
-};
-
-type ResponseEAPTraceMetaTransactionChildCount = {
-  'count()': number;
-  'transaction.event_id': string | null;
 };
 
 export type ResponseEAPTraceMeta = {
@@ -103,6 +43,5 @@ export type ResponseEAPTraceMeta = {
   performanceIssuesCount: number;
   spansCount: number;
   spansCountMap: Record<string, number>;
-  transactionChildCountMap: ResponseEAPTraceMetaTransactionChildCount[];
   uptimeCount?: number;
 };

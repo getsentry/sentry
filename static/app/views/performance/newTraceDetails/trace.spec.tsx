@@ -93,7 +93,6 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
         performanceIssuesCount: 0,
         spansCount: 200,
         spansCountMap: {},
-        transactionChildCountMap: [],
         uptimeCount: 0,
       },
     }),
@@ -187,7 +186,6 @@ function setupEAPTraceView() {
       performanceIssuesCount: 0,
       spansCount: 3,
       spansCountMap: {},
-      transactionChildCountMap: [],
       uptimeCount: 0,
     },
   });
@@ -300,7 +298,6 @@ describe('trace view', () => {
           performanceIssuesCount: 0,
           spansCount: 2,
           spansCountMap: {},
-          transactionChildCountMap: [],
         },
       });
       for (const itemId of ['pin-root', 'pin-child']) {
@@ -1091,7 +1088,6 @@ describe('trace view', () => {
         performanceIssuesCount: 0,
         spansCount: 104,
         spansCountMap: {},
-        transactionChildCountMap: [],
       },
     });
     for (const itemId of ['root-transaction', 'lcp-span']) {
@@ -1273,7 +1269,6 @@ describe('trace view', () => {
           performanceIssuesCount: 0,
           spansCount: 103,
           spansCountMap: {},
-          transactionChildCountMap: [],
         },
       });
       mockTraceRootFacets();

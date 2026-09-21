@@ -73,31 +73,6 @@ function mergeCountMap(acc: Record<string, number>, value: Record<string, number
   });
 }
 
-type TransactionChildCountMap =
-  | Record<string, number>
-  | ResponseEAPTraceMeta['transactionChildCountMap'];
-
-function mergeTransactionChildCountMap(
-  acc: Record<string, number>,
-  value: TransactionChildCountMap
-): void {
-  if (Array.isArray(value)) {
-    value.forEach(row => {
-      const id = row['transaction.event_id'];
-      const count = row['count()'];
-
-      if (!id) {
-        return;
-      }
-
-      acc[id] = (acc[id] ?? 0) + count;
-    });
-    return;
-  }
-
-  mergeCountMap(acc, value);
-}
-
 async function fetchTraceMetaInBatches(
   organization: Organization,
   traces: TraceMetaTrace[],
@@ -114,7 +89,6 @@ async function fetchTraceMetaInBatches(
     performanceIssuesCount: 0,
     spansCount: 0,
     spansCountMap: {},
-    transactionChildCountMap: {},
     uptimeCount: 0,
   };
 
@@ -162,10 +136,6 @@ async function fetchTraceMetaInBatches(
         acc.spansCount += result.value.spansCount;
         acc.uptimeCount += result.value.uptimeCount ?? 0;
         mergeCountMap(acc.spansCountMap, result.value.spansCountMap);
-        mergeTransactionChildCountMap(
-          acc.transactionChildCountMap,
-          result.value.transactionChildCountMap
-        );
       } else {
         apiErrors.push(new Error(result?.reason));
       }

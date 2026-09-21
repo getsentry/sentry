@@ -27,7 +27,6 @@ describe('traceWaterfall embed', () => {
         performanceIssuesCount: 0,
         spansCount: 0,
         spansCountMap: {},
-        transactionChildCountMap: [],
         uptimeCount: 0,
       },
     });

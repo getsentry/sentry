@@ -39,7 +39,6 @@ describe('useTraceMeta', () => {
         spansCountMap: {
           op1: 1,
         },
-        transactionChildCountMap: [{'transaction.event_id': '1', 'count()': 1}],
         uptimeCount: 0,
       },
     });
@@ -56,7 +55,6 @@ describe('useTraceMeta', () => {
           op1: 1,
           op2: 1,
         },
-        transactionChildCountMap: [{'transaction.event_id': '2', 'count()': 2}],
         uptimeCount: 0,
       },
     });
@@ -72,7 +70,6 @@ describe('useTraceMeta', () => {
         spansCountMap: {
           op3: 1,
         },
-        transactionChildCountMap: [{'transaction.event_id': '3', 'count()': 1}],
         uptimeCount: 1,
       },
     });
@@ -103,11 +100,6 @@ describe('useTraceMeta', () => {
           op2: 1,
           op3: 1,
         },
-        transactionChildCountMap: {
-          '1': 1,
-          '2': 2,
-          '3': 1,
-        },
         uptimeCount: 1,
       },
       errors: [],
@@ -117,7 +109,7 @@ describe('useTraceMeta', () => {
     expect(result.current.data?.metricsCount).toBe(6);
   });
 
-  it('accepts trace meta without transactionsCount', async () => {
+  it('accepts trace metadata with span counts', async () => {
     const trace = {
       traceSlug: 'slug-without-transactions-count',
       timestamp: 1,
@@ -132,13 +124,6 @@ describe('useTraceMeta', () => {
         metricsCount: 1,
         performanceIssuesCount: 0,
         spansCount: 529,
-        transactionChildCountMap: [
-          {
-            'transaction.event_id': '2b6107aa9d5f49c7a100babc02e903a0',
-            'count()': 62,
-          },
-          {'transaction.event_id': null, 'count()': 1},
-        ],
         spansCountMap: {
           processor: 113,
         },
@@ -161,9 +146,6 @@ describe('useTraceMeta', () => {
       spansCount: 529,
       spansCountMap: {
         processor: 113,
-      },
-      transactionChildCountMap: {
-        '2b6107aa9d5f49c7a100babc02e903a0': 62,
       },
       uptimeCount: 0,
     });
@@ -249,7 +231,6 @@ describe('useTraceMeta', () => {
       performanceIssuesCount: 0,
       spansCount: 0,
       spansCountMap: {},
-      transactionChildCountMap: [],
       uptimeCount: 0,
     };
 
@@ -273,7 +254,6 @@ describe('useTraceMeta', () => {
       performanceIssuesCount: 1,
       spansCount: 1,
       spansCountMap: {op1: 1},
-      transactionChildCountMap: [{'transaction.event_id': 'tx1', 'count()': 1}],
       uptimeCount: 0,
     };
 
@@ -321,7 +301,6 @@ describe('useTraceMeta', () => {
       performanceIssuesCount: 0,
       spansCount: 0,
       spansCountMap: {},
-      transactionChildCountMap: [],
       uptimeCount: 0,
     };
     const initialBody = {...emptyBody, [countField]: 1};
@@ -368,7 +347,6 @@ describe('useTraceMeta', () => {
         performanceIssuesCount: 0,
         spansCount: 0,
         spansCountMap: {},
-        transactionChildCountMap: [],
         uptimeCount: 0,
       },
     });
@@ -384,7 +362,6 @@ describe('useTraceMeta', () => {
         performanceIssuesCount: 1,
         spansCount: 1,
         spansCountMap: {},
-        transactionChildCountMap: [],
         uptimeCount: 0,
       },
     });
@@ -419,7 +396,6 @@ describe('useTraceMeta', () => {
         spansCountMap: {
           op1: 1,
         },
-        transactionChildCountMap: [],
         uptimeCount: 0,
       },
     });
@@ -435,7 +411,6 @@ describe('useTraceMeta', () => {
         spansCountMap: {
           op2: 1,
         },
-        transactionChildCountMap: [],
         uptimeCount: 0,
       },
     });
@@ -465,7 +440,6 @@ describe('useTraceMeta', () => {
           op1: 1,
           op2: 1,
         },
-        transactionChildCountMap: {},
         uptimeCount: 0,
       },
       errors: [expect.any(Error)],

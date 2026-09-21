@@ -20,7 +20,6 @@ import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import type {TraceFullDetailed} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   makeEAPError,
@@ -111,54 +110,47 @@ const makeDefaultMockData = (
   };
 };
 
-const mockedTrace = (project: Project) => {
-  return {
+const mockedTrace = (project: Project): TraceTree.EAPSpan =>
+  makeEAPSpan({
     event_id: '8806ea4691c24fc7b1c77ecd78df574f',
-    span_id: 'b0e6f15b45c36b12',
     transaction: 'MainActivity.add_attachment',
-    'transaction.duration': 1000,
-    'transaction.op': 'navigation',
+    transaction_id: '8806ea4691c24fc7b1c77ecd78df574f',
+    name: 'MainActivity.add_attachment',
+    op: 'navigation',
     project_id: parseInt(project.id, 10),
     project_slug: project.slug,
     parent_span_id: null,
-    parent_event_id: null,
-    generation: 0,
+    is_transaction: true,
+    start_timestamp: 1678290374.150561,
+    end_timestamp: 1678290375.150561,
     errors: [
-      {
+      makeEAPError({
         event_id: 'c6971a73454646338bc3ec80c70f8891',
         issue_id: 104,
-        span: 'b0e6f15b45c36b12',
         project_id: parseInt(project.id, 10),
         project_slug: project.slug,
-        title: 'ApplicationNotResponding: ANR for at least 5000 ms.',
-        message: 'ANR for at least 5000 ms.',
+        description: 'ApplicationNotResponding: ANR for at least 5000 ms.',
         level: 'error',
-        issue: '',
-      },
+        start_timestamp: 1678290374.150561,
+        transaction: 'MainActivity.add_attachment',
+      }),
     ],
-    performance_issues: [
-      {
+    occurrences: [
+      makeEAPOccurrence({
         event_id: '8806ea4691c24fc7b1c77ecd78df574f',
         issue_id: 110,
-        issue_short_id: 'SENTRY-ANDROID-1R',
-        span: ['b0e6f15b45c36b12'],
-        suspect_spans: ['89930aab9a0314d4'],
+        short_id: 'SENTRY-ANDROID-1R',
         project_id: parseInt(project.id, 10),
         project_slug: project.slug,
-        title: 'File IO on Main Thread',
-        message: 'File IO on Main Thread',
+        description: 'File IO on Main Thread',
         level: 'info',
         culprit: 'MainActivity.add_attachment',
-        type: 1008,
-        end: 1678290375.15056,
-        start: 1678290374.150562,
-      },
+        issue_type: 1008,
+        start_timestamp: 1678290374.150562,
+        transaction: 'MainActivity.add_attachment',
+      }),
     ],
-    timestamp: 1678290375.150561,
-    start_timestamp: 1678290374.150561,
-    children: [],
-  } as Partial<TraceFullDetailed>;
-};
+  });
 
 const mockGroupApis = (
   organization: Organization,
@@ -166,7 +158,7 @@ const mockGroupApis = (
   group: Group,
   event: Event,
   replayId?: string,
-  trace?: Partial<TraceFullDetailed>
+  trace?: TraceTree.EAPSpan
 ) => {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/issues/1/events/',
@@ -203,50 +195,7 @@ const mockGroupApis = (
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/trace/${TRACE_ID}/`,
-    body: trace
-      ? ([
-          makeEAPSpan({
-            event_id: trace.event_id,
-            name: trace.transaction,
-            op: trace['transaction.op'],
-            transaction: trace.transaction,
-            transaction_id: trace.event_id,
-            project_id: trace.project_id,
-            project_slug: trace.project_slug,
-            start_timestamp: trace.start_timestamp,
-            end_timestamp: trace.timestamp,
-            duration: (trace.timestamp ?? 0) - (trace.start_timestamp ?? 0),
-            is_transaction: true,
-            parent_span_id: trace.parent_span_id ?? null,
-            errors: (trace.errors ?? []).map(error =>
-              makeEAPError({
-                event_id: error.event_id,
-                description: error.message,
-                issue_id: error.issue_id,
-                level: error.level,
-                project_id: error.project_id,
-                project_slug: error.project_slug,
-                start_timestamp: trace.start_timestamp,
-                transaction: trace.transaction,
-              })
-            ),
-            occurrences: (trace.performance_issues ?? []).map(issue =>
-              makeEAPOccurrence({
-                culprit: issue.culprit,
-                description: issue.message,
-                event_id: issue.event_id,
-                issue_id: issue.issue_id,
-                issue_type: issue.type,
-                level: issue.level,
-                project_id: issue.project_id,
-                project_slug: issue.project_slug,
-                start_timestamp: trace.start_timestamp,
-                transaction: trace.transaction,
-              })
-            ),
-          }),
-        ] satisfies TraceTree.EAPTrace)
-      : [],
+    body: trace ? ([trace] satisfies TraceTree.EAPTrace) : [],
   });
 
   MockApiClient.addMockResponse({
@@ -691,7 +640,7 @@ describe('groupEventDetails', () => {
         undefined,
         {
           ...trace,
-          performance_issues: [],
+          occurrences: [],
         }
       );
 

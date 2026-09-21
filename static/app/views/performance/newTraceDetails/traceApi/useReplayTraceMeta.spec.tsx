@@ -40,7 +40,6 @@ describe('useReplayTraceMeta', () => {
         spansCountMap: {
           op1: 4,
         },
-        transactionChildCountMap: [],
         uptimeCount: 0,
       },
     });
@@ -68,7 +67,6 @@ describe('useReplayTraceMeta', () => {
       spansCountMap: {
         op1: 4,
       },
-      transactionChildCountMap: {},
       uptimeCount: 0,
     });
   });

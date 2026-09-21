@@ -65,9 +65,6 @@ describe('EventTraceView', () => {
         performanceIssuesCount: 1,
         spansCount: 0,
         spansCountMap: {},
-        transactionChildCountMap: Array.from({length: size})
-          .fill(0)
-          .map((_, i) => ({'transaction.event_id': i.toString(), 'count()': 1})),
         uptimeCount: 0,
       },
     });
@@ -145,7 +142,6 @@ describe('EventTraceView', () => {
         performanceIssuesCount: 0,
         spansCount: 0,
         spansCountMap: {},
-        transactionChildCountMap: [{'transaction.event_id': '1', 'count()': 1}],
         uptimeCount: 0,
       },
     });

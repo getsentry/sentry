@@ -27,7 +27,6 @@ function makeEapMeta(overrides: Partial<EAPTraceMeta> = {}): EAPTraceMeta {
     performanceIssuesCount: 0,
     spansCount: 0,
     spansCountMap: {},
-    transactionChildCountMap: {},
     uptimeCount: 0,
     ...overrides,
   };
