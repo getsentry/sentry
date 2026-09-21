@@ -8,15 +8,11 @@ import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  isEAPSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import type {EapSpanNode} from './eapSpanNode';
-import type {TransactionNode} from './transactionNode';
 
 export interface TraceTreeNodeExtra {
   organization: Organization;
@@ -538,22 +534,8 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return null;
   }
 
-  findClosestParentTransaction(): TransactionNode | EapSpanNode | null {
-    const nodeStoreTransaction = this.findParentNodeStoreTransaction();
-    if (nodeStoreTransaction) {
-      return nodeStoreTransaction;
-    }
-
-    const eapTransaction = this.findParentEapTransaction();
-    if (eapTransaction) {
-      return eapTransaction;
-    }
-
-    return null;
-  }
-
-  findParentNodeStoreTransaction(): TransactionNode | null {
-    return this.findParent(p => isTransactionNode(p));
+  findClosestParentTransaction(): EapSpanNode | null {
+    return this.findParentEapTransaction();
   }
 
   findParentEapTransaction(): EapSpanNode | null {

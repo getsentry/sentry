@@ -16,7 +16,7 @@ describe('traceWaterfall embed', () => {
   function mockTraceRequests() {
     const traceRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/trace/${traceId}/`,
-      body: {transactions: [], orphan_errors: []},
+      body: [],
     });
     const metaRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/trace-meta/${traceId}/`,

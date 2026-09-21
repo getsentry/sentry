@@ -21,8 +21,6 @@ import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/u
 import {hasAIInputAttribute} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {hasAIOutputAttribute} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
-import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
-import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 type SupportedSDKLanguage = 'javascript' | 'python';
 
@@ -75,11 +73,13 @@ export function AIIOAlert({
   attributes,
   event,
 }: {
-  node: EapSpanNode | SpanNode | TransactionNode;
+  node: EapSpanNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  const {dismiss, isDismissed} = useDismissAlert({key: 'genai-io-alert-dismissed'});
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: 'genai-io-alert-dismissed',
+  });
 
   const isSupportedNodeType = getIsAiGenerationNode(node) || getIsExecuteToolNode(node);
   const hasData =

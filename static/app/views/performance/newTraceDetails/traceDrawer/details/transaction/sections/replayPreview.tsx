@@ -3,7 +3,6 @@ import {Stack} from '@sentry/scraps/layout';
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
 import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -11,13 +10,6 @@ const REPLAY_CLIP_OFFSETS = {
   durationAfterMs: 5_000,
   durationBeforeMs: 5_000,
 };
-
-export function getEventTimestampMs(event: EventTransaction): number {
-  const startTimestampMS =
-    'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
-  const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
-  return timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
-}
 
 function ReplaySection({
   replayId,

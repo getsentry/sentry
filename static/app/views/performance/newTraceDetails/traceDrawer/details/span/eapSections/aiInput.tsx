@@ -24,8 +24,6 @@ import {tryParsePythonDict} from 'sentry/views/performance/newTraceDetails/trace
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
-import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
-import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
 
@@ -50,7 +48,7 @@ export function AIInputSection({
   event,
   initialCollapse,
 }: {
-  node: EapSpanNode | SpanNode | TransactionNode;
+  node: EapSpanNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
   initialCollapse?: boolean;
@@ -119,7 +117,7 @@ export function AIInputSection({
 }
 
 export function hasAIInputAttribute(
-  node: EapSpanNode | SpanNode | TransactionNode,
+  node: EapSpanNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
@@ -137,7 +135,7 @@ export function hasAIInputAttribute(
  * any attribute. System instructions are prepended to the resulting array.
  */
 export function getAIInputMessages(
-  node: EapSpanNode | SpanNode | TransactionNode,
+  node: EapSpanNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ): {fixedInvalidJson: boolean; messages: AIMessage[] | null} {
@@ -167,7 +165,10 @@ export function getAIInputMessages(
   if (systemInstructions) {
     return {
       messages: [
-        {role: 'system', content: unwrapStructuredContent(systemInstructions.toString())},
+        {
+          role: 'system',
+          content: unwrapStructuredContent(systemInstructions.toString()),
+        },
       ],
       fixedInvalidJson: false,
     };
@@ -230,7 +231,7 @@ function unwrapStructuredContent(raw: string): string {
 }
 
 export function getAIToolInput(
-  node: EapSpanNode | SpanNode | TransactionNode,
+  node: EapSpanNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
@@ -379,7 +380,9 @@ function TruncationAlert({
               'Due to [link:size limitations], the oldest messages got dropped from the history.',
               {link}
             )
-          : tct('Due to [link:size limitations], the content was truncated.', {link})}
+          : tct('Due to [link:size limitations], the content was truncated.', {
+              link,
+            })}
         {fixedInvalidJson ? ` ${t('Truncated parts are marked with (~~).')}` : null}
       </Alert>
     </Container>

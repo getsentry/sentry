@@ -312,6 +312,63 @@ describe('EapSpanNode', () => {
   });
 
   describe('getter methods', () => {
+    it('should expose EAP span fields', () => {
+      const value = makeEAPSpan({
+        event_id: 'test-span-id',
+        project_slug: 'test-project',
+        op: 'db.query',
+        description: 'SELECT * FROM users',
+        start_timestamp: 1000,
+        end_timestamp: 1500,
+        sdk_name: 'sentry.javascript.browser',
+        additional_attributes: {
+          'db.system': 'postgresql',
+          'server.address': 'db.example.com',
+        },
+      });
+      const node = new EapSpanNode(null, value, createMockExtra());
+
+      expect(node.id).toBe('test-span-id');
+      expect(node.projectSlug).toBe('test-project');
+      expect(node.op).toBe('db.query');
+      expect(node.description).toBe('SELECT * FROM users');
+      expect(node.startTimestamp).toBe(1000);
+      expect(node.endTimestamp).toBe(1500);
+      expect(node.sdkName).toBe('sentry.javascript.browser');
+      expect(node.space).toEqual([1000 * 1e3, 500 * 1e3]);
+      expect(node.attributes).toEqual({
+        'db.system': 'postgresql',
+        'server.address': 'db.example.com',
+      });
+    });
+
+    it('should inherit profiling and transaction IDs from its EAP transaction', () => {
+      const transaction = new EapSpanNode(
+        null,
+        makeEAPSpan({
+          event_id: 'transaction-event-id',
+          transaction_id: 'transaction-id',
+          is_transaction: true,
+          profile_id: 'profile-id',
+          profiler_id: 'profiler-id',
+        }),
+        createMockExtra()
+      );
+      const span = new EapSpanNode(
+        transaction,
+        makeEAPSpan({
+          event_id: 'span-id',
+          is_transaction: false,
+        }),
+        createMockExtra()
+      );
+
+      expect(transaction.transactionId).toBe('transaction-id');
+      expect(span.transactionId).toBe('transaction-id');
+      expect(span.profileId).toBe('profile-id');
+      expect(span.profilerId).toBe('profiler-id');
+    });
+
     it('should return correct drawerTabsTitle', () => {
       const extra = createMockExtra();
       const valueWithDescription = makeEAPSpan({
@@ -831,6 +888,39 @@ describe('EapSpanNode', () => {
       const node = new EapSpanNode(null, value, extra);
 
       expect(node.printNode()).toBe('unknown span - Some description');
+    });
+  });
+
+  describe('matchById', () => {
+    it('should match transactions by transaction ID', () => {
+      const node = new EapSpanNode(
+        null,
+        makeEAPSpan({
+          event_id: 'event-id',
+          transaction_id: 'transaction-id',
+          is_transaction: true,
+        }),
+        createMockExtra()
+      );
+
+      expect(node.matchById('event-id')).toBe(true);
+      expect(node.matchById('transaction-id')).toBe(true);
+      expect(node.matchById('unrelated-id')).toBe(false);
+    });
+
+    it('should not match non-transaction spans by transaction ID', () => {
+      const node = new EapSpanNode(
+        null,
+        makeEAPSpan({
+          event_id: 'span-id',
+          transaction_id: 'transaction-id',
+          is_transaction: false,
+        }),
+        createMockExtra()
+      );
+
+      expect(node.matchById('span-id')).toBe(true);
+      expect(node.matchById('transaction-id')).toBe(false);
     });
   });
 

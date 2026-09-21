@@ -1,94 +1,97 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
+import {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import {makeEAPSpan} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 import {makeTraceContinuousProfilingLink} from './traceProfilingLink';
 
-function makeTransaction(
-  overrides: Partial<TraceTree.Transaction> = {}
-): TraceTree.Transaction {
-  return {
-    children: [],
-    sdk_name: '',
-    start_timestamp: 0,
-    timestamp: 1,
-    transaction: 'transaction',
-    'transaction.op': '',
-    'transaction.status': '',
-    profiler_id: '',
-    performance_issues: [],
-    errors: [],
-    ...overrides,
-  } as TraceTree.Transaction;
+const organization = OrganizationFixture({slug: 'sentry'});
+const options = {
+  organization,
+  projectSlug: 'project',
+  traceId: 'trace-id',
+  threadId: 'thread-id',
+};
+
+function makeTransactionNode(
+  overrides: Parameters<typeof makeEAPSpan>[0] = {}
+): EapSpanNode {
+  return new EapSpanNode(
+    null,
+    makeEAPSpan({
+      event_id: 'transaction-id',
+      transaction_id: 'transaction-id',
+      is_transaction: true,
+      start_timestamp: 1,
+      end_timestamp: 2,
+      ...overrides,
+    }),
+    {organization}
+  );
 }
 
-const organization = OrganizationFixture({slug: 'sentry'});
-
 describe('traceProfilingLink', () => {
-  describe('required params', () => {
-    const node = new TransactionNode(null, makeTransaction(), {
+  it('requires a project slug', () => {
+    expect(
+      makeTraceContinuousProfilingLink(makeTransactionNode(), 'profiler-id', {
+        ...options,
+        projectSlug: '',
+      })
+    ).toBeNull();
+  });
+
+  it('requires a profiler ID', () => {
+    expect(
+      makeTraceContinuousProfilingLink(makeTransactionNode(), '', options)
+    ).toBeNull();
+  });
+
+  it('requires a transaction ID', () => {
+    expect(
+      makeTraceContinuousProfilingLink(
+        makeTransactionNode({transaction_id: undefined}),
+        'profiler-id',
+        options
+      )
+    ).toBeNull();
+  });
+
+  it('creates a time window around a transaction without a duration', () => {
+    const timestamp = Date.now();
+    const node = makeTransactionNode({
+      start_timestamp: timestamp / 1e3,
+      end_timestamp: timestamp / 1e3,
+    });
+
+    expect(makeTraceContinuousProfilingLink(node, 'profiler-id', options)).toEqual(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          end: new Date(timestamp + 100).toISOString(),
+          eventId: 'transaction-id',
+          spanId: 'transaction-id',
+          start: new Date(timestamp - 100).toISOString(),
+          tid: 'thread-id',
+          traceId: 'trace-id',
+        }),
+      })
+    );
+  });
+
+  it('uses the parent transaction range and IDs for a child span', () => {
+    const transaction = makeTransactionNode();
+    const span = new EapSpanNode(transaction, makeEAPSpan({event_id: 'child-span-id'}), {
       organization,
     });
 
-    it('requires projectSlug', () => {
-      const event = makeTransaction();
-      expect(
-        makeTraceContinuousProfilingLink(node, event.profiler_id, {
-          projectSlug: 'project',
-          organization: OrganizationFixture(),
-          traceId: '',
-          threadId: '0',
-        })
-      ).toBeNull();
-    });
-    it('requires orgSlug', () => {
-      const event = makeTransaction();
-      expect(
-        makeTraceContinuousProfilingLink(node, event.profiler_id, {
-          projectSlug: '',
-          organization: OrganizationFixture({slug: 'sentry'}),
-          traceId: '',
-          threadId: '0',
-        })
-      ).toBeNull();
-    });
-    it('requires profilerId', () => {
-      expect(
-        // @ts-expect-error missing profiler_id
-        makeTraceContinuousProfilingLink(node, undefined, {
-          projectSlug: 'project',
-          organization: OrganizationFixture({slug: 'sentry'}),
-        })
-      ).toBeNull();
-    });
-  });
-
-  it('creates a window of time around end timestamp', () => {
-    const timestamp = Date.now();
-
-    const node = new TransactionNode(
-      null,
-      makeTransaction({
-        start_timestamp: undefined,
-        timestamp: timestamp / 1e3,
-        event_id: 'event',
-      }),
-      {
-        organization,
-      }
+    expect(makeTraceContinuousProfilingLink(span, 'profiler-id', options)).toEqual(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          end: new Date(2000).toISOString(),
+          eventId: 'transaction-id',
+          spanId: 'child-span-id',
+          start: new Date(1000).toISOString(),
+        }),
+      })
     );
-
-    const link = makeTraceContinuousProfilingLink(node, 'profiler', {
-      projectSlug: 'project',
-      organization: OrganizationFixture({slug: 'sentry'}),
-      traceId: 'trace',
-      threadId: '0',
-    });
-
-    // @ts-expect-error mismatch in types?
-    expect(link.query.start).toBe(new Date(timestamp - 100).toISOString());
-    // @ts-expect-error mismatch in types?
-    expect(link.query.end).toBe(new Date(timestamp + 100).toISOString());
   });
 });

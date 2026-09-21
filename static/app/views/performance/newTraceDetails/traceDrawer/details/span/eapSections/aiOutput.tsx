@@ -13,8 +13,6 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
-import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
-import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 interface AIOutputData {
   reasoningText: string | null;
@@ -39,7 +37,7 @@ export function AIOutputSection({
   event,
   initialCollapse,
 }: {
-  node: EapSpanNode | SpanNode | TransactionNode;
+  node: EapSpanNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
   initialCollapse?: boolean;
@@ -107,7 +105,7 @@ export function AIOutputSection({
 }
 
 export function hasAIOutputAttribute(
-  node: EapSpanNode | SpanNode | TransactionNode,
+  node: EapSpanNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
@@ -127,7 +125,7 @@ export function hasAIOutputAttribute(
  * supplementary fallbacks.
  */
 export function getAIOutputData(
-  node: EapSpanNode | SpanNode | TransactionNode,
+  node: EapSpanNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ): AIOutputData {
@@ -176,7 +174,7 @@ export function getAIOutputData(
 }
 
 export function getAIToolOutput(
-  node: EapSpanNode | SpanNode | TransactionNode,
+  node: EapSpanNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
