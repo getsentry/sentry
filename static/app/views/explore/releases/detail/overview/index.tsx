@@ -58,6 +58,7 @@ import {OtherProjects} from './sidebar/otherProjects';
 import {ProjectReleaseDetails} from './sidebar/projectReleaseDetails';
 import {ReleaseAdoption} from './sidebar/releaseAdoption';
 import {ReleaseStats} from './sidebar/releaseStats';
+import {SdkVersions} from './sidebar/sdkVersions';
 import {TotalCrashFreeUsers} from './sidebar/totalCrashFreeUsers';
 import {ReleaseArchivedNotice} from './releaseArchivedNotice';
 import {ReleaseComparisonChart} from './releaseComparisonChart';
@@ -447,6 +448,11 @@ function ReleaseOverview() {
                   release={release}
                   releaseMeta={releaseMeta}
                   project={project}
+                />
+                <SdkVersions
+                  orgSlug={organization.slug}
+                  projectId={project.id}
+                  release={release}
                 />
                 {commitCount > 0 && (
                   <CommitAuthorBreakdown
