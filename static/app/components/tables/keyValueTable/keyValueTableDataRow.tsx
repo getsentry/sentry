@@ -60,6 +60,7 @@ export function KeyValueTableDataRow({
     action = {},
     actionButton,
     actionButtonAlwaysVisible,
+    subjectDataTestId,
   } = item;
 
   const hasErrors = errors.length > 0;
@@ -82,6 +83,7 @@ export function KeyValueTableDataRow({
         subjectNode
       )}
       <KeyValueTableValueSection
+        data-test-id={subjectDataTestId}
         hasErrors={hasErrors}
         hasEmptySubject={subjectNode === null}
       >

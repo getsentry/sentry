@@ -146,30 +146,4 @@ describe('KeyValueTable', () => {
     ),
     {tags: {area: 'core', variant: 'list'}}
   );
-
-  it.snapshot(
-    'list-multi-value',
-    () => (
-      <div style={{padding: 8, width: 500}}>
-        <KeyValueTableDataList
-          shouldSort={false}
-          data={[
-            {
-              key: 'tags',
-              subject: 'Tags',
-              value: ['alpha', 'beta', 'gamma'],
-              isMultiValue: true,
-            },
-            {
-              key: 'action-button',
-              subject: 'Action',
-              value: 'With a button',
-              actionButton: <Button size="zero">{'Edit'}</Button>,
-            },
-          ]}
-        />
-      </div>
-    ),
-    {tags: {area: 'core', variant: 'list'}}
-  );
 });

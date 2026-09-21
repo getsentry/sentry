@@ -54,21 +54,17 @@ function Row({item}: {item: KeyValueListDataItem}) {
     value = null,
     action,
     actionButton,
-    isMultiValue,
   } = item;
 
   const renderValue = (v: KeyValueListDataItem['value']) => (
     <PreformattedValue value={v} meta={meta} subjectIcon={subjectIcon} />
   );
 
-  const rendered =
-    isMultiValue && Array.isArray(value) ? (
-      value.map((entry, index) => <PreformattedValue key={index} value={entry} />)
-    ) : action?.link ? (
-      <ValueLink to={action.link}>{renderValue(value)}</ValueLink>
-    ) : (
-      renderValue(value)
-    );
+  const rendered = action?.link ? (
+    <ValueLink to={action.link}>{renderValue(value)}</ValueLink>
+  ) : (
+    renderValue(value)
+  );
 
   return (
     <tr>
