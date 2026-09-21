@@ -15,7 +15,7 @@ feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0005_increase_flag_max_length
 
-hybridcloud: 0040_cacheversion_key_remove
+hybridcloud: 0041_cacheversion_key_drop
 
 insights: 0001_squashed_0002_backfill_team_starred
 
