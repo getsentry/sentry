@@ -1,5 +1,3 @@
-import {Tag} from '@sentry/scraps/badge';
-
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {
   QueryEmbedChart,
@@ -77,7 +75,6 @@ export default function ErrorsQueryBlock({data}: {data: ErrorsQueryData}) {
 
   return (
     <QueryEmbedCard
-      badge={isAggregate ? null : <Tag variant="muted">{t('Events')}</Tag>}
       href={getErrorsQueryHref(eventView, organization)}
       icon={IconSearch}
       linkLabel={t('View Errors')}

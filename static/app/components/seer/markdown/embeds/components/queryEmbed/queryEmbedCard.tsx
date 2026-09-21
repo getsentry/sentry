@@ -19,8 +19,6 @@ interface QueryEmbedCardProps {
   testId: string;
   /** The query's name, rendered as the card's heading. */
   title: ReactNode;
-  /** Right-aligned label for the query's mode, e.g. "Aggregate" or "Spans". */
-  badge?: ReactNode;
   /**
    * The search string, rendered as formatted tokens. Omitted when the query is
    * empty, so an unfiltered preview doesn't show an empty token row.
@@ -34,7 +32,6 @@ interface QueryEmbedCardProps {
  * embed renders.
  */
 export function QueryEmbedCard({
-  badge,
   children,
   href,
   icon,
@@ -45,7 +42,6 @@ export function QueryEmbedCard({
 }: QueryEmbedCardProps) {
   return (
     <SeerEmbedBlock
-      badge={badge}
       href={href}
       icon={icon}
       linkLabel={linkLabel}

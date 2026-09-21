@@ -1,5 +1,3 @@
-import {Tag} from '@sentry/scraps/badge';
-
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {
   chartUnitFromTimeSeries,
@@ -89,7 +87,6 @@ export default function LogsQueryBlock({data}: {data: LogsQueryData}) {
 
   return (
     <QueryEmbedCard
-      badge={data.mode === 'aggregate' ? null : <Tag variant="muted">{t('Logs')}</Tag>}
       href={getLogsQueryHref(data, organization)}
       icon={IconList}
       linkLabel={t('View Logs')}

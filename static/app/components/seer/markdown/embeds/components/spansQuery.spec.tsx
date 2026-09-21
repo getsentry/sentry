@@ -54,7 +54,6 @@ describe('spans query embed', () => {
     expect(await screen.findByText('GET /api/1')).toBeInTheDocument();
     expect(screen.getByText('GET /api/5')).toBeInTheDocument();
     expect(screen.queryByText('GET /api/6')).not.toBeInTheDocument();
-    expect(screen.getByText('Spans')).toBeInTheDocument();
     // The block's name is the collapse toggle; the link out is a separate target.
     expect(screen.getByRole('button', {name: 'Slow HTTP spans'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Spans'})).toHaveAttribute(
@@ -141,8 +140,8 @@ describe('spans query embed', () => {
     expect(await screen.findByText('http.server')).toBeInTheDocument();
     // A duration aggregate reads as a duration, not as a bare millisecond count.
     expect(screen.getByText('1.23s')).toBeInTheDocument();
-    // Aggregate mode carries no badge: the chart already says the rows are
-    // grouped, so a tag repeating it would only crowd the header.
+    // The header carries no dataset tag in either mode: the icon and the
+    // "View Spans" link already name the dataset.
     expect(screen.queryByText('Spans')).not.toBeInTheDocument();
     // A group-by column is present, so the table is still worth rendering —
     // now beneath the chart.

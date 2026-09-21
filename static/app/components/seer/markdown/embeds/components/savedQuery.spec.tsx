@@ -95,7 +95,12 @@ describe('saved query embed', () => {
     // The model said spans; the saved query is actually a logs query.
     renderEmbed({name: 'savedQuery', data: {id: '312', dataset: 'spans'}});
 
-    expect(await screen.findByText('Logs')).toBeInTheDocument();
+    // The card shows no dataset of its own, so the link out is where the
+    // disagreement surfaces: it must resolve to Explore's logs view.
+    expect(await screen.findByRole('link', {name: 'View Query'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/explore/logs/')
+    );
   });
 
   // The saved query API reports `segment_spans` and `ai_conversations` for a

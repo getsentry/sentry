@@ -130,8 +130,8 @@ describe('errors query embed', () => {
 
     expect(await screen.findByText('TypeError')).toBeInTheDocument();
     expect(screen.getByText('1,234')).toBeInTheDocument();
-    // Aggregate mode carries no badge: the chart already says the rows are
-    // grouped, so a tag repeating it would only crowd the header.
+    // The header carries no dataset tag in either mode: the icon and the
+    // "View Errors" link already name the dataset.
     expect(screen.queryByText('Events')).not.toBeInTheDocument();
     // Grouping fields (title, project) remain alongside the aggregate, so the
     // table is still worth rendering — now beneath the chart.
