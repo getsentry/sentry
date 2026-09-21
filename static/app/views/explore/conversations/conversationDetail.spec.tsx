@@ -309,6 +309,7 @@ describe('ConversationDetailPage summary aggregates', () => {
 
     const llmCallsStat = (await screen.findByText('LLM Calls')).parentElement!;
     const llmCalls = await within(llmCallsStat).findByText('3');
+    expect(llmCalls).not.toHaveAttribute('title');
     await userEvent.hover(llmCalls);
 
     const modelAlpha = await screen.findByText('model-alpha');
@@ -330,6 +331,7 @@ describe('ConversationDetailPage summary aggregates', () => {
 
     const costStat = screen.getByText('Cost').parentElement!;
     const totalCost = within(costStat).getByText('$0.07');
+    expect(totalCost).not.toHaveAttribute('title');
     await userEvent.hover(totalCost);
 
     const highestCostModel = await screen.findByText('model-beta');
@@ -347,6 +349,16 @@ describe('ConversationDetailPage summary aggregates', () => {
         '$0.03'
       )
     ).toBeInTheDocument();
+  });
+
+  it('preserves the no-cost explanation when there is no recorded cost', async () => {
+    mockApis();
+    renderPage();
+
+    const costStat = (await screen.findByText('Cost')).parentElement!;
+    await userEvent.hover(await within(costStat).findByText('—'));
+
+    expect(await screen.findByText(/No cost recorded/)).toBeInTheDocument();
   });
 
   it('renders the fire icon in the summary when a span errored', async () => {

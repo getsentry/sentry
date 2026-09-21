@@ -46,6 +46,7 @@ import {
   getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -725,7 +726,7 @@ function ModelCallBreakdown({
               </Container>
               <Container flexShrink={0}>
                 <Text tabular align="right">
-                  <Count value={breakdown.calls} />
+                  {formatAbbreviatedNumber(breakdown.calls)}
                 </Text>
               </Container>
             </Flex>
@@ -733,9 +734,7 @@ function ModelCallBreakdown({
         </ModelBreakdownStack>
       }
     >
-      <TooltipValue>
-        <Count value={total} />
-      </TooltipValue>
+      <TooltipValue>{formatAbbreviatedNumber(total)}</TooltipValue>
     </Tooltip>
   );
 }
@@ -747,6 +746,10 @@ function ModelCostBreakdown({
   breakdowns: ModelBreakdownDetails[];
   total: number;
 }) {
+  if (total === 0) {
+    return <LLMCosts cost={total} />;
+  }
+
   const sortedBreakdowns = [...breakdowns].sort((a, b) => b.cost - a.cost);
 
   return (
@@ -760,7 +763,7 @@ function ModelCostBreakdown({
               </Container>
               <Container flexShrink={0}>
                 <Text tabular align="right">
-                  <LLMCosts cost={breakdown.cost} />
+                  {formatLLMCosts(breakdown.cost)}
                 </Text>
               </Container>
             </Flex>
@@ -768,9 +771,7 @@ function ModelCostBreakdown({
         </ModelBreakdownStack>
       }
     >
-      <TooltipValue>
-        <LLMCosts cost={total} />
-      </TooltipValue>
+      <TooltipValue>{formatLLMCosts(total)}</TooltipValue>
     </Tooltip>
   );
 }
