@@ -14,6 +14,8 @@ import jwt as pyjwt
 import sentry_sdk
 from django.conf import settings
 
+from sentry.silo.base import SiloMode
+
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -276,8 +278,6 @@ def encode_viewer_context(
 
 
 def _organization_is_early_adopter(organization_id: int) -> bool:
-    from sentry.silo.base import SiloMode
-
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         from sentry.models.organizationmapping import OrganizationMapping
 
