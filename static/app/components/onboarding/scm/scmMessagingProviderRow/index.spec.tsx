@@ -23,9 +23,11 @@ import * as pipelineModal from 'sentry/components/pipeline/modal';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
-import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
+import {ScmMessagingChannelPicker} from '../scmMessagingChannelPicker';
+
 import {ScmMessagingProviderRow} from '.';
-jest.mock('./scmMessagingChannelPicker', () => ({
+
+jest.mock('../scmMessagingChannelPicker', () => ({
   ScmMessagingChannelPicker: jest.fn(() => <div>channel-picker</div>),
 }));
 
