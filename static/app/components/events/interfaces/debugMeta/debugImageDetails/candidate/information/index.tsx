@@ -148,7 +148,9 @@ function ProcessingInfo({candidate}: {candidate: ImageCandidate}) {
           <Tooltip title={getProcessingInfoTooltip(debug)} skipWrapper>
             <Flex align="center" gap="sm">
               <ProcessingIcon processingInfo={debug} />
-              <Text size="sm">{t('Symbolication')}</Text>
+              <Text size="sm" variant="muted">
+                {t('Symbolication')}
+              </Text>
             </Flex>
           </Tooltip>
         )}
@@ -156,7 +158,9 @@ function ProcessingInfo({candidate}: {candidate: ImageCandidate}) {
           <Tooltip title={getProcessingInfoTooltip(unwind)} skipWrapper>
             <Flex align="center" gap="sm">
               <ProcessingIcon processingInfo={unwind} />
-              <Text size="sm">{t('Stack Unwinding')}</Text>
+              <Text size="sm" variant="muted">
+                {t('Stack Unwinding')}
+              </Text>
             </Flex>
           </Tooltip>
         )}
@@ -201,15 +205,21 @@ function ExtraDetails({
       <Tooltip title={tooltipDesc}>
         <TimeSinceWrapper>
           {displayIcon && <IconWarning variant="danger" size="xs" />}
-          {tct('Uploaded [timesince]', {
-            timesince: <TimeSince disabledAbsoluteTooltip date={dateCreated} />,
-          })}
+          <Text size="sm" tabular variant="muted">
+            {tct('Uploaded [timesince]', {
+              timesince: <TimeSince disabledAbsoluteTooltip date={dateCreated} />,
+            })}
+          </Text>
         </TimeSinceWrapper>
       </Tooltip>
       <Divider />
-      <FileSize bytes={size} />
+      <Text size="sm" tabular variant="muted">
+        <FileSize bytes={size} />
+      </Text>
       <Divider />
-      <span>{prettyFileType}</span>
+      <Text size="sm" variant="muted">
+        {prettyFileType}
+      </Text>
       <Divider />
     </Fragment>
   );
@@ -258,20 +268,16 @@ export function Information({
           </FilenameOrLocation>
         )}
       </div>
-      <Text size="sm" variant="muted">
-        {textProps => (
-          <Flex {...textProps} align="center" gap="md" wrap="wrap">
-            <ExtraDetails
-              candidate={candidate}
-              eventDateReceived={eventDateReceived}
-              hasReprocessWarning={hasReprocessWarning}
-              source={source}
-            />
-            <ProcessingInfo candidate={candidate} />
-            <Features download={download} />
-          </Flex>
-        )}
-      </Text>
+      <Flex align="center" gap="md" wrap="wrap">
+        <ExtraDetails
+          candidate={candidate}
+          eventDateReceived={eventDateReceived}
+          hasReprocessWarning={hasReprocessWarning}
+          source={source}
+        />
+        <ProcessingInfo candidate={candidate} />
+        <Features download={download} />
+      </Flex>
     </Wrapper>
   );
 }
