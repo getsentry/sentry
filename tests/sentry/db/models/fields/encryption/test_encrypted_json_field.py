@@ -68,7 +68,7 @@ def test_encrypted_json_field_fernet_encryption(fernet_keys_store):
         {"numbers": 123.456},
         # test case when JSON contains encrypted field key used to store it
         {EncryptedJSONField._encrypted_field_key: "value"},
-        # top-level lists, as used by UptimeSubscription.headers
+        # top-level lists
         [["Authorization", "Bearer token"], ["X-Custom", "value"]],
         [],
     ],
