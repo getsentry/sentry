@@ -140,9 +140,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       additionalFeedbackTags={
         runId
           ? {
-              conversation_url: getConversationsUrlForExternalUse('sentry', runId, {
-                project: 'seer',
-              }),
+              conversation_url: getConversationsUrlForExternalUse('sentry', runId),
             }
           : undefined
       }
