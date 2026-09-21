@@ -175,6 +175,11 @@ class InstallationUpdatedHandler(InstallationEventHandler):
         metadata = {**stored.metadata, **changed}
         previous_slug = stored.name
 
+        if name and name != previous_slug:
+            _rename_owner_repositories(
+                previous_slug, name, integration.id, org_integrations, delivery_id
+            )
+
         logger.info(
             "cursor_origin.webhook.updating_integration",
             extra={"delivery_id": delivery_id, "integration_id": integration.id},
@@ -182,8 +187,4 @@ class InstallationUpdatedHandler(InstallationEventHandler):
         integration_service.update_integration(
             integration_id=integration.id, name=name or None, metadata=metadata
         )
-        if name and name != previous_slug:
-            _rename_owner_repositories(
-                previous_slug, name, integration.id, org_integrations, delivery_id
-            )
         _sync_repositories(org_integrations, delivery_id)

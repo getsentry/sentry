@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 from unittest import mock
 
+import pytest
+
 from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.webhook import HANDLERS
 from sentry.integrations.models.integration import Integration
@@ -231,6 +233,25 @@ class InstallationEventHandlerTest(TestCase):
             assert renamed.url == f"{WEB}/rocketry/booster"
             assert renamed.config["name"] == "rocketry/booster"
             assert renamed.config["default_branch"] == "main"
+
+    def test_a_failed_rename_is_finished_by_the_retry(self) -> None:
+        """The integration keeps its old slug until the repositories are rewritten."""
+        with (
+            mock.patch(
+                "sentry.integrations.cursor_origin.handlers.repository_service.update_repositories",
+                side_effect=ValueError("boom"),
+            ),
+            pytest.raises(ValueError),
+        ):
+            self._handle("installation.updated", _installation(target={"slug": "rocketry"}))
+
+        assert self._integration().name == "acme"
+
+        self._handle("installation.updated", _installation(target={"slug": "rocketry"}))
+
+        assert self._integration().name == "rocketry"
+        with assume_test_silo_mode_of(Repository):
+            assert Repository.objects.get(id=self.repo.id).name == "rocketry/rocket"
 
     def test_an_update_that_keeps_the_slug_rewrites_nothing(self) -> None:
         with assume_test_silo_mode_of(Repository):
