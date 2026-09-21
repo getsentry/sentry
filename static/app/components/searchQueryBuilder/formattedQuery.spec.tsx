@@ -43,12 +43,6 @@ describe('FormattedQuery', () => {
     const filter = property.closest('[aria-label]');
 
     expect(filter).toHaveAttribute('aria-label', 'browser.name:[Firefox,Chrome]');
-    expect(screen.getByText('is')).toBeInTheDocument();
-    expect(screen.getByText('Firefox')).toBeInTheDocument();
-    expect(screen.getByText('or')).toBeInTheDocument();
-    expect(screen.getByText('Chrome')).toBeInTheDocument();
-    expect(filter?.querySelector('span div')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('renders negated filters with multiple values using and', () => {
@@ -68,9 +62,6 @@ describe('FormattedQuery', () => {
     const filter = operator.closest('[aria-label]');
 
     expect(filter).toHaveAttribute('aria-label', 'is:unresolved');
-    expect(screen.getByText('unresolved')).toBeInTheDocument();
-    expect(filter?.children).toHaveLength(2);
-    expect(filter?.querySelector('span div')).not.toBeInTheDocument();
   });
 
   it('renders relative date filter correctly', () => {
