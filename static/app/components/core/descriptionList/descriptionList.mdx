@@ -1,0 +1,96 @@
+---
+title: DescriptionList
+description: A compact, two-column list of terms and their details, for sidebars and tooltips.
+category: display
+source: '@sentry/scraps/descriptionList'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/descriptionList/descriptionList.tsx
+  a11y:
+    WCAG 1.3.1: https://www.w3.org/TR/WCAG22/#info-and-relationships
+---
+
+import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/descriptionList');
+
+`DescriptionList` renders a semantic `<dl>` as a two-column grid: terms size to their content, and details take the remaining space.
+Compose it with `DescriptionList.Term` and `DescriptionList.Details`, one pair per row.
+
+```jsx
+<DescriptionList>
+  <DescriptionList.Term>Occurred</DescriptionList.Term>
+  <DescriptionList.Details>Jan 1, 2026 12:00:00 PM UTC</DescriptionList.Details>
+</DescriptionList>
+```
+
+## When to use
+
+Use `DescriptionList` for short, panel-free key/value pairs, such as the details in a tooltip or a sidebar.
+It has no borders, backgrounds, or row striping, so it adapts to whatever surface it sits on.
+
+> [!NOTE]
+> For event data in a bordered card, use `KeyValueTableCard` from `sentry/components/tables/keyValueTable` instead.
+
+## Basic Usage
+
+Terms are muted so the details stand out. Details break anywhere when they would otherwise overflow, so long identifiers and URLs stay inside the list.
+
+<Storybook.Demo>
+  <DescriptionList>
+    <DescriptionList.Term>Occurred</DescriptionList.Term>
+    <DescriptionList.Details>Jan 1, 2026 12:00:00 PM UTC</DescriptionList.Details>
+    <DescriptionList.Term>Received</DescriptionList.Term>
+    <DescriptionList.Details>Jan 1, 2026 12:00:01 PM UTC</DescriptionList.Details>
+    <DescriptionList.Term>Trace ID</DescriptionList.Term>
+    <DescriptionList.Details>
+      <Text monospace>b4e2f1c0d9a8476e8f3b2a1c0d9e8f7a</Text>
+    </DescriptionList.Details>
+  </DescriptionList>
+</Storybook.Demo>
+
+```jsx
+<DescriptionList>
+  <DescriptionList.Term>Occurred</DescriptionList.Term>
+  <DescriptionList.Details>Jan 1, 2026 12:00:00 PM UTC</DescriptionList.Details>
+  <DescriptionList.Term>Received</DescriptionList.Term>
+  <DescriptionList.Details>Jan 1, 2026 12:00:01 PM UTC</DescriptionList.Details>
+  <DescriptionList.Term>Trace ID</DescriptionList.Term>
+  <DescriptionList.Details>
+    <Text monospace>b4e2f1c0d9a8476e8f3b2a1c0d9e8f7a</Text>
+  </DescriptionList.Details>
+</DescriptionList>
+```
+
+## Gap
+
+The `gap` prop sets the row and column gap, and accepts the same responsive space tokens as `Grid`. It defaults to `sm md`.
+
+<Storybook.Demo>
+  <DescriptionList gap="xs">
+    <DescriptionList.Term>Type</DescriptionList.Term>
+    <DescriptionList.Details>String</DescriptionList.Details>
+    <DescriptionList.Term>Kind</DescriptionList.Term>
+    <DescriptionList.Details>Tag</DescriptionList.Details>
+  </DescriptionList>
+</Storybook.Demo>
+
+```jsx
+<DescriptionList gap="xs">
+  <DescriptionList.Term>Type</DescriptionList.Term>
+  <DescriptionList.Details>String</DescriptionList.Details>
+  <DescriptionList.Term>Kind</DescriptionList.Term>
+  <DescriptionList.Details>Tag</DescriptionList.Details>
+</DescriptionList>
+```
+
+## Accessibility
+
+`DescriptionList` uses native `<dl>`, `<dt>`, and `<dd>` elements, so assistive technology announces each term with its details (WCAG 1.3.1).
+
+### Developer responsibilities
+
+- Only place `DescriptionList.Term` and `DescriptionList.Details` directly inside a `DescriptionList`. Wrapping a pair in a `Fragment` is fine; wrapping it in a `div` breaks the grid.
+- Give every `DescriptionList.Term` at least one `DescriptionList.Details`.

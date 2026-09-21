@@ -4,6 +4,7 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 import moment from 'moment-timezone';
 
 import {useTimezone} from '@sentry/scraps/datetime';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -24,23 +25,23 @@ function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
 
   return (
     <DescriptionList>
-      <dt>{t('Occurred')}</dt>
-      <dd>
+      <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
+      <DescriptionList.Details>
         <TimestampValues>
           <DateTime date={timestamp} seconds milliseconds timeZone />
           {!isUTCLocalTimezone && (
             <DateTime date={timestamp} seconds milliseconds timeZone utc />
           )}
         </TimestampValues>
-      </dd>
+      </DescriptionList.Details>
       {isUTCLocalTimezone && (
         <Fragment>
-          <dt />
-          <dd>
+          <DescriptionList.Term />
+          <DescriptionList.Details>
             <TimezoneLink to="/settings/account/details/#timezone">
               {t('Add your local timezone')}
             </TimezoneLink>
-          </dd>
+          </DescriptionList.Details>
         </Fragment>
       )}
     </DescriptionList>
@@ -224,14 +225,6 @@ const BreadcrumbItem = styled(Timeline.Item)`
       )
       100% 1;
   }
-`;
-
-const DescriptionList = styled('dl')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  text-align: left;
-  margin: 0;
 `;
 
 const TimestampValues = styled('div')`
