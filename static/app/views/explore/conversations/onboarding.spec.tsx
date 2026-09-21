@@ -6,6 +6,8 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -62,13 +64,19 @@ describe('ConversationOnboarding', () => {
 
   it('copies the full prompt and lets users expand its preview', async () => {
     const {organization, project} = setupProject('node');
+    const tracking = jest.fn();
     const prompt = getAgentSetupPrompt({
       organizationSlug: organization.slug,
       project,
       dsn: ProjectKeysFixture()[0].dsn.public,
     });
 
-    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {
+      organization,
+      additionalWrapper: ({children}) => (
+        <TrackingContextProvider value={tracking}>{children}</TrackingContextProvider>
+      ),
+    });
 
     expect(
       await screen.findByRole('tab', {name: 'For your agent', selected: true})
@@ -77,10 +85,12 @@ describe('ConversationOnboarding', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prompt);
-    expect(trackAnalytics).toHaveBeenCalledWith('conversations.onboarding.interaction', {
-      organization,
-      action: 'copy_agent_prompt',
-    });
+    expect(tracking).toHaveBeenCalledWith(
+      expect.objectContaining({
+        analyticsEventKey: 'conversations.onboarding.interaction',
+        analyticsParams: {action: 'copy_agent_prompt'},
+      })
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Show More'}));
     await userEvent.click(screen.getByRole('button', {name: 'Show Less'}));
