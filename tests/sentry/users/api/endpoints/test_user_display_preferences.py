@@ -10,8 +10,8 @@ from sentry.users.models.user_option import UserOption
 
 
 @control_silo_test
-class UserOptionsGetTest(APITestCase):
-    endpoint = "sentry-api-0-user-options"
+class UserDisplayPreferencesGetTest(APITestCase):
+    endpoint = "sentry-api-0-user-display-preferences"
     method = "get"
 
     def setUp(self) -> None:
@@ -48,8 +48,8 @@ class UserOptionsGetTest(APITestCase):
 
 
 @control_silo_test
-class UserOptionsPutTest(APITestCase):
-    endpoint = "sentry-api-0-user-options"
+class UserDisplayPreferencesPutTest(APITestCase):
+    endpoint = "sentry-api-0-user-display-preferences"
     method = "put"
 
     def setUp(self) -> None:
@@ -128,7 +128,7 @@ class UserOptionsPutTest(APITestCase):
 
 @control_silo_test
 @override_settings(SEER_API_SHARED_SECRET="test-secret")
-class UserOptionsAgentTokenTest(APITestCase):
+class UserDisplayPreferencesAgentTokenTest(APITestCase):
     """The same endpoint reached with a real Seer agent bearer token.
 
     Deliberately end-to-end rather than calling the permission class directly: only a
@@ -137,7 +137,7 @@ class UserOptionsAgentTokenTest(APITestCase):
     challenge that tells Seer to ask the user for write approval.
     """
 
-    endpoint = "sentry-api-0-user-options"
+    endpoint = "sentry-api-0-user-display-preferences"
 
     def setUp(self) -> None:
         super().setUp()

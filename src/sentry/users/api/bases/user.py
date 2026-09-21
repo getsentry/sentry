@@ -56,7 +56,7 @@ class UserAndStaffPermission(StaffPermissionMixin, UserPermission):
     """
 
 
-class UserOptionsPermission(UserPermission):
+class UserDisplayPreferencesPermission(UserPermission):
     """Lets a Seer agent credential read and write the delegating user's own display
     preferences.
 
@@ -82,7 +82,7 @@ class UserOptionsPermission(UserPermission):
         if agent_token.is_agent_auth(request.auth):
             # Skip UserPermission's blanket rejection of agent credentials while keeping
             # every other check, including the scope_map above. has_object_permission
-            # is what confines the request to the delegating user's own options.
+            # is what confines the request to the delegating user's own preferences.
             return super(UserPermission, self).has_permission(request, view)
         return super().has_permission(request, view)
 

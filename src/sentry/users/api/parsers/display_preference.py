@@ -3,7 +3,7 @@
 `UserOptionsSerializer` stays in `endpoints.user_details`, where it has always
 lived and where `users.models.user_option` and getsentry both import it from.
 This module holds only what is new: the payload type, the storage-key map, and
-the shared write helper, so `UserDetailsEndpoint` and `UserOptionsEndpoint`
+the shared write helper, so `UserDetailsEndpoint` and `UserDisplayPreferencesEndpoint`
 agree on all three.
 """
 
@@ -44,8 +44,8 @@ DEFAULT_ISSUE_EVENT_CHOICES: "tuple[tuple[DefaultIssueEvent, _StrPromise], ...]"
 )
 
 # Every field name on UserOptionsSerializer. Keeping this as a Literal lets both
-# UserOptionsData and OPTION_KEY_MAP below be checked against one another.
-UserOptionField = Literal[
+# DisplayPreferencesData and DISPLAY_PREFERENCE_OPTION_KEYS below be checked against one another.
+DisplayPreferenceField = Literal[
     "language",
     "stacktraceOrder",
     "timezone",
@@ -56,7 +56,7 @@ UserOptionField = Literal[
 ]
 
 
-class UserOptionsData(TypedDict, total=False):
+class DisplayPreferencesData(TypedDict, total=False):
     """The validated display-preference payload.
 
     Mirrors the fields on UserOptionsSerializer. Every field is optional because
@@ -73,10 +73,10 @@ class UserOptionsData(TypedDict, total=False):
 
 
 # Maps each API field to the key the value is stored under in UserOption. An entry whose
-# key is not a UserOptionsData field fails type checking. An entry that is *missing* does
+# key is not a DisplayPreferencesData field fails type checking. An entry that is *missing* does
 # not: DRF declares serializer fields at runtime, so type checking cannot see them. A
 # field added to the serializer but not to this map validates and is then never written.
-OPTION_KEY_MAP: Mapping[UserOptionField, str] = {
+DISPLAY_PREFERENCE_OPTION_KEYS: Mapping[DisplayPreferenceField, str] = {
     "theme": "theme",
     "language": "language",
     "timezone": "timezone",
@@ -87,12 +87,12 @@ OPTION_KEY_MAP: Mapping[UserOptionField, str] = {
 }
 
 
-def write_user_options(user: User, options: UserOptionsData) -> None:
+def write_display_preferences(user: User, options: DisplayPreferencesData) -> None:
     """Persist the supplied display preferences. Fields absent from `options` are left alone."""
     # Imported lazily: UserOption.write_relocation_import imports UserOptionsSerializer
     # from here, so a module-level import would close the cycle.
     from sentry.users.models.user_option import UserOption
 
-    for api_field, option_key in OPTION_KEY_MAP.items():
+    for api_field, option_key in DISPLAY_PREFERENCE_OPTION_KEYS.items():
         if api_field in options:
             UserOption.objects.set_value(user=user, key=option_key, value=options[api_field])

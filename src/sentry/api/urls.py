@@ -698,6 +698,7 @@ from sentry.users.api.endpoints.user_authenticator_enroll import UserAuthenticat
 from sentry.users.api.endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
 from sentry.users.api.endpoints.user_avatar import UserAvatarEndpoint
 from sentry.users.api.endpoints.user_details import UserDetailsEndpoint
+from sentry.users.api.endpoints.user_display_preferences import UserDisplayPreferencesEndpoint
 from sentry.users.api.endpoints.user_emails import UserEmailsEndpoint
 from sentry.users.api.endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
 from sentry.users.api.endpoints.user_identity import UserIdentityEndpoint
@@ -708,7 +709,6 @@ from sentry.users.api.endpoints.user_identity_config import (
 from sentry.users.api.endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from sentry.users.api.endpoints.user_index import UserIndexEndpoint
 from sentry.users.api.endpoints.user_ips import UserIPsEndpoint
-from sentry.users.api.endpoints.user_options import UserOptionsEndpoint
 from sentry.users.api.endpoints.user_password import UserPasswordEndpoint
 from sentry.users.api.endpoints.user_permission_details import UserPermissionDetailsEndpoint
 from sentry.users.api.endpoints.user_permissions import UserPermissionsEndpoint
@@ -1246,11 +1246,6 @@ USER_URLS = [
         name="sentry-api-0-user-details",
     ),
     re_path(
-        r"^(?P<user_id>[^/]+)/options/$",
-        UserOptionsEndpoint.as_view(),
-        name="sentry-api-0-user-options",
-    ),
-    re_path(
         r"^(?P<user_id>[^/]+)/regions/$",
         UserRegionsEndpoint.as_view(),
         name="sentry-api-0-user-regions",
@@ -1279,6 +1274,11 @@ USER_URLS = [
         r"^(?P<user_id>[^/]+)/authenticators/(?P<auth_id>[^/]+)/$",
         UserAuthenticatorDetailsEndpoint.as_view(),
         name="sentry-api-0-user-authenticator-details",
+    ),
+    re_path(
+        r"^(?P<user_id>[^/]+)/display-preferences/$",
+        UserDisplayPreferencesEndpoint.as_view(),
+        name="sentry-api-0-user-display-preferences",
     ),
     re_path(
         r"^(?P<user_id>[^/]+)/emails/$",

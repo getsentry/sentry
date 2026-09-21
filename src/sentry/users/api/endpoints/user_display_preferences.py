@@ -14,9 +14,12 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.users.api.bases.user import UserEndpoint, UserOptionsPermission
+from sentry.users.api.bases.user import UserDisplayPreferencesPermission, UserEndpoint
 from sentry.users.api.endpoints.user_details import UserOptionsSerializer
-from sentry.users.api.parsers.user_option import UserOptionsData, write_user_options
+from sentry.users.api.parsers.display_preference import (
+    DisplayPreferencesData,
+    write_display_preferences,
+)
 from sentry.users.api.serializers.user import (
     DetailedSelfUserSerializer,
     _UserOptions,  # the canonical response shape for these fields
@@ -26,7 +29,7 @@ from sentry.users.models.user import User
 
 @extend_schema(tags=["Users"])
 @control_silo_endpoint
-class UserOptionsEndpoint(UserEndpoint):
+class UserDisplayPreferencesEndpoint(UserEndpoint):
     """Display preferences only.
 
     `UserDetailsEndpoint` also writes these, nested under `options`, alongside account
@@ -42,13 +45,13 @@ class UserOptionsEndpoint(UserEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
-    permission_classes = (UserOptionsPermission,)
+    permission_classes = (UserDisplayPreferencesPermission,)
 
     @extend_schema(
-        operation_id="retrieveUserOptions",
+        operation_id="retrieveUserDisplayPreferences",
         summary="Retrieve a User's Display Preferences",
         responses={
-            200: inline_sentry_response_serializer("UserOptions", _UserOptions),
+            200: inline_sentry_response_serializer("UserDisplayPreferences", _UserOptions),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -61,11 +64,11 @@ class UserOptionsEndpoint(UserEndpoint):
         return Response(self._serialize_options(user))
 
     @extend_schema(
-        operation_id="updateUserOptions",
+        operation_id="updateUserDisplayPreferences",
         summary="Update a User's Display Preferences",
         request=UserOptionsSerializer,
         responses={
-            200: inline_sentry_response_serializer("UserOptions", _UserOptions),
+            200: inline_sentry_response_serializer("UserDisplayPreferences", _UserOptions),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -80,8 +83,8 @@ class UserOptionsEndpoint(UserEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        options: UserOptionsData = serializer.validated_data
-        write_user_options(user, options)
+        options: DisplayPreferencesData = serializer.validated_data
+        write_display_preferences(user, options)
 
         return Response(self._serialize_options(user))
 

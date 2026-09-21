@@ -33,13 +33,13 @@ from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganizationDeleteState
 from sentry.security.utils import capture_security_activity
 from sentry.users.api.bases.user import UserAndStaffPermission, UserEndpoint
-from sentry.users.api.parsers.user_option import (
+from sentry.users.api.parsers.display_preference import (
     DEFAULT_ISSUE_EVENT_CHOICES,
     STACKTRACE_ORDER_CHOICES,
     THEME_CHOICES,
     TIMEZONE_CHOICES,
-    UserOptionsData,
-    write_user_options,
+    DisplayPreferencesData,
+    write_display_preferences,
 )
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.user import User
@@ -374,8 +374,8 @@ class UserDetailsEndpoint(UserEndpoint):
                         status=status.HTTP_403_FORBIDDEN,
                     )
 
-        options_result: UserOptionsData = serializer_options.validated_data
-        write_user_options(user, options_result)
+        options_result: DisplayPreferencesData = serializer_options.validated_data
+        write_display_preferences(user, options_result)
 
         with transaction.atomic(using=router.db_for_write(User)):
             user = serializer.save()

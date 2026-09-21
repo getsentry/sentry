@@ -13,8 +13,8 @@ from sentry.testutils.silo import all_silo_test, control_silo_test, no_silo_test
 from sentry.users.api.bases.user import (
     RegionSiloUserEndpoint,
     UserAndStaffPermission,
+    UserDisplayPreferencesPermission,
     UserEndpoint,
-    UserOptionsPermission,
     UserPermission,
 )
 
@@ -108,14 +108,14 @@ class UserAndStaffPermissionTest(DRFPermissionTestCase):
 
 
 @all_silo_test
-class UserOptionsPermissionTest(DRFPermissionTestCase):
-    """`UserOptionsPermission` lifts `UserPermission`'s rejection of agent credentials.
+class UserDisplayPreferencesPermissionTest(DRFPermissionTestCase):
+    """`UserDisplayPreferencesPermission` lifts `UserPermission`'s rejection of agent credentials.
 
     What replaces it is a self-only check against the credential, so these cover the
     boundary that keeps an agent off other people's accounts.
     """
 
-    options_permission = UserOptionsPermission()
+    options_permission = UserDisplayPreferencesPermission()
 
     def setUp(self) -> None:
         super().setUp()
