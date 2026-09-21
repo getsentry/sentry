@@ -64,13 +64,6 @@ describe('OrganizationContext', () => {
     ProjectsStore.reset();
     ConfigStore.init();
     OrganizationStore.reset();
-
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-  });
-
-  afterEach(() => {
-    // eslint-disable-next-line no-console
-    jest.mocked(console.error).mockRestore();
   });
 
   /**
@@ -153,6 +146,7 @@ describe('OrganizationContext', () => {
   });
 
   it('opens sudo modal for superusers on 403s', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation();
     ConfigStore.set('user', UserFixture({isSuperuser: true}));
 
     getOrgMock = MockApiClient.addMockResponse({
@@ -169,9 +163,9 @@ describe('OrganizationContext', () => {
 
     await waitFor(() => !OrganizationStore.getState().loading);
 
-    // eslint-disable-next-line no-console
-    await waitFor(() => expect(console.error).toHaveBeenCalled());
-    expect(openSudo).toHaveBeenCalled();
+    await waitFor(() => expect(openSudo).toHaveBeenCalled());
+    expect(errorSpy).toHaveBeenCalledWith(expect.objectContaining({status: 403}));
+    errorSpy.mockRestore();
   });
 
   /**

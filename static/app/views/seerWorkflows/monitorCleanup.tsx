@@ -136,9 +136,9 @@ function PropertyComparison({item}: {item: MonitorCleanupFinding}) {
       >
         <Table.Head>
           <Table.Row>
-            <Table.HeadCell columnKey="property">{t('Property')}</Table.HeadCell>
+            <Table.HeadCell>{t('Property')}</Table.HeadCell>
             {item.monitors.map(member => (
-              <Table.HeadCell key={member.id} columnKey={member.id}>
+              <Table.HeadCell key={member.id}>
                 <Text size="sm" bold wrap="normal" wordBreak="break-word">
                   {member.name}
                 </Text>

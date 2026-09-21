@@ -25,9 +25,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
   getSavedQueryDatasetLabel,
+  getSavedQueryKey,
   getSavedQueryTraceItemDataset,
+  isExploreSavedQuery,
   useGetSavedQueries,
-  type SavedQuery,
+  type AllSavedQuery,
   type SortOption,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
@@ -76,22 +78,26 @@ export function SavedQueriesTable({
   const {starQuery} = useStarQuery();
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
 
-  const [starredIds, setStarredIds] = useState<number[]>([]);
+  const [starredKeys, setStarredKeys] = useState<string[]>([]);
 
-  // Initialize starredIds state when queries have been fetched
   useEffect(() => {
     if (isFetched) {
       // oxlint-disable-next-line react/set-state-in-effect
-      setStarredIds(data?.filter(row => row.starred).map(row => row.id) ?? []);
+      setStarredKeys(data?.filter(row => row.starred).map(getSavedQueryKey) ?? []);
     }
   }, [isFetched, data]);
 
   const starQueryHandler = useCallback(
-    (id: number, starred: boolean, dataset: TraceItemDataset) => {
+    (query: AllSavedQuery, starred: boolean, dataset: TraceItemDataset) => {
+      const key = getSavedQueryKey(query);
+      if (!isExploreSavedQuery(query)) {
+        return;
+      }
+      const id = query.id;
       if (starred) {
-        setStarredIds(prev => [...prev, id]);
+        setStarredKeys(prev => [...prev, key]);
       } else {
-        setStarredIds(prev => prev.filter(starredId => starredId !== id));
+        setStarredKeys(prev => prev.filter(starredKey => starredKey !== key));
       }
       if (dataset === TraceItemDataset.SPANS) {
         trackAnalytics('trace_explorer.star_query', {
@@ -107,12 +113,12 @@ export function SavedQueriesTable({
         });
       }
       starQuery(id, starred).catch(() => {
-        // If the starQuery call fails, we need to revert the starredIds state
+        // If the starQuery call fails, we need to revert the starredKeys state
         addErrorMessage(t('Unable to star query'));
         if (starred) {
-          setStarredIds(prev => prev.filter(starredId => starredId !== id));
+          setStarredKeys(prev => prev.filter(starredKey => starredKey !== key));
         } else {
-          setStarredIds(prev => [...prev, id]);
+          setStarredKeys(prev => [...prev, key]);
         }
       });
     },
@@ -120,7 +126,7 @@ export function SavedQueriesTable({
   );
 
   const getHandleUpdateFromSavedQuery = useCallback(
-    (savedQuery: SavedQuery) => {
+    (savedQuery: AllSavedQuery) => {
       return ({name}: {name: string}) => {
         return updateQueryFromSavedQuery({
           ...savedQuery,
@@ -131,7 +137,7 @@ export function SavedQueriesTable({
     [updateQueryFromSavedQuery]
   );
 
-  const duplicateQuery = async (savedQuery: SavedQuery) => {
+  const duplicateQuery = async (savedQuery: AllSavedQuery) => {
     await saveQueryFromSavedQuery({
       ...savedQuery,
       name: `${savedQuery.name} (Copy)`,
@@ -148,14 +154,14 @@ export function SavedQueriesTable({
   const debouncedOnClick = useMemo(
     () =>
       debounce(
-        (id, starred, dataset) => {
+        (query: AllSavedQuery, starred: boolean, dataset: TraceItemDataset) => {
           if (starred) {
             addLoadingMessage(t('Unstarring query...'));
-            starQueryHandler(id, false, dataset);
+            starQueryHandler(query, false, dataset);
             addSuccessMessage(t('Query unstarred'));
           } else {
             addLoadingMessage(t('Starring query...'));
-            starQueryHandler(id, true, dataset);
+            starQueryHandler(query, true, dataset);
             addSuccessMessage(t('Query starred'));
           }
         },
@@ -178,31 +184,19 @@ export function SavedQueriesTable({
         isLoading={isLoading}
         header={
           <SavedEntityTable.Header>
-            <SavedEntityTable.HeaderCell columnKey="star" />
-            <SavedEntityTable.HeaderCell columnKey="name" divider={false}>
+            <SavedEntityTable.HeaderCell />
+            <SavedEntityTable.HeaderCell divider={false}>
               {t('Name')}
             </SavedEntityTable.HeaderCell>
             {hasLogsSavedQueriesEnabled && (
-              <SavedEntityTable.HeaderCell columnKey="dataset">
-                {t('Type')}
-              </SavedEntityTable.HeaderCell>
+              <SavedEntityTable.HeaderCell>{t('Type')}</SavedEntityTable.HeaderCell>
             )}
-            <SavedEntityTable.HeaderCell columnKey="project">
-              {t('Project')}
-            </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell columnKey="envs">
-              {t('Envs')}
-            </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell columnKey="query">
-              {t('Query')}
-            </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell columnKey="created-by">
-              {t('Creator')}
-            </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell columnKey="last-visited">
-              {t('Last Viewed')}
-            </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell columnKey="actions" />
+            <SavedEntityTable.HeaderCell>{t('Project')}</SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell>{t('Envs')}</SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell>{t('Query')}</SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell>{t('Creator')}</SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell>{t('Last Viewed')}</SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell />
           </SavedEntityTable.Header>
         }
         isEmpty={filteredData.length === 0}
@@ -211,23 +205,23 @@ export function SavedQueriesTable({
       >
         {filteredData.map((query, index) => (
           <SavedEntityTable.Row
-            key={query.id}
+            key={getSavedQueryKey(query)}
             isFirst={index === 0}
             data-test-id={`table-row-${index}`}
           >
-            <SavedEntityTable.Cell hasButton columnKey="star">
+            <SavedEntityTable.Cell hasButton>
               <SavedEntityTable.CellStar
-                isStarred={starredIds.includes(query.id)}
+                isStarred={starredKeys.includes(getSavedQueryKey(query))}
                 onClick={() =>
                   debouncedOnClick(
-                    query.id,
+                    query,
                     query.starred,
                     getSavedQueryTraceItemDataset(query.dataset)
                   )
                 }
               />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="name">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellName
                 to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
               >
@@ -235,17 +229,19 @@ export function SavedQueriesTable({
               </SavedEntityTable.CellName>
             </SavedEntityTable.Cell>
             {hasLogsSavedQueriesEnabled && (
-              <SavedEntityTable.Cell columnKey="dataset">
-                {getSavedQueryDatasetLabel(query.dataset)}
+              <SavedEntityTable.Cell>
+                {isExploreSavedQuery(query)
+                  ? getSavedQueryDatasetLabel(query.dataset)
+                  : 'Errors'}
               </SavedEntityTable.Cell>
             )}
-            <SavedEntityTable.Cell columnKey="project">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellProjects projects={query.projects} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="envs">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellEnvironments environments={query.environment ?? []} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="query">
+            <SavedEntityTable.Cell>
               <StyledExploreParams
                 query={query.query[0].query}
                 visualizes={query.query[0].visualize}
@@ -253,7 +249,7 @@ export function SavedQueriesTable({
                 agent={query.agent}
               />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="created-by">
+            <SavedEntityTable.Cell>
               {query.isPrebuilt ? (
                 <Tooltip title="Sentry">
                   <ActivityAvatar type="system" size={20} />
@@ -262,10 +258,10 @@ export function SavedQueriesTable({
                 <UserAvatar user={query.createdBy} hasTooltip />
               ) : null}
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="last-visited">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellTimeSince date={query.lastVisited} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="actions" hasButton>
+            <SavedEntityTable.Cell hasButton>
               <SavedEntityTable.CellActions
                 items={[
                   ...(query.isPrebuilt
@@ -333,6 +329,9 @@ export function SavedQueriesTable({
                               handleDelete: async () => {
                                 addLoadingMessage(t('Deleting query...'));
                                 try {
+                                  if (!isExploreSavedQuery(query)) {
+                                    return;
+                                  }
                                   await deleteQuery(query.id);
                                   addSuccessMessage(t('Query deleted'));
                                 } catch (error) {
@@ -359,7 +358,15 @@ function savedQueryColumns(hasLogsEnabled: boolean): TableColumnConfig[] {
   return [
     {key: 'star', width: '40px'},
     {key: 'name', width: {zero: '30%', xl: '20%'}},
-    {key: 'dataset', visible: hasLogsEnabled && {xl: true}, width: 'min-content'},
+    ...(hasLogsEnabled
+      ? [
+          {
+            key: 'dataset',
+            visible: {xl: true},
+            width: 'min-content',
+          } satisfies TableColumnConfig,
+        ]
+      : []),
     {key: 'project', visible: {xl: true}, width: 'minmax(auto, 120px)'},
     {key: 'envs', visible: {'3xl': true}, width: 'minmax(auto, 120px)'},
     {key: 'query', width: 'minmax(0, 1fr)'},

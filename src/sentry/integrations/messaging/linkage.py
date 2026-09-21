@@ -312,6 +312,11 @@ class UnlinkIdentityView(IdentityLinkageView, ABC):
             identities = Identity.objects.filter(external_id=external_id, user_id=request.user.id)
             if idp is not None:
                 identities = identities.filter(idp=idp)
+            else:
+                # MS Teams signs no integration_id, so the provider type is the narrowest
+                # scope left. Only here: a resolved idp may be a variant such as
+                # `slack_staging`, which the view's spec slug would not match.
+                identities = identities.filter(idp__type=self.provider_slug)
             deleted_count, _ = identities.delete()
             if deleted_count == 0:
                 if self.no_identity_template:
