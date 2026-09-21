@@ -92,7 +92,14 @@ describe('Sentry Application Dashboard', () => {
 
     it('shows the total install/uninstall stats', async () => {
       renderDashboard();
-      expect(await screen.findByTestId('installs')).toHaveTextContent('Total installs5');
+      // Two sequential TanStack Query fetches are required before this element
+      // renders (first the app, then the stats). Use a longer timeout so the
+      // test stays green under CI load, and verify the stats mock was actually
+      // called to catch URL-mismatch regressions early.
+      expect(await screen.findByTestId('installs', {}, {timeout: 3000})).toHaveTextContent(
+        'Total installs5'
+      );
+      expect(statsMock).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId('uninstalls')).toHaveTextContent('Total uninstalls2');
     });
 
