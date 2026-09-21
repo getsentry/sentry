@@ -292,6 +292,10 @@ describe('formatQueryToNaturalLanguage', () => {
       expected: '(message matches regex ^GET /api) OR level is error ',
     },
     {
+      query: '(!message://^GET /api//) OR level:error',
+      expected: '(message does not match regex ^GET /api) OR level is error ',
+    },
+    {
       query: '!message://^GET /api//',
       expected: 'message does not match regex ^GET /api ',
     },
