@@ -185,15 +185,28 @@ export const SEER_EMBED_SCHEMAS = {
   },
   issue: {
     description:
-      'The ONLY way to reference a Sentry issue. Requires the issue short ID ' +
-      '(e.g. "PROJECT-123"). ' +
+      'The ONLY way to reference a Sentry issue. ' +
+      '`id` is the issue SHORT ID — the `shortId` field the issues API returns, ' +
+      'a project slug, a hyphen, and a short alphanumeric suffix ' +
+      '(e.g. "JAVASCRIPT-22SP"). It is NEVER the numeric group ID ' +
+      '(e.g. "7716642857"), which is what the API returns as `id`. ' +
+      'If you only have the numeric group ID, do not guess a short ID: ' +
+      'use `issuesQuery` with `issue.id:<numeric id>` instead. ' +
       'Inline: renders a compact link with the short id. ' +
       'Block: renders a full interactive issue row with title, events, ' +
       'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
       'When referencing 2+ issues, use `issuesQuery` with an issue ID search. ' +
       'Never use `docs` or markdown links for issue references.',
     level: ['inline', 'block'],
-    schema: z.object({id: z.string()}),
+    schema: z.object({
+      id: z
+        .string()
+        .min(1)
+        .describe(
+          'The issue short ID, exactly as the issues API returns it in `shortId` ' +
+            '(e.g. "JAVASCRIPT-22SP"). Not the numeric group ID.'
+        ),
+    }),
     examples: [
       {label: 'Inline', level: 'inline', data: {id: 'JAVASCRIPT-22SP'}},
       {label: 'Block', level: 'block', data: {id: 'JAVASCRIPT-22SP'}},
@@ -757,6 +770,8 @@ export const SEER_EMBED_SCHEMAS = {
       'The ONLY way to list multiple Sentry issues. Accepts any issue search terms, ' +
       'including a specific list of issue IDs such as ' +
       '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. ' +
+      'The `issue:` filter only accepts short IDs — to search by numeric group ID, ' +
+      'use `issue.id:[7716642857,7716642858]` instead. ' +
       'Inline renders a link; block renders the first five matching issues with ' +
       'title, trend graph, events, priority, and assignee. ' +
       'Do NOT duplicate those issues as text or a markdown table. ' +
