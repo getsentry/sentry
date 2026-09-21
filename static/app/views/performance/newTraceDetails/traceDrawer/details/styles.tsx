@@ -276,47 +276,6 @@ const HeaderContainer = styled(FlexBox)`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-type DurationProps = {
-  baseline: number | undefined;
-  duration: number;
-  baseDescription?: string;
-  precision?: number;
-  ratio?: number;
-};
-
-function Duration(props: DurationProps) {
-  if (typeof props.duration !== 'number' || Number.isNaN(props.duration)) {
-    return <DurationContainer>{t('unknown')}</DurationContainer>;
-  }
-
-  const precision = props.precision ?? 2;
-  if (props.baseline === undefined || props.baseline === 0) {
-    return (
-      <DurationContainer>
-        {getDuration(props.duration, precision, true)}
-      </DurationContainer>
-    );
-  }
-
-  const comparison = getDurationComparison(
-    props.baseline,
-    props.duration,
-    props.baseDescription
-  );
-
-  return (
-    <Fragment>
-      <DurationContainer>
-        {getDuration(props.duration, precision, true)}{' '}
-        {props.ratio ? `(${(props.ratio * 100).toFixed()}%)` : null}
-      </DurationContainer>
-      {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
-        <Comparison status={comparison.status}>{comparison.deltaText}</Comparison>
-      ) : null}
-    </Fragment>
-  );
-}
-
 function TableRow({
   title,
   children,
@@ -695,20 +654,6 @@ function IssuesLink({
 const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
   observerOptions: {rootMargin: '50px'},
 };
-
-const DurationContainer = styled('span')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-right: ${p => p.theme.space.md};
-`;
-
-const Comparison = styled('span')<{status: 'faster' | 'slower' | 'equal'}>`
-  color: ${p =>
-    p.status === 'faster'
-      ? p.theme.tokens.content.success
-      : p.status === 'slower'
-        ? p.theme.tokens.content.danger
-        : p.theme.tokens.content.secondary};
-`;
 
 const TableValueRow = styled('div')`
   display: grid;
@@ -1337,7 +1282,6 @@ export const TraceDrawerComponents = {
   IconBorder,
   TitleText,
   LegacyTitleText,
-  Duration,
   TableRow,
   LAZY_RENDER_PROPS,
   TableValueRow,
