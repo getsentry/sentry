@@ -1,9 +1,12 @@
 from unittest.mock import MagicMock, patch
 
+from django.test import override_settings
+
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import with_feature
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:gen-ai-features")
 class GroupAutofixReposEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:

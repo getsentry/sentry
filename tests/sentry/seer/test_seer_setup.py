@@ -47,4 +47,7 @@ class HasSeerAccessTest(TestCase):
     def test_denied_on_self_hosted(self) -> None:
         org = self.create_organization()
         assert has_seer_access(org) is False
-        assert has_seer_access_with_detail(org) == (False, "Feature flag not enabled")
+        assert has_seer_access_with_detail(org) == (
+            False,
+            "Seer is not available on this installation.",
+        )

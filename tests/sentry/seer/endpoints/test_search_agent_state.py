@@ -6,6 +6,7 @@ from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import APITestCase
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @override_settings(SEER_AUTOFIX_URL="https://seer.example.com")
 class SearchAgentStateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-search-agent-state"

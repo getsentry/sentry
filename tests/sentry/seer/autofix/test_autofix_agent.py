@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.test import override_settings
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.analytics.events.autofix_events import AiAutofixSolutionCompletedEvent
@@ -1813,6 +1814,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert repos[0].branch_name == "main"
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestTriggerPushChanges(TestCase):
     """Tests for trigger_push_changes function."""
 

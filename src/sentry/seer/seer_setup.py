@@ -35,9 +35,10 @@ def has_seer_access_with_detail(
     organization: Organization | RpcOrganization,
     actor: User | AnonymousUser | RpcUser | None = None,
 ) -> tuple[bool, str | None]:
-    if not is_seer_available() or not features.has(
-        "organizations:gen-ai-features", organization, actor=actor
-    ):
+    if not is_seer_available():
+        return False, "Seer is not available on this installation."
+
+    if not features.has("organizations:gen-ai-features", organization, actor=actor):
         return False, "Feature flag not enabled"
 
     if organization.get_option("sentry:hide_ai_features"):
