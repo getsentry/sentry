@@ -57,7 +57,7 @@ export function AddIntegrationButton({
     // aria-disabled rather than disabled so the button stays focusable and the
     // tooltip that says why it cannot be added opens on keyboard focus.
     <Button
-      aria-disabled={!provider.canAdd}
+      aria-disabled={!provider.canAdd || undefined}
       tooltipProps={
         provider.canAdd
           ? undefined
