@@ -196,7 +196,7 @@ array_includes_filter = negation? array_includes_key sep wildcard_op? operator? 
 # rescanning the rest of the line at every one of them; SearchVisitor enforces the real
 # MAX_REGEX_PATTERN_LENGTH, including for patterns too long to scan.
 regex_filter = negation? (array_includes_key / text_key) sep regex_value
-regex_value  = ~r"//((?:(?!//(?:[\t\n )]|$))[^\n]){1,1024})//(?=[\t\n )]|$)"
+regex_value  = ~r"//(?!//(?:[\t\n )]|$))([^\n]{1,1024}?)//(?=[\t\n )]|$)"
 
 # NOTE: These wildcard operators are internal implementation details and
 # should not be included in product docs. Users should use `*` instead.
@@ -253,7 +253,8 @@ end_value = ~r"[\t\n )]|$"
 
 MAX_REGEX_PATTERN_LENGTH = 64
 
-REGEX_CLOSING_DELIMITER = re.compile(r"//(?=[\t\n )]|\Z)")
+# A newline ends the line a pattern can span, so it's tracked alongside closing delimiters
+REGEX_CLOSING_DELIMITER_OR_NEWLINE = re.compile(r"\n|//(?=[\t\n )]|\Z)")
 
 
 def regex_pattern_too_long_error(key: str) -> InvalidSearchQuery:
@@ -567,9 +568,7 @@ class SearchValue(NamedTuple):
 
     @property
     def value(self) -> Any:
-        # Escape sequences are meaningful to the regex engine, so a pattern passes through
-        # untouched. `\*` is a literal asterisk there, not an escaped wildcard.
-        if self.use_raw_value or self.is_regex:
+        if self.use_raw_value:
             return self.raw_value
         elif self.is_wildcard() and isinstance(self.raw_value, str):
             return translate_wildcard(self.raw_value)
@@ -598,8 +597,8 @@ class SearchValue(NamedTuple):
             return str(self.value)
 
     def is_wildcard(self) -> bool:
-        # The raw value is never a wildcard, and a `*` in a regex is a quantifier
-        if self.use_raw_value or self.is_regex:
+        # If we're using the raw value only it'll never be a wildcard
+        if self.use_raw_value:
             return False
         if self.is_str_sequence():
             return isinstance(self.raw_value, list) and any(
@@ -795,8 +794,8 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
     # Whether to wrap free_text_keys in asterisks
     wildcard_free_text: bool = False
 
-    # Whether key://pattern// values are regex matches. Only the logs resolver compiles them, so
-    # other searches read them as the literals they have always been.
+    # Only the logs resolver compiles key://pattern// values, so other searches read them as the
+    # literals they have always been
     allow_regex: bool = False
 
     # Disallow the use of the !has filter
@@ -857,7 +856,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         super().__init__()
 
         self.config = config
-        self._regex_closing_offsets: list[int] | None = None
+        self._regex_closing_or_newline_offsets: list[int] | None = None
 
         if TYPE_CHECKING:
             from sentry.search.events.builder.discover import UnresolvedQuery
@@ -1558,7 +1557,11 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         if len(pattern) > MAX_REGEX_PATTERN_LENGTH:
             raise regex_pattern_too_long_error(search_key.name)
         validate_regex_pattern(search_key.name, pattern)
-        return SearchFilter(search_key, operator, SearchValue(pattern, is_regex=True))
+        # Escape sequences and `*` mean something to the regex engine, so the pattern skips
+        # wildcard and escape translation
+        return SearchFilter(
+            search_key, operator, SearchValue(pattern, use_raw_value=True, is_regex=True)
+        )
 
     def visit_regex_value(self, node: RegexNode, children: object) -> str:
         return node.match.group(1)
@@ -1579,15 +1582,13 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             return
 
         text = node.full_text
-        if self._regex_closing_offsets is None:
-            self._regex_closing_offsets = [
-                match.start() for match in REGEX_CLOSING_DELIMITER.finditer(text)
+        if self._regex_closing_or_newline_offsets is None:
+            self._regex_closing_or_newline_offsets = [
+                match.start() for match in REGEX_CLOSING_DELIMITER_OR_NEWLINE.finditer(text)
             ]
-        closing = bisect.bisect_left(self._regex_closing_offsets, value.start + 3)
-        line_end = text.find("\n", value.start)
-        if closing < len(self._regex_closing_offsets) and (
-            line_end == -1 or self._regex_closing_offsets[closing] < line_end
-        ):
+        offsets = self._regex_closing_or_newline_offsets
+        index = bisect.bisect_left(offsets, value.start + 3)
+        if index < len(offsets) and text[offsets[index]] == "/":
             raise regex_pattern_too_long_error(search_key.name)
 
     # --- End of filter visitors
