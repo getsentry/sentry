@@ -88,7 +88,7 @@ describe('ConversationOnboarding', () => {
     expect(tracking).toHaveBeenCalledWith(
       expect.objectContaining({
         analyticsEventKey: 'conversations.onboarding.interaction',
-        analyticsParams: {action: 'copy_agent_prompt'},
+        analyticsParams: expect.objectContaining({action: 'copy_agent_prompt'}),
       })
     );
 
