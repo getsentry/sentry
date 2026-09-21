@@ -120,6 +120,28 @@ def find_orphaned_configs(store: ConfigStore, partition: int) -> DriftResult:
     return DriftResult(checked=len(stored), drifted_ids=frozenset(stored - live))
 
 
+def find_missing_configs_for_store(store: ConfigStore) -> DriftResult:
+    """
+    Whole-store form of find_missing_configs: reads every partition's field names in one
+    pipeline instead of probing one id at a time, since here every row is checked anyway.
+    """
+    # Postgres first: a row ACTIVE now had its config written before now, so a config
+    # published between the two reads can't show up as missing.
+    live = {
+        subscription_id
+        for subscription_id in _active_region_rows()
+        .filter(region_slug__in=store.region_slugs)
+        .values_list("uptime_subscription__subscription_id", flat=True)
+        if subscription_id is not None
+    }
+    cluster = redis.redis_clusters.get_binary(store.cluster)
+    pipe = cluster.pipeline()
+    for partition in range(settings.UPTIME_CONFIG_PARTITIONS):
+        pipe.hkeys(get_config_key(store.key_prefix, partition))
+    stored = {field.decode() for fields in pipe.execute() for field in fields}
+    return DriftResult(checked=len(live), drifted_ids=frozenset(live - stored))
+
+
 def get_sentinel_key(key_prefix: str, partition: int) -> str:
     # Hash-tagged so it shares a cluster slot with the partition hash it stands for.
     return f"{{{get_config_key(key_prefix, partition)}}}:sentinel"
@@ -131,3 +153,11 @@ def find_missing_sentinels(store: ConfigStore) -> list[int]:
     for partition in range(settings.UPTIME_CONFIG_PARTITIONS):
         pipe.exists(get_sentinel_key(store.key_prefix, partition))
     return [partition for partition, present in enumerate(pipe.execute()) if not present]
+
+
+def write_sentinels(store: ConfigStore) -> None:
+    cluster = redis.redis_clusters.get_binary(store.cluster)
+    pipe = cluster.pipeline()
+    for partition in range(settings.UPTIME_CONFIG_PARTITIONS):
+        pipe.set(get_sentinel_key(store.key_prefix, partition), b"1")
+    pipe.execute()

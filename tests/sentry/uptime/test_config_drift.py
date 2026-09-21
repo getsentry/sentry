@@ -27,6 +27,7 @@ from sentry.uptime.subscriptions.tasks import (
     check_missing_configs,
     check_orphaned_configs,
     config_drift_dispatcher,
+    repair_config_store,
     update_remote_uptime_subscription,
     uptime_subscription_to_check_config,
 )
@@ -367,7 +368,10 @@ class CheckConfigSentinelsTest(ConfigPusherTestMixin):
         cluster = redis.redis_clusters.get_binary("default")
         keys_before = set(cluster.keys())
 
-        with mock.patch.object(tasks, "metrics") as metrics:
+        with (
+            mock.patch.object(tasks, "metrics") as metrics,
+            mock.patch.object(repair_config_store, "delay") as delay,
+        ):
             check_config_sentinels()
 
         # One gauge per store, both on the test cluster.
@@ -379,4 +383,74 @@ class CheckConfigSentinelsTest(ConfigPusherTestMixin):
         )
         assert metrics.gauge.mock_calls == [all_missing, all_missing]
         assert metrics.incr.mock_calls == []
+        assert not delay.called
         assert set(cluster.keys()) == keys_before
+
+    @override_options({"uptime.config-drift.repair": True})
+    def test_sentinel_write_touches_no_config_hash(self) -> None:
+        cluster = redis.redis_clusters.get_binary("default")
+
+        with self.tasks():
+            check_config_sentinels()
+
+        for key_prefix in "ab":
+            for partition in range(128):
+                assert cluster.type(get_sentinel_key(key_prefix, partition)) == b"string"
+                assert not cluster.exists(get_config_key(key_prefix, partition))
+                assert not cluster.exists(f"{key_prefix}uptime:updates:{partition}")
+
+    def _seed_lost_on_b(self, count: int = 1) -> tuple[list[UptimeSubscription], str]:
+        """
+        Writes every sentinel, then creates ``count`` subscriptions never published to store B
+        and drops one of their partitions' sentinel there. Returns them and the lost sentinel key.
+        """
+        with self.tasks():
+            check_config_sentinels()
+        subscriptions = []
+        for _ in range(count):
+            subscription = self.create_uptime_subscription(
+                subscription_id=_subscription_id(), region_slugs=["a1", "b1"]
+            )
+            _publish(subscription, ["a1"])
+            subscriptions.append(subscription)
+        assert subscription.subscription_id is not None
+        partition = get_partition_from_subscription_id(UUID(subscription.subscription_id))
+        sentinel = get_sentinel_key("b", partition)
+        redis.redis_clusters.get_binary("default").delete(sentinel)
+        return subscriptions, sentinel
+
+    @override_options({"uptime.config-drift.repair": True})
+    def test_missing_sentinel_repairs_only_that_store(self) -> None:
+        [subscription], _ = self._seed_lost_on_b()
+
+        with mock.patch.object(repair_config_store, "delay") as delay:
+            check_config_sentinels()
+        delay.assert_called_once_with(cluster="default", key_prefix="b")
+
+        with self.tasks():
+            repair_config_store(cluster="default", key_prefix="b")
+
+        self.assert_redis_config(
+            "b1", subscription, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
+        )
+
+    @override_options({"uptime.config-drift.repair": True})
+    @mock.patch.object(tasks, "CONFIG_REPAIR_MAX_TASKS", 1)
+    def test_sentinel_written_only_once_missing_fits_the_cap(self) -> None:
+        lost, sentinel = self._seed_lost_on_b(count=2)
+        cluster = redis.redis_clusters.get_binary("default")
+
+        # Two missing against a cap of one: not everything was handed off, so no sentinel.
+        with mock.patch.object(update_remote_uptime_subscription, "delay") as delay:
+            repair_config_store(cluster="default", key_prefix="b")
+
+        assert delay.call_count == 1
+        assert not cluster.exists(sentinel)
+
+        # One missing fits the cap: the sentinel returns while that one is still in flight.
+        _publish(lost[0], ["b1"])
+        with mock.patch.object(update_remote_uptime_subscription, "delay") as delay:
+            repair_config_store(cluster="default", key_prefix="b")
+
+        delay.assert_called_once_with(uptime_subscription_id=lost[1].id, region_slugs=["b1"])
+        assert cluster.exists(sentinel)

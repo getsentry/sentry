@@ -19,10 +19,12 @@ from sentry.uptime.config_drift import (
     SWEEP_RUN_INTERVAL,
     ConfigStore,
     find_missing_configs,
+    find_missing_configs_for_store,
     find_missing_sentinels,
     find_orphaned_configs,
     get_config_stores,
     sweep_slice,
+    write_sentinels,
 )
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
@@ -380,7 +382,7 @@ def check_orphaned_configs(cluster: str, key_prefix: str, partition: int, **kwar
 def check_config_sentinels(**kwargs):
     """
     Checks each config store's partition sentinels every minute; a missing sentinel means the
-    store lost data.
+    store lost data, so its whole-store comparison is queued when repair is on.
     """
     if not options.get("uptime.config-drift.enabled"):
         return
@@ -398,6 +400,38 @@ def check_config_sentinels(**kwargs):
             tags={"cluster": store.cluster},
             sample_rate=1.0,
         )
+        if missing and options.get("uptime.config-drift.repair"):
+            logger.warning(
+                "uptime.config_drift.sentinel_missing",
+                extra={"cluster": store.cluster, "count": len(missing), "partitions": missing},
+            )
+            repair_config_store.delay(cluster=store.cluster, key_prefix=store.key_prefix)
+
+
+@instrumented_task(
+    name="sentry.uptime.tasks.repair_config_store",
+    namespace=uptime_tasks,
+    processing_deadline_duration=60,
+    expires=60,
+)
+def repair_config_store(cluster: str, key_prefix: str, **kwargs):
+    """
+    Whole-store comparison after a sentinel went missing, then repair.
+    """
+    store = _find_store(cluster, key_prefix)
+    if store is None:
+        return
+
+    result = find_missing_configs_for_store(store)
+    missing = len(result.drifted_ids)
+    logger.info(
+        "uptime.config_drift.store_repair",
+        extra={"cluster": store.cluster, "checked": result.checked, "missing": missing},
+    )
+    if missing:
+        repair_missing_configs(store, result.drifted_ids, limit=CONFIG_REPAIR_MAX_TASKS)
+    if missing <= CONFIG_REPAIR_MAX_TASKS:
+        write_sentinels(store)
 
 
 def repair_missing_configs(
