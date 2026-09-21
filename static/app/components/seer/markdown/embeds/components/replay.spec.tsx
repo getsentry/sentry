@@ -35,8 +35,6 @@ describe('replay embed', () => {
   });
 
   it('renders a replay player preview at block level with a timestamp', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-
     renderEmbed({
       name: 'replay',
       data: {

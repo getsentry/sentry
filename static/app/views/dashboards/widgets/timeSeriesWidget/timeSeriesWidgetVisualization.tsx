@@ -72,6 +72,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    */
   plottables: Plottable[];
   /**
+   * Annotations for the volume that was accepted.
+   */
+  acceptedData?: Annotation[];
+
+  /**
    * Sets the range of the Y axis.
    *
    * - `auto`: The Y axis starts at 0, and ends at the maximum value of the data.
@@ -433,9 +438,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const {droppedDataSeries, droppedDataBandHeight, droppedDataYAxis} = useDroppedDataBand(
     {
-      annotations: props.droppedData,
+      chartRef,
+      acceptedAnnotations: props.acceptedData,
+      droppedAnnotations: props.droppedData,
       bandOffset: releaseBandHeight,
       showDroppedData: props.showDroppedData,
+      utc,
       yAxisIndex: yAxes.length,
     }
   );

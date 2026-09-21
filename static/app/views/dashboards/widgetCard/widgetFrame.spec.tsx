@@ -4,10 +4,6 @@ import {WidgetFrame} from 'sentry/views/dashboards/widgetCard/widgetFrame';
 
 describe('WidgetFrame', () => {
   describe('Layout', () => {
-    beforeEach(() => {
-      jest.spyOn(console, 'error').mockImplementation();
-    });
-
     afterEach(() => {
       jest.resetAllMocks();
     });
@@ -22,6 +18,8 @@ describe('WidgetFrame', () => {
     });
 
     it('Catches errors in the visualization and hides the internal message', async () => {
+      // React reports the error caught by the widget's error boundary.
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
       render(
         <WidgetFrame title="Uh Oh">
           <UhOh />
@@ -36,6 +34,8 @@ describe('WidgetFrame', () => {
         await screen.findByText('Something went wrong displaying this widget.')
       ).toBeInTheDocument();
       expect(screen.queryByText(/cannot read properties/i)).not.toBeInTheDocument();
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
     });
   });
 
