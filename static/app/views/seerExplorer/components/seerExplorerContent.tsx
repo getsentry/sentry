@@ -189,6 +189,8 @@ export function SeerExplorerContent({
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
   const userScrolledUpRef = useRef(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
+  /** A new chat was started and the composer should take focus once it is back. */
+  const pendingComposerFocusRef = useRef(false);
 
   const focusInput = useCallback(() => {
     textareaRef.current?.focus();
@@ -506,6 +508,10 @@ export function SeerExplorerContent({
 
   const handleStartNewChat = useCallback(() => {
     startNewSession();
+    // The composer may be disabled right now (the error screen), and that branch
+    // renders a different textarea which never takes `textareaRef` - so focusing
+    // here would be a no-op. Ask for it once the real composer is back instead.
+    pendingComposerFocusRef.current = true;
     focusInput();
   }, [startNewSession, focusInput]);
 
@@ -528,6 +534,16 @@ export function SeerExplorerContent({
       textareaRef.current?.focus();
     }, 100);
   }, []);
+
+  // Focus the composer once a new chat has actually replaced the error screen.
+  // Only on an explicit request, so unrelated transitions never steal focus.
+  useEffect(() => {
+    if (!pendingComposerFocusRef.current || readOnly || showLoadError) {
+      return;
+    }
+    pendingComposerFocusRef.current = false;
+    focusInput();
+  }, [readOnly, showLoadError, focusInput]);
 
   // Auto-scroll to bottom when new blocks are added, but only if user hasn't scrolled up
   useEffect(() => {
@@ -602,10 +618,7 @@ export function SeerExplorerContent({
   const headerContent = (
     <SeerExplorerHeader
       disableNewChatButton={runId === null}
-      onNewChatClick={() => {
-        startNewSession();
-        focusInput();
-      }}
+      onNewChatClick={handleStartNewChat}
       onChangeSession={switchToRun}
       onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
