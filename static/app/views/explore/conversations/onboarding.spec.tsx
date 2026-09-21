@@ -311,7 +311,7 @@ describe('ConversationOnboarding', () => {
     expect(screen.getByText('Identify Users (optional)')).toBeInTheDocument();
   });
 
-  it('tracks AI prompt copy for conversations onboarding', async () => {
+  it('does not track setup instructions as an AI prompt copy', async () => {
     const {organization} = setupProject('node');
 
     render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
@@ -320,14 +320,8 @@ describe('ConversationOnboarding', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Copy instructions'}));
 
     expect(trackAnalytics).not.toHaveBeenCalledWith(
-      'conversations.onboarding.interaction',
-      expect.objectContaining({action: 'copy_agent_prompt'})
+      'onboarding.ai_prompt_copied',
+      expect.anything()
     );
-    expect(trackAnalytics).toHaveBeenCalledWith('onboarding.ai_prompt_copied', {
-      organization,
-      platform: 'node',
-      product: 'conversations',
-      source: 'prompt',
-    });
   });
 });
