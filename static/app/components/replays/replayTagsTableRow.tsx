@@ -3,6 +3,8 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -10,7 +12,6 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {ReleaseDropdownFilter} from 'sentry/components/replays/releaseDropdownFilter';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
-import {KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {Version} from 'sentry/components/version';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
@@ -108,13 +109,16 @@ export function ReplayTagsTableRow({name, values, generateUrl}: Props) {
   }, [name, values, generateUrl, organization]);
 
   return (
-    <KeyValueTableRow
-      keyName={
-        <StyledTooltip title={name} showOnlyOnOverflow>
-          {name}
-        </StyledTooltip>
-      }
-      value={
+    <Fragment>
+      <DescriptionList.Term>
+        {/* Terms size to max-content, so cap long tag names for their overflow tooltip */}
+        <Container maxWidth="50cqi">
+          <StyledTooltip title={name} showOnlyOnOverflow>
+            {name}
+          </StyledTooltip>
+        </Container>
+      </DescriptionList.Term>
+      <DescriptionList.Details>
         <ErrorBoundary mini>
           <ValueContainer>
             <StyledTooltip
@@ -131,8 +135,8 @@ export function ReplayTagsTableRow({name, values, generateUrl}: Props) {
             </StyledTooltip>
           </ValueContainer>
         </ErrorBoundary>
-      }
-    />
+      </DescriptionList.Details>
+    </Fragment>
   );
 }
 
@@ -141,8 +145,6 @@ const ValueContainer = styled('div')`
     font-size: ${p => p.theme.font.size.md};
   }
   display: flex;
-  padding: ${p => p.theme.space['2xs']};
-  justify-content: flex-end;
 `;
 
 const StyledTooltip = styled(Tooltip)`
@@ -155,7 +157,6 @@ const StyledTooltip = styled(Tooltip)`
 
 const StyledVersionContainer = styled('div')`
   display: flex;
-  justify-content: flex-end;
   gap: ${p => p.theme.space.sm};
 
   .invisible-button {

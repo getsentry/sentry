@@ -1,10 +1,10 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {Placeholder} from 'sentry/components/placeholder';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
@@ -20,14 +20,10 @@ type Props = {
 export function DetectorExtraDetails({children}: Props) {
   return (
     <DetailSection title={t('Details')}>
-      <StyledKeyValueTable>{children}</StyledKeyValueTable>
+      <DescriptionList>{children}</DescriptionList>
     </DetailSection>
   );
 }
-
-const StyledKeyValueTable = styled(KeyValueTable)`
-  grid-template-columns: min-content auto;
-`;
 
 DetectorExtraDetails.DateCreated = function DetectorExtraDetailsDateCreated({
   detector,
@@ -35,10 +31,12 @@ DetectorExtraDetails.DateCreated = function DetectorExtraDetailsDateCreated({
   detector: Detector;
 }) {
   return (
-    <KeyValueTableRow
-      keyName={t('Date created')}
-      value={<DateTime date={detector.dateCreated} dateOnly year />}
-    />
+    <Fragment>
+      <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
+      <DescriptionList.Details>
+        <DateTime date={detector.dateCreated} dateOnly year />
+      </DescriptionList.Details>
+    </Fragment>
   );
 };
 
@@ -60,32 +58,44 @@ DetectorExtraDetails.CreatedBy = function DetectorExtraDetailsCreatedBy({
   const keyName = t('Created by');
 
   if (!createdBy) {
-    return <KeyValueTableRow keyName={keyName} value={t('Sentry')} />;
+    return (
+      <Fragment>
+        <DescriptionList.Term>{keyName}</DescriptionList.Term>
+        <DescriptionList.Details>{t('Sentry')}</DescriptionList.Details>
+      </Fragment>
+    );
   }
 
   if (isPending) {
     return (
-      <KeyValueTableRow
-        keyName={keyName}
-        value={<Placeholder width="80px" height="16px" />}
-      />
+      <Fragment>
+        <DescriptionList.Term>{keyName}</DescriptionList.Term>
+        <DescriptionList.Details>
+          <Placeholder width="80px" height="16px" />
+        </DescriptionList.Details>
+      </Fragment>
     );
   }
 
   if (isError) {
-    return <KeyValueTableRow keyName={keyName} value={t('Deactivated user')} />;
+    return (
+      <Fragment>
+        <DescriptionList.Term>{keyName}</DescriptionList.Term>
+        <DescriptionList.Details>{t('Deactivated user')}</DescriptionList.Details>
+      </Fragment>
+    );
   }
 
   const title = user?.name ?? user?.email ?? t('Unknown');
   return (
-    <KeyValueTableRow
-      keyName={keyName}
-      value={
+    <Fragment>
+      <DescriptionList.Term>{keyName}</DescriptionList.Term>
+      <DescriptionList.Details>
         <Tooltip title={title} showOnlyOnOverflow>
           <TextOverflow>{title}</TextOverflow>
         </Tooltip>
-      }
-    />
+      </DescriptionList.Details>
+    </Fragment>
   );
 };
 
@@ -95,10 +105,12 @@ DetectorExtraDetails.LastModified = function DetectorExtraDetailsLastModified({
   detector: Detector;
 }) {
   return (
-    <KeyValueTableRow
-      keyName={t('Last modified')}
-      value={<TimeSince date={detector.dateUpdated} />}
-    />
+    <Fragment>
+      <DescriptionList.Term>{t('Last modified')}</DescriptionList.Term>
+      <DescriptionList.Details>
+        <TimeSince date={detector.dateUpdated} />
+      </DescriptionList.Details>
+    </Fragment>
   );
 };
 
@@ -111,13 +123,13 @@ DetectorExtraDetails.Environment = function DetectorExtraDetailsEnvironment({
   const environmentLabel = environment ?? t('All environments');
 
   return (
-    <KeyValueTableRow
-      keyName={t('Environment')}
-      value={
+    <Fragment>
+      <DescriptionList.Term>{t('Environment')}</DescriptionList.Term>
+      <DescriptionList.Details>
         <Tooltip title={environmentLabel} showOnlyOnOverflow>
           <TextOverflow>{environmentLabel}</TextOverflow>
         </Tooltip>
-      }
-    />
+      </DescriptionList.Details>
+    </Fragment>
   );
 };
