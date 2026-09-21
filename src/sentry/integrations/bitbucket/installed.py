@@ -1,3 +1,5 @@
+import logging
+
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.views.decorators.csrf import csrf_exempt
@@ -19,6 +21,8 @@ from sentry.shared_integrations.exceptions import ApiError
 
 from .client import BitbucketApiClient
 from .integration import BitbucketIntegrationProvider
+
+logger = logging.getLogger("sentry.webhooks")
 
 
 @control_silo_endpoint
@@ -78,6 +82,10 @@ class BitbucketInstalledEndpoint(Endpoint):
                 )
             except ApiError as error:
                 if error.code is not None and 400 <= error.code < 500 and error.code != 429:
+                    logger.warning(
+                        "bitbucket.installed.invalid-credentials",
+                        extra={"status_code": error.code},
+                    )
                     return self.respond(status=401)
                 raise
 

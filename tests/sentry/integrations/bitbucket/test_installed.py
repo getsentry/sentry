@@ -179,8 +179,9 @@ class BitbucketInstalledEndpointTest(APITestCase):
             "sub": self.client_key,
         }
 
+    @mock.patch("sentry.integrations.bitbucket.installed.logger.warning")
     @responses.activate
-    def test_installed_rejects_invalid_shared_secret(self) -> None:
+    def test_installed_rejects_invalid_shared_secret(self, mock_warning: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
             f"https://api.bitbucket.org/2.0/workspaces/{self.team_data['uuid']}/hooks",
@@ -193,6 +194,9 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert not Integration.objects.filter(
             provider=self.provider, external_id=self.client_key
         ).exists()
+        mock_warning.assert_called_once_with(
+            "bitbucket.installed.invalid-credentials", extra={"status_code": 401}
+        )
 
     @responses.activate
     def test_plugin_migration(self) -> None:
