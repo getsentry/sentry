@@ -2454,6 +2454,10 @@ function buildRoutes(): RouteObject[] {
       ),
     },
     {
+      path: TabPaths[Tab.AUTOFIX],
+      component: make(() => import('sentry/views/issueDetails/autofix')),
+    },
+    {
       path: TabPaths[Tab.USER_FEEDBACK],
       component: make(() => import('sentry/views/issueDetails/groupUserFeedback')),
     },
