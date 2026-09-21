@@ -45,19 +45,18 @@ const JEST_TEST_FILES_PATH = path.resolve(import.meta.dirname, 'jest-test-files.
 const JEST_TESTS: string[] | undefined = fs.existsSync(JEST_TEST_FILES_PATH)
   ? (JSON.parse(fs.readFileSync(JEST_TEST_FILES_PATH, 'utf-8')) as string[])
   : undefined;
-const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
+
+// `GITHUB_PR_REF` is the head branch name on pull requests, but a fully qualified
+// ref (`refs/heads/master`) on pushes. Normalize both down to a bare branch name.
+const BRANCH = GITHUB_PR_REF?.replace(/^refs\/heads\//, '');
+const IS_MASTER_BRANCH = BRANCH === 'master';
 
 const optionalTags: {
-  total_tests?: number | 'all';
-  node_index?: number;
-  node_total?: number;
-  balancer_strategy?: string;
-} = {
-  total_tests: undefined,
-  node_index: undefined,
-  node_total: undefined,
-  balancer_strategy: undefined,
-};
+  'ci.balancer_strategy'?: string;
+  'ci.node_index'?: number;
+  'ci.node_total'?: number;
+  'ci.total_tests'?: number | 'all';
+} = {};
 
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
@@ -215,13 +214,13 @@ if (
   );
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
-  optionalTags.total_tests = JEST_TESTS.length;
-  optionalTags.node_total = nodeTotal;
-  optionalTags.node_index = nodeIndex;
+  optionalTags['ci.total_tests'] = JEST_TESTS.length;
+  optionalTags['ci.node_total'] = nodeTotal;
+  optionalTags['ci.node_index'] = nodeIndex;
 
   if (balance) {
     testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
-    optionalTags.balancer_strategy = 'by_duration';
+    optionalTags['ci.balancer_strategy'] = 'by_duration';
   } else {
     const tests = envTestList.sort((a, b) => b.localeCompare(a));
 
@@ -232,7 +231,7 @@ if (
     const chunk = size + (nodeIndex < remainder ? 1 : 0);
 
     testMatch = tests.slice(offset, offset + chunk).map(test => '<rootDir>' + test);
-    optionalTags.balancer_strategy = 'by_name';
+    optionalTags['ci.balancer_strategy'] = 'by_name';
   }
 }
 
@@ -338,21 +337,21 @@ const config: Config.InitialOptions = {
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)
-        dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
+        dsn: Boolean(CI) && Boolean(BRANCH) && SENTRY_DSN ? SENTRY_DSN : false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
         tracesSampleRate: CI ? 0.75 : 0,
         profilesSampleRate: 0,
         transportOptions: {keepAlive: true},
       },
-      transactionOptions: {
-        tags: {
-          ...optionalTags,
-          branch: GITHUB_PR_REF,
-          commit: GITHUB_PR_SHA,
-          github_run_attempt: GITHUB_RUN_ATTEMPT,
-          github_actions_run: `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
-        },
+      // Applied to the isolation scope, so these land on error events as well as
+      // on the test suite and test transactions.
+      tags: {
+        ...optionalTags,
+        'ci.branch': BRANCH,
+        'ci.commit': GITHUB_PR_SHA,
+        'ci.github_run_attempt': GITHUB_RUN_ATTEMPT,
+        'ci.github_actions_run': `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
       },
     },
   },

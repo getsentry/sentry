@@ -6,7 +6,10 @@ import type {Options as SwcOptions} from '@swc/core';
 const {CI, GITHUB_PR_SHA, GITHUB_PR_REF, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT, SENTRY_DSN} =
   process.env;
 
-const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
+// `GITHUB_PR_REF` is the head branch name on pull requests, but a fully qualified
+// ref (`refs/heads/master`) on pushes. Normalize both down to a bare branch name.
+const BRANCH = GITHUB_PR_REF?.replace(/^refs\/heads\//, '');
+const IS_MASTER_BRANCH = BRANCH === 'master';
 
 const swcConfig: SwcOptions = {
   isModule: true,
@@ -62,19 +65,19 @@ const config: Config.InitialOptions = {
   testEnvironmentOptions: {
     sentryConfig: {
       init: {
-        dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
+        dsn: Boolean(CI) && Boolean(BRANCH) && SENTRY_DSN ? SENTRY_DSN : false,
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
         tracesSampleRate: CI ? 0.75 : 0,
         profilesSampleRate: 0,
         transportOptions: {keepAlive: true},
       },
-      transactionOptions: {
-        tags: {
-          branch: GITHUB_PR_REF,
-          commit: GITHUB_PR_SHA,
-          github_run_attempt: GITHUB_RUN_ATTEMPT,
-          github_actions_run: `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
-        },
+      // Applied to the isolation scope, so these land on error events as well as
+      // on the test suite and test transactions.
+      tags: {
+        'ci.branch': BRANCH,
+        'ci.commit': GITHUB_PR_SHA,
+        'ci.github_run_attempt': GITHUB_RUN_ATTEMPT,
+        'ci.github_actions_run': `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
       },
     },
   },
