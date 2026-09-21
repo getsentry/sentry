@@ -26,8 +26,9 @@ function renderNote(theme: Theme, delayLine: string, waitLine?: string): string 
     `padding: ${theme.space.md} ${theme.space.xl} 0`,
   ].join('; ');
   const delayStyle = `color: ${theme.tokens.content.primary}`;
+  const waitStyle = `font-size: ${theme.font.size.xs}`;
 
-  const wait = waitLine ? `<div fontSize="xs">${escape(waitLine)}</div>` : '';
+  const wait = waitLine ? `<div style="${waitStyle}">${escape(waitLine)}</div>` : '';
   return `<div style="${dividerStyle}"><div style="${NOTE_STYLE}"><div style="${delayStyle}">${escape(delayLine)}</div>${wait}</div></div>`;
 }
 
