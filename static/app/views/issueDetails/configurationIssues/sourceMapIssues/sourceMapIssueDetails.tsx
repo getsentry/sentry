@@ -15,6 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {StickyEventNav} from 'sentry/views/issueDetails/eventDetails';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 
@@ -123,6 +124,11 @@ export function SourceMapIssueDetails({
       background="primary"
       radius="md"
     >
+      {event && (
+        <ErrorBoundary mini>
+          <StickyEventNav event={event} group={group} />
+        </ErrorBoundary>
+      )}
       <ErrorBoundary mini>
         <ProblemSection sourcemapsDocsUrl={docLinks.sourcemaps} />
       </ErrorBoundary>

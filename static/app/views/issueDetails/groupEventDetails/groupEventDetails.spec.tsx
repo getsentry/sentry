@@ -466,6 +466,9 @@ describe('groupEventDetails', () => {
           await screen.findByText('No impacted events found in the last 30 days.')
         ).toBeInTheDocument();
         expect(diagnosticRequest).not.toHaveBeenCalled();
+        expect(
+          screen.queryByRole('button', {name: 'Copy Event ID'})
+        ).not.toBeInTheDocument();
 
         await act(async () => jest.advanceTimersByTimeAsync(1000));
         expect(
@@ -476,9 +479,27 @@ describe('groupEventDetails', () => {
           )
         ).toBeInTheDocument();
         expect(screen.getByRole('heading', {name: 'Problem'})).toBe(problem);
+        expect(screen.getByRole('button', {name: 'Copy Event ID'})).toBeInTheDocument();
+        expect(screen.getByLabelText('Event timestamp')).toBeInTheDocument();
+        expect(screen.getByRole('link', {name: 'JSON'})).toHaveAttribute(
+          'href',
+          `${props.organization.links.regionUrl}/api/0/projects/${props.organization.slug}/${props.project.slug}/events/${props.event.id}/json/`
+        );
       } finally {
         jest.useRealTimers();
       }
+    });
+
+    it('copies the event ID from the loaded event header', async () => {
+      Object.assign(navigator, {
+        clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+      });
+      const {props, renderPage} = setupSourceMapIssue();
+      renderPage();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Copy Event ID'}));
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(props.event.id);
     });
 
     it.each([404, 500])(
@@ -504,6 +525,9 @@ describe('groupEventDetails', () => {
           )
         ).toBeInTheDocument();
         expect(diagnosticRequest).not.toHaveBeenCalled();
+        expect(
+          screen.queryByRole('button', {name: 'Copy Event ID'})
+        ).not.toBeInTheDocument();
         expect(
           screen.queryByText(/couldn't track down an event/)
         ).not.toBeInTheDocument();
