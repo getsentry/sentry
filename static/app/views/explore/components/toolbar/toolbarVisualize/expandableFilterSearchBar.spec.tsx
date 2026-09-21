@@ -1,7 +1,9 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {SavedSearchType} from 'sentry/types/group';
+import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 
 /**
@@ -150,6 +152,44 @@ describe('ExpandableFilterSearchBar', () => {
       await flushAnimationFrames();
       expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
       expect(isExpanded(screen.getByTestId('query-builder-input'))).toBe(false);
+    }
+  );
+
+  it.each(['padding', 'gap'])(
+    'keeps the equation editor focused when clicking panel %s',
+    async target => {
+      render(
+        <ExpandableFilterSearchBar>
+          <ArithmeticBuilder
+            aggregations={['avg', 'sum']}
+            functionArguments={[{name: 'span.duration', kind: FieldKind.MEASUREMENT}]}
+            getFieldDefinition={key => getFieldDefinition(key, 'span')}
+            expression=""
+            menuPresentation="panel"
+          />
+        </ExpandableFilterSearchBar>
+      );
+
+      const input = screen.getByTestId('arithmetic-builder-input');
+      await userEvent.click(input);
+      await flushAnimationFrames();
+      await userEvent.type(input, 'avg');
+      const option = await screen.findByRole('option', {name: 'avg'});
+
+      const panel = screen.getByTestId('arithmetic-builder-panel');
+      const chrome =
+        target === 'gap' ? panel.querySelector('[data-query-builder-menu]')! : panel;
+      await userEvent.click(chrome);
+
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('avg');
+      expect(option).toBeInTheDocument();
+      expect(isExpanded(input)).toBe(true);
+
+      await userEvent.click(document.body);
+      await flushAnimationFrames();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(isExpanded(screen.getByTestId('arithmetic-builder-input'))).toBe(false);
     }
   );
 

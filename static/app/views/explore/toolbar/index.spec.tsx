@@ -1235,6 +1235,27 @@ describe('ExploreToolbar', () => {
       expect(input.closest('[data-expanded="true"]')).toBeTruthy();
     });
 
+    it('keeps equation suggestions in the same panel as the input', async () => {
+      render(<ExploreToolbar extras={['equations']} />, {
+        additionalWrapper: Wrapper,
+        organization: organizationWithConditionalAggregates,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
+
+      const input = await screen.findByTestId('arithmetic-builder-input');
+      await userEvent.click(input);
+
+      const panel = screen.getByTestId('arithmetic-builder-panel');
+      const listbox = await screen.findByRole('listbox');
+      const menuRules = getEmotionRules(listbox.closest('[data-overlay]')!).join(' ');
+      expect(panel).toContainElement(listbox);
+      expect(panel).toContainElement(input);
+      expect(menuRules).toContain('width: 100%');
+      expect(menuRules).toContain('max-width: 100%');
+      expect(menuRules).toContain('text-align: left');
+    });
+
     it('does not expand the equation editor without the feature', async () => {
       render(<ExploreToolbar extras={['equations']} />, {
         additionalWrapper: Wrapper,

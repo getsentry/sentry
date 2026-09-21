@@ -5,6 +5,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
@@ -28,8 +29,10 @@ const getSpanFieldDefinition = (key: string) => {
 function ArithmeticBuilderWrapper({
   expression,
   references,
+  menuPresentation,
 }: {
   expression: string;
+  menuPresentation?: 'floating' | 'panel';
   references?: Set<string>;
 }) {
   return (
@@ -39,6 +42,7 @@ function ArithmeticBuilderWrapper({
       getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
       references={references}
+      menuPresentation={menuPresentation}
     />
   );
 }
@@ -335,4 +339,45 @@ describe('ArithmeticBuilder', () => {
       );
     }).toThrow('Invalid reference: !invalid');
   });
+
+  it('keeps suggestions in the same panel as the input', async () => {
+    render(<ArithmeticBuilderWrapper expression="" menuPresentation="panel" />);
+
+    const panel = screen.getByTestId('arithmetic-builder-panel');
+    await userEvent.click(screen.getByTestId('arithmetic-builder-input'));
+
+    const listbox = await screen.findByRole('listbox');
+    const menuRules = getEmotionRules(listbox.closest('[data-overlay]')!).join(' ');
+    expect(panel).toContainElement(listbox);
+    expect(panel).toContainElement(screen.getByTestId('arithmetic-builder-input'));
+    expect(menuRules).toContain('width: 100%');
+    expect(menuRules).toContain('max-width: 100%');
+    expect(menuRules).toContain('text-align: left');
+  });
+
+  it.each(['padding', 'gap'])(
+    'preserves equation editing when clicking panel %s',
+    async target => {
+      render(<ArithmeticBuilderWrapper expression="" menuPresentation="panel" />);
+
+      const input = screen.getByTestId('arithmetic-builder-input');
+      await userEvent.click(input);
+      await userEvent.type(input, 'avg');
+      const option = await screen.findByRole('option', {name: 'avg'});
+
+      const panel = screen.getByTestId('arithmetic-builder-panel');
+      const chrome =
+        target === 'gap' ? panel.querySelector('[data-query-builder-menu]')! : panel;
+      await userEvent.click(chrome);
+
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('avg');
+      expect(option).toBeInTheDocument();
+
+      await userEvent.click(option);
+      expect(
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
+      ).toBeInTheDocument();
+    }
+  );
 });

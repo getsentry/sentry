@@ -165,7 +165,9 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
       // Let the panel preserve the current editor's focus when its padding is clicked.
       if (
         event.target instanceof Element &&
-        event.target.matches('[data-test-id="search-query-builder-panel"]')
+        event.target.matches(
+          '[data-test-id="search-query-builder-panel"], [data-test-id="arithmetic-builder-panel"]'
+        )
       ) {
         return;
       }
