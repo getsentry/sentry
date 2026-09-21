@@ -110,7 +110,7 @@ class CursorOriginRequestParser(BaseRequestParser):
             metrics.incr("cursor_origin.webhook.reject_unsigned")
             return HttpResponse(status=status.HTTP_401_UNAUTHORIZED)
 
-        integration = self.get_integration_from_request()
+        integration = self.integration_for_request()
         if integration is None:
             return self.get_default_missing_integration_response()
 

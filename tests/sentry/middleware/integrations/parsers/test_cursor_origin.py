@@ -5,6 +5,7 @@ from typing import Any
 from unittest import mock
 
 import responses
+from django.core.handlers.wsgi import WSGIRequest
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
@@ -62,7 +63,7 @@ class CursorOriginRequestParserTest(TestCase):
     def get_response(self, request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
-    def _request(self, **headers: str) -> HttpRequest:
+    def _request(self, **headers: str) -> WSGIRequest:
         # The body is never read here, so its contents do not matter to routing.
         return self.factory.post(
             self.path, data=b"{}", content_type="application/json", headers=headers
