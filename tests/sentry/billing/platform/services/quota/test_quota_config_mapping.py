@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from sentry_protos.billing.v1.data_category_pb2 import DataCategory as ProtoDataCategory
 from sentry_protos.billing.v1.quota_config_pb2 import QuotaConfig as ProtoQuotaConfig
@@ -167,6 +169,22 @@ class TestProtoToSentryQuotaConfig:
         result = proto_to_sentry_quota_config(proto)
 
         assert result is None
+
+    @patch.dict(PROTO_TO_SENTRY_CATEGORY, {ProtoDataCategory.DATA_CATEGORY_ERROR: 9999})
+    def test_invalid_mapped_category_skipped(self):
+        proto = ProtoQuotaConfig(
+            categories=[
+                ProtoDataCategory.DATA_CATEGORY_ERROR,
+                ProtoDataCategory.DATA_CATEGORY_TRANSACTION,
+            ],
+            limit=0,
+            reason_code="blocked",
+        )
+
+        result = proto_to_sentry_quota_config(proto)
+
+        assert result is not None
+        assert result.categories == {DataCategory.TRANSACTION}
 
     def test_default_category_preserved(self):
         proto = ProtoQuotaConfig(

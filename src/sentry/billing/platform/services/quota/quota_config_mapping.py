@@ -44,16 +44,17 @@ def proto_to_sentry_quota_config(proto_quota: ProtoQuotaConfig) -> QuotaConfig |
     """
     categories: list[DataCategory] = []
     for c in proto_quota.categories:
-        # Proto and Relay category integers can refer to different categories.
-        # Only explicit mappings are safe to include in Relay quotas.
         sentry_cat = proto_to_sentry_category(c)
-        if sentry_cat == -1:
+        # UNKNOWN is a valid enum member, so the ValueError handler won't drop it.
+        if sentry_cat == DataCategory.UNKNOWN:
+            continue
+        try:
+            categories.append(DataCategory(sentry_cat))
+        except ValueError:
             logger.error(
                 "quota_config_mapping.unknown_category",
-                extra={"proto_category": c},
+                extra={"proto_category": c, "mapped_value": sentry_cat},
             )
-            continue
-        categories.append(DataCategory(sentry_cat))
 
     if proto_quota.categories and not categories:
         logger.warning(
