@@ -31,6 +31,7 @@ from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +96,7 @@ def _emit_ready_for_review_signal(ctx: GreenCheckSuiteContext) -> None:
         _failed("emit_ready_signal_failed", resolved.log_extra)
 
 
+@trace
 def mark_ready_for_review(ctx: GreenCheckSuiteContext) -> None:
     """Undraft the PR for ``ctx.head_sha``.
 

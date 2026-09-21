@@ -28,6 +28,7 @@ import * as pipelineModal from 'sentry/components/pipeline/modal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import * as analytics from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {ScmMessaging} from './scmMessaging';
@@ -160,7 +161,10 @@ function renderMessaging({
 }
 
 describe('ScmMessaging', () => {
+  let trackAnalyticsSpy: jest.SpyInstance;
+
   beforeEach(() => {
+    trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     TeamStore.loadInitialData([adminTeam]);
     ProjectsStore.loadInitialData([]);
     mockProviderQueries();
@@ -179,6 +183,7 @@ describe('ScmMessaging', () => {
   });
 
   afterEach(() => {
+    trackAnalyticsSpy.mockRestore();
     cleanup();
     TeamStore.reset();
     ProjectsStore.reset();
@@ -699,6 +704,10 @@ describe('ScmMessaging', () => {
     expect(onCreatedProjectChange.mock.invocationCallOrder[0]).toBeLessThan(
       onComplete.mock.invocationCallOrder[0]!
     );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'onboarding.scm_messaging_completed',
+      expect.objectContaining({notification: 'integration'})
+    );
   });
 
   it('Continue targets an MS Teams channel by its name', async () => {
@@ -804,6 +813,10 @@ describe('ScmMessaging', () => {
       slug: createdProject.slug,
       messagingSelection: undefined,
     });
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'onboarding.scm_messaging_completed',
+      expect.objectContaining({notification: 'email_only'})
+    );
   });
 
   it('stays on the step with the destination staged when project creation fails', async () => {
@@ -945,6 +958,10 @@ describe('ScmMessaging', () => {
       expect(createProjectRequest).not.toHaveBeenCalled();
       expect(createWorkflowRequest).not.toHaveBeenCalled();
       expect(onCreatedProjectChange).not.toHaveBeenCalled();
+      expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+        'onboarding.scm_messaging_completed',
+        expect.anything()
+      );
     });
 
     it('Set up later completes without any requests whatever the project was created for', async () => {
@@ -1100,7 +1117,7 @@ describe('ScmMessaging', () => {
       );
     });
 
-    it('Confirm and continue keeps siblings hidden and restores the footer when creation fails', async () => {
+    it('Confirm and continue keeps siblings and the footer hidden when creation fails', async () => {
       mockExclusiveSlackProviders();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/slack-1/channels/',
@@ -1132,16 +1149,15 @@ describe('ScmMessaging', () => {
       await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
       await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
-      // activeRow clears after save; selected setup keeps siblings hidden and
-      // brings the footer back. The requested continue fails, so the step
-      // stays with the destination staged and Continue enabled for a retry.
+      // Picker stays open (activeRow is not cleared), so siblings remain hidden
+      // and the footer stays hidden. The requested continue fails, so the step
+      // stays with the destination staged for a retry from the picker.
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
       expect(screen.queryByText('msteams')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
       await waitFor(() => expect(createProjectRequest).toHaveBeenCalledTimes(1));
-      await waitFor(() =>
-        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
-      );
       expect(onComplete).not.toHaveBeenCalled();
     });
 

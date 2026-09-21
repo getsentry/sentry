@@ -1,7 +1,6 @@
 import {useEffect, useState} from 'react';
 
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -11,11 +10,10 @@ import {isEmptyTrace} from './utils';
 
 type UseTraceTreeParams = {
   replay: HydratedReplayRecord | null;
-  trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
+  trace: UseApiQueryResult<TraceTree.EAPTrace | undefined, any>;
 };
 
 export function useTraceTree({trace, replay}: UseTraceTreeParams): TraceTree {
-  const api = useApi();
   const organization = useOrganization();
   const traceState = useTraceState();
 
@@ -50,9 +48,8 @@ export function useTraceTree({trace, replay}: UseTraceTreeParams): TraceTree {
       newTree.build();
       return;
     }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, organization, replay, trace.status, trace.data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Preference updates modify the existing tree; rebuilding it would discard expansion, zoom, and selection state.
+  }, [organization, replay, trace.status, trace.data]);
 
   return tree;
 }

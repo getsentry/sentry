@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import DetectorNew from 'sentry/views/detectors/new';
@@ -21,6 +21,22 @@ describe('DetectorNew', () => {
   ];
   beforeEach(() => {
     ProjectsStore.loadInitialData(projects);
+  });
+
+  describe('breadcrumbs', () => {
+    it('renders the parent crumb in the trail and the page name as the page title', async () => {
+      render(<DetectorNew />, {organization});
+
+      const monitorsCrumb = await screen.findByRole('link', {name: 'Monitors'});
+      expect(monitorsCrumb).toHaveAttribute('href', '/organizations/org-slug/monitors/');
+
+      expect(
+        screen.getByRole('heading', {name: 'New Monitor', level: 1})
+      ).toBeInTheDocument();
+
+      const trail = monitorsCrumb.closest('ol')!;
+      expect(within(trail).queryByText('New Monitor')).not.toBeInTheDocument();
+    });
   });
 
   it('sets query parameters for project, environment, and detectorType', async () => {
@@ -71,5 +87,21 @@ describe('DetectorNew', () => {
         },
       })
     );
+  });
+
+  it('disables the next step without monitor write access', () => {
+    const readOnlyOrganization = OrganizationFixture({
+      access: ['org:read', 'alerts:read'],
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        organization: readOnlyOrganization,
+        access: ['project:read', 'alerts:read'],
+      }),
+    ]);
+
+    render(<DetectorNew />, {organization: readOnlyOrganization});
+
+    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
   });
 });

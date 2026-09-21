@@ -16,7 +16,6 @@ import {NotAvailable} from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Panel} from 'sentry/components/panels/panel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {HeaderCellContent} from 'sentry/components/tables/sortableHeaderCell';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {
@@ -64,6 +63,23 @@ export type ReleaseComparisonRow = {
   type: ReleaseComparisonChartType;
   tooltip?: React.ReactNode;
 };
+
+function ChartDiff({
+  diff,
+  diffColor,
+  diffDirection,
+}: Pick<ReleaseComparisonRow, 'diff' | 'diffColor' | 'diffDirection'>) {
+  return (
+    <Change color={defined(diffColor) ? diffColor : undefined}>
+      {diff}{' '}
+      {defined(diffDirection) ? (
+        <IconArrow direction={diffDirection} size="xs" />
+      ) : diff === '0%' ? null : (
+        <StyledNotAvailable />
+      )}
+    </Change>
+  );
+}
 
 type Props = {
   allSessions: SessionApiResponse | null;
@@ -143,6 +159,7 @@ export function ReleaseComparisonChart({
         ReleaseComparisonChartType.UNHANDLED_SESSIONS,
       ].includes(chartInUrl)
     ) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setExpanded(e => new Set(e.add(ReleaseComparisonChartType.CRASH_FREE_SESSIONS)));
     }
 
@@ -296,6 +313,7 @@ export function ReleaseComparisonChart({
 
   useEffect(() => {
     if (hasDiscover || hasPerformance) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchEventsTotals();
       fetchIssuesTotals();
     }
@@ -972,41 +990,24 @@ export function ReleaseComparisonChart({
       <SimpleTable.HeaderCell key="description">
         <DescriptionCell>{t('Description')}</DescriptionCell>
       </SimpleTable.HeaderCell>,
-      <NumericHeaderCell key="releases">
+      <SimpleTable.HeaderCell align="right" key="releases">
         <Cell>{t('All Releases')}</Cell>
-      </NumericHeaderCell>,
-      <NumericHeaderCell key="release">
+      </SimpleTable.HeaderCell>,
+      <SimpleTable.HeaderCell align="right" key="release">
         <Cell>{t('This Release')}</Cell>
-      </NumericHeaderCell>,
-      <NumericHeaderCell key="change">
+      </SimpleTable.HeaderCell>,
+      <SimpleTable.HeaderCell align="right" key="change">
         <Cell>{t('Change')}</Cell>
-      </NumericHeaderCell>,
+      </SimpleTable.HeaderCell>,
     ];
     if (withExpanders) {
       headers.push(
-        <NumericHeaderCell key="expanders">
+        <SimpleTable.HeaderCell align="right" key="expanders">
           <Cell />
-        </NumericHeaderCell>
+        </SimpleTable.HeaderCell>
       );
     }
     return headers;
-  }
-
-  function getChartDiff(
-    diff: ReleaseComparisonRow['diff'],
-    diffColor: ReleaseComparisonRow['diffColor'],
-    diffDirection: ReleaseComparisonRow['diffDirection']
-  ) {
-    return diff ? (
-      <Change color={defined(diffColor) ? diffColor : undefined}>
-        {diff}{' '}
-        {defined(diffDirection) ? (
-          <IconArrow direction={diffDirection} size="xs" />
-        ) : diff === '0%' ? null : (
-          <StyledNotAvailable />
-        )}
-      </Change>
-    ) : null;
   }
 
   // if there are no sessions, we do not need to do row toggling because there won't be as many rows
@@ -1045,17 +1046,16 @@ export function ReleaseComparisonChart({
   }
 
   const titleChartDiff =
-    chart.diff !== '0%' && chart.thisRelease !== '0%'
-      ? getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)
-      : null;
+    chart.diff && chart.diff !== '0%' && chart.thisRelease !== '0%' ? (
+      <ChartDiff
+        diff={chart.diff}
+        diffColor={chart.diffColor}
+        diffDirection={chart.diffDirection}
+      />
+    ) : null;
 
-  function renderChartRow({
-    diff,
-    diffColor,
-    diffDirection,
-    ...rest
-  }: ReleaseComparisonRow) {
-    return (
+  const chartRows = [...charts, ...(isOtherExpanded ? additionalCharts : [])].map(
+    ({diff, diffColor, diffDirection, ...rest}) => (
       <ReleaseComparisonChartRow
         {...rest}
         key={rest.type}
@@ -1063,13 +1063,17 @@ export function ReleaseComparisonChart({
         showPlaceholders={showPlaceholders}
         activeChart={activeChart}
         onChartChange={handleChartChange}
-        chartDiff={getChartDiff(diff, diffColor, diffDirection)}
+        chartDiff={
+          diff ? (
+            <ChartDiff diff={diff} diffColor={diffColor} diffDirection={diffDirection} />
+          ) : null
+        }
         onExpanderToggle={handleExpanderToggle}
         expanded={expanded.has(rest.type)}
         withExpanders={withExpanders}
       />
-    );
-  }
+    )
+  );
 
   return (
     <Fragment>
@@ -1139,8 +1143,7 @@ export function ReleaseComparisonChart({
           <SimpleTable.HeaderRow>{getTableHeaders(withExpanders)}</SimpleTable.HeaderRow>
         }
       >
-        {charts.map(chartRow => renderChartRow(chartRow))}
-        {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
+        {chartRows}
         {additionalCharts.length > 0 && (
           <ShowMoreRow onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
             <SimpleTable.RowCell>
@@ -1185,12 +1188,6 @@ const Cell = styled('div')`
 const DescriptionCell = styled(Cell)`
   text-align: left;
   overflow: visible;
-`;
-
-const NumericHeaderCell = styled(SimpleTable.HeaderCell)`
-  ${HeaderCellContent} {
-    justify-content: flex-end;
-  }
 `;
 
 const Change = styled('div')<{color?: string}>`

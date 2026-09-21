@@ -387,6 +387,9 @@ function useFilterSuggestions({
         token,
         fieldDefinition,
       }),
+    // React Compiler treats one of these dependencies as mutated later in the
+    // component, so it cannot prove the memoization is preserved.
+    // oxlint-disable-next-line react/preserve-manual-memoization
     [key, filterValue, token, fieldDefinition]
   );
   // Only keys that explicitly have predefined values should skip the fetch.
@@ -643,7 +646,8 @@ function ValueComboboxCustomMenu(
       {...props}
       portalTarget={
         canSelectMultipleValues
-          ? (props.portalTarget ?? wrapperRef.current)
+          ? // oxlint-disable-next-line react/refs
+            (props.portalTarget ?? wrapperRef.current)
           : props.portalTarget
       }
       wrapperRef={wrapperRef}
@@ -793,6 +797,7 @@ export function SearchQueryBuilderValueCombobox({
       }
       const newIndex = nearestOccurrence(liftedValue, oldIndex);
       if (newIndex === -1) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setEditingChip(null);
         setInputValue('');
       } else {
@@ -819,6 +824,7 @@ export function SearchQueryBuilderValueCombobox({
 
   const ctrlKeyPressed = useKeyPress(
     isMac() ? 'Meta' : 'Control',
+    // oxlint-disable-next-line react/refs
     topLevelWrapperRef.current
   );
   const selectedValueMap = useMemo(
@@ -872,6 +878,7 @@ export function SearchQueryBuilderValueCombobox({
     if (pendingCaret.pos === 0) {
       input.scrollLeft = 0;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputValue, scrollInputIntoView]);
 
   // While typing, surface the typed text as a custom option so results rank by

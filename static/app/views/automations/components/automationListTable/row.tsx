@@ -11,22 +11,21 @@ import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {AutomationListConnectedDetectors} from 'sentry/views/automations/components/automationListTable/connectedDetectors';
 import {ProjectsCell} from 'sentry/views/automations/components/automationListTable/projectsCell';
-import {useCanEditAutomation} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 
 type AutomationListRowProps = {
   automation: Automation;
+  canEdit: boolean;
   onSelect: (id: string) => void;
   selected: boolean;
 };
 
 export function AutomationListRow({
   automation,
+  canEdit,
   selected,
   onSelect,
 }: AutomationListRowProps) {
-  const canEditAutomations = useCanEditAutomation();
-
   const actions = getAutomationActions(automation);
   const {enabled, lastTriggered, detectorIds} = automation;
 
@@ -37,7 +36,7 @@ export function AutomationListRow({
     >
       <SimpleTable.RowCell>
         <Flex gap="md" align="center">
-          {canEditAutomations && (
+          {canEdit && (
             <Flex align="center" flexShrink={0} width="20px" height="20px">
               <Checkbox
                 checked={selected}

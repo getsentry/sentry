@@ -8,6 +8,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -56,7 +57,6 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
-import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
@@ -103,7 +103,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
   {key: 'totalTokens', name: t('Total Tokens'), width: 120},
   {key: 'totalCost', name: t('Total Cost'), width: 120},
-  {key: 'timestamp', name: t('Timestamp'), width: 100},
+  {key: 'age', name: t('Age'), width: 110},
 ];
 
 const rightAlignColumns = new Set([
@@ -113,7 +113,7 @@ const rightAlignColumns = new Set([
   'totalTokens',
   'toolCalls',
   'totalCost',
-  'timestamp',
+  'age',
 ]);
 
 const DEFAULT_LIMIT = 10;
@@ -289,7 +289,7 @@ export function TracesTable({
     return (
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
-        {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
+        {column.key === 'age' && <IconArrow direction="down" size="xs" />}
         {column.key === 'agents' && <CellExpander />}
       </HeadCell>
     );
@@ -386,16 +386,18 @@ const BodyCell = memo(function BodyCellImpl({
       return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':
       return (
-        <ErrorCell
-          value={dataRow.errors}
-          target={getExploreUrl({
-            query: `${query} span.status:[internal_error,error] trace:[${dataRow.traceId}]`,
-            organization,
-            selection,
-            referrer: Referrer.TRACES_TABLE,
-          })}
-          isLoading={dataRow.isSpanDataLoading}
-        />
+        <Flex justify="end" width="100%">
+          <ErrorCell
+            value={dataRow.errors}
+            target={getExploreUrl({
+              query: `${query} span.status:[internal_error,error] trace:[${dataRow.traceId}]`,
+              organization,
+              selection,
+              referrer: Referrer.TRACES_TABLE,
+            })}
+            isLoading={dataRow.isSpanDataLoading}
+          />
+        </Flex>
       );
     case 'llmCalls':
     case 'toolCalls':
@@ -409,11 +411,11 @@ const BodyCell = memo(function BodyCellImpl({
         return <NumberPlaceholder />;
       }
       return <CurrencyCell value={dataRow.totalCost} />;
-    case 'timestamp':
+    case 'age':
       return (
-        <TextAlignRight>
+        <Text align="right" variant="muted">
           <TimeSince unitStyle="short" date={new Date(dataRow.timestamp)} />
-        </TextAlignRight>
+        </Text>
       );
     default:
       return null;

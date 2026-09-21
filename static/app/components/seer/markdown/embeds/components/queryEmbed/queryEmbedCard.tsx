@@ -1,8 +1,8 @@
-import type {ReactNode} from 'react';
-
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import type {ComponentType, ReactNode} from 'react';
 
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 interface QueryEmbedCardProps {
   /**
@@ -10,9 +10,15 @@ interface QueryEmbedCardProps {
    * plain list preview — passes its rows straight through.
    */
   children: ReactNode;
-  /** The embed's own inline link component, rendered as the card's heading. */
-  link: ReactNode;
+  /** Where the header's "View …" link points. */
+  href: string;
+  /** Icon rendered before the header link's label. */
+  icon: ComponentType<SVGIconProps>;
+  /** The header link's label, e.g. "View Query". */
+  linkLabel: string;
   testId: string;
+  /** The query's name, rendered as the card's heading. */
+  title: ReactNode;
   /** Right-aligned label for the query's mode, e.g. "Aggregate" or "Spans". */
   badge?: ReactNode;
   /**
@@ -23,35 +29,31 @@ interface QueryEmbedCardProps {
 }
 
 /**
- * The chrome every query-embed block shares: a bordered card holding the
- * resource link, the formatted query, and whatever preview the embed renders.
+ * The chrome every query-embed block shares: {@link SeerEmbedBlock}'s
+ * collapsible card, with the formatted query sitting above whatever preview the
+ * embed renders.
  */
 export function QueryEmbedCard({
   badge,
   children,
-  link,
+  href,
+  icon,
+  linkLabel,
   query,
   testId,
+  title,
 }: QueryEmbedCardProps) {
   return (
-    <Container
-      as="section"
-      background="primary"
-      border="primary"
-      data-test-id={testId}
-      margin="lg 0"
-      padding="lg"
-      radius="md"
-      width="100%"
+    <SeerEmbedBlock
+      badge={badge}
+      href={href}
+      icon={icon}
+      linkLabel={linkLabel}
+      testId={testId}
+      title={title}
     >
-      <Stack gap="md">
-        <Flex align="center" gap="md" justify="between">
-          {link}
-          {badge}
-        </Flex>
-        {query ? <ProvidedFormattedQuery query={query} /> : null}
-        {children}
-      </Stack>
-    </Container>
+      {query ? <ProvidedFormattedQuery query={query} /> : null}
+      {children}
+    </SeerEmbedBlock>
   );
 }

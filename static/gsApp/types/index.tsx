@@ -430,10 +430,6 @@ export type BillingStat = {
   ts: string;
   // TODO(chart-cleanup): Used by v1 only
   isProjected?: boolean;
-  /**
-   * Not present when user does not have the correct role
-   */
-  onDemandCostRunningTotal?: number;
 };
 export type BillingStats = BillingStat[];
 
@@ -842,6 +838,8 @@ export type PaymentCreateResponse = {
   clientSecret: string;
   currency: string;
   returnUrl: string;
+  paymentIntentId?: string;
+  requiresAction?: boolean;
 };
 // Response from /organizations/:orgSlug/payments/setup/
 export type PaymentSetupCreateResponse = {
@@ -910,15 +908,6 @@ export type ReservedBudget = {
 export type ReservedBudgetMetricHistory = {
   reservedCpe: number; // in cents
   reservedSpend: number;
-};
-
-export type ReservedBudgetForCategory = {
-  apiName: string;
-  freeBudget: number;
-  prepaidBudget: number;
-  reservedCpe: number; // in cents
-  reservedSpend: number;
-  totalReservedBudget: number;
 };
 
 type PolicyConsent = {

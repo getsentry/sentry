@@ -620,6 +620,31 @@ class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
             assert fetch_mock.call_count == 2
 
 
+def test_trace_id_from_snuba() -> None:
+    event = Event(project_id=1, event_id="a" * 32, snuba_data={"trace_id": "b" * 32})
+    with mock.patch.object(nodestore.backend, "get") as get_body:
+        assert event.trace_id == "b" * 32
+    get_body.assert_not_called()
+
+
+def test_null_trace_id_from_snuba_does_not_load_body() -> None:
+    event = Event(project_id=1, event_id="a" * 32, snuba_data={"trace_id": None})
+    with mock.patch.object(nodestore.backend, "get") as get_body:
+        assert event.trace_id is None
+    get_body.assert_not_called()
+
+
+def test_trace_id_falls_back_to_body() -> None:
+    event = Event(project_id=1, event_id="a" * 32, snuba_data={})
+    with mock.patch.object(
+        nodestore.backend,
+        "get",
+        return_value={"contexts": {"trace": {"trace_id": "c" * 32, "span_id": "d" * 16}}},
+    ) as get_body:
+        assert event.trace_id == "c" * 32
+    get_body.assert_called_once_with(event.data.id)
+
+
 @django_db_all
 def test_renormalization(factories, task_runner, default_project) -> None:
     from sentry_relay.processing import StoreNormalizer

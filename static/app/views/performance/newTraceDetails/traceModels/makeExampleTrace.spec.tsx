@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {isEAPSpanNode} from './../traceGuards';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+
 import {makeExampleTrace} from './makeExampleTrace';
 import {TraceTree} from './traceTree';
 

@@ -53,7 +53,13 @@ type SpanAttributeRenderer = (
   props: AttributesFieldRendererProps<SpanAttributesRendererExtra>
 ) => React.ReactNode;
 
-export function SpanItemDetails({dataRow}: {dataRow: EventData}) {
+export function SpanItemDetails({
+  dataRow,
+  routingHint,
+}: {
+  dataRow: EventData;
+  routingHint?: string;
+}) {
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -79,6 +85,7 @@ export function SpanItemDetails({dataRow}: {dataRow: EventData}) {
     traceId,
     timestamp,
     traceItemType: TraceItemDataset.SPANS,
+    routingHint,
     referrer: 'api.explore.span-item-details',
     enabled: canLoadDetails,
   });

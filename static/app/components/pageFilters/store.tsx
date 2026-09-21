@@ -56,7 +56,7 @@ function clearAdjustments(
   return cleared;
 }
 
-export interface PageFiltersState {
+interface PageFiltersState {
   /**
    * Adjustments made to the requested selection during initialization, so pages
    * can explain why the selection isn't what the user asked for.

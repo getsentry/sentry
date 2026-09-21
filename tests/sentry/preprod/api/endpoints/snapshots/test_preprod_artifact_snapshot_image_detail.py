@@ -9,9 +9,7 @@ from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSn
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
-MOCK_TARGET = (
-    "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_image_detail.get_session"
-)
+MOCK_TARGET = "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_image_detail.get_snapshot_storage"
 
 
 class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
@@ -623,3 +621,15 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         head = response.data["head_image"]
         assert head is not None
         assert head["canvas_theme"] is None
+
+    @patch(MOCK_TARGET)
+    def test_missing_manifest_returns_404(self, mock_get_session):
+        artifact, _, _, _ = self._create_artifact_with_manifest()
+        mock_session = MagicMock()
+        mock_session.get.return_value = None
+        mock_get_session.return_value = mock_session
+
+        response = self.client.get(self._get_url(artifact.id, "screen1.png"))
+
+        assert response.status_code == 404
+        assert response.data["detail"] == "Snapshot manifest not found"

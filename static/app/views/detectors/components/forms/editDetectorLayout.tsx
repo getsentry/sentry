@@ -22,11 +22,11 @@ import {
 } from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
+import {MonitorBuilderNode} from 'sentry/views/detectors/components/forms/common/monitorBuilderLLMContext';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   children: React.ReactNode;
@@ -86,9 +86,7 @@ export function EditDetectorLayout<
   return (
     <EditLayoutDeprecated formProps={formProps}>
       <EditLayoutDeprecated.Header maxWidth={maxWidth}>
-        <TopBar.Slot name="title">
-          <DetectorFormBreadcrumbs />
-        </TopBar.Slot>
+        <DetectorFormBreadcrumbs />
 
         <div>
           <EditLayoutDeprecated.Actions>
@@ -102,6 +100,8 @@ export function EditDetectorLayout<
           </EditLayoutDeprecated.HeaderFields>
         )}
       </EditLayoutDeprecated.Header>
+
+      <MonitorBuilderNode detector={detector} />
 
       <EditLayoutDeprecated.Body maxWidth={maxWidth}>
         {children}

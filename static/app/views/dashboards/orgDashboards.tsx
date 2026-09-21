@@ -112,6 +112,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
   // Clear optimistic dashboard state when the URL changes
   useEffect(() => {
     if (dashboardId && !isEqual(dashboardId, selectedDashboard?.id)) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setSelectedDashboardState(null);
     }
   }, [dashboardId, selectedDashboard?.id]);

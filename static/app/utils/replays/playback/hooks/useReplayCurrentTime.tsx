@@ -37,11 +37,13 @@ export function useReplayCurrentTime(props: Props) {
   }, [callback, replayer, state?.value, state?.context.timeOffset, isFinished]);
 
   const replayersRef = useRef(replayers);
+  // oxlint-disable-next-line react/refs
   replayersRef.current = replayers;
 
   const returnRef = useRef({
     timeMs: () => replayersRef.current.at(0)?.getCurrentTime(),
   });
 
+  // oxlint-disable-next-line react/refs
   return returnRef.current;
 }
