@@ -11,13 +11,13 @@ import {
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import Indicators from 'sentry/components/indicators';
 import {Override} from 'sentry/components/override';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {Config} from 'sentry/types/system';
 import {isValidOrgSlug} from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
@@ -88,8 +88,80 @@ function AppAlerts() {
   return null;
 }
 
+type AppBodyProps = {
+  beaconConsentPrompt: boolean | undefined;
+  clearNewsletterConsent: () => void;
+  clearUpgrade: () => void;
+  displayInstallWizard: boolean | undefined;
+  isOrgSlugValid: boolean;
+  newsletterConsentPrompt: boolean | undefined;
+  organizationSlug: string | undefined;
+  partnershipAgreementPrompt: Config['partnershipAgreementPrompt'];
+};
+
+function AppBody({
+  beaconConsentPrompt,
+  clearNewsletterConsent,
+  clearUpgrade,
+  displayInstallWizard,
+  isOrgSlugValid,
+  newsletterConsentPrompt,
+  organizationSlug,
+  partnershipAgreementPrompt,
+}: AppBodyProps) {
+  if (displayInstallWizard) {
+    return (
+      <Suspense fallback={null}>
+        <InstallWizard onConfigured={clearUpgrade} />
+      </Suspense>
+    );
+  }
+
+  if (beaconConsentPrompt) {
+    return (
+      <Suspense fallback={null}>
+        <BeaconConsent
+          onSubmitSuccess={() => {
+            ConfigStore.set('shouldShowBeaconConsentPrompt', false);
+          }}
+        />
+      </Suspense>
+    );
+  }
+
+  if (partnershipAgreementPrompt) {
+    return (
+      <Suspense fallback={null}>
+        <Override
+          name="component:partnership-agreement"
+          partnerDisplayName={partnershipAgreementPrompt.partnerDisplayName}
+          agreements={partnershipAgreementPrompt.agreements}
+          onSubmitSuccess={() => {
+            ConfigStore.set('partnershipAgreementPrompt', null);
+          }}
+          organizationSlug={organizationSlug}
+        />
+      </Suspense>
+    );
+  }
+
+  if (newsletterConsentPrompt) {
+    return (
+      <Suspense fallback={null}>
+        <NewsletterConsent onSubmitSuccess={clearNewsletterConsent} />
+      </Suspense>
+    );
+  }
+
+  if (!isOrgSlugValid) {
+    return null;
+  }
+
+  return <Outlet />;
+}
+
 /**
- * App is the root level container for all uathenticated routes.
+ * App is the root level container for all authenticated routes.
  */
 export function App() {
   const api = useApi();
@@ -127,6 +199,7 @@ export function App() {
 
   // Update guide store on location change
   const location = useLocation();
+  // oxlint-disable-next-line react/exhaustive-effect-dependencies
   useEffect(() => GuideStore.onURLChange(), [location]);
 
   useEffect(() => {
@@ -141,7 +214,7 @@ export function App() {
     loadOrganizations();
     fetchGuides();
 
-    // When the app is unloaded clear the organizationst list
+    // When the app is unloaded clear the organizations list
     return () => OrganizationsStore.load([]);
   }, [loadOrganizations, user, preloadData]);
 
@@ -154,10 +227,6 @@ export function App() {
     ConfigStore.set('user', {...user, flags});
   }
 
-  function clearBeaconConsentPrompt() {
-    ConfigStore.set('shouldShowBeaconConsentPrompt', false);
-  }
-
   const displayInstallWizard =
     user?.isSuperuser && config.needsUpgrade && config.isSelfHosted;
   const newsletterConsentPrompt = user?.flags?.newsletter_consent_prompt;
@@ -165,61 +234,25 @@ export function App() {
   const beaconConsentPrompt =
     user?.isSuperuser && config.isSelfHosted && config.shouldShowBeaconConsentPrompt;
 
-  function renderBody() {
-    if (displayInstallWizard) {
-      return (
-        <Suspense fallback={null}>
-          <InstallWizard onConfigured={clearUpgrade} />
-        </Suspense>
-      );
-    }
-
-    if (beaconConsentPrompt) {
-      return (
-        <Suspense fallback={null}>
-          <BeaconConsent onSubmitSuccess={clearBeaconConsentPrompt} />
-        </Suspense>
-      );
-    }
-
-    if (partnershipAgreementPrompt) {
-      return (
-        <Suspense fallback={null}>
-          <Override
-            name="component:partnership-agreement"
-            partnerDisplayName={partnershipAgreementPrompt.partnerDisplayName}
-            agreements={partnershipAgreementPrompt.agreements}
-            onSubmitSuccess={() => ConfigStore.set('partnershipAgreementPrompt', null)}
-            organizationSlug={config.customerDomain?.subdomain}
-          />
-        </Suspense>
-      );
-    }
-
-    if (newsletterConsentPrompt) {
-      return (
-        <Suspense fallback={null}>
-          <NewsletterConsent onSubmitSuccess={clearNewsletterConsent} />
-        </Suspense>
-      );
-    }
-
-    if (!isOrgSlugValid) {
-      return null;
-    }
-
-    return <Outlet />;
-  }
-
   return (
     <Profiler id="App" onRender={onRenderCallback}>
       <AppProviders preloadData={preloadData}>
         <MainContainer tabIndex={-1}>
           <AppAlerts />
           <GlobalModal />
-          <Indicators className="indicators-container" />
           <Override name="component:replay-init" />
-          <ErrorBoundary>{renderBody()}</ErrorBoundary>
+          <ErrorBoundary>
+            <AppBody
+              beaconConsentPrompt={beaconConsentPrompt}
+              clearUpgrade={clearUpgrade}
+              clearNewsletterConsent={clearNewsletterConsent}
+              displayInstallWizard={displayInstallWizard}
+              isOrgSlugValid={isOrgSlugValid}
+              newsletterConsentPrompt={newsletterConsentPrompt}
+              organizationSlug={config.customerDomain?.subdomain}
+              partnershipAgreementPrompt={partnershipAgreementPrompt}
+            />
+          </ErrorBoundary>
         </MainContainer>
       </AppProviders>
     </Profiler>

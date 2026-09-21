@@ -333,6 +333,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/data_export/                                             @getsentry/data-browsing
 /tests/sentry/data_export/                                           @getsentry/data-browsing
 
+/src/sentry/ingestion_delay/                                         @getsentry/data-browsing
+/tests/sentry/ingestion_delay/                                       @getsentry/data-browsing
+/src/sentry/api/helpers/ingestion_delay.py                           @getsentry/data-browsing
+
 
 /src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/data-browsing
 /tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/data-browsing
@@ -608,6 +612,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
 /static/app/views/explore/conversations/                                  @getsentry/telemetry-experience
+/static/app/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/ai*    @getsentry/data-browsing @getsentry/telemetry-experience
+/static/app/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcp*   @getsentry/data-browsing @getsentry/telemetry-experience
+/static/app/views/performance/newTraceDetails/traceDrawer/tabs/traceAi*                   @getsentry/data-browsing @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 ## Value Discovery

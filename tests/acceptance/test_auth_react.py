@@ -148,6 +148,31 @@ class ReactAuthTest(AcceptanceTestCase):
         )
         assert self.browser.driver.current_url.endswith("/auth/login/")
 
+    def test_demo_authentication(self) -> None:
+        demo_user = self.create_user(email="demo@example.com")
+        demo_organization = self.create_organization(owner=demo_user, slug="demo")
+
+        with self.options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [demo_organization.id],
+            }
+        ):
+            self.save_cookie(
+                name="sentry_react_auth",
+                value="1",
+                expires="Tue, 20 Jun 2035 19:07:44 GMT",
+            )
+            self.browser.get(
+                f"/auth/login/{demo_organization.slug}/"
+                f"?next=%2Forganizations%2F{demo_organization.slug}%2Fissues%2F"
+            )
+
+            assert not self.browser.element_exists('[aria-label="Email"]')
+            assert not self.browser.element_exists('[aria-label="Password"]')
+            self.wait_for_authenticated_organization(demo_organization.slug)
+
     def test_totp_authentication(self) -> None:
         user = self.create_login_user()
         totp = TotpInterface()

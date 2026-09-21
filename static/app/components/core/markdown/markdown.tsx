@@ -4,9 +4,8 @@ import {Global} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import type {ExtendedToken} from 'sentry/utils/marked/marked';
-import {MarkedLexer} from 'sentry/utils/marked/marked';
-
+import type {ExtendedToken} from './marked';
+import {MarkedLexer} from './marked';
 import {Token} from './token';
 import {streamingAnimationStyles, useStreamingAnimation} from './useStreamingAnimation';
 
@@ -178,6 +177,7 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
     if (changed) {
       prevTextLensRef.current = nextLens;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [isStreaming, elements]);
 
   return (

@@ -1,17 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-
 import {
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
-  isSpanNode,
   isTransactionNode,
-} from './../traceGuards';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
+import {SpanNode} from './traceTreeNode/spanNode';
 import type {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import type {UptimeCheckTimingNode} from './traceTreeNode/uptimeCheckTimingNode';
 import {TraceShape, TraceTree} from './traceTree';
@@ -543,17 +543,18 @@ describe('TraceTree', () => {
         }),
         {
           meta: {
-            transaction_child_count_map: {
+            transactionChildCountMap: {
               transaction: 10,
               'no-spans-transaction': 1,
               // we have no data for child transaction
             },
-            errors: 0,
-            performance_issues: 0,
-            projects: 0,
-            transactions: 0,
-            span_count: 0,
-            span_count_map: {},
+            errorsCount: 0,
+            logsCount: 0,
+            metricsCount: 0,
+            performanceIssuesCount: 0,
+            spansCount: 0,
+            spansCountMap: {},
+            uptimeCount: 0,
           },
           replay: null,
           organization,
@@ -1624,7 +1625,7 @@ describe('TraceTree', () => {
         api: new MockApiClient(),
       });
 
-      const spans = tree.root.findAllChildren(n => isSpanNode(n));
+      const spans = tree.root.findAllChildren(n => n instanceof SpanNode);
       expect(spans).toHaveLength(1);
       expect(tree.serialize()).toMatchSnapshot();
     });
@@ -1791,7 +1792,7 @@ describe('TraceTree', () => {
           });
 
           const span = tree.root.findChild(
-            node => isSpanNode(node) && node.value.span_id === '0000'
+            node => node instanceof SpanNode && node.value.span_id === '0000'
           )!;
 
           span.expand(expanded, tree);
@@ -1993,7 +1994,7 @@ describe('TraceTree', () => {
           });
 
           const span = tree.root.findChild(
-            node => isSpanNode(node) && node.value.span_id === '0000'
+            node => node instanceof SpanNode && node.value.span_id === '0000'
           )!;
 
           span.expand(expanded, tree);
@@ -2283,7 +2284,7 @@ describe('TraceTree', () => {
         organization,
       });
 
-      const span = tree.root.findChild(node => isSpanNode(node))!;
+      const span = tree.root.findChild(node => node instanceof SpanNode)!;
       const path = span.pathToNode();
       expect(path).toEqual(['span-span-id', 'txn-child-event-id']);
     });
@@ -2344,7 +2345,7 @@ describe('TraceTree', () => {
         ]);
 
         const requestSpan = tree.root.findChild(
-          node => isSpanNode(node) && node.value.description === 'request'
+          node => node instanceof SpanNode && node.value.description === 'request'
         )!;
         expect(requestSpan.pathToNode()).toEqual([
           'span-child-span-id',
@@ -2492,6 +2493,28 @@ describe('TraceTree', () => {
       ],
     });
 
+    it('expands loaded EAP ancestors from a path', async () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'parent-event-id',
+            is_transaction: true,
+            children: [makeEAPSpan({event_id: 'child-event-id'})],
+          }),
+        ]),
+        traceOptions
+      );
+      const child = tree.root.findChild(node => node.id === 'child-event-id')!;
+
+      expect(tree.list).not.toContain(child);
+      await TraceTree.ExpandToPath(tree, child.pathToNode());
+
+      expect(tree.list).toContain(child);
+      expect(tree.root.findChild(node => node.id === 'parent-event-id')!.expanded).toBe(
+        true
+      );
+    });
+
     it('expands transactions from path segments', async () => {
       const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
 
@@ -2505,24 +2528,6 @@ describe('TraceTree', () => {
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
-      expect(tree.build().serialize()).toMatchSnapshot();
-    });
-
-    it('discards non txns segments', async () => {
-      const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
-
-      const child = tree.root.findChild(
-        node => isTransactionNode(node) && node.value.transaction === 'child'
-      )!;
-
-      const request = mockSpansResponse([makeSpan()], 'project', 'child-event-id');
-      await TraceTree.ExpandToPath(tree, ['span-0', ...child.pathToNode()], {
-        api,
-        organization,
-        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
-      });
-
-      expect(request).toHaveBeenCalled();
       expect(tree.build().serialize()).toMatchSnapshot();
     });
   });

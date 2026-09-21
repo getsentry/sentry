@@ -13,7 +13,9 @@ class AIConversationsQuery(TypedDict):
 
 
 class OrganizationAIConversationsSerializer(serializers.Serializer[AIConversationsQuery]):
-    sort = serializers.ListField(child=serializers.CharField(), required=False, default=["-age"])
+    sort = serializers.ListField(
+        child=serializers.CharField(), required=False, default=["-conversation.age"]
+    )
     query = serializers.CharField(required=False, allow_blank=True)
     samplingMode = serializers.ChoiceField(
         choices=[
@@ -26,7 +28,7 @@ class OrganizationAIConversationsSerializer(serializers.Serializer[AIConversatio
     )
 
     def validate_sort(self, value: list[str]) -> list[str]:
-        if self.context.get("sorting_enabled") and len(value) != 1:
+        if len(value) != 1:
             raise serializers.ValidationError("Provide exactly one sort option.")
         for sort in value:
             if sort.removeprefix("-") not in AI_CONVERSATIONS_FIELDS:

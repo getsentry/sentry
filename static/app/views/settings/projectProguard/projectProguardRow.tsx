@@ -32,17 +32,17 @@ export function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Pr
 
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell justify="center" align="start">
+      <SimpleTable.RowCell align="start">
         <Name>{debugId || uuid || `(${t('empty')})`}</Name>
         <TimeWrapper>
           <IconClock size="sm" />
           <TimeSince date={dateCreated} />
         </TimeWrapper>
       </SimpleTable.RowCell>
-      <SizeColumn>
+      <SimpleTable.RowCell justify="end">
         <FileSize bytes={size} />
-      </SizeColumn>
-      <ActionsColumn>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
         <Grid flow="column" align="center" gap="xs">
           <Tooltip
             title={tct(
@@ -88,19 +88,10 @@ export function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Pr
             )}
           </Access>
         </Grid>
-      </ActionsColumn>
+      </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
 }
-
-const SizeColumn = styled(SimpleTable.RowCell)`
-  display: flex;
-  justify-content: flex-end;
-  text-align: right;
-  align-items: center;
-`;
-
-const ActionsColumn = styled(SizeColumn)``;
 
 const Name = styled('div')`
   padding-right: ${p => p.theme.space['3xl']};

@@ -24,18 +24,14 @@ const EMPTY_STATS: readonly TimeseriesValue[] = [];
 type Props = {
   stats: readonly TimeseriesValue[];
   groupStatus?: string;
-  hideZeros?: boolean;
   secondaryStats?: readonly TimeseriesValue[];
-  showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
 };
 
 export function GroupStatusChart({
   stats,
   groupStatus,
-  hideZeros = false,
   secondaryStats = EMPTY_STATS,
-  showMarkLine = false,
   showSecondaryPoints = false,
 }: Props) {
   const theme = useTheme();
@@ -82,7 +78,7 @@ export function GroupStatusChart({
             {
               seriesName: t('Total Events'),
               data: secondaryStats.map(asChartPoint),
-              markLine: showMarkLine && max > 0 ? markLine : undefined,
+              markLine: max > 0 ? markLine : undefined,
             },
             {
               seriesName: t('Matching Events'),
@@ -93,7 +89,7 @@ export function GroupStatusChart({
             {
               seriesName: t('Events'),
               data: stats.map(asChartPoint),
-              markLine: showMarkLine && max > 0 ? markLine : undefined,
+              markLine: max > 0 ? markLine : undefined,
             },
           ];
 
@@ -102,26 +98,26 @@ export function GroupStatusChart({
       emphasisColors: [theme.tokens.dataviz.semantic.other],
       series,
     };
-  }, [showSecondaryPoints, secondaryStats, showMarkLine, stats, theme]);
+  }, [showSecondaryPoints, secondaryStats, stats, theme]);
 
   return (
-    <LazyRender containerHeight={showMarkLine ? 26 : 24}>
+    <LazyRender containerHeight={26}>
       <Stack>
         <ChartAnimationWrapper>
           <MiniBarChart
             animateBars
             showXAxisLine
-            hideZeros={hideZeros}
+            hideZeros
             markLineLabelSide="right"
             barOpacity={1}
-            height={showMarkLine ? 36 : 24}
+            height={36}
             isGroupedByDate
             showTimeInTooltip
             series={graphOptions.series}
             colors={graphOptions.colors}
             emphasisColors={graphOptions.emphasisColors}
             hideDelay={50}
-            showMarkLineLabel={showMarkLine}
+            showMarkLineLabel
           />
         </ChartAnimationWrapper>
         <GraphText>{groupStatus}</GraphText>

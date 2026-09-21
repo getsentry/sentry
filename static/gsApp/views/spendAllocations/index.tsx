@@ -272,7 +272,9 @@ export function SpendAllocationsRoot({subscription}: Props) {
   };
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchSpendAllocations();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [fetchSpendAllocations, viewNextPeriod]);
 
   const openForm = (formData?: SpendAllocation) => (e: React.MouseEvent) => {

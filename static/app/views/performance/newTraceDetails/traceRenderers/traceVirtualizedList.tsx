@@ -41,9 +41,11 @@ export const useVirtualizedList = (
   const styleCache = useRef<Map<number, React.CSSProperties> | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
+  // oxlint-disable-next-line react/refs
   if (!styleCache.current) {
     styleCache.current = new Map<number, React.CSSProperties>();
   }
+  // oxlint-disable-next-line react/refs
   if (!renderCache.current) {
     renderCache.current = new Map<number, React.ReactNode>();
   }
@@ -53,16 +55,21 @@ export const useVirtualizedList = (
     virtualized: VirtualizedRow[];
   }>({rendered: [], virtualized: []});
 
+  // oxlint-disable-next-line react/refs
   if (!list.current) {
     list.current = new VirtualizedList();
+    // oxlint-disable-next-line react/refs
     props.manager.registerList(list.current);
   }
 
   const renderRef = useRef<(item: VirtualizedRow) => React.ReactNode>(props.render);
+  // oxlint-disable-next-line react/refs
   renderRef.current = props.render;
   const itemsRef = useRef(props.items);
+  // oxlint-disable-next-line react/refs
   itemsRef.current = props.items;
   const managerRef = useRef(props.manager);
+  // oxlint-disable-next-line react/refs
   managerRef.current = props.manager;
 
   useLayoutEffect(() => {
@@ -75,6 +82,7 @@ export const useVirtualizedList = (
         'Virtualized list container has to render a scroll container as its first child.'
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [props.container, props.items.length]);
 
   useLayoutEffect(() => {
@@ -225,6 +233,7 @@ export const useVirtualizedList = (
     return () => {
       props.container?.removeEventListener('scroll', onScroll);
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [props.container, props.items, props.items.length, props.manager, props.scheduler]);
 
   useLayoutEffect(() => {
@@ -248,11 +257,13 @@ export const useVirtualizedList = (
     });
 
     setItems(recomputedItems);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [props.items, props.items.length, props.render]);
 
   return {
     virtualized: items.virtualized,
     rendered: items.rendered,
+    // oxlint-disable-next-line react/refs
     list: list.current,
   };
 };

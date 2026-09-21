@@ -1,8 +1,8 @@
-import {ESLintUtils} from '@typescript-eslint/utils';
+import {defineRule} from '@oxlint/plugins';
 
 const DYNAMIC_TRANSLATION_FNS = ['td'];
 
-export const noStaticTranslations = ESLintUtils.RuleCreator.withoutDocs({
+export const noStaticTranslations = defineRule({
   meta: {
     type: 'problem',
     docs: {
@@ -11,7 +11,7 @@ export const noStaticTranslations = ESLintUtils.RuleCreator.withoutDocs({
     schema: [],
     messages: {
       forbidden:
-        'td() must use ATTRIBUTE_SEARCH_METADATA[key].brief from @sentry/conventions',
+        'td() must use ATTRIBUTE_SEARCH_METADATA[key].brief from @sentry/conventions/attributes/search',
     },
   },
 

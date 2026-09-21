@@ -53,7 +53,7 @@ export function TraceAiConversations({
   traceSlug,
 }: TraceAiConversationsProps) {
   const organization = useOrganization();
-  const [activeSubTab, setActiveSubTab] = useState<SubTab>('transcript');
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('timeline');
   const [selectedConversationId, setSelectedConversationId] = useState<string>(
     () => conversationIds[0] ?? ''
   );

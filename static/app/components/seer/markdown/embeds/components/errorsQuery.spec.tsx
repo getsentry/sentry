@@ -1,3 +1,4 @@
+import {dragHandle} from 'sentry-test/dragMove';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
@@ -54,7 +55,9 @@ describe('errors query embed', () => {
     expect(await screen.findByText('Error 1')).toBeInTheDocument();
     expect(screen.getByText('Error 5')).toBeInTheDocument();
     expect(screen.queryByText('Error 6')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Recent errors'})).toHaveAttribute(
+    // The block's name is the collapse toggle; the link out is a separate target.
+    expect(screen.getByRole('button', {name: 'Recent errors'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Errors'})).toHaveAttribute(
       'href',
       expect.stringContaining('/explore/discover/results/')
     );
@@ -230,6 +233,48 @@ describe('errors query embed', () => {
         })
       );
     });
+  });
+
+  it('lets a reader resize the preview columns, and keeps the resize local', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [{id: '1', title: 'Error 1', project: 'web', timestamp: '2026-08-27'}],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: SERIES},
+    });
+
+    const {router} = renderEmbed({
+      data: {
+        mode: 'samples',
+        query: 'event.type:error',
+        fields: ['title', 'project', 'timestamp'],
+      },
+    });
+
+    expect(await screen.findByText('Error 1')).toBeInTheDocument();
+
+    const table = screen.getByRole('table');
+    expect(table).toHaveStyle({
+      gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr)',
+    });
+
+    // One handle per column but the last, which has nothing to its right to give
+    // width back to. Columns measure 0 in jsdom, so the width is the drag distance.
+    const resizers = screen.getAllByRole('separator');
+    expect(resizers).toHaveLength(2);
+
+    dragHandle(resizers[0]!, {from: 100, to: 340});
+
+    await waitFor(() =>
+      expect(table).toHaveStyle({
+        gridTemplateColumns: '240px minmax(0, 1fr) minmax(0, 1fr)',
+      })
+    );
+    expect(router.location.query).toEqual({});
   });
 
   it('does not fetch data for an inline embed', () => {

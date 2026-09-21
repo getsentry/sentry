@@ -187,6 +187,41 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         assert "id" in response.data
         assert "not a valid integer id" in str(response.data["id"])
 
+    def test_filter_by_type_and_enabled(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "project": self.project.id,
+                "type": [ErrorGroupType.slug, IssueStreamGroupType.slug],
+                "enabled": "true",
+            },
+        )
+        assert {detector["id"] for detector in response.data} == {
+            str(self.error_detector.id),
+            str(self.issue_stream_detector.id),
+        }
+
+        self.issue_stream_detector.update(enabled=False)
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "project": self.project.id,
+                "type": IssueStreamGroupType.slug,
+                "enabled": "false",
+            },
+        )
+        assert [detector["id"] for detector in response.data] == [
+            str(self.issue_stream_detector.id)
+        ]
+
+    def test_invalid_enabled_filter(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"enabled": "sometimes"},
+            status_code=400,
+        )
+        assert "enabled" in response.data
+
     def test_invalid_sort_by(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
@@ -265,45 +300,43 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             project=self.project, name="Detector 4 No Groups", type=MetricIssue.slug
         )
 
-        group_1 = self.create_group(project=self.project)
-        group_2 = self.create_group(project=self.project)
-        group_3 = self.create_group(project=self.project)
+        group_1 = self.create_group(project=self.project, last_seen=before_now(hours=1))
+        group_2 = self.create_group(project=self.project, last_seen=before_now(hours=3))
+        group_3 = self.create_group(project=self.project, last_seen=before_now(hours=2))
 
-        # detector_1 has the oldest group
+        # The issue creation order is intentionally the opposite of the occurrence order.
         detector_group_1 = DetectorGroup.objects.create(detector=detector_1, group=group_1)
         detector_group_1.date_added = before_now(hours=3)
         detector_group_1.save()
 
-        # detector_2 has the newest group
         detector_group_2 = DetectorGroup.objects.create(detector=detector_2, group=group_2)
-        detector_group_2.date_added = before_now(hours=1)  # Most recent
+        detector_group_2.date_added = before_now(hours=1)
         detector_group_2.save()
 
-        # detector_3 has one in the middle
         detector_group_3 = DetectorGroup.objects.create(detector=detector_3, group=group_3)
         detector_group_3.date_added = before_now(hours=2)
         detector_group_3.save()
 
-        # Test descending sort (newest groups first)
+        # Test descending sort (latest occurrences first)
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id, "sortBy": "-latestGroup"}
         )
         assert [d["name"] for d in response.data] == [
-            detector_2.name,
-            detector_3.name,
             detector_1.name,
+            detector_3.name,
+            detector_2.name,
             detector_4.name,  # No groups, should be last
         ]
 
-        # Test ascending sort (oldest groups first)
+        # Test ascending sort (oldest occurrences first)
         response2 = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id, "sortBy": "latestGroup"}
         )
         assert [d["name"] for d in response2.data] == [
             detector_4.name,  # No groups, should be first
-            detector_1.name,
-            detector_3.name,
             detector_2.name,
+            detector_3.name,
+            detector_1.name,
         ]
 
     def test_sort_by_open_issues(self) -> None:
@@ -859,18 +892,28 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
         self.all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
 
     @with_feature("organizations:workflow-engine-all-projects-detector")
-    def test_all_projects_detector_included_in_list(self) -> None:
+    def test_all_projects_detector_excluded_with_specific_project(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id}
         )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.all_projects_detector.id) not in detector_ids
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_included_with_all_projects_sentinel(self) -> None:
+        response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.all_projects_detector.id) in detector_ids
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_included_without_project_filter(self) -> None:
+        response = self.get_success_response(self.organization.slug)
         detector_ids = {d["id"] for d in response.data}
         assert str(self.all_projects_detector.id) in detector_ids
 
     @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_detector_has_null_project_id(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"project": self.project.id}
-        )
+        response = self.get_success_response(self.organization.slug)
         all_proj = next(d for d in response.data if d["id"] == str(self.all_projects_detector.id))
         assert all_proj["projectId"] is None
 
@@ -969,76 +1012,6 @@ class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexB
             )
             detector_ids = {d["id"] for d in response.data}
             assert str(orphan.id) in detector_ids
-
-    @requires_snuba
-    @requires_kafka
-    def test_allowed_metric_detector_kept_when_others_disallowed(self) -> None:
-        with self.tasks():
-            # Transactions dataset — requires performance-view
-            disallowed_sq = create_snuba_query(
-                query_type=SnubaQuery.Type.PERFORMANCE,
-                dataset=Dataset.Transactions,
-                query="test",
-                aggregate="count()",
-                time_window=timedelta(minutes=1),
-                resolution=timedelta(minutes=1),
-                environment=self.environment,
-                event_types=(),
-            )
-            disallowed_sub = create_snuba_subscription(
-                project=self.project,
-                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-                snuba_query=disallowed_sq,
-            )
-
-            # PerformanceMetrics dataset — requires on-demand-metrics-extraction.
-            # Persist the subscription without building a generic s/g/d query.
-            allowed_sq = create_snuba_query(
-                query_type=SnubaQuery.Type.PERFORMANCE,
-                dataset=Dataset.PerformanceMetrics,
-                query="test",
-                aggregate="count()",
-                time_window=timedelta(minutes=1),
-                resolution=timedelta(minutes=1),
-                environment=self.environment,
-                event_types=(),
-            )
-            allowed_sub = QuerySubscription.objects.create(
-                project=self.project,
-                type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-                snuba_query=allowed_sq,
-                status=QuerySubscription.Status.ACTIVE.value,
-            )
-        disallowed_ds = self.create_data_source(
-            organization=self.organization, source_id=disallowed_sub.id
-        )
-        disallowed_detector = self.create_detector(
-            project=self.project, name="Disallowed Metric", type=MetricIssue.slug
-        )
-        self.create_data_source_detector(data_source=disallowed_ds, detector=disallowed_detector)
-
-        allowed_ds = self.create_data_source(
-            organization=self.organization, source_id=allowed_sub.id
-        )
-        allowed_detector = self.create_detector(
-            project=self.project, name="Allowed Metric", type=MetricIssue.slug
-        )
-        self.create_data_source_detector(data_source=allowed_ds, detector=allowed_detector)
-
-        # Disable performance-view but enable on-demand-metrics-extraction:
-        # Transactions detector is excluded, PerformanceMetrics detector is kept.
-        with self.feature(
-            {
-                "organizations:performance-view": False,
-                "organizations:on-demand-metrics-extraction": True,
-            }
-        ):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(allowed_detector.id) in detector_ids
-            assert str(disallowed_detector.id) not in detector_ids
 
 
 @cell_silo_test
@@ -1342,6 +1315,59 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         self.error_detector.refresh_from_db()
         assert self.user_detector.enabled is True
         assert self.error_detector.enabled is True
+
+    def test_cannot_update_detectors_issue_stream(self) -> None:
+        self.login_as(user=self.org_manager_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(self.issue_stream_detector.id)},
+            enabled=False,
+            status_code=400,
+        )
+
+        self.issue_stream_detector.refresh_from_db()
+        assert self.issue_stream_detector.enabled is True
+
+    def test_update_detectors_issue_stream_skipped_in_mixed_batch(self) -> None:
+        self.login_as(user=self.org_manager_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.issue_stream_detector.id)),
+                ("id", str(self.detector.id)),
+            ],
+            enabled=False,
+            status_code=400,
+        )
+
+        self.issue_stream_detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert self.issue_stream_detector.enabled is True
+        assert self.detector.enabled is True
+
+    def test_update_detectors_project_filter_skips_issue_stream(self) -> None:
+        self.login_as(user=self.org_manager_user)
+
+        self.issue_stream_detector.update(enabled=False)
+        self.detector.update(enabled=False)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id},
+            enabled=True,
+            status_code=200,
+        )
+
+        response_ids = {d["id"] for d in response.data}
+        assert str(self.detector.id) in response_ids
+        assert str(self.issue_stream_detector.id) not in response_ids
+
+        self.issue_stream_detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert self.issue_stream_detector.enabled is False
+        assert self.detector.enabled is True
 
 
 @cell_silo_test

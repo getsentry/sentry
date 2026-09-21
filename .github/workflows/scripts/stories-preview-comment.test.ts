@@ -205,6 +205,27 @@ describe('syncStoriesPreviewComment', () => {
     assert.match(calls.create[0].body!, /stories\/product\/components\/foo\/foo\//);
   });
 
+  it('does not link a colocated story when only snapshot or test files changed', async () => {
+    const files = [
+      'static/app/components/core/button/button.snapshots.tsx',
+      'static/app/components/core/button/button.snapshot.tsx',
+      'static/app/components/core/button/button.spec.tsx',
+      'static/app/components/core/button/button.test.tsx',
+    ].map(filename => ({filename, status: 'modified'}));
+    const calls = await run({
+      files,
+      dirContents: {
+        'static/app/components/core/button': [
+          {
+            name: 'button.mdx',
+            path: 'static/app/components/core/button/button.mdx',
+          },
+        ],
+      },
+    });
+    assert.deepEqual(calls, {create: [], update: [], delete: []});
+  });
+
   it('links a directory-named story when index.tsx changed', async () => {
     const calls = await run({
       files: [
@@ -255,6 +276,18 @@ describe('syncStoriesPreviewComment', () => {
       calls.create[0].body!,
       /stories\/product\/components\/seer\/markdown\/seermarkdown\//
     );
+  });
+
+  it('does not surface a dependency story when only its test changed', async () => {
+    const calls = await run({
+      files: [
+        {
+          filename: 'static/app/components/seer/markdown/embeds/schemas.test.ts',
+          status: 'modified',
+        },
+      ],
+    });
+    assert.deepEqual(calls, {create: [], update: [], delete: []});
   });
 
   it('surfaces the SeerMarkdown story when an embed component changed', async () => {

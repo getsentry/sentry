@@ -195,6 +195,7 @@ function TruncatedFilterDisplayValue({
     const observer = new ResizeObserver(update);
     observer.observe(observed);
     return () => observer.disconnect();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [value, fallbackMaxLength, multi]);
 
   const Truncated = multi ? FilterMultiValueTruncated : FilterValueSingleTruncatedValue;
@@ -286,6 +287,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
       focusOverride?.itemKey === item.key &&
       focusOverride.part === 'value'
     ) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsEditing(true);
       onActiveChange(true);
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
@@ -387,6 +389,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     }
   };
 
+  // oxlint-disable-next-line react/refs
   const modifiedRowProps = mergeProps(rowProps, {
     tabIndex: isFocused ? 0 : -1,
     onKeyDown,

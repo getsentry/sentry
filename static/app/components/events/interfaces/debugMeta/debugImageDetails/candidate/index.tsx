@@ -41,7 +41,7 @@ export function Candidate({
         <StatusTooltip candidate={candidate} hasReprocessWarning={hasReprocessWarning} />
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell align="start" direction="column">
+      <SimpleTable.RowCell direction="column" align="start">
         <Information
           candidate={candidate}
           isInternalSource={isInternalSource}

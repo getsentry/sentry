@@ -8,6 +8,8 @@ import omit from 'lodash/omit';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import type {CursorHandler} from '@sentry/scraps/pagination';
@@ -23,8 +25,6 @@ import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {Banner} from 'sentry/components/banner';
 import {Confirm} from 'sentry/components/confirm';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -1307,7 +1307,9 @@ function SaveQueryButton({
   }, [eventView, savedQuery, yAxis]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setQueryName('');
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [eventView.id]);
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(

@@ -66,6 +66,7 @@ function ResultsHeaderBase({
 
   useEffect(() => {
     if (!isHomepage && eventView.id) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchData();
     } else if (eventView.id === undefined) {
       setLoading(false);
@@ -74,6 +75,7 @@ function ResultsHeaderBase({
 
   useEffect(() => {
     if (isHomepage) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchHomepageQueryData();
     }
   }, [isHomepage, fetchHomepageQueryData]);
@@ -113,27 +115,25 @@ function ResultsHeaderBase({
     </Fragment>
   );
 
-  const discoverBreadcrumb = (
-    <DiscoverBreadcrumb
-      eventView={eventView}
-      organization={organization}
-      location={location}
-      isHomepage={isHomepage}
-      savedQuery={savedQuery}
-    />
-  );
-
   return (
     <Fragment>
-      <TopBar.Slot name="title">
-        {isHomepage ? (
-          <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
-        ) : hasDiscoverQueryFeature ? (
-          discoverBreadcrumb
-        ) : (
-          title
-        )}
-      </TopBar.Slot>
+      {!isHomepage && hasDiscoverQueryFeature ? (
+        // Owns both the breadcrumbs and title slots.
+        <DiscoverBreadcrumb
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          savedQuery={savedQuery}
+        />
+      ) : (
+        <TopBar.Slot name="title">
+          {isHomepage ? (
+            <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
+          ) : (
+            title
+          )}
+        </TopBar.Slot>
+      )}
       <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
       {!isDiscoverDeprecated && (
         <Layout.Header>

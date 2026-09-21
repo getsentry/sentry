@@ -505,7 +505,7 @@ describe('Dashboards > WidgetCard', () => {
       title: 'Table Widget',
       interval: '5m',
       displayType: DisplayType.TABLE,
-      widgetType: WidgetType.DISCOVER,
+      widgetType: WidgetType.TRANSACTIONS,
       queries: [
         {
           conditions: '',
@@ -583,7 +583,7 @@ describe('Dashboards > WidgetCard', () => {
       title: 'Widget',
       interval: '5m',
       displayType: DisplayType.LINE,
-      widgetType: WidgetType.DISCOVER,
+      widgetType: WidgetType.ERRORS,
       queries: [
         {
           conditions: '',
