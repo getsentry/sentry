@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import bisect
 import functools
 import re
 from collections.abc import Callable, Generator, Mapping, Sequence
@@ -193,7 +194,7 @@ array_includes_filter = negation? array_includes_key sep wildcard_op? operator? 
 # parens unquoted. A quoted "//...//" stays a literal. There's no IN-list form, since `a|b`
 # already covers it. The scan cap only keeps a query full of unclosed `key://` values from
 # rescanning the rest of the line at every one of them; SearchVisitor enforces the real
-# MAX_REGEX_PATTERN_LENGTH.
+# MAX_REGEX_PATTERN_LENGTH, including for patterns too long to scan.
 regex_filter = negation? (array_includes_key / text_key) sep regex_value
 regex_value  = ~r"//((?:(?!//(?:[\t\n )]|$))[^\n]){1,1024})//(?=[\t\n )]|$)"
 
@@ -251,6 +252,15 @@ end_value = ~r"[\t\n )]|$"
 )
 
 MAX_REGEX_PATTERN_LENGTH = 64
+
+REGEX_CLOSING_DELIMITER = re.compile(r"//(?=[\t\n )]|\Z)")
+
+
+def regex_pattern_too_long_error(key: str) -> InvalidSearchQuery:
+    return InvalidSearchQuery(
+        f"{key}: Regex patterns are limited to {MAX_REGEX_PATTERN_LENGTH} characters. "
+        'To search for a literal value that starts with //, quote it: "//..."'
+    )
 
 
 def translate_wildcard(pat: str) -> str:
@@ -847,6 +857,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         super().__init__()
 
         self.config = config
+        self._regex_closing_offsets: list[int] | None = None
 
         if TYPE_CHECKING:
             from sentry.search.events.builder.discover import UnresolvedQuery
@@ -1504,6 +1515,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchFilter:
         (negation, search_key, _sep, wildcard_op, operator, search_value) = children
+        self._raise_if_regex_pattern_is_too_long_to_scan(node, search_key)
         operator_s = get_operator_value(operator)
 
         # XXX: We check whether the text in the node itself is actually empty, so
@@ -1544,15 +1556,39 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             return self._handle_basic_filter(search_key, operator, SearchValue(literal))
 
         if len(pattern) > MAX_REGEX_PATTERN_LENGTH:
-            raise InvalidSearchQuery(
-                f"{search_key.name}: Regex patterns are limited to {MAX_REGEX_PATTERN_LENGTH} "
-                'characters. To search for a literal value that starts with //, quote it: "//..."'
-            )
+            raise regex_pattern_too_long_error(search_key.name)
         validate_regex_pattern(search_key.name, pattern)
         return SearchFilter(search_key, operator, SearchValue(pattern, is_regex=True))
 
     def visit_regex_value(self, node: RegexNode, children: object) -> str:
         return node.match.group(1)
+
+    def _raise_if_regex_pattern_is_too_long_to_scan(
+        self, node: Node, search_key: SearchKey
+    ) -> None:
+        """A pattern longer than regex_value's scan cap lands in a text filter instead. It shows
+        up there as an unquoted `//` value, with no operator, whose closing `//` sits further
+        along the same line."""
+        wildcard_op, operator, value = node.children[3:6]
+        if (
+            not self.config.allow_regex
+            or wildcard_op.text
+            or operator.text
+            or not value.text.startswith("//")
+        ):
+            return
+
+        text = node.full_text
+        if self._regex_closing_offsets is None:
+            self._regex_closing_offsets = [
+                match.start() for match in REGEX_CLOSING_DELIMITER.finditer(text)
+            ]
+        closing = bisect.bisect_left(self._regex_closing_offsets, value.start + 3)
+        line_end = text.find("\n", value.start)
+        if closing < len(self._regex_closing_offsets) and (
+            line_end == -1 or self._regex_closing_offsets[closing] < line_end
+        ):
+            raise regex_pattern_too_long_error(search_key.name)
 
     # --- End of filter visitors
 
@@ -2000,6 +2036,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchFilter:
         (negation, search_key, _, wildcard_op, operator, search_value) = children
+        self._raise_if_regex_pattern_is_too_long_to_scan(node, search_key)
         operator_s = get_operator_value(operator)
         if not search_value.raw_value:
             raise InvalidSearchQuery(f"Empty value for {search_key.name}[*]")

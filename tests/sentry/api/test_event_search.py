@@ -1692,6 +1692,26 @@ def test_rejects_a_regex_pattern_over_the_length_limit(query: str, key: str) -> 
 
 
 @pytest.mark.parametrize(
+    ["query", "key"],
+    [
+        pytest.param("message://{pattern}//", "message", id="plain"),
+        pytest.param("message://{pattern} {pattern}//", "message", id="with spaces"),
+        pytest.param("tags[foo,array][*]://{pattern}//", "tags[foo,array]", id="array key"),
+    ],
+)
+def test_rejects_a_regex_pattern_too_long_for_the_grammar_to_scan(query: str, key: str) -> None:
+    pattern = "a" * 2000
+
+    with pytest.raises(InvalidSearchQuery) as err:
+        parse_search_query(query.format(pattern=pattern), config=regex_config)
+
+    assert str(err.value) == (
+        f"{key}: Regex patterns are limited to {MAX_REGEX_PATTERN_LENGTH} characters. "
+        'To search for a literal value that starts with //, quote it: "//..."'
+    )
+
+
+@pytest.mark.parametrize(
     "query",
     [
         pytest.param("url://{value}", id="unclosed"),
