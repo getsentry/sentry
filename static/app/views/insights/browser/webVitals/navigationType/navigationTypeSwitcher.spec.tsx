@@ -5,6 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {NavigationTypeSwitcher} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeSwitcher';
 import {
   buildNavigationTypeGlobalFilter,
@@ -40,15 +41,13 @@ describe('NavigationTypeSwitcher', () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
-  it('defaults to all navigation types without writing a filter', async () => {
+  it('reads the prebuilt default as "All" without writing anything', async () => {
     mockCounts([{[SpanFields.BROWSER_NAVIGATION_TYPE]: '', 'count()': 500}]);
     const onChange = jest.fn();
 
-    renderSwitcher([], onChange);
+    renderSwitcher([WEB_VITALS_NAVIGATION_TYPE_FILTER], onChange);
 
     expect(await screen.findByText('All')).toBeInTheDocument();
-    // "All" filters nothing, so it must not leave a temporary filter behind:
-    // the dashboard hides its save controls while one is active.
     expect(onChange).not.toHaveBeenCalled();
   });
 
@@ -162,7 +161,7 @@ describe('NavigationTypeSwitcher', () => {
     expect(await screen.findByText('All')).toBeInTheDocument();
   });
 
-  it('drops the filter when the selection widens back to "All"', async () => {
+  it('restores the saved default when the selection widens back to "All"', async () => {
     mockCounts([{[SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate', 'count()': 10}]);
     const onChange = jest.fn();
     const browserFilter: GlobalFilter = {
@@ -179,6 +178,19 @@ describe('NavigationTypeSwitcher', () => {
     await userEvent.click(screen.getByRole('button', {name: /Measured on/}));
     await userEvent.click(await screen.findByRole('option', {name: /Page loads/}));
 
-    expect(onChange).toHaveBeenCalledWith([browserFilter]);
+    // Exactly the prebuilt default, not a temporary filter: a temporary one
+    // would keep the dashboard's save controls hidden.
+    expect(onChange).toHaveBeenCalledWith([
+      browserFilter,
+      WEB_VITALS_NAVIGATION_TYPE_FILTER,
+    ]);
+  });
+
+  it('writes "All" identically to the prebuilt config entry', () => {
+    // The config keeps its own literal to avoid an import cycle, so guard
+    // against the two drifting apart.
+    expect(buildNavigationTypeGlobalFilter(NAVIGATION_TYPE_BUCKET_ORDER)).toEqual(
+      WEB_VITALS_NAVIGATION_TYPE_FILTER
+    );
   });
 });

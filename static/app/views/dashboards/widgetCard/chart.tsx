@@ -353,8 +353,9 @@ function BigNumberComponent({
   widget,
   dashboardFilters,
 }: TableComponentProps): React.ReactNode {
+  const organization = useOrganization({allowNull: true});
   // Page load thresholds don't transfer to the other navigation types.
-  const thresholds = navigationTypeSuppressesThresholds(dashboardFilters)
+  const thresholds = navigationTypeSuppressesThresholds(dashboardFilters, organization)
     ? undefined
     : (widget.thresholds ?? undefined);
 

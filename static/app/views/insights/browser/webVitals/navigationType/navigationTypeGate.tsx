@@ -10,10 +10,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {
-  isAllBucketsSelected,
-  NAVIGATION_TYPE_BUCKETS,
-} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
+import {NAVIGATION_TYPE_BUCKETS} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 import {useNavigationTypeCounts} from 'sentry/views/insights/browser/webVitals/navigationType/useNavigationTypeCounts';
 import {useNavigationTypeExperiment} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
@@ -78,13 +75,8 @@ export function NavigationTypeGate({children, prebuiltId}: Props) {
               {label: <strong>{labels[0]}</strong>}
             )
           : tct(
-              'You are looking at [labels] together. A p75 across navigation types is a blend rather than one measurement, so thresholds are hidden. The performance scores on this page are still calibrated for page loads.[allNote]',
-              {
-                labels: <strong>{oxfordizeArray(labels)}</strong>,
-                allNote: isAllBucketsSelected(buckets)
-                  ? ` ${t('This is the blend the dashboard showed before this control existed.')}`
-                  : '',
-              }
+              'You are looking at [labels] together. A p75 across navigation types is a blend rather than one measurement, so thresholds are hidden. The performance scores on this page are still calibrated for page loads.',
+              {labels: <strong>{oxfordizeArray(labels)}</strong>}
             )}
       </Alert>
       {children}

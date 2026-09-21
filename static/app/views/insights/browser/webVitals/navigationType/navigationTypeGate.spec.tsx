@@ -119,44 +119,84 @@ describe('NavigationTypeGate', () => {
   });
 
   describe('navigationTypeSuppressesThresholds', () => {
+    const withoutFlag = OrganizationFixture();
+
     function filtersFor(buckets: NavigationTypeBucket[]) {
       return {
         [DashboardFilterKeys.GLOBAL_FILTER]: [buildNavigationTypeGlobalFilter(buckets)],
       };
     }
 
+    // What a hand-added chip looks like: the same value the switcher would
+    // write, but a normal filter rather than a temporary one.
+    function handAddedChipFor(buckets: NavigationTypeBucket[]) {
+      const {isTemporary: _, ...chip} = buildNavigationTypeGlobalFilter(buckets);
+      return {[DashboardFilterKeys.GLOBAL_FILTER]: [chip]};
+    }
+
     it('keeps thresholds for a page loads only selection', () => {
       expect(
-        navigationTypeSuppressesThresholds(filtersFor([NavigationTypeBucket.PAGE_LOAD]))
+        navigationTypeSuppressesThresholds(
+          filtersFor([NavigationTypeBucket.PAGE_LOAD]),
+          organization
+        )
       ).toBe(false);
     });
 
     it('drops thresholds for a narrowed blend', () => {
       expect(
         navigationTypeSuppressesThresholds(
-          filtersFor([NavigationTypeBucket.PAGE_LOAD, NavigationTypeBucket.BFCACHE])
+          filtersFor([NavigationTypeBucket.PAGE_LOAD, NavigationTypeBucket.BFCACHE]),
+          organization
         )
       ).toBe(true);
     });
 
     it('keeps thresholds on "All", which is the unfiltered dashboard', () => {
       expect(
-        navigationTypeSuppressesThresholds(filtersFor(NAVIGATION_TYPE_BUCKET_ORDER))
+        navigationTypeSuppressesThresholds(
+          filtersFor(NAVIGATION_TYPE_BUCKET_ORDER),
+          organization
+        )
+      ).toBe(false);
+    });
+
+    it('ignores a hand-added chip even when its value matches the switcher', () => {
+      expect(
+        navigationTypeSuppressesThresholds(
+          handAddedChipFor([
+            NavigationTypeBucket.SOFT_NAVIGATION,
+            NavigationTypeBucket.PRERENDER,
+          ]),
+          organization
+        )
+      ).toBe(false);
+    });
+
+    it('never drops thresholds in an org without the flag', () => {
+      expect(
+        navigationTypeSuppressesThresholds(
+          filtersFor([NavigationTypeBucket.BFCACHE]),
+          withoutFlag
+        )
       ).toBe(false);
     });
 
     it('leaves dashboards without a navigation type filter alone', () => {
-      expect(navigationTypeSuppressesThresholds(undefined)).toBe(false);
+      expect(navigationTypeSuppressesThresholds(undefined, organization)).toBe(false);
       expect(
-        navigationTypeSuppressesThresholds({
-          [DashboardFilterKeys.GLOBAL_FILTER]: [
-            {
-              dataset: WidgetType.SPANS,
-              tag: {key: 'browser.name', name: 'browser.name'},
-              value: 'browser.name:Chrome',
-            },
-          ],
-        })
+        navigationTypeSuppressesThresholds(
+          {
+            [DashboardFilterKeys.GLOBAL_FILTER]: [
+              {
+                dataset: WidgetType.SPANS,
+                tag: {key: 'browser.name', name: 'browser.name'},
+                value: 'browser.name:Chrome',
+              },
+            ],
+          },
+          organization
+        )
       ).toBe(false);
     });
   });

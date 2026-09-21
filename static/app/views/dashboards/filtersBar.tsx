@@ -44,8 +44,10 @@ import {
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {NavigationTypeSwitcher} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeSwitcher';
-import {isNavigationTypeGlobalFilter} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
-import {useNavigationTypeExperiment} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
+import {
+  hidesNavigationTypeChip,
+  useNavigationTypeExperiment,
+} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
@@ -275,7 +277,11 @@ export function FiltersBar({
         {activeGlobalFilters
           .filter(
             filter =>
-              !isNavigationTypeExperimentEnabled || !isNavigationTypeGlobalFilter(filter)
+              !hidesNavigationTypeChip(
+                filter,
+                organization,
+                isNavigationTypeExperimentEnabled
+              )
           )
           .map(filter => (
             <GenericFilterSelector

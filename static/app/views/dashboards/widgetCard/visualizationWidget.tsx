@@ -405,7 +405,7 @@ function VisualizationWidgetContent({
   );
 
   if (
-    !navigationTypeSuppressesThresholds(dashboardFilters) &&
+    !navigationTypeSuppressesThresholds(dashboardFilters, organization) &&
     (defined(widget.thresholds?.max_values?.max1) ||
       defined(widget.thresholds?.max_values?.max2))
   ) {

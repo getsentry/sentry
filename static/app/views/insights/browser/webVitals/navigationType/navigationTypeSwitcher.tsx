@@ -96,18 +96,10 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
       }
       onChange={selected => {
         const nextBuckets = normalizeBuckets(selected.map(option => option.value));
-        const otherFilters = globalFilters.filter(
-          filter => !isNavigationTypeGlobalFilter(filter)
-        );
         onChange(
-          // "All" filters nothing, so it drops the filter rather than leaving a
-          // no-op one behind. The filter is temporary, and the dashboard hides
-          // its save controls while any temporary filter is active.
-          isAllBucketsSelected(nextBuckets)
-            ? otherFilters
-            : mergeGlobalFilters(globalFilters, [
-                buildNavigationTypeGlobalFilter(nextBuckets),
-              ])
+          mergeGlobalFilters(globalFilters, [
+            buildNavigationTypeGlobalFilter(nextBuckets),
+          ])
         );
         trackAnalytics('insight.vital.select_navigation_type', {
           organization,

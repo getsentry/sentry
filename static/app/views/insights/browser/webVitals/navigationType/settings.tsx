@@ -209,13 +209,17 @@ const QUERY_TO_BUCKETS: Map<string, NavigationTypeBucket[]> = new Map(
 export function buildNavigationTypeGlobalFilter(
   buckets: NavigationTypeBucket[]
 ): GlobalFilter {
-  return {
+  const filter: GlobalFilter = {
     dataset: WidgetType.SPANS,
     tag: NAVIGATION_TYPE_TAG,
     value: navigationTypeQuery(buckets),
-    // Keeps the dashboard from prompting to save the switcher's selection.
-    isTemporary: true,
   };
+
+  // "All" is the default entry in the web vitals prebuilt configs, so it goes
+  // back in exactly as saved: that is what lets the dashboard offer saving
+  // again, and what lets duplicates carry the filter. A narrowed selection is
+  // temporary so it can never be saved for everyone.
+  return isAllBucketsSelected(buckets) ? filter : {...filter, isTemporary: true};
 }
 
 export function isNavigationTypeGlobalFilter(filter: GlobalFilter): boolean {

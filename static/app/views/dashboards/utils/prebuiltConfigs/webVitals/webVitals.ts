@@ -1,6 +1,11 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  SlideoutId,
+  WidgetType,
+  type GlobalFilter,
+} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   DASHBOARD_DESCRIPTION,
@@ -20,6 +25,22 @@ export const ISSUE_TYPES = [
   'performance_large_http_payload',
   'performance_p95_endpoint_regression',
 ];
+
+/**
+ * The experimental navigation type switcher's filter, in its default "All"
+ * state (no value, so it filters nothing). It lives in the config so dashboards
+ * duplicated from web vitals carry it. Kept as a literal rather than imported
+ * from the switcher's settings, which import this module's index.
+ */
+export const WEB_VITALS_NAVIGATION_TYPE_FILTER: GlobalFilter = {
+  dataset: WidgetType.SPANS,
+  tag: {
+    key: SpanFields.BROWSER_NAVIGATION_TYPE,
+    name: SpanFields.BROWSER_NAVIGATION_TYPE,
+    kind: FieldKind.TAG,
+  },
+  value: '',
+};
 
 export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
@@ -46,6 +67,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
         value: '',
       },
+      WEB_VITALS_NAVIGATION_TYPE_FILTER,
     ],
   },
   widgets: [
