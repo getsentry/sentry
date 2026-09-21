@@ -242,7 +242,9 @@ export function SavedQueriesTable({
             </SavedEntityTable.Cell>
             {hasLogsSavedQueriesEnabled && (
               <SavedEntityTable.Cell columnKey="dataset">
-                {getSavedQueryDatasetLabel(query)}
+                {isExploreSavedQuery(query)
+                  ? getSavedQueryDatasetLabel(query.dataset)
+                  : 'Errors'}
               </SavedEntityTable.Cell>
             )}
             <SavedEntityTable.Cell columnKey="project">

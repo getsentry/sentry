@@ -45,7 +45,7 @@ export default function SavedQueryBlock({data}: {data: SavedQueryData}) {
     <QueryEmbedCard
       badge={
         // Trust the dataset the API reports over the one the tag claimed.
-        <Tag variant="muted">{getSavedQueryDatasetLabel(savedQuery)}</Tag>
+        <Tag variant="muted">{getSavedQueryDatasetLabel(savedQuery.dataset)}</Tag>
       }
       href={getSavedQueryTraceItemUrl({savedQuery, organization})}
       icon={IconStar}

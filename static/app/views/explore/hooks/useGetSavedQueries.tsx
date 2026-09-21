@@ -356,10 +356,8 @@ const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
   ai_conversations: TraceItemDataset.SPANS,
 };
 
-export function getSavedQueryDatasetLabel(savedQuery: AllSavedQuery): string {
-  if (isExploreSavedQuery(savedQuery)) {
-    return DATASET_LABEL_MAP[savedQuery.dataset];
-  }
-
-  return 'Errors';
+export function getSavedQueryDatasetLabel(
+  dataset: ReadableSavedQuery['dataset']
+): string {
+  return DATASET_LABEL_MAP[dataset];
 }
