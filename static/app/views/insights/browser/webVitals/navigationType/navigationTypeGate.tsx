@@ -9,10 +9,21 @@ import {Stack} from '@sentry/scraps/layout';
 import {Panel} from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {DashboardFilterKeys} from 'sentry/views/dashboards/types';
+import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {NAVIGATION_TYPE_BUCKETS} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
+import {
+  bucketsKeepThresholds,
+  getBucketsFromGlobalFilters,
+  NAVIGATION_TYPE_BUCKETS,
+} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 import {useNavigationTypeCounts} from 'sentry/views/insights/browser/webVitals/navigationType/useNavigationTypeCounts';
-import {useNavigationTypeExperiment} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
+import {
+  getSwitcherFilter,
+  useNavigationTypeExperiment,
+} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 
 interface Props {
@@ -21,32 +32,45 @@ interface Props {
 }
 
 /**
- * Wraps the web vitals widget grid while the navigation type experiment is on.
+ * Wraps the widget grid while a narrowed navigation type selection is active.
  *
- * Two things it handles that an unfiltered dashboard doesn't:
- * - a selection with no data explains why it's empty instead of rendering a
- *   grid of blank charts
- * - anything other than page loads on their own says up front that the numbers
- *   are either a different population or a blend of several, and that the
- *   thresholds and performance scores were calibrated against page loads
+ * Anything other than page loads on their own gets a banner saying the numbers
+ * are either a different population or a blend of several, and that the
+ * thresholds and performance scores were calibrated against page loads. It
+ * shows exactly when the thresholds are hidden, which includes dashboards
+ * duplicated from web vitals.
+ *
+ * On the web vitals dashboards themselves, a selection with no data explains
+ * why it's empty instead of rendering a grid of blank charts. That takes over
+ * the whole grid and only counts web vitals spans, so it stays off on other
+ * dashboards, where the widgets may no longer be about web vitals at all.
  */
 export function NavigationTypeGate({children, prebuiltId}: Props) {
-  const {isEnabled, buckets, supportsThresholds, otherSpanFilterQuery} =
+  const organization = useOrganization();
+  const {isEnabled: isWebVitalsDashboard, otherSpanFilterQuery} =
     useNavigationTypeExperiment(prebuiltId);
+  const location = useLocation();
+
+  const switcherFilter = getSwitcherFilter(
+    getDashboardFiltersFromURL(location)?.[DashboardFilterKeys.GLOBAL_FILTER],
+    organization
+  );
+  const buckets = switcherFilter ? getBucketsFromGlobalFilters([switcherFilter]) : [];
+  const hidesThresholds = Boolean(switcherFilter) && !bucketsKeepThresholds(buckets);
 
   const {counts, isPending} = useNavigationTypeCounts({
     additionalQuery: otherSpanFilterQuery,
-    enabled: isEnabled,
+    enabled: hidesThresholds && isWebVitalsDashboard,
   });
 
-  if (!isEnabled || supportsThresholds) {
+  if (!hidesThresholds) {
     return children;
   }
 
   const labels = buckets.map(bucket => NAVIGATION_TYPE_BUCKETS[bucket].label());
   const selectedCount = buckets.reduce((total, bucket) => total + counts[bucket], 0);
 
-  if (!isPending && selectedCount === 0) {
+  if (isWebVitalsDashboard && !isPending && selectedCount === 0) {
     return (
       <Panel>
         <EmptyState

@@ -6,7 +6,10 @@ import {
   NavigationTypeBucket,
   WEB_VITALS_NAVIGATION_TYPE_FEATURE,
 } from 'sentry/views/insights/browser/webVitals/navigationType/settings';
-import {hidesNavigationTypeChip} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
+import {
+  hidesNavigationTypeChip,
+  showsNavigationTypeSwitcher,
+} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 
 describe('hidesNavigationTypeChip', () => {
   const withFlag = OrganizationFixture({features: [WEB_VITALS_NAVIGATION_TYPE_FEATURE]});
@@ -49,6 +52,46 @@ describe('hidesNavigationTypeChip', () => {
         withoutFlag,
         false
       )
+    ).toBe(false);
+  });
+});
+
+describe('showsNavigationTypeSwitcher', () => {
+  const withFlag = OrganizationFixture({features: [WEB_VITALS_NAVIGATION_TYPE_FEATURE]});
+  const withoutFlag = OrganizationFixture();
+
+  it('always shows on the web vitals dashboards', () => {
+    expect(showsNavigationTypeSwitcher([], withFlag, true)).toBe(true);
+  });
+
+  it('shows on a copy that carries the filter', () => {
+    expect(
+      showsNavigationTypeSwitcher([WEB_VITALS_NAVIGATION_TYPE_FILTER], withFlag, false)
+    ).toBe(true);
+  });
+
+  it('stays off on a dashboard without the filter', () => {
+    expect(showsNavigationTypeSwitcher([], withFlag, false)).toBe(false);
+  });
+
+  it('stays off for a hand-picked value it cannot represent', () => {
+    expect(
+      showsNavigationTypeSwitcher(
+        [
+          {
+            ...WEB_VITALS_NAVIGATION_TYPE_FILTER,
+            value: 'browser.navigation.type:[navigate]',
+          },
+        ],
+        withFlag,
+        false
+      )
+    ).toBe(false);
+  });
+
+  it('stays off without the flag', () => {
+    expect(
+      showsNavigationTypeSwitcher([WEB_VITALS_NAVIGATION_TYPE_FILTER], withoutFlag, true)
     ).toBe(false);
   });
 });

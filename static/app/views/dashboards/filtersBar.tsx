@@ -46,6 +46,7 @@ import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {NavigationTypeSwitcher} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeSwitcher';
 import {
   hidesNavigationTypeChip,
+  showsNavigationTypeSwitcher,
   useNavigationTypeExperiment,
 } from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 
@@ -204,6 +205,11 @@ export function FiltersBar({
   const {isEnabled: isNavigationTypeExperimentEnabled} = useNavigationTypeExperiment(
     prebuiltDashboardId ?? dashboard?.prebuiltId
   );
+  const isNavigationTypeSwitcherShown = showsNavigationTypeSwitcher(
+    activeGlobalFilters,
+    organization,
+    isNavigationTypeExperimentEnabled
+  );
 
   const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
   return (
@@ -272,7 +278,7 @@ export function FiltersBar({
           }}
           onSortChange={setReleaseSort}
         />
-        {isNavigationTypeExperimentEnabled && (
+        {isNavigationTypeSwitcherShown && (
           <NavigationTypeSwitcher
             globalFilters={activeGlobalFilters}
             onChange={updateGlobalFilters}
@@ -284,7 +290,7 @@ export function FiltersBar({
               !hidesNavigationTypeChip(
                 filter,
                 organization,
-                isNavigationTypeExperimentEnabled
+                isNavigationTypeSwitcherShown
               )
           )
           .map(filter => (

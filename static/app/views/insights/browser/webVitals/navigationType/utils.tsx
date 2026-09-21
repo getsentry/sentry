@@ -14,6 +14,7 @@ import {
   bucketsKeepThresholds,
   getBucketsFromGlobalFilters,
   isNavigationTypeGlobalFilter,
+  isSwitcherQuery,
   isWebVitalsPrebuiltDashboard,
   WEB_VITALS_NAVIGATION_TYPE_FEATURE,
   type NavigationTypeBucket,
@@ -81,12 +82,9 @@ export function navigationTypeSuppressesThresholds(
   dashboardFilters: DashboardFilters | undefined,
   organization: Organization | null
 ): boolean {
-  if (!organization?.features.includes(WEB_VITALS_NAVIGATION_TYPE_FEATURE)) {
-    return false;
-  }
-
-  const switcherFilter = dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER]?.find(
-    filter => isNavigationTypeGlobalFilter(filter) && filter.isTemporary
+  const switcherFilter = getSwitcherFilter(
+    dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER],
+    organization
   );
   if (!switcherFilter) {
     return false;
@@ -96,9 +94,51 @@ export function navigationTypeSuppressesThresholds(
 }
 
 /**
+ * The navigation type filter the switcher wrote, if any. Only a narrowed
+ * selection is written as temporary, and nothing else writes a temporary
+ * navigation type filter, so this is also "is a narrowed selection active".
+ * Returns nothing in an org without the flag.
+ */
+export function getSwitcherFilter(
+  globalFilters: GlobalFilter[] | undefined,
+  organization: Organization | null
+): GlobalFilter | undefined {
+  if (!organization?.features.includes(WEB_VITALS_NAVIGATION_TYPE_FEATURE)) {
+    return undefined;
+  }
+
+  return globalFilters?.find(
+    filter => isNavigationTypeGlobalFilter(filter) && filter.isTemporary
+  );
+}
+
+/**
+ * Whether the filter bar shows the switcher. Always on the web vitals
+ * dashboards, and anywhere else the navigation type filter holds a value the
+ * switcher can represent: a dashboard duplicated from web vitals carries the
+ * filter in its default state, so the copy gets the same control.
+ */
+export function showsNavigationTypeSwitcher(
+  globalFilters: GlobalFilter[],
+  organization: Organization,
+  isWebVitalsDashboard: boolean
+): boolean {
+  if (!organization.features.includes(WEB_VITALS_NAVIGATION_TYPE_FEATURE)) {
+    return false;
+  }
+
+  if (isWebVitalsDashboard) {
+    return true;
+  }
+
+  const filter = globalFilters.find(isNavigationTypeGlobalFilter);
+  return Boolean(filter && isSwitcherQuery(filter.value));
+}
+
+/**
  * Whether the filter bar should leave out this filter's generic chip.
  *
- * On the web vitals dashboards the switcher replaces it. Without the flag, the
+ * Wherever the switcher is shown it replaces the chip. Without the flag, the
  * empty default the prebuilt config seeds stays hidden too, since a static
  * config can't be flag gated and would otherwise put the chip on every org's
  * web vitals dashboard. A chip that actually filters is always shown: hiding it
@@ -107,13 +147,13 @@ export function navigationTypeSuppressesThresholds(
 export function hidesNavigationTypeChip(
   filter: GlobalFilter,
   organization: Organization,
-  isExperimentEnabled: boolean
+  isSwitcherShown: boolean
 ): boolean {
   if (!isNavigationTypeGlobalFilter(filter)) {
     return false;
   }
 
-  if (isExperimentEnabled) {
+  if (isSwitcherShown) {
     return true;
   }
 

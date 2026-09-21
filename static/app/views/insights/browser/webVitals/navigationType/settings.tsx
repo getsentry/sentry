@@ -206,6 +206,15 @@ const QUERY_TO_BUCKETS: Map<string, NavigationTypeBucket[]> = new Map(
   })
 ).set(ALL_NAVIGATION_TYPES_VALUE, NAVIGATION_TYPE_BUCKET_ORDER);
 
+/**
+ * Whether the switcher can represent this filter value as a bucket selection.
+ * A value picked by hand from the raw attribute values (say, just `navigate`)
+ * usually isn't one, and has to stay a plain filter chip.
+ */
+export function isSwitcherQuery(value: string): boolean {
+  return QUERY_TO_BUCKETS.has(value);
+}
+
 export function buildNavigationTypeGlobalFilter(
   buckets: NavigationTypeBucket[]
 ): GlobalFilter {

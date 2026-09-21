@@ -118,6 +118,36 @@ describe('NavigationTypeGate', () => {
     expect(await screen.findByText('other grid')).toBeInTheDocument();
   });
 
+  it('shows the banner but never takes over the grid on a duplicated dashboard', async () => {
+    // Zero bfcache spans would take over a web vitals dashboard. A copy keeps
+    // its widgets: they may not be about web vitals any more.
+    mockCounts([{[SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate', 'count()': 10}]);
+
+    render(
+      <NavigationTypeGate>
+        <div>copied grid</div>
+      </NavigationTypeGate>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/42/',
+            query: {
+              globalFilter: [
+                JSON.stringify(
+                  buildNavigationTypeGlobalFilter([NavigationTypeBucket.BFCACHE])
+                ),
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText(/not comparable to page loads/)).toBeInTheDocument();
+    expect(screen.getByText('copied grid')).toBeInTheDocument();
+  });
+
   describe('navigationTypeSuppressesThresholds', () => {
     const withoutFlag = OrganizationFixture();
 
