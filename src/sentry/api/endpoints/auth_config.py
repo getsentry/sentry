@@ -100,7 +100,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         return response
 
     def respond_authenticated(self, request: Request):
-        next_uri = self.get_next_uri(request)
+        next_uri = self.get_next_uri(request, consume=False)
 
         if not is_valid_redirect(next_uri, allowed_hosts=(request.get_host(),)):
             next_uri = get_org_redirect_url(
@@ -109,9 +109,11 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
 
         return Response({"nextUri": next_uri})
 
-    def get_next_uri(self, request: HttpRequest) -> str:
-        next_uri_fallback = request.session.pop("_next", None)
-        return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
+    def get_next_uri(self, request: HttpRequest, *, consume: bool = True) -> str:
+        next_uri_fallback = (
+            request.session.pop("_next", None) if consume else request.session.get("_next")
+        )
+        return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback) or ""
 
     def prepare_login_context(self, request: Request, *args, **kwargs) -> AuthConfigResponse:
         can_register = bool(has_user_registration() or request.session.get("can_register"))

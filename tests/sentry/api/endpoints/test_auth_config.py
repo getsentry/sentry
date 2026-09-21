@@ -36,6 +36,23 @@ class AuthConfigEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data["nextUri"] == "/organizations/ricks-org/issues/"
 
+    def test_logged_in_preserves_next(self) -> None:
+        user = self.create_user("foo@example.com")
+        self.login_as(user)
+        self.session["_next"] = "/_admin/"
+        self.save_session()
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["nextUri"] == "/_admin/"
+        assert self.client.session["_next"] == "/_admin/"
+
+        response = self.client.get(self.path, {"next": "/settings/account/"})
+
+        assert response.data["nextUri"] == "/settings/account/"
+        assert self.client.session["_next"] == "/_admin/"
+
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @assume_test_silo_mode(SiloMode.MONOLITH)  # Single org IS monolith mode
     def test_single_org(self) -> None:

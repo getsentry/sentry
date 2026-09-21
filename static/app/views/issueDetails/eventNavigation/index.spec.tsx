@@ -316,4 +316,41 @@ describe('EventNavigation', () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe('autofix tab', () => {
+    const seerOrganization = OrganizationFixture({
+      features: ['discover-basic', 'gen-ai-features', 'autofix-page'],
+      hideAiFeatures: false,
+    });
+
+    it('lifts the seer toolbar into the navigation row on the autofix tab', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/`,
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/setup/`,
+        body: {integration: {ok: true, reason: null}},
+      });
+
+      render(
+        <GroupDataContextProvider group={group} project={group.project}>
+          <AutofixPanelProvider group={group} project={group.project}>
+            <IssueEventNavigation {...defaultProps} />
+          </AutofixPanelProvider>
+        </GroupDataContextProvider>,
+        {
+          initialRouterConfig: routerConfigForTab(Tab.AUTOFIX),
+          organization: seerOrganization,
+        }
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'Start a new analysis from scratch'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Copy analysis as Markdown'})
+      ).toBeInTheDocument();
+    });
+  });
 });

@@ -1,6 +1,6 @@
 import {AnnotationFixture} from 'sentry-fixture/annotation';
 
-import {groupIntoBuckets, SEVERITY_OPACITIES} from './utils';
+import {groupIntoBuckets, opacityForRatio} from './utils';
 
 describe('groupIntoBuckets', () => {
   it('returns an empty array for no annotations', () => {
@@ -163,19 +163,11 @@ describe('groupIntoBuckets', () => {
     expect(withoutBytes!.dropped.byteSize).toBeUndefined();
   });
 
-  it('steps severity up through the ratio bands', () => {
-    // Each case totals a million events, so the dropped count is the ratio in
-    // parts per million. The bands are the temporarily scaled ones.
-    const severityForDropped = (droppedCount: number) =>
-      groupIntoBuckets(
-        [AnnotationFixture({start: 0, eventCount: droppedCount})],
-        [AnnotationFixture({start: 0, eventCount: 1_000_000 - droppedCount})]
-      )[0]!.severity;
-
-    expect(severityForDropped(1)).toBe(0); // 0.0001%
-    expect(severityForDropped(7)).toBe(1); // 0.0007%
-    expect(severityForDropped(20)).toBe(2); // 0.002%
-    expect(severityForDropped(40)).toBe(3); // 0.004%
-    expect(severityForDropped(100)).toBe(SEVERITY_OPACITIES.length); // 0.01%
+  it('maps drop ratio continuously onto opacity', () => {
+    expect(opacityForRatio(0)).toBe(0);
+    expect(opacityForRatio(0.01)).toBeCloseTo(0.167);
+    expect(opacityForRatio(0.02)).toBeCloseTo(0.184);
+    expect(opacityForRatio(0.5)).toBe(1);
+    expect(opacityForRatio(1)).toBe(1);
   });
 });

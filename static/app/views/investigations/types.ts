@@ -204,7 +204,7 @@ export type InvestigationOrchestrationStatus = InvestigationOrchestrationOpenStr
 >;
 
 /** Lifecycle of one unit of agent work. Mirrors `WORK_STATUSES`. */
-export type InvestigationOrchestrationWorkStatus = InvestigationOrchestrationOpenString<
+type InvestigationOrchestrationWorkStatus = InvestigationOrchestrationOpenString<
   | 'not_started'
   | 'queued'
   | 'running'
