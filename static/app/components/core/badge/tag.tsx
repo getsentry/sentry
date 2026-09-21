@@ -120,6 +120,13 @@ const TagText = styled('div')`
   text-overflow: ellipsis;
   min-width: 0;
 
+  /* Trim the label's half-leading, the way Text, Heading and Link all do. The
+   * pill centers this box, so an untrimmed one centers the font's line box
+   * rather than the glyphs -- leaving the label riding ~1.5px above the
+   * baseline of any text sitting beside the tag. */
+  text-box-edge: text text;
+  text-box-trim: trim-both;
+
   &:has(> *) {
     display: flex;
     align-items: center;
