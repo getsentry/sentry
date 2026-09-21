@@ -1,19 +1,10 @@
 import {useEffect, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {formatInvestigationDuration} from 'sentry/utils/duration/formatInvestigationDuration';
 import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
-
-export function formatInvestigationDuration(seconds: number): string {
-  const tenths = Math.floor(seconds * 10);
-  if (tenths < 600) {
-    return `${(tenths / 10).toFixed(1)} s`;
-  }
-  const wholeSeconds = Math.floor(tenths / 10);
-  return `${Math.floor(wholeSeconds / 60)}m ${wholeSeconds % 60}s`;
-}
 
 export function InvestigationRunTimer({
   orchestration,
@@ -84,8 +75,10 @@ function LiveDuration({seconds, active}: {active: boolean; seconds: number}) {
   }, [active]);
 
   return (
-    <DurationText
+    <Text
       size="sm"
+      variant="disabled"
+      tabular
       monospace
       bold={false}
       density="fixed"
@@ -94,11 +87,6 @@ function LiveDuration({seconds, active}: {active: boolean; seconds: number}) {
       aria-label={t('Investigation active time')}
     >
       {formatInvestigationDuration(seconds + localSeconds)}
-    </DurationText>
+    </Text>
   );
 }
-
-const DurationText = styled(Text)`
-  color: ${p => p.theme.tokens.content.disabled};
-  font-variant-numeric: lining-nums tabular-nums;
-`;
