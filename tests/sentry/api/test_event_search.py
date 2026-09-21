@@ -22,6 +22,7 @@ from sentry.api.event_search import (
     flatten,
     gen_wildcard_value,
     parse_search_query,
+    quote_regex_pattern,
     translate_wildcard_as_clickhouse_pattern,
 )
 from sentry.constants import MODULE_ROOT
@@ -1499,6 +1500,179 @@ def test_handles_starts_with_wildcard_op_translations(query, expected) -> None:
     assert isinstance(filters[0], SearchFilter)
     actual = filters[0].to_query_string()
     assert actual == expected
+
+
+@pytest.mark.parametrize(
+    ["query", "expected_operator", "expected_value"],
+    [
+        pytest.param("regex_match(span.op):^test$", "=", "^test$", id="anchored"),
+        pytest.param("regex_match( span.op ):^test$", "=", "^test$", id="spaces inside parens"),
+        pytest.param("regex_match(span.op):5", "=", "5", id="numeric-looking pattern"),
+        pytest.param("regex_match(span.op):>5", "=", ">5", id="operator-looking pattern"),
+        pytest.param("!regex_match(span.op):^test$", "!=", "^test$", id="negated"),
+        pytest.param("regex_match(span.op):a*b", "=", "a*b", id="quantifier"),
+        pytest.param("regex_match(span.op):a\\*b", "=", "a\\*b", id="escaped asterisk"),
+        pytest.param("regex_match(span.op):a\\d+", "=", "a\\d+", id="character class"),
+        pytest.param(
+            "regex_match(span.op):a\\\\1", "=", "a\\\\1", id="escaped backslash before digit"
+        ),
+        pytest.param("regex_match(span.op):a\\\\Z", "=", "a\\\\Z", id="escaped backslash before Z"),
+        pytest.param("regex_match(span.op):\\pL+", "=", "\\pL+", id="unicode class"),
+        pytest.param("regex_match(span.op):foo\\z", "=", "foo\\z", id="end of text"),
+        pytest.param('regex_match(span.op):"(?U)a+"', "=", "(?U)a+", id="ungreedy flag"),
+        pytest.param("regex_match(span.op):\\x{263A}", "=", "\\x{263A}", id="braced hex escape"),
+        pytest.param('regex_match(span.op):"a b|c"', "=", "a b|c", id="quoted"),
+        pytest.param("regex_match(span.op):[^foo, bar$]", "IN", ["^foo", "bar$"], id="in list"),
+        pytest.param(
+            "!regex_match(span.op):[^foo, bar$]", "NOT IN", ["^foo", "bar$"], id="not in list"
+        ),
+    ],
+)
+def test_parses_regex_op_without_rewriting_the_pattern(
+    query, expected_operator, expected_value
+) -> None:
+    filters = parse_search_query(query)
+    assert len(filters) == 1
+    assert isinstance(filters[0], SearchFilter)
+    assert filters[0].operator == expected_operator
+    assert filters[0].value.is_regex is True
+    assert filters[0].value.is_wildcard() is False
+    assert filters[0].value.value == expected_value
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        pytest.param("regex_match(span.op):^test$", id="scalar"),
+        pytest.param("!regex_match(span.op):^test$", id="negated"),
+        pytest.param("regex_match(span.op):[^foo, bar$]", id="in list"),
+        pytest.param("!regex_match(span.op):[^foo, bar$]", id="not in list"),
+        pytest.param('regex_match(span.op):"^(foo|bar) baz$"', id="parens and spaces"),
+        pytest.param('regex_match(span.op):"\\"quoted\\""', id="embedded quotes"),
+        pytest.param('regex_match(span.op):["^(a|b)", "(c|d)$"]', id="parens in list"),
+    ],
+)
+def test_round_trips_a_regex_op_through_to_query_string(query) -> None:
+    filters = parse_search_query(query)
+    assert len(filters) == 1
+    assert isinstance(filters[0], SearchFilter)
+    assert parse_search_query(filters[0].to_query_string()) == filters
+
+
+UNSUPPORTED_REGEX_MESSAGE = (
+    "Patterns are matched with RE2, which has no backreferences, lookaround, "
+    "or other PCRE extensions."
+)
+
+
+@pytest.mark.parametrize(
+    ["query", "expected_message"],
+    [
+        pytest.param(
+            "regex_match(span.op):[a-",
+            "span.op: Invalid regex: unterminated character set",
+            id="unterminated character set",
+        ),
+        pytest.param(
+            'regex_match(span.op):"(foo"',
+            "span.op: Invalid regex: missing ), unterminated subpattern",
+            id="unterminated group",
+        ),
+        pytest.param(
+            'regex_match(span.op):"(foo)\\1"',
+            "span.op: Invalid regex: `\\1` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            id="backreference",
+        ),
+        pytest.param(
+            'regex_match(span.op):"foo(?=bar)"',
+            "span.op: Invalid regex: `(?=` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            id="lookahead",
+        ),
+        pytest.param(
+            'regex_match(span.op):"foo(?<!bar)"',
+            "span.op: Invalid regex: `(?<!` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            id="lookbehind",
+        ),
+        pytest.param(
+            'regex_match(span.op):"foo\\Z"',
+            "span.op: Invalid regex: `\\Z` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            id="end of string escape",
+        ),
+        pytest.param(
+            'regex_match(span.op):"(?>foo)"',
+            "span.op: Invalid regex: `(?>` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            id="atomic group",
+        ),
+        pytest.param(
+            'regex_match(span.op):"(foo)(?(1)bar|baz)"',
+            "span.op: Invalid regex: `(?(` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            id="conditional",
+        ),
+        pytest.param(
+            'regex_match(span.op):"(?P<name>foo)(?P=name)"',
+            "span.op: Invalid regex: `(?P=` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            id="named backreference",
+        ),
+        pytest.param(
+            'regex_match(span.op):""',
+            "span.op: Empty regex pattern",
+            id="empty quoted pattern",
+        ),
+        pytest.param(
+            "regex_match(span.op):foo\\\\",
+            "span.op: Invalid regex: a pattern cannot end with a backslash",
+            id="trailing backslash",
+        ),
+    ],
+)
+def test_rejects_an_invalid_regex_pattern(query, expected_message) -> None:
+    with pytest.raises(InvalidSearchQuery) as err:
+        parse_search_query(query)
+    assert str(err.value) == expected_message
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        pytest.param(r"^GET /api/\d{1,3}", id="escapes"),
+        pytest.param(r"a\\b", id="embedded backslashes"),
+        pytest.param('say "hi"', id="embedded quotes"),
+        pytest.param(r"(GET|POST) /api", id="spaces and parens"),
+    ],
+)
+def test_regex_pattern_survives_a_serialization_round_trip(pattern) -> None:
+    query = f"regex_match(message):{quote_regex_pattern(pattern)}"
+
+    term = parse_search_query(query)[0]
+
+    assert isinstance(term, SearchFilter)
+    assert term.value.raw_value == pattern
+
+
+def test_parses_a_regex_match_on_an_array_includes_key_as_its_array_attribute() -> None:
+    filters = parse_search_query('regex_match(tags[foo,array][*]):"^a"')
+
+    assert filters == [
+        SearchFilter(
+            key=SearchKey(name="tags[foo,array]"),
+            operator="=",
+            value=SearchValue("^a", is_regex=True),
+        )
+    ]
+
+
+def test_parses_a_regex_match_alongside_aggregate_and_plain_filters() -> None:
+    filters = parse_search_query("count():>5 regex_match(message):^ERROR env:prod")
+
+    assert filters == [
+        AggregateFilter(key=AggregateKey(name="count()"), operator=">", value=SearchValue(5.0)),
+        SearchFilter(
+            key=SearchKey(name="message"),
+            operator="=",
+            value=SearchValue("^ERROR", is_regex=True),
+        ),
+        SearchFilter(key=SearchKey(name="env"), operator="=", value=SearchValue("prod")),
+    ]
 
 
 @pytest.mark.parametrize(

@@ -4,10 +4,12 @@ from uuid import uuid4
 
 import pytest
 from django.test import override_settings
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue
 
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import DataCategory
 from sentry.search.eap import constants
+from sentry.search.events.constants import INVALID_RPC_REQUEST_MESSAGE
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
@@ -139,6 +141,204 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert data[0]["log.body"] == "foo"
 
         assert meta["dataset"] == self.dataset
+
+    def test_regex_filter(self) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "ERROR [42] disk full"},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "WARN [7] disk filling up"},
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": 'regex_match(message):"^ERROR \\[\\d+\\]"',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == ["ERROR [42] disk full"]
+
+    def test_regex_filter_negated(self) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "ERROR [42] disk full"},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "WARN [7] disk filling up"},
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": '!regex_match(message):"^ERROR \\[\\d+\\]"',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == ["WARN [7] disk filling up"]
+
+    def test_regex_filter_in_list(self) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "ERROR [42] disk full"},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "WARN [7] disk filling up"},
+                timestamp=self.nine_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "INFO [1] all good"},
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": 'regex_match(message):["^ERROR", "^WARN"]',
+                "orderby": "log.body",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == [
+            "ERROR [42] disk full",
+            "WARN [7] disk filling up",
+        ]
+
+    def test_regex_filter_on_an_attribute(self) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "first"},
+                attributes={"release": "1.2.3"},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "second"},
+                attributes={"release": "nightly"},
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": 'regex_match(tags[release,string]):"^\\d+\\.\\d+"',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == ["first"]
+
+    def test_regex_filter_on_an_array_attribute(self) -> None:
+        """Snuba applies OP_REGEXP to the string elements of a string array, so the array
+        membership form matches when any element does."""
+        logs = [
+            self.create_ourlog(
+                {"body": "first"},
+                attributes={
+                    "log_tags": {
+                        "array_value": ArrayValue(
+                            values=[
+                                AnyValue(string_value="alpha-01"),
+                                AnyValue(string_value="beta"),
+                            ]
+                        )
+                    }
+                },
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "second"},
+                attributes={
+                    "log_tags": {"array_value": ArrayValue(values=[AnyValue(string_value="gamma")])}
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": 'regex_match(tags[log_tags,array][*]):"^alpha-\\d+$"',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == ["first"]
+
+    def test_regex_filter_case_insensitive(self) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "Error: disk full"},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "0 problems"},
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": 'regex_match(message):"^[A-Z]RROR\\D+"',
+                "caseInsensitive": "1",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == ["Error: disk full"]
+
+    def test_regex_filter_rejects_an_invalid_pattern(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": "regex_match(message):[a-",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert "Invalid regex" in response.data["detail"]
+
+    def test_regex_filter_rejects_a_pattern_re2_cannot_compile(self) -> None:
+        """RE2 is stricter than `re`, so Snuba is the first to reject some valid Python patterns."""
+        self.store_eap_items([self.create_ourlog({"body": "aaa"}, timestamp=self.ten_mins_ago)])
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": 'regex_match(message):"((a{100}){100}){100}"',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == INVALID_RPC_REQUEST_MESSAGE
 
     def test_pagination(self) -> None:
         logs = [

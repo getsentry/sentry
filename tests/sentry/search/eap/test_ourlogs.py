@@ -13,6 +13,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
+    NotFilter,
     OrFilter,
     TraceItemFilter,
 )
@@ -330,6 +331,162 @@ class SearchResolverQueryTest(TestCase):
             )
         )
         assert having is None
+
+    def test_regex_query(self) -> None:
+        where, having, _ = self.resolver.resolve_query("regex_match(message):^ERROR")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_REGEXP,
+                value=AttributeValue(val_str="^ERROR"),
+            )
+        )
+        assert having is None
+
+    def test_regex_query_negated(self) -> None:
+        where, having, _ = self.resolver.resolve_query("!regex_match(message):^ERROR")
+        assert where == TraceItemFilter(
+            not_filter=NotFilter(
+                filters=[
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(
+                                name="sentry.body", type=AttributeKey.Type.TYPE_STRING
+                            ),
+                            op=ComparisonFilter.OP_REGEXP,
+                            value=AttributeValue(val_str="^ERROR"),
+                        )
+                    )
+                ]
+            )
+        )
+        assert having is None
+
+    def test_regex_query_on_an_attribute(self) -> None:
+        where, having, _ = self.resolver.resolve_query("regex_match(foo):ba[rz]")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="foo", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_REGEXP,
+                value=AttributeValue(val_str="ba[rz]"),
+            )
+        )
+        assert having is None
+
+    def test_regex_query_keeps_the_pattern_verbatim(self) -> None:
+        """Regex metacharacters must not be rewritten the way wildcard patterns are."""
+        where, _, _ = self.resolver.resolve_query("regex_match(message):a*b%c_d\\*e")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_REGEXP,
+                value=AttributeValue(val_str="a*b%c_d\\*e"),
+            )
+        )
+
+    def test_regex_query_is_case_insensitive_when_requested(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(case_insensitive=True),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
+        )
+        where, _, _ = resolver.resolve_query("regex_match(message):^[A-Z]rror")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_REGEXP,
+                value=AttributeValue(val_str="(?i)^[A-Z]rror"),
+            )
+        )
+
+    def test_regex_in_filter(self) -> None:
+        where, having, _ = self.resolver.resolve_query("regex_match(message):[^ERROR, ^WARN]")
+        assert where == TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(
+                                name="sentry.body", type=AttributeKey.Type.TYPE_STRING
+                            ),
+                            op=ComparisonFilter.OP_REGEXP,
+                            value=AttributeValue(val_str="^ERROR"),
+                        )
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(
+                                name="sentry.body", type=AttributeKey.Type.TYPE_STRING
+                            ),
+                            op=ComparisonFilter.OP_REGEXP,
+                            value=AttributeValue(val_str="^WARN"),
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
+
+    def test_regex_not_in_filter(self) -> None:
+        where, having, _ = self.resolver.resolve_query("!regex_match(message):[^ERROR, ^WARN]")
+        assert where == TraceItemFilter(
+            not_filter=NotFilter(
+                filters=[
+                    TraceItemFilter(
+                        or_filter=OrFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=AttributeKey(
+                                            name="sentry.body",
+                                            type=AttributeKey.Type.TYPE_STRING,
+                                        ),
+                                        op=ComparisonFilter.OP_REGEXP,
+                                        value=AttributeValue(val_str="^ERROR"),
+                                    )
+                                ),
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=AttributeKey(
+                                            name="sentry.body",
+                                            type=AttributeKey.Type.TYPE_STRING,
+                                        ),
+                                        op=ComparisonFilter.OP_REGEXP,
+                                        value=AttributeValue(val_str="^WARN"),
+                                    )
+                                ),
+                            ]
+                        )
+                    )
+                ]
+            )
+        )
+        assert having is None
+
+    def test_regex_query_raises_when_the_key_is_backed_by_a_filter_alias(self) -> None:
+        with pytest.raises(InvalidSearchQuery) as err:
+            self.resolver.resolve_query("regex_match(release):^1\\.2")
+        assert str(err.value) == "Cannot use regular expressions with release"
+
+    def test_regex_query_raises_when_the_key_is_backed_by_a_virtual_column(self) -> None:
+        with pytest.raises(InvalidSearchQuery) as err:
+            self.resolver.resolve_query("regex_match(project):^sen")
+        assert str(err.value) == "Cannot use regular expressions with project"
+
+    def test_regex_query_raises_on_a_virtual_column_in_a_timeseries_request(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(granularity_secs=60),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
+        )
+        with pytest.raises(InvalidSearchQuery) as err:
+            resolver.resolve_query("regex_match(project):^sen")
+        assert str(err.value) == "Cannot use regular expressions with project"
+
+    def test_regex_query_raises_when_the_attribute_is_not_a_string(self) -> None:
+        with pytest.raises(InvalidSearchQuery) as err:
+            self.resolver.resolve_query("regex_match(tags[foo,boolean]):tru.")
+        assert "not a string attribute" in str(err.value)
 
     def test_internal_trace_id_resolves_with_normalizer(self) -> None:
         """Using the internal name 'sentry.trace_id' resolves with normalizer."""

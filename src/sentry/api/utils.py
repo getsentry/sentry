@@ -39,6 +39,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.search.events.constants import (
+    INVALID_RPC_REQUEST_MESSAGE,
     RATE_LIMIT_ERROR_MESSAGE,
     TIMEOUT_ERROR_MESSAGE,
     TIMEOUT_RPC_ERROR_MESSAGE,
@@ -67,6 +68,7 @@ from sentry.utils.snuba import (
     UnqualifiedQueryError,
 )
 from sentry.utils.snuba_rpc import (
+    SnubaRPCBadRequest,
     SnubaRPCError,
     SnubaRPCRateLimitExceeded,
     SnubaRPCTooManySimultaneous,
@@ -424,6 +426,13 @@ def handle_query_errors() -> Iterator[None]:
         sentry_sdk.set_tag("query.error_reason", "TooManySimultaneousQueries")
         sentry_sdk.set_attribute("query.error_reason", "TooManySimultaneousQueries")
         raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
+    except SnubaRPCBadRequest as error:
+        # Snuba's own rejections quote ClickHouse verbatim, down to the generated SQL, so the
+        # reason is logged rather than returned.
+        sentry_sdk.set_tag("query.error_reason", "InvalidRequest")
+        sentry_sdk.set_attribute("query.error_reason", str(error))
+        logger.info("A snuba rpc request was rejected", extra={"query.error_reason": str(error)})
+        raise ParseError(detail=INVALID_RPC_REQUEST_MESSAGE)
     except SnubaRPCUnavailable:
         sentry_sdk.set_tag("query.error_reason", "SnubaUnavailable")
         sentry_sdk.set_attribute("query.error_reason", "SnubaUnavailable")
