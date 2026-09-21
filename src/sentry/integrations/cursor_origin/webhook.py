@@ -193,8 +193,6 @@ class CursorOriginWebhookEndpoint(Endpoint):
 
         installation_id = envelope.get("installationId")
 
-        # Inside the try: this is an RPC, and a failure must release the delivery so
-        # Origin's retry is not answered as a duplicate.
         try:
             # Resolved once here, so no handler reads the envelope, and every lookup
             # downstream is organization-scoped.
