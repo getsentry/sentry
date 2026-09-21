@@ -7,7 +7,6 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Accordion} from 'sentry/components/container/accordion';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -191,44 +190,40 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
 
   const cta =
     primaryAction === 'setup' ? (
-      <Tooltip
-        title={
-          <span data-test-id="setup-replays-tooltip">
-            {t('Select a supported project from the projects dropdown.')}
-          </span>
-        }
-        disabled={!disabled} // we only want to show the tooltip when the button is disabled
+      <Button
+        data-test-id="setup-replays-btn"
+        onClick={() => activateSidebar()}
+        variant="primary"
+        disabled={disabled}
+        tooltipProps={{
+          title: (
+            <span data-test-id="setup-replays-tooltip">
+              {t('Select a supported project from the projects dropdown.')}
+            </span>
+          ),
+        }}
       >
-        <Button
-          data-test-id="setup-replays-btn"
-          onClick={() => activateSidebar()}
-          variant="primary"
-          disabled={disabled}
-        >
-          {t('Set Up Replays')}
-        </Button>
-      </Tooltip>
+        {t('Set Up Replays')}
+      </Button>
     ) : (
-      <Tooltip
-        title={
-          <span data-test-id="create-project-tooltip">
-            {t('You do not have permission to create a project.')}
-          </span>
-        }
-        disabled={!disabled}
+      <LinkButton
+        data-test-id="create-project-btn"
+        to={makeProjectsPathname({
+          path: '/new/',
+          organization,
+        })}
+        variant="primary"
+        disabled={disabled}
+        tooltipProps={{
+          title: (
+            <span data-test-id="create-project-tooltip">
+              {t('You do not have permission to create a project.')}
+            </span>
+          ),
+        }}
       >
-        <LinkButton
-          data-test-id="create-project-btn"
-          to={makeProjectsPathname({
-            path: '/new/',
-            organization,
-          })}
-          variant="primary"
-          disabled={disabled}
-        >
-          {t('Create Project')}
-        </LinkButton>
-      </Tooltip>
+        {t('Create Project')}
+      </LinkButton>
     );
 
   return (

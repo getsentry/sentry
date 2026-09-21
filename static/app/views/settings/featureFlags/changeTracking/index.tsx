@@ -6,7 +6,6 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -83,20 +82,16 @@ function AddNewProvider({
   organizationSlug: string;
 }) {
   return (
-    <Tooltip
-      title={t('You must be an organization member to add a provider.')}
-      disabled={hasAccess}
+    <LinkButton
+      variant="primary"
+      size="sm"
+      to={`/settings/${organizationSlug}/feature-flags/change-tracking/new-provider/`}
+      data-test-id="create-new-provider"
+      disabled={!hasAccess}
+      tooltipProps={{title: t('You must be an organization member to add a provider.')}}
     >
-      <LinkButton
-        variant="primary"
-        size="sm"
-        to={`/settings/${organizationSlug}/feature-flags/change-tracking/new-provider/`}
-        data-test-id="create-new-provider"
-        disabled={!hasAccess}
-      >
-        {t('Add New Provider')}
-      </LinkButton>
-    </Tooltip>
+      {t('Add New Provider')}
+    </LinkButton>
   );
 }
 

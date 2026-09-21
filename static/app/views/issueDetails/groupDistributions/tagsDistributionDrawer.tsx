@@ -2,7 +2,6 @@ import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   EventDrawerBody,
@@ -79,9 +78,13 @@ export function TagsDistributionDrawer({
               }}
             />
             {includeFeatureFlagsTab ? (
-              <Tooltip title="Highlighted tags are shown first">
-                <Button aria-label="" disabled size="xs" icon={<IconSort />} />
-              </Tooltip>
+              <Button
+                aria-label=""
+                disabled
+                size="xs"
+                icon={<IconSort />}
+                tooltipProps={{title: 'Highlighted tags are shown first'}}
+              />
             ) : null}
           </Grid>
         )}

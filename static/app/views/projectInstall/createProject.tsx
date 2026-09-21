@@ -10,7 +10,6 @@ import {Input} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal} from 'sentry/actionCreators/modal';
@@ -621,39 +620,31 @@ export function CreateProject() {
               </div>
             )}
             <div>
-              <Tooltip
-                title={
-                  canUserCreateProject
+              <Button
+                data-test-id="create-project"
+                variant="primary"
+                disabled={
+                  !(
+                    canUserCreateProject &&
+                    formErrorCount === 0 &&
+                    !(isNotifyingViaIntegration && validateChannel.isFetching)
+                  )
+                }
+                busy={
+                  createProjectAndRules.isPending ||
+                  (isNotifyingViaIntegration && validateChannel.isFetching)
+                }
+                tooltipProps={{
+                  title: canUserCreateProject
                     ? isNotifyingViaIntegration && validateChannel.isFetching
                       ? t('Validating integration channel\u2026')
                       : submitTooltipText
-                    : t('You do not have permission to create projects')
-                }
-                disabled={
-                  formErrorCount === 0 &&
-                  canUserCreateProject &&
-                  !(isNotifyingViaIntegration && validateChannel.isFetching)
-                }
+                    : t('You do not have permission to create projects'),
+                }}
+                onClick={() => debounceHandleProjectCreation(formData)}
               >
-                <Button
-                  data-test-id="create-project"
-                  variant="primary"
-                  disabled={
-                    !(
-                      canUserCreateProject &&
-                      formErrorCount === 0 &&
-                      !(isNotifyingViaIntegration && validateChannel.isFetching)
-                    )
-                  }
-                  busy={
-                    createProjectAndRules.isPending ||
-                    (isNotifyingViaIntegration && validateChannel.isFetching)
-                  }
-                  onClick={() => debounceHandleProjectCreation(formData)}
-                >
-                  {t('Create Project')}
-                </Button>
-              </Tooltip>
+                {t('Create Project')}
+              </Button>
             </div>
           </Grid>
           {!isModalVisible && (

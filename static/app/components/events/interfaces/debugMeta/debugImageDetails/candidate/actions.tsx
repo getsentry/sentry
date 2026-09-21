@@ -54,16 +54,15 @@ export function Actions({
     <Access access={['project:write']}>
       {({hasAccess}) => (
         <Grid flow="column" align="center" gap="md">
-          <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
-            <LinkButton
-              size="xs"
-              icon={<IconDownload />}
-              href={downloadUrl}
-              disabled={!hasRole}
-            >
-              {t('Download')}
-            </LinkButton>
-          </Tooltip>
+          <LinkButton
+            size="xs"
+            icon={<IconDownload />}
+            href={downloadUrl}
+            disabled={!hasRole}
+            tooltipProps={{title: noPermissionToDownloadDebugFilesInfo}}
+          >
+            {t('Download')}
+          </LinkButton>
           <Tooltip disabled={hasAccess} title={noPermissionToDeleteDebugFilesInfo}>
             <Confirm
               confirmText={t('Delete')}

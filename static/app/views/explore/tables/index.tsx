@@ -5,7 +5,6 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
@@ -150,17 +149,20 @@ export function ExploreTables(props: ExploreTablesProps) {
             {t('Edit Table')}
           </Button>
         ) : (
-          <Tooltip
-            title={
-              tab === Tab.TRACE
-                ? t('Editing columns is available for span samples only')
-                : t('Use the Group By and Visualize controls to change table columns')
-            }
+          <Button
+            disabled
+            onClick={openColumnEditor}
+            icon={<IconEdit />}
+            size="sm"
+            tooltipProps={{
+              title:
+                tab === Tab.TRACE
+                  ? t('Editing columns is available for span samples only')
+                  : t('Use the Group By and Visualize controls to change table columns'),
+            }}
           >
-            <Button disabled onClick={openColumnEditor} icon={<IconEdit />} size="sm">
-              {t('Edit Table')}
-            </Button>
-          </Tooltip>
+            {t('Edit Table')}
+          </Button>
         )}
       </Flex>
       {tab === Tab.SPAN && (
