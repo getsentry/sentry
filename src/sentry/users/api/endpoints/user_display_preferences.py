@@ -13,6 +13,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.response_types import ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.users.api.bases.user import UserDisplayPreferencesPermission, UserEndpoint
 from sentry.users.api.endpoints.user_details import UserOptionsSerializer
@@ -57,7 +58,7 @@ class UserDisplayPreferencesEndpoint(UserEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, user: User) -> Response:
+    def get(self, request: Request, user: User) -> Response[_UserOptions]:
         """
         Return the user's display preferences, with defaults applied for any that are unset.
         """
@@ -75,13 +76,16 @@ class UserDisplayPreferencesEndpoint(UserEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, user: User) -> Response:
+    def put(
+        self, request: Request, user: User
+    ) -> Response[_UserOptions] | Response[ValidationErrorResponse]:
         """
         Update the user's display preferences. Only supplied values are changed.
         """
         serializer = UserOptionsSerializer(data=request.data, partial=True)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            errors: ValidationErrorResponse = serializer.errors
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
         options: DisplayPreferencesData = serializer.validated_data
         write_display_preferences(user, options)
