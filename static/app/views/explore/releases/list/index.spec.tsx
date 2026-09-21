@@ -41,6 +41,7 @@ describe('ReleasesList', () => {
 
   let endpointMock: jest.Mock;
   let sessionApiMock: jest.Mock;
+  let sdkVersionsMock: jest.Mock;
 
   beforeEach(() => {
     act(() => ProjectsStore.loadInitialData(projects));
@@ -100,6 +101,10 @@ describe('ReleasesList', () => {
       url: `/organizations/${organization.slug}/builds/`,
       body: [],
     });
+    sdkVersionsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: []},
+    });
   });
 
   afterEach(() => {
@@ -121,6 +126,39 @@ describe('ReleasesList', () => {
     expect(await within(items.at(1)!).findByText('0%')).toBeInTheDocument();
     expect(within(items.at(2)!).getByText('af4f231ec9a8')).toBeInTheDocument();
     expect(within(items.at(2)!).getByText('Project Slug')).toBeInTheDocument();
+  });
+
+  it('renders the SDK version of each release when events report one', async () => {
+    sdkVersionsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [
+          {
+            release: '1.0.1',
+            'sdk.name': 'sentry.javascript.react',
+            'sdk.version': '9.12.0',
+            'count()': 10,
+          },
+        ],
+      },
+    });
+
+    render(<ReleasesList />, {organization});
+    const items = await screen.findAllByTestId('release-panel');
+
+    expect(
+      await within(items.at(1)!).findByText('SDK: sentry.javascript.react 9.12.0')
+    ).toBeInTheDocument();
+    expect(within(items.at(0)!).queryByText(/^SDK:/)).not.toBeInTheDocument();
+    expect(sdkVersionsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query:
+            'has:sdk.version ( release:1.0.0 OR release:1.0.1 OR release:af4f231ec9a8 )',
+        }),
+      })
+    );
   });
 
   it('displays quickstart when appropriate', async () => {
