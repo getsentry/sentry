@@ -205,8 +205,8 @@ const EvidenceStep = styled(Flex)`
   }
 
   &[aria-current='step']::before {
-    color: ${p => p.theme.tokens.content.primary};
-    background: currentColor;
+    border-color: ${p => p.theme.tokens.graphics.neutral.vibrant};
+    background: ${p => p.theme.tokens.graphics.neutral.vibrant};
   }
 
   &:last-child {
