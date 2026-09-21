@@ -24,6 +24,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     FeedbackSourceBase,
     TriggerDecision,
 )
+from sentry.seer.autofix.pr_iteration.project_setting import pr_iteration_enabled_for_group
 from sentry.utils import metrics
 from sentry.utils.tracing import trace
 
@@ -156,6 +157,10 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     def should_queue(self, run_state: SeerRunState) -> Decision:
         from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
 
+        # Only automated iteration answers to the project setting; feedback a
+        # person sends goes through sources that never read it.
+        if not pr_iteration_enabled_for_group(self.autofix_run.group_id):
+            return Decision(ok=False, reason="project_disabled")
         if not self._matches_current_head(run_state).matched:
             return Decision(ok=False, reason="stale_head")
         # Hard cap also blocks enqueue so failed suites don't pile up in Redis
