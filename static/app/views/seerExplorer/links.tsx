@@ -95,6 +95,8 @@ export type LinkSubject = {
   path?: string;
   /** What was actually requested, query string removed. */
   pathname?: string;
+  /** Which external provider served the call, if any. */
+  provider?: string;
   /** The requested query string, parsed — params the route template does not name. */
   query?: Record<string, string>;
   status?: number;
@@ -623,6 +625,11 @@ export function resolveLink(
     return null;
   }
 
+  // Every rule below is a first-party Sentry route, and a provider's can collide.
+  if (subject.provider) {
+    return null;
+  }
+
   const finish = (rule: LinkRule, result: LinkResult) => ({
     id: rule.id,
     label: result.label,
@@ -674,6 +681,7 @@ export function subjectFromCallRecord(record: CallRecord): LinkSubject {
     name: record.kind === 'lib' ? record.name : undefined,
     method: record.method,
     path: record.path,
+    provider: record.provider,
     pathname: pathname || undefined,
     query: query ? (queryString.parse(query) as Record<string, string>) : undefined,
     status: record.status,

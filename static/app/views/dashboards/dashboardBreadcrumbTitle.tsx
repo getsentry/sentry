@@ -11,8 +11,8 @@ import {
   IconClock,
   IconCopy,
   IconDownload,
-  IconEdit,
   IconEllipsis,
+  IconGroup,
   IconStar,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -23,18 +23,12 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
-import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {
-  DASHBOARD_SAVING_MESSAGE,
-  UNSAVED_FILTERS_MESSAGE,
-} from 'sentry/views/dashboards/constants';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useOpenDashboardRevisions} from 'sentry/views/dashboards/dashboardRevisions';
+import {useOpenEditAccessModal} from 'sentry/views/dashboards/editAccessModal';
 import {exportDashboard} from 'sentry/views/dashboards/exportDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
-import type {DashboardDetails} from 'sentry/views/dashboards/types';
-import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
+import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboards/types';
 
 /**
  * Star/unstar the dashboard. Sits beside the actions menu rather than inside it —
@@ -73,41 +67,33 @@ function DashboardFavoriteButton({
 
 interface DashboardBreadcrumbTitleProps {
   dashboard: DashboardDetails;
-  hasUnsavedFilters: boolean;
   isEditing: boolean;
   isPreview: boolean;
-  isSaving: boolean;
   onChange: (title: string) => void;
-  onEdit: () => void;
+  onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 }
 
 function DashboardTitle({
   dashboard,
   duplicateDashboard,
   duplicateDisabledReason = null,
-  hasUnsavedFilters,
-  isDashboardEditor,
   isDuplicateDisabled = false,
   isFavorited,
   isPrebuiltDashboard,
-  isSaving,
   canViewRevisions,
-  onEdit,
   onToggleFavorite,
   openDashboardRevisions,
+  openEditAccess,
   organization,
 }: {
   canViewRevisions: boolean;
   dashboard: DashboardDetails;
   duplicateDashboard: ReturnType<typeof useDuplicateDashboard>;
-  hasUnsavedFilters: boolean;
-  isDashboardEditor: boolean;
   isFavorited: boolean | undefined;
   isPrebuiltDashboard: boolean;
-  isSaving: boolean;
-  onEdit: () => void;
   onToggleFavorite: () => void;
   openDashboardRevisions: () => void;
+  openEditAccess: () => void;
   organization: Organization;
   duplicateDisabledReason?: ReactNode;
   isDuplicateDisabled?: boolean;
@@ -118,17 +104,11 @@ function DashboardTitle({
     leadingItems: <IconClock />,
     onAction: openDashboardRevisions,
   };
-  const editItem = {
-    key: 'dashboard-edit',
-    label: t('Edit'),
-    leadingItems: <IconEdit />,
-    disabled: hasUnsavedFilters || isSaving,
-    tooltip: isSaving
-      ? DASHBOARD_SAVING_MESSAGE
-      : hasUnsavedFilters
-        ? UNSAVED_FILTERS_MESSAGE
-        : null,
-    onAction: onEdit,
+  const permissionsItem = {
+    key: 'edit-access',
+    label: t('View Permissions'),
+    leadingItems: <IconGroup />,
+    onAction: openEditAccess,
   };
   const exportItem = {
     key: 'export',
@@ -150,9 +130,9 @@ function DashboardTitle({
     },
   };
   const menuItems = [
-    ...(canViewRevisions ? [revisionItem] : []),
-    ...(isDashboardEditor ? [editItem] : []),
     ...(isPrebuiltDashboard ? [duplicateItem] : []),
+    ...(isPrebuiltDashboard ? [] : [permissionsItem]),
+    ...(canViewRevisions ? [revisionItem] : []),
     ...(organization.features.includes('dashboards-import') ? [exportItem] : []),
   ];
 
@@ -190,12 +170,10 @@ function DashboardTitle({
 
 export function DashboardBreadcrumbTitle({
   dashboard,
-  hasUnsavedFilters,
   isEditing,
   isPreview,
-  isSaving,
   onChange,
-  onEdit,
+  onChangeEditAccess,
 }: DashboardBreadcrumbTitleProps) {
   // Lives here rather than in `DashboardFavoriteButton` because the button
   // unmounts while editing or previewing, and a toggle never writes back to
@@ -205,9 +183,8 @@ export function DashboardBreadcrumbTitle({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const currentUser = useUser();
-  const {teams: userTeams} = useUserTeams();
   const openDashboardRevisions = useOpenDashboardRevisions(dashboard);
+  const openEditAccess = useOpenEditAccessModal(dashboard, onChangeEditAccess);
   const duplicateDashboard = useDuplicateDashboard({
     onSuccess: newDashboard => {
       navigate(
@@ -243,15 +220,7 @@ export function DashboardBreadcrumbTitle({
     );
   }
 
-  const hasEditAccess = checkUserHasEditAccess(
-    currentUser,
-    userTeams,
-    organization,
-    dashboard.permissions,
-    dashboard.createdBy
-  );
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
-  const isDashboardEditor = hasEditAccess && !isPrebuiltDashboard;
   const canViewRevisions =
     Boolean(dashboard.id) &&
     !isPrebuiltDashboard &&
@@ -282,14 +251,11 @@ export function DashboardBreadcrumbTitle({
         canViewRevisions={canViewRevisions}
         dashboard={dashboard}
         duplicateDashboard={duplicateDashboard}
-        hasUnsavedFilters={hasUnsavedFilters}
-        isDashboardEditor={isDashboardEditor}
         isFavorited={isFavorited}
         isPrebuiltDashboard={isPrebuiltDashboard}
-        isSaving={isSaving}
-        onEdit={onEdit}
         onToggleFavorite={handleToggleFavorite}
         openDashboardRevisions={openDashboardRevisions}
+        openEditAccess={openEditAccess}
         organization={organization}
       />
     );
@@ -303,15 +269,12 @@ export function DashboardBreadcrumbTitle({
           dashboard={dashboard}
           duplicateDashboard={duplicateDashboard}
           duplicateDisabledReason={limitMessage}
-          hasUnsavedFilters={hasUnsavedFilters}
-          isDashboardEditor={isDashboardEditor}
           isDuplicateDisabled={hasReachedDashboardLimit || isLoading}
           isFavorited={isFavorited}
           isPrebuiltDashboard={isPrebuiltDashboard}
-          isSaving={isSaving}
-          onEdit={onEdit}
           onToggleFavorite={handleToggleFavorite}
           openDashboardRevisions={openDashboardRevisions}
+          openEditAccess={openEditAccess}
           organization={organization}
         />
       )}

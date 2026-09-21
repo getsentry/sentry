@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
-from datetime import timezone
-from typing import Any, ClassVar, Generic, TypedDict, TypeVar, cast
+from datetime import datetime, timezone
+from typing import Any, ClassVar, Generic, Literal, TypedDict, TypeVar, cast
 
 from dateutil.parser import parse as parse_date
 from rest_framework import status
@@ -36,6 +36,25 @@ class RepositoryConfig(TypedDict):
     url: str
     config: dict[str, Any]
     integration_id: int
+
+
+class CommitPatchFile(TypedDict):
+    """One file a commit touched. `type` is a `CommitFileChange.type` choice."""
+
+    path: str
+    type: Literal["A", "D", "M"]
+
+
+class CommitData(TypedDict):
+    """A commit in the shape `Release.set_commits` consumes."""
+
+    id: str
+    repository: str
+    author_email: str
+    author_name: str
+    message: str
+    timestamp: datetime
+    patch_set: Sequence[CommitPatchFile]
 
 
 class RepoExistsError(SentryAPIException):

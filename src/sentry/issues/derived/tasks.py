@@ -6,8 +6,11 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
+from django.db import router
 from django.db.models import Exists, OuterRef
+from django.db.utils import OperationalError
 
+from sentry.issues.derived.heal_state import HealSchedulerState, load_state, save_state
 from sentry.silo.base import SiloMode
 
 if TYPE_CHECKING:
@@ -19,6 +22,7 @@ if TYPE_CHECKING:
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import metrics
+from sentry.utils.db import statement_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +40,9 @@ _MAX_GENERATION_RUNS = 20
 _MAX_CHECK_RUNS = 20
 # Maximum group IDs loaded by one project-level task invocation.
 _MAX_PROJECT_GROUPS = 10_000
-# Hard cap on distinct stale pipeline hashes handled per heal invocation.
-# In practice we expect a handful at most; truncating still makes progress.
+# Hard cap on distinct stale hashes discovered per scan.
 _MAX_STALE_HASHES = 5
+_STALE_HASH_DISCOVERY_TIMEOUT = timedelta(seconds=5)
 
 
 def _stale_pipeline_filter(qs: BaseQuerySet[Group], pipeline_hash: str) -> BaseQuerySet[Group]:
@@ -451,17 +455,20 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
 
     results: list[str] = []
     cursor: str | None = ""
-    while len(results) < limit:
-        cursor = (
-            GroupDerivedData.objects.filter(pipeline_hash__gt=cursor)
-            .order_by("pipeline_hash")
-            .values_list("pipeline_hash", flat=True)
-            .first()
-        )
-        if cursor is None:
-            break
-        if cursor != current_hash:
-            results.append(cursor)
+    using = router.db_for_read(GroupDerivedData)
+    with statement_timeout(using, _STALE_HASH_DISCOVERY_TIMEOUT):
+        while len(results) < limit:
+            cursor = (
+                GroupDerivedData.objects.using(using)
+                .filter(pipeline_hash__gt=cursor)
+                .order_by("pipeline_hash")
+                .values_list("pipeline_hash", flat=True)
+                .first()
+            )
+            if cursor is None:
+                break
+            if cursor != current_hash:
+                results.append(cursor)
     return results
 
 
@@ -506,34 +513,83 @@ def heal_stale_derived_data(**kwargs: object) -> None:
         },
     )
 
+    state = load_state()
+    if state is None:
+        state = HealSchedulerState()
+        logger.info("heal_stale_derived_data.state_regenerated")
+    else:
+        logger.info("heal_stale_derived_data.state_loaded")
+
+    hash_state_changed = False
+    if state.head_hash != current_hash:
+        if state.head_hash is not None:
+            state.stale.setdefault(state.head_hash, 0)
+        state.head_hash = current_hash
+        hash_state_changed = True
+    # A rollback can make a previously discovered stale hash current again.
+    if state.stale.pop(current_hash, None) is not None:
+        hash_state_changed = True
+
     # We fetch known stale hashes and match on those for better index usage.
     # Querying for rows that aren't the fresh hash ends up being a full index scan,
     # whereas providing positive examples to match lets us do more efficient btree walking.
-    discovery_started_at = time.monotonic()
-    logger.info("heal_stale_derived_data.stale_hash_discovery_started")
-    stale_hashes = _discover_stale_pipeline_hashes(current_hash, _MAX_STALE_HASHES)
-    logger.info(
-        "heal_stale_derived_data.stale_hash_discovery_complete",
-        extra={
-            "stale_hashes": stale_hashes,
-            "elapsed": time.monotonic() - discovery_started_at,
-        },
-    )
+    if not state.stale:
+        discovery_started_at = time.monotonic()
+        logger.info("heal_stale_derived_data.stale_hash_discovery_started")
+        metrics.incr(
+            "issues.derived.heal_stale_hash_discovery",
+            sample_rate=1.0,
+            tags={"reason": "no_state" if state.discovered_at is None else "stale_empty"},
+        )
+        try:
+            with metrics.timer("issues.derived.heal_stale_hash_discovery_duration"):
+                stale_hashes = _discover_stale_pipeline_hashes(current_hash, _MAX_STALE_HASHES)
+        except OperationalError:
+            logger.exception("heal_stale_derived_data.stale_hash_discovery_failed")
+            metrics.incr("issues.derived.heal_stale_hash_discovery_failed", sample_rate=1.0)
+            stale_hashes = []
+        else:
+            # Keep a fixed epoch despite CacheMapping's sliding eviction TTL.
+            state.discovered_at = state.discovered_at or datetime.now(timezone.utc)
+            state.stale.update(dict.fromkeys(stale_hashes, 0))
+            hash_state_changed = True
+            logger.info(
+                "heal_stale_derived_data.stale_hash_discovery_complete",
+                extra={
+                    "stale_hashes": stale_hashes,
+                    "elapsed": time.monotonic() - discovery_started_at,
+                },
+            )
+    else:
+        stale_hashes = list(state.stale)
+        logger.info(
+            "heal_stale_derived_data.stale_hash_discovery_skipped",
+            extra={"stale_hash_count": len(state.stale)},
+        )
 
-    # TODO: Track highest scheduled between runs so we don't risk duplicating work if
-    # run again before previouslly scheduled clean-ups are finished.
+    # Checkpoint hashes before potentially expensive range selection.
+    if hash_state_changed:
+        save_state(state)
+
     remaining = max_tasks
     scheduled_per_hash: dict[str, int] = {}
-    # Per-hash scheduling for efficient (pipeline_hash, group_id) index use.
+    # NULL is stateless because soft invalidation can create rows below any mark.
     for stale_hash in [None, *stale_hashes]:
         if remaining <= 0:
             break
         hash_kind = "null" if stale_hash is None else "stale"
+        lower_bound = 0 if stale_hash is None else state.stale[stale_hash]
         logger.info(
             "heal_stale_derived_data.range_selection_started",
             extra={"hash_kind": hash_kind, "remaining_budget": remaining},
         )
-        ranges = group_id_ranges_for_hash(stale_hash, chunk_size=batch_size, max_chunks=remaining)
+        range_result = group_id_ranges_for_hash(
+            stale_hash,
+            chunk_size=batch_size,
+            max_chunks=remaining,
+            group_id_lower_bound=lower_bound,
+        )
+        ranges = range_result.ranges
         logger.info(
             "heal_stale_derived_data.range_selection_complete",
             extra={
@@ -542,6 +598,14 @@ def heal_stale_derived_data(**kwargs: object) -> None:
                 "remaining_budget": remaining,
             },
         )
+        if stale_hash is not None and range_result.drained:
+            del state.stale[stale_hash]
+            logger.info(
+                "heal_stale_derived_data.stale_hash_retired",
+                extra={"pipeline_hash": stale_hash, "group_id_mark": lower_bound},
+            )
+            save_state(state)
+            continue
         if not ranges:
             continue
         logger.info(
@@ -559,6 +623,22 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             )
         remaining -= len(ranges)
         scheduled_per_hash["null" if stale_hash is None else stale_hash] = len(ranges)
+        if stale_hash is not None:
+            old_mark = state.stale[stale_hash]
+            new_mark = ranges[-1][1]
+            # Marks are optimistic. Dropped tasks and old workers can leave rows
+            # below them because pipeline_hash is promoted state. The fixed state
+            # age is the correctness backstop that forces a from-zero sweep.
+            state.stale[stale_hash] = new_mark
+            save_state(state)
+            logger.info(
+                "heal_stale_derived_data.stale_hash_mark_advanced",
+                extra={
+                    "pipeline_hash": stale_hash,
+                    "old_group_id_mark": old_mark,
+                    "new_group_id_mark": new_mark,
+                },
+            )
         logger.info(
             "heal_stale_derived_data.batch_dispatch_complete",
             extra={
