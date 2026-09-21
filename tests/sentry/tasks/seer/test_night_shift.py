@@ -196,6 +196,7 @@ class TestCurrentScheduleId:
         assert _night_shift_cron_expr() == "0 10,22 * * *"
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 class TestScheduleNightShift(TestCase):
     def create_org_with_seer(self):

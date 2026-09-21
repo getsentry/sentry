@@ -49,6 +49,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.night_shift.models import NightShiftPayload, TriageCandidate, TriageTweaks
+from sentry.seer.seer_setup import is_seer_available
 from sentry.seer.workflows.schemas import WorkflowRunSource
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.simple_triage import (
@@ -578,6 +579,9 @@ def _get_eligible_orgs_from_batch(
     Check feature flags for a batch of orgs.
     Returns orgs that have all required feature flags enabled.
     """
+    if not is_seer_available():
+        return []
+
     # enable_seer_coding off => night shift can't open a PR for the org.
     enable_coding = OrganizationOption.objects.get_value_bulk(
         orgs, "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT

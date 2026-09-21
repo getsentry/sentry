@@ -3,6 +3,7 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.constants import ObjectStatus
 from sentry.models.promptsactivity import PromptsActivity
@@ -18,6 +19,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.viewer_context import ActorType, get_viewer_context
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 class TestGetSeerAgentEnabledProjects(TestCase):
     @freeze_time("2024-01-15 12:00:00")
