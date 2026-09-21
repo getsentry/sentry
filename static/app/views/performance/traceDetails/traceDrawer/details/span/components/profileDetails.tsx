@@ -3,27 +3,24 @@ import styled from '@emotion/styled';
 import {
   SpanProfileDetails,
   useSpanProfileDetails,
+  type SpanProfileDetailsContext,
   type SpanProfileDetailsProps,
 } from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 export function ProfileDetails({
   organization,
-  project,
-  event,
+  context,
   span,
 }: {
-  event: Readonly<EventTransaction>;
+  context: SpanProfileDetailsContext;
   organization: Organization;
-  project: Project | undefined;
   span: Readonly<SpanProfileDetailsProps['span']>;
 }) {
-  const {profile, frames} = useSpanProfileDetails(organization, project, event, span);
+  const {profile, frames} = useSpanProfileDetails(organization, context, span);
 
   if (!defined(profile) || frames.length === 0) {
     return null;
@@ -36,7 +33,7 @@ export function ProfileDetails({
       disableCollapsePersistence
     >
       <EmbededContentWrapper>
-        <SpanProfileDetails span={span} event={event} />
+        <SpanProfileDetails context={context} span={span} />
       </EmbededContentWrapper>
     </FoldSection>
   );
