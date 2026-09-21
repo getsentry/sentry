@@ -47,14 +47,14 @@ class TestCodeReviewPreflightService(TestCase):
     # Legal AI consent tests
     # -------------------------------------------------------------------------
 
-    def test_denied_when_gen_ai_feature_flag_disabled(self) -> None:
+    @override_settings(SENTRY_SELF_HOSTED=True)
+    def test_denied_when_self_hosted(self) -> None:
         service = self._create_service()
         result = service.check()
 
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.ORG_LEGAL_AI_CONSENT_NOT_GRANTED
 
-    @with_feature("organizations:gen-ai-features")
     def test_denied_when_hide_ai_features_enabled(self) -> None:
         self.organization.update_option("sentry:hide_ai_features", True)
 
@@ -68,7 +68,7 @@ class TestCodeReviewPreflightService(TestCase):
     # Org feature enablement tests
     # -------------------------------------------------------------------------
 
-    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
+    @with_feature(["organizations:code-review-beta"])
     def test_denied_when_beta_org_has_no_repo_settings(self) -> None:
         service = self._create_service()
         result = service.check()
@@ -76,7 +76,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
-    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
+    @with_feature(["organizations:code-review-beta"])
     def test_allowed_when_beta_org_has_repo_settings_enabled(self) -> None:
         self.create_repository_settings(
             repository=self.repo,
@@ -95,7 +95,6 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is True
         assert result.denial_reason is None
 
-    @with_feature("organizations:gen-ai-features")
     def test_denied_when_org_has_no_seer_feature_flags(self) -> None:
         service = self._create_service()
         result = service.check()
@@ -107,7 +106,7 @@ class TestCodeReviewPreflightService(TestCase):
     # Seer-added (legacy usage-based) org tests - not eligible for code review
     # -------------------------------------------------------------------------
 
-    @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
+    @with_feature(["organizations:seer-added"])
     def test_denied_when_seer_added_only_org_not_eligible(self) -> None:
         service = self._create_service()
         result = service.check()
@@ -115,7 +114,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
 
-    @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
+    @with_feature(["organizations:seer-added"])
     def test_denied_when_seer_added_only_org_even_with_repo_settings_enabled(self) -> None:
         self.create_repository_settings(
             repository=self.repo,
@@ -136,7 +135,6 @@ class TestCodeReviewPreflightService(TestCase):
 
     @with_feature(
         [
-            "organizations:gen-ai-features",
             "organizations:seer-added",
             "organizations:code-review-beta",
         ]
@@ -164,7 +162,7 @@ class TestCodeReviewPreflightService(TestCase):
     # Seat-based org tests
     # -------------------------------------------------------------------------
 
-    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    @with_feature(["organizations:seat-based-seer-enabled"])
     def test_denied_when_seat_based_org_has_no_repo_settings(self) -> None:
         service = self._create_service()
         result = service.check()
@@ -172,7 +170,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
-    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    @with_feature(["organizations:seat-based-seer-enabled"])
     def test_denied_when_seat_based_org_has_repo_settings_disabled(self) -> None:
         self.create_repository_settings(
             repository=self.repo,
@@ -185,7 +183,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     @patch("sentry.quotas.backend.check_seer_quota")
-    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    @with_feature(["organizations:seat-based-seer-enabled"])
     def test_allowed_when_seat_based_org_has_repo_settings_enabled(
         self, mock_check_quota: MagicMock
     ) -> None:
@@ -215,7 +213,7 @@ class TestCodeReviewPreflightService(TestCase):
     # -------------------------------------------------------------------------
 
     @patch("sentry.quotas.backend.check_seer_quota")
-    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    @with_feature(["organizations:seat-based-seer-enabled"])
     def test_returns_repo_settings_when_allowed(self, mock_check_quota: MagicMock) -> None:
         mock_check_quota.return_value = True
 
@@ -246,7 +244,6 @@ class TestCodeReviewPreflightService(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(
         [
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seat-based-seer-enabled",
         ]
@@ -282,7 +279,7 @@ class TestCodeReviewPreflightService(TestCase):
     # Billing tests
     # -------------------------------------------------------------------------
 
-    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    @with_feature(["organizations:seat-based-seer-enabled"])
     def test_denied_when_missing_integration(self) -> None:
         self.create_repository_settings(
             repository=self.repo,
@@ -305,7 +302,7 @@ class TestCodeReviewPreflightService(TestCase):
         "sentry.seer.code_review.preflight.instance_hostname",
         side_effect=InstanceHostnameError("missing"),
     )
-    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    @with_feature(["organizations:seat-based-seer-enabled"])
     def test_denied_when_integration_missing_hostname(
         self, mock_hostname: MagicMock, mock_capture: MagicMock
     ) -> None:
@@ -326,7 +323,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason == PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
         mock_capture.assert_called_once()
 
-    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    @with_feature(["organizations:seat-based-seer-enabled"])
     def test_denied_when_missing_external_identifier(self) -> None:
         self.create_repository_settings(
             repository=self.repo,
@@ -344,7 +341,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
-    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    @with_feature(["organizations:seat-based-seer-enabled"])
     def test_denied_when_contributor_does_not_exist(self) -> None:
         self.create_repository_settings(
             repository=self.repo,
@@ -358,7 +355,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason == PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
 
     @patch("sentry.quotas.backend.check_seer_quota")
-    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    @with_feature(["organizations:seat-based-seer-enabled"])
     def test_denied_when_quota_check_fails(self, mock_check_quota: MagicMock) -> None:
         mock_check_quota.return_value = False
 
@@ -382,7 +379,6 @@ class TestCodeReviewPreflightService(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(
         [
-            "organizations:gen-ai-features",
             "organizations:seat-based-seer-enabled",
             "organizations:code-review-beta",
         ]
@@ -417,7 +413,7 @@ class TestCodeReviewPreflightService(TestCase):
         mock_check_quota.assert_called_once()
 
     @patch("sentry.quotas.backend.check_seer_quota")
-    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    @with_feature(["organizations:seat-based-seer-enabled"])
     def test_denied_when_pr_author_is_excluded(self, mock_check_quota: MagicMock) -> None:
         mock_check_quota.return_value = True
 

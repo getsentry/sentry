@@ -2,6 +2,7 @@ from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from django.test import override_settings
 from rest_framework import status
 
 from sentry.seer.endpoints.search_agent_start import send_search_agent_start_request
@@ -106,7 +107,7 @@ class SendSearchAgentStartRequestTest(TestCase):
 
 
 @with_feature("organizations:gen-ai-search-agent-translate")
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class SearchAgentStartEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()

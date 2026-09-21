@@ -1,12 +1,12 @@
 from unittest.mock import patch
 
+from django.test import override_settings
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 
 
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TraceExplorerAIQueryTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()

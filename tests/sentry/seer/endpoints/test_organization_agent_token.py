@@ -800,7 +800,7 @@ class OrganizationAgentTokenTest(APITestCase):
 @pytest.mark.sentry_metrics
 @pytest.mark.seer_agent_token_matrix
 @requires_snuba
-@override_settings(SEER_API_SHARED_SECRET=SECRET)
+@override_settings(SEER_API_SHARED_SECRET=SECRET, SENTRY_SELF_HOSTED=False)
 class AgentTokenPublicGetMatrixTest(APITestCase):
     """Differential, full-stack authentication coverage for the public API.
 
@@ -823,6 +823,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        rate_limit_patcher = patch(
+            "sentry.middleware.ratelimit.get_rate_limit_value", return_value=None
+        )
+        rate_limit_patcher.start()
+        self.addCleanup(rate_limit_patcher.stop)
         self.owner = self.create_user()
         self.org = self.create_organization(owner=self.owner)
         self.team = self.create_team(organization=self.org)
@@ -1301,7 +1306,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             "ExternalUserDetailsEndpoint": "organizations:integrations-codeowners",
             "ExternalUserEndpoint": "organizations:integrations-codeowners",
             "EventAttachmentDetailsEndpoint": "organizations:event-attachments",
-            "GroupAutofixEndpoint": "organizations:gen-ai-features",
             "GroupIntegrationDetailsEndpoint": "organizations:integrations-issue-basic",
             "OrganizationEventsEndpoint": "organizations:discover-basic",
             "OrganizationGroupSearchViewsEndpoint": "organizations:issue-views",

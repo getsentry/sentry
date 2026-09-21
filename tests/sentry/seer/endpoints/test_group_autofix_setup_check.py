@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+from django.test import override_settings
+
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
@@ -8,7 +10,6 @@ from sentry.seer.endpoints.group_autofix_setup_check import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.cache import cache
 
@@ -92,7 +93,7 @@ class GetAutofixIntegrationSetupProblemsTestCase(TestCase):
         assert result == "integration_missing"
 
 
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -274,7 +275,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         assert response.data["seerReposLinked"] is False
 
 
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class GroupAIAutofixSetupFreeCohortTest(APITestCase, SnubaTestCase):
     """Tests for free cohort org behavior in the /autofix/setup/ endpoint."""
 

@@ -31,7 +31,6 @@ from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache
@@ -72,7 +71,6 @@ class TriggerAutofixTaskTest(TestCase):
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
-@with_feature("organizations:gen-ai-features")
 class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self) -> None:
         super().setUp()
@@ -882,7 +880,7 @@ class TestGetStoppingPointFromFixability:
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 @patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
-@with_feature({"organizations:gen-ai-features": True})
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -950,8 +948,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         mock_seat_based_tier,
     ):
         mock_seat_based_tier.return_value = False
-        with self.feature({"organizations:gen-ai-features": True}):
-            run_automation(self.group, self.user, self.event, SeerAutomationSource.POST_PROCESS)
+        run_automation(self.group, self.user, self.event, SeerAutomationSource.POST_PROCESS)
 
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES
@@ -1032,7 +1029,7 @@ class TestApplyUserPreferenceUpperBound:
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 @patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
-@with_feature({"organizations:gen-ai-features": True})
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1107,7 +1104,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.ROOT_CAUSE
 
 
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1249,7 +1246,6 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
-@with_feature("organizations:gen-ai-features")
 class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1268,10 +1264,10 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
 
         assert is_group_eligible_for_automation(self.group) is True
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
     def test_returns_false_without_seer_access(self, mock_fixability):
-        with self.feature({"organizations:gen-ai-features": False}):
-            assert is_group_eligible_for_automation(self.group) is False
+        assert is_group_eligible_for_automation(self.group) is False
 
         mock_fixability.assert_not_called()
 
@@ -1339,7 +1335,7 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
 
 
 @patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
-@with_feature({"organizations:gen-ai-features": True})
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestGetAutomationStoppingPoint(TestCase):
     def setUp(self) -> None:
         super().setUp()

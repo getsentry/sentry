@@ -3054,7 +3054,7 @@ class PipelineKillswitchTestMixin(BasePostProcessGroupMixin):
 
 class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_with_features(self, mock_generate_summary_and_run_automation):
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -3073,8 +3073,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event.group.id, trigger_path="old_seer_automation"
         )
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    def test_kick_off_seer_automation_without_org_feature(
+    def test_kick_off_seer_automation_when_self_hosted(
         self, mock_generate_summary_and_run_automation
     ):
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3092,7 +3093,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_without_scanner_on(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3113,7 +3114,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_skips_existing_fixability_score(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3138,7 +3139,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_skips_existing_issue(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3162,7 +3163,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_skips_with_existing_fixability_score(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3195,7 +3196,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
     @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_rate_limit_only_checked_after_all_other_checks_pass(
         self,
         mock_generate_summary_and_run_automation,
@@ -3266,7 +3267,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_skips_when_lock_held(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3315,7 +3316,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         )
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_with_hide_ai_features_enabled(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3403,7 +3404,7 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
         return event
 
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
-    @with_feature({"organizations:gen-ai-features": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_seat_based_org_skips_old_issues(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):
@@ -3411,7 +3412,7 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_only.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
-    @with_feature({"organizations:gen-ai-features": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_seat_based_org_skips_when_fixability_exists(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):
@@ -3422,6 +3423,7 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
 class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
     """Unit tests for is_issue_eligible_for_seer_automation."""
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.features.has", return_value=True)
     def test_is_issue_eligible_for_seer_automation(self, mock_features_has, mock_has_budget):
@@ -3447,12 +3449,11 @@ class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
             mock_category.return_value = GroupCategory.FEEDBACK
             assert is_issue_eligible_for_seer_automation(group) is False
 
-        # Missing feature flag
-        mock_features_has.return_value = False
-        assert is_issue_eligible_for_seer_automation(group) is False
+        # Seer unavailable on self-hosted
+        with override_settings(SENTRY_SELF_HOSTED=True):
+            assert is_issue_eligible_for_seer_automation(group) is False
 
         # Hide AI features enabled
-        mock_features_has.return_value = True
         self.organization.update_option("sentry:hide_ai_features", True)
         assert is_issue_eligible_for_seer_automation(group) is False
         self.organization.update_option("sentry:hide_ai_features", False)
@@ -3503,7 +3504,7 @@ class PostProcessGroupErrorTest(
 ):
     @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
-    @with_feature({"organizations:gen-ai-features": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_seat_based_org_generates_summary_for_new_issues(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):

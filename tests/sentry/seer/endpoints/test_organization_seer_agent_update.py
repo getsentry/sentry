@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import orjson
+from django.test import override_settings
 from rest_framework import status
 
 from sentry.integrations.types import ExternalProviders
@@ -11,7 +12,7 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 @with_feature("organizations:seer-explorer")
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestOrganizationSeerAgentUpdate(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -257,7 +258,7 @@ class TestOrganizationSeerAgentUpdateFeatureFlags(APITestCase):
 
 
 @with_feature("organizations:seer-explorer")
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestOrganizationSeerAgentUpdateCodingDisabled(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -305,7 +306,7 @@ class TestOrganizationSeerAgentUpdateCodingDisabled(APITestCase):
 
 
 @with_feature("organizations:seer-explorer")
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestOrganizationSeerAgentUpdateCommitAuthor(APITestCase):
     def setUp(self) -> None:
         super().setUp()
