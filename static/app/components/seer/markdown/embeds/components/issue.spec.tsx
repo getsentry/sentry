@@ -16,6 +16,12 @@ describe('issue embed', () => {
     );
   });
 
+  it('copies as markdown labelled with the short id', () => {
+    expect(
+      renderEmbedMarkdown(Issue, 'issue', {id: '7716642857', shortId: 'JAVASCRIPT-22SP'})
+    ).toBe(`[JAVASCRIPT-22SP](${window.location.origin}/issues/7716642857/)`);
+  });
+
   it('labels the link with the short id and points it at the group id', () => {
     const href = getEmbedLinkHref('issue', 'JAVASCRIPT-22SP', {
       id: '7716642857',
