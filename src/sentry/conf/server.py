@@ -1139,6 +1139,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "uptime:sentry.uptime.tasks.config_drift_dispatcher",
         "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
+    "uptime-config-sentinel-checker": {
+        "task": "uptime:sentry.uptime.tasks.check_config_sentinels",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
     "poll_tempest": {
         "task": "tempest:sentry.tempest.tasks.poll_tempest",
         "schedule": crontab("*/1", "*", "*", "*", "*"),

@@ -19,6 +19,7 @@ from sentry.uptime.config_drift import (
     SWEEP_RUN_INTERVAL,
     ConfigStore,
     find_missing_configs,
+    find_missing_sentinels,
     find_orphaned_configs,
     get_config_stores,
     sweep_slice,
@@ -368,6 +369,34 @@ def check_orphaned_configs(cluster: str, key_prefix: str, partition: int, **kwar
         logger.warning(
             "uptime.config_drift.orphaned",
             extra={"partition": partition, "cluster": store.cluster, "count": orphaned},
+        )
+
+
+@instrumented_task(
+    name="sentry.uptime.tasks.check_config_sentinels",
+    namespace=uptime_tasks,
+    processing_deadline_duration=60,
+)
+def check_config_sentinels(**kwargs):
+    """
+    Checks each config store's partition sentinels every minute; a missing sentinel means the
+    store lost data.
+    """
+    if not options.get("uptime.config-drift.enabled"):
+        return
+
+    for store in get_config_stores():
+        # The store that failed is likely the one being lost; keep checking the others.
+        try:
+            missing = find_missing_sentinels(store)
+        except Exception:
+            logger.exception("uptime.config_drift.sentinel_check_failed")
+            continue
+        metrics.gauge(
+            "uptime.config_drift.sentinel_missing",
+            len(missing),
+            tags={"cluster": store.cluster},
+            sample_rate=1.0,
         )
 
 

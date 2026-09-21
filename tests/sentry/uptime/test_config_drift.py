@@ -23,6 +23,7 @@ from sentry.uptime.config_producer import (
 from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions import tasks
 from sentry.uptime.subscriptions.tasks import (
+    check_config_sentinels,
     check_missing_configs,
     check_orphaned_configs,
     config_drift_dispatcher,
@@ -354,3 +355,28 @@ def test_sentinel_shares_slot_with_partition_hash() -> None:
             assert keyslot(get_sentinel_key(key_prefix, partition)) == keyslot(
                 get_config_key(key_prefix, partition)
             )
+
+
+@override_settings(UPTIME_REGIONS=REGIONS)
+class CheckConfigSentinelsTest(ConfigPusherTestMixin):
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(override_options({"uptime.config-drift.enabled": True}))
+
+    def test_option_off_emits_metric_only(self) -> None:
+        cluster = redis.redis_clusters.get_binary("default")
+        keys_before = set(cluster.keys())
+
+        with mock.patch.object(tasks, "metrics") as metrics:
+            check_config_sentinels()
+
+        # One gauge per store, both on the test cluster.
+        all_missing = mock.call(
+            "uptime.config_drift.sentinel_missing",
+            128,
+            tags={"cluster": "default"},
+            sample_rate=1.0,
+        )
+        assert metrics.gauge.mock_calls == [all_missing, all_missing]
+        assert metrics.incr.mock_calls == []
+        assert set(cluster.keys()) == keys_before

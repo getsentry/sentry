@@ -123,3 +123,11 @@ def find_orphaned_configs(store: ConfigStore, partition: int) -> DriftResult:
 def get_sentinel_key(key_prefix: str, partition: int) -> str:
     # Hash-tagged so it shares a cluster slot with the partition hash it stands for.
     return f"{{{get_config_key(key_prefix, partition)}}}:sentinel"
+
+
+def find_missing_sentinels(store: ConfigStore) -> list[int]:
+    cluster = redis.redis_clusters.get_binary(store.cluster)
+    pipe = cluster.pipeline()
+    for partition in range(settings.UPTIME_CONFIG_PARTITIONS):
+        pipe.exists(get_sentinel_key(store.key_prefix, partition))
+    return [partition for partition, present in enumerate(pipe.execute()) if not present]
