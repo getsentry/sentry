@@ -17,7 +17,10 @@ import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeer
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
 import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {generateQueryTokensString} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import {
+  generateQueryTokensString,
+  stringifyQueryForFeedback,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconClose, IconMegaphone, IconSearch, IconSync} from 'sentry/icons';
@@ -503,7 +506,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
                         'feedback.owner': 'ml-ai',
                         'feedback.natural_language_query': searchQuery.trim(),
                         'feedback.raw_result': queries
-                          .map(query => JSON.stringify(query))
+                          .map(query => stringifyQueryForFeedback(query))
                           .join('\n\n'),
                         'feedback.num_queries_returned': queries.length,
                       },
