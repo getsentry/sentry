@@ -47,7 +47,8 @@ from sentry.utils.validators import is_event_id, is_span_id
 # before the asterisk is actually escaping the asterisk.
 WILDCARD_CHARS = re.compile(r"(?<!\\)(\\\\)*\*")
 
-_event_search_rules = r"""
+event_search_grammar = Grammar(
+    r"""
 search = spaces term*
 
 term = (boolean_operator / paren_group / filter / free_text) spaces
@@ -79,6 +80,7 @@ filter = date_filter
        / has_in_filter
        / has_filter
        / is_filter
+       / regex_filter
        / array_includes_filter
        / text_in_filter
        / text_filter
@@ -187,6 +189,14 @@ array_includes_attr_key = (key/ quoted_key) array_includes_suffix
 array_includes_key = array_includes_attr_key / array_includes_tag_key
 array_includes_filter = negation? array_includes_key sep wildcard_op? operator? search_value
 
+# key://pattern// runs to the first `//` that ends the value, so patterns can hold spaces and
+# parens unquoted. A quoted "//...//" stays a literal. There's no IN-list form, since `a|b`
+# already covers it. The scan cap only keeps a query full of unclosed `key://` values from
+# rescanning the rest of the line at every one of them; SearchVisitor enforces the real
+# MAX_REGEX_PATTERN_LENGTH.
+regex_filter = negation? (array_includes_key / text_key) sep regex_value
+regex_value  = ~r"//((?:(?!//(?:[\t\n )]|$))[^\n]){1,1024})//(?=[\t\n )]|$)"
+
 # NOTE: These wildcard operators are internal implementation details and
 # should not be included in product docs. Users should use `*` instead.
 wildcard_op            = wildcard_unicode (contains / starts_with / ends_with) wildcard_unicode
@@ -238,31 +248,9 @@ spaces               = " "*
 
 end_value = ~r"[\t\n )]|$"
 """
-
-event_search_grammar = Grammar(_event_search_rules)
+)
 
 MAX_REGEX_PATTERN_LENGTH = 64
-
-# key://pattern// runs to the first `//` that ends the value, so patterns can hold spaces and
-# parens unquoted. A quoted "//...//" stays a literal. There's no IN-list form, since `a|b`
-# already covers it. The scan cap only keeps a query full of unclosed `key://` values from
-# rescanning the rest of the line at every one of them; SearchVisitor enforces the real
-# MAX_REGEX_PATTERN_LENGTH.
-_regex_rules = r"""
-regex_filter = negation? (array_includes_key / text_key) sep regex_value
-regex_value  = ~r"//((?:(?!//(?:[\t\n )]|$))[^\n]){1,1024})//(?=[\t\n )]|$)"
-"""
-
-# Only searches that compile regex patterns get the regex rules, so every other search parses
-# `//...//` exactly as it always has
-_is_filter_alternative = "       / is_filter\n"
-assert _event_search_rules.count(_is_filter_alternative) == 1
-regex_event_search_grammar = Grammar(
-    _event_search_rules.replace(
-        _is_filter_alternative, f"{_is_filter_alternative}       / regex_filter\n"
-    )
-    + _regex_rules
-)
 
 
 def translate_wildcard(pat: str) -> str:
@@ -798,7 +786,7 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
     wildcard_free_text: bool = False
 
     # Whether key://pattern// values are regex matches. Only the logs resolver compiles them, so
-    # other searches parse with a grammar that reads them as the literals they have always been.
+    # other searches read them as the literals they have always been.
     allow_regex: bool = False
 
     # Disallow the use of the !has filter
@@ -1550,13 +1538,17 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchFilter:
         (negation, (search_key,), _sep, pattern) = children
+        operator = handle_negation(negation, "=")
+        if not self.config.allow_regex:
+            literal = self.visit_value(node.children[3], [])
+            return self._handle_basic_filter(search_key, operator, SearchValue(literal))
+
         if len(pattern) > MAX_REGEX_PATTERN_LENGTH:
             raise InvalidSearchQuery(
                 f"{search_key.name}: Regex patterns are limited to {MAX_REGEX_PATTERN_LENGTH} "
                 'characters. To search for a literal value that starts with //, quote it: "//..."'
             )
         validate_regex_pattern(search_key.name, pattern)
-        operator = handle_negation(negation, "=")
         return SearchFilter(search_key, operator, SearchValue(pattern, is_regex=True))
 
     def visit_regex_value(self, node: RegexNode, children: object) -> str:
@@ -2096,8 +2088,7 @@ def parse_search_query(
         config = default_config
 
     try:
-        grammar = regex_event_search_grammar if config.allow_regex else event_search_grammar
-        tree = grammar.parse(query)
+        tree = event_search_grammar.parse(query)
     except IncompleteParseError as e:
         idx = e.column()
         prefix = query[max(0, idx - 5) : idx]
