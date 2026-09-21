@@ -49,25 +49,6 @@ class NotificationRendererRegistry:
         self.registrations: dict[
             tuple[NotificationProviderKey, NotificationSource], type[NotificationRenderer[Any]]
         ] = {}
-        self._loaded = False
-
-    def _load(self) -> None:
-        """
-        Import the renderer modules so their registrations take effect. Renderers reach into
-        integration packages, which read options while being imported, so they cannot be loaded
-        from `AppConfig.ready()` the way providers and templates are.
-        """
-        if self._loaded:
-            return
-
-        import sentry.notifications.platform.discord.renderers.issue  # noqa: F401
-        import sentry.notifications.platform.discord.renderers.metric_alert  # noqa: F401
-        import sentry.notifications.platform.slack.renderers.issue  # noqa: F401
-        import sentry.notifications.platform.slack.renderers.metric_alert  # noqa: F401
-        import sentry.notifications.platform.slack.renderers.seer  # noqa: F401
-        import sentry.notifications.platform.slack.renderers.seer_agent_write_approval  # noqa: F401
-
-        self._loaded = True
 
     def register[RenderableT](
         self, provider_key: NotificationProviderKey, sources: Sequence[NotificationSource]
@@ -98,7 +79,6 @@ class NotificationRendererRegistry:
         Returns the registered renderer for the provider/source pair, or `None` if the provider has
         no override and should fall back to its default renderer.
         """
-        self._load()
         return self.registrations.get((provider_key, source))
 
 
