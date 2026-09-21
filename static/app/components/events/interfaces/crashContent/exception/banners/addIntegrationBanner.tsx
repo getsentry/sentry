@@ -84,7 +84,7 @@ function Banner({children}: {children: React.ReactNode}) {
       position="relative"
       radius="md"
     >
-      {({className}) => <StyledBanner className={className}>{children}</StyledBanner>}
+      {containerProps => <StyledBanner {...containerProps}>{children}</StyledBanner>}
     </Container>
   );
 }
