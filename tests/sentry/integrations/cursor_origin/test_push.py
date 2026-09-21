@@ -215,6 +215,17 @@ class RepositoryPushedHandlerTest(TestCase):
         assert not [path for path in self._paths() if "/compare/" in path]
 
     @responses.activate
+    def test_a_new_branch_reads_its_tip_back_when_the_payload_omits_it(self) -> None:
+        """Origin documents the payload tip as best-effort, so it can be absent."""
+        self._stub_commits(_listed_commit("bbb"))
+        self._stub_files("bbb")
+
+        self._handle(_payload(_ref_update(created=True, before=EMPTY_SHA)))
+
+        assert [c.key for c in self._commits()] == ["bbb"]
+        assert not [path for path in self._paths() if "/compare/" in path]
+
+    @responses.activate
     def test_a_ref_that_gained_nothing_records_nothing(self) -> None:
         self._stub_compare(ahead_by=0, status_name="identical")
 

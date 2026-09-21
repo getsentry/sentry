@@ -109,10 +109,17 @@ class RepositoryPushedHandler(WebhookEventHandler):
         if not after or after == EMPTY_SHA:
             return []
 
-        if ref_update.created:
-            return [head_commit] if head_commit else []
-
         name = repo.config["name"]
+        if ref_update.created:
+            # A new branch reports no useful range, so only its tip is recorded. Origin
+            # documents the payload tip as best-effort, so read it back when it is absent.
+            if head_commit:
+                return [head_commit]
+            return [
+                PushedCommit.from_api_commit(commit)
+                for commit in client.get_commits(name, sha=after, limit=1)
+            ]
+
         comparison = client.compare_commits(name, ref_update.before, after)
         ahead_by = comparison["aheadBy"]
         if ahead_by <= 0:
