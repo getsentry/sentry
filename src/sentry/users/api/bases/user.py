@@ -97,12 +97,16 @@ class UserDisplayPreferencesPermission(UserPermission):
     def has_object_permission(
         self, request: Request, view: APIView, user: User | RpcUser | None
     ) -> bool:
+        if user is None:
+            return False
         if agent_token.is_agent_auth(request.auth):
             # Compared against the credential rather than `request.user`: agent auth
             # synthesizes `request.user` from the token, so checking one against the
             # other would be circular.
-            return user is not None and request.auth.user_id == user.id
-        return super().has_object_permission(request, view, user)
+            return request.auth.user_id == user.id
+        # Deliberately not `super()`: `UserPermission` lets an active superuser act on
+        # another account, which for personal display preferences has no operator use.
+        return request.user.id == user.id
 
 
 class OrganizationUserPermission(UserAndStaffPermission):

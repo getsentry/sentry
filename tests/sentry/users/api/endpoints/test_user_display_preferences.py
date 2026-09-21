@@ -261,3 +261,39 @@ class UserDisplayPreferencesTokenScopeTest(APITestCase):
         )
 
         assert UserOption.objects.get_value(user=self.user, key="theme") == "dark"
+
+
+@control_silo_test
+class UserDisplayPreferencesSuperuserTest(APITestCase):
+    """Self-only holds for operators too, unlike most user endpoints."""
+
+    endpoint = "sentry-api-0-user-display-preferences"
+
+    def test_superuser_cannot_write_another_users_preferences(self) -> None:
+        victim = self.create_user(email="victim@example.com")
+        superuser = self.create_user(is_superuser=True)
+        org = self.create_organization(owner=superuser)
+
+        with self.settings(SUPERUSER_ORG_ID=org.id):
+            self.login_as(user=superuser, superuser=True)
+            self.get_error_response(victim.id, method="put", theme="dark", status_code=403)
+
+        assert UserOption.objects.get_value(user=victim, key="theme") is None
+
+    def test_superuser_cannot_read_another_users_preferences(self) -> None:
+        victim = self.create_user(email="victim@example.com")
+        superuser = self.create_user(is_superuser=True)
+        org = self.create_organization(owner=superuser)
+
+        with self.settings(SUPERUSER_ORG_ID=org.id):
+            self.login_as(user=superuser, superuser=True)
+            self.get_error_response(victim.id, method="get", status_code=403)
+
+    def test_staff_cannot_write_another_users_preferences(self) -> None:
+        victim = self.create_user(email="victim@example.com")
+        staff_user = self.create_user(is_staff=True)
+
+        self.login_as(user=staff_user, staff=True)
+        self.get_error_response(victim.id, method="put", theme="dark", status_code=403)
+
+        assert UserOption.objects.get_value(user=victim, key="theme") is None
