@@ -1611,7 +1611,7 @@ UNSUPPORTED_REGEX_MESSAGE = (
         ),
         pytest.param(
             "span.op://foo\\//",
-            "span.op: Invalid regex: bad escape (end of pattern)",
+            "span.op: Invalid regex: trailing backslash",
             id="trailing backslash",
         ),
     ],

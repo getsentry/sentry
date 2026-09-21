@@ -201,8 +201,10 @@ def _format_single_value(value: str | int | float | datetime) -> str:
 
 
 def _format_string_value(s: str) -> str:
-    # Quote strings containing spaces or special characters.
-    if " " in s or '"' in s or "," in s or "(" in s or ")" in s:
+    # Quote strings containing spaces or special characters. EAP searches read an unquoted
+    # //...// value as a regex, so a literal one is quoted too.
+    is_regex_shaped = len(s) >= 4 and s.startswith("//") and s.endswith("//")
+    if " " in s or '"' in s or "," in s or "(" in s or ")" in s or is_regex_shaped:
         escaped = s.replace("\\", "\\\\").replace('"', '\\"')
         return f'"{escaped}"'
 

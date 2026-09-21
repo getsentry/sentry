@@ -9,7 +9,6 @@ from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import DataCategory
 from sentry.search.eap import constants
-from sentry.search.events.constants import INVALID_RPC_REQUEST_MESSAGE
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
@@ -325,9 +324,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 400, response.content
         assert "Invalid regex" in response.data["detail"]
 
-    def test_regex_filter_rejects_a_pattern_re2_cannot_compile(self) -> None:
-        """RE2 is stricter than `re`, so Snuba is the first to reject some valid Python patterns."""
-        self.store_eap_items([self.create_ourlog({"body": "aaa"}, timestamp=self.ten_mins_ago)])
+    def test_regex_filter_rejects_a_pattern_over_the_re2_repeat_limit(self) -> None:
         response = self.do_request(
             {
                 "field": ["log.body"],
@@ -338,7 +335,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         )
 
         assert response.status_code == 400, response.content
-        assert response.data["detail"] == INVALID_RPC_REQUEST_MESSAGE
+        assert "repetition counts are limited to 1000" in response.data["detail"]
 
     def test_pagination(self) -> None:
         logs = [

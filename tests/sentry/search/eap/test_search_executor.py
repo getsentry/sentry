@@ -59,6 +59,15 @@ class TestSearchFiltersToQueryString:
                 SearchFilter(SearchKey("message"), "=", SearchValue('foo "bar"')),
                 'message:"foo \\"bar\\""',
             ),
+            # A literal //...// value is quoted so EAP doesn't read it as a regex
+            (
+                SearchFilter(SearchKey("message"), "=", SearchValue("//api/users//")),
+                'message:"//api/users//"',
+            ),
+            (
+                SearchFilter(SearchKey("message"), "=", SearchValue("//cdn.example.com/")),
+                "message://cdn.example.com/",
+            ),
             # Numeric values
             (
                 SearchFilter(SearchKey("exception_count"), "=", SearchValue(42)),
