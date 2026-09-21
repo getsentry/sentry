@@ -155,8 +155,8 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         card_title: str,
         input_id: str,
         submit_button_title: str,
-        choices: Sequence[tuple[str, Any]],
-        default_choice: Any = None,
+        choices: Sequence[tuple[str, str]],
+        default_choice: str | None = None,
     ) -> AdaptiveCard:
         return MSTeamsMessageBuilder().build(
             title=create_text_block(card_title, weight=TextWeight.BOLDER),

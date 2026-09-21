@@ -284,6 +284,22 @@ class IssueMSTeamsRendererTest(TestCase):
         assert assign_action["title"] == IssueConstants.UNASSIGN
         assert assign_action["data"]["payload"]["actionType"] == ACTION_TYPE.UNASSIGN
 
+    def test_render_choice_values_are_strings(self) -> None:
+        # Adaptive Cards requires Input.ChoiceSet values to be strings, and Teams returns
+        # them as strings regardless of what was sent.
+        data, _, _ = self._create_data()
+
+        result = IssueMSTeamsRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
+        )
+
+        for action in self._card_actions(result):
+            for block in action["card"]["body"]:
+                if block.get("type") != "Input.ChoiceSet":
+                    continue
+                assert all(isinstance(choice["value"], str) for choice in block["choices"])
+
     def test_render_with_tags(self) -> None:
         data, event, group = self._create_data(
             tags=["level"],
