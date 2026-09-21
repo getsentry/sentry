@@ -123,6 +123,16 @@ class CursorOriginWebhookTest(APITestCase):
 
         assert not has_already_processed(DELIVERY_ID)
 
+    def test_a_failed_installation_lookup_leaves_the_delivery_for_the_retry(self) -> None:
+        """The lookup is an RPC, so a control-silo failure must not claim the delivery."""
+        with mock.patch(
+            "sentry.integrations.cursor_origin.webhook.integration_service.organization_contexts",
+            side_effect=ValueError("boom"),
+        ):
+            assert self._post(body=_envelope(event_type="installation.deleted")) == 500
+
+        assert not has_already_processed(DELIVERY_ID)
+
     def test_a_delivery_for_an_installation_sentry_does_not_have_is_accepted(self) -> None:
         """A half-finished install, or one already removed from this side."""
         integration = self.create_integration(

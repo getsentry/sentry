@@ -191,26 +191,29 @@ class CursorOriginWebhookEndpoint(Endpoint):
         if handler_cls is None:
             return HttpResponse(status=204)
 
-        # Resolved once here, so no handler reads the envelope, and every lookup
-        # downstream is organization-scoped.
         installation_id = envelope.get("installationId")
-        context = (
-            integration_service.organization_contexts(
-                provider=IntegrationProviderSlug.CURSOR_ORIGIN.value,
-                external_id=installation_id,
-            )
-            if installation_id
-            else None
-        )
-        if context is None or context.integration is None:
-            logger.info(
-                "cursor_origin.webhook.unknown_installation",
-                extra={"delivery_id": delivery_id, "installation_id": installation_id},
-            )
-            metrics.incr("cursor_origin.webhook.unknown_installation", sample_rate=1.0)
-            return HttpResponse(status=204)
 
+        # Inside the try: this is an RPC, and a failure must release the delivery so
+        # Origin's retry is not answered as a duplicate.
         try:
+            # Resolved once here, so no handler reads the envelope, and every lookup
+            # downstream is organization-scoped.
+            context = (
+                integration_service.organization_contexts(
+                    provider=IntegrationProviderSlug.CURSOR_ORIGIN.value,
+                    external_id=installation_id,
+                )
+                if installation_id
+                else None
+            )
+            if context is None or context.integration is None:
+                logger.info(
+                    "cursor_origin.webhook.unknown_installation",
+                    extra={"delivery_id": delivery_id, "installation_id": installation_id},
+                )
+                metrics.incr("cursor_origin.webhook.unknown_installation", sample_rate=1.0)
+                return HttpResponse(status=204)
+
             with IntegrationWebhookEvent(
                 interaction_type=handler_cls.EVENT_TYPE,
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
