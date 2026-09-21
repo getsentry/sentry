@@ -378,6 +378,8 @@ export type Subscription = {
   // Refetch usage data if Subscription is updated
   isDeleted?: boolean;
 
+  /** Admin-only marker; unavailable until the backend supports it. */
+  isTest?: boolean;
   isTrialStarted?: boolean;
   msaUpdatedForDataConsent?: boolean;
   onDemandBudgets?: SubscriptionOnDemandBudgets;
