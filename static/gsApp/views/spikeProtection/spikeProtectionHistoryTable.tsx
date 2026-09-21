@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -118,17 +117,24 @@ function EnableSpikeProtectionButton({
   );
 }
 
-class SpikeProtectionHistoryTable extends Component<Props> {
-  headers = [
-    t('Past Spikes'),
-    t('Initial Threshold'),
-    t('Duration'),
-    t('Events Dropped'),
-    null, // Discover Query button
-  ];
+const HEADERS = [
+  t('Past Spikes'),
+  t('Initial Threshold'),
+  t('Duration'),
+  t('Events Dropped'),
+  null, // Discover Query button
+];
 
-  renderSpikeRow(spike: SpikeDetails) {
-    const {dataCategoryInfo, project, organization, subscription} = this.props;
+function SpikeProtectionHistoryTable({
+  dataCategoryInfo,
+  onEnableSpikeProtection,
+  organization,
+  project,
+  spikes,
+  subscription,
+  isLoading,
+}: Props) {
+  function renderSpikeRow(spike: SpikeDetails) {
     // ms -> s, rounds up to get duration in minutes
     // rounding up to match the formatted date and time values
     const millisecondsPerSecond = 1000;
@@ -197,8 +203,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
     );
   }
 
-  renderEmptyMessage() {
-    const {organization} = this.props;
+  function renderEmptyMessage() {
     return (
       <EmptySpikeHistory data-test-id="spike-history-empty">
         <b>{t('No Significant Spikes')}</b>
@@ -215,8 +220,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
     );
   }
 
-  renderDisabledMessage() {
-    const {project, subscription, onEnableSpikeProtection} = this.props;
+  function renderDisabledMessage() {
     return (
       <EmptySpikeHistory data-test-id="spike-history-disabled">
         <b>{t('Spike Protection Disabled')}</b>
@@ -232,9 +236,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
     );
   }
 
-  renderTable() {
-    const {spikes, project, isLoading} = this.props;
-
+  function renderTable() {
     if (isLoading ?? false) {
       return (
         <Placeholder height="150px">
@@ -244,11 +246,11 @@ class SpikeProtectionHistoryTable extends Component<Props> {
     }
 
     if (!isSpikeProtectionEnabled(project)) {
-      return this.renderDisabledMessage();
+      return renderDisabledMessage();
     }
 
     if (spikes.length === 0) {
-      return this.renderEmptyMessage();
+      return renderEmptyMessage();
     }
 
     return (
@@ -256,43 +258,40 @@ class SpikeProtectionHistoryTable extends Component<Props> {
         columns={SPIKE_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
-            {this.headers.map((header, i) => (
+            {HEADERS.map((header, i) => (
               <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
             ))}
           </SimpleTable.HeaderRow>
         }
       >
-        {spikes.map(spike => this.renderSpikeRow(spike))}
+        {spikes.map(spike => renderSpikeRow(spike))}
       </SimpleTable>
     );
   }
 
-  render() {
-    const {organization} = this.props;
-    return (
-      <div data-test-id="spike-protection-history-table">
-        <Flex align="center" marginBottom="xl" gap="md">
-          <Title>
-            {t('Spike Protection')}
-            <PageHeadingQuestionTooltip
-              docsUrl={SPIKE_PROTECTION_DOCS_LINK}
-              title={t(
-                'Sentry applies a dynamic rate limit to your account designed to protect you from short-term spikes.'
-              )}
-            />
-          </Title>
-          <LinkButton
-            size="sm"
-            icon={<IconSettings />}
-            to={`/settings/${organization.slug}/spike-protection/`}
-          >
-            {t('Spike Protection Settings')}
-          </LinkButton>
-        </Flex>
-        {this.renderTable()}
-      </div>
-    );
-  }
+  return (
+    <div data-test-id="spike-protection-history-table">
+      <Flex align="center" marginBottom="xl" gap="md">
+        <Title>
+          {t('Spike Protection')}
+          <PageHeadingQuestionTooltip
+            docsUrl={SPIKE_PROTECTION_DOCS_LINK}
+            title={t(
+              'Sentry applies a dynamic rate limit to your account designed to protect you from short-term spikes.'
+            )}
+          />
+        </Title>
+        <LinkButton
+          size="sm"
+          icon={<IconSettings />}
+          to={`/settings/${organization.slug}/spike-protection/`}
+        >
+          {t('Spike Protection Settings')}
+        </LinkButton>
+      </Flex>
+      {renderTable()}
+    </div>
+  );
 }
 
 export default withSubscription(withOrganization(SpikeProtectionHistoryTable));
