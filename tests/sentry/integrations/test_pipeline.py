@@ -723,6 +723,7 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
         ):
             response = self.pipeline.finish_pipeline()
 
+        assert isinstance(response, HttpResponse)
         assert b"Deleting" in response.content
         schedule.assert_not_called()
 
