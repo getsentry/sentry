@@ -143,12 +143,9 @@ def migrate_shard(
             for debug_file in to_migrate:
                 migrate_debug_file(debug_file, delete_corrupt=delete_corrupt)
 
+            query_limit_reached = len(to_migrate) == _FILES_PER_ACTIVATION
             lowest_id = to_migrate[-1].id if to_migrate else None
-            next_cursor = (
-                lowest_id - 1
-                if lowest_id is not None and len(to_migrate) == _FILES_PER_ACTIVATION
-                else lower_bound
-            )
+            next_cursor = to_migrate[-1].id - 1 if query_limit_reached else lower_bound
             duration_seconds = monotonic() - shard_started_at
             logger.info(
                 "debug_files.objectstore_migration.shard_progress",
