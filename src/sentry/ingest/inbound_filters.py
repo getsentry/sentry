@@ -545,7 +545,7 @@ def _custom_error_type_condition(values: list[str]) -> RuleCondition:
 # Builds the Relay condition that matches one filter condition's glob values.
 _ConditionMatcher = Callable[[list[str]], RuleCondition]
 
-# Where each condition type's data lives on one kind of ingested item.
+# The matcher for each condition type a data type supports.
 _ConditionMatchers = Mapping[CustomInboundFilterConditionType, _ConditionMatcher]
 
 
@@ -563,44 +563,45 @@ def _cidr_matcher(name: str) -> _ConditionMatcher:
     return match
 
 
-# Conditions on the envelope rather than the item. Every data type carries them the
-# same way, so they need no per-data-type field and the catch-all uses them as is.
-# `envelope.client_ip` is the address the envelope was sent from, the same one the
-# legacy `clientIps` filter reads, and needs a Relay that knows the `cidr` operator:
-# an older Relay never matches the condition, so the filter is inactive there.
-_ENVELOPE_MATCHERS: _ConditionMatchers = {
+# Where each condition type's data lives. A condition that reads the envelope has one
+# matcher for every data type. A condition that reads the item names a matcher for
+# each data type that carries the field; the catch-all supports it only when every
+# selectable data type does.
+_CONDITION_MATCHERS: Mapping[
+    CustomInboundFilterConditionType,
+    _ConditionMatcher | Mapping[CustomInboundFilterDataType, _ConditionMatcher],
+] = {
+    CustomInboundFilterConditionType.ERROR_TYPE: {
+        CustomInboundFilterDataType.ERROR: _custom_error_type_condition,
+    },
+    CustomInboundFilterConditionType.ERROR_MESSAGE: {
+        CustomInboundFilterDataType.ERROR: _custom_error_message_condition,
+    },
+    CustomInboundFilterConditionType.LOG_MESSAGE: {
+        CustomInboundFilterDataType.LOG: _field_matcher("log.body"),
+    },
+    CustomInboundFilterConditionType.METRIC_NAME: {
+        CustomInboundFilterDataType.METRIC: _field_matcher("trace_metric.name"),
+    },
+    # Replays, sessions, profiles and transactions are not selectable data types: Relay
+    # reads their release under `event.release`, so they cannot be told apart from
+    # errors. The span matcher reads standalone spans only. A span sent inside a
+    # transaction is dropped with the transaction, which the error matcher reads.
+    CustomInboundFilterConditionType.RELEASE: {
+        CustomInboundFilterDataType.ERROR: _field_matcher("event.release"),
+        CustomInboundFilterDataType.LOG: _field_matcher("log.attributes.sentry.release.value"),
+        CustomInboundFilterDataType.METRIC: _field_matcher(
+            "trace_metric.attributes.sentry.release.value"
+        ),
+        CustomInboundFilterDataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
+    },
+    # `envelope.client_ip` is the address the envelope was sent from, the same one the
+    # legacy `clientIps` filter reads. It needs a Relay that knows the `cidr` operator:
+    # an older Relay never matches the condition, so the filter is inactive there.
     CustomInboundFilterConditionType.IP_ADDRESS: _cidr_matcher("envelope.client_ip"),
 }
 
-
-# Replays, sessions, profiles and transactions are not selectable data types: Relay
-# reads their release under `event.release`, so they cannot be told apart from errors.
-_ITEM_MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
-    CustomInboundFilterDataType.ERROR: {
-        CustomInboundFilterConditionType.ERROR_TYPE: _custom_error_type_condition,
-        CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
-        CustomInboundFilterConditionType.RELEASE: _field_matcher("event.release"),
-    },
-    CustomInboundFilterDataType.LOG: {
-        CustomInboundFilterConditionType.LOG_MESSAGE: _field_matcher("log.body"),
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "log.attributes.sentry.release.value"
-        ),
-    },
-    CustomInboundFilterDataType.METRIC: {
-        CustomInboundFilterConditionType.METRIC_NAME: _field_matcher("trace_metric.name"),
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "trace_metric.attributes.sentry.release.value"
-        ),
-    },
-    # Matches standalone spans only. A span sent inside a transaction is dropped with
-    # the transaction, which the error matcher reads.
-    CustomInboundFilterDataType.SPAN: {
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "span.attributes.sentry.release.value"
-        ),
-    },
-}
+_SINGLE_DATA_TYPES = frozenset(CustomInboundFilterDataType) - {CustomInboundFilterDataType.ALL}
 
 
 def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
@@ -612,27 +613,26 @@ def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionM
     return match
 
 
-def _build_all_data_types_matchers() -> _ConditionMatchers:
-    per_data_type = list(_ITEM_MATCHERS_BY_SINGLE_DATA_TYPE.values())
-    shared_condition_types = set.intersection(*(set(matchers.keys()) for matchers in per_data_type))
+def _matcher(
+    condition_type: CustomInboundFilterConditionType, data_type: CustomInboundFilterDataType
+) -> _ConditionMatcher | None:
+    spec = _CONDITION_MATCHERS[condition_type]
+    if callable(spec):
+        return spec
+    if data_type is not CustomInboundFilterDataType.ALL:
+        return spec.get(data_type)
+    if set(spec) != _SINGLE_DATA_TYPES:
+        return None
+    return _any_condition_matcher(list(spec.values()))
 
-    return {
-        condition_type: _any_condition_matcher(
-            [matchers[condition_type] for matchers in per_data_type]
-        )
-        for condition_type in CustomInboundFilterConditionType
-        if condition_type in shared_condition_types
-    }
-
-
-_ITEM_MATCHERS_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
-    CustomInboundFilterDataType.ALL: _build_all_data_types_matchers(),
-    **_ITEM_MATCHERS_BY_SINGLE_DATA_TYPE,
-}
 
 _MATCHERS_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
-    data_type: {**item_matchers, **_ENVELOPE_MATCHERS}
-    for data_type, item_matchers in _ITEM_MATCHERS_BY_DATA_TYPE.items()
+    data_type: {
+        condition_type: matcher
+        for condition_type in CustomInboundFilterConditionType
+        if (matcher := _matcher(condition_type, data_type)) is not None
+    }
+    for data_type in CustomInboundFilterDataType
 }
 
 
