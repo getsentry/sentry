@@ -70,14 +70,14 @@ describe('SentryAppDetails', () => {
   it('shows Enabled: yes for a non-disabled app', async () => {
     renderSentryAppDetails({isDisabled: false});
 
-    expect(await screen.findByText('Enabled:')).toBeInTheDocument();
+    expect(await screen.findByText('Enabled')).toBeInTheDocument();
     expect(screen.getByText('yes')).toBeInTheDocument();
   });
 
   it('shows Enabled: no for a disabled app', async () => {
     renderSentryAppDetails({isDisabled: true});
 
-    expect(await screen.findByText('Enabled:')).toBeInTheDocument();
+    expect(await screen.findByText('Enabled')).toBeInTheDocument();
     expect(screen.getAllByText('no')).toHaveLength(2);
   });
 

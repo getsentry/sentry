@@ -1,7 +1,8 @@
 import moment from 'moment-timezone';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
+
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 
 export type BeaconData = {
@@ -24,7 +25,7 @@ type Props = {
 export function BeaconOverview({data}: Props) {
   return (
     <DetailsContainer>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Contact">
           {data.email ? <a href={`mailto:${data.email}`}>{data.email}</a> : 'n/a'}
         </DetailLabel>
@@ -40,8 +41,8 @@ export function BeaconOverview({data}: Props) {
         <DetailLabel title="Docker">
           {data.isDocker === true ? 'Yes' : data.isDocker === false ? 'No' : 'n/a'}
         </DetailLabel>
-      </DetailList>
-      <DetailList>
+      </DescriptionList>
+      <DescriptionList gap="md">
         <DetailLabel title="First Checkin">
           {moment(data.firstCheckin).fromNow()}
         </DetailLabel>
@@ -50,7 +51,7 @@ export function BeaconOverview({data}: Props) {
         </DetailLabel>
         <DetailLabel title="Version">{data.version}</DetailLabel>
         <DetailLabel title="Install ID">{data.installID}</DetailLabel>
-      </DetailList>
+      </DescriptionList>
     </DetailsContainer>
   );
 }

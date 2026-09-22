@@ -46,26 +46,26 @@ describe('Broadcast Details', () => {
 
     expect(await screen.findByRole('heading', {name: 'Broadcasts'})).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(`Media URL:${broadcast.mediaUrl}`))
+      screen.getByText(textWithMarkupMatcher(`Media URL${broadcast.mediaUrl}`))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher('Category:Blog Post'))
+      screen.getByText(textWithMarkupMatcher('CategoryBlog Post'))
     ).toBeInTheDocument();
-    expect(screen.getByText(textWithMarkupMatcher('Region:DE'))).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher('RegionDE'))).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher('Platform:Bun, Capacitor'))
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher('Product:Errors, Spans'))
+      screen.getByText(textWithMarkupMatcher('PlatformBun, Capacitor'))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher('Created By:admin@sentry.io'))
+      screen.getByText(textWithMarkupMatcher('ProductErrors, Spans'))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher('Organization IDs:123, 456'))
+      screen.getByText(textWithMarkupMatcher('Created Byadmin@sentry.io'))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher('Early Adopter:Yes'))
+      screen.getByText(textWithMarkupMatcher('Organization IDs123, 456'))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher('Early AdopterYes'))
     ).toBeInTheDocument();
   });
 });

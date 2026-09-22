@@ -57,8 +57,8 @@ describe('Doc Integration Details', () => {
     ).toBeInTheDocument();
 
     const terms = screen.getAllByRole('term');
-    expect(terms[0]).toHaveTextContent('Name:');
-    expect(terms[6]).toHaveTextContent('Popularity:');
+    expect(terms[0]).toHaveTextContent('Name');
+    expect(terms[6]).toHaveTextContent('Popularity');
 
     const definitions = screen.getAllByRole('definition');
     expect(definitions[0]).toHaveTextContent('hellboy');

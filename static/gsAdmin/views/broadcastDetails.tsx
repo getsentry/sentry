@@ -3,6 +3,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -25,7 +26,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {
@@ -121,7 +121,7 @@ export function BroadcastDetails() {
   };
 
   const overviewSection = (
-    <DetailList>
+    <DescriptionList gap="md">
       <DetailLabel title="Title">{data.title}</DetailLabel>
       <DetailLabel title="Message">{data.message}</DetailLabel>
       <DetailLabel title="Link">
@@ -151,7 +151,7 @@ export function BroadcastDetails() {
         {data.dateExpires ? moment(data.dateExpires).fromNow() : '∞'}
       </DetailLabel>
       <DetailLabel title="Status">{data.isActive ? 'Active' : 'Inactive'}</DetailLabel>
-    </DetailList>
+    </DescriptionList>
   );
 
   const editSection = (
@@ -303,7 +303,7 @@ export function BroadcastDetails() {
   );
 
   const metadataSection = (
-    <DetailList>
+    <DescriptionList gap="md">
       <DetailLabel title="Seen By">
         {data.userCount?.toLocaleString()} user(s)
       </DetailLabel>
@@ -316,7 +316,7 @@ export function BroadcastDetails() {
           {data.syncLocked ? 'Locked (manual edits)' : 'Auto-synced from changelog'}
         </DetailLabel>
       )}
-    </DetailList>
+    </DescriptionList>
   );
 
   const actions: ActionItem[] = [
