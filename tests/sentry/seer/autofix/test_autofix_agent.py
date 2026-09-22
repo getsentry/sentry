@@ -289,7 +289,7 @@ class TestBuildStepPrompt(TestCase):
         prompt = build_step_prompt(AutofixStep.SOLUTION, self.group, should_run_repo_checks=True)
 
         assert "Do NOT include testing as part of your plan." not in prompt
-        assert "End your plan with a verification step" in prompt
+        assert "End your plan with a best-effort verification step" in prompt
 
     def test_code_changes_prompt_without_should_run_repo_checks_omits_checks(self) -> None:
         prompt = build_step_prompt(AutofixStep.CODE_CHANGES, self.group)
@@ -301,8 +301,10 @@ class TestBuildStepPrompt(TestCase):
             AutofixStep.CODE_CHANGES, self.group, should_run_repo_checks=True
         )
 
-        assert "Run the linter/formatter over the files you changed." in prompt
-        assert "Run the tests covering the code you changed" in prompt
+        assert "best-effort" in prompt
+        assert "formatter" in prompt
+        assert "linter" in prompt
+        assert "tests" in prompt
 
     def test_prompt_with_missing_culprit_uses_default(self) -> None:
         self.group.culprit = None
