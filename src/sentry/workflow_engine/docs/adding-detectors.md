@@ -27,12 +27,61 @@ Before coding, identify:
 flowchart TD
     Start[New detector] --> State{Needs persisted priority, dedupe, thresholds, or resolution?}
     State -->|Yes| Stateful[Inherit StatefulDetectorHandler]
-    State -->|No| Shared{Can use shared condition loading and metrics?}
-    Shared -->|Yes| Base[Inherit BaseDetectorHandler]
-    Shared -->|No| Interface[Implement DetectorHandler]
-    Base --> Own[Implement full evaluate orchestration]
-    Interface --> OwnAll[Implement complete evaluate contract]
+    State -->|No| Default{Does the default stateless evaluation fit?}
+    Default -->|Yes| Handler[Inherit DetectorHandler]
+    Default -->|No| Custom[Inherit DetectorHandler and override evaluate]
+    Stateful --> Hooks[Implement extract_value, extract_dedupe_value, and create_occurrence]
+    Handler --> Minimal[Implement extract_value and create_occurrence]
+    Custom --> Minimal
 ```
+
+### Handler hierarchy
+
+| Class                                                         | Role                                                                                                                                                                |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`BaseDetectorHandler`](../handlers/detector/base.py)         | Abstract interface: `_evaluate`, `evaluate`, `extract_value`, and `create_occurrence`. Holds the detector and nothing else.                                         |
+| [`DetectorHandler`](../handlers/detector/base.py)             | Shared implementation: condition-group loading, evaluation metrics, a default stateless `evaluate`, and shared evidence and event data. The base for new detectors. |
+| [`StatefulDetectorHandler`](../handlers/detector/stateful.py) | `DetectorHandler` plus dedupe, priority thresholds, durable state, and resolution. Replaces the default `evaluate`.                                                 |
+
+### `BaseDetectorHandler`
+
+[`BaseDetectorHandler`](../handlers/detector/base.py) is the abstract interface. Do not inherit this directly.
+
+The exception is [`ErrorDetectorHandler`](../../grouping/grouptype.py), a placeholder
+that associates error issues with a detector. It does not get evaluated in the normal detector evaluation pipeline and its methods are all stubs.
+
+### `DetectorHandler`
+
+[`DetectorHandler`](../handlers/detector/base.py) is the base class for every detector
+that does not need persisted state. It loads the detector's trigger condition group and
+provides a default stateless `evaluate`. A concrete subclass implements `extract_value`
+and `create_occurrence`.
+
+#### Default stateless evaluation
+
+```mermaid
+flowchart TD
+    Packet[Receive DataPacket] --> Extract[extract_value]
+    Extract --> Group[Normalize to group key and value pairs]
+    Group --> Conditions[evaluate_conditions for each group]
+    Conditions --> Missing{Condition group missing?}
+    Missing -->|Yes| Skip[Skip the group]
+    Missing -->|No| Priority{Selected priority is OK?}
+    Priority -->|Yes| None[No Issue Platform output]
+    Priority -->|No| Occurrence[create_occurrence and build IssueOccurrence]
+```
+
+Override these hooks to adjust the default evaluation:
+
+| Hook                    | Default                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| `evaluate_conditions`   | Evaluate the trigger condition group and select the highest triggered priority |
+| `get_issue_fingerprint` | `detector:<detector_id>`, plus `:<group_key>` for grouped detectors            |
+| `get_event_id`          | `event_id` from the event data, otherwise a random UUID                        |
+| `get_occurrence_id`     | UUID5 of the detector ID, group key, and event ID                              |
+
+Override `evaluate` itself when the detector needs a different flow. See
+ [`PreprodSizeAnalysisDetectorHandler`](../../preprod/size_analysis/grouptype.py) for how to achieve this
 
 ### `StatefulDetectorHandler`
 
@@ -51,23 +100,6 @@ It provides:
 - Shared metrics and evidence data
 
 Uptime and metric issues are canonical examples.
-
-### `BaseDetectorHandler`
-
-[`BaseDetectorHandler`](../handlers/detector/base.py) provides condition-group loading
-and common evaluation metrics, but it does not provide a general stateless evaluation
-algorithm. A concrete subclass must implement `evaluate`, `create_occurrence`,
-`extract_value`, and `extract_dedupe_value`; custom orchestration can provide trivial
-implementations for hooks it does not use. The subclass owns its state and output
-semantics.
-
-Preprod size analysis is a canonical direct `BaseDetectorHandler` implementation.
-
-### `DetectorHandler`
-
-[`DetectorHandler`](../handlers/detector/base.py) is the minimal interface. A direct
-implementation receives a detector and must return the complete grouped evaluation map
-from `evaluate`. Use it only when the shared base behavior is inappropriate.
 
 ## Design the Packet and Evaluation Value
 
@@ -89,7 +121,8 @@ packet = DataPacket(
 The payload type is what the producer knows. The evaluation value is what detector
 conditions consume. They can differ.
 
-A stateful handler implements:
+Every handler implements `extract_value`. A stateful handler also implements
+`extract_dedupe_value`:
 
 ```python
 def extract_value(
@@ -103,7 +136,8 @@ def extract_dedupe_value(self, data_packet: DataPacket[ExamplePacket]) -> int:
 ```
 
 `extract_value` can return one value or a mapping of group key to value. Group keys
-create independent detector state and Issue Platform fingerprints for one detector.
+create independent Issue Platform fingerprints for one detector, and independent
+detector state for stateful handlers.
 
 `extract_dedupe_value` must return a positive integer whose ordering matches the source
 stream. Missing Redis state is read as zero, so a first value of zero or less is skipped.
@@ -129,13 +163,13 @@ A `DetectorGroupKey` is `str | None`:
   Issue Platform group.
 - Do not put unbounded IDs or raw user-controlled values into group keys without a
   product-level retention and cardinality plan.
-- Do not return an empty dictionary to mean "no groups." The stateful base treats an
-  empty dictionary as one ungrouped evaluation value. Override orchestration if a
-  packet can legitimately contain no groups to evaluate.
+- Do not return an empty dictionary to mean "no groups." Both the default and stateful
+  evaluations treat an empty dictionary as one ungrouped evaluation value. Override
+  `evaluate` if a packet can legitimately contain no groups to evaluate.
 
 ## Implement Occurrence Creation
 
-`BaseDetectorHandler.create_occurrence` has this contract:
+Every handler implements `create_occurrence` with this contract:
 
 ```python
 def create_occurrence(
@@ -175,8 +209,12 @@ def create_occurrence(
 
 Use an existing product implementation for the exact event shape. The snippet is
 illustrative and omits product-specific evidence. The returned dictionary must be
-mutable. `StatefulDetectorHandler` overwrites `timestamp`, `project_id`, and `event_id`;
-it supplies defaults for `environment`, `platform`, `received`, and `tags`.
+mutable. Both evaluations supply defaults for `environment`, `platform`, `received`,
+and `tags`, and overwrite `timestamp` and `project_id`. They differ on `event_id`:
+
+- The default `DetectorHandler.evaluate` uses a random or derived `event_id` and then generates an occurrence ID from it.
+- `StatefulDetectorHandler` overwrites `event_id` with a random ID that is also used as
+  the occurrence ID.
 
 ### Evidence
 
@@ -190,6 +228,19 @@ The stateful handler adds standard detector and condition evidence. Product-spec
 evidence should be serializable, bounded in size, and avoid sensitive data.
 
 ### Fingerprints
+
+#### Default evaluation
+
+The default evaluation uses `get_issue_fingerprint(group_key)`:
+
+```text
+detector:<detector_id>
+detector:<detector_id>:<group_key>
+```
+
+Overriding `get_issue_fingerprint` replaces the whole fingerprint.
+
+#### Stateful evaluation
 
 The stateful implementation always includes its detector state key:
 
@@ -493,7 +544,8 @@ cause a producer to run.
 
 - [ ] Confirm Workflow Engine is the correct detection system.
 - [ ] Define the packet payload and evaluation value types.
-- [ ] Choose an ordered, integer dedupe value.
+- [ ] Choose the handler: `StatefulDetectorHandler` or `DetectorHandler`.
+- [ ] For stateful detectors, choose an ordered, integer dedupe value.
 - [ ] Decide whether results are grouped and bound group-key cardinality.
 - [ ] Specify trigger, escalation, and recovery transitions.
 - [ ] Specify stable trigger and resolution fingerprints.
@@ -535,12 +587,12 @@ cause a producer to run.
 | Area             | Required cases                                                               |
 | ---------------- | ---------------------------------------------------------------------------- |
 | Value extraction | Normal packet, malformed or missing product data                             |
-| Dedupe           | New, duplicate, and out-of-order packets                                     |
+| Dedupe           | Stateful: new, duplicate, and out-of-order packets                           |
 | Conditions       | Each configured priority and no-match/OK result                              |
-| Thresholds       | Below threshold, transition at threshold, counter reset, recovery            |
+| Thresholds       | Stateful: below threshold, transition at threshold, counter reset, recovery  |
 | Grouping         | Independent state and fingerprints for at least two group keys               |
 | Occurrence       | Title, type, priority, evidence, event data, fingerprint                     |
-| Resolution       | Same issue identity as trigger and correct status change                     |
+| Resolution       | Stateful: same issue identity as trigger and correct status change           |
 | Registry         | Group type, handler, validator, source, and conditions resolve after startup |
 | API              | Create, update, invalid config, invalid condition, delete, audit, rollback   |
 | Data source      | Correct mapping, disabled detector exclusion, cache invalidation             |
@@ -551,6 +603,8 @@ cause a producer to run.
 Use existing factory methods rather than direct model creation in tests. The most useful
 shared references are:
 
+- [`test_base.py`](../../../../tests/sentry/workflow_engine/handlers/detector/test_base.py)
+  for the default stateless evaluation
 - [`test_stateful.py`](../../../../tests/sentry/workflow_engine/handlers/detector/test_stateful.py)
 - [`test_data_packet.py`](../../../../tests/sentry/workflow_engine/processors/test_data_packet.py)
 - [`test_detector.py`](../../../../tests/sentry/workflow_engine/processors/test_detector.py)
@@ -564,7 +618,7 @@ shared references are:
 | [`UptimeDetectorHandler`](../../uptime/grouptype.py)                                                  | Stateful trigger/recovery thresholds, source data, evidence, and API config |
 | [`MetricIssueDetectorHandler`](../../incidents/grouptype.py)                                          | Stateful metric thresholds, anomaly payloads, and metric evidence           |
 | Processing error handlers in [`processing_errors/grouptype.py`](../../processing_errors/grouptype.py) | Customized state transitions and asymmetric resolution                      |
-| [`PreprodSizeAnalysisDetectorHandler`](../../preprod/size_analysis/grouptype.py)                      | Custom direct `BaseDetectorHandler` orchestration                           |
+| [`PreprodSizeAnalysisDetectorHandler`](../../preprod/size_analysis/grouptype.py)                      | Custom `DetectorHandler.evaluate` override                                  |
 
 Copy architecture, not product assumptions. Each example has specialized producer,
 state, and lifecycle behavior.
