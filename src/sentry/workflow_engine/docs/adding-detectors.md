@@ -369,25 +369,41 @@ class ExampleGroupType(GroupType):
     category = GroupCategory.ERROR.value  # Choose the applicable category.
     released = False
     default_priority = PriorityLevel.HIGH
-    detector_settings = DetectorSettings(
-        handler=ExampleDetectorHandler,
-        validator=ExampleDetectorValidator,
-        config_schema={
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-                "failure_threshold": {"type": "integer", "minimum": 1},
-                "recovery_threshold": {"type": "integer", "minimum": 1},
-            },
-            "required": ["failure_threshold", "recovery_threshold"],
-            "additionalProperties": False,
-        },
-    )
 ```
 
 Use the Issue Platform documentation and existing group types to choose the type ID,
 category, release controls, priority, auto-resolution, escalation behavior, and
 notification configuration.
+
+### Register detector settings
+
+The group type describes the issue. The detector components live in a
+[`DetectorSettings`](../types.py) subclass registered in
+[`detector_settings_registry`](../registry.py) under the group type's slug:
+
+```python
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DetectorSettings
+
+
+@detector_settings_registry.register(ExampleGroupType.slug)
+class ExampleDetectorSettings(DetectorSettings):
+    handler = ExampleDetectorHandler
+    validator = ExampleDetectorValidator
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+            "failure_threshold": {"type": "integer", "minimum": 1},
+            "recovery_threshold": {"type": "integer", "minimum": 1},
+        },
+        "required": ["failure_threshold", "recovery_threshold"],
+        "additionalProperties": False,
+    }
+```
+
+Register the class, not an instance. The settings can also live in their own module, as long as that module is
+imported during application startup.
 
 [`DetectorSettings`](../types.py) fields are:
 
@@ -398,12 +414,14 @@ notification configuration.
 | `config_schema` | Save-time JSON schema for `Detector.config`                             |
 | `filter`        | Optional `Q` filter controlling user-visible detector rows of this type |
 
-The `GroupType` subclass registers itself with the global Issue Platform registry at
-class creation. Sentry startup imports the root `grouptype.py` of every installed Django
-app through [`import_grouptype`](../../issues/grouptype.py). Put the type there or import
-a nested implementation from that file, as
-[`sentry.preprod.grouptype`](../../preprod/grouptype.py) does. Add a test that resolves
-the type by slug after normal application startup.
+Both registrations happen at import time. The `GroupType` subclass registers itself
+with the global Issue Platform registry when the class is created. The settings class
+registers itself when its decorator runs. Sentry startup imports the root
+`grouptype.py` of every installed Django app through
+[`import_grouptype`](../../issues/grouptype.py). Put both classes there, or import a
+nested implementation from that file, as
+[`sentry.preprod.grouptype`](../../preprod/grouptype.py) does. Add a test that checks
+both the group type and its settings resolve by slug after normal application startup.
 
 ## Implement API Validation
 
@@ -553,7 +571,8 @@ cause a producer to run.
 ### Issue type and handler
 
 - [ ] Add or update the product `GroupType`.
-- [ ] Add `DetectorSettings` with handler, validator, and strict config schema.
+- [ ] Register a `DetectorSettings` subclass in `detector_settings_registry` with
+      handler, validator, and strict config schema.
 - [ ] Implement the selected detector handler abstraction.
 - [ ] Implement occurrence evidence and event data.
 - [ ] Implement thresholds and recovery for stateful detectors.
@@ -593,7 +612,7 @@ cause a producer to run.
 | Grouping         | Independent state and fingerprints for at least two group keys               |
 | Occurrence       | Title, type, priority, evidence, event data, fingerprint                     |
 | Resolution       | Stateful: same issue identity as trigger and correct status change           |
-| Registry         | Group type, handler, validator, source, and conditions resolve after startup |
+| Registry         | Group type, detector settings, source, and conditions resolve after startup  |
 | API              | Create, update, invalid config, invalid condition, delete, audit, rollback   |
 | Data source      | Correct mapping, disabled detector exclusion, cache invalidation             |
 | Producer         | Correct packet/source identity and exception behavior                        |

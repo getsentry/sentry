@@ -249,7 +249,8 @@ placement is a convention-only invariant.
 ## Detectors
 
 A [`Detector`](../models/detector.py) represents configured detection. A runtime handler
-is selected through the detector type's [`DetectorSettings`](../types.py).
+is selected through the [`DetectorSettings`](../types.py) registered for the detector
+type in [`detector_settings_registry`](../registry.py).
 
 Handlers that inherit `DetectorHandler` without overriding `evaluate` use the
 [default stateless evaluation](adding-detectors.md#default-stateless-evaluation). It

@@ -53,8 +53,9 @@ same after detector selection.
 
 ### 3. Evaluate each detector
 
-`process_detectors` obtains `detector.detector_handler` from the detector's registered
-`GroupType.detector_settings` and calls `_evaluate(packet)`. `DetectorHandler._evaluate`
+`process_detectors` obtains `detector.detector_handler` from the `DetectorSettings`
+registered for the detector's type in
+[`detector_settings_registry`](../registry.py) and calls `_evaluate(packet)`. `DetectorHandler._evaluate`
 calls the handler's `evaluate` and records the `workflow_engine_detector.evaluation`
 metric.
 
