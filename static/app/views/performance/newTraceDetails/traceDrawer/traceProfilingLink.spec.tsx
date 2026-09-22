@@ -13,7 +13,7 @@ const options = {
   threadId: 'thread-id',
 };
 
-function makeTransactionNode(
+function makeEapTransactionSpan(
   overrides: Parameters<typeof makeEAPSpan>[0] = {}
 ): EapSpanNode {
   return new EapSpanNode(
@@ -33,7 +33,7 @@ function makeTransactionNode(
 describe('traceProfilingLink', () => {
   it('requires a project slug', () => {
     expect(
-      makeTraceContinuousProfilingLink(makeTransactionNode(), 'profiler-id', {
+      makeTraceContinuousProfilingLink(makeEapTransactionSpan(), 'profiler-id', {
         ...options,
         projectSlug: '',
       })
@@ -42,14 +42,14 @@ describe('traceProfilingLink', () => {
 
   it('requires a profiler ID', () => {
     expect(
-      makeTraceContinuousProfilingLink(makeTransactionNode(), '', options)
+      makeTraceContinuousProfilingLink(makeEapTransactionSpan(), '', options)
     ).toBeNull();
   });
 
   it('requires a transaction ID', () => {
     expect(
       makeTraceContinuousProfilingLink(
-        makeTransactionNode({transaction_id: undefined}),
+        makeEapTransactionSpan({transaction_id: undefined}),
         'profiler-id',
         options
       )
@@ -58,7 +58,7 @@ describe('traceProfilingLink', () => {
 
   it('creates a time window around a transaction without a duration', () => {
     const timestamp = Date.now();
-    const node = makeTransactionNode({
+    const node = makeEapTransactionSpan({
       start_timestamp: timestamp / 1e3,
       end_timestamp: timestamp / 1e3,
     });
@@ -78,7 +78,7 @@ describe('traceProfilingLink', () => {
   });
 
   it('uses the parent transaction range and IDs for a child span', () => {
-    const transaction = makeTransactionNode();
+    const transaction = makeEapTransactionSpan();
     const span = new EapSpanNode(transaction, makeEAPSpan({event_id: 'child-span-id'}), {
       organization,
     });
