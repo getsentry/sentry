@@ -797,10 +797,7 @@ class GitlabWebhookEndpoint(Endpoint):
                     try:
                         event_handler(event, integration=integration, organization=organization)
                     except Http404 as e:
-                        # Http404 is an expected response when required webhook
-                        # payload fields are missing (e.g. unrecognized project
-                        # ID). Record it as a halt so the lifecycle does not
-                        # create a Sentry error issue.
+                        # Expected when payload fields are missing; record as halt, not error.
                         lifecycle.record_halt(e)
                         raise
 
