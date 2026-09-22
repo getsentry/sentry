@@ -443,8 +443,6 @@ def create_feedback_issue(
         quantity=1,
     )
 
-    # The issue platform assigns the group later; post-processing links attachments
-    # to it and retries promotion for attachments that arrive in the meantime.
     safe_execute(
         save_pending_attachments,
         project=project,
