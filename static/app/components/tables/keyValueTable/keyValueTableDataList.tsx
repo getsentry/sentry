@@ -36,7 +36,7 @@ export function KeyValueTableDataList({
   return (
     <TableGrid
       className={className}
-      columns={{zero: 'minmax(0, 1fr)', sm: '175px minmax(0, 1fr)'}}
+      columns="175px minmax(0, 1fr)"
       gap="md"
       hasMargin={margin}
       role="table"
