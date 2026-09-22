@@ -32,12 +32,14 @@ from sentry.integrations.cursor_origin.handlers import (
     WebhookEventHandler,
 )
 from sentry.integrations.cursor_origin.keys import signing_keys_for
+from sentry.integrations.cursor_origin.pull_request import PullRequestLifecycleHandler
 from sentry.integrations.cursor_origin.push import RepositoryPushedHandler
 from sentry.integrations.cursor_origin.repository_events import RepositoryMetadataUpdatedHandler
 from sentry.integrations.cursor_origin.webhook_types import OriginPayloadError
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
+from sentry.silo.base import SiloMode
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.cursor_origin")
@@ -95,7 +97,9 @@ def verify_delivery(request: HttpRequest, body: bytes) -> Verification:
         logger.warning("cursor_origin.webhook.unsigned")
         return Verification.REFUSED
 
-    if not timestamp_is_fresh(timestamp):
+    # We only ever verify timestamps in control. In cells, the request was already
+    # forwarded from control and verified there, so we don't need to do it again.
+    if SiloMode.get_current_mode() is not SiloMode.CELL and not timestamp_is_fresh(timestamp):
         logger.warning("cursor_origin.webhook.stale_timestamp", extra={"delivery_id": delivery_id})
         return Verification.REFUSED
 
@@ -140,6 +144,12 @@ HANDLERS: dict[str, type[WebhookEventHandler]] = {
     "installation.suspended": InstallationRemovedHandler,
     "installation.unsuspended": InstallationRestoredHandler,
     "installation.updated": InstallationUpdatedHandler,
+    "pull_request.closed": PullRequestLifecycleHandler,
+    "pull_request.created": PullRequestLifecycleHandler,
+    "pull_request.merged": PullRequestLifecycleHandler,
+    "pull_request.metadata.updated": PullRequestLifecycleHandler,
+    "pull_request.published": PullRequestLifecycleHandler,
+    "pull_request.reopened": PullRequestLifecycleHandler,
     "repository.metadata.updated": RepositoryMetadataUpdatedHandler,
     "repository.pushed": RepositoryPushedHandler,
 }

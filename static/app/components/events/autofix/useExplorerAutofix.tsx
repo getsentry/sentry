@@ -29,10 +29,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {makeSeerPathname, makeSeerQuery} from 'sentry/views/issueDetails/autofix/utils';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {
   isArtifact,
@@ -866,12 +866,8 @@ export function useExplorerAutofix(
                 issueId: groupId,
                 notification: {
                   navigateTo: {
-                    pathname: normalizeUrl(
-                      `/organizations/${orgSlug}/issues/${groupId}/`
-                    ),
-                    query: {
-                      seerDrawer: 'true',
-                    },
+                    pathname: makeSeerPathname(organization, groupId),
+                    query: makeSeerQuery(organization),
                   },
                   project: {
                     avatar: 'https://sentry.io/favicon.ico', // TODO(ryan953): Use the project avatar url or base64 encoded bytes
@@ -942,15 +938,7 @@ export function useExplorerAutofix(
         throw e;
       }
     },
-    [
-      api,
-      group.shortId,
-      groupId,
-      orgSlug,
-      organization.features,
-      queryClient,
-      serviceWorker,
-    ]
+    [api, group.shortId, groupId, orgSlug, organization, queryClient, serviceWorker]
   );
 
   /**

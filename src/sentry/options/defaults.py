@@ -1434,7 +1434,7 @@ register(
 register(
     "issues.action_log.use_db_sequence_for_outbox_identifier",
     type=Bool,
-    default=True,
+    default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3714,6 +3714,14 @@ register(
     "uptime.config-drift.cycle-hours",
     type=Int,
     default=24,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Whether the drift sweep republishes the configs it finds missing, rather than only counting them.
+register(
+    "uptime.config-drift.repair",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
