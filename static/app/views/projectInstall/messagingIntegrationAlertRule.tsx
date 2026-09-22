@@ -49,7 +49,19 @@ export function useMessagingIntegrationAlertRule(
     clearChannelValidation,
     onChannelChange,
     onCreateChannel,
-  } = useMessagingChannel({channel, integration, provider, setChannel, variant});
+  } = useMessagingChannel({
+    channel,
+    integration,
+    provider,
+    setChannel,
+    onChannelSelected: variant
+      ? () =>
+          trackAnalytics('project_creation.notify_channel_changed', {
+            organization,
+            variant,
+          })
+      : undefined,
+  });
 
   const providerOptions = useMemo(
     () =>
