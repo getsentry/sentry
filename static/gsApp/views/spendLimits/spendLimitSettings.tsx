@@ -212,12 +212,12 @@ function InnerSpendLimitSettings({
                 </Stack>
                 {hasPerCategory ? (
                   renderInput({
-                      activePlan,
-                      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-                      category,
-                      currentSpendingLimit: currentBudget,
-                      onUpdate: handleUpdate,
-                      reserved,
+                    activePlan,
+                    budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+                    category,
+                    currentSpendingLimit: currentBudget,
+                    onUpdate: handleUpdate,
+                    reserved,
                   })
                 ) : (
                   <PerCategoryWarning productName={productName} />

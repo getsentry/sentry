@@ -5,7 +5,7 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -23,8 +23,8 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
+import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import {BudgetModeSettings} from 'getsentry/views/spendLimits/budgetModeSettings';
-import {SpendLimitInput} from 'getsentry/views/spendLimits/spendLimitInput';
 import {SpendLimitSettings} from 'getsentry/views/spendLimits/spendLimitSettings';
 
 import {
@@ -235,19 +235,22 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                                 {t('Monthly spending limit')}
                               </Heading>
                               <Container width="100%">
-                                <field.Base<HTMLInputElement>>
-                                  {(baseProps, {indicator}) => (
-                                    <SpendLimitInput
-                                      {...props}
-                                      currentSpendingLimit={field.state.value}
-                                      fieldProps={baseProps}
-                                      indicator={indicator}
-                                      onUpdate={({newData}) =>
-                                        field.handleChange(newData.sharedMaxBudget ?? 0)
-                                      }
-                                    />
+                                <field.Input
+                                  aria-label={t(
+                                    'Custom shared spending limit (in dollars)'
                                   )}
-                                </field.Base>
+                                  leadingItems={<Text variant="muted">$</Text>}
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  placeholder="300"
+                                  value={(field.state.value / 100).toString()}
+                                  onChange={value =>
+                                    field.handleChange(
+                                      Math.max(parseInt(value, 10) || 0, 0) * 100
+                                    )
+                                  }
+                                />
                               </Container>
                               <field.Meta.HintText>
                                 {t(
@@ -261,23 +264,32 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                     }
 
                     const category = props.category;
+                    const displayName = getPlanCategoryName({
+                      plan: subscription.planDetails,
+                      category,
+                      capitalize: false,
+                    });
                     return (
                       <form.AppField name={`budgets.${category}`}>
                         {field => (
                           <Container width="100%">
-                            <field.Base<HTMLInputElement>>
-                              {(baseProps, {indicator}) => (
-                                <SpendLimitInput
-                                  {...props}
-                                  currentSpendingLimit={field.state.value ?? 0}
-                                  fieldProps={baseProps}
-                                  indicator={indicator}
-                                  onUpdate={({newData}) =>
-                                    field.handleChange(newData[category] ?? 0)
-                                  }
-                                />
+                            <field.Input
+                              aria-label={t(
+                                'Custom %s spending limit (in dollars)',
+                                displayName
                               )}
-                            </field.Base>
+                              leadingItems={<Text variant="muted">$</Text>}
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              placeholder="300"
+                              value={((field.state.value ?? 0) / 100).toString()}
+                              onChange={value =>
+                                field.handleChange(
+                                  Math.max(parseInt(value, 10) || 0, 0) * 100
+                                )
+                              }
+                            />
                           </Container>
                         )}
                       </form.AppField>
