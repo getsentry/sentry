@@ -8,6 +8,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -155,3 +156,35 @@ class TestEmailActivityHandler(BaseWorkflowTest):
 
         mock_strategy_cls.assert_called_once_with(group=activity.group)
         mock_send.assert_called_once_with(invocation, activity, mock_target)
+
+    @mock.patch(
+        "sentry.notifications.notification_action.activity_registry.email.send_activity_notification"
+    )
+    def test_pr_ready_issue_owner_with_issue_alerts_disabled(
+        self, mock_send: mock.MagicMock
+    ) -> None:
+        self.create_group_owner(group=self.group, user_id=self.user.id)
+        self.create_notification_setting_option(
+            user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            value="never",
+        )
+        self.action.config = {"target_type": ActionTarget.ISSUE_OWNERS}
+        self.action.save()
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SEER_PR_READY_FOR_REVIEW.value,
+        )
+        invocation = self.create_action_invocation(
+            event=activity,
+            group=self.group,
+            action=self.action,
+            detector=self.detector,
+            workflow_id=self.workflow.id,
+        )
+
+        EmailActivityHandler.invoke_action(invocation=invocation, activity=activity)
+
+        mock_send.assert_not_called()
