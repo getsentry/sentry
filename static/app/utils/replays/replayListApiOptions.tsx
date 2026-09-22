@@ -12,6 +12,7 @@ interface QueryOptions {
   cursor?: string;
   end?: string;
   environment?: string[];
+  per_page?: number;
   project?: string[];
   query?: string;
   sort?: string;

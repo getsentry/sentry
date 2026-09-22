@@ -1217,11 +1217,11 @@ const text = lastMessage.content;`,
 }
 
 /**
- * The Node configure steps for the selected agent integration, without the data
- * collection step. Callers that compose these into their own onboarding append
- * `getAgentDataCollectionStep` themselves, so the step appears exactly once.
+ * The configure steps for the selected agent integration, without the data
+ * collection step. The factory below appends that step once around these, so no
+ * branch can miss it or repeat it.
  */
-export function getAgentConfigureSteps(
+function getAgentConfigureSteps(
   params: DocsParams,
   {
     packageName = '@sentry/node',

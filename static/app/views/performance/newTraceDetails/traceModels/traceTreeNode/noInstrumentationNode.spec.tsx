@@ -2,17 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {
-  makeEAPSpan,
-  makeSpan,
-  makeTransaction,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import {makeEAPSpan} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
 import {NoInstrumentationNode} from './noInstrumentationNode';
-import {SpanNode} from './spanNode';
-import {TransactionNode} from './transactionNode';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
@@ -191,73 +185,6 @@ describe('NoInstrumentationNode', () => {
       expect(path).toHaveLength(1);
       expect(path[0]).toMatch(/^ms-/); // Should start with 'ms-'
       expect(typeof path[0]).toBe('string');
-    });
-
-    it('should include transaction ID in path when closest transaction parent found', () => {
-      const extra = createMockExtra();
-      const transactionValue = makeTransaction({
-        event_id: 'transaction-id',
-        'transaction.op': 'navigation',
-      });
-      const spanValue = makeSpan({
-        span_id: 'span-id',
-        op: 'db.query',
-      });
-      const previousSpanValue = makeSpan({span_id: 'previous'});
-      const nextSpanValue = makeSpan({span_id: 'next'});
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const transactionNode = new TransactionNode(null, transactionValue, extra);
-      const spanNode = new SpanNode(transactionNode, spanValue, extra);
-      const previousNode = new SpanNode(spanNode, previousSpanValue, extra);
-      const nextNode = new SpanNode(spanNode, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        spanNode,
-        missingInstrValue,
-        extra
-      );
-
-      const path = node.pathToNode();
-      expect(path).toHaveLength(2);
-      expect(path[0]).toMatch(/^ms-/); // First should be missing instrumentation ID
-      expect(path[1]).toBe('txn-transaction-id'); // Second should be transaction ID
-    });
-
-    it('should find closest transaction parent even when deeply nested', () => {
-      const extra = createMockExtra();
-      const transactionValue = makeTransaction({
-        event_id: 'root-transaction',
-        transaction: 'navigation',
-        'transaction.op': 'navigation',
-      });
-      const span1Value = makeSpan({span_id: 'span1', op: 'db.query'});
-      const span2Value = makeSpan({span_id: 'span2', op: 'http.request'});
-      const span3Value = makeSpan({span_id: 'span3', op: 'cache.get'});
-
-      const previousSpanValue = makeSpan({span_id: 'previous'});
-      const nextSpanValue = makeSpan({span_id: 'next'});
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const transactionNode = new TransactionNode(null, transactionValue, extra);
-      const span1Node = new SpanNode(transactionNode, span1Value, extra);
-      const span2Node = new SpanNode(span1Node, span2Value, extra);
-      const span3Node = new SpanNode(span2Node, span3Value, extra);
-      const previousNode = new SpanNode(span3Node, previousSpanValue, extra);
-      const nextNode = new SpanNode(span3Node, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        span3Node,
-        missingInstrValue,
-        extra
-      );
-
-      const path = node.pathToNode();
-      expect(path).toHaveLength(2);
-      expect(path[0]).toMatch(/^ms-/);
-      expect(path[1]).toBe('txn-root-transaction');
     });
 
     it('should handle parent without transaction correctly', () => {

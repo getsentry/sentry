@@ -1,12 +1,12 @@
 import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconSiren} from 'sentry/icons';
@@ -22,7 +22,10 @@ function issueAlertApiOptions(organizationSlug: string, automationId: string) {
   return apiOptions.as<Automation>()(
     '/organizations/$organizationIdOrSlug/workflows/$workflowId/',
     {
-      path: {organizationIdOrSlug: organizationSlug, workflowId: automationId},
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        workflowId: automationId,
+      },
       staleTime: 30_000,
     }
   );
@@ -96,38 +99,31 @@ export function IssueAlertBlock({id, name}: EmbedOutput<'alert'>) {
   });
 
   return (
-    <Container
-      background="primary"
-      border="primary"
-      containerType="inline-size"
-      padding="md"
-      radius="md"
+    <SeerEmbedBlock
+      badge={
+        automation ? (
+          <Tag variant={automation.enabled ? 'success' : 'muted'}>
+            {t(
+              '%s - %s',
+              t('Issue alert'),
+              automation.enabled ? t('Enabled') : t('Disabled')
+            )}
+          </Tag>
+        ) : null
+      }
+      href={href}
+      icon={IconSiren}
+      linkLabel={t('View Alert')}
+      testId="seer-alert-embed"
+      title={automation?.name ?? name ?? t('Alert %s', id)}
     >
-      <Stack gap="md">
-        <Flex align="center" justify="between" gap="md" wrap="wrap">
-          <ResourceLink
-            icon={IconSiren}
-            href={href}
-            title={automation?.name ?? name ?? t('Alert %s', id)}
-          />
-          {automation ? (
-            <Tag variant={automation.enabled ? 'success' : 'muted'}>
-              {t(
-                '%s - %s',
-                t('Issue alert'),
-                automation.enabled ? t('Enabled') : t('Disabled')
-              )}
-            </Tag>
-          ) : null}
-        </Flex>
-        {isPending ? (
-          <LoadingIndicator />
-        ) : isError || !automation ? (
-          <Text variant="muted">{t('Unable to load alert details.')}</Text>
-        ) : (
-          <IssueAlertPreview automation={automation} />
-        )}
-      </Stack>
-    </Container>
+      {isPending ? (
+        <LoadingIndicator />
+      ) : isError || !automation ? (
+        <Text variant="muted">{t('Unable to load alert details.')}</Text>
+      ) : (
+        <IssueAlertPreview automation={automation} />
+      )}
+    </SeerEmbedBlock>
   );
 }

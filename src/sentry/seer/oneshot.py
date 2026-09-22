@@ -9,6 +9,7 @@ payload/result contract each one defines.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from collections.abc import Callable, Mapping
 from typing import Any
@@ -25,6 +26,12 @@ from sentry.seer.signed_seer_api import (
     make_oneshot_request,
 )
 from sentry.utils import metrics
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +67,22 @@ def call_seer_oneshot(
     if user_id is not None:
         viewer_context["user_id"] = user_id
 
-    response = make_request(
-        body,
-        timeout=timeout if timeout is not None else settings.SEER_DEFAULT_TIMEOUT,
-        viewer_context=viewer_context,
-    )
+    scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+    if get_viewer_context() is None:
+        scope = viewer_context_scope(
+            ViewerContext(
+                organization_id=organization.id,
+                user_id=user_id,
+                actor_type=ActorType.USER if user_id is not None else ActorType.SYSTEM,
+            )
+        )
+
+    with scope:
+        response = make_request(
+            body,
+            timeout=timeout if timeout is not None else settings.SEER_DEFAULT_TIMEOUT,
+            viewer_context=viewer_context,
+        )
 
     if response.status >= 400:
         metrics.incr(

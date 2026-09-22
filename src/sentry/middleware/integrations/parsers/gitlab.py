@@ -84,15 +84,8 @@ class GitlabRequestParser(BaseRequestParser):
         )
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
-        """
-        Used by get_mailbox to find the project.id a payload is for.
-        In high volume gitlab instances we shard messages by project for greater
-        delivery throughput.
-        """
-        project_id = data.get("project", {}).get("id", None)
-        if not project_id:
-            return None
-        return project_id
+        """Every event kind a cell processes names the project it belongs to."""
+        return self.bucket_key_at(data, "project", "id")
 
     def mailbox_event_type(self, data: Mapping[str, Any]) -> str | None:
         """Reads the body's `object_kind`, not the `X-Gitlab-Event` header the

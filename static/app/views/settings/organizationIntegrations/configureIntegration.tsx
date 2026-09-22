@@ -8,6 +8,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
@@ -30,7 +31,6 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -187,6 +187,7 @@ function ConfigureIntegration() {
   const {projects} = useProjects();
 
   const [isVerifyingGcp, setIsVerifyingGcp] = useState(false);
+  const [gcpVerificationError, setGcpVerificationError] = useState(false);
 
   useRouteAnalyticsEventNames(
     'integrations.details_viewed',
@@ -203,6 +204,7 @@ function ConfigureIntegration() {
 
   useEffect(() => {
     refetchIntegration();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [projects, refetchIntegration]);
 
   useEffect(() => {
@@ -403,6 +405,7 @@ function ConfigureIntegration() {
       onSuccess: async () => {
         const verifiesConnection = provider.key === 'gcp';
         if (verifiesConnection) {
+          setGcpVerificationError(false);
           setIsVerifyingGcp(true);
         }
 
@@ -420,6 +423,7 @@ function ConfigureIntegration() {
               // The save itself succeeded; the connection stays recorded as unverified
               // and the customer can re-test, so don't report this as a failed save.
               Sentry.captureException(error);
+              setGcpVerificationError(true);
             }
           }
         } finally {
@@ -437,6 +441,8 @@ function ConfigureIntegration() {
             configData={integration.configData}
             organization={organization}
             isVerifying={isVerifyingGcp}
+            verificationError={gcpVerificationError}
+            onVerificationStarted={() => setGcpVerificationError(false)}
             onRetested={() => queryClient.invalidateQueries(integrationQueryOptions)}
           />
         )}

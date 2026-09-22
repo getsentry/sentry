@@ -127,7 +127,7 @@ export const onboarding: OnboardingConfig = {
     <Fragment>
       <p>
         {tct(
-          "Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.",
+          "Sentry's integration with [astroLink:Astro] supports Astro 4.0.0 and above.",
           {
             astroLink: <ExternalLink href="https://astro.build/" />,
           }

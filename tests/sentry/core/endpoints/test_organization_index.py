@@ -37,7 +37,7 @@ from sentry.testutils.silo import (
     control_silo_test,
     create_test_cells,
 )
-from sentry.types.cell import Cell, Locality, RegionCategory
+from sentry.types.cell import Cell, Locality
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils.slug import ORG_SLUG_PATTERN
 
@@ -343,7 +343,6 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             Locality(
                 name="acme",
                 cells=frozenset(["acme"]),
-                category=RegionCategory.SINGLE_TENANT,
                 new_org_cell="acme",
                 visible=True,
                 signup_visible=False,

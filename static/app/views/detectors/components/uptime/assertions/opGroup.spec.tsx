@@ -148,6 +148,12 @@ describe('AssertionOpGroup', () => {
 
       // Click to change to "or" group
       await userEvent.click(screen.getByRole('button', {name: 'Assert All'}));
+      expect(
+        await screen.findByRole('listbox', {name: 'Assertion group type'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('listbox', {name: 'Assertion group negation'})
+      ).toBeInTheDocument();
       await userEvent.click(await screen.findByRole('option', {name: 'Assert Any'}));
 
       // Click to add negation

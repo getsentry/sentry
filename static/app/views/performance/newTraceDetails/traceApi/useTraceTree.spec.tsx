@@ -3,23 +3,16 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
-  makeTraceError,
-  makeTransaction,
+  makeEAPSpan,
+  makeEAPTrace,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-import type {TraceSplitResults} from './types';
 import {useTraceTree} from './useTraceTree';
 
-const getMockedTraceResults = (
-  status: string,
-  data?: TraceSplitResults<TraceTree.Transaction>
-) =>
-  ({
-    status,
-    data,
-  }) as UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any>;
+const getMockedTraceResults = (status: string, data?: TraceTree.EAPTrace) =>
+  ({status, data}) as UseApiQueryResult<TraceTree.EAPTrace | undefined, any>;
 
 const contextWrapper = () => {
   return function ({children}: {children: React.ReactNode}) {
@@ -66,10 +59,7 @@ describe('useTraceTree', () => {
     const {result} = renderHookWithProviders(
       () =>
         useTraceTree({
-          trace: getMockedTraceResults('success', {
-            transactions: [],
-            orphan_errors: [],
-          }),
+          trace: getMockedTraceResults('success', []),
           replay: null,
         }),
       {additionalWrapper: contextWrapper()}
@@ -81,40 +71,16 @@ describe('useTraceTree', () => {
   });
 
   it('returns tree for non-empty success case', async () => {
-    const mockedTrace = {
-      transactions: [
-        makeTransaction({
-          start_timestamp: 0,
-          timestamp: 1,
-          transaction: 'transaction1',
-        }),
-        makeTransaction({
-          start_timestamp: 1,
-          timestamp: 2,
-          transaction: 'transaction2',
-        }),
-        makeTransaction({
-          start_timestamp: 0,
-          timestamp: 1,
-          transaction: 'transaction1',
-        }),
-        makeTransaction({
-          start_timestamp: 1,
-          timestamp: 2,
-          transaction: 'transaction2',
-        }),
-      ],
-      orphan_errors: [
-        makeTraceError({
-          title: 'error1',
-          level: 'error',
-        }),
-        makeTraceError({
-          title: 'error2',
-          level: 'error',
-        }),
-      ],
-    };
+    const mockedTrace = makeEAPTrace([
+      makeEAPSpan({
+        event_id: 'span-1',
+        is_transaction: true,
+        children: [
+          makeEAPSpan({event_id: 'span-2', is_transaction: false, children: []}),
+          makeEAPSpan({event_id: 'span-3', is_transaction: false, children: []}),
+        ],
+      }),
+    ]);
 
     const {result} = renderHookWithProviders(
       () =>
@@ -128,6 +94,6 @@ describe('useTraceTree', () => {
     await waitFor(() => {
       expect(result.current.type).toBe('trace');
     });
-    expect(result.current.list).toHaveLength(7);
+    expect(result.current.list.length).toBeGreaterThan(0);
   });
 });

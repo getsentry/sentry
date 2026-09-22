@@ -32,6 +32,31 @@ describe('javascript-angular onboarding docs', () => {
     ).toHaveLength(2);
   });
 
+  it('bootstraps the standalone component with the application config', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedOptions: {configType: AngularConfigType.APP},
+    });
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/bootstrapApplication\(AppComponent, appConfig\)/)
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('bootstraps the root module for NgModule applications', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedOptions: {configType: AngularConfigType.MODULE},
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/\.bootstrapModule\(AppModule\)/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/bootstrapApplication/))
+    ).not.toBeInTheDocument();
+  });
+
   it('displays sample rates by default', () => {
     renderWithOnboardingLayout(docs, {
       selectedOptions: {

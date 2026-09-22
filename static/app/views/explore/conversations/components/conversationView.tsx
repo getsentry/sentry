@@ -80,7 +80,9 @@ export function ConversationViewContent({
 
   // Re-show the timeline default each time the user enters the timeline tab.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setTimelineDefaultDismissed(false);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [activeTab]);
 
   const displayedNode = useMemo(() => {

@@ -15,9 +15,11 @@ _WIDGETS: list[dict[str, Any]] = json.loads(
 def get_embed_widgets(organization: Any = None, actor: Any = None) -> list[dict[str, Any]]:
     """Return embed widget definitions, filtered by per-widget feature flags.
 
-    Each widget entry may include a ``featureFlag`` key (set in ``seerTags.ts``).
-    When present the widget is only included if the org has that flag enabled.
-    Widgets without ``featureFlag`` are always included.
+    Each widget entry may include a ``featureFlag`` key (set in ``schemas.ts``),
+    holding either one flag or a list of them. A list is satisfied by any one of
+    its flags, so an entitlement split across several plan flags matches on the
+    one flag the org's plan actually grants. Widgets without ``featureFlag`` are
+    always included.
     """
     has_flags = any("featureFlag" in w for w in _WIDGETS)
     if not has_flags:
@@ -25,9 +27,13 @@ def get_embed_widgets(organization: Any = None, actor: Any = None) -> list[dict[
 
     from sentry import features
 
-    return [
-        w
-        for w in _WIDGETS
-        if "featureFlag" not in w
-        or (organization is not None and features.has(w["featureFlag"], organization, actor=actor))
-    ]
+    def is_visible(widget: dict[str, Any]) -> bool:
+        flag = widget.get("featureFlag")
+        if flag is None:
+            return True
+        if organization is None:
+            return False
+        flags = [flag] if isinstance(flag, str) else flag
+        return any(features.has(f, organization, actor=actor) for f in flags)
+
+    return [w for w in _WIDGETS if is_visible(w)]

@@ -29,6 +29,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.notifications.models.notificationmessage import NotificationMessage
+from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
 from sentry.seer.models.night_shift import SeerNightShiftRunResult
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
@@ -98,6 +99,7 @@ ADDITIONAL_GROUP_RELATED_MODELS = (
     models.UserReport,
     models.EventAttachment,
     NotificationMessage,
+    SeerAutofixIssueData,
     SeerNightShiftRunResult,
 )
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + ADDITIONAL_GROUP_RELATED_MODELS

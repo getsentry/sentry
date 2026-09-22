@@ -187,11 +187,11 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'seer-waiting',
+        id: 'seer-idle',
         groups: ['product', 'seer'],
         keywords: ['seer', 'ai', 'eye', 'pyramid'],
         name: 'Seer',
-        defaultProps: {animation: 'waiting'},
+        defaultProps: {animation: 'idle'},
       },
       {
         id: 'seer-loading',
@@ -1738,6 +1738,7 @@ const PLUGIN_ICON_KEYS: Array<PluginIconProps['pluginId']> = [
   'bitbucket',
   'bitbucket_pipelines',
   'bitbucket_server',
+  'cursor_origin',
   'discord',
   'github',
   'github_enterprise',
@@ -1965,7 +1966,6 @@ function IconCard(props: IconCardProps) {
   return (
     <Tooltip
       maxWidth={640}
-      isHoverable
       title={
         <Stack gap="md">
           <CodeBlock language="jsx" code={snippets.all} />

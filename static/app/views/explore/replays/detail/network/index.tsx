@@ -255,6 +255,7 @@ export function NetworkList() {
                                   key={`${virtualRow.key}-${columnIndex}`}
                                   columnIndex={columnIndex}
                                   frame={network}
+                                  isSelected={selectedIndex === virtualRow.index}
                                   onMouseEnter={onMouseEnter}
                                   onMouseLeave={onMouseLeave}
                                   onClickCell={onClickCell}

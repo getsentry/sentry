@@ -12,6 +12,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  SavedQueryType,
   getSavedQueryTraceItemDataset,
   useGetSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -28,9 +29,15 @@ export function StarSavedQueryButton() {
 
   useEffect(() => {
     if (isFetched) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsStarred(data?.starred);
     }
   }, [data, isFetched]);
+
+  // Keyed on the dataset rather than the whole query: starring invalidates the
+  // query, and a new `data` object would rebuild the debounce and drop its
+  // one-second guard.
+  const dataset = data?.dataset;
 
   const debouncedOnClick = useMemo(() => {
     return debounce(
@@ -39,16 +46,14 @@ export function StarSavedQueryButton() {
           return;
         }
         try {
-          if (data?.dataset) {
-            if (getSavedQueryTraceItemDataset(data?.dataset) === TraceItemDataset.SPANS) {
+          if (dataset) {
+            if (getSavedQueryTraceItemDataset(dataset) === TraceItemDataset.SPANS) {
               trackAnalytics('trace_explorer.star_query', {
                 save_type: starred ? 'star_query' : 'unstar_query',
                 ui_source: 'explorer',
                 organization,
               });
-            } else if (
-              getSavedQueryTraceItemDataset(data?.dataset) === TraceItemDataset.LOGS
-            ) {
+            } else if (getSavedQueryTraceItemDataset(dataset) === TraceItemDataset.LOGS) {
               trackAnalytics('logs.star_query', {
                 save_type: starred ? 'star_query' : 'unstar_query',
                 ui_source: 'explorer',
@@ -56,7 +61,10 @@ export function StarSavedQueryButton() {
               });
             }
           }
-          starQuery(parseInt(id, 10), starred);
+          starQuery(
+            {queryId: parseInt(id, 10), queryType: SavedQueryType.EXPLORE},
+            starred
+          );
           setIsStarred(starred);
         } catch (error) {
           Sentry.captureException(error);
@@ -67,7 +75,7 @@ export function StarSavedQueryButton() {
       1000,
       {leading: true}
     );
-  }, [starQuery, organization, data?.dataset]);
+  }, [starQuery, organization, dataset]);
 
   if (isLoading || !locationId) {
     return null;

@@ -231,6 +231,21 @@ describe('resolveLink', () => {
     ).toBeNull();
   });
 
+  it('returns null on a provider route', () => {
+    const subject: LinkSubject = {
+      kind: 'api',
+      method: 'GET',
+      path: '/api/v2/trace/{trace_id}',
+      params: {trace_id: 'dd-trace-1'},
+      provider: 'datadog',
+    };
+
+    expect(resolveLink(subject, ctx)).toBeNull();
+
+    // The same route with no provider is Sentry's own and still links.
+    expect(resolveLink({...subject, provider: undefined}, ctx)).not.toBeNull();
+  });
+
   // `/issues/{issue_id}/events/latest/` is not a concrete event (API-only alias), so the event rule
   // declines. Longest-prefix still finds `/issues/{issue_id}/` and links the issue page instead of
   // leaving the row dead — better than a 404 event URL, and matches nested issue inheritance.

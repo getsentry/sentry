@@ -106,6 +106,7 @@ function useAiSpanWaiter(project: Project) {
 
   useEffect(() => {
     if (hasEvents && shouldRefetch) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setShouldRefetch(false);
     }
   }, [hasEvents, shouldRefetch]);
@@ -215,7 +216,7 @@ function OnboardingPanel({
                 <Preview>
                   <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
                   <Arcade
-                    src="https://demo.arcade.software/aEDAYP7ebTJvWKABSBdc?embed"
+                    src="https://demo.arcade.software/0NzB6M1Wn8sDsFDAj4sE?embed"
                     loading="lazy"
                     allowFullScreen
                   />
@@ -501,7 +502,13 @@ export function UnsupportedPlatformOnboarding({
             'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+                <ExternalLink
+                  href={
+                    project.platform?.startsWith('javascript')
+                      ? 'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
+                      : 'https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/'
+                  }
+                />
               ),
               bold: <strong />,
             }

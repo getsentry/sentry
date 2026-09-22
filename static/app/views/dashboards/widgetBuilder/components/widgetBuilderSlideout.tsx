@@ -23,14 +23,13 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
-import {t, tctCode} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
   DisplayType,
   WidgetType,
@@ -68,7 +67,6 @@ import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {useTraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
-import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {readableConditions} from 'sentry/views/dashboards/widgetCard/widgetLLMContext';
@@ -142,10 +140,6 @@ function WidgetBuilderSlideoutInner({
     useState(
       organization.features.includes('performance-transaction-deprecation-banner')
     );
-  const validatedWidgetResponse = useValidateWidgetQuery(
-    convertBuilderStateToWidget(state)
-  );
-
   const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState();
 
   // Tracks whether the user has entered the metrics equation mode since we
@@ -359,9 +353,10 @@ function WidgetBuilderSlideoutInner({
                     }
                   >
                     {disableTransactionWidget && isEditing
-                      ? tctCode(
+                      ? tct(
                           'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the [spans] dataset below with the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
                           {
+                            code: <code />,
                             spans: (
                               <Link
                                 // We need to do this otherwise the dashboard filters will change
@@ -389,9 +384,10 @@ function WidgetBuilderSlideoutInner({
                             ),
                           }
                         )
-                      : tctCode(
+                      : tct(
                           'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
                           {
+                            code: <code />,
                             FAQLink: (
                               <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
                             ),
@@ -497,7 +493,6 @@ function WidgetBuilderSlideoutInner({
                       <Section>
                         <WidgetBuilderQueryFilterBuilder
                           onQueryConditionChange={onQueryConditionChange}
-                          validatedWidgetResponse={validatedWidgetResponse}
                         />
                       </Section>
                     )}
@@ -513,9 +508,7 @@ function WidgetBuilderSlideoutInner({
                     )}
                     {showGroupBySelector && (
                       <Section>
-                        <WidgetBuilderGroupBySelector
-                          validatedWidgetResponse={validatedWidgetResponse}
-                        />
+                        <WidgetBuilderGroupBySelector />
                       </Section>
                     )}
                     {showSortByStep && (

@@ -81,6 +81,7 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
 
   useEffect(() => {
     if (!isActive) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setOverride(null);
     }
   }, [isActive]);
@@ -103,7 +104,7 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
     >
       <Global styles={streamingAnimationStyles} />
       <Disclosure.Title
-        leadingItems={<IconSeer size="xs" animation={isActive ? 'waiting' : undefined} />}
+        leadingItems={<IconSeer size="xs" animation={isActive ? 'loading' : undefined} />}
         trailingItems={
           <Text variant="secondary" size="sm" align="right" monospace>
             {getDuration(elapsed / 1000, 1, true, false, false, SECOND)}

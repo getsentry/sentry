@@ -1,9 +1,11 @@
 import {act, useState} from 'react';
+import {focusManager} from '@tanstack/react-query';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
 import {
+  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -91,6 +93,14 @@ const connectedSlack: ScmMessagingResolvedProvider = {
   permissionLimitedIntegration: undefined,
 };
 
+const installableMsteams: ScmMessagingResolvedProvider = {
+  providerKey: 'msteams',
+  provider: msteamsProvider,
+  status: 'installable',
+  eligibleIntegrations: [],
+  permissionLimitedIntegration: undefined,
+};
+
 const permissionLimitedMsteams: ScmMessagingResolvedProvider = {
   providerKey: 'msteams',
   provider: msteamsProvider,
@@ -128,6 +138,7 @@ function ControlledRow({
   messagingSetup,
   initialActiveRow = null,
   isRefetchingIntegrations = false,
+  onContinue = jest.fn(),
   onInstallComplete = jest.fn(),
   onMessagingSetupChange = jest.fn(),
   renderChannelPicker,
@@ -136,6 +147,7 @@ function ControlledRow({
   resolvedProvider: ScmMessagingResolvedProvider;
   initialActiveRow?: ScmMessagingActiveRow;
   isRefetchingIntegrations?: boolean;
+  onContinue?: jest.Mock;
   onInstallComplete?: jest.Mock;
   onMessagingSetupChange?: jest.Mock;
   renderChannelPicker?: jest.Mock;
@@ -147,10 +159,12 @@ function ControlledRow({
       messagingSetup={messagingSetup}
       activeRow={activeRow}
       onActiveRowChange={setActiveRow}
+      onContinue={onContinue}
       onInstallComplete={onInstallComplete}
       onMessagingSetupChange={onMessagingSetupChange}
       renderChannelPicker={renderChannelPicker}
       isRefetchingIntegrations={isRefetchingIntegrations}
+      isContinuing={false}
     />
   );
 }
@@ -161,12 +175,14 @@ function renderRow(
   overrides: {
     initialActiveRow?: ScmMessagingActiveRow;
     isRefetchingIntegrations?: boolean;
+    onContinue?: jest.Mock;
     onInstallComplete?: jest.Mock;
     onMessagingSetupChange?: jest.Mock;
     organization?: Partial<Organization>;
     renderChannelPicker?: jest.Mock;
   } = {}
 ) {
+  const onContinue = overrides.onContinue ?? jest.fn();
   const onInstallComplete = overrides.onInstallComplete ?? jest.fn();
   const onMessagingSetupChange = overrides.onMessagingSetupChange ?? jest.fn();
   const renderChannelPicker = overrides.renderChannelPicker;
@@ -177,6 +193,7 @@ function renderRow(
       resolvedProvider={resolvedProvider}
       messagingSetup={messagingSetup}
       initialActiveRow={overrides.initialActiveRow}
+      onContinue={onContinue}
       onInstallComplete={onInstallComplete}
       onMessagingSetupChange={onMessagingSetupChange}
       renderChannelPicker={renderChannelPicker}
@@ -187,7 +204,12 @@ function renderRow(
 }
 
 describe('ScmMessagingProviderRow', () => {
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    // Unmount active queries before restoring focus to avoid triggering another refetch.
+    cleanup();
+    jest.restoreAllMocks();
+    focusManager.setFocused(undefined);
+  });
 
   describe('installable state', () => {
     it('opens the install flow when Connect is clicked', async () => {
@@ -221,17 +243,20 @@ describe('ScmMessagingProviderRow', () => {
       );
     });
 
-    it('opens the marketplace modal for MS Teams', async () => {
+    it('opens the marketplace modal for MS Teams and completes the install on return', async () => {
       mockPipeline();
-      const installableMsteams: ScmMessagingResolvedProvider = {
-        providerKey: 'msteams',
-        provider: msteamsProvider,
-        status: 'installable',
-        eligibleIntegrations: [],
-        permissionLimitedIntegration: undefined,
-      };
-      renderGlobalModal({organization});
-      renderRow(installableMsteams);
+      // Start unfocused so the later focus transition deterministically refetches.
+      focusManager.setFocused(false);
+      jest.spyOn(window, 'open').mockImplementation(() => null);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/',
+        body: [],
+      });
+      const onInstallComplete = jest.fn();
+      const {waitForModalToHide} = renderGlobalModal({organization});
+      renderRow(installableMsteams, UNCONFIGURED_SCM_MESSAGING_SETUP, {
+        onInstallComplete,
+      });
 
       const connect = screen.getByRole('button', {name: /Connect/});
       expect(connect).toBeEnabled();
@@ -241,8 +266,21 @@ describe('ScmMessagingProviderRow', () => {
       expect(
         await screen.findByText('Installing Microsoft Teams Integration')
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Teams Marketplace'})).toBeInTheDocument();
       expect(pipelineModal.openPipelineModal).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Teams Marketplace'}));
+      expect(onInstallComplete).not.toHaveBeenCalled();
+
+      // The user finishes in the Marketplace and returns to the tab: the focus
+      // refetch surfaces the new installation.
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/',
+        body: [msteamsIntegration],
+      });
+      act(() => focusManager.setFocused(true));
+
+      await waitForModalToHide();
+      expect(onInstallComplete).toHaveBeenCalledWith('msteams');
     });
   });
 
@@ -268,7 +306,7 @@ describe('ScmMessagingProviderRow', () => {
         organization: noAccessOrg,
       });
 
-      expect(screen.getByText('Connected')).toBeInTheDocument();
+      expect(screen.getByText('Authorized')).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: /Choose destination/})
       ).toBeInTheDocument();
@@ -364,8 +402,10 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />,
         {organization}
       );
@@ -385,8 +425,10 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />
       );
 
@@ -419,8 +461,10 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={onInstallComplete}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />
       );
 
@@ -436,8 +480,10 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={onInstallComplete}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
           isRefetchingIntegrations
         />
       );
@@ -464,8 +510,10 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />,
         {organization}
       );
@@ -480,8 +528,10 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
           isRefetchingIntegrations
         />
       );
@@ -495,8 +545,10 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />
       );
 
@@ -517,12 +569,12 @@ describe('ScmMessagingProviderRow', () => {
   });
 
   describe('choose-destination state (connected, not yet configured)', () => {
-    it('shows the Connected tag without opening the picker', () => {
+    it('shows the Authorized tag without opening the picker', () => {
       const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
       renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
 
-      expect(screen.getByText('Connected')).toBeInTheDocument();
-      expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+      expect(screen.getByText('Authorized')).toBeInTheDocument();
+      expect(screen.queryByText('Connected')).not.toBeInTheDocument();
       expect(screen.queryByText('channel-picker')).not.toBeInTheDocument();
     });
 
@@ -646,8 +698,9 @@ describe('ScmMessagingProviderRow', () => {
       ).toBeInTheDocument();
     });
 
-    it('saves the setup and transitions to configured when onConfigured is called', async () => {
+    it('saves the setup and calls onContinue without closing the picker', async () => {
       const onMessagingSetupChange = jest.fn();
+      const onContinue = jest.fn();
       let capturedOnConfigured:
         | ((setup: ScmMessagingSetup & {mode: 'selected'}) => void)
         | undefined;
@@ -659,8 +712,9 @@ describe('ScmMessagingProviderRow', () => {
         }
       );
 
-      const {rerender} = renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
+      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
         onMessagingSetupChange,
+        onContinue,
         renderChannelPicker,
       });
 
@@ -668,32 +722,18 @@ describe('ScmMessagingProviderRow', () => {
 
       act(() => capturedOnConfigured?.(selectedSlackSetup));
       expect(onMessagingSetupChange).toHaveBeenCalledWith(selectedSlackSetup);
-
-      // Simulate the parent updating the messagingSetup prop after the save.
-      rerender(
-        <ScmMessagingProviderRow
-          resolvedProvider={connectedSlack}
-          messagingSetup={selectedSlackSetup}
-          activeRow={null}
-          onActiveRowChange={jest.fn()}
-          onInstallComplete={jest.fn()}
-          onMessagingSetupChange={onMessagingSetupChange}
-          renderChannelPicker={renderChannelPicker}
-        />
-      );
-
-      await waitFor(() =>
-        expect(screen.queryByText('channel-picker')).not.toBeInTheDocument()
-      );
+      expect(onContinue).toHaveBeenCalledTimes(1);
+      // Picker stays open — activeRow is not cleared so the step can unmount cleanly.
+      expect(screen.getByText('channel-picker')).toBeInTheDocument();
     });
   });
 
   describe('configured state', () => {
-    it('shows the Destination added tag', () => {
+    it('shows the Connected tag', () => {
       renderRow(connectedSlack, selectedSlackSetup);
 
-      expect(screen.getByText('Destination added')).toBeInTheDocument();
-      expect(screen.queryByText('Connected')).not.toBeInTheDocument();
+      expect(screen.getByText('Connected')).toBeInTheDocument();
+      expect(screen.queryByText('Authorized')).not.toBeInTheDocument();
     });
 
     it('enters configuring state when Edit is clicked and passes onCancel to the picker', async () => {
@@ -719,11 +759,7 @@ describe('ScmMessagingProviderRow', () => {
       await userEvent.click(screen.getByRole('button', {name: /Cancel/}));
 
       expect(screen.getByRole('button', {name: /Edit/})).toBeInTheDocument();
-      expect(
-        screen.queryByText(
-          'This removes the destination from project setup. The integration stays connected to your organization.'
-        )
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('You can reconnect at any time')).not.toBeInTheDocument();
     });
 
     it('calls onMessagingSetupChange with unconfigured when confirmed', async () => {

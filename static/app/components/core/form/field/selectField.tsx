@@ -49,6 +49,10 @@ type BaseSelectFieldProps<TValue, IsMulti extends boolean> = Omit<
   BaseFieldProps<HTMLInputElement> & {
     options: ReadonlyArray<SelectValue<TValue>>;
     /**
+     * Allows entering values that are not in `options`.
+     */
+    creatable?: boolean;
+    /**
      * custom value comparator function
      * defaults to === comparison of the option values
      */

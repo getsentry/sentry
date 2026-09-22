@@ -56,7 +56,7 @@ export const isAutoInstall = (params: Params) =>
 
 const getIntegrations = (params: Params): string[] => {
   const integrations = [];
-  if (params.isPerformanceSelected) {
+  if (params.isPerformanceSelected || params.isProfilingSelected) {
     integrations.push('Sentry.browserTracingIntegration()');
   }
 
@@ -84,10 +84,10 @@ const getIntegrations = (params: Params): string[] => {
 const getDynamicParts = (params: Params): string[] => {
   const dynamicParts: string[] = [];
 
-  if (params.isPerformanceSelected) {
+  if (params.isPerformanceSelected || params.isProfilingSelected) {
     dynamicParts.push(`
       // Tracing
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions
+      tracesSampleRate: 1.0, // Capture 100% of traces
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
       tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
   }
@@ -103,7 +103,8 @@ const getDynamicParts = (params: Params): string[] => {
     dynamicParts.push(`
         // Set profileSessionSampleRate to 1.0 to profile during every session.
         // The decision, whether to profile or not, is made once per session (when the SDK is initialized).
-        profileSessionSampleRate: 1.0`);
+        profileSessionSampleRate: 1.0,
+        profileLifecycle: "trace"`);
   }
 
   return dynamicParts;
@@ -285,7 +286,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       params.isPerformanceSelected
         ? `
       // Tracing
-      tracesSampleRate: 1.0, // Capture 100% of the transactions`
+      tracesSampleRate: 1.0, // Capture 100% of traces`
         : ''
     }${
       params.isReplaySelected

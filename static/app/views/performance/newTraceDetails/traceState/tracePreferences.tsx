@@ -38,7 +38,7 @@ export type TracePreferencesState = {
   missing_instrumentation: boolean;
 };
 
-export type StoredTracePreferences = {
+type StoredTracePreferences = {
   autogroup: TracePreferencesState['autogroup'];
   drawer_layout: TraceLayoutPreferences;
   missing_instrumentation: boolean;

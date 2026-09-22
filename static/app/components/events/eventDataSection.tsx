@@ -22,12 +22,6 @@ interface EventDataSectionProps {
   actions?: React.ReactNode;
   className?: string;
   ref?: React.Ref<HTMLDivElement>;
-  /**
-   * Should the permalink be enabled for this section?
-   *
-   * @default true
-   */
-  showPermalink?: boolean;
 }
 
 function scrollToSection(element: HTMLDivElement) {
@@ -56,7 +50,6 @@ export function EventDataSection({
   type,
   title,
   actions,
-  showPermalink = true,
   ...props
 }: EventDataSectionProps) {
   const titleNode = <h3>{title}</h3>;
@@ -66,16 +59,12 @@ export function EventDataSection({
       <SectionHeader id={type} data-test-id={`event-section-${type}`}>
         {title && (
           <Title>
-            {showPermalink ? (
-              <Container as="span" width="100%" position="relative" className="permalink">
-                <PermalinkAnchor href={`#${type}`} openInNewTab={false}>
-                  <StyledIconLink size="xs" variant="muted" />
-                </PermalinkAnchor>
-                {titleNode}
-              </Container>
-            ) : (
-              titleNode
-            )}
+            <Container as="span" width="100%" position="relative" className="permalink">
+              <PermalinkAnchor href={`#${type}`} openInNewTab={false}>
+                <StyledIconLink size="xs" variant="muted" />
+              </PermalinkAnchor>
+              {titleNode}
+            </Container>
           </Title>
         )}
         {actions && (

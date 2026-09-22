@@ -196,6 +196,7 @@ type ComponentOverrides = {
   'component:disabled-member': () => React.ComponentType;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
+  'component:feedback-init': React.ComponentType;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-page-filter-upsell-footer': () => React.ComponentType<DateRangeQueryLimitFooterProps>;
@@ -407,7 +408,7 @@ type SuperuserWarningExcluded = (organization: Organization | null) => boolean;
 /**
  * Called when the app is mounted.
  */
-type AnalyticsInitUser = (user: User) => void;
+type AnalyticsInitUser = (user: User | null) => void;
 
 /**
  * Trigger analytics tracking in the override registry.

@@ -252,6 +252,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
+    "auth.v2.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
@@ -668,6 +674,21 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "relay.generic-metrics.disabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Desired chunk size for TUS uploads.
+register(
+    "relay.upload-chunk.size",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -765,6 +786,16 @@ register("github-console-sdk-app.private-key", flags=FLAG_CREDENTIAL | FLAG_PRIO
 register("github-console-sdk-app.client-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("github-console-sdk-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
+# Cursor Origin Integration
+register("cursor-origin-app.id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("cursor-origin-app.private-key", default="", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "cursor-origin-app.fetch-commits.max-compare-commits",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Github Enterprise Integration
 register(
     "github-enterprise-app.allowed-hosts-legacy-webhooks",
@@ -829,7 +860,7 @@ register(
 )
 
 # PagerDuty Integration
-register("pagerduty.app-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("pagerduty.app-id", default="", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
 # Vercel Integration
 register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1040,28 +1071,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Transaction events
-# True => kill switch to disable ingestion of transaction events for internal project.
-register(
-    "transaction-events.force-disable-internal-project",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
-# Killswitch for sending internal errors to the internal project or
-# `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
-# `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
-#
-# Note: A value that is neither 0 nor 1 is regarded as 0
-register("store.use-relay-dsn-sample-rate", default=1, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# A rate that enables statsd item sending (DDM data) to s4s
-register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Sample rate for transaction/span data sent to S4S upstream (1.0 = keep all, 0.05 = keep 5%)
-register("store.s4s-transaction-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1076,6 +1085,15 @@ register(
     "store.ingest-events-raw-task.inline-save-event-transaction",
     type=Bool,
     default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Whether or not to query postgres for pending attachments in `save_transaction_events`.
+#
+# Change this value to `False` in case `save_event_transaction` becomes slow.
+register(
+    "store.transactions.check-pending-attachments",
+    type=Bool,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1390,6 +1408,14 @@ register(
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Fuzzy resolution always runs after an exact email miss so its proposal can be
+# inspected. This controls whether that proposal is used in the delivered prediction.
+register(
+    "seer.smart_assignment.fuzzy_user_matching.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Spread child run_auto_transition_issues_* tasks across this many seconds
 # after each schedule tick, to smooth burst load (DB/signals/queues).
@@ -1406,10 +1432,10 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "issues.action_log.dedicated_outbox_rollout_rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+    "issues.action_log.use_db_sequence_for_outbox_identifier",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "issues.backfill_group_action_log.killswitch",
@@ -1907,14 +1933,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Option to control sampling percentage of schema validation on the generic metrics pipeline
-# based on namespace.
-register(
-    "sentry-metrics.indexer.generic-metrics.schema-validation-rules",
-    default={},  # empty dict means validate schema for all use cases
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Option to control sampling percentage of schema validation on the release health metrics
 # pipeline based on namespace.
 register(
@@ -1954,11 +1972,6 @@ register(
 # Note that changing either window or granularity_seconds of a limit will
 # effectively reset it, as the previous data can't/won't be converted.
 register(
-    "sentry-metrics.writes-limiter.limits.performance.per-org",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "sentry-metrics.writes-limiter.limits.transactions.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1983,17 +1996,7 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "sentry-metrics.writes-limiter.limits.generic-metrics.per-org",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
-register(
-    "sentry-metrics.writes-limiter.limits.performance.global",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "sentry-metrics.writes-limiter.limits.transactions.global",
     default=[],
@@ -2016,11 +2019,6 @@ register(
 )
 register(
     "sentry-metrics.writes-limiter.limits.custom.global",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.writes-limiter.limits.generic-metrics.global",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2069,13 +2067,6 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org",
     default=[
         {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
     ],
@@ -2402,18 +2393,10 @@ register(
 )
 
 # Dynamic Sampling system-wide options
-# Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
-register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Number of large transactions to retrieve from Snuba for transaction re-balancing.
 register(
     "dynamic-sampling.prioritise_transactions.num_explicit_large_transactions",
     30,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
-register(
-    "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Lower bound on the per-transaction sample rate produced by transaction rebalancing. When a project
@@ -2459,39 +2442,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
-# organization id. A value of 0.0 disables the pipeline for every org; 1.0
-# enables it for every org. Intermediate values select a stable hash-based
-# subset so toggling the rate up and down does not reshuffle which orgs run.
+# Share of organizations the per-org dynamic sampling pipeline runs for, keyed on
+# organization id. 1.0 runs it for every org and is the default, so that the pipeline
+# works without any option set; 0.0 stops it for every org. Intermediate values select a
+# stable hash-based subset, so lowering and raising the rate does not reshuffle which
+# orgs run.
 register(
     "dynamic-sampling.per_org.rollout-rate",
     type=Float,
-    default=0.0,
+    default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Deterministic % rollout of serving the per-org pipeline's results, keyed on organization
-# id. Above 0.0, rule generation reads the project, transaction and recalibration sample
-# rates of the selected orgs from the per-org caches instead of the legacy ones. An org
-# only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it too.
-# An org switches over as a whole:
-# until a pass has stored its project sample rates, rule generation serves all of its
-# values from the legacy caches, and from then on all of them from the per-org ones.
-register(
-    "dynamic-sampling.per_org.serving-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Organizations rule generation serves from the per-org caches, whatever
-# dynamic-sampling.per_org.serving-rollout-rate selects. Names a single org to pilot
-# before a rate group exists.
-register(
-    "dynamic-sampling.per_org.serving-org-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Sample rate for metrics emitted by the per-org dynamic sampling pipeline
@@ -2505,36 +2465,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "dynamic-sampling.per_org.project-balancing-debug-project-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "dynamic-sampling.per_org.transaction-volume-debug-project-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
-# sample rate comparison. Empty disables the comparison entirely.
-register(
-    "dynamic-sampling.per_org.sliding-window-comparison-org-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Per-project sample rate overrides for custom dynamic sampling. Maps a stringified
 # project id to a fixed sample rate (0.0-1.0) that hard-replaces the rate the custom
 # dynamic sampling path would otherwise compute for that project. Example:
@@ -2543,17 +2473,6 @@ register(
     "dynamic-sampling.sample-rate-override-per-project",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
-# not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
-# there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing
-# to 0.0 is not the same as no rebalancing. To effectively disable rebalancing set the number of explicit
-# transactions to be rebalance (both small and large) to 0.
-register(
-    "dynamic-sampling.prioritise_transactions.rebalance_intensity",
-    default=0.8,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # === Hybrid cloud subsystem options ===
@@ -2565,16 +2484,6 @@ register(
 )
 register(
     "hybrid_cloud.disable_tombstone_cleanup",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybrid_cloud.write_deletion_watermark_to_postgres",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybrid_cloud.read_deletion_watermark_from_postgres",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2614,19 +2523,31 @@ register(
 )
 
 # Webhook processing controls
+# Most threads a skip-on-failure claim delivers on, bounded by the records it
+# claimed.
 register(
     "hybridcloud.webhookpayload.worker_threads",
+    default=16,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# How many payloads over the rate window one delivery thread should be worth. Times
+# `worker_threads`, this is the depth a mailbox reaches before its split widens, so
+# lowering it splits sooner and wider. Tunable because the right value is not known:
+# the `buckets` tag on `hybridcloud.webhookpayload.mailbox_routing` is what would
+# settle it.
+register(
+    "hybridcloud.webhookpayload.payloads_per_thread",
     default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Remove the rows a claim-bounded drain finishes with — delivered, attempts
-# exhausted, or stale — in batches instead of one DELETE per row. Such a drain
-# stays inside a claim reserved for its whole run, so deferring deletes cannot
-# hand rows to a concurrent drain; a crashed worker reprocesses at most one
-# unflushed batch, which redelivers the delivered rows and re-discards the rest.
+# Most mailboxes one integration's split may occupy; past it they simply grow deeper.
+# A safety valve on how many scheduler rows and dispatch slots one sender can take.
+# Rounded down to a power of two when read: the split climbs a ladder of doublings,
+# and a cap off that ladder makes a resize into it re-map nearly every key instead of
+# half.
 register(
-    "hybridcloud.webhookpayload.drain_batch_deletes",
-    default=False,
+    "hybridcloud.webhookpayload.max_mailbox_buckets",
+    default=128,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Providers whose mailbox drains skip a failed message and keep going instead of
@@ -2656,14 +2577,6 @@ register(
     default=1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Dispatch skip-on-failure providers' mailboxes from their oldest due record
-# instead of gating on the absolute head, so one record in retry backoff cannot
-# hide every due record behind it. Strict-ordering providers keep the gate.
-register(
-    "hybridcloud.webhookpayload.dispatch_from_due_head",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Break glass for inbound webhook floods. Matching webhooks are dropped with a
 # 429 before any WebhookPayload row is written, and whatever the sender does not
 # redeliver is lost. Conditions are documented in sentry.killswitches.
@@ -2672,6 +2585,26 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Kill switches for the extra per-tick outbox observability queries run by the
+# outbox scheduler. Both add full or per-shard aggregates over the outbox
+# tables, so they can be turned off if they become expensive during a backlog.
+register(
+    "hybridcloud.outbox.category_depth_metric.enabled",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.outbox.deep_shard_logging.enabled",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Shards with at least this many queued rows are logged with their sharding
+# columns and dominant category by the scheduler.
+register(
+    "hybridcloud.outbox.deep_shard_logging.threshold",
+    default=10_000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass controls
 register(
@@ -2839,6 +2772,24 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for the monitor clock tick hold.
+#
+# The hold stalls the monitor clock tick while the partition clock set is short
+# of the partition list learned from the clock pulse. This is a protection
+# against losing the clock data in Redis, so that partitions arriving after
+# data loss are not automatically treated as "the minimum", and incorrectly
+# bump the clock to beyond the actual minimum partition timestamp.
+#
+# Enable this if you want to un-stall the monitors clock. Be aware
+# that doing so could result in an incorrect fast-forwarded monitor
+# clock time, since the clock will no longer wait to assess the actual minimum
+# time from the full partition set.
+register(
+    "crons.clock_tick.disable_hold_on_missing_partitions",
+    default=True,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -3643,6 +3594,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "workflow_engine.tasks.health_check_organization.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "workflow_engine.group.type_id.open_periods_type_denylist",
@@ -3741,6 +3698,22 @@ register(
     "uptime.create-issues",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Kill switch for the scheduled Redis/Postgres uptime config drift sweep.
+register(
+    "uptime.config-drift.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Hours one full drift sweep is spread across, i.e. how stale drift may be before it is seen.
+register(
+    "uptime.config-drift.cycle-hours",
+    type=Int,
+    default=24,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3971,6 +3944,15 @@ register(
 
 # Fraction of attachments that are being stored exclusively in the new objectstore.
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Fraction of expiring pending attachments that are checked for a matching event before
+# being deleted. Each check costs one nodestore read.
+register(
+    "attachments.pending.premature_deletion_check_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 register(
@@ -4203,6 +4185,15 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Serializes inbound assignee sync per external issue with a row lock. Off degrades to the
+# watermark's conditional update, which orders sequential deliveries but not concurrent ones.
+register(
+    "integrations.assignee-sync.lock-external-issue",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Allows the recording of Seer actions as issue activities
 # https://linear.app/getsentry/project/add-seer-actions-to-issue-activityaction-log-0e641e1f5dac/overview
 register(
@@ -4395,6 +4386,14 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for token-level remapping of compound Dart exception types.
+register(
+    "dart.compound-type-deobfuscation.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Selectively allow issue detectors to run (via the create-a-fake-transaction-event shim) during
 # segment processing. Enabled detectors should be specified by their corresponding `DetectorType`
 # value. To run all possible detectors, set the value to `["*"]`.
@@ -4403,4 +4402,26 @@ register(
     default=[],
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "preprod.snapshots.auto-approve-sibling-diffs.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "preprod.snapshots.objectstore.snapshots-usecase.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# How far back the ingestion delay measurement window reaches, in minutes.
+register(
+    "ingestion-delay.measurement-lookback-minutes",
+    type=Int,
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

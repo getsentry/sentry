@@ -2,6 +2,7 @@ import type React from 'react';
 import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
 
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
@@ -21,6 +22,7 @@ import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -35,6 +37,10 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
+  TokenBreakdownTooltip,
+  type TokenBreakdownDetails,
+} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
+import {
   getNumberAttr,
   getStringAttr,
   hasError,
@@ -43,6 +49,7 @@ import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
+import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenBreakdown';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -115,9 +122,9 @@ export function ConversationSummary({
 
   return (
     <Flex
-      direction={{'screen:xs': 'column', 'screen:md': 'row'}}
+      direction={{zero: 'column', xl: 'row'}}
       justify="between"
-      align={{'screen:xs': 'stretch', 'screen:md': 'center'}}
+      align={{zero: 'stretch', xl: 'center'}}
       gap="xl"
       flex={1}
       minWidth={0}
@@ -279,7 +286,12 @@ export function ConversationSummary({
         />
         <Stat
           label={t('Tokens')}
-          value={<Count value={aggregates.totalTokens} />}
+          value={
+            <TokenCount
+              breakdowns={aggregates.tokenBreakdowns}
+              total={aggregates.totalTokens}
+            />
+          }
           isLoading={isLoading}
         />
         <Stat
@@ -366,6 +378,7 @@ interface ConversationAggregates {
   llmCalls: number;
   /** When the conversation began, or null when no span carries a start time. */
   startTimestamp: number | null;
+  tokenBreakdowns: TokenBreakdownDetails[];
   toolCalls: number;
   toolNames: string[];
   totalCost: number;
@@ -376,12 +389,25 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
+function getNumberAttrByConvention(
+  node: AITraceSpanNode,
+  key: 'gen_ai.usage.cache_creation.input_tokens' | 'gen_ai.usage.cache_read.input_tokens'
+): number | undefined {
+  for (const candidate of ATTRIBUTE_SEARCH_METADATA[key]?.deprecationChain ?? [key]) {
+    const value = getNumberAttr(node, candidate);
+    if (value !== undefined) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
 function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let llmCalls = 0;
   let toolCalls = 0;
   let errorCount = 0;
-  let totalTokens = 0;
   let totalCost = 0;
+  const tokensByModel = new Map<string, TokenBreakdownDetails>();
   let startTimestamp: number | null = null;
   const toolNameSet = new Set<string>();
   const erroredToolNameSet = new Set<string>();
@@ -398,7 +424,49 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
 
     if (getIsAiGenerationSpan(opType)) {
       llmCalls++;
-      totalTokens += getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS) ?? 0;
+      const cached =
+        getNumberAttrByConvention(node, 'gen_ai.usage.cache_read.input_tokens') ?? 0;
+      const cacheWrite =
+        getNumberAttrByConvention(node, 'gen_ai.usage.cache_creation.input_tokens') ?? 0;
+      const input = getNumberAttr(node, SpanFields.GEN_AI_USAGE_INPUT_TOKENS);
+      const output = getNumberAttr(node, SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS);
+      const reasoning =
+        getNumberAttr(node, SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS) ?? 0;
+      const reportedTotal =
+        getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS) ?? 0;
+      const breakdown = getTokenBreakdown({
+        inputTokens: input ?? 0,
+        cachedTokens: cached,
+        cacheWriteTokens: cacheWrite,
+        outputTokens: output ?? 0,
+        reasoningTokens: reasoning,
+        totalTokens: reportedTotal,
+      });
+      const inputTotal = breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite;
+      const isComplete = input !== undefined && output !== undefined;
+
+      const model =
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
+        getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
+        t('Unknown model');
+      const modelTokens = tokensByModel.get(model) ?? {
+        cacheRead: 0,
+        cacheWrite: 0,
+        input: 0,
+        isComplete: true,
+        model,
+        output: 0,
+        reasoning: 0,
+        total: 0,
+      };
+      modelTokens.input += inputTotal;
+      modelTokens.output += breakdown.output;
+      modelTokens.cacheRead += breakdown.cached;
+      modelTokens.cacheWrite += breakdown.cacheWrite;
+      modelTokens.reasoning += reasoning;
+      modelTokens.isComplete &&= isComplete;
+      modelTokens.total += isComplete ? inputTotal + breakdown.output : reportedTotal;
+      tokensByModel.set(model, modelTokens);
       totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
     } else if (getIsExecuteToolSpan(opType)) {
       toolCalls++;
@@ -422,6 +490,9 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     ...sortedToolNames.filter(name => erroredToolNameSet.has(name)),
     ...sortedToolNames.filter(name => !erroredToolNameSet.has(name)),
   ];
+  const tokenBreakdowns = Array.from(tokensByModel.values()).sort(
+    (a, b) => b.total - a.total
+  );
 
   return {
     llmCalls,
@@ -429,7 +500,8 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     errorCount,
     startTimestamp,
     erroredToolNames: erroredToolNameSet,
-    totalTokens,
+    tokenBreakdowns,
+    totalTokens: tokenBreakdowns.reduce((total, breakdown) => total + breakdown.total, 0),
     totalCost,
     toolNames,
   };
@@ -503,7 +575,12 @@ export function ConversationAggregatesBar({
       />
       <AggregateItem
         label={t('Tokens')}
-        value={<Count value={aggregates.totalTokens} />}
+        value={
+          <TokenCount
+            breakdowns={aggregates.tokenBreakdowns}
+            total={aggregates.totalTokens}
+          />
+        }
         isLoading={isLoading}
       />
       <AggregateItem
@@ -582,6 +659,20 @@ export function ConversationAggregatesBar({
   );
 }
 
+function TokenCount({
+  breakdowns,
+  total,
+}: {
+  breakdowns: TokenBreakdownDetails[];
+  total: number;
+}) {
+  return (
+    <Tooltip title={<TokenBreakdownTooltip breakdowns={breakdowns} />}>
+      <TokenCountValue>{formatAbbreviatedNumber(total)}</TokenCountValue>
+    </Tooltip>
+  );
+}
+
 function AggregateItem({
   label,
   value,
@@ -622,6 +713,11 @@ function AggregateItem({
 
   return content;
 }
+
+const TokenCountValue = styled('span')`
+  text-decoration: underline dotted;
+  text-underline-offset: ${p => p.theme.space['2xs']};
+`;
 
 const AggregateValue = styled(Text)<{isInteractive?: boolean}>`
   ${p =>

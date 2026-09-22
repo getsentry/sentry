@@ -27,6 +27,7 @@ from sentry.backup.dependencies import get_model_name
 from sentry.backup.findings import InstanceID
 from sentry.backup.imports import ImportingError
 from sentry.backup.services.import_export.model import RpcImportError, RpcImportErrorKind
+from sentry.models.projectkey import ProjectKey
 from sentry.runner.commands.backup import backup, export, import_
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -537,6 +538,47 @@ class GoodImportExportCommandTests(TransactionTestCase):
         # Global imports assume a clean database.
         clear_database()
         cli_import_then_export("global")
+
+    def test_global_scope_imports_multiple_project_keys(self) -> None:
+        with open(GOOD_FILE_PATH, "rb") as fixture_file:
+            dump = orjson.loads(fixture_file.read())
+
+        project_key_index = next(
+            index for index, item in enumerate(dump) if item["model"] == "sentry.projectkey"
+        )
+        first_key = dump[project_key_index]
+        second_key = {
+            **first_key,
+            "pk": first_key["pk"] + 1,
+            "fields": {
+                **first_key["fields"],
+                "label": "Secondary",
+                "public_key": "a" * 32,
+                "secret_key": "b" * 32,
+            },
+        }
+        dump.insert(project_key_index + 1, second_key)
+
+        with TemporaryDirectory() as tmp_dir:
+            dump_path = Path(tmp_dir) / "multiple-project-keys.json"
+            dump_path.write_bytes(orjson.dumps(dump))
+
+            clear_database()
+            result = CliRunner().invoke(
+                import_, ["global", str(dump_path), "--no-prompt"], catch_exceptions=False
+            )
+
+        assert result.exit_code == 0, result.output
+        assert set(ProjectKey.objects.values_list("public_key", "secret_key")) == {
+            (
+                first_key["fields"]["public_key"],
+                first_key["fields"]["secret_key"],
+            ),
+            (
+                second_key["fields"]["public_key"],
+                second_key["fields"]["secret_key"],
+            ),
+        }
 
     def test_config_scope(self) -> None:
         cli_import_then_export("config")

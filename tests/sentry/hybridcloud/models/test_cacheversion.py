@@ -12,20 +12,43 @@ def test_increment_version() -> None:
 def test_increment_version_existing_key() -> None:
     # Create a record that looks like data before we started writing to keyname
     original = CellCacheVersion.objects.create(
-        key="hello-world",
+        keyname="hello-world",
         version=1,
     )
-    assert original.keyname is None, "no keyname initially"
 
     assert CellCacheVersion.incr_version("hello-world") == 2
     reload = CellCacheVersion.objects.get(id=original.id)
     assert reload.keyname == "hello-world"
-    assert reload.key == "hello-world"
     assert reload.version == 2
 
     assert CellCacheVersion.incr_version("hello-world") == 3
     assert CellCacheVersion.incr_version("second-hello") == 1
-    second = CellCacheVersion.objects.get(key="second-hello")
-    assert second.key == "second-hello"
+    second = CellCacheVersion.objects.get(keyname="second-hello")
     assert second.keyname == "second-hello"
     assert second.version == 1
+
+
+@django_db_all
+def test_get_versions() -> None:
+    CellCacheVersion.incr_version("hello-world")
+    CellCacheVersion.incr_version("hi-world")
+    CellCacheVersion.incr_version("hi-world")
+
+    versions = CellCacheVersion.get_versions(["hello-world", "hi-world"])
+    assert versions == [1, 2]
+
+    versions = CellCacheVersion.get_versions(["nope", "hello-world", "hi-world"])
+    assert versions == [1, 2]
+
+
+@django_db_all
+def test_get_version_map() -> None:
+    CellCacheVersion.incr_version("hello-world")
+    CellCacheVersion.incr_version("hi-world")
+    CellCacheVersion.incr_version("hi-world")
+
+    versions = CellCacheVersion.get_version_map(["hello-world", "hi-world"])
+    assert versions == {"hello-world": 1, "hi-world": 2}
+
+    versions = CellCacheVersion.get_version_map(["nope", "hello-world", "hi-world"])
+    assert versions == {"hello-world": 1, "hi-world": 2}
