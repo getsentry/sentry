@@ -309,14 +309,6 @@ wheels = [
 ]
 
 [[package]]
-name = "distro"
-version = "1.8.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/distro-1.8.0-py3-none-any.whl", hash = "sha256:99522ca3e365cac527b44bde033f64c6945d90eb9f769703caaec52b09bbd3ff" },
-]
-
-[[package]]
 name = "django"
 version = "5.2.16"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1008,20 +1000,6 @@ wheels = [
 ]
 
 [[package]]
-name = "httpx"
-version = "0.28.1"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "anyio" },
-    { name = "certifi" },
-    { name = "httpcore" },
-    { name = "idna" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad" },
-]
-
-[[package]]
 name = "huggingface-hub"
 version = "0.35.3"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1371,22 +1349,6 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/objectstore_client-0.2.5-py3-none-any.whl", hash = "sha256:d080ae54573d7b1eb10a6a282dee03de1efa459b54c3dc99c2569b253d0b6dd3" },
-]
-
-[[package]]
-name = "openai"
-version = "1.3.5"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "anyio" },
-    { name = "distro" },
-    { name = "httpx" },
-    { name = "pydantic" },
-    { name = "tqdm" },
-    { name = "typing-extensions" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/openai-1.3.5-py3-none-any.whl", hash = "sha256:9437458978fb502e61336c3082e02b09c49feebe0e8516a2b8fb4563e6e4af4e" },
 ]
 
 [[package]]
@@ -2181,7 +2143,6 @@ dependencies = [
     { name = "msgpack" },
     { name = "msgspec" },
     { name = "objectstore-client" },
-    { name = "openai" },
     { name = "orjson" },
     { name = "packaging" },
     { name = "parsimonious" },
@@ -2350,7 +2311,6 @@ requires-dist = [
     { name = "msgpack", specifier = ">=1.2.1" },
     { name = "msgspec", specifier = ">=0.19.0" },
     { name = "objectstore-client", specifier = ">=0.2.5" },
-    { name = "openai", specifier = ">=1.3.5" },
     { name = "orjson", specifier = ">=3.10.10" },
     { name = "packaging", specifier = ">=24.1" },
     { name = "parsimonious", specifier = ">=0.10.0" },
