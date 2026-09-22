@@ -9,7 +9,7 @@ resources:
 
 import {Container} from '@sentry/scraps/layout';
 
-import {BaseFieldDemo, InputFieldDemo} from './__stories__/formDemos';
+import {BaseFieldDemo, InputFieldDemo, NumberFieldDemo} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
 
@@ -83,6 +83,32 @@ Numeric input with optional min/max/step constraints.
         min={0}
         max={120}
         step={1}
+      />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+### Leading items
+
+`Number` supports the same `leadingItems` slot as `Input` for prefixes such as
+currency symbols.
+
+<Storybook.Demo>
+  <Container width="80%">
+    <NumberFieldDemo />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<form.AppField name="amount">
+  {field => (
+    <field.Layout.Row label={t('Amount')}>
+      <field.Number
+        leadingItems="$"
+        value={field.state.value}
+        onChange={field.handleChange}
+        min={0}
       />
     </field.Layout.Row>
   )}
