@@ -49,7 +49,11 @@ import type {
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
-import {useDroppedDataBand} from 'sentry/views/explore/components/chart/droppedDataBand/useDroppedDataBand';
+import {
+  DROPPED_DATA_SERIES_ID,
+  useDroppedDataBand,
+} from 'sentry/views/explore/components/chart/droppedDataBand/useDroppedDataBand';
+import type {AnnotationBucket} from 'sentry/views/explore/components/chart/droppedDataBand/utils';
 import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -104,6 +108,8 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
+
+  onDroppedDataClick?: (bucket: AnnotationBucket) => void;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -707,6 +713,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   const handleClick: EChartClickHandler = event => {
+    if (event.seriesId === DROPPED_DATA_SERIES_ID) {
+      props.onDroppedDataClick?.(event.data as AnnotationBucket);
+      return;
+    }
     runHandler(event, 'onClick');
   };
 

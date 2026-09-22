@@ -279,43 +279,44 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
   const {dispatch, focusOverride} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
 
-  const [isEditing, setIsEditing] = useState(false);
+  const [editSource, setEditSource] = useState<'click' | 'focusOverride' | false>(false);
 
   useLayoutEffect(() => {
     if (
-      !isEditing &&
+      !editSource &&
       focusOverride?.itemKey === item.key &&
       focusOverride.part === 'value'
     ) {
       // oxlint-disable-next-line react/set-state-in-effect
-      setIsEditing(true);
+      setEditSource('focusOverride');
       onActiveChange(true);
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
-  }, [dispatch, focusOverride, isEditing, item.key, onActiveChange]);
+  }, [dispatch, editSource, focusOverride, item.key, onActiveChange]);
 
   const {focusWithinProps} = useFocusWithin({
     onBlurWithin: () => {
-      setIsEditing(false);
+      setEditSource(false);
     },
   });
 
   const filterButtonProps = useFilterButtonProps({state, item});
 
-  if (isEditing) {
+  if (editSource) {
     return (
       <ValueEditing ref={ref} {...mergeProps(focusWithinProps, filterButtonProps)}>
         <SearchQueryBuilderValueCombobox
           token={token}
           wrapperRef={ref}
+          editingCommittedValue={editSource === 'click'}
           onDelete={() => {
             filterRef.current?.focus();
             state.selectionManager.setFocusedKey(item.key);
-            setIsEditing(false);
+            setEditSource(false);
             onActiveChange(false);
           }}
           onCommit={() => {
-            setIsEditing(false);
+            setEditSource(false);
             onActiveChange(false);
             dispatch({type: 'COMMIT_QUERY'});
             if (state.collection.getKeyAfter(item.key)) {
@@ -333,7 +334,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
     <ValueButton
       aria-label={t('Edit value for filter: %s', getKeyName(token.key))}
       onClick={() => {
-        setIsEditing(true);
+        setEditSource('click');
         onActiveChange(true);
       }}
       disabled={disabled}

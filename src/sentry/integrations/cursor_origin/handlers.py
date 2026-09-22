@@ -55,6 +55,48 @@ def _sync_repositories(
         sync_repos_for_org.apply_async(kwargs={"organization_integration_id": org_integration.id})
 
 
+def _rename_owner_repositories(
+    previous_slug: str,
+    slug: str,
+    integration_id: int,
+    org_integrations: Sequence[RpcOrganizationIntegration],
+    delivery_id: str,
+) -> None:
+    """Rewrite the owner prefix on every repository of a renamed owner."""
+    prefix = f"{previous_slug}/"
+    for org_integration in org_integrations:
+        updates = []
+        for repo in repository_service.get_repositories(
+            organization_id=org_integration.organization_id,
+            integration_id=integration_id,
+            providers=[f"integrations:{PROVIDER}"],
+        ):
+            if not repo.name.startswith(prefix):
+                continue
+            full_name = f"{slug}/{repo.name[len(prefix) :]}"
+            repo.name = full_name
+            repo.url = f"{CURSOR_ORIGIN_WEB_BASE_URL}/{full_name}"
+            repo.config = {**repo.config, "name": full_name}
+            updates.append(repo)
+
+        if not updates:
+            continue
+
+        logger.info(
+            "cursor_origin.repository.owner_renamed",
+            extra={
+                "delivery_id": delivery_id,
+                "organization_id": org_integration.organization_id,
+                "previous_slug": previous_slug,
+                "slug": slug,
+                "repositories": len(updates),
+            },
+        )
+        repository_service.update_repositories(
+            organization_id=org_integration.organization_id, updates=updates
+        )
+
+
 class InstallationRemovedHandler(InstallationEventHandler):
     """Uninstalled or suspended on Origin's side"""
 
@@ -129,7 +171,14 @@ class InstallationUpdatedHandler(InstallationEventHandler):
         # `update_integration` replaces metadata rather than merging it, which would
         # drop the cached access token and, without a slug, `domain_name`.
         stored = integration_service.get_integration(integration_id=integration.id)
-        metadata = {**(stored.metadata if stored else integration.metadata), **changed}
+        assert stored is not None
+        metadata = {**stored.metadata, **changed}
+        previous_slug = stored.name
+
+        if name and name != previous_slug:
+            _rename_owner_repositories(
+                previous_slug, name, integration.id, org_integrations, delivery_id
+            )
 
         logger.info(
             "cursor_origin.webhook.updating_integration",

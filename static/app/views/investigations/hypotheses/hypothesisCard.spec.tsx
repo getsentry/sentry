@@ -7,6 +7,39 @@ import {
 import {HypothesisCard} from 'sentry/views/investigations/hypotheses/hypothesisCard';
 
 describe('HypothesisCard', () => {
+  it.each(['pending', 'investigating'] as const)(
+    'holds space for the checks of a hypothesis that is still %s',
+    effectiveStatus => {
+      render(
+        <HypothesisCard
+          hypothesis={InvestigationHypothesisFixture({
+            effectiveStatus,
+            verificationSteps: [],
+          })}
+        />
+      );
+
+      expect(
+        screen.getByTestId('investigation-hypothesis-evidence-pending')
+      ).toBeInTheDocument();
+    }
+  );
+
+  it('draws no evidence rows for a hypothesis that settled without checks', () => {
+    render(
+      <HypothesisCard
+        hypothesis={InvestigationHypothesisFixture({
+          effectiveStatus: 'refuted',
+          verificationSteps: [],
+        })}
+      />
+    );
+
+    expect(
+      screen.queryByTestId('investigation-hypothesis-evidence-pending')
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the statement, rationale, and one-based ordinal', () => {
     render(
       <HypothesisCard
