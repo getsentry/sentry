@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {decodeList} from 'sentry/utils/queryString';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderGroupBySelector} from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -9,6 +10,8 @@ import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/conte
 const organization = OrganizationFixture({
   features: [],
 });
+const DASHBOARD_WIDGET_BUILDER_PATHNAME =
+  '/organizations/org-slug/dashboards/new/widget/new/';
 
 describe('WidgetBuilderGroupBySelector', () => {
   beforeEach(() => {
@@ -302,5 +305,40 @@ describe('WidgetBuilderGroupBySelector', () => {
     await userEvent.click(await screen.findByText('Select group'));
 
     expect(screen.queryByText('metric.name')).not.toBeInTheDocument();
+  });
+
+  it('preserves aggregate fields when changing table groupings', async () => {
+    const equation =
+      'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)';
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderGroupBySelector preserveAggregateFields />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.TABLE,
+              field: ['span.op', 'span.description', equation],
+            },
+          },
+        },
+      }
+    );
+
+    const removeButtons = await screen.findAllByRole('button', {
+      name: 'Remove group',
+    });
+    await userEvent.click(removeButtons[0]!);
+
+    await waitFor(() => {
+      expect(decodeList(router.location.query.field)).toEqual([
+        'span.description',
+        equation,
+      ]);
+    });
   });
 });
