@@ -7,7 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -269,7 +269,10 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               <DescriptionList.Term>{t('Monitor slug')}</DescriptionList.Term>
               <DescriptionList.Details>
                 <Flex gap="xs" align="center">
-                  <Text ellipsis>{dataSource.queryObj.slug}</Text>
+                  {/* `ellipsis` widens the text to 100%, which would shove the button to the far edge */}
+                  <Container minWidth="0">
+                    <Text ellipsis>{dataSource.queryObj.slug}</Text>
+                  </Container>
                   <CopyToClipboardButton
                     text={dataSource.queryObj.slug}
                     aria-label={t('Copy monitor slug to clipboard')}

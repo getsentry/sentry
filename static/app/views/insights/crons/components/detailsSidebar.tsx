@@ -191,6 +191,7 @@ const MonitorSlug = styled('button')`
   align-items: center;
   gap: ${p => p.theme.space.xs};
 
+  padding: 0;
   background: transparent;
   border: none;
   &:hover {

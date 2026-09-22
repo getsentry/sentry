@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -91,9 +92,9 @@ DetectorExtraDetails.CreatedBy = function DetectorExtraDetailsCreatedBy({
     <Fragment>
       <DescriptionList.Term>{keyName}</DescriptionList.Term>
       <DescriptionList.Details>
-        <Tooltip title={title} showOnlyOnOverflow>
+        <OverflowTooltip title={title} showOnlyOnOverflow>
           <TextOverflow>{title}</TextOverflow>
-        </Tooltip>
+        </OverflowTooltip>
       </DescriptionList.Details>
     </Fragment>
   );
@@ -126,10 +127,16 @@ DetectorExtraDetails.Environment = function DetectorExtraDetailsEnvironment({
     <Fragment>
       <DescriptionList.Term>{t('Environment')}</DescriptionList.Term>
       <DescriptionList.Details>
-        <Tooltip title={environmentLabel} showOnlyOnOverflow>
+        <OverflowTooltip title={environmentLabel} showOnlyOnOverflow>
           <TextOverflow>{environmentLabel}</TextOverflow>
-        </Tooltip>
+        </OverflowTooltip>
       </DescriptionList.Details>
     </Fragment>
   );
 };
+
+// Wrapping content that clips its overflow moves the tooltip wrapper's baseline
+// to its bottom edge, which drags the value out of line with its term.
+const OverflowTooltip = styled(Tooltip)`
+  vertical-align: top;
+`;

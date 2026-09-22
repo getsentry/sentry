@@ -153,6 +153,9 @@ const StyledTooltip = styled(Tooltip)`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Clipping overflow moves the wrapper's baseline to its bottom edge, which
+     drags the row out of line with the baseline-aligned grid around it. */
+  vertical-align: top;
 `;
 
 const StyledVersionContainer = styled('div')`
