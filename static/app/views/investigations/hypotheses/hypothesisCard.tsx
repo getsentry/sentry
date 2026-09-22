@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,8 +7,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Timeline} from 'sentry/components/timeline';
-import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconChevron, IconEllipsis} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import {HypothesisEvidencePlaceholder} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
 import {
   getHypothesisCardBorder,
@@ -17,6 +18,9 @@ import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
 
 /** States where missing checks mean "not yet"; anything else finished without them. */
 const PENDING_EVIDENCE_STATUSES = new Set<string>(['pending', 'investigating']);
+
+/** Past this many checks, only the latest shows until the rest are asked for. */
+const MAX_UNCOLLAPSED_STEPS = 3;
 
 type HypothesisCardProps = {
   hypothesis: InvestigationHypothesis;
@@ -49,9 +53,20 @@ export function HypothesisCard({
   isPrimary = false,
 }: HypothesisCardProps) {
   const theme = useTheme();
+  const [showAllSteps, setShowAllSteps] = useState(false);
   const steps = [...(hypothesis.verificationSteps ?? [])].sort(
     (a, b) => a.order - b.order
   );
+  const isCollapsible = steps.length > MAX_UNCOLLAPSED_STEPS;
+  // Collapsed, the latest check stands in for the rest: it is where the agent
+  // is, or where it ended up.
+  const visibleSteps = isCollapsible && !showAllSteps ? steps.slice(-1) : steps;
+  const hiddenStepCount = steps.length - visibleSteps.length;
+  const dotColorConfig = {
+    icon: theme.tokens.graphics.neutral.moderate,
+    iconBorder: 'transparent',
+    title: theme.tokens.content.primary,
+  };
 
   return (
     <Card
@@ -105,7 +120,34 @@ export function HypothesisCard({
 
       {steps.length > 0 ? (
         <EvidenceList as="ol" aria-label={t('Verification steps')}>
-          {steps.map(step => {
+          {isCollapsible ? (
+            <Timeline.Item
+              as="li"
+              icon={<Timeline.Dot />}
+              colorConfig={dotColorConfig}
+              title={
+                <StepsToggle
+                  type="button"
+                  aria-expanded={showAllSteps}
+                  onClick={() => setShowAllSteps(value => !value)}
+                >
+                  <Flex as="span" align="center" gap="xs">
+                    <StepTitle size="sm" variant="muted" bold={false}>
+                      {showAllSteps
+                        ? t('Show less')
+                        : tn('Show %s more step', 'Show %s more steps', hiddenStepCount)}
+                    </StepTitle>
+                    <IconChevron
+                      size="xs"
+                      variant="muted"
+                      direction={showAllSteps ? 'up' : 'right'}
+                    />
+                  </Flex>
+                </StepsToggle>
+              }
+            />
+          ) : null}
+          {visibleSteps.map(step => {
             const isRunning = step.status === 'running';
             return (
               <Timeline.Item
@@ -114,13 +156,12 @@ export function HypothesisCard({
                 aria-current={isRunning ? 'step' : undefined}
                 icon={<Timeline.Dot />}
                 colorConfig={{
+                  ...dotColorConfig,
                   // The step the agent is on is picked out; the rest are
                   // markers on the way there.
                   icon: isRunning
                     ? theme.tokens.graphics.neutral.vibrant
                     : theme.tokens.graphics.neutral.moderate,
-                  iconBorder: 'transparent',
-                  title: theme.tokens.content.primary,
                 }}
                 title={
                   // A check reads as a line of evidence rather than a heading,
@@ -219,4 +260,17 @@ const EvidenceList = styled(Timeline.Container)`
  */
 const StepTitle = styled(Text)`
   line-height: 22px;
+`;
+
+/**
+ * Reads as one more line of the timeline rather than a control, so it sheds the
+ * browser's button chrome and takes the step titles' type.
+ */
+const StepsToggle = styled('button')`
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
 `;
