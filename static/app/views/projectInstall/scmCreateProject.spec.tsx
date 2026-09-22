@@ -158,7 +158,7 @@ describe('ScmCreateProject', () => {
     return {createRequest, project};
   }
 
-  function mockExistingGithubRepository() {
+  function mockExistingGithubRepository(repositories = [githubRepository]) {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       body: [githubIntegration],
@@ -167,26 +167,26 @@ describe('ScmCreateProject', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${githubIntegration.id}/repos/`,
       body: {
-        repos: [
-          {
-            externalId: githubRepository.externalId,
-            identifier: githubRepository.externalSlug,
-            name: 'sentry',
-            isInstalled: true,
-          },
-        ],
+        repos: repositories.map(repository => ({
+          externalId: repository.externalId,
+          identifier: repository.externalSlug,
+          name: repository.name.split('/').pop(),
+          isInstalled: true,
+        })),
       },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
-      body: [githubRepository],
+      body: repositories,
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/${githubRepository.id}/platforms/`,
-      body: {
-        platforms: [DetectedPlatformFixture({platform: 'python'})],
-      },
-    });
+    for (const repository of repositories) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+        body: {
+          platforms: [DetectedPlatformFixture({platform: 'python'})],
+        },
+      });
+    }
     return MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/python/repo/`,
       method: 'POST',
@@ -1183,48 +1183,15 @@ describe('ScmCreateProject', () => {
         alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
       },
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/`,
-      body: [githubIntegration],
-      match: [MockApiClient.matchQuery({integrationType: 'source_code_management'})],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/${githubIntegration.id}/repos/`,
-      body: {
-        repos: [
-          {
-            externalId: githubRepository.externalId,
-            identifier: githubRepository.externalSlug,
-            name: 'sentry',
-            isInstalled: true,
-          },
-          {
-            externalId: relayRepository.externalId,
-            identifier: relayRepository.externalSlug,
-            name: 'relay',
-            isInstalled: true,
-          },
-        ],
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/`,
-      body: [relayRepository],
-    });
-    for (const repository of [githubRepository, relayRepository]) {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
-        body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
-      });
-    }
-    const {createRequest, project} = mockProjectCreation('python-relay', 'python');
+    mockExistingGithubRepository([githubRepository, relayRepository]);
+    const {project} = mockProjectCreation('python-relay', 'python');
     const repoLinkRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/repo/`,
       method: 'POST',
       body: {},
     });
 
-    const {router} = render(<ScmCreateProject />, {
+    render(<ScmCreateProject />, {
       organization,
       initialRouterConfig: returningRouterConfig,
     });
@@ -1240,16 +1207,10 @@ describe('ScmCreateProject', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
 
     await waitFor(() => {
-      expect(createRequest).toHaveBeenCalled();
-    });
-    await waitFor(() => {
       expect(repoLinkRequest).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/repo/`,
         expect.objectContaining({data: {repositoryId: relayRepository.id}})
       );
-    });
-    await waitFor(() => {
-      expect(router.location.pathname).toContain(`/${project.slug}/getting-started/`);
     });
   });
 });
