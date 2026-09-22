@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sentry import eventstore
 from sentry.integrations.messaging.message_builder import build_attachment_title, build_footer
 from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
@@ -24,6 +26,7 @@ from sentry.integrations.msteams.card_builder.block import (
     create_text_block,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.project import Project
@@ -42,6 +45,7 @@ from sentry.notifications.platform.types import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification
+from sentry.types.actor import Actor
 
 
 class IssueMSTeamsRendererTest(TestCase):
@@ -235,6 +239,29 @@ class IssueMSTeamsRendererTest(TestCase):
             "triggering event", size=TextSize.MEDIUM, weight=TextWeight.BOLDER
         )
 
+    def test_render_with_generic_issue_description(self) -> None:
+        data, event, group = self._create_data()
+        group_event = event.for_group(group)
+        occurrence = MagicMock(spec=IssueOccurrence)
+        occurrence.important_evidence_display = IssueEvidence(
+            name="Evidence", value="generic issue description", important=True
+        )
+        group_event.occurrence = occurrence
+
+        with (
+            patch.object(eventstore.backend, "get_event_by_id", return_value=event),
+            patch.object(event, "for_group", return_value=group_event) as for_group,
+        ):
+            result = IssueMSTeamsRenderer.render(
+                data=data,
+                rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
+            )
+
+        for_group.assert_called_once_with(group)
+        assert result["body"][1] == create_text_block(
+            "generic issue description", size=TextSize.MEDIUM, weight=TextWeight.BOLDER
+        )
+
     def test_render_with_assignee(self) -> None:
         data, event, group = self._create_data()
         GroupAssignee.objects.assign(group, self.user)
@@ -248,6 +275,19 @@ class IssueMSTeamsRendererTest(TestCase):
         assert result == self._build_expected_card(
             group=group, event=event, assignee=self.user.get_display_name()
         )
+
+    def test_render_with_stale_assignee(self) -> None:
+        data, event, group = self._create_data()
+
+        with patch.object(
+            Group, "get_assignee", side_effect=Actor.InvalidActor("Assignee no longer exists")
+        ):
+            result = IssueMSTeamsRenderer.render(
+                data=data,
+                rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
+            )
+
+        assert result == self._build_expected_card(group=group, event=event)
 
     def test_render_group_not_found(self) -> None:
         data = IssueNotificationData(

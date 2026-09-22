@@ -21,6 +21,7 @@ from sentry.notifications.platform.types import (
     NotificationSource,
 )
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.types.actor import Actor
 
 if TYPE_CHECKING:
     from sentry.integrations.msteams.card_builder.block import (
@@ -57,6 +58,8 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
                     event_id=data.event_id,
                     group_id=data.group_id,
                 )
+                if isinstance(event, Event):
+                    event = event.for_group(group)
             except Exception:
                 raise NotificationRenderError(f"Failed to retrieve event {data.event_id}")
 
@@ -167,7 +170,10 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         from sentry.integrations.msteams.card_builder.block import TextSize, create_text_block
         from sentry.integrations.msteams.card_builder.utils import IssueConstants
 
-        assignee = group.get_assignee()
+        try:
+            assignee = group.get_assignee()
+        except Actor.InvalidActor:
+            assignee = None
         if assignee:
             assignee_text = format_actor_option_non_slack(assignee)["text"]
             return create_text_block(
