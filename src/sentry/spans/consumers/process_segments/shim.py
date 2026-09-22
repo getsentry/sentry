@@ -101,6 +101,40 @@ def _get_event_contexts(segment_span: CompatibleSpan) -> dict[str, Any]:
     return contexts
 
 
+def _get_detector_compatible_spans(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
+    """
+    Return a shallow copy of the given span list, with the fields the legacy issue detectors need
+    added to each span.
+
+    Spans in the transaction event protocol carried top-level fields whose segment counterparts live
+    in `attributes`. Only the legacy detectors (and the occurrence evidence built from what they
+    find) still read the old shape, so this runs solely as part of building the fake transaction
+    event, rather than on every span the segment consumer handles.
+    """
+    event_spans: list[CompatibleSpan] = []
+
+    for span in spans:
+        attributes = span.get("attributes") or {}
+        # A shallow copy is sufficient here, since detectors don't mutate span data
+        event_span: CompatibleSpan = {**span}
+
+        event_span["description"] = attribute_value(span, ATTRIBUTE_NAMES.SENTRY_DESCRIPTION)
+        event_span["timestamp"] = span["end_timestamp"]
+        event_span["data"] = {}
+
+        for attribute_name in attributes:
+            if attribute_name == ATTRIBUTE_NAMES.SENTRY_DESCRIPTION:
+                continue  # already set above, at the top level of the span dict
+
+            value = attribute_value(span, attribute_name)
+            if value is not None:
+                event_span["data"][attribute_name] = value
+
+        event_spans.append(event_span)
+
+    return event_spans
+
+
 def build_shim_event_data(
     segment_span: CompatibleSpan, spans: list[CompatibleSpan]
 ) -> dict[str, Any]:
@@ -115,31 +149,11 @@ def build_shim_event_data(
         "timestamp": segment_span["end_timestamp"],
         "start_timestamp": segment_span["start_timestamp"],
         "datetime": to_datetime(segment_span["end_timestamp"]).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "spans": [],
         **_extract_attribute_values(segment_span, TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME),
     }
 
     event["contexts"] = _get_event_contexts(segment_span)
     event["tags"] = _get_event_tags(segment_span)
-
-    # Add legacy span attributes required only by issue detectors. As opposed to
-    # real event payloads, this also adds the segment span so detectors can run
-    # topological sorting on the span tree.
-    #
-    # TODO: Remove this code once `organizations:performance-issues-spans` has graduated
-    # and performance issue detection runs 100% on spans.
-    for span in spans:
-        # A shallow copy is sufficient here, since detectors don't mutate span data
-        event_span = {**span}
-        event_span["timestamp"] = span["end_timestamp"]
-        event_span["data"] = {}
-        for key, value in (span.get("attributes") or {}).items():
-            if (value := attribute_value(event_span, key)) is not None:
-                if key == ATTRIBUTE_NAMES.SENTRY_DESCRIPTION:
-                    event_span["description"] = value
-                else:
-                    event_span["data"][key] = value
-
-        event["spans"].append(event_span)
+    event["spans"] = _get_detector_compatible_spans(spans)
 
     return event
