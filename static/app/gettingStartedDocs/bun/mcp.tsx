@@ -1,5 +1,9 @@
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  GEN_AI_DATA_COLLECTION_SNIPPET,
+  getDataCollectionStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 import {getInstallContent, sentryImport} from './utils';
@@ -56,6 +60,17 @@ const server = Sentry.wrapMcpServerWithSentry(new McpServer({
         },
       ],
     },
+    // Not collapsible: the MCP onboarding renders `GuidedSteps`, which drops
+    // every collapsible step.
+    getDataCollectionStep({
+      collapsible: false,
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/bun/configuration/options/#dataCollection',
+      description: t(
+        'By default, the SDK sends the inputs and outputs of your MCP tool calls, prompt retrievals, and resource reads. This gives you rich debugging context.'
+      ),
+      code: GEN_AI_DATA_COLLECTION_SNIPPET,
+    }),
   ],
   verify: () => [
     {

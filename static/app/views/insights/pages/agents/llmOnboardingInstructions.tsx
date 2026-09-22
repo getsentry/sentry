@@ -58,11 +58,26 @@ export function getAgentSetupPrompt({
   organizationSlug: string;
   project: Pick<Project, 'slug' | 'platform'>;
 }) {
+  // `dataCollection` is a JavaScript SDK option. Python and PHP scope AI content
+  // capture differently, so only JavaScript projects get the question. Agent
+  // monitoring offers no other languages, which makes JavaScript the else branch,
+  // the same split the Conversations onboarding uses.
+  const platform = project.platform ?? '';
+  const isJavaScript = !platform.startsWith('python') && !platform.startsWith('php');
+
+  // The instrument skill keeps AI capture on and only reacts once the user raises
+  // a concern, so prompt for the question rather than leaving them to find it.
+  const dataCollectionStep = isJavaScript
+    ? `
+
+Then ask me whether I want to control which AI inputs and outputs the SDK sends, and point me to the [data collection options](https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection).`
+    : '';
+
   return `Read and follow https://skills.sentry.dev/instrument to set up Sentry agent tracing and conversations.
 
 Use this existing project: ${organizationSlug}/${project.slug}
 DSN: ${dsn}
-Platform hint: ${project.platform || 'unknown'}
+Platform hint: ${project.platform || 'unknown'}${dataCollectionStep}
 
 Then offer to set up the [Sentry plugin](https://docs.sentry.io/ai/agent-plugin/) so I can find and fix production issues from my coding agent.`;
 }

@@ -30,6 +30,37 @@ describe('getAgentSetupPrompt', () => {
       expect(prompt).toContain('https://docs.sentry.io/ai/agent-plugin/');
     }
   );
+
+  const DATA_COLLECTION_DOCS =
+    'https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection';
+
+  it.each(['node', 'javascript-nextjs', 'bun', 'deno', undefined] as const)(
+    'asks about AI inputs and outputs on %s',
+    platform => {
+      const prompt = getAgentSetupPrompt({
+        organizationSlug: OrganizationFixture().slug,
+        project: ProjectFixture({platform}),
+        dsn: ProjectKeysFixture()[0]!.dsn.public,
+      });
+
+      expect(prompt).toContain('which AI inputs and outputs the SDK sends');
+      expect(prompt).toContain(DATA_COLLECTION_DOCS);
+    }
+  );
+
+  it.each(['python', 'python-fastapi', 'php-laravel'] as const)(
+    'omits the question on %s, which does not expose dataCollection',
+    platform => {
+      const prompt = getAgentSetupPrompt({
+        organizationSlug: OrganizationFixture().slug,
+        project: ProjectFixture({platform}),
+        dsn: ProjectKeysFixture()[0]!.dsn.public,
+      });
+
+      expect(prompt).not.toContain('which AI inputs and outputs the SDK sends');
+      expect(prompt).not.toContain(DATA_COLLECTION_DOCS);
+    }
+  );
 });
 
 describe('ManualInstrumentationNote', () => {

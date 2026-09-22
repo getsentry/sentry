@@ -7,7 +7,10 @@ import {
   type OnboardingConfig,
   type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getDataCollectionStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  GEN_AI_DATA_COLLECTION_SNIPPET,
+  getDataCollectionStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
@@ -60,13 +63,6 @@ export function getMinRequiredVersion(params: DocsParams, fallback: string): str
     ? CLOUDFLARE_AGENTS_MIN_VERSION
     : fallback;
 }
-
-// Agent monitoring spans several init shapes (`Sentry.init`, `Sentry.withSentry`,
-// `instrumentAgentWithSentry`), so the step shows the options on their own rather
-// than picking one wrapper that would be wrong for the other targets.
-const GEN_AI_DATA_COLLECTION_SNIPPET = `dataCollection: {
-  genAI: { inputs: false, outputs: false },
-},`;
 
 /**
  * The data collection step for agent monitoring. Unlike the setup step, this one

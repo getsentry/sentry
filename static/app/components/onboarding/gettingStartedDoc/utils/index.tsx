@@ -85,6 +85,16 @@ export function getUploadSourceMapsStep({
   };
 }
 
+/**
+ * Agent and MCP monitoring span several init shapes (`Sentry.init`,
+ * `Sentry.withSentry`, `instrumentAgentWithSentry`), so their step shows the
+ * options on their own rather than picking one wrapper that would be wrong for
+ * the other targets.
+ */
+export const GEN_AI_DATA_COLLECTION_SNIPPET = `dataCollection: {
+  genAI: { inputs: false, outputs: false },
+},`;
+
 const DEFAULT_DATA_COLLECTION_SNIPPET = `Sentry.init({
   // ...
   dataCollection: {
