@@ -907,6 +907,13 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 project=self.project,
                 organization_integration=organization_integration,
             )
+        elif name == "codeowners":
+            resource = self.create_codeowners(
+                project=self.project,
+                code_mapping=self._resource("code_mapping"),
+                raw="",
+                schema={},
+            )
         elif name == "data_forwarder":
             resource = self.create_data_forwarder(
                 organization=self.org,
@@ -1102,6 +1109,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return self.org.slug
         if placeholder == "project_id_or_slug":
             return self.project.slug
+        if placeholder == "codeowners_id":
+            return str(self._resource("codeowners").id)
         if placeholder == "team_id_or_slug":
             if endpoint.endpoint_name == "OrganizationSCIMTeamDetails":
                 return str(self.team.id)
@@ -1322,6 +1331,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             "OrganizationTraceItemAttributesEndpoint": "organizations:visibility-explore-view",
             "OrganizationTraceItemMetricsEndpoint": "organizations:visibility-explore-view",
             "ProjectProfilingProfileEndpoint": "organizations:profiling",
+            "ProjectCodeOwnersDetailsEndpoint": "organizations:integrations-codeowners",
             "ProjectCodeOwnersEndpoint": "organizations:integrations-codeowners",
         }
         if feature := endpoint_flags.get(endpoint.endpoint_name):
@@ -1623,6 +1633,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             ("ProjectCodeOwnersEndpoint", "POST"): {
                 "raw": f"src/* {self.owner.email}",
                 "codeMappingId": str(self._resource("code_mapping").id),
+            },
+            ("ProjectCodeOwnersDetailsEndpoint", "PUT"): {
+                "raw": f"tests/* {self.owner.email}",
             },
             ("GroupIntegrationDetailsEndpoint", "POST"): {"assignee": "matrix@example.com"},
             ("GroupIntegrationDetailsEndpoint", "PUT"): {"externalIssue": "MATRIX-456"},

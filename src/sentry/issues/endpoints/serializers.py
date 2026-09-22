@@ -30,6 +30,17 @@ class ProjectCodeOwnersCreateRequestSerializer(serializers.Serializer[dict[str, 
     )
 
 
+class ProjectCodeOwnersUpdateRequestSerializer(serializers.Serializer[dict[str, str]]):
+    raw = serializers.CharField(
+        required=False,
+        help_text="The raw contents of the CODEOWNERS file.",
+    )
+    codeMappingId = serializers.CharField(
+        required=False,
+        help_text="The ID of the code mapping used to translate repository paths to stack trace paths.",
+    )
+
+
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
     code_mapping_id = serializers.IntegerField(required=True)
     raw = serializers.CharField(required=True)

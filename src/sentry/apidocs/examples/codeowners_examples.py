@@ -54,3 +54,26 @@ CREATE_PROJECT_CODEOWNERS = [
         response_only=True,
     ),
 ]
+
+RETRIEVE_PROJECT_CODEOWNERS = [
+    OpenApiExample(
+        "Retrieve a CODEOWNERS configuration",
+        value=PROJECT_CODEOWNERS_RESPONSE,
+        status_codes=["200"],
+        response_only=True,
+    )
+]
+
+UPDATE_PROJECT_CODEOWNERS = [
+    OpenApiExample(
+        "Update a CODEOWNERS configuration",
+        value={"raw": "src/* #backend"},
+        request_only=True,
+    ),
+    OpenApiExample(
+        "Updated CODEOWNERS configuration",
+        value=PROJECT_CODEOWNERS_RESPONSE_WITH_OWNERSHIP_SYNTAX,
+        status_codes=["200"],
+        response_only=True,
+    ),
+]
