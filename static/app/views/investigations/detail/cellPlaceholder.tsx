@@ -27,7 +27,7 @@ export function InvestigationCellPlaceholder({
       data-test-id="investigation-cell-placeholder"
     >
       {title ? (
-        <Heading as="h3" size="md">
+        <Heading as="h3" size="lg">
           {title}
         </Heading>
       ) : (
