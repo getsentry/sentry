@@ -1160,4 +1160,96 @@ describe('ScmCreateProject', () => {
 
     expect(await screen.findByRole('checkbox', {name: /Tracing/})).not.toBeChecked();
   });
+
+  it('creates a new project when the repository changes on a return', async () => {
+    const relayRepository = RepositoryFixture({
+      id: 'repository-2',
+      externalId: '2',
+      name: 'getsentry/relay',
+      externalSlug: 'getsentry/relay',
+      integrationId: githubIntegration.id,
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({slug: 'python', name: 'python', platform: 'python'}),
+    ]);
+    persistWizardSession({
+      createdProjectSlug: 'python',
+      selectedIntegration: githubIntegration,
+      selectedRepository: githubRepository,
+      projectDetailsForm: {
+        projectName: 'python',
+        teamSlug: adminTeam.slug,
+        alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [githubIntegration],
+      match: [MockApiClient.matchQuery({integrationType: 'source_code_management'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${githubIntegration.id}/repos/`,
+      body: {
+        repos: [
+          {
+            externalId: githubRepository.externalId,
+            identifier: githubRepository.externalSlug,
+            name: 'sentry',
+            isInstalled: true,
+          },
+          {
+            externalId: relayRepository.externalId,
+            identifier: relayRepository.externalSlug,
+            name: 'relay',
+            isInstalled: true,
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      body: [relayRepository],
+    });
+    for (const repository of [githubRepository, relayRepository]) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+        body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+      });
+    }
+    const {createRequest, project} = mockProjectCreation('python-relay', 'python');
+    const repoLinkRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/repo/`,
+      method: 'POST',
+      body: {},
+    });
+
+    const {router} = render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    await userEvent.click(await screen.findByText('sentry'));
+    await userEvent.keyboard('relay');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'relay'}));
+
+    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(createRequest).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(repoLinkRequest).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/repo/`,
+        expect.objectContaining({data: {repositoryId: relayRepository.id}})
+      );
+    });
+    await waitFor(() => {
+      expect(router.location.pathname).toContain(`/${project.slug}/getting-started/`);
+    });
+  });
 });
