@@ -2,13 +2,14 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {InfoText} from '@sentry/scraps/info';
-import {Table, type TableColumnConfig} from '@sentry/scraps/table';
+import {Table} from '@sentry/scraps/table';
 
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 
+import {ALLOCATION_COLUMNS} from './components/allocationColumns';
 import {AllocationRow} from './components/allocationRow';
 import {Centered, Divider, HalvedWithDivider} from './components/styles';
 import type {SpendAllocation} from './components/types';
@@ -28,15 +29,6 @@ type Props = {
   spendAllocations?: SpendAllocation[];
 };
 
-const COLUMNS: TableColumnConfig[] = [
-  {key: 'project', width: 'minmax(160px, 1fr)'},
-  {key: 'allocated-label', width: 120},
-  {key: 'allocated-values', width: 180},
-  {key: 'consumed-label', width: 120},
-  {key: 'consumed-values', width: 180},
-  {key: 'actions', width: 100},
-];
-
 export function ProjectAllocationsTable({
   deleteSpendAllocation,
   metricUnit,
@@ -55,11 +47,16 @@ export function ProjectAllocationsTable({
   }, [spendAllocations, selectedMetric]);
 
   return (
-    <AllocationsTable aria-label={t('Project allocations')} columns={COLUMNS}>
+    <AllocationsTable
+      aria-label={t('Project allocations')}
+      columns={Object.values(ALLOCATION_COLUMNS)}
+    >
       <Table.Head>
         <Table.Row>
-          <HeaderCell columnKey="project">{t('Project')}</HeaderCell>
-          <HeaderCell columnKey="allocated-label" align="right">
+          <HeaderCell columnKey={ALLOCATION_COLUMNS.project.key}>
+            {t('Project')}
+          </HeaderCell>
+          <HeaderCell columnKey={ALLOCATION_COLUMNS.allocatedLabel.key} align="right">
             <InfoText
               variant="inherit"
               title={t(
@@ -69,7 +66,7 @@ export function ProjectAllocationsTable({
               {t('Allocated')}
             </InfoText>
           </HeaderCell>
-          <HeaderCell columnKey="allocated-values">
+          <HeaderCell columnKey={ALLOCATION_COLUMNS.allocatedValues.key}>
             <HalvedWithDivider margin="0">
               <Centered>{t('Spend')}</Centered>
               <Centered>
@@ -78,7 +75,7 @@ export function ProjectAllocationsTable({
               <Centered>{t('Events')}</Centered>
             </HalvedWithDivider>
           </HeaderCell>
-          <HeaderCell columnKey="consumed-label" align="right">
+          <HeaderCell columnKey={ALLOCATION_COLUMNS.consumedLabel.key} align="right">
             <InfoText
               variant="inherit"
               title={t('Consumed events indicate your usage per allocation')}
@@ -86,7 +83,7 @@ export function ProjectAllocationsTable({
               {t('Consumed')}
             </InfoText>
           </HeaderCell>
-          <HeaderCell columnKey="consumed-values">
+          <HeaderCell columnKey={ALLOCATION_COLUMNS.consumedValues.key}>
             <HalvedWithDivider margin="0">
               <Centered>{t('Spend')}</Centered>
               <Centered>
@@ -95,7 +92,7 @@ export function ProjectAllocationsTable({
               <Centered>{t('Events')}</Centered>
             </HalvedWithDivider>
           </HeaderCell>
-          <HeaderCell columnKey="actions" />
+          <HeaderCell columnKey={ALLOCATION_COLUMNS.actions.key} />
         </Table.Row>
       </Table.Head>
       <Table.Body>
