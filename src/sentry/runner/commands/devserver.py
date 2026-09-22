@@ -170,6 +170,7 @@ def devserver(
     sentry_sdk.init(
         dsn=os.environ.get("SENTRY_DEVSERVICES_DSN", ""),
         traces_sample_rate=1.0,
+        trace_lifecycle="stream",
     )
     with start_span(op="command", name="sentry.devserver", transaction=True):
         passed_options = {
