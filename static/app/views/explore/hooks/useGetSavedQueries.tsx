@@ -210,13 +210,15 @@ export type DiscoverSavedQuery = DiscoverSavedQueryBase & {
  * This is for the all-queries view. If you aren't dealing with discover
  * queries, use SavedQuery instead.
  */
-export type AllSavedQuery = SavedQuery | DiscoverSavedQuery;
+export type CombinedSavedQuery = SavedQuery | DiscoverSavedQuery;
 
-export function isExploreSavedQuery(savedQuery: AllSavedQuery): savedQuery is SavedQuery {
+export function isExploreSavedQuery(
+  savedQuery: CombinedSavedQuery
+): savedQuery is SavedQuery {
   return savedQuery.queryType === SavedQueryType.EXPLORE;
 }
 
-export function getSavedQueryKey(savedQuery: AllSavedQuery): string {
+export function getSavedQueryKey(savedQuery: CombinedSavedQuery): string {
   return `${savedQuery.queryType}:${savedQuery.id}`;
 }
 
@@ -236,7 +238,7 @@ function savedQueriesApiOptions<TData = ReadableSavedQuery[]>(
     staleTime: 0,
   });
 }
-type AllSavedQueryResponse =
+type CombinedSavedQueryResponse =
   | (ReadableSavedQuery & {queryType?: SavedQueryType.EXPLORE})
   | DiscoverSavedQuery;
 
@@ -244,7 +246,7 @@ type AllSavedQueryResponse =
  * Returns both explore and discover saved queries. Use `savedQueriesApiOptions`
  * if only explore saved queries are needed
  */
-function allSavedQueriesApiOptions<TData = AllSavedQueryResponse[]>(
+function combinedSavedQueriesApiOptions<TData = CombinedSavedQueryResponse[]>(
   organization: Organization,
   query?: Record<string, unknown>
 ) {
@@ -290,14 +292,14 @@ export function useGetSavedQueries({
   };
 
   const queryOptions = migrateDiscoverQueries
-    ? allSavedQueriesApiOptions(organization, requestQuery)
-    : savedQueriesApiOptions<AllSavedQueryResponse[]>(organization, requestQuery);
+    ? combinedSavedQueriesApiOptions(organization, requestQuery)
+    : savedQueriesApiOptions<CombinedSavedQueryResponse[]>(organization, requestQuery);
 
   const {data, isLoading, isFetched, isError} = useQuery({
     ...queryOptions,
     select: selectJsonWithHeaders as (
-      result: ApiResponse<AllSavedQueryResponse[]>
-    ) => ApiResponse<AllSavedQueryResponse[]>,
+      result: ApiResponse<CombinedSavedQueryResponse[]>
+    ) => ApiResponse<CombinedSavedQueryResponse[]>,
   });
 
   const savedQueries = useMemo(
@@ -334,7 +336,7 @@ export function useInvalidateSavedQueries() {
       queryKey: savedQueriesApiOptions(organization).queryKey,
     });
     queryClient.invalidateQueries({
-      queryKey: allSavedQueriesApiOptions(organization).queryKey,
+      queryKey: combinedSavedQueriesApiOptions(organization).queryKey,
     });
   }, [queryClient, organization]);
 }

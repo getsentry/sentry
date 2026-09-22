@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {
   type SavedQuery,
   SavedQueryType,
-  type AllSavedQuery,
+  type CombinedSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
@@ -55,7 +55,7 @@ describe('ExploreSavedQueryNavigationItems', () => {
     projects: [],
     position: 3,
     starred: true,
-  } as unknown as AllSavedQuery;
+  } as unknown as CombinedSavedQuery;
 
   it('should render a list of starred queries', () => {
     render(
