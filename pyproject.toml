@@ -3,6 +3,10 @@ name = "sentry"
 # see setup.cfg for versioning; we only have this here to make uv happy
 # which we intend to use for dependency management, not packaging
 version = "0.0.0"
+# without this uv derives requires-python from whichever interpreter runs it,
+# so `uv lock` under python 3.14 (e.g. dependabot) resolves for >=3.14 and fails
+# on wheel-only packages such as backports-zstd that have no cp314 wheels
+requires-python = ">=3.13"
 dependencies = [
   "asyncpg>=0.31.0",
   "backports-zstd>=1.3.0",
