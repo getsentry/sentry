@@ -60,6 +60,7 @@ export function useTraceScrollToPath({
     // Only re-run this effect when the traceSlug changes, not on every render since we manage
     // scroll internally in the traceWaterfall component, and only update the url for state consistency across
     // subsequent loads
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [traceSlug, scrollToNode]);
 
   return scrollQueueRef;

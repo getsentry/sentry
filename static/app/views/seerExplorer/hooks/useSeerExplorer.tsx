@@ -84,6 +84,11 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/issues/:groupId/distributions/',
   '/issues/:groupId/distributions/:tagKey/',
   '/monitors/',
+  '/monitors/:detectorId/',
+  '/monitors/:detectorId/edit/',
+  '/monitors/alerts/',
+  '/monitors/alerts/:automationId/',
+  '/monitors/alerts/:automationId/edit/',
   '/monitors/crons/',
   '/monitors/errors/',
   '/monitors/metrics/',
@@ -644,7 +649,7 @@ export const useSeerExplorer = () => {
     if (!session) {
       return null;
     }
-    return {...session, blocks: normalizeBlocks(session.blocks)};
+    return {...session, blocks: normalizeBlocks(session.blocks ?? [])};
   }, [apiData?.session]);
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.

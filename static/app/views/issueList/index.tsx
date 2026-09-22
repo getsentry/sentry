@@ -65,6 +65,7 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
         {replace: true}
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [view, previousViewData, navigate, organization.slug]);
 }
 

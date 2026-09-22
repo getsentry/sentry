@@ -4,6 +4,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {
   IconAsana,
   IconBitbucket,
+  IconCursor,
   IconGeneric,
   IconGithub,
   IconGitlab,
@@ -193,6 +194,8 @@ export const getIntegrationIcon = (
   iconSize: SVGIconProps['size'] = 'md'
 ) => {
   switch (integrationType) {
+    case 'cursor_origin':
+      return <IconCursor size={iconSize} />;
     case 'asana':
       return <IconAsana size={iconSize} />;
     case 'bitbucket':
@@ -323,23 +326,6 @@ export const getAlertText = (integrations?: Integration[]): string | undefined =
     default:
       return undefined;
   }
-};
-
-/**
- * Uses the mapping and baseEndpoint to derive the details for the mappings request.
- * @param baseEndpoint Must have a trailing slash, since the id is appended for PUT requests!
- * @param mapping The mapping or suggestion being sent to the endpoint
- * @returns An object containing the request method (apiMethod), and final endpoint (apiEndpoint)
- */
-export const getExternalActorEndpointDetails = (
-  baseEndpoint: string,
-  mapping?: ExternalActorMappingOrSuggestion
-): {apiEndpoint: string; apiMethod: 'POST' | 'PUT'} => {
-  const isValidMapping = mapping && isExternalActorMapping(mapping);
-  return {
-    apiMethod: isValidMapping ? 'PUT' : 'POST',
-    apiEndpoint: isValidMapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint,
-  };
 };
 
 export function getIntegrationStatus(integration: Integration) {

@@ -60,7 +60,11 @@ export default function BuildComparison() {
     RequestError
   >({
     mutationFn: () => {
-      return fetchMutation({url: `${compareUrl}?rerun=true`, method: 'POST'});
+      return fetchMutation({
+        url: compareUrl,
+        method: 'POST',
+        options: {query: {rerun: 'true'}},
+      });
     },
     onSuccess: response => {
       if (response?.status === 'exists') {

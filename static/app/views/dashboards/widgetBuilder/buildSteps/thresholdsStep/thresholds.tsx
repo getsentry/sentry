@@ -50,7 +50,7 @@ enum ThresholdMaxKeys {
 type ThresholdMaxValues = Partial<Record<ThresholdMaxKeys, number>>;
 
 export type ThresholdsConfig = {
-  max_values: ThresholdMaxValues;
+  max_values: ThresholdMaxValues | undefined;
   unit: string | null;
   preferredPolarity?: Polarity;
 };
@@ -102,8 +102,8 @@ export function Thresholds({
   onPolarityChange,
 }: ThresholdsStepProps) {
   const theme = useTheme();
-  const maxOneValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1] ?? '';
-  const maxTwoValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2] ?? '';
+  const maxOneValue = thresholdsConfig?.max_values?.[ThresholdMaxKeys.MAX_1] ?? '';
+  const maxTwoValue = thresholdsConfig?.max_values?.[ThresholdMaxKeys.MAX_2] ?? '';
   const unit = thresholdsConfig?.unit ?? dataUnit;
   const unitOptions = getThresholdUnitSelectOptions(dataType);
 

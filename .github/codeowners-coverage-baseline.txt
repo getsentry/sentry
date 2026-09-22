@@ -1817,7 +1817,6 @@ tests/js/fixtures/vercelIntegration.ts
 tests/js/fixtures/widget.ts
 tests/js/fixtures/widgetQuery.ts
 tests/js/fixtures/workflowEngine.ts
-tests/js/instrumentedEnv/userEventIntegration.ts
 tests/js/jest-pegjs-transform.js
 tests/js/setup.ts
 tests/js/setupFramework.ts
