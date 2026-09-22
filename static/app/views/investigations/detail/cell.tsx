@@ -68,14 +68,15 @@ export function InvestigationCell({
     ? (block.currentExecution?.id ?? null)
     : null;
   const autoOpenedExecutionId = useRef(activeExecutionId);
+  const awaitingInput = block.currentExecution?.status === 'awaiting_input';
   // A cell that has nothing in it yet is showing a placeholder, so opening the
   // Seer panel over it would bury that. A cell waiting on an answer is the
   // exception — the question lives in the panel. Runs started from this page
-  // still open it, through `openPanel` and the effect below.
+  // still open it, through `openPanel` and the effects below.
   const [panelOpen, setPanelOpen] = useState(
-    Boolean(activeExecutionId) &&
-      (hasRenderableContent(block) || block.currentExecution?.status === 'awaiting_input')
+    Boolean(activeExecutionId) && (hasRenderableContent(block) || awaitingInput)
   );
+  const askedForInputId = useRef(awaitingInput ? activeExecutionId : null);
   const [traceExecutionId, setTraceExecutionId] = useState<string | null>(
     activeExecutionId
   );
@@ -127,6 +128,23 @@ export function InvestigationCell({
     setTraceExecutionId(activeExecutionId);
     setShowPrompt(false);
   }, [activeExecutionId]);
+
+  // A cell that was already on screen can stop for a question part way through
+  // its run. The execution is the same one, so the effect above stays quiet and
+  // the question would sit unseen behind the placeholder. Opens once per
+  // execution, so closing the panel keeps it closed.
+  useEffect(() => {
+    if (!awaitingInput || !activeExecutionId) {
+      return;
+    }
+    if (askedForInputId.current === activeExecutionId) {
+      return;
+    }
+    askedForInputId.current = activeExecutionId;
+    setPanelOpen(true);
+    setTraceExecutionId(activeExecutionId);
+    setShowPrompt(false);
+  }, [awaitingInput, activeExecutionId]);
 
   function openPanel() {
     setPanelOpen(true);

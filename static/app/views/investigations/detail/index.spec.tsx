@@ -381,6 +381,92 @@ describe('Investigation detail', () => {
     ).toBeInTheDocument();
   });
 
+  it('surfaces the question when a running cell pauses mid-run', async () => {
+    const queryClient = makeTestQueryClient();
+    const running = investigationWithQueryResult();
+    running.blocks = [
+      {
+        ...running.blocks[0]!,
+        content: '',
+        outputStatus: 'running',
+        currentExecution: {
+          id: 'execution-1',
+          status: 'running',
+          startedAt: '2026-08-18T20:00:00Z',
+          completedAt: null,
+          error: null,
+        },
+      },
+    ];
+    const executionUrl = `${detailUrl}blocks/block-1/executions/execution-1/`;
+    MockApiClient.addMockResponse({url: detailUrl, body: running});
+    MockApiClient.addMockResponse({
+      url: executionUrl,
+      body: {
+        id: 'execution-1',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+
+    renderView(organization, queryClient);
+
+    expect(await screen.findByRole('heading', {name: 'Summary'})).toBeInTheDocument();
+    expect(screen.getByTestId('investigation-cell-placeholder')).toBeInTheDocument();
+
+    // The same execution stops for an answer — no new execution id to react to.
+    const paused = {
+      ...running,
+      blocks: [
+        {
+          ...running.blocks[0]!,
+          outputStatus: 'awaiting_input' as const,
+          currentExecution: {
+            ...running.blocks[0]!.currentExecution!,
+            status: 'awaiting_input' as const,
+          },
+        },
+      ],
+    };
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({url: detailUrl, body: paused});
+    MockApiClient.addMockResponse({
+      url: executionUrl,
+      body: {
+        id: 'execution-1',
+        status: 'awaiting_input',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: {
+          id: 'input-1',
+          input_type: 'ask_user_question',
+          data: {
+            questions: [
+              {
+                question: 'Which environment should I inspect?',
+                options: [{label: 'Production', description: 'Use production events'}],
+              },
+            ],
+          },
+        },
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+    await queryClient.invalidateQueries({
+      queryKey: getInvestigationDetailQueryOptions(organization.slug, running.id)
+        .queryKey,
+    });
+
+    expect(
+      await screen.findByText('Which environment should I inspect?')
+    ).toBeInTheDocument();
+  });
+
   it('renders a placeholder title and body while the report is still being written', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
