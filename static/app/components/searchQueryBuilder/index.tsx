@@ -343,8 +343,6 @@ function SearchQueryBuilderUI({
       ref={setWrapperRef}
       aria-disabled={disabled}
       data-test-id="search-query-builder"
-      // Styling hook only; the icon itself is what tests should look for.
-      data-hide-search-icon={showSearchIcon ? undefined : true}
     >
       <PanelProvider>
         {showSearchIcon ? (
@@ -360,6 +358,7 @@ function SearchQueryBuilderUI({
             autoFocus={autoFocusOnMount.current}
             label={label}
             actionBarWidth={actionBarWidth}
+            hideSearchIcon={!showSearchIcon}
           />
         )}
         {size !== 'small' && (
@@ -406,12 +405,6 @@ const Wrapper = styled(Input.withComponent('div'))`
   contain: inline-size;
   font-size: ${p => p.theme.font.size.md};
   cursor: text;
-
-  /* Reclaim the space the search icon would have occupied. */
-  &[data-hide-search-icon='true'] [role='grid'] {
-    /* Match the combobox menu's space.lg offset, minus this wrapper's 1px border. */
-    padding-left: calc(${p => p.theme.space.lg} - 1px);
-  }
 `;
 
 const ButtonsWrapper = styled('div')`
