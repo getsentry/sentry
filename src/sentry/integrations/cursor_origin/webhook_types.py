@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, ValidationError, validator
+from pydantic import BaseModel, Field, ValidationError, root_validator, validator
 
 from sentry.integrations.cursor_origin.client import OriginCommit
 
@@ -122,10 +122,36 @@ class PullRequestUser(OriginModel):
     display_name: str = Field(default="", alias="displayName")
 
 
+class PullRequestApp(OriginModel):
+    id: str = Field(min_length=1)
+    display_name: str = Field(default="", alias="displayName")
+
+
+class PullRequestServiceAccount(OriginModel):
+    id: str = Field(min_length=1)
+
+
 class PullRequestAuthor(OriginModel):
-    """Origin names a user, an app or a service account; only a user has an email."""
+    """Exactly one of a user, an app or a service account."""
 
     user: PullRequestUser | None = None
+    app: PullRequestApp | None = None
+    service_account: PullRequestServiceAccount | None = Field(default=None, alias="serviceAccount")
+
+    @root_validator(skip_on_failure=True)
+    def _one_actor(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if sum(values[key] is not None for key in ("user", "app", "service_account")) != 1:
+            raise ValueError("expected exactly one of user, app or serviceAccount")
+        return values
+
+    def email_and_name(self) -> tuple[str, str]:
+        """Only a user has an email, so like GitHub, an app or service account gets a `@localhost` one."""
+        if self.user is not None:
+            return self.user.email, self.user.display_name
+        if self.app is not None:
+            return f"{self.app.id}@localhost", self.app.display_name or self.app.id
+        assert self.service_account is not None
+        return f"{self.service_account.id}@localhost", self.service_account.id
 
 
 class PullRequest(OriginModel):

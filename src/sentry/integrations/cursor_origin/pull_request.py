@@ -59,12 +59,8 @@ class PullRequestLifecycleHandler(WebhookEventHandler):
     def _record(self, repo: Repository, event: PullRequestEvent, delivery_id: str) -> None:
         pull_request = event.pull_request
         state = lifecycle_state(event)
-        user = pull_request.author.user
-        author = (
-            get_or_create_commit_author(repo.organization_id, user.email, user.display_name)
-            if user is not None
-            else None
-        )
+        email, name = pull_request.author.email_and_name()
+        author = get_or_create_commit_author(repo.organization_id, email, name)
 
         _, created = update_pull_request_from_scm_snapshot(
             provider=IntegrationProviderSlug.CURSOR_ORIGIN.value,

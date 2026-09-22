@@ -149,13 +149,25 @@ class PullRequestLifecycleHandlerTest(TestCase):
         assert pull_request.draft is True
         assert pull_request.state == PullRequestLifecycleState.OPEN
 
-    def test_an_app_authored_pull_request_has_no_author(self) -> None:
+    def test_an_app_author_is_kept_under_a_localhost_email(self) -> None:
         payload = _payload()
-        payload["pullRequest"]["author"] = {"app": {"id": "app_01example"}}
+        payload["pullRequest"]["author"] = {"app": {"id": "app_01example", "displayName": "Sentry"}}
 
         self._handle(payload)
 
-        assert self._pull_requests()[0].author is None
+        author = self._pull_requests()[0].author
+        assert author is not None
+        assert (author.email, author.name) == ("app_01example@localhost", "Sentry")
+
+    def test_a_service_account_author_is_named_by_its_id(self) -> None:
+        payload = _payload()
+        payload["pullRequest"]["author"] = {"serviceAccount": {"id": "sa_01example"}}
+
+        self._handle(payload)
+
+        author = self._pull_requests()[0].author
+        assert author is not None
+        assert (author.email, author.name) == ("sa_01example@localhost", "sa_01example")
 
     def test_an_unknown_repository_is_ignored(self) -> None:
         payload = _payload()
@@ -181,6 +193,13 @@ class PullRequestEventTest(TestCase):
     def test_a_state_origin_does_not_document_is_refused(self) -> None:
         with pytest.raises(OriginPayloadError, match="pullRequest -> state"):
             PullRequestEvent.from_payload(_payload(state="locked"))
+
+    def test_an_author_must_be_exactly_one_actor(self) -> None:
+        payload = _payload()
+        payload["pullRequest"]["author"] = {}
+
+        with pytest.raises(OriginPayloadError, match="exactly one"):
+            PullRequestEvent.from_payload(payload)
 
     def test_an_author_display_name_is_kept_when_origin_sends_one(self) -> None:
         payload = _payload()
