@@ -44,10 +44,11 @@ const POLL_INTERVAL_MS = 2000;
  */
 const COMMAND_SETTLE_MS = 30_000;
 
-/** Phases that run before the first hypothesis exists, where an empty list means "not yet". */
-const PRE_HYPOTHESIS_PHASES = new Set<string>(['intake', 'broad_scan', 'planning']);
-
-/** Phases past producing hypotheses, where an empty list means the run made none. */
+/**
+ * Phases past producing hypotheses, where an empty list means the run made
+ * none. Anywhere else an empty list means "not yet", including a run that is
+ * investigating but has not written its first hypothesis.
+ */
 const SETTLED_PHASES = new Set<string>([
   'reporting',
   'metadata',
@@ -253,8 +254,7 @@ export function InvestigationHypotheses({
   }
 
   const hasHypotheses = projection.hypotheses.length > 0;
-  const awaitingFirstHypothesis =
-    !hasHypotheses && PRE_HYPOTHESIS_PHASES.has(projection.phase);
+  const awaitingFirstHypothesis = !hasHypotheses && !SETTLED_PHASES.has(projection.phase);
 
   return (
     <Stack gap="2xl">

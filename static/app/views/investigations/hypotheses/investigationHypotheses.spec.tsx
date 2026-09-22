@@ -449,7 +449,10 @@ describe('InvestigationHypotheses', () => {
     ).not.toBeInTheDocument();
   });
 
-  it.each(['intake', 'broad_scan', 'planning'] as const)(
+  // `investigating` and `judging` included: the agent writes hypotheses as it
+  // goes, so a run can reach them with none yet. Dropping the placeholders
+  // there would reopen the blank window mid-run.
+  it.each(['intake', 'broad_scan', 'planning', 'investigating', 'judging'] as const)(
     'holds the row open while the run is still in %s',
     async phase => {
       MockApiClient.addMockResponse({
@@ -459,8 +462,11 @@ describe('InvestigationHypotheses', () => {
 
       renderHypotheses({phase});
 
+      // The status block only renders once the projection is in, so this is
+      // what separates holding the row open from the pre-projection panel.
+      await screen.findByTestId('seer-status-block');
       expect(
-        await screen.findByTestId('investigation-hypotheses-placeholder')
+        screen.getByTestId('investigation-hypotheses-placeholder')
       ).toBeInTheDocument();
       expect(screen.queryByText(/plausible cause/)).not.toBeInTheDocument();
     }
