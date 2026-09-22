@@ -185,7 +185,11 @@ export function InvestigationHypotheses({
     ) : null;
   }
 
-  const statusBlock = getSeerStatusBlock(projection);
+  // A finished run has nothing left to report here: the findings below speak
+  // for themselves, and the header badge still says it completed. Every other
+  // state — running, waiting on input, failed, stopped — keeps the block.
+  const seerStatus = getSeerStatusBlock(projection);
+  const statusBlock = seerStatus?.variant === 'complete' ? null : seerStatus;
   const {workflowVersion} = projection;
   const commandPending = commandMutation.isPending;
   const completedChecks = projection.hypotheses.reduce(
