@@ -75,6 +75,7 @@ export function AgentSetupCard({
     <Grid
       columns={`${SETUP_CARD_MARKER_PX} 1fr`}
       gap="0 md"
+      background="primary"
       border="primary"
       radius="xl"
       padding="xl"
