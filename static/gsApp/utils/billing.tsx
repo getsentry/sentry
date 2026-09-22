@@ -946,6 +946,9 @@ export function productIsEnabled(
   if (!metricHistory) {
     return false;
   }
+  if (metricHistory.isDisabled !== undefined) {
+    return !metricHistory.isDisabled;
+  }
   const hasNonPaygAccess =
     (metricHistory.prepaid ?? 0) !== 0 || !!metricHistory.softCapType;
   const hasPaygBudget =

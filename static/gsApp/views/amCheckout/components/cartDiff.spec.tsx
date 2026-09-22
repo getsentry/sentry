@@ -33,7 +33,7 @@ describe('CartDiff', () => {
     },
   };
 
-  function renderCartDiff({
+  function ExampleCartDiff({
     activePlan = teamAnnualPlan,
     formData,
     subscription = sub,
@@ -42,7 +42,7 @@ describe('CartDiff', () => {
     activePlan?: Plan;
     subscription?: Subscription;
   }) {
-    render(
+    return (
       <CartDiff
         activePlan={activePlan}
         formData={formData}
@@ -73,7 +73,7 @@ describe('CartDiff', () => {
       },
     };
 
-    renderCartDiff({formData, activePlan: bizPlan});
+    render(<ExampleCartDiff formData={formData} activePlan={bizPlan} />);
 
     expect(await screen.findByText('Changes')).toBeInTheDocument();
     const planDiff = await screen.findByTestId('plan-diff');
@@ -95,7 +95,7 @@ describe('CartDiff', () => {
   });
 
   it('does not render for returning customers with no changes', () => {
-    renderCartDiff({formData: defaultFormData});
+    render(<ExampleCartDiff formData={defaultFormData} />);
     expect(screen.queryByTestId('cart-diff')).not.toBeInTheDocument();
   });
 
@@ -104,7 +104,7 @@ describe('CartDiff', () => {
       organization: org,
       plan: 'am3_f',
     });
-    renderCartDiff({formData: defaultFormData, subscription: newSub});
+    render(<ExampleCartDiff formData={defaultFormData} subscription={newSub} />);
     expect(screen.queryByTestId('cart-diff')).not.toBeInTheDocument();
   });
 
@@ -130,7 +130,7 @@ describe('CartDiff', () => {
       },
     };
 
-    renderCartDiff({formData, subscription: sharedOdSub});
+    render(<ExampleCartDiff formData={formData} subscription={sharedOdSub} />);
 
     expect(await screen.findByText('Changes')).toBeInTheDocument();
     const paygDiff = await screen.findByTestId('shared-spend-limit-diff');
@@ -168,7 +168,7 @@ describe('CartDiff', () => {
       },
     };
 
-    renderCartDiff({formData, subscription: perCategorySub});
+    render(<ExampleCartDiff formData={formData} subscription={perCategorySub} />);
     expect(await screen.findByText('Changes')).toBeInTheDocument();
     const paygDiff = await screen.findByTestId('shared-spend-limit-diff');
     expect(paygDiff).toHaveTextContent('PAYG spend limit');
@@ -191,7 +191,7 @@ describe('CartDiff', () => {
       },
     };
 
-    renderCartDiff({formData});
+    render(<ExampleCartDiff formData={formData} />);
     expect(screen.queryByTestId('cart-diff')).not.toBeInTheDocument();
   });
 
@@ -204,7 +204,7 @@ describe('CartDiff', () => {
       },
     };
 
-    renderCartDiff({formData});
+    render(<ExampleCartDiff formData={formData} />);
     expect(await screen.findByText('Changes')).toBeInTheDocument();
     const paygDiff = await screen.findByTestId('shared-spend-limit-diff');
     expect(paygDiff).toHaveTextContent('PAYG spend limit');
@@ -224,7 +224,7 @@ describe('CartDiff', () => {
       },
     };
 
-    renderCartDiff({formData});
+    render(<ExampleCartDiff formData={formData} />);
     expect(await screen.findByText('Changes')).toBeInTheDocument();
     const perCategoryDiff = await screen.findByTestId('per-category-spend-limit-diff');
     expect(perCategoryDiff).toHaveTextContent('Per-product spend limits');
@@ -253,7 +253,7 @@ describe('CartDiff', () => {
         sharedMaxBudget: 0,
       },
     };
-    renderCartDiff({formData, subscription: subWithBudget});
+    render(<ExampleCartDiff formData={formData} subscription={subWithBudget} />);
     expect(await screen.findByText('Changes')).toBeInTheDocument();
     const paygDiff = await screen.findByTestId('shared-spend-limit-diff');
     expect(paygDiff).toHaveTextContent('PAYG spend limit');

@@ -162,7 +162,10 @@ describe('AccountSecurityDetails', () => {
         },
       });
 
-      expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Remove'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 

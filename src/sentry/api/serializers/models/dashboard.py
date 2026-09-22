@@ -68,6 +68,7 @@ class DashboardWidgetQueryResponse(TypedDict):
 
 class ThresholdTypeOptional(TypedDict, total=False):
     preferredPolarity: str
+    timeWindow: str
 
 
 class ThresholdType(ThresholdTypeOptional):
@@ -86,6 +87,8 @@ def _convert_thresholds_to_camel_case(thresholds: dict[str, Any] | None) -> Thre
     }
     if thresholds.get("preferred_polarity") is not None:
         result["preferredPolarity"] = thresholds["preferred_polarity"]
+    if thresholds.get("time_window") is not None:
+        result["timeWindow"] = thresholds["time_window"]
     return result
 
 

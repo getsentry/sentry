@@ -27,17 +27,11 @@ class InvestigationBlockSerializerTest(TestCase):
             investigation=self.investigation, position=0, kind="query"
         )
 
-    def serialize_block(
-        self, accessible_project_ids: set[int] | None = None
-    ) -> InvestigationBlockSerializerResponse:
+    def serialize_block(self) -> InvestigationBlockSerializerResponse:
         return serialize(
             self.block,
             self.user,
-            InvestigationBlockSerializer(
-                accessible_project_ids=(
-                    {self.project.id} if accessible_project_ids is None else accessible_project_ids
-                )
-            ),
+            InvestigationBlockSerializer(),
         )
 
     def completed_execution(self, project: Project | None = None) -> InvestigationBlockExecution:
@@ -66,7 +60,7 @@ class InvestigationBlockSerializerTest(TestCase):
         assert result["output"] is None
         assert result["currentExecution"] is None
 
-    def test_exposes_output_when_every_data_project_is_accessible(self) -> None:
+    def test_exposes_output(self) -> None:
         execution = self.completed_execution()
 
         result = self.serialize_block()
@@ -76,27 +70,19 @@ class InvestigationBlockSerializerTest(TestCase):
         assert result["currentExecution"] is not None
         assert result["currentExecution"]["id"] == str(execution.id)
 
-    def test_withholds_output_when_a_data_project_is_inaccessible(self) -> None:
-        self.completed_execution()
-
-        result = self.serialize_block(accessible_project_ids=set())
-
-        assert result["outputStatus"] == "restricted"
-        assert result["output"] is None
-
-    def test_withholds_output_when_only_some_data_projects_are_accessible(self) -> None:
+    def test_exposes_output_from_multiple_projects(self) -> None:
         other_project = self.create_project(organization=self.organization)
         execution = self.completed_execution()
         self.create_investigation_block_execution_project(
             execution=execution, project=other_project
         )
 
-        result = self.serialize_block(accessible_project_ids={self.project.id})
+        result = self.serialize_block()
 
-        assert result["outputStatus"] == "restricted"
-        assert result["output"] is None
+        assert result["outputStatus"] == "available"
+        assert result["output"] == {"schemaVersion": 1}
 
-    def test_exposes_execution_error_when_projects_are_accessible(self) -> None:
+    def test_exposes_execution_error(self) -> None:
         execution = self.completed_execution()
         execution.error = {"detail": "Query failed"}
         execution.save(update_fields=["error"])
@@ -106,7 +92,7 @@ class InvestigationBlockSerializerTest(TestCase):
         assert result["currentExecution"] is not None
         assert result["currentExecution"]["error"] == {"detail": "Query failed"}
 
-    def test_redacts_execution_error_when_projects_are_inaccessible(self) -> None:
+    def test_exposes_error_from_a_new_project(self) -> None:
         visible_execution = self.completed_execution()
         restricted_project = self.create_project(organization=self.organization)
         restricted_execution = self.create_investigation_block_execution(
@@ -125,10 +111,10 @@ class InvestigationBlockSerializerTest(TestCase):
             result_execution=visible_execution,
         )
 
-        result = self.serialize_block(accessible_project_ids={self.project.id})
+        result = self.serialize_block()
 
         assert result["currentExecution"] is not None
-        assert result["currentExecution"]["error"] is None
+        assert result["currentExecution"]["error"] == {"detail": "Sensitive query failed"}
 
     def test_reports_a_pending_execution_status_verbatim(self) -> None:
         execution = self.create_investigation_block_execution(
@@ -141,17 +127,17 @@ class InvestigationBlockSerializerTest(TestCase):
 
         assert self.serialize_block()["outputStatus"] == (InvestigationBlockExecutionStatus.PENDING)
 
-    def test_blanks_restricted_text_content(self) -> None:
+    def test_exposes_generated_text_content(self) -> None:
         self.block.update(kind="text", content="Secret finding", generated_content="Secret draft")
         self.completed_execution()
 
-        result = self.serialize_block(accessible_project_ids=set())
+        result = self.serialize_block()
 
-        assert result["outputStatus"] == "restricted"
-        assert result["content"] == ""
-        assert result["generatedContent"] == ""
+        assert result["outputStatus"] == "available"
+        assert result["content"] == "Secret finding"
+        assert result["generatedContent"] == "Secret draft"
 
-    def test_keeps_text_content_when_projects_are_accessible(self) -> None:
+    def test_keeps_text_content(self) -> None:
         self.block.update(kind="text", content="Visible finding")
         self.completed_execution()
 
@@ -183,7 +169,7 @@ class InvestigationBlockSerializerTest(TestCase):
         all_blocks = list(
             InvestigationBlock.objects.filter(investigation=self.investigation).order_by("id")
         )
-        serializer = InvestigationBlockSerializer(accessible_project_ids={self.project.id})
+        serializer = InvestigationBlockSerializer()
 
         with CaptureQueriesContext(connection) as few_queries:
             serialize(all_blocks[:2], self.user, serializer)
@@ -194,7 +180,7 @@ class InvestigationBlockSerializerTest(TestCase):
         assert len(all_blocks) == 10
         assert len(many_queries.captured_queries) == len(few_queries.captured_queries)
 
-    def test_keeps_readable_markdown_when_a_newer_run_is_restricted(self) -> None:
+    def test_keeps_readable_markdown_during_a_new_project_run(self) -> None:
         self.block.update(
             kind="text", content="Readable markdown", generated_content="Readable draft"
         )
@@ -221,9 +207,9 @@ class InvestigationBlockSerializerTest(TestCase):
         )
         self.block.update(content_execution=content_execution, current_execution=pending_execution)
 
-        result = self.serialize_block(accessible_project_ids={self.project.id})
+        result = self.serialize_block()
 
-        assert result["outputStatus"] == "restricted"
+        assert result["outputStatus"] == InvestigationBlockExecutionStatus.PENDING
         assert result["output"] is None
         assert result["content"] == "Readable markdown"
         assert result["generatedContent"] == "Readable draft"
@@ -251,7 +237,7 @@ class InvestigationBlockSerializerTest(TestCase):
             )
         self.completed_execution()
 
-        serializer = InvestigationBlockSerializer(accessible_project_ids={self.project.id})
+        serializer = InvestigationBlockSerializer()
 
         def block_queryset() -> list[InvestigationBlock]:
             return list(

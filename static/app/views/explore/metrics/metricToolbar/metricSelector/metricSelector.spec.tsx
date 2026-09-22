@@ -103,7 +103,10 @@ describe('MetricSelector', () => {
           <MetricSelector traceMetric={{name: '', type: ''}} onChange={jest.fn()} />,
           {organization}
         );
-        expect(screen.getByRole('button', {name: 'None'})).toBeDisabled();
+        expect(screen.getByRole('button', {name: 'None'})).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
       });
 
       it('does not disable trigger button while loading when a metric is already selected', () => {

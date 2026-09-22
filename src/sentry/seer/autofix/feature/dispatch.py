@@ -45,7 +45,7 @@ class AutofixFeatureArgs:
     stopping_point: AutofixStoppingPoint | None = None
     allow_free_cohort: bool = False
     user: User | RpcUser | AnonymousUser | None = None
-    enable_bash_tools: bool = False
+    enable_bash_mode: bool = False
     flush: bool = True
 
 
@@ -96,7 +96,7 @@ def trigger_autofix_feature(
         project=group.project,
         group=group,
         user=args.user,
-        enable_bash_tools=args.enable_bash_tools,
+        enable_bash_mode=args.enable_bash_mode,
     )
 
     extras: dict[str, Any] = {
@@ -155,7 +155,9 @@ def trigger_autofix_feature(
         )
 
     metrics.incr(
-        "autofix_feature.trigger", tags={"referrer": args.referrer.value, "step": args.step.value}
+        "autofix_feature.trigger",
+        tags={"referrer": args.referrer.value, "step": args.step.value},
+        sample_rate=1,
     )
 
     logger.info(
@@ -170,7 +172,7 @@ def trigger_autofix_feature(
             "flush": args.flush,
             "allow_free_cohort": args.allow_free_cohort,
             "user_context": args.user_context,
-            "enable_bash_tools": args.enable_bash_tools,
+            "enable_bash_mode": args.enable_bash_mode,
         },
     )
 
