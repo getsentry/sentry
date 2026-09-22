@@ -48,6 +48,7 @@ class OrganizationIntegrationResponse(TypedDict):
     accountType: str | None
     scopes: list[str] | None
     outOfDate: bool | None
+    missingFeatures: list[MissingFeature] | None
     status: str
     provider: Any
     configOrganization: Any
