@@ -203,9 +203,10 @@ export function ConditionalDemo() {
 
 export function NumberFieldDemo() {
   const {t} = useTranslation();
+  const defaultValues: {amount: number | null} = {amount: 0};
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {amount: 0 as number | null},
+    defaultValues,
   });
 
   return (
