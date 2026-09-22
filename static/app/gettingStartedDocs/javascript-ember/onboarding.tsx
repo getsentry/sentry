@@ -65,7 +65,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Initialize Sentry in [code:app/app.js], before the Application class. Keep the [code:loadInitializers] call so Ember loads your initializers:',
+            'You should [code:init] the Sentry SDK as soon as possible during your application load up in [code:app.js], before initializing Ember:',
             {
               code: <code />,
             }
