@@ -156,6 +156,83 @@ export default Storybook.story('Investigations — Hypotheses', story => {
     </Fragment>
   ));
 
+  story('Many checks', () => (
+    <Fragment>
+      <p>
+        Past three checks, the timeline collapses to the latest one — where the agent is,
+        or where it ended up — behind a toggle that names how many are hidden. Opening it
+        shows every check, with a toggle to collapse them again.
+      </p>
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
+        <HypothesisList
+          hypotheses={[
+            InvestigationHypothesisFixture({
+              id: 'many-checks',
+              order: 0,
+              statement: 'A cache regression slowed organization lookups',
+              rationale: 'Six checks have completed and the seventh is running.',
+              status: 'running',
+              effectiveStatus: 'investigating',
+              confidence: null,
+              agentVerdict: null,
+              verificationSteps: [
+                InvestigationVerificationStepFixture({
+                  id: 'many-step-0',
+                  order: 0,
+                  title: 'Compared FCP and server response time',
+                  status: 'completed',
+                  result: 'Done.',
+                }),
+                InvestigationVerificationStepFixture({
+                  id: 'many-step-1',
+                  order: 1,
+                  title: 'Compared organization lookup spans',
+                  status: 'completed',
+                  result: 'Done.',
+                }),
+                InvestigationVerificationStepFixture({
+                  id: 'many-step-2',
+                  order: 2,
+                  title: 'Inspected cache and Redis behavior',
+                  status: 'completed',
+                  result: 'Done.',
+                }),
+                InvestigationVerificationStepFixture({
+                  id: 'many-step-3',
+                  order: 3,
+                  title: 'Compared cache misses with response time',
+                  status: 'completed',
+                  result: 'Done.',
+                }),
+                InvestigationVerificationStepFixture({
+                  id: 'many-step-4',
+                  order: 4,
+                  title: 'Checked Redis latency and connection usage',
+                  status: 'completed',
+                  result: 'Done.',
+                }),
+                InvestigationVerificationStepFixture({
+                  id: 'many-step-5',
+                  order: 5,
+                  title: 'Compared affected and unaffected organizations',
+                  status: 'completed',
+                  result: 'Done.',
+                }),
+                InvestigationVerificationStepFixture({
+                  id: 'many-step-6',
+                  order: 6,
+                  title: 'Reviewing database and cache evidence',
+                  status: 'running',
+                  result: null,
+                }),
+              ],
+            }),
+          ]}
+        />
+      </Storybook.Demo>
+    </Fragment>
+  ));
+
   story('Live, against a mocked orchestration API', () => (
     <Fragment>
       <p>
