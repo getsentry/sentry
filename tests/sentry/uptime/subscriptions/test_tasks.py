@@ -21,6 +21,7 @@ from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
+from sentry.uptime.config_drift import ConfigStore
 from sentry.uptime.config_producer import get_partition_keys
 from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.regions import get_region_config
@@ -29,6 +30,7 @@ from sentry.uptime.subscriptions.tasks import (
     broken_monitor_checker,
     create_remote_uptime_subscription,
     delete_remote_uptime_subscription,
+    repair_missing_configs,
     send_uptime_config_deletion,
     subscription_checker,
     update_remote_uptime_subscription,
@@ -497,6 +499,124 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
             sample_rate=1.0,
         )
         self.assert_redis_config("default", sub, None, None)
+
+    def test_region_filter(self) -> None:
+        regions = [
+            UptimeRegionConfig(
+                slug="region1",
+                name="Region 1",
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r1",
+            ),
+            UptimeRegionConfig(
+                slug="region2",
+                name="Region 2",
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r2",
+            ),
+        ]
+        with override_settings(UPTIME_REGIONS=regions):
+            sub = self.create_uptime_subscription(
+                status=UptimeSubscription.Status.ACTIVE,
+                subscription_id=uuid.uuid4().hex,
+                region_slugs=["region1", "region2"],
+            )
+            update_remote_uptime_subscription(sub.id, region_slugs=["region1"])
+
+            sub.refresh_from_db()
+            assert sub.status == UptimeSubscription.Status.ACTIVE.value
+            self.assert_redis_config(
+                "region1", sub, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
+            )
+            self.assert_redis_config("region2", sub, None, None)
+
+    def test_region_filter_keeps_updating_status(self) -> None:
+        sub = self.create_uptime_subscription(
+            status=UptimeSubscription.Status.UPDATING,
+            subscription_id=uuid.uuid4().hex,
+            region_slugs=["default"],
+        )
+        update_remote_uptime_subscription(sub.id, region_slugs=["default"])
+
+        sub.refresh_from_db()
+        assert sub.status == UptimeSubscription.Status.UPDATING.value
+        self.assert_redis_config(
+            "default", sub, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
+        )
+
+    def test_region_filter_skips_row_without_subscription_id(self) -> None:
+        # The filtered path never writes the row, so a minted id would reach Redis only.
+        sub = self.create_subscription(UptimeSubscription.Status.ACTIVE, subscription_id=None)
+
+        with patch("sentry.uptime.subscriptions.tasks.produce_config") as produce_config:
+            update_remote_uptime_subscription(sub.id, region_slugs=["default"])
+
+        produce_config.assert_not_called()
+        sub.refresh_from_db()
+        assert sub.subscription_id is None
+
+
+REPAIR_REGIONS = [
+    UptimeRegionConfig(slug="a1", name="A1", config_redis_key_prefix="a"),
+    UptimeRegionConfig(slug="a2", name="A2", config_redis_key_prefix="a"),
+]
+STORE_A = ConfigStore(cluster="default", key_prefix="a", region_slugs=frozenset({"a1", "a2"}))
+
+
+@override_settings(UPTIME_REGIONS=REPAIR_REGIONS)
+class RepairMissingConfigsTest(ConfigPusherTestMixin):
+    @pytest.fixture(autouse=True)
+    def _setup_delay(self):
+        with patch.object(update_remote_uptime_subscription, "delay") as self.delay:
+            yield
+
+    def test_limit(self) -> None:
+        sids = [uuid4().hex for _ in range(3)]
+        for sid in sids:
+            self.create_uptime_subscription(subscription_id=sid, region_slugs=["a1"])
+
+        assert repair_missing_configs(STORE_A, sids, limit=2) == 2
+
+        assert self.delay.call_count == 2
+
+    def test_metrics_count_republished_not_attempted(self) -> None:
+        sid = uuid4().hex
+        self.create_uptime_subscription(subscription_id=sid, region_slugs=["a1"])
+        deleted_since_sweep = uuid4().hex
+
+        with patch("sentry.uptime.subscriptions.tasks.metrics") as metrics:
+            assert repair_missing_configs(STORE_A, {sid, deleted_since_sweep}) == 1
+
+        assert metrics.incr.mock_calls == [
+            mock.call(
+                "uptime.config_repair.queued",
+                amount=1,
+                tags={"cluster": "default"},
+                sample_rate=1.0,
+            ),
+            mock.call(
+                "uptime.config_repair.skipped",
+                amount=1,
+                tags={"cluster": "default"},
+                sample_rate=1.0,
+            ),
+        ]
+
+    def test_disabled_at_publish_time_not_republished(self) -> None:
+        # Disabled after the sweep read it as ACTIVE, so the repair sees the newer status.
+        sid = uuid4().hex
+        sub = self.create_uptime_subscription(
+            subscription_id=sid, status=UptimeSubscription.Status.DISABLED, region_slugs=["a1"]
+        )
+
+        with patch("sentry.uptime.subscriptions.tasks.metrics") as metrics:
+            repair_missing_configs(STORE_A, {sid})
+
+        self.delay.assert_not_called()
+        metrics.incr.assert_any_call(
+            "uptime.config_repair.skipped", amount=1, tags={"cluster": "default"}, sample_rate=1.0
+        )
+        self.assert_redis_config("a1", sub, None, None)
 
 
 class BrokenMonitorCheckerTest(UptimeTestCase):
