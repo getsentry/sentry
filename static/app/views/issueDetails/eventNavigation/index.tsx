@@ -30,6 +30,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
+import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/eventNavigation/issueDetailsEventNavigation';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
@@ -92,9 +93,11 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   });
 
   // `autofix-page` rolls out with Seer, so the orgs that hide AI keep the
-  // dropdown rather than getting the tab list ahead of everyone else.
+  // dropdown rather than getting the tab list ahead of everyone else. The same
+  // conditions decide whether Autofix is one of the tabs, because the tab and
+  // the page behind it arrive together.
   const showContentTabs =
-    organization.features.includes('autofix-page') &&
+    hasAutofixPage(organization) &&
     organization.features.includes('gen-ai-features') &&
     !organization.hideAiFeatures;
 
@@ -141,6 +144,13 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       name: TabName[Tab.DETAILS]!,
       count: <Count value={eventCount ?? 0} />,
       hidden: false,
+    },
+    {
+      key: Tab.AUTOFIX,
+      name: TabName[Tab.AUTOFIX]!,
+      // Autofix has no count to show; it is a single ongoing analysis.
+      count: null,
+      hidden: !showContentTabs,
     },
     {
       key: Tab.REPLAYS,
