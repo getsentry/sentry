@@ -1802,7 +1802,13 @@ describe('Investigation detail', () => {
     });
     const orchestrationRequest = MockApiClient.addMockResponse({
       url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture(),
+      body: InvestigationOrchestrationFixture({
+        startedAt: '2025-01-01T00:00:00Z',
+        finishedAt: null,
+        activeTimeElapsedSeconds: 20,
+        activeSince: '2025-01-01T00:05:00Z',
+        serverTime: '2025-01-01T00:05:14.500Z',
+      }),
     });
 
     const {queryClient} = renderView();
@@ -1820,13 +1826,22 @@ describe('Investigation detail', () => {
       within(header).getByRole('textbox', {name: 'Investigation title'})
     ).toBeInTheDocument();
     expect(within(header).getByText('Synthesizing…')).toBeInTheDocument();
+    expect(within(header).getByRole('timer')).toHaveTextContent('34.5 s');
     expect(
       within(screen.getByTestId('seer-status-block')).queryByText('Synthesizing…')
     ).not.toBeInTheDocument();
 
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({status: 'completed', phase: 'completed'}),
+      body: InvestigationOrchestrationFixture({
+        status: 'completed',
+        phase: 'completed',
+        startedAt: '2025-01-01T00:00:00Z',
+        finishedAt: '2025-01-01T00:05:15Z',
+        activeTimeElapsedSeconds: 35,
+        activeSince: null,
+        serverTime: '2025-01-01T00:05:15Z',
+      }),
     });
     await act(() =>
       queryClient.invalidateQueries({
@@ -1838,6 +1853,7 @@ describe('Investigation detail', () => {
     );
 
     expect(await within(header).findByText('Completed')).toBeInTheDocument();
+    expect(within(header).getByRole('timer')).toHaveTextContent('35.0 s');
     expect(within(header).queryByText('Synthesizing…')).not.toBeInTheDocument();
     expect(screen.getByText('Your investigation is ready')).toBeInTheDocument();
   });

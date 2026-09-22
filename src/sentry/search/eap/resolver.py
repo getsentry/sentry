@@ -580,8 +580,8 @@ class SearchResolver:
         resolved_column, context_definition = self.resolve_column(term.key.name)
         self._raise_if_hidden_api_attribute(term.key.name, resolved_column)
 
-        if context_definition is not None and term.value.is_regex:
-            raise InvalidSearchQuery(f"Cannot use regular expressions with {term.key.name}")
+        if term.value.is_regex:
+            return self._resolve_regex_term(term, resolved_column, context_definition), None
 
         if context_definition is not None and term.value.is_wildcard():
             raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
@@ -596,12 +596,6 @@ class SearchResolver:
 
         if not isinstance(resolved_column.proto_definition, AttributeKey):
             raise ValueError(f"{term.key.name} is not valid search term")
-
-        if term.value.is_regex:
-            return (
-                self._resolve_regex_term(term, resolved_column),
-                context_definition,
-            )
 
         if term.value.is_wildcard():
             is_list = False
@@ -910,9 +904,14 @@ class SearchResolver:
     def _resolve_regex_term(
         self,
         term: event_search.SearchFilter,
-        resolved_column: ResolvedAttribute,
+        resolved_column: ResolvedAttribute | ResolvedFunction,
+        context_definition: VirtualColumnDefinition | None,
     ) -> TraceItemFilter:
-        if resolved_column.proto_definition.type not in constants.REGEXP_ATTRIBUTE_TYPES:
+        if context_definition is not None:
+            raise InvalidSearchQuery(f"Cannot use regular expressions with {term.key.name}")
+
+        key = resolved_column.proto_definition
+        if not isinstance(key, AttributeKey) or key.type not in constants.REGEXP_ATTRIBUTE_TYPES:
             raise InvalidSearchQuery(
                 f"Cannot use regular expressions with {term.key.name}, it is not a string attribute"
             )
@@ -922,7 +921,7 @@ class SearchResolver:
         prefix = "(?i)" if self.params.case_insensitive else ""
         match = TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=resolved_column.proto_definition,
+                key=key,
                 op=ComparisonFilter.OP_REGEXP,
                 value=AttributeValue(val_str=f"{prefix}{term.value.raw_value}"),
             )

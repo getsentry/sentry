@@ -65,7 +65,8 @@ export function UsageOverview({
             ]?.dataCategories.every(category =>
               checkIsAddOnChildCategory(subscription, category, true)
             )
-          : (metricHistory?.prepaid ?? 0) !== 0 ||
+          : metricHistory?.isDisabled === false ||
+            (metricHistory?.prepaid ?? 0) !== 0 ||
             !!metricHistory?.softCapType ||
             !!getActiveProductTrial(subscription.productTrials ?? null, dataCategory) ||
             (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED
