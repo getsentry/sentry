@@ -183,11 +183,13 @@ function WidgetBuilderSlideoutInner({
   // - Categorical Bar widgets: group by is not supported yet, but may be in the future
   // - Text widgets: don't support Group By (no data visualization)
   // - Trace Metrics equations with tables: no other way for selecting columns to group by
+  const isTraceMetricsEquationTable =
+    state.dataset === WidgetType.TRACEMETRICS &&
+    isInEquationMode &&
+    state.displayType === DisplayType.TABLE;
   const showGroupBySelector =
     (isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE) && !isTextWidget) ||
-    (state.dataset === WidgetType.TRACEMETRICS &&
-      isInEquationMode &&
-      state.displayType === DisplayType.TABLE);
+    isTraceMetricsEquationTable;
 
   // X-Axis selector is only for Categorical Bar widgets, other chart widgets
   // always use time as the X-axis
@@ -514,9 +516,7 @@ function WidgetBuilderSlideoutInner({
                     {showGroupBySelector && (
                       <Section>
                         <WidgetBuilderGroupBySelector
-                          preserveAggregateFields={
-                            state.dataset === WidgetType.TRACEMETRICS && isInEquationMode
-                          }
+                          preserveAggregateFields={isTraceMetricsEquationTable}
                         />
                       </Section>
                     )}
