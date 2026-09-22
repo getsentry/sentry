@@ -62,7 +62,7 @@ export function Button({
         type={type}
         busy={busy}
         {...props}
-        aria-disabled={disabled}
+        {...(disabled !== undefined && {'aria-disabled': disabled})}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
         {...(useAriaDisabled && {onKeyDown: preventKeyboardSubmit})}
