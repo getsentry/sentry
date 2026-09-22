@@ -49,7 +49,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             },
             "created_on": "2018-04-18T00:46:37.374621+00:00",
             "type": "team",
-            "uuid": "{e123-f456-g78910}",
+            "uuid": "{e123f456-c789-4a10-b123-456789abcdef}",
         }
         self.user_data = self.team_data.copy()
         self.user_data["type"] = "user"
@@ -197,6 +197,22 @@ class BitbucketInstalledEndpointTest(APITestCase):
         mock_warning.assert_called_once_with(
             "bitbucket.installed.invalid-credentials", extra={"status_code": 401}
         )
+
+    @mock.patch("sentry.integrations.bitbucket.installed.BitbucketApiClient.get_workspace_hooks")
+    def test_installed_rejects_invalid_workspace_uuid(
+        self, mock_get_workspace_hooks: mock.MagicMock
+    ) -> None:
+        data = self.team_data_from_bitbucket.copy()
+        data["principal"] = self.team_data.copy()
+        data["principal"]["uuid"] = "../hook_events?ignored="
+
+        response = self.client.post(self.path, data=data)
+
+        assert response.status_code == 400
+        mock_get_workspace_hooks.assert_not_called()
+        assert not Integration.objects.filter(
+            provider=self.provider, external_id=self.client_key
+        ).exists()
 
     @responses.activate
     def test_plugin_migration(self) -> None:
