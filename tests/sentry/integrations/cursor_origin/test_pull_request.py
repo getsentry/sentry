@@ -6,6 +6,7 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.pull_request import PullRequestLifecycleHandler
+from sentry.integrations.cursor_origin.webhook import HANDLERS
 from sentry.integrations.cursor_origin.webhook_types import OriginPayloadError, PullRequestEvent
 from sentry.integrations.services.integration import integration_service
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
@@ -126,6 +127,34 @@ class PullRequestLifecycleHandlerTest(TestCase):
         pull_requests = self._pull_requests()
         assert len(pull_requests) == 1
         assert pull_requests[0].title == "Add launch telemetry, take two"
+
+    def test_a_push_to_the_head_branch_moves_the_head_commit(self) -> None:
+        """`head_ref.pushed` carries the same snapshot, with the new tip."""
+        self._handle(_payload())
+        self._handle(
+            _payload(
+                head={"ref": "add-telemetry", "sha": "c0ffee00"}, updatedAt="2026-08-01T11:00:00Z"
+            )
+        )
+
+        assert self._pull_requests()[0].head_commit_sha == "c0ffee00"
+
+    def test_every_lifecycle_event_is_routed_to_the_handler(self) -> None:
+        """Origin sends the whole pull request with each of these, so one handler serves all."""
+        routed = sorted(
+            event for event, handler in HANDLERS.items() if handler is PullRequestLifecycleHandler
+        )
+
+        assert routed == [
+            "pull_request.base_ref.updated",
+            "pull_request.closed",
+            "pull_request.created",
+            "pull_request.head_ref.pushed",
+            "pull_request.merged",
+            "pull_request.metadata.updated",
+            "pull_request.published",
+            "pull_request.reopened",
+        ]
 
     def test_a_stale_snapshot_is_dropped(self) -> None:
         """Deliveries can arrive out of order, so the shared upsert compares timestamps."""

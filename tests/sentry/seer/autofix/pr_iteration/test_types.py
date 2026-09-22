@@ -635,7 +635,7 @@ class CheckSuiteLogFieldsTest(TestCase):
         }
 
     def test_a_stale_suite_shows_the_two_shas_that_disagreed(self) -> None:
-        source = _check_suite_source(self._event())
+        source = _check_suite_source(self._event(), autofix_run=_autofix_run())
         state = _run_state(
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="newer")}
         )
@@ -662,8 +662,13 @@ class CheckSuiteShouldQueueTest(TestCase):
             },
         }
 
-    def test_true_when_matches_repo_pr_state(self) -> None:
+    def test_false_when_autofix_run_is_missing(self) -> None:
         source = _check_suite_source(self._event())
+        with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=None):
+            assert source.should_queue(_run_state()) == Decision(ok=False, reason="no_autofix_run")
+
+    def test_true_when_matches_repo_pr_state(self) -> None:
+        source = _check_suite_source(self._event(), autofix_run=_autofix_run())
         state = _run_state(
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
         )
@@ -673,7 +678,7 @@ class CheckSuiteShouldQueueTest(TestCase):
     def test_false_when_only_matches_block_commit_sha(self) -> None:
         # A past block's SHA no longer counts: only the PR's current head
         # (repo_pr_states) is valid, so a suite for a superseded commit is dropped.
-        source = _check_suite_source(self._event())
+        source = _check_suite_source(self._event(), autofix_run=_autofix_run())
         block = MemoryBlock(
             id="b1",
             message=Message(role="assistant"),
@@ -686,7 +691,7 @@ class CheckSuiteShouldQueueTest(TestCase):
         )
 
     def test_false_when_no_match(self) -> None:
-        source = _check_suite_source(self._event())
+        source = _check_suite_source(self._event(), autofix_run=_autofix_run())
         state = _run_state(
             repo_pr_states={
                 "owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="different")
@@ -696,12 +701,12 @@ class CheckSuiteShouldQueueTest(TestCase):
         assert source.should_queue(state) == Decision(ok=False, reason="stale_head")
 
     def test_false_when_missing_head_sha(self) -> None:
-        source = _check_suite_source(self._event(head_sha=""))
+        source = _check_suite_source(self._event(head_sha=""), autofix_run=_autofix_run())
 
         assert source.should_queue(_run_state()) == Decision(ok=False, reason="stale_head")
 
     def test_false_when_missing_repo_name(self) -> None:
-        source = _check_suite_source(self._event(repo_name=""))
+        source = _check_suite_source(self._event(repo_name=""), autofix_run=_autofix_run())
 
         assert source.should_queue(_run_state()) == Decision(ok=False, reason="stale_head")
 

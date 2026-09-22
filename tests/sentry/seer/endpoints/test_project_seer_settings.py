@@ -3,6 +3,7 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry.constants import ObjectStatus
+from sentry.models.options.project_option import ProjectOption
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.models import AutofixHandoffPoint
 from sentry.testutils.cases import APITestCase
@@ -41,6 +42,7 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
             "autoCreatePr": None,
             "automationTuning": "off",
             "scannerAutomation": True,
+            "prIteration": True,
             "reposCount": 0,
         }
 
@@ -183,6 +185,22 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["scannerAutomation"] is False
+
+    def test_put_pr_iteration(self, mock_is_seat_based) -> None:
+        response = self.client.put(self.url, data={"prIteration": False}, format="json")
+
+        assert response.status_code == 200
+        assert response.data["prIteration"] is False
+        assert self.project.get_option("sentry:seer_pr_iteration") is False
+
+        # Back to the default clears the row rather than storing it.
+        response = self.client.put(self.url, data={"prIteration": True}, format="json")
+
+        assert response.status_code == 200
+        assert response.data["prIteration"] is True
+        assert not ProjectOption.objects.filter(
+            project=self.project, key="sentry:seer_pr_iteration"
+        ).exists()
 
     def test_put_stopping_point(self, mock_is_seat_based) -> None:
         response = self.client.put(self.url, data={"stoppingPoint": "open_pr"}, format="json")
@@ -385,6 +403,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
             "autoCreatePr": None,
             "automationTuning": "off",
             "scannerAutomation": True,
+            "prIteration": True,
             "reposCount": 0,
         }
 
