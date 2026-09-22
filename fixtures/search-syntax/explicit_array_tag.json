@@ -1,0 +1,87 @@
+[
+  {
+    "query": "tags[fruit,array][*]:apple release:1.2.1 tags[project_id,array][*]:123",
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "arrayIncludes",
+        "key": {
+          "type": "keyArrayIncludes",
+          "key": {
+            "type": "keyExplicitArrayTag",
+            "prefix": "tags",
+            "key": {
+              "type": "keySimple",
+              "value": "fruit",
+              "quoted": false
+            }
+          },
+          "index": "*"
+        },
+        "value": {
+          "type": "valueText",
+          "value": "apple",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": ""
+      },
+      {
+        "type": "spaces",
+        "value": " "
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "release",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "1.2.1",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": ""
+      },
+      {
+        "type": "spaces",
+        "value": " "
+      },
+      {
+        "type": "filter",
+        "filter": "arrayIncludes",
+        "key": {
+          "type": "keyArrayIncludes",
+          "key": {
+            "type": "keyExplicitArrayTag",
+            "prefix": "tags",
+            "key": {
+              "type": "keySimple",
+              "value": "project_id",
+              "quoted": false
+            }
+          },
+          "index": "*"
+        },
+        "value": {
+          "type": "valueText",
+          "value": "123",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": ""
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  }
+]

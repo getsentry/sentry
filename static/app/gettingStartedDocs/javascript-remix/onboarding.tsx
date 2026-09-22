@@ -13,12 +13,9 @@ import {getInstallContent} from './utils';
 export const onboarding: OnboardingConfig = {
   introduction: () => (
     <p>
-      {tct(
-        "Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.",
-        {
-          remixLink: <ExternalLink href="https://remix.run/" />,
-        }
-      )}
+      {tct("Sentry's integration with [remixLink:Remix] supports Remix 2.x.", {
+        remixLink: <ExternalLink href="https://remix.run/" />,
+      })}
     </p>
   ),
   install: (params: DocsParams) => [

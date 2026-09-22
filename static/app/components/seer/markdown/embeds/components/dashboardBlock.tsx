@@ -1,17 +1,15 @@
 import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {
   LocalWidgetLegendSelectionState,
   useLocalWidgetLegendSelectionState,
@@ -21,13 +19,8 @@ import {IconDashboard} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {dashboardDetailsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
-import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {mergeGlobalFilters} from 'sentry/views/dashboards/globalFilter/utils';
@@ -39,8 +32,6 @@ import {
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
-import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 // Keep the embed compact by showing at most a 2x2 widget grid.
 const MAX_PREVIEW_WIDGETS = 4;
@@ -108,35 +99,22 @@ function DashboardWidgetPreview({
   return (
     <Container minHeight="240px">
       <ErrorBoundary mini>
-        <DashboardsMEPProvider>
-          <WidgetCard
-            disableFullscreen
-            disableTableActions
-            disableZoom
-            dashboardFilters={dashboard.filters}
-            selection={selection}
-            showContextMenu={false}
-            tableItemLimit={previewWidget.limit ?? MAX_PREVIEW_ITEMS_PER_WIDGET}
-            widget={previewWidget}
-            widgetInterval={widgetInterval}
-            widgetLegendState={widgetLegendState}
-            widgetLimitReached={false}
-          />
-        </DashboardsMEPProvider>
+        <WidgetCard
+          disableFullscreen
+          disableTableActions
+          disableZoom
+          dashboardFilters={dashboard.filters}
+          selection={selection}
+          showContextMenu={false}
+          tableItemLimit={previewWidget.limit ?? MAX_PREVIEW_ITEMS_PER_WIDGET}
+          widget={previewWidget}
+          widgetInterval={widgetInterval}
+          widgetLegendState={widgetLegendState}
+          widgetLimitReached={false}
+        />
       </ErrorBoundary>
     </Container>
   );
-}
-
-function getDashboardLocation(location: Location, selection: PageFilters): Location {
-  return {
-    ...location,
-    query: {
-      ...normalizeDateTimeParams(selection.datetime),
-      environment: selection.environments,
-      project: selection.projects.map(String),
-    },
-  };
 }
 
 function getDashboardWidgetInterval(selection: PageFilters): string {
@@ -156,7 +134,6 @@ function DashboardPreview({
   href: string;
 }) {
   const organization = useOrganization();
-  const location = useLocation();
   const {selection: currentSelection} = usePageFilters();
   const previewWidgets = dashboard.widgets.slice(0, MAX_PREVIEW_WIDGETS);
   const remainingWidgets = dashboard.widgets.length - previewWidgets.length;
@@ -166,10 +143,6 @@ function DashboardPreview({
         ? getSavedFiltersAsPageFilters(dashboard)
         : currentSelection,
     [currentSelection, dashboard]
-  );
-  const dashboardLocation = useMemo(
-    () => getDashboardLocation(location, selection),
-    [location, selection]
   );
   const widgetInterval = useMemo(
     () => getDashboardWidgetInterval(selection),
@@ -186,46 +159,28 @@ function DashboardPreview({
 
   return (
     <Stack gap="md">
-      <OnDemandControlProvider location={dashboardLocation}>
-        <MetricsResultsMetaProvider>
-          <MetricsCardinalityProvider
-            organization={organization}
-            location={dashboardLocation}
+      <WidgetQueryQueueProvider>
+        <WidgetSyncContextProvider>
+          <Grid
+            columns={{
+              '2xs': 'minmax(0, 1fr)',
+              md: 'repeat(2, minmax(0, 1fr))',
+            }}
+            gap="md"
           >
-            <MetricsDataSwitcher location={dashboardLocation}>
-              {metricsDataSide => (
-                <MEPSettingProvider
-                  location={dashboardLocation}
-                  forceTransactions={metricsDataSide.forceTransactionsOnly}
-                >
-                  <WidgetQueryQueueProvider>
-                    <WidgetSyncContextProvider>
-                      <Grid
-                        columns={{
-                          '2xs': 'minmax(0, 1fr)',
-                          md: 'repeat(2, minmax(0, 1fr))',
-                        }}
-                        gap="md"
-                      >
-                        {previewWidgets.map((widget, index) => (
-                          <DashboardWidgetPreview
-                            key={widget.id ?? `${widget.title}-${index}`}
-                            dashboard={dashboard}
-                            selection={selection}
-                            widget={widget}
-                            widgetInterval={widgetInterval}
-                            widgetLegendState={widgetLegendState}
-                          />
-                        ))}
-                      </Grid>
-                    </WidgetSyncContextProvider>
-                  </WidgetQueryQueueProvider>
-                </MEPSettingProvider>
-              )}
-            </MetricsDataSwitcher>
-          </MetricsCardinalityProvider>
-        </MetricsResultsMetaProvider>
-      </OnDemandControlProvider>
+            {previewWidgets.map((widget, index) => (
+              <DashboardWidgetPreview
+                key={widget.id ?? `${widget.title}-${index}`}
+                dashboard={dashboard}
+                selection={selection}
+                widget={widget}
+                widgetInterval={widgetInterval}
+                widgetLegendState={widgetLegendState}
+              />
+            ))}
+          </Grid>
+        </WidgetSyncContextProvider>
+      </WidgetQueryQueueProvider>
       {remainingWidgets > 0 ? (
         <Link to={href}>
           {tn('View %s more widget', 'View %s more widgets', remainingWidgets)}
@@ -245,36 +200,29 @@ export default function DashboardBlock({id, title}: EmbedOutput<'dashboard'>) {
   const dashboard = useMemo(() => (data ? getDashboardPreview(data) : undefined), [data]);
 
   return (
-    <Container
-      background="primary"
-      border="primary"
-      containerType="inline-size"
-      padding="md"
-      radius="md"
+    <SeerEmbedBlock
+      badge={
+        dashboard ? (
+          <Text size="sm" variant="muted">
+            {tn('%s widget', '%s widgets', dashboard.widgets.length)}
+          </Text>
+        ) : null
+      }
+      href={href}
+      icon={IconDashboard}
+      linkLabel={t('View Dashboard')}
+      testId="seer-dashboard-embed"
+      title={dashboard?.title ?? title ?? t('Dashboard %s', id)}
     >
-      <Stack gap="md">
-        <Flex align="center" justify="between" gap="md" wrap="wrap">
-          <ResourceLink
-            icon={IconDashboard}
-            href={href}
-            title={dashboard?.title ?? title ?? t('Dashboard %s', id)}
-          />
-          {dashboard ? (
-            <Text size="sm" variant="muted">
-              {tn('%s widget', '%s widgets', dashboard.widgets.length)}
-            </Text>
-          ) : null}
-        </Flex>
-        {isPending ? (
-          <LoadingIndicator />
-        ) : isError || !dashboard ? (
-          <Alert role="alert" variant="danger">
-            {t('Unable to load dashboard details.')}
-          </Alert>
-        ) : (
-          <DashboardPreview dashboard={dashboard} href={href} />
-        )}
-      </Stack>
-    </Container>
+      {isPending ? (
+        <LoadingIndicator />
+      ) : isError || !dashboard ? (
+        <Alert role="alert" variant="danger">
+          {t('Unable to load dashboard details.')}
+        </Alert>
+      ) : (
+        <DashboardPreview dashboard={dashboard} href={href} />
+      )}
+    </SeerEmbedBlock>
   );
 }

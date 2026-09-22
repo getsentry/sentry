@@ -224,6 +224,12 @@ export type PlatformIntegration = {
   name: string;
   type: string;
   deprecated?: boolean;
+  /**
+   * True for a platform that is still valid for existing projects but is no
+   * longer offered when creating one, because it was merged into another
+   * platform. Its docs stay reachable, unlike `deprecated`.
+   */
+  hidden?: boolean;
   iconConfig?: {
     withLanguageIcon: boolean;
   };

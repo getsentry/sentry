@@ -6,7 +6,6 @@ import pytest
 from django.db import connection, router, transaction
 from django.utils import timezone as django_timezone
 
-from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
@@ -65,6 +64,7 @@ from sentry.issues.derived.processing import (
 from sentry.issues.derived.promote import PromotionResult, promote_to_live
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group
@@ -148,6 +148,22 @@ class ProcessGroupLogTest(TestCase):
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
         derived = process_group_log(group.id)
         assert derived.cursor_id > first_cursor
+
+    def test_incremental_processing_bumps_date_updated(self) -> None:
+        group = self.create_group()
+        user = self.user
+
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        derived = process_group_log(group.id)
+        # Force a stale date_updated so the bump is observable even if the
+        # second write happens in the same second as the first.
+        stale = django_timezone.now() - timedelta(minutes=5)
+        GroupDerivedData.objects.filter(group_id=group.id).update(date_updated=stale)
+
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        derived = process_group_log(group.id)
+        assert derived.date_updated > stale
+        assert GroupDerivedData.objects.get(group_id=group.id).date_updated > stale
 
     def test_noop_when_no_new_entries(self) -> None:
         group = self.create_group()
@@ -536,6 +552,9 @@ class ProcessGroupLogTest(TestCase):
         process_group_log(group.id)
         assert GroupDerivedData.objects.filter(group_id=group.id).exists()
 
+        stale = django_timezone.now() - timedelta(minutes=5)
+        GroupDerivedData.objects.filter(group_id=group.id).update(date_updated=stale)
+
         with patch(
             "sentry.issues.derived.processing.generate_group_derived_data.delay"
         ) as mock_generate:
@@ -543,6 +562,7 @@ class ProcessGroupLogTest(TestCase):
         row = GroupDerivedData.objects.get(group_id=group.id)
         # Soft invalidation nulls pipeline_hash but keeps the row readable.
         assert row.pipeline_hash is None
+        assert row.date_updated > stale
         mock_generate.assert_called_once_with(group.id)
 
     def test_invalidate_soft_no_trigger_skips_task(self) -> None:
@@ -1222,7 +1242,7 @@ class DerivedDataTransactionTest(TestCase):
         group = self.create_group()
 
         try:
-            with transaction.atomic(using=router.db_for_write(CellOutbox)):
+            with transaction.atomic(using=router.db_for_write(GroupActionLogOutbox)):
                 publish_action(
                     ViewAction(),
                     source=SOURCE,
@@ -1230,14 +1250,14 @@ class DerivedDataTransactionTest(TestCase):
                     project=group.project,
                     actor=GroupActionActor.user(self.user.id),
                 )
-                assert CellOutbox.objects.filter(
+                assert GroupActionLogOutbox.objects.filter(
                     category=OutboxCategory.GROUP_ACTION_LOG_EVENT
                 ).exists()
                 raise _IntentionalRollback
         except _IntentionalRollback:
             pass
 
-        assert not CellOutbox.objects.filter(
+        assert not GroupActionLogOutbox.objects.filter(
             category=OutboxCategory.GROUP_ACTION_LOG_EVENT
         ).exists()
         assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 0

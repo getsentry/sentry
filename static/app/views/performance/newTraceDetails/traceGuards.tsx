@@ -5,7 +5,6 @@ import type {EapSpanNode} from './traceModels/traceTreeNode/eapSpanNode';
 import type {NoInstrumentationNode} from './traceModels/traceTreeNode/noInstrumentationNode';
 import type {ParentAutogroupNode} from './traceModels/traceTreeNode/parentAutogroupNode';
 import type {SiblingAutogroupNode} from './traceModels/traceTreeNode/siblingAutogroupNode';
-import type {SpanNode} from './traceModels/traceTreeNode/spanNode';
 import type {TransactionNode} from './traceModels/traceTreeNode/transactionNode';
 
 export function isMissingInstrumentationNode(
@@ -16,10 +15,6 @@ export function isMissingInstrumentationNode(
     'type' in node.value &&
     node.value.type === 'missing_instrumentation'
   );
-}
-
-export function isSpanNode(node: BaseNode): node is SpanNode {
-  return !!(node.value && !('transaction' in node.value) && 'span_id' in node.value);
 }
 
 export function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
@@ -42,12 +37,10 @@ export function isUptimeCheck(
 
 export function isEAPError(value: TraceTree.NodeValue): value is TraceTree.EAPError {
   return !!(
-    (
-      value &&
-      'event_type' in value &&
-      value.event_type === 'error' &&
-      'description' in value
-    ) // a bit gross, but we won't need this soon as we remove the legacy error type
+    value &&
+    'event_type' in value &&
+    value.event_type === 'error' &&
+    'description' in value // a bit gross, but we won't need this soon as we remove the legacy error type
   );
 }
 

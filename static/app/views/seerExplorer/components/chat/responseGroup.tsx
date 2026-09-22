@@ -17,7 +17,7 @@ import type {
 import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
 import {AssistantBlock} from './assistant';
-import {MessagePlaceholder, hasValidContent} from './shared';
+import {hasValidContent} from './shared';
 import {CODE_MODE_TOOLS, ToolCallList, blockRendersToolContent} from './toolUse';
 
 /**
@@ -161,7 +161,12 @@ export function ResponseGroup({
   runId,
   showThinking,
 }: ResponseGroupProps) {
+  // `answer` identifies the block whose content is the visible response — used to exclude it
+  // from the ThinkingBlock trace. `settledAnswer` is the same block once it has finished
+  // loading — only then is it rendered outside the ThinkingBlock as the actual reply. While
+  // still loading, neither its content nor a MessagePlaceholder leaks into view.
   const answer = finalAnswer(group);
+  const settledAnswer = answer && !answer.loading ? answer : null;
   const active = group.some(block => block.loading);
 
   // The reasoning trace is everything except the answer's content: thinking prose (gated on the
@@ -178,12 +183,10 @@ export function ResponseGroup({
   });
 
   const startTime = new Date(group[0]!.timestamp);
-  // Keep ThinkingBlock expanded while the response is still in progress — either a tool is
-  // running, or the LLM is between tool calls (loading without tool_calls yet). Without
-  // this, the block collapses and reopens on each poll cycle when the agent retries a
-  // failing tool call, causing a visible flash.
+  // `settledAnswer` is the stable "response is done" signal. `block.loading` flickers false
+  // between tool calls, but answer settles once
   const endTime =
-    (active && !answer) || pendingInput
+    !settledAnswer || pendingInput
       ? undefined
       : new Date(group[group.length - 1]!.timestamp);
 
@@ -195,61 +198,63 @@ export function ResponseGroup({
           readOnly={readOnly ?? false}
           respondToUserInput={respondToUserInput}
         >
-          {/* Show loading placeholder when response is streaming but has no visible content yet */}
-          {active && !hasTrace && !answer ? <MessagePlaceholder /> : null}
-
-          {hasTrace ? (
+          {active || hasTrace ? (
             <MessageRow from="assistant" density="compact">
               <ThinkingBlock
                 title={deriveThinkingTitle(group)}
                 startTime={startTime}
                 endTime={endTime}
               >
-                {group.map((block, i) => {
-                  const isAnswer = block === answer;
-                  // A block's own tool calls render after its thinking, so they count as "after";
-                  // "before" is an earlier block's tool calls. Thinking that is flanked on both
-                  // sides gets extra breathing room to set it apart; leading/trailing thinking does
-                  // not, so it stays tight against the answer or the block edge.
-                  const toolCallBefore = group
-                    .slice(0, i)
-                    .some(b => Boolean(b.message.tool_calls?.length));
-                  const toolCallAtOrAfter = group
-                    .slice(i)
-                    .some(b => Boolean(b.message.tool_calls?.length));
-                  const thinkingBetweenToolCalls = toolCallBefore && toolCallAtOrAfter;
-                  return (
-                    <Fragment key={block.id}>
-                      {showThinking &&
-                        hasValidContent(block.message.thinking_content) && (
-                          <ThinkingProse data-spaced={thinkingBetweenToolCalls}>
-                            <SeerMarkdown raw={block.message.thinking_content} />
-                          </ThinkingProse>
-                        )}
-                      {!isAnswer && hasValidContent(block.message.content) && (
-                        <SeerMarkdown raw={block.message.content} />
-                      )}
-                      {block.message.tool_calls ? (
-                        <ToolCallList
-                          block={block}
-                          blocks={blocks}
-                          getPageReferrer={getPageReferrer}
-                        />
-                      ) : null}
-                    </Fragment>
-                  );
-                })}
+                {active || hasTrace
+                  ? group.map((block, i) => {
+                      const isAnswer = block === answer;
+                      // A block's own tool calls render after its thinking, so they count as
+                      // "after"; "before" is an earlier block's tool calls. Thinking that is
+                      // flanked on both sides gets extra breathing room to set it apart;
+                      // leading/trailing thinking does not, so it stays tight against the answer
+                      // or the block edge.
+                      const toolCallBefore = group
+                        .slice(0, i)
+                        .some(b => Boolean(b.message.tool_calls?.length));
+                      const toolCallAtOrAfter = group
+                        .slice(i)
+                        .some(b => Boolean(b.message.tool_calls?.length));
+                      const thinkingBetweenToolCalls =
+                        toolCallBefore && toolCallAtOrAfter;
+                      return (
+                        <Fragment key={block.id}>
+                          {showThinking &&
+                            hasValidContent(block.message.thinking_content) && (
+                              <ThinkingProse data-spaced={thinkingBetweenToolCalls}>
+                                <SeerMarkdown raw={block.message.thinking_content} />
+                              </ThinkingProse>
+                            )}
+                          {!isAnswer && hasValidContent(block.message.content) && (
+                            <SeerMarkdown raw={block.message.content} />
+                          )}
+                          {block.message.tool_calls ? (
+                            <ToolCallList
+                              block={block}
+                              blocks={blocks}
+                              getPageReferrer={getPageReferrer}
+                            />
+                          ) : null}
+                        </Fragment>
+                      );
+                    })
+                  : null}
               </ThinkingBlock>
             </MessageRow>
           ) : null}
 
-          {answer ? (
+          {settledAnswer ? (
             <AssistantBlock
-              block={answer}
+              block={settledAnswer}
               blockIndex={blockIndex + group.length - 1}
               runId={runId}
               interactionPending={interactionPending}
               readOnly={readOnly}
+              compact={hasTrace}
             />
           ) : null}
         </AgentWriteApprovalProvider>

@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -48,6 +49,57 @@ interface Props {
 }
 
 const PROJECT_COLUMNS: TableColumnConfig[] = [{key: 'project', width: 'auto'}];
+
+function AllProjectsAction({
+  hasOrgWrite,
+  isEnabling,
+  updateAllProjects,
+}: {
+  hasOrgWrite: boolean;
+  isEnabling: boolean;
+  updateAllProjects: (isEnabling: boolean) => void;
+}) {
+  const action = isEnabling ? t('Enable') : t('Disable');
+  const confirmationText = tct(
+    'This will [action] spike protection for all projects in the organization immediately. Are you sure?',
+    {action: action.toLowerCase()}
+  );
+  return (
+    <Confirm
+      onConfirm={() => {
+        updateAllProjects(isEnabling);
+      }}
+      message={confirmationText}
+      disabled={!hasOrgWrite}
+    >
+      <Button
+        disabled={!hasOrgWrite}
+        variant={isEnabling ? 'primary' : 'secondary'}
+        data-test-id={`sp-${action.toLowerCase()}-all`}
+        tooltipProps={{
+          title: hasOrgWrite
+            ? undefined
+            : tct(
+                'You do not have permission to [action] spike protection for all projects.',
+                {action: action.toLowerCase()}
+              ),
+        }}
+      >
+        {tct('[action] All', {action})}
+      </Button>
+    </Confirm>
+  );
+}
+
+function AccordionTitle({project}: {project: ProjectSummaryWithOptions}) {
+  return (
+    <Flex justify="between" align="center" width="100%" height="100%">
+      <Flex align="center" marginRight="xl">
+        <StyledProjectBadge hideOverflow project={project} displayName={project.slug} />
+      </Flex>
+    </Flex>
+  );
+}
 
 function SpikeProtectionProjects({subscription}: Props) {
   const [projects, setProjects] = useState([] as ProjectSummaryWithOptions[]);
@@ -183,6 +235,7 @@ function SpikeProtectionProjects({subscription}: Props) {
 
   useEffect(() => {
     fetchProjects();
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchData();
   }, [fetchProjects, fetchData]);
 
@@ -209,49 +262,6 @@ function SpikeProtectionProjects({subscription}: Props) {
     },
     [debouncedSearch]
   );
-
-  function AllProjectsAction(isEnabling: boolean) {
-    const action = isEnabling ? t('Enable') : t('Disable');
-    const confirmationText = tct(
-      'This will [action] spike protection for all projects in the organization immediately. Are you sure?',
-      {action: action.toLowerCase()}
-    );
-    return (
-      <Confirm
-        onConfirm={() => {
-          updateAllProjects(isEnabling);
-        }}
-        message={confirmationText}
-        disabled={!hasOrgWrite}
-      >
-        <Button
-          disabled={!hasOrgWrite}
-          variant={isEnabling ? 'primary' : 'secondary'}
-          data-test-id={`sp-${action.toLowerCase()}-all`}
-          tooltipProps={{
-            title: hasOrgWrite
-              ? undefined
-              : tct(
-                  'You do not have permission to [action] spike protection for all projects.',
-                  {action: action.toLowerCase()}
-                ),
-          }}
-        >
-          {tct('[action] All', {action})}
-        </Button>
-      </Confirm>
-    );
-  }
-
-  const renderAccordionTitle = (project: ProjectSummaryWithOptions) => {
-    return (
-      <Flex justify="between" align="center" width="100%" height="100%">
-        <Flex align="center" marginRight="xl">
-          <StyledProjectBadge hideOverflow project={project} displayName={project.slug} />
-        </Flex>
-      </Flex>
-    );
-  };
 
   const renderAccordionBody = (project: ProjectSummaryWithOptions) => {
     const projectNotificationActions = notificationActionsById[project.id] ?? [];
@@ -281,8 +291,16 @@ function SpikeProtectionProjects({subscription}: Props) {
       <Flex justify="between" marginBottom="xl">
         <StyledSearch placeholder={t('Search projects')} onChange={onChange} />
         <ButtonBar marginLeft="xl">
-          {AllProjectsAction(false)}
-          {AllProjectsAction(true)}
+          <AllProjectsAction
+            hasOrgWrite={hasOrgWrite}
+            isEnabling={false}
+            updateAllProjects={updateAllProjects}
+          />
+          <AllProjectsAction
+            hasOrgWrite={hasOrgWrite}
+            isEnabling
+            updateAllProjects={updateAllProjects}
+          />
         </ButtonBar>
       </Flex>
       <StyledSimpleTable
@@ -290,7 +308,10 @@ function SpikeProtectionProjects({subscription}: Props) {
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>
-              <Text variant="muted">{t('Projects')}</Text>
+              <Flex gap="xs" align="center">
+                <Text variant="muted">{t('Projects')}</Text>
+                <InfoTip title={t('Expand a project to add a notification action')} />
+              </Flex>
             </SimpleTable.HeaderCell>
           </SimpleTable.HeaderRow>
         }
@@ -301,7 +322,7 @@ function SpikeProtectionProjects({subscription}: Props) {
         )}
         {projects?.map(project => {
           const hasProjectWrite = project.access.includes('project:write');
-          const accordionTitle = renderAccordionTitle(project);
+          const accordionTitle = <AccordionTitle project={project} />;
           const accordionBody = renderAccordionBody(project);
           const isAccordionDisabled = !isSpikeProtectionEnabled(project);
 

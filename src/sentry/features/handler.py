@@ -32,7 +32,11 @@ class FeatureHandler:
 
     features: set[str] = set()
 
-    def __call__(self, feature: Feature, actor: User) -> bool | None:
+    def __call__(
+        self,
+        feature: Feature,
+        actor: User | RpcUser | AnonymousUser | None,
+    ) -> bool | None:
         if feature.name not in self.features:
             return None
 

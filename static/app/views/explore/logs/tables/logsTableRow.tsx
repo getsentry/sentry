@@ -6,9 +6,9 @@ import classNames from 'classnames';
 import omit from 'lodash/omit';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -34,6 +34,7 @@ import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
+import {getPageUrlWithParams} from 'sentry/utils/url/getPageUrlWithParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -152,6 +153,7 @@ type LogsRowProps = {
   onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
+  routingHint?: string;
   setHoveredRowId?: (logItemId: string | null) => void;
   showCellActions?: boolean;
   showExploreSimilarSpansLink?: boolean;
@@ -255,6 +257,7 @@ function isInsideButton(element: Element | null): boolean {
 
 export const LogRowContent = memo(function LogRowContentImpl({
   dataRow,
+  routingHint,
   embedded = false,
   embeddedOptions,
   highlightTerms,
@@ -399,6 +402,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
     timestamp: logTimestampSeconds,
+    routingHint,
     sharedHoverTimeoutRef,
     timeout: prefetchTimeout,
   });
@@ -717,27 +721,28 @@ export const LogRowContent = memo(function LogRowContentImpl({
                           break;
                         case Actions.COPY_LINK: {
                           const logId = String(dataRow[OurLogKnownFieldKey.ID]);
-                          const url = new URL(window.location.origin + location.pathname);
-                          const params = new URLSearchParams(location.search);
                           // In frozen/embedded views (e.g. trace details) the row set is
                           // bounded, so link to the row and let it highlight + expand in
                           // context. On the standalone logs page the row may not be loaded,
                           // so filter to it instead.
-                          if (isFrozen) {
-                            params.set(LOGS_ROW_ID_KEY, logId);
-                          } else {
-                            params.set(LOGS_QUERY_KEY, `id:${logId}`);
-                            params.delete(LOGS_ROW_ID_KEY);
-                          }
-                          url.search = params.toString();
-                          copy(url.toString(), {
+                          const url = getPageUrlWithParams(location, params => {
+                            if (isFrozen) {
+                              params.set(LOGS_ROW_ID_KEY, logId);
+                            } else {
+                              params.set(LOGS_QUERY_KEY, `id:${logId}`);
+                              params.delete(LOGS_ROW_ID_KEY);
+                            }
+                          });
+                          copy(url, {
                             successMessage: t('Copied!'),
                             errorMessage: t('Failed to copy'),
-                          }).then(() => {
-                            trackAnalytics('logs.table.row_link_copied', {
-                              log_id: logId,
-                              organization,
-                            });
+                          }).then(copied => {
+                            if (copied) {
+                              trackAnalytics('logs.table.row_link_copied', {
+                                log_id: logId,
+                                organization,
+                              });
+                            }
                           });
                           break;
                         }
@@ -763,6 +768,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
       {expanded && !isErrorRow && (
         <LogRowDetails
           dataRow={dataRow}
+          routingHint={routingHint}
           highlightTerms={highlightTerms}
           embedded={embedded}
           meta={meta}
@@ -776,6 +782,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
 
 function LogRowDetails({
   dataRow,
+  routingHint,
   embedded,
   highlightTerms,
   meta,
@@ -788,6 +795,7 @@ function LogRowDetails({
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
+  routingHint?: string;
 }) {
   const measureRef = useCallback(
     (node: HTMLTableRowElement | null) => {
@@ -830,6 +838,7 @@ function LogRowDetails({
       ? getLogRowTimestampMillis(dataRow) / 1000
       : null,
     enabled: !missingLogId && !isPseudoRow,
+    routingHint,
   });
 
   const {data, isPending, isError} = fullLogDataResult;
@@ -954,6 +963,7 @@ function LogRowDetails({
           }}
         >
           <LogRowDetailsActions
+            routingHint={routingHint}
             fullLogDataResult={fullLogDataResult}
             projectSlug={projectSlug}
             tableDataRow={dataRow}
@@ -1001,12 +1011,14 @@ function LogRowDetailsFilterActions({filter}: {filter: MessageFilter}) {
 
 function LogRowDetailsActions({
   fullLogDataResult,
+  routingHint,
   projectSlug,
   tableDataRow,
 }: {
   fullLogDataResult: UseQueryResult<TraceItemDetailsResponse>;
   projectSlug: string;
   tableDataRow: OurLogsResponseItem;
+  routingHint?: string;
 }) {
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
@@ -1043,6 +1055,10 @@ function LogRowDetailsActions({
           normalizeTimestampToSeconds(getLogRowTimestampMillis(tableDataRow))
         ),
       });
+
+      if (routingHint) {
+        query.set('routing_hint', routingHint);
+      }
 
       logDebugEndpoint = `/api/0${getApiUrl(
         '/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/',

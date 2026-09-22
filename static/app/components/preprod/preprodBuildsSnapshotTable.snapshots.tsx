@@ -1,7 +1,5 @@
-import {ThemeProvider} from '@emotion/react';
+import styled from '@emotion/styled';
 
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 
@@ -28,7 +26,11 @@ jest.mock('sentry/components/timeSince', () => ({
   TimeSince: ({date}: {date: string}) => <time dateTime={date}>1 hour ago</time>,
 }));
 
-const themes = {light: lightTheme, dark: darkTheme};
+const TableContainer = styled('div')`
+  width: 960px;
+  color: ${p => p.theme.tokens.content.primary};
+  background: ${p => p.theme.tokens.background.primary};
+`;
 
 function makeBuild(
   overrides: Partial<BuildDetailsApiResponse> = {}
@@ -74,105 +76,93 @@ function makeBuild(
 }
 
 describe('PreprodBuildsSnapshotTable', () => {
-  describe.each(['light', 'dark'] as const)('%s', themeName => {
-    const theme = themes[themeName];
-
-    function renderTable(build: BuildDetailsApiResponse) {
-      return (
-        <ThemeProvider theme={theme}>
-          <div
-            style={{
-              width: 960,
-              color: String(theme.tokens.content.primary),
-              background: String(theme.tokens.background.primary),
-            }}
-          >
-            <PreprodBuildsSnapshotTable
-              builds={[build]}
-              organizationSlug="test-org"
-              showProjectColumn={false}
-            />
-          </div>
-        </ThemeProvider>
-      );
-    }
-
-    it.snapshot('status-approved', () => renderTable(makeBuild()), {
-      tags: {area: 'snapshots'},
-    });
-
-    it.snapshot(
-      'status-needs-approval',
-      () =>
-        renderTable(
-          makeBuild({
-            snapshot_comparison_info: {
-              image_count: 24,
-              comparison_state: 'success',
-              approval_status: 'requires_approval',
-              comparison_error_message: null,
-              images_added: 2,
-              images_removed: 0,
-              images_changed: 3,
-              images_unchanged: 19,
-              images_skipped: 0,
-            },
-          })
-        ),
-      {tags: {area: 'snapshots'}}
+  function renderTable(build: BuildDetailsApiResponse) {
+    return (
+      <TableContainer>
+        <PreprodBuildsSnapshotTable
+          builds={[build]}
+          organizationSlug="test-org"
+          showProjectColumn={false}
+        />
+      </TableContainer>
     );
+  }
 
-    it.snapshot(
-      'status-no-base-build',
-      () =>
-        renderTable(
-          makeBuild({
-            snapshot_comparison_info: {
-              image_count: 24,
-              comparison_state: 'no_base_build',
-              approval_status: null,
-              comparison_error_message: null,
-              images_added: 0,
-              images_removed: 0,
-              images_changed: 0,
-              images_unchanged: 0,
-              images_skipped: 0,
-            },
-          })
-        ),
-      {tags: {area: 'snapshots'}}
-    );
-
-    it.snapshot(
-      'status-no-comparison',
-      () =>
-        renderTable(
-          makeBuild({
-            snapshot_comparison_info: undefined,
-          })
-        ),
-      {tags: {area: 'snapshots'}}
-    );
-
-    it.snapshot(
-      'changes-no-changes',
-      () =>
-        renderTable(
-          makeBuild({
-            snapshot_comparison_info: {
-              image_count: 20,
-              comparison_state: 'success',
-              approval_status: 'approved',
-              comparison_error_message: null,
-              images_added: 0,
-              images_removed: 0,
-              images_changed: 0,
-              images_unchanged: 20,
-              images_skipped: 0,
-            },
-          })
-        ),
-      {tags: {area: 'snapshots'}}
-    );
+  it.snapshot('status-approved', () => renderTable(makeBuild()), {
+    tags: {area: 'snapshots'},
   });
+
+  it.snapshot(
+    'status-needs-approval',
+    () =>
+      renderTable(
+        makeBuild({
+          snapshot_comparison_info: {
+            image_count: 24,
+            comparison_state: 'success',
+            approval_status: 'requires_approval',
+            comparison_error_message: null,
+            images_added: 2,
+            images_removed: 0,
+            images_changed: 3,
+            images_unchanged: 19,
+            images_skipped: 0,
+          },
+        })
+      ),
+    {tags: {area: 'snapshots'}}
+  );
+
+  it.snapshot(
+    'status-no-base-build',
+    () =>
+      renderTable(
+        makeBuild({
+          snapshot_comparison_info: {
+            image_count: 24,
+            comparison_state: 'no_base_build',
+            approval_status: null,
+            comparison_error_message: null,
+            images_added: 0,
+            images_removed: 0,
+            images_changed: 0,
+            images_unchanged: 0,
+            images_skipped: 0,
+          },
+        })
+      ),
+    {tags: {area: 'snapshots'}}
+  );
+
+  it.snapshot(
+    'status-no-comparison',
+    () =>
+      renderTable(
+        makeBuild({
+          snapshot_comparison_info: undefined,
+        })
+      ),
+    {tags: {area: 'snapshots'}}
+  );
+
+  it.snapshot(
+    'changes-no-changes',
+    () =>
+      renderTable(
+        makeBuild({
+          snapshot_comparison_info: {
+            image_count: 20,
+            comparison_state: 'success',
+            approval_status: 'approved',
+            comparison_error_message: null,
+            images_added: 0,
+            images_removed: 0,
+            images_changed: 0,
+            images_unchanged: 20,
+            images_skipped: 0,
+          },
+        })
+      ),
+    {tags: {area: 'snapshots'}}
+  );
 });

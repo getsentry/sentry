@@ -88,10 +88,46 @@ describe('SpansTabContent', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/validate/',
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: null, fields: [], valid: true},
+        valid: true,
+      },
+    });
 
-    // without this the `CompactSelect` component errors with a bunch of async updates
-    jest.spyOn(console, 'error').mockImplementation();
-
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      body: {groups: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/stats/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/setup/',
+      method: 'POST',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      method: 'POST',
+      body: {status: 'ok', queries: []},
+    });
     PageFiltersStore.init();
     setProjects([project]);
     MockApiClient.addMockResponse({
@@ -235,6 +271,7 @@ describe('SpansTabContent', () => {
   it('publishes the aggregate sort to the LLM context in aggregate mode', async () => {
     let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       ({getLLMContext} = useLLMContext());
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
@@ -291,7 +328,9 @@ describe('SpansTabContent', () => {
     let aggregateFields: ReturnType<typeof useQueryParamsAggregateFields> = [];
     let aggregateSortBys: ReturnType<typeof useQueryParamsAggregateSortBys> = [];
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       aggregateFields = useQueryParamsAggregateFields();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       aggregateSortBys = useQueryParamsAggregateSortBys();
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
@@ -338,7 +377,9 @@ describe('SpansTabContent', () => {
     let fields: readonly string[] = [];
     let groupBys: readonly string[] = [];
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       fields = useQueryParamsFields();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       groupBys = useQueryParamsGroupBys();
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
@@ -420,13 +461,13 @@ describe('SpansTabContent', () => {
   });
 
   describe('case sensitivity', () => {
-    it('renders the case sensitivity toggle', () => {
+    it('renders the case sensitivity toggle', async () => {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization,
         additionalWrapper: Wrapper,
       });
 
-      const caseSensitivityToggle = screen.getByRole('button', {
+      const caseSensitivityToggle = await screen.findByRole('button', {
         name: 'Ignore case',
       });
       expect(caseSensitivityToggle).toBeInTheDocument();
@@ -796,7 +837,7 @@ describe('SpansTabContent', () => {
       );
     });
 
-    it('disables dropdown when there are 2 cross events', () => {
+    it('disables dropdown when there are 2 cross events', async () => {
       const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
       setProjects([logsProject]);
 
@@ -817,21 +858,35 @@ describe('SpansTabContent', () => {
       });
 
       expect(
-        screen.getByRole('button', {name: 'Add a cross event query'})
+        await screen.findByRole('button', {name: 'Add a cross event query'})
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Add a cross event query'})
       ).toBeDisabled();
     });
 
-    it('adds a cross event search bar when cross event added', async () => {
+    it('adds and removes an empty cross event search bar without refetching results', async () => {
       const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
       setProjects([logsProject]);
+
+      const tableRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {},
+      });
+      const timeseriesRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        body: {timeSeries: []},
+      });
 
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization,
         additionalWrapper: Wrapper,
       });
+
+      await screen.findByText(/No spans found/);
+      await waitFor(() => expect(timeseriesRequest).toHaveBeenCalled());
+      const tableRequestCount = tableRequest.mock.calls.length;
+      const timeseriesRequestCount = timeseriesRequest.mock.calls.length;
 
       await userEvent.click(
         screen.getByRole('button', {name: 'Add a cross event query'})
@@ -843,6 +898,17 @@ describe('SpansTabContent', () => {
       expect(
         screen.getByPlaceholderText('Search for logs, users, tags, and more')
       ).toBeInTheDocument();
+
+      expect(tableRequest).toHaveBeenCalledTimes(tableRequestCount);
+      expect(timeseriesRequest).toHaveBeenCalledTimes(timeseriesRequestCount);
+
+      await userEvent.click(screen.getByLabelText('Remove cross event search for logs'));
+
+      expect(
+        screen.queryByPlaceholderText('Search for logs, users, tags, and more')
+      ).not.toBeInTheDocument();
+      expect(tableRequest).toHaveBeenCalledTimes(tableRequestCount);
+      expect(timeseriesRequest).toHaveBeenCalledTimes(timeseriesRequestCount);
     });
 
     it('can remove a cross event query', async () => {
@@ -904,7 +970,7 @@ describe('SpansTabContent', () => {
       );
     });
 
-    it('renders disabled cross event search bar when the limit is reached', () => {
+    it('renders disabled cross event search bar when the limit is reached', async () => {
       const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
       setProjects([logsProject]);
 
@@ -925,13 +991,12 @@ describe('SpansTabContent', () => {
         },
       });
 
-      expect(screen.getAllByTestId('search-query-builder').pop()).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
+      expect(
+        (await screen.findAllByTestId('search-query-builder')).pop()
+      ).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('disables Attribute Breakdowns tab when cross events are present', () => {
+    it('disables Attribute Breakdowns tab when cross events are present', async () => {
       const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
       setProjects([logsProject]);
 
@@ -949,7 +1014,7 @@ describe('SpansTabContent', () => {
         },
       });
 
-      const attributeBreakdownsTab = screen.getByRole('tab', {
+      const attributeBreakdownsTab = await screen.findByRole('tab', {
         name: /Attribute Breakdowns/,
       });
       expect(attributeBreakdownsTab).toHaveAttribute('aria-disabled', 'true');

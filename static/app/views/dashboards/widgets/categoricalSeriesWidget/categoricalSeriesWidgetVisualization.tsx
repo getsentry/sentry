@@ -196,6 +196,7 @@ export function CategoricalSeriesWidgetVisualization(
 
     if (plottable.needsColor) {
       color = palette[seriesColorIndex % palette.length]!;
+      // oxlint-disable-next-line react/immutability
       seriesColorIndex += 1;
     }
 
@@ -369,6 +370,7 @@ export function CategoricalSeriesWidgetVisualization(
       renderer="canvas"
       series={seriesFromPlottables}
       legend={
+        // oxlint-disable-next-line react/refs
         showLegend
           ? {
               top: 0,
@@ -380,6 +382,7 @@ export function CategoricalSeriesWidgetVisualization(
                   false
                 );
               },
+              // oxlint-disable-next-line react/refs
               selected: props.legendSelection,
             }
           : undefined

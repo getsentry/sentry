@@ -28,5 +28,6 @@ export function useHasDataTrackAnalytics(module: ModuleName, analyticEvent?: str
         ...(view ? {view} : {}),
       });
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, hasEverSentData, analyticEvent, projects, pageFilters.isReady, view]);
 }

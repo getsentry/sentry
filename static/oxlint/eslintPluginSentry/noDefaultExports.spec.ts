@@ -1,7 +1,4 @@
-// oxlint-disable-next-line import-js/no-extraneous-dependencies
-import parser from '@typescript-eslint/parser';
-import {RuleTester} from '@typescript-eslint/rule-tester';
-import {TSESLint} from '@typescript-eslint/utils';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {
   collectLazyImportSpecifiers,
@@ -73,40 +70,54 @@ it('updates the cached allowlist when a lazy importer is linted again', () => {
   const target = `${__dirname}/fixtures/lazyTarget.ts`;
   const importerSource = "export const load = () => import('./lazyTarget');";
   const targetSource = 'export default function Target() { return null; }';
+  const tester = new RuleTester();
+  const originalDescribe = RuleTester.describe;
+  const originalIt = RuleTester.it;
 
-  const lint = (code: string, filename: string) =>
-    new TSESLint.Linter().verify(
-      code,
-      [
+  // Run every lint pass synchronously inside this one Jest test.
+  RuleTester.describe = (_name, run) => run();
+  RuleTester.it = (_name, run) => run();
+  try {
+    tester.run('initial lazy target', noDefaultExports, {
+      valid: [{code: targetSource, filename: target}],
+      invalid: [],
+    });
+    tester.run('remove lazy import', noDefaultExports, {
+      valid: [{code: 'export const load = () => null;', filename: importer}],
+      invalid: [],
+    });
+    tester.run('target is now forbidden', noDefaultExports, {
+      valid: [],
+      invalid: [
         {
-          files: ['**/*.{ts,tsx}'],
-          languageOptions: {parser},
-          plugins: {sentry: {rules: {'no-default-exports': noDefaultExports}}},
-          rules: {'sentry/no-default-exports': 'error'},
+          code: targetSource,
+          filename: target,
+          errors: 1,
+          output: 'export function Target() { return null; }',
         },
       ],
-      {filename}
-    );
-
-  expect(lint(targetSource, target)).toHaveLength(0);
-
-  expect(lint('export const load = () => null;', importer)).toHaveLength(0);
-  expect(lint(targetSource, target)).toHaveLength(1);
-
-  expect(lint(importerSource, importer)).toHaveLength(0);
-  expect(lint(targetSource, target)).toHaveLength(0);
+    });
+    tester.run('restore lazy import', noDefaultExports, {
+      valid: [{code: importerSource, filename: importer}],
+      invalid: [],
+    });
+    tester.run('target is allowed again', noDefaultExports, {
+      valid: [{code: targetSource, filename: target}],
+      invalid: [],
+    });
+  } finally {
+    try {
+      tester.run('restore lazy importer', noDefaultExports, {
+        valid: [{code: importerSource, filename: importer}],
+        invalid: [],
+      });
+    } finally {
+      RuleTester.describe = originalDescribe;
+      RuleTester.it = originalIt;
+    }
+  }
 });
-
-const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: ['*.ts', '*.tsx', 'static/app/*.ts', 'static/app/*.tsx'],
-      },
-      tsconfigRootDir: __dirname,
-    },
-  },
-});
+const ruleTester = new RuleTester();
 
 ruleTester.run('no-default-exports', noDefaultExports, {
   valid: [

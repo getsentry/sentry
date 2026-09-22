@@ -9,10 +9,9 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {HTTP_ERROR_STATUSES} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/constants';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
-import {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 
 type HttpErrorCardProps = {
-  node: SpanNode | EapSpanNode;
+  node: EapSpanNode;
 };
 
 function formatStatusText(status: string): string {
@@ -22,12 +21,11 @@ function formatStatusText(status: string): string {
     .join(' ');
 }
 
-function getStatusInfo(node: SpanNode | EapSpanNode): {
+function getStatusInfo(node: EapSpanNode): {
   statusCode: number | null;
   statusText: string | null;
 } {
-  const status =
-    node instanceof SpanNode ? node.value.status : node.attributes?.['span.status'];
+  const status = node.attributes?.['span.status'];
   const statusText =
     typeof status === 'string' && HTTP_ERROR_STATUSES.has(status)
       ? formatStatusText(status)

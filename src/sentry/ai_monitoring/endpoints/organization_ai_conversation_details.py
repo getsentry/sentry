@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime, timedelta
@@ -10,6 +11,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_title
+from sentry.ai_monitoring.utils import (
+    ConversationProject,
+    get_conversation_url,
+    serialize_conversation_project,
+)
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -104,10 +110,21 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.tool.call.result",
     "gen_ai.tool.output",
     "gen_ai.embeddings.input",
+    "gen_ai.usage.cache_creation.input_tokens",
+    "gen_ai.usage.cache_read.input_tokens",
+    "gen_ai.usage.input_tokens",
+    "gen_ai.usage.input_tokens.cached",
+    "gen_ai.usage.input_tokens.cache_write",
+    "gen_ai.usage.output_tokens",
+    "gen_ai.usage.output_tokens.reasoning",
+    "gen_ai.usage.reasoning.output_tokens",
     "gen_ai.usage.total_tokens",
     "gen_ai.request.model",
     "gen_ai.response.model",
     "gen_ai.agent.name",
+    # Distinguishes ingest sources; the transcript uses it to recognize Anthropic
+    # OTel conversations, whose messages live only on the invoke_agent span.
+    "origin",
     "user.id",
     "user.email",
     "user.username",
@@ -120,13 +137,15 @@ class AIConversationDetailsResponse(TypedDict):
 
     conversationId: str
     title: str | None
+    projects: list[ConversationProject]
+    webUrl: str
     spans: list[dict[str, Any]]
 
 
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
-    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     @extend_schema(
@@ -158,8 +177,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         self, request: Request, organization: Organization, conversation_id: str
     ) -> Response[AIConversationDetailsResponse] | Response[DetailResponse] | Response[None]:
         """Return spans recorded for one AI conversation in start-time order.
-
-        **Experimental:** This API is under active development and may change.
 
         Message, tool, and response attributes contain their recorded string values.
         Without an explicit range, Sentry widens the search across available retention.
@@ -200,9 +217,19 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             def on_results(spans: list[SpanRow]) -> AIConversationDetailsResponse:
                 self._repair_parent_links(spans, resolved_params, conversation_id)
                 self._annotate_issues(spans, resolved_params, organization)
+                # Treat conversations as single-project for now. Multi-project conversations are
+                # an edge case, so this response exposes only one of their projects.
+                project_id = next(
+                    (value for span in spans if isinstance(value := span.get("project.id"), int)),
+                    None,
+                )
+                projects_by_id = {project.id: project for project in resolved_params.projects}
+                project = projects_by_id.get(project_id)
                 return {
                     "conversationId": conversation_id,
                     "title": self._resolve_title(conversation_id, spans, organization),
+                    "projects": [serialize_conversation_project(project)] if project else [],
+                    "webUrl": get_conversation_url(organization, conversation_id, project_id),
                     "spans": spans,
                 }
 
@@ -359,10 +386,14 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             return {}
 
         requested_keys = set(parent_keys)
+        parent_ids_by_trace: defaultdict[str, list[str]] = defaultdict(list)
+        for trace_id, span_id in sorted(requested_keys):
+            parent_ids_by_trace[trace_id].append(span_id)
+
         query_string = " OR ".join(
             f"({build_escaped_term_filter('trace', [trace_id])} "
-            f"{build_escaped_term_filter('span_id', [span_id])})"
-            for trace_id, span_id in sorted(requested_keys)
+            f"{build_escaped_term_filter('span_id', span_ids)})"
+            for trace_id, span_ids in parent_ids_by_trace.items()
         )
         result = Spans.run_table_query(
             params=snuba_params,
@@ -372,7 +403,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             offset=0,
             limit=len(requested_keys),
             referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
-            config=SearchResolverConfig(auto_fields=True),
+            config=SearchResolverConfig(auto_fields=False),
             sampling_mode="HIGHEST_ACCURACY",
         )
 
@@ -408,13 +439,15 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             ):
                 pending[child_key] = (span, parent_key, {child_key})
 
-        cache: dict[SpanKey, SpanRow] = {}
+        cache = {key: span for span in spans if (key := self._span_key(span)) is not None}
         fetched_keys: set[SpanKey] = set()
         for depth in range(1, MAX_PARENT_REPAIR_DEPTH + 1):
             if not pending:
                 break
 
-            missing_keys = {parent_key for _, parent_key, _ in pending.values()} - fetched_keys
+            missing_keys = (
+                {parent_key for _, parent_key, _ in pending.values()} - cache.keys() - fetched_keys
+            )
             fetched_keys.update(missing_keys)
             try:
                 cache.update(self._fetch_parent_spans(snuba_params, missing_keys))

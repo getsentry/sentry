@@ -83,6 +83,7 @@ export function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement
     case 'datetime':
       return <DateTimeField {...(componentProps as DateTimeFieldProps)} />;
     case 'custom':
+      // oxlint-disable-next-line react/capitalized-calls -- Render callback supplied by the field config, not a component.
       return field.Component(field);
     default:
       return null;
