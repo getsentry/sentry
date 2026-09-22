@@ -9,19 +9,19 @@ import {t} from 'sentry/locale';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
-import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {useTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceTree';
+import {useTrace} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
+import {useTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
+import {useTraceRootEvent} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
+import {useTraceTree} from 'sentry/views/performance/traceDetails/traceApi/useTraceTree';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   type TracePreferencesState,
-} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
-import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
-import type {TraceViewQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
-import type {UseTraceScrollToPath} from 'sentry/views/performance/newTraceDetails/useTraceScrollToPath';
+} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
+import {TraceWaterfall} from 'sentry/views/performance/traceDetails/traceWaterfall';
+import {useTraceEventView} from 'sentry/views/performance/traceDetails/useTraceEventView';
+import type {TraceViewQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
+import type {UseTraceScrollToPath} from 'sentry/views/performance/traceDetails/useTraceScrollToPath';
 
 import {getTraceHref} from './traceLink';
 

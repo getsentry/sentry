@@ -8,7 +8,7 @@ import {EntryType} from 'sentry/types/event';
 import {
   makeEAPError,
   makeEAPSpan,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
 import {EventTraceView} from './eventTraceView';
 

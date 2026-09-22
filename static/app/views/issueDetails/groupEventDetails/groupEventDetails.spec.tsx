@@ -20,12 +20,12 @@ import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {
   makeEAPError,
   makeEAPOccurrence,
   makeEAPSpan,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 
