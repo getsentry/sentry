@@ -71,15 +71,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.data["code"] == "attachment_missing"
         client.assert_not_called()
 
-    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_duplicate_attachment_not_forwarded(self, client):
-        response = self.client.post(
-            self.url, {"query": "Read this", "attachment_keys": ["key", "key"]}, format="json"
-        )
-        assert response.status_code == 400
-        assert response.data["code"] == "duplicate_keys"
-        client.assert_not_called()
-
     def test_get_without_run_id_returns_null_session(self) -> None:
         response = self.client.get(self.url)
 

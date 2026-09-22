@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import asdict
 from functools import partial
 from hashlib import sha256
 from typing import TypeVar, cast
@@ -51,13 +50,9 @@ def storage_request(call: Callable[[], T]) -> T:
         for attempt in range(2):
             try:
                 return call()
-            except RequestError as exc:
-                if attempt or (exc.status != 429 and exc.status < 500):
-                    raise AttachmentError(
-                        "storage_unavailable", "Attachment storage is temporarily unavailable.", 503
-                    ) from exc
-            except urllib3.exceptions.HTTPError as exc:
-                if attempt:
+            except (RequestError, urllib3.exceptions.HTTPError) as exc:
+                permanent = isinstance(exc, RequestError) and exc.status != 429 and exc.status < 500
+                if attempt or permanent:
                     raise AttachmentError(
                         "storage_unavailable", "Attachment storage is temporarily unavailable.", 503
                     ) from exc
@@ -92,7 +87,7 @@ def from_metadata(metadata: Metadata) -> Attachment:
             "invalid_attachment", "The attachment does not have supported validation metadata."
         )
     try:
-        attachment = Attachment(
+        return Attachment(
             filename=sanitize_filename(metadata.filename),
             content_type=metadata.content_type,
             size=metadata.size,
@@ -105,7 +100,6 @@ def from_metadata(metadata: Metadata) -> Attachment:
         raise AttachmentError(
             "invalid_attachment", "The attachment metadata is incomplete."
         ) from exc
-    return attachment
 
 
 def head(key: str, *, store: Session | None = None) -> Attachment | None:
@@ -121,17 +115,17 @@ def metadata_batch(keys: list[str]) -> tuple[list[AttachmentResponse], list[str]
     keys = list(dict.fromkeys(validate_key(key) for key in keys))
     org = organization_id()
     cache_keys = {
-        key: f"seer:attachment:v{VALIDATION_VERSION}:{org}:{sha256(key.encode()).hexdigest()}"
+        key: f"seer:attachment-metadata:v{VALIDATION_VERSION}:{org}:{sha256(key.encode()).hexdigest()}"
         for key in keys
     }
     cached = cache.get_many(list(cache_keys.values()))
-    found: dict[str, Attachment] = {}
+    found: dict[str, AttachmentResponse] = {}
     missing: list[str] = []
     uncached: list[str] = []
     for key in keys:
         value = cached.get(cache_keys[key])
         if value is not None:
-            found[key] = Attachment(**value)
+            found[key] = value
         else:
             uncached.append(key)
     if uncached:
@@ -142,9 +136,9 @@ def metadata_batch(keys: list[str]) -> tuple[list[AttachmentResponse], list[str]
                 if attachment is None:
                     missing.append(key)
                 else:
-                    found[key] = attachment
-                    cache.set(cache_keys[key], asdict(attachment), timeout=300)
-    return [found[key].response(key) for key in keys if key in found], missing
+                    found[key] = attachment.response(key)
+                    cache.set(cache_keys[key], found[key], timeout=300)
+    return [found[key] for key in keys if key in found], missing
 
 
 def validate_message(keys: list[str], query: str) -> None:

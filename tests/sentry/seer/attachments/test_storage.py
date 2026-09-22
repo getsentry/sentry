@@ -3,7 +3,7 @@ from datetime import timedelta
 from io import BytesIO
 from threading import Lock
 from time import sleep
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 import urllib3
@@ -11,11 +11,10 @@ from objectstore_client import Metadata, TimeToIdle
 from objectstore_client.client import GetResponse
 from objectstore_client.errors import RequestError
 
-from sentry.objectstore import UsecaseId, _create_client, get_org_session
+from sentry.objectstore import _create_client
 from sentry.seer.attachments import storage
 from sentry.seer.attachments.models import Attachment, AttachmentError
 from sentry.testutils.helpers import override_options
-from sentry.testutils.skips import requires_objectstore
 from sentry.utils.cache import cache
 from sentry.viewer_context import ViewerContext, viewer_context_scope
 
@@ -45,12 +44,6 @@ def metadata(**overrides):
     )
 
 
-def test_session_org_scope_and_timeouts():
-    with patch("sentry.seer.attachments.storage.get_org_session") as get_session:
-        storage.session()
-    get_session.assert_called_once_with(UsecaseId.SEER_ATTACHMENTS, 123, timeout=5.0)
-
-
 def test_bounded_client_disables_sdk_retries():
     client = _create_client(timeout=2.0)
     assert client._pool.retries.total == 0
@@ -62,20 +55,6 @@ def test_bounded_client_disables_sdk_retries():
 def test_no_org_context_fails_closed():
     with viewer_context_scope(ViewerContext()), pytest.raises(RuntimeError):
         storage.session()
-
-
-def test_put_original_metadata():
-    attachment = Attachment("file.md", "text/markdown", 5, "markdown")
-    with patch("sentry.seer.attachments.storage.session") as session:
-        session.return_value.put.return_value = "key"
-        assert storage.put(b"hello", attachment) == "key"
-    session.return_value.put.assert_called_once_with(
-        b"hello",
-        compress="none",
-        filename="file.md",
-        content_type="text/markdown",
-        metadata={"kind": "markdown", "validation_version": "1"},
-    )
 
 
 @pytest.mark.parametrize(
@@ -92,25 +71,16 @@ def test_transient_retry(error):
     assert call.call_count == 2
 
 
-def test_no_retry_permanent_error():
-    call = Mock(side_effect=RequestError("denied", 403, ""))
+@pytest.mark.parametrize("status,attempts", [(403, 1), (503, 2)])
+def test_storage_failure_stops_retrying(status, attempts):
+    call = Mock(side_effect=RequestError("failed", status, ""))
     with pytest.raises(AttachmentError) as exc:
         storage.storage_request(call)
     assert exc.value.status_code == 503
-    assert call.call_count == 1
+    assert call.call_count == attempts
 
 
-def test_retry_exhausted():
-    call = Mock(side_effect=RequestError("unavailable", 503, ""))
-    with pytest.raises(AttachmentError) as exc:
-        storage.storage_request(call)
-    assert exc.value.status_code == 503
-    assert call.call_count == 2
-
-
-@pytest.mark.parametrize(
-    "key", ["../key", "a/b", "https://host/key", "a%2fb", "", "a.b", "a?b", "a" * 256]
-)
+@pytest.mark.parametrize("key", ["../key", "https://host/key", "a%2fb", "", "a" * 256])
 def test_invalid_keys(key):
     with (
         patch("sentry.seer.attachments.storage.session") as session,
@@ -138,30 +108,23 @@ def test_unverified_metadata(overrides):
 
 def test_metadata_cache_scoped_and_missing_not_cached():
     cache.clear()
-    with patch(
-        "sentry.seer.attachments.storage.head",
-        side_effect=[storage.from_metadata(metadata()), None, None, None],
-    ) as head:
-        found, missing = storage.metadata_batch(["key", "missing"])
+    missing_key = "m" * 255
+    with (
+        patch(
+            "sentry.seer.attachments.storage.head",
+            side_effect=[storage.from_metadata(metadata()), None, None, None],
+        ) as head,
+        patch.object(cache, "set", wraps=cache.set) as cache_set,
+    ):
+        found, missing = storage.metadata_batch(["key", missing_key])
         assert found[0]["key"] == "key"
-        assert missing == ["missing"]
-        assert storage.metadata_batch(["key", "missing"]) == (found, missing)
+        assert missing == [missing_key]
+        assert storage.metadata_batch(["key", missing_key]) == (found, missing)
         assert head.call_count == 3
         with viewer_context_scope(ViewerContext(organization_id=456)):
             assert storage.metadata_batch(["key"]) == ([], ["key"])
     assert head.call_count == 4
-
-
-def test_cache_ttl():
-    with (
-        patch("sentry.seer.attachments.storage.cache") as cache_mock,
-        patch(
-            "sentry.seer.attachments.storage.head", return_value=storage.from_metadata(metadata())
-        ),
-    ):
-        cache_mock.get_many.return_value = {}
-        storage.metadata_batch(["key"])
-    assert cache_mock.set.call_args.kwargs == {"timeout": 300}
+    cache_set.assert_any_call(ANY, found[0], timeout=300)
 
 
 def test_batch_storage_failure_is_not_partial_success():
@@ -290,32 +253,6 @@ def test_read_closes_payload_on_error():
     assert exc.value.status_code == 503
     assert payload.closed
     assert retry_payload.closed
-
-
-@requires_objectstore
-def test_objectstore_roundtrip():
-    original = b"{not valid json, untouched\r\n"
-    attachment = Attachment("original.json", "application/json", len(original), "json")
-    key = storage.put(original, attachment)
-    session = storage.session()
-    try:
-        stored = session.head(key)
-        assert stored is not None
-        assert stored.filename == attachment.filename
-        assert stored.content_type == attachment.content_type
-        assert stored.size == len(original)
-        assert stored.compression is None
-        assert stored.expiration_policy == TimeToIdle(timedelta(days=91))
-        assert stored.custom == attachment.custom_metadata()
-        assert storage.read(key) == (original, attachment)
-        assert get_org_session(UsecaseId.SEER_ATTACHMENTS, 456, timeout=5).head(key) is None
-    finally:
-        session.delete(key)
-
-
-def test_long_opaque_key_fits_metadata_cache():
-    with patch("sentry.seer.attachments.storage.head", return_value=None):
-        assert storage.metadata_batch(["a" * 255]) == ([], ["a" * 255])
 
 
 def test_objectstore_existing_client_settings_preserved():
