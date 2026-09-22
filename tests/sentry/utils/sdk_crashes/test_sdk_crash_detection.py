@@ -99,7 +99,7 @@ def test_get_hybrid_sdk_exits_early_without_configured_packages() -> None:
 
 
 class SDKCrashReporterTest(TestCase):
-    @patch("sentry.event_manager.EventManager")
+    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.EventManager")
     def test_report_uses_destination_project_viewer_context(
         self, mock_event_manager: MagicMock
     ) -> None:

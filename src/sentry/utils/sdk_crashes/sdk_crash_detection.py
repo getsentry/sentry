@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import uuid4
 
+from sentry.event_manager import EventManager, resolve_project
 from sentry.issues.grouptype import GroupCategory
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
@@ -48,8 +49,6 @@ def get_hybrid_sdk(
 
 class SDKCrashReporter:
     def report(self, event_data: Mapping[str, Any], event_project_id: int) -> Event:
-        from sentry.event_manager import EventManager, resolve_project
-
         project = resolve_project(event_project_id)
         with viewer_context_scope(
             ViewerContext(
