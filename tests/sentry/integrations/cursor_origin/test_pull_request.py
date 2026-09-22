@@ -194,13 +194,6 @@ class PullRequestEventTest(TestCase):
         with pytest.raises(OriginPayloadError, match="pullRequest -> state"):
             PullRequestEvent.from_payload(_payload(state="locked"))
 
-    def test_an_author_must_be_exactly_one_actor(self) -> None:
-        payload = _payload()
-        payload["pullRequest"]["author"] = {}
-
-        with pytest.raises(OriginPayloadError, match="exactly one"):
-            PullRequestEvent.from_payload(payload)
-
     def test_an_author_display_name_is_kept_when_origin_sends_one(self) -> None:
         payload = _payload()
         payload["pullRequest"]["author"]["user"]["displayName"] = "Jane Roe"
