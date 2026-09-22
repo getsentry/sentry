@@ -563,10 +563,6 @@ def _cidr_matcher(name: str) -> _ConditionMatcher:
     return match
 
 
-# Where each condition type's data lives. A condition that reads the envelope has one
-# matcher for every data type. A condition that reads the item names a matcher for
-# each data type that carries the field; the catch-all supports it only when every
-# selectable data type does.
 _CONDITION_MATCHERS: Mapping[
     CustomInboundFilterConditionType,
     _ConditionMatcher | Mapping[CustomInboundFilterDataType, _ConditionMatcher],
@@ -583,10 +579,6 @@ _CONDITION_MATCHERS: Mapping[
     CustomInboundFilterConditionType.METRIC_NAME: {
         CustomInboundFilterDataType.METRIC: _field_matcher("trace_metric.name"),
     },
-    # Replays, sessions, profiles and transactions are not selectable data types: Relay
-    # reads their release under `event.release`, so they cannot be told apart from
-    # errors. The span matcher reads standalone spans only. A span sent inside a
-    # transaction is dropped with the transaction, which the error matcher reads.
     CustomInboundFilterConditionType.RELEASE: {
         CustomInboundFilterDataType.ERROR: _field_matcher("event.release"),
         CustomInboundFilterDataType.LOG: _field_matcher("log.attributes.sentry.release.value"),
@@ -595,9 +587,6 @@ _CONDITION_MATCHERS: Mapping[
         ),
         CustomInboundFilterDataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
     },
-    # `envelope.client_ip` is the address the envelope was sent from, the same one the
-    # legacy `clientIps` filter reads. It needs a Relay that knows the `cidr` operator:
-    # an older Relay never matches the condition, so the filter is inactive there.
     CustomInboundFilterConditionType.IP_ADDRESS: _cidr_matcher("envelope.client_ip"),
 }
 
