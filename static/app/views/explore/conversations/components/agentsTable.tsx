@@ -13,12 +13,13 @@ import {SpansTable} from 'sentry/views/explore/tables/spansTable';
 import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesTable';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {Onboarding as AgentMonitoringOnboarding} from 'sentry/views/insights/pages/agents/onboarding';
-import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export const AGENTS_TABLE_TABS = ['conversations', 'traces', 'spans'] as const;
 export type AgentsTableTab = (typeof AGENTS_TABLE_TABS)[number];
 
+const TRACES_TABLE_LIMIT = 20;
+const LLM_CALLS_QUERY = 'gen_ai.operation.type:ai_client has:gen_ai.output.messages';
 const LLM_CALLS_SAVED_QUERY_PARAMS = {
   fields: [
     SpanFields.ID,
@@ -54,7 +55,7 @@ export function AgentsTable({
         <TabList variant="floating">
           <TabList.Item key="conversations">{t('Conversations')}</TabList.Item>
           <TabList.Item key="traces">{t('Traces')}</TabList.Item>
-          <TabList.Item key="spans">{t('Spans')}</TabList.Item>
+          <TabList.Item key="spans">{t('LLM Calls')}</TabList.Item>
         </TabList>
       </Tabs>
       {activeTab === 'conversations' &&
@@ -64,7 +65,11 @@ export function AgentsTable({
           <ConversationOnboarding onDismiss={onConversationOnboardingDismiss} />
         ))}
       {activeTab === 'traces' &&
-        (hasAgenticSpans ? <TracesTable /> : <AgentMonitoringOnboarding />)}
+        (hasAgenticSpans ? (
+          <TracesTable limit={TRACES_TABLE_LIMIT} />
+        ) : (
+          <AgentMonitoringOnboarding />
+        ))}
       {activeTab === 'spans' &&
         (hasAgenticSpans ? <AgentsSpansTable /> : <AgentMonitoringOnboarding />)}
     </Stack>
@@ -80,7 +85,7 @@ function AgentsSpansTable() {
 }
 
 function AgentsSpansTableContent() {
-  const query = useCombinedQuery(getHasAiSpansFilter());
+  const query = useCombinedQuery(LLM_CALLS_QUERY);
   const spansTableResult = useExploreSpansTable({
     query,
     limit: SPANS_TABLE_LIMIT,

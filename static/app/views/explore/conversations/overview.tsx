@@ -239,9 +239,7 @@ function ConversationsOverviewPage() {
     content = (
       <Fragment>
         {hasAgenticSpans && <AgentsCharts />}
-        {isConversationsTab && showMissingMessagesAlert && (
-          <ConversationMissingMessagesAlert />
-        )}
+        {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
         <AgentsTable
           activeTab={activeTab}
           hasAgenticSpans={hasAgenticSpans}

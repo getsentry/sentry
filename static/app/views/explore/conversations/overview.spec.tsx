@@ -11,7 +11,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ConversationsOverviewPage from './overview';
 
 const organization = OrganizationFixture({
-  features: ['gen-ai-agents-overview', 'gen-ai-conversations'],
+  features: ['dashboards-edit', 'gen-ai-agents-overview', 'gen-ai-conversations'],
 });
 
 const organizationWithoutAgentsOverview = OrganizationFixture({
@@ -181,20 +181,73 @@ describe('ConversationsOverviewPage', () => {
     expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Conversations'})).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Traces'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Spans'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'LLM Calls'})).not.toBeInTheDocument();
     expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
   });
 
-  it('shows agentic spans in the Spans tab', async () => {
+  it('shows agentic spans in the LLM Calls tab', async () => {
     localStorage.clear();
     render(<ConversationsOverviewPage />, {organization});
 
-    await userEvent.click(await screen.findByRole('tab', {name: 'Spans'}));
+    await userEvent.click(await screen.findByRole('tab', {name: 'LLM Calls'}));
 
     expect(
-      await screen.findByRole('tab', {name: 'Spans', selected: true})
+      await screen.findByRole('tab', {name: 'LLM Calls', selected: true})
     ).toBeInTheDocument();
     expect(await screen.findByTestId('spans-table')).toBeInTheDocument();
+  });
+
+  it('shows context menus for all agent charts', async () => {
+    render(<ConversationsOverviewPage />, {organization});
+
+    const widgetActions = await screen.findAllByLabelText('Widget actions');
+    expect(widgetActions).toHaveLength(3);
+
+    await userEvent.click(widgetActions[0]!);
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the missing messages alert visible across tabs', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [
+        {
+          conversationId: 'conversation-id',
+          duration: 1000,
+          endTimestamp: 2000,
+          errors: 0,
+          firstInput: null,
+          lastOutput: null,
+          llmCalls: 1,
+          startTimestamp: 1000,
+          toolCalls: 0,
+          toolErrors: 0,
+          toolNames: [],
+          totalCost: null,
+          totalTokens: 100,
+          traceCount: 1,
+          traceIds: ['trace-id'],
+          user: null,
+        },
+      ],
+    });
+    render(<ConversationsOverviewPage />, {organization});
+
+    expect(
+      await screen.findByRole('heading', {name: 'Capture Your Conversation Messages'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
+    expect(
+      screen.getByRole('heading', {name: 'Capture Your Conversation Messages'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(
+      screen.getByRole('heading', {name: 'Capture Your Conversation Messages'})
+    ).toBeInTheDocument();
   });
 
   it('does not load recent searches for conversations', async () => {

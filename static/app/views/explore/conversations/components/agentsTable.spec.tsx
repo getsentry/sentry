@@ -77,12 +77,17 @@ describe('AgentsTable', () => {
     );
 
     expect(await screen.findByTestId('spans-table')).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'LLM Calls'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
     await waitFor(() =>
       expect(spansRequest).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/events/`,
         expect.objectContaining({
           query: expect.objectContaining({
             field: expect.arrayContaining(LLM_CALLS_FIELDS),
+            query: 'gen_ai.operation.type:ai_client has:gen_ai.output.messages',
           }),
         })
       )
@@ -92,6 +97,33 @@ describe('AgentsTable', () => {
       expect.objectContaining({
         query: expect.objectContaining({field: expect.arrayContaining(['span.name'])}),
       })
+    );
+  });
+
+  it('loads 20 traces per page', async () => {
+    const tracesRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/traces/`,
+      body: {data: []},
+    });
+
+    render(
+      <AgentsTable
+        activeTab="traces"
+        hasAgenticSpans
+        hasConversations={false}
+        onConversationOnboardingDismiss={jest.fn()}
+        onTabChange={jest.fn()}
+      />,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(tracesRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/traces/`,
+        expect.objectContaining({
+          query: expect.objectContaining({per_page: 20}),
+        })
+      )
     );
   });
 });
