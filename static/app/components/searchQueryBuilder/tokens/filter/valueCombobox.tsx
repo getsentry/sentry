@@ -91,7 +91,9 @@ import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 type SearchQueryValueBuilderProps = {
+  editingCommittedValue: boolean;
   onCommit: () => void;
   onDelete: () => void;
   token: TokenResult<Token.FILTER>;
@@ -662,7 +664,8 @@ function ValueComboboxCustomMenu(
 
 export function getInitialInputValue(
   token: TokenResult<Token.FILTER>,
-  canSelectMultipleValues: boolean
+  canSelectMultipleValues: boolean,
+  editingCommittedValue?: boolean
 ) {
   if (isDateToken(token)) {
     return token.value.type === Token.VALUE_ISO_8601_DATE ? token.value.text : '';
@@ -673,6 +676,9 @@ export function getInitialInputValue(
   if (isNumericFilterToken(token)) {
     return token.value.text;
   }
+  if (token.filter === FilterType.HAS && editingCommittedValue) {
+    return prettifyTagKey(token.value.text);
+  }
   return '';
 }
 
@@ -681,6 +687,7 @@ export function SearchQueryBuilderValueCombobox({
   onDelete,
   onCommit,
   wrapperRef,
+  editingCommittedValue,
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -714,7 +721,9 @@ export function SearchQueryBuilderValueCombobox({
   // Multi-select renders committed values as chips, so the input starts empty
   // and only holds the value being typed.
   const [inputValue, setInputValue] = useState(() =>
-    canSelectMultipleValues ? '' : getInitialInputValue(token, canSelectMultipleValues)
+    canSelectMultipleValues
+      ? ''
+      : getInitialInputValue(token, canSelectMultipleValues, editingCommittedValue)
   );
   // Tracks where the input sits within the chip row. `value` is the lifted chip's
   // text (so it can be restored on Escape and reinserted where it was rather than
@@ -1218,7 +1227,9 @@ export function SearchQueryBuilderValueCombobox({
         return;
       }
 
-      const isUnchanged = value === getInitialInputValue(token, canSelectMultipleValues);
+      const isUnchanged =
+        value ===
+        getInitialInputValue(token, canSelectMultipleValues, editingCommittedValue);
 
       // If there's no user input and the token has no value, set a default one
       if (!value && !token.value.text) {
@@ -1248,6 +1259,7 @@ export function SearchQueryBuilderValueCombobox({
       addTypedValue,
       canSelectMultipleValues,
       dispatch,
+      editingCommittedValue,
       fieldDefinition,
       onCommit,
       token,

@@ -3386,6 +3386,92 @@ describe('SearchQueryBuilder', () => {
           ).getByText('does not have')
         ).toBeInTheDocument();
       });
+
+      it('seeds the attribute into the input when the value is clicked', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="has:browser.name" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: has'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+
+        expect(input).toHaveFocus();
+        expect(input).toHaveValue('browser.name');
+      });
+
+      it('keeps the surrounding attribute when a typo is fixed in place', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="has:browser.naem"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: has'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.click(input);
+        await userEvent.keyboard('{Backspace}{Backspace}me{Enter}');
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'has:browser.name',
+            expect.anything()
+          );
+        });
+      });
+
+      it('replaces the whole attribute when the seeded text is cleared', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="has:browser.name"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: has'})
+        );
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+        await userEvent.keyboard('custom_tag_name{Enter}');
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'has:custom_tag_name',
+            expect.anything()
+          );
+        });
+      });
+
+      it('leaves the attribute unchanged when the value is clicked and dismissed', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="has:browser.name"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: has'})
+        );
+        await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.keyboard('{Escape}');
+
+        expect(
+          await screen.findByRole('row', {name: 'has:browser.name'})
+        ).toBeInTheDocument();
+        expect(mockOnChange).not.toHaveBeenCalled();
+      });
     });
 
     describe('string', () => {
@@ -6633,6 +6719,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit value for filter: has'})
       );
+      await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter value'}));
       await userEvent.keyboard('foo');
       await userEvent.click(screen.getByRole('option', {name: 'foo'}));
 
@@ -8554,6 +8641,7 @@ describe('SearchQueryBuilder', () => {
         screen.getByRole('button', {name: 'Edit value for filter: has'})
       );
       const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.clear(input);
       await userEvent.type(input, 'tag');
 
       await waitFor(() => {
@@ -8588,6 +8676,7 @@ describe('SearchQueryBuilder', () => {
         screen.getByRole('button', {name: 'Edit value for filter: has'})
       );
       const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.clear(input);
       await userEvent.type(input, 'async');
       await userEvent.click(await screen.findByRole('option', {name: 'async_tag_one'}));
 
