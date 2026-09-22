@@ -163,7 +163,7 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
         owner_lookup = {owner: serialized for owner, serialized in zip(owners, owners_serialized)}
 
         for item in item_list:
-            attrs[item]["data_sources"] = ds_map.get(item.id)
+            attrs[item]["data_sources"] = ds_map.get(item.id, [])
             attrs[item]["condition_group"] = condition_group_map.get(
                 str(item.workflow_condition_group_id)
             )
