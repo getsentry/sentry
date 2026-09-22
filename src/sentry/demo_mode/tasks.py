@@ -112,8 +112,10 @@ def _sync_project_debug_files(
     )
 
     for source_project_debug_file in different_project_debug_files:
-        with traces.start_span(name="sync-project-debug-files-sync-project-debug-file") as span:
-            span.set_attribute("source_project_debug_file_id", source_project_debug_file.id)
+        with traces.start_span(
+            name="sync-project-debug-files-sync-project-debug-file",
+            attributes={"source_project_debug_file_id": source_project_debug_file.id},
+        ):
             _sync_project_debug_file(source_project_debug_file, target_org)
 
 
