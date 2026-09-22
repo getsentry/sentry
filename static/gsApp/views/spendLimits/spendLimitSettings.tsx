@@ -29,7 +29,7 @@ import {
   getPlanCategoryName,
   getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
-import {renderPerformanceHovercard} from 'getsentry/views/amCheckout/components/volumeSliders';
+import {PerformanceHovercard} from 'getsentry/views/amCheckout/components/volumeSliders';
 import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/productSelect';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {
@@ -179,7 +179,9 @@ function InnerSpendLimitSettings({
                   <Flex align="center" gap="xs">
                     <Text bold>{upperFirst(pluralName)}</Text>
                     {showPerformanceUnits ? (
-                      <Container flexShrink={0}>{renderPerformanceHovercard()}</Container>
+                      <Container flexShrink={0}>
+                        <PerformanceHovercard />
+                      </Container>
                     ) : categoryInfo?.checkoutTooltip ? (
                       <Container flexShrink={0}>
                         <InfoTip

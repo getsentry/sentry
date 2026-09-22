@@ -20,7 +20,7 @@ import {
   getPlanCategoryName,
   getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
-import {renderPerformanceHovercard} from 'getsentry/views/amCheckout/components/volumeSliders';
+import {PerformanceHovercard} from 'getsentry/views/amCheckout/components/volumeSliders';
 import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/productSelect';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {
@@ -108,15 +108,17 @@ export function SharedSpendLimitPriceTable({
                   })}
                 </Text>
               )}
-              {showPerformanceUnits
-                ? renderPerformanceHovercard()
-                : categoryInfo?.checkoutTooltip && (
-                    <InfoTip
-                      title={categoryInfo.checkoutTooltip}
-                      position="top"
-                      size="xs"
-                    />
-                  )}
+              {showPerformanceUnits ? (
+                <PerformanceHovercard />
+              ) : (
+                categoryInfo?.checkoutTooltip && (
+                  <InfoTip
+                    title={categoryInfo.checkoutTooltip}
+                    position="top"
+                    size="xs"
+                  />
+                )
+              )}
             </Flex>
             <Container justifySelf={{zero: 'start', md: 'end'}}>
               <Text>
