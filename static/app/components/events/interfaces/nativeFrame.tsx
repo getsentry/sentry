@@ -398,7 +398,7 @@ export function NativeFrame({
               </Tooltip>
             )}
           </Container>
-          <Container column={{'2xl': '5'}} display={{zero: 'none', '2xl': 'block'}}>
+          <Container column={{zero: '3', xl: '5'}} row={{zero: '2', xl: '1'}}>
             {isUsedForGrouping && (
               <Tooltip title={t('This frame is repeated in every event of this issue')}>
                 <IconRefresh size="sm" variant="primary" />
@@ -409,8 +409,7 @@ export function NativeFrame({
             <Flex
               column={{
                 zero: '2 / 4',
-                xl: '5',
-                '2xl': '6',
+                xl: '6',
               }}
               justify="end"
               minWidth="0"
@@ -439,8 +438,7 @@ export function NativeFrame({
             align="center"
             column={{
               zero: '3',
-              xl: '6',
-              '2xl': '7',
+              xl: '7',
             }}
             gap="sm"
             justify="end"
@@ -468,7 +466,7 @@ export function NativeFrame({
             {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
           </Flex>
           <Container
-            column={{zero: '4', xl: '7', '2xl': '8'}}
+            column={{zero: '4', xl: '8'}}
             justifySelf="end"
             row={{zero: hiddenFrameCount ? '4' : '1', xl: '1'}}
           >
@@ -543,7 +541,7 @@ function RowHeader({
       alignContent="center"
       columns={{
         zero: 'auto minmax(0, 1fr) max-content 24px',
-        xl: 'auto 150px 120px minmax(0, 1fr) auto auto 24px',
+        xl: 'auto 150px 120px minmax(0, 1fr) repeat(3, auto) 24px',
         '2xl': 'auto 150px 120px minmax(120px, 4fr) repeat(3, auto) 24px',
       }}
       gap={{zero: 'xs sm', xl: '0 sm'}}
