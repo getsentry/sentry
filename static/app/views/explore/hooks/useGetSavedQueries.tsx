@@ -246,11 +246,11 @@ type CombinedSavedQueryResponse =
  * Returns both explore and discover saved queries. Use `savedQueriesApiOptions`
  * if only explore saved queries are needed
  */
-function combinedSavedQueriesApiOptions<TData = CombinedSavedQueryResponse[]>(
+function combinedSavedQueriesApiOptions(
   organization: Organization,
   query?: Record<string, unknown>
 ) {
-  return apiOptions.as<TData>()(
+  return apiOptions.as<CombinedSavedQueryResponse[]>()(
     '/organizations/$organizationIdOrSlug/explore/all-queries/',
     {
       path: {organizationIdOrSlug: organization.slug},
