@@ -602,7 +602,10 @@ export function SeerExplorerContent({
   );
 
   return (
-    <AutofixChatProvider sendMessage={readOnly ? undefined : postMessage}>
+    <AutofixChatProvider
+      isBusy={isPolling}
+      sendMessage={readOnly ? undefined : postMessage}
+    >
       <Stack
         ref={rootRef}
         data-seer-explorer-root=""

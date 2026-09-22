@@ -461,3 +461,71 @@ describe('SavedQueriesTable', () => {
     );
   });
 });
+
+describe('SavedQueriesTable with discover-queries-in-all-queries', () => {
+  const {organization} = initializeOrg({
+    organization: {features: ['discover-queries-in-all-queries']},
+  });
+  let getQueriesMock: jest.Mock;
+
+  beforeEach(() => {
+    getQueriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
+      body: [
+        {
+          id: 1,
+          queryType: 'explore',
+          name: 'Explore Query',
+          dataset: 'spans',
+          projects: [1],
+          environment: ['production'],
+          createdBy: {name: 'Test User'},
+          query: [{query: '', visualize: [], groupby: []}],
+        },
+        {
+          // Discover ids are their own sequence, so this collides with the
+          // explore row above on purpose.
+          id: 1,
+          queryType: 'discover',
+          name: 'Discover Query',
+          queryDataset: 'error-events',
+          projects: [1],
+          environment: ['production'],
+          createdBy: {name: 'Test User'},
+          fields: ['title'],
+          query: '',
+          orderby: '',
+          yAxis: ['count()'],
+        },
+      ],
+    });
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('fetches the combined endpoint and renders both products', async () => {
+    render(<SavedQueriesTable mode="owned" title="title" />, {organization});
+
+    expect(await screen.findByText('Explore Query')).toBeInTheDocument();
+    expect(screen.getByText('Discover Query')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(getQueriesMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/explore/all-queries/`,
+        expect.objectContaining({method: 'GET'})
+      )
+    );
+  });
+
+  it('links a discover row to the discover results view', async () => {
+    render(<SavedQueriesTable mode="owned" title="title" />, {organization});
+
+    const link = await screen.findByRole('link', {name: 'Discover Query'});
+    // makeDiscoverPathname puts discover under the explore base path.
+    expect(link).toHaveAttribute(
+      'href',
+      expect.stringContaining('explore/discover/results/')
+    );
+  });
+});
