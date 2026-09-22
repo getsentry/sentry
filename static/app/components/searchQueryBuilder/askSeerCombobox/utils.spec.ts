@@ -303,6 +303,14 @@ describe('formatQueryToNaturalLanguage', () => {
       query: '!message://^GET /api//',
       expected: 'message does not match regex "^GET /api" ',
     },
+    {
+      query: 'message://"v2"//',
+      expected: 'message matches regex "\\"v2\\"" ',
+    },
+    {
+      query: 'message://^GET "v2"//',
+      expected: 'message matches regex "^GET \\"v2\\"" ',
+    },
   ])('formats $query as $expected', ({query, expected}) => {
     expect(formatQueryToNaturalLanguage(query)).toBe(expected);
   });
@@ -381,6 +389,8 @@ describe('parseNaturalLanguageToQuery', () => {
     'release://^v1//',
     'release://^v1 rc//',
     '!release://^v1 rc//',
+    'release://"v1"//',
+    'release://^v1 "rc"//',
     'event.type:error error.type:ApiError',
     'event.type:error error.type:ApiError OR browser:chrome AND code',
   ])('"%s" survives format -> parse', esq => {

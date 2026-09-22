@@ -263,14 +263,21 @@ function formatWildcardToken(token: string, isNegated: boolean): string | null {
  * Quotes a pattern that {@link tokenize} would otherwise read back as more than
  * one word, so the humanized form stays invertible. Patterns are unquoted in
  * query syntax, so {@link unquoteRegexPattern} undoes this on the way back.
+ *
+ * A pattern holding a `"` is quoted too, so that the wrapping is the only
+ * reason a humanized pattern ever starts and ends with one.
  */
 function quoteRegexPattern(pattern: string): string {
-  return /\s/.test(pattern) || pattern.endsWith(',') ? `"${pattern}"` : pattern;
+  if (!/[\s"]/.test(pattern) && !pattern.endsWith(',')) {
+    return pattern;
+  }
+
+  return `"${pattern.replaceAll('"', '\\"')}"`;
 }
 
 function unquoteRegexPattern(pattern: string): string {
   return pattern.length > 1 && pattern.startsWith('"') && pattern.endsWith('"')
-    ? pattern.slice(1, -1)
+    ? pattern.slice(1, -1).replaceAll('\\"', '"')
     : pattern;
 }
 
