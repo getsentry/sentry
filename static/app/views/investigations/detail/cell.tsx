@@ -398,7 +398,7 @@ function QueryResult({
                   />
                 ) : isBlockGenerating(block) ? (
                   // The toolbar above already shows the title.
-                  <InvestigationCellPlaceholder />
+                  <InvestigationCellPlaceholder showTitle={false} />
                 ) : (
                   <CellProgress state={progressState} />
                 )}

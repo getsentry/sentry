@@ -8,12 +8,14 @@ import {t} from 'sentry/locale';
 
 type InvestigationCellPlaceholderProps = {
   className?: string;
+  showTitle?: boolean;
   title?: string | null;
 };
 
 /** What a notebook cell looks like while Seer is still writing it. */
 export function InvestigationCellPlaceholder({
   className,
+  showTitle = true,
   title,
 }: InvestigationCellPlaceholderProps) {
   return (
@@ -26,17 +28,18 @@ export function InvestigationCellPlaceholder({
       aria-label={title ? t('Loading %s', title) : t('Loading cell')}
       data-test-id="investigation-cell-placeholder"
     >
-      {title ? (
+      {showTitle && title ? (
         <Heading as="h3" size="md">
           {title}
         </Heading>
-      ) : (
+      ) : null}
+      {showTitle && !title ? (
         <PlaceholderLine
           height="20px"
           width="40%"
           testId="investigation-cell-placeholder-title"
         />
-      )}
+      ) : null}
       <Stack gap="sm" width="100%">
         <PlaceholderLine height="12px" />
         <PlaceholderLine height="12px" />
