@@ -176,13 +176,20 @@ function WidgetBuilderSlideoutInner({
     !(state.dataset === WidgetType.TRACEMETRICS && isInEquationMode) &&
     !(state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType));
 
-  // Group By is used by time-series chart widgets to break down data by a field.
+  // Group By is used by time-series chart widgets and Trace Metrics equations
+  // to break down data by a field.
   // - Time-series widgets: show Group By to allow breaking down by fields
   // - Issue widgets: don't support Group By (issues have their own grouping)
   // - Categorical Bar widgets: group by is not supported yet, but may be in the future
   // - Text widgets: don't support Group By (no data visualization)
+  // - Trace Metrics equations with tables: no other way for selecting columns to group by
+  const isTraceMetricsEquationTable =
+    state.dataset === WidgetType.TRACEMETRICS &&
+    isInEquationMode &&
+    state.displayType === DisplayType.TABLE;
   const showGroupBySelector =
-    isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE) && !isTextWidget;
+    (isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE) && !isTextWidget) ||
+    isTraceMetricsEquationTable;
 
   // X-Axis selector is only for Categorical Bar widgets, other chart widgets
   // always use time as the X-axis
@@ -508,7 +515,9 @@ function WidgetBuilderSlideoutInner({
                     )}
                     {showGroupBySelector && (
                       <Section>
-                        <WidgetBuilderGroupBySelector />
+                        <WidgetBuilderGroupBySelector
+                          preserveAggregateFields={isTraceMetricsEquationTable}
+                        />
                       </Section>
                     )}
                     {showSortByStep && (
