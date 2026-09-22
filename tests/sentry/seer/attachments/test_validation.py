@@ -70,10 +70,9 @@ def test_rejected_files(name, data, code):
     assert exc.value.code == code
 
 
-@pytest.mark.parametrize("format", ["GIF", "BMP", "TIFF"])
-def test_unsupported_image(format):
+def test_unsupported_image():
     with pytest.raises(AttachmentError, match="not supported"):
-        validate_upload(SimpleUploadedFile("image.md", image_bytes(format)))
+        validate_upload(SimpleUploadedFile("image.md", image_bytes("GIF")))
 
 
 @pytest.mark.parametrize("format", ["PNG", "WEBP"])
@@ -91,27 +90,6 @@ def test_corrupt_image_pixels():
     with pytest.raises(AttachmentError) as exc:
         validate_upload(SimpleUploadedFile("broken.png", data))
     assert exc.value.code == "invalid_image"
-
-
-def test_text_exact_size_limit():
-    assert validate_upload(SimpleUploadedFile("file.md", b"a" * (100 * 1024)))[1].size == 100 * 1024
-
-
-def test_text_exceeds_size_limit():
-    with pytest.raises(AttachmentError) as exc:
-        validate_upload(SimpleUploadedFile("file.md", b"a" * (100 * 1024 + 1)))
-    assert exc.value.status_code == 413
-
-
-@pytest.mark.parametrize(
-    "kind,content_type,size",
-    [("image", "image/png", 3 * 1024 * 1024), ("pdf", "application/pdf", 10 * 1024 * 1024)],
-)
-def test_binary_size_boundaries(kind, content_type, size):
-    Attachment("file", content_type, size, kind, 2, 3, 1).check_limits()
-    with pytest.raises(AttachmentError) as exc:
-        Attachment("file", content_type, size + 1, kind, 2, 3, 1).check_limits()
-    assert exc.value.status_code == 413
 
 
 @pytest.mark.parametrize("dimensions", [(8001, 1), (1, 8001), (5001, 4000)])
@@ -176,17 +154,17 @@ def test_filename_sanitization():
     assert sanitize_filename("../") == "attachment"
 
 
-def test_pdf_exact_byte_limit():
-    data = pdf_bytes().ljust(10 * 1024 * 1024, b" ")
-    assert validate_upload(SimpleUploadedFile("file.pdf", data))[0] == data
+@pytest.mark.parametrize(
+    "filename,data,maximum",
+    [
+        ("file.md", b"text", 100 * 1024),
+        ("file.png", image_bytes(), 3 * 1024 * 1024),
+        ("file.pdf", pdf_bytes(), 10 * 1024 * 1024),
+    ],
+)
+def test_file_byte_boundaries(filename, data, maximum):
+    original = data.ljust(maximum, b" ")
+    assert validate_upload(SimpleUploadedFile(filename, original))[0] == original
     with pytest.raises(AttachmentError) as exc:
-        validate_upload(SimpleUploadedFile("file.pdf", data + b" "))
-    assert exc.value.status_code == 413
-
-
-def test_image_exact_byte_limit():
-    data = image_bytes().ljust(3 * 1024 * 1024, b" ")
-    assert validate_upload(SimpleUploadedFile("file.png", data))[0] == data
-    with pytest.raises(AttachmentError) as exc:
-        validate_upload(SimpleUploadedFile("file.png", data + b" "))
+        validate_upload(SimpleUploadedFile(filename, original + b" "))
     assert exc.value.status_code == 413

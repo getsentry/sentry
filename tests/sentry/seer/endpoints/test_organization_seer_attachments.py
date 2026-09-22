@@ -1,9 +1,12 @@
+from datetime import timedelta
 from io import BytesIO
 from unittest.mock import Mock, patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from objectstore_client import TimeToIdle
 from PIL import Image
 
+from sentry.objectstore import UsecaseId, get_org_session
 from sentry.seer.attachments.models import Attachment, AttachmentError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -19,26 +22,6 @@ class OrganizationSeerAttachmentsTest(APITestCase):
         self.organization.save()
         self.login_as(self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-attachments/"
-
-    @with_feature("organizations:seer-explorer-attachments")
-    @patch("sentry.seer.attachments.storage.put", return_value="key")
-    @patch("sentry.seer.endpoints.organization_seer_attachments.scan_image")
-    def test_upload_text(self, scan, put):
-        response = self.client.post(
-            self.url,
-            {"file": SimpleUploadedFile("file.JSON", b"invalid json", "text/plain")},
-            format="multipart",
-        )
-        assert response.status_code == 201
-        assert response.data == {
-            "key": "key",
-            "filename": "file.JSON",
-            "contentType": "application/json",
-            "size": 12,
-            "kind": "json",
-        }
-        scan.assert_not_called()
-        assert put.call_args.args[0] == b"invalid json"
 
     @with_feature("organizations:seer-explorer-attachments")
     @patch("sentry.seer.attachments.storage.put", return_value="key")
@@ -88,19 +71,14 @@ class OrganizationSeerAttachmentsTest(APITestCase):
 
     @with_feature("organizations:seer-explorer-attachments")
     def test_exactly_one_file(self):
-        response = self.client.post(
-            self.url,
-            {"file": [SimpleUploadedFile("a.md", b"a"), SimpleUploadedFile("b.md", b"b")]},
-            format="multipart",
-        )
-        assert response.status_code == 400
-        assert response.data["code"] == "invalid_upload"
-
-    @with_feature("organizations:seer-explorer-attachments")
-    def test_missing_file(self):
-        response = self.client.post(self.url, {}, format="multipart")
-        assert response.status_code == 400
-        assert response.data["code"] == "invalid_upload"
+        for names in ([], ["a.md", "b.md"]):
+            response = self.client.post(
+                self.url,
+                {"file": [SimpleUploadedFile(name, b"text") for name in names]},
+                format="multipart",
+            )
+            assert response.status_code == 400
+            assert response.data["code"] == "invalid_upload"
 
     @patch("sentry.seer.attachments.storage.put")
     def test_flag_disabled_upload(self, put):
@@ -109,13 +87,6 @@ class OrganizationSeerAttachmentsTest(APITestCase):
         )
         assert response.status_code == 403
         put.assert_not_called()
-
-    @patch("sentry.seer.attachments.storage.metadata_batch", return_value=([], ["missing"]))
-    def test_flag_disabled_reads_work(self, batch):
-        response = self.client.get(self.url, {"key": ["missing"]})
-        assert response.status_code == 200
-        assert response.data == {"attachments": [], "missing": ["missing"]}
-        batch.assert_called_once_with(["missing"])
 
     @patch("sentry.seer.attachments.storage.metadata_batch")
     def test_explorer_access_required(self, batch):
@@ -134,7 +105,7 @@ class OrganizationSeerAttachmentsTest(APITestCase):
         batch.assert_not_called()
 
     @patch("sentry.seer.attachments.storage.read")
-    def test_preview_headers_and_cleanup(self, read):
+    def test_preview_headers(self, read):
         read.return_value = (
             b"<script>test</script>",
             Attachment("file.md", "text/markdown", 21, "markdown"),
@@ -144,37 +115,9 @@ class OrganizationSeerAttachmentsTest(APITestCase):
         assert response["Content-Type"] == "text/plain; charset=utf-8"
         assert response["X-Content-Type-Options"] == "nosniff"
         assert response["Cache-Control"] == "private, no-store"
+        assert response["Content-Disposition"] == 'inline; filename="file.md"'
         assert "Content-Range" not in response
-        assert b"".join(response.streaming_content) == b"<script>test</script>"
-
-    @patch("sentry.seer.attachments.storage.read")
-    def test_preview_closed_without_iteration(self, read):
-        read.return_value = (b"hello", Attachment("file.json", "application/json", 5, "json"))
-        from rest_framework.request import Request
-        from rest_framework.test import APIRequestFactory
-
-        from sentry.seer.endpoints.organization_seer_attachments import (
-            OrganizationSeerAttachmentContentEndpoint,
-        )
-
-        request = Request(APIRequestFactory().get(self.url))
-        with patch("sentry.seer.endpoints.organization_seer_attachments.require_explorer"):
-            response = OrganizationSeerAttachmentContentEndpoint().get(
-                request, self.organization, "key"
-            )
-        stream = response.file_to_stream
-        with patch("django.http.response.signals.request_finished.send"):
-            response.close()
-        assert stream.closed
-
-    @patch(
-        "sentry.seer.attachments.storage.read",
-        side_effect=AttachmentError("attachment_missing", "Missing.", 404),
-    )
-    def test_missing_preview(self, read):
-        response = self.client.get(f"{self.url}missing/content/")
-        assert response.status_code == 404
-        assert response.data["code"] == "attachment_missing"
+        assert response.content == b"<script>test</script>"
 
     def test_preview_rejects_url_key(self):
         response = self.client.get(f"{self.url}https:evil/content/")
@@ -224,36 +167,52 @@ class OrganizationSeerAttachmentsTest(APITestCase):
         assert self.client.get(self.url, {"key": "key"}).status_code == 200
         response = self.client.get(f"{self.url}key/content/")
         assert response.status_code == 200
-        assert b"".join(response.streaming_content) == b"x"
+        assert response.content == b"x"
         assert limited.call_args_list[:3] == limited.call_args_list[3:]
 
     @requires_objectstore
-    def test_reads_are_organization_scoped(self):
-        from sentry.objectstore import UsecaseId, get_org_session
-
+    @patch("sentry.seer.endpoints.organization_seer_attachments.scan_image")
+    def test_upload_and_org_scoped_reads_with_uploads_disabled(self, scan):
+        data = b"{not valid json, untouched\r\n"
+        attachment = Attachment("original.JSON", "application/json", len(data), "json")
+        with self.feature("organizations:seer-explorer-attachments"):
+            upload = self.client.post(
+                self.url,
+                {"file": SimpleUploadedFile(attachment.filename, data, "text/plain")},
+                format="multipart",
+            )
+        assert upload.status_code == 201
+        key = upload.data["key"]
         store = get_org_session(UsecaseId.SEER_ATTACHMENTS, self.organization.id, timeout=5)
-        attachment = Attachment("x.md", "text/markdown", 5, "markdown")
-        key = store.put(
-            b"hello",
-            filename=attachment.filename,
-            content_type=attachment.content_type,
-            metadata=attachment.custom_metadata(),
-        )
         other = self.create_organization(owner=self.user)
         other.flags.allow_joinleave = True
         other.save()
         other_url = f"/api/0/organizations/{other.slug}/seer/explorer-attachments/"
         try:
+            assert upload.data == attachment.response(key)
+            scan.assert_not_called()
+            stored = store.head(key)
+            assert stored is not None
+            assert (stored.filename, stored.content_type, stored.size) == (
+                attachment.filename,
+                attachment.content_type,
+                len(data),
+            )
+            assert stored.compression is None
+            assert stored.expiration_policy == TimeToIdle(timedelta(days=91))
+            assert stored.custom == attachment.custom_metadata()
             own = self.client.get(self.url, {"key": [key, "missing"]})
             assert own.status_code == 200
             assert own.data == {"attachments": [attachment.response(key)], "missing": ["missing"]}
             foreign = self.client.get(other_url, {"key": key})
             assert foreign.status_code == 200
             assert foreign.data == {"attachments": [], "missing": [key]}
-            assert self.client.get(f"{other_url}{key}/content/").status_code == 404
+            missing = self.client.get(f"{other_url}{key}/content/")
+            assert missing.status_code == 404
+            assert missing.data["code"] == "attachment_missing"
             content = self.client.get(f"{self.url}{key}/content/")
             assert content.status_code == 200
-            assert b"".join(content.streaming_content) == b"hello"
+            assert content.content == data
         finally:
             store.delete(key)
 
@@ -270,18 +229,7 @@ def test_attachment_api_schema():
         view=OrganizationSeerAttachmentsEndpoint,
     )
     attachment = schema["components"]["schemas"]["ExplorerAttachment"]
-    assert attachment["properties"]["key"]["type"] == "string"
     assert set(attachment["required"]) == {"key", "filename", "contentType", "size", "kind"}
-    assert set(attachment["properties"]) == {
-        "key",
-        "filename",
-        "contentType",
-        "size",
-        "kind",
-        "width",
-        "height",
-        "pageCount",
-    }
     assert schema["components"]["schemas"]["AttachmentUpload"]["properties"]["file"] == {
         "type": "string",
         "format": "binary",

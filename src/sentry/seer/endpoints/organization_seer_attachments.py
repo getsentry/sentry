@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from io import BytesIO
 from typing import TypedDict
 
-from django.http import FileResponse
+from django.http import HttpResponse
+from django.utils.http import content_disposition_header
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field
 from rest_framework import serializers
@@ -201,7 +201,7 @@ class OrganizationSeerAttachmentContentEndpoint(OrganizationEndpoint):
             503: ERROR_SCHEMA,
         },
     )
-    def get(self, request: Request, organization: Organization, key: str) -> FileResponse:
+    def get(self, request: Request, organization: Organization, key: str) -> HttpResponse:
         require_explorer(request, organization)
         check_attachment_rate_limits(request, organization)
         validate_key(key)
@@ -212,9 +212,9 @@ class OrganizationSeerAttachmentContentEndpoint(OrganizationEndpoint):
                 if attachment.kind in ("json", "markdown")
                 else attachment.content_type
             )
-            response = FileResponse(
-                BytesIO(data), content_type=content_type, filename=attachment.filename
-            )
+            response = HttpResponse(data, content_type=content_type)
+            if disposition := content_disposition_header(False, attachment.filename):
+                response["Content-Disposition"] = disposition
             response["X-Content-Type-Options"] = "nosniff"
             response["Cache-Control"] = "private, no-store"
             return response
