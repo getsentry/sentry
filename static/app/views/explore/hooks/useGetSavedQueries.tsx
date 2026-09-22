@@ -9,7 +9,7 @@ import type {
 } from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -295,10 +295,15 @@ export function useGetSavedQueries({
 
   const {data, isLoading, isFetched, isError} = useQuery({
     ...queryOptions,
-    select: (result: ApiResponse<AllSavedQueryResponse[]>) => ({
-      headers: result.headers,
-      json: result.json
-        .filter(savedQuery =>
+    select: selectJsonWithHeaders as (
+      result: ApiResponse<AllSavedQueryResponse[]>
+    ) => ApiResponse<AllSavedQueryResponse[]>,
+  });
+
+  const savedQueries = useMemo(
+    () =>
+      data?.json
+        ?.filter(savedQuery =>
           savedQuery.queryType === SavedQueryType.DISCOVER
             ? migrateDiscoverQueries
             : Array.isArray(savedQuery.query) && savedQuery.query.length > 0
@@ -308,11 +313,11 @@ export function useGetSavedQueries({
             ? savedQuery
             : new SavedQuery(savedQuery)
         ),
-    }),
-  });
+    [data?.json, migrateDiscoverQueries]
+  );
 
   return {
-    data: data?.json,
+    data: savedQueries,
     isLoading,
     pageLinks: data?.headers.Link,
     isFetched,
