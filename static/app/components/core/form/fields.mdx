@@ -27,8 +27,26 @@ All field components are accessed via the `field` render prop inside `form.AppFi
 
 ## Input
 
-Text input for single-line string values. Use `leadingItems` for content such as
-currency symbols that appears before the editable value.
+Text input for single-line string values.
+
+```jsx
+<form.AppField name="firstName">
+  {field => (
+    <field.Layout.Row label={t('First Name')} required>
+      <field.Input
+        value={field.state.value}
+        onChange={field.handleChange}
+        placeholder={t('Enter your name')}
+      />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+### Leading items
+
+Use `leadingItems` for content such as currency symbols that appears before the
+editable value.
 
 <Storybook.Demo>
   <Container width="80%">
