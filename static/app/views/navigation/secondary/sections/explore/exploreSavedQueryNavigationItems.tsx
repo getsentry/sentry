@@ -43,7 +43,12 @@ export function ExploreSavedQueryNavigationItems({queries}: Props) {
     <SecondaryNavigation.ReorderableList
       items={items}
       onDragEnd={newItems => {
-        reorderStarredSavedQueries(newItems.map(({query}) => query));
+        reorderStarredSavedQueries(
+          newItems.map(({query}) => ({
+            queryId: Number(query.id),
+            queryType: query.queryType,
+          }))
+        );
       }}
     >
       {({query}) => (

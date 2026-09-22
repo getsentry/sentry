@@ -94,3 +94,20 @@ class PushEvent(OriginModel):
             return cls.parse_obj(payload)
         except ValidationError as e:
             raise OriginPayloadError(str(e)) from e
+
+
+class RepositorySnapshot(OriginModel):
+    id: str = Field(min_length=1)
+    full_name: str = Field(min_length=1, alias="fullName")
+    default_branch: str = Field(min_length=1, alias="defaultBranch")
+
+
+class RepositoryMetadataEvent(OriginModel):
+    repository: RepositorySnapshot
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> RepositoryMetadataEvent:
+        try:
+            return cls.parse_obj(payload)
+        except ValidationError as e:
+            raise OriginPayloadError(str(e)) from e

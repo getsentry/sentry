@@ -33,6 +33,7 @@ from sentry.integrations.cursor_origin.handlers import (
 )
 from sentry.integrations.cursor_origin.keys import signing_keys_for
 from sentry.integrations.cursor_origin.push import RepositoryPushedHandler
+from sentry.integrations.cursor_origin.repository_events import RepositoryMetadataUpdatedHandler
 from sentry.integrations.cursor_origin.webhook_types import OriginPayloadError
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
@@ -139,6 +140,7 @@ HANDLERS: dict[str, type[WebhookEventHandler]] = {
     "installation.suspended": InstallationRemovedHandler,
     "installation.unsuspended": InstallationRestoredHandler,
     "installation.updated": InstallationUpdatedHandler,
+    "repository.metadata.updated": RepositoryMetadataUpdatedHandler,
     "repository.pushed": RepositoryPushedHandler,
 }
 

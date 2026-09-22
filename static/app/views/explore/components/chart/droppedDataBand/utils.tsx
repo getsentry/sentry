@@ -1,8 +1,6 @@
 import {defined} from 'sentry/utils/defined';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
-export const SEVERITY_OPACITIES = [0.3, 0.5, 0.7, 1] as const;
-
 const CONFIGURED_CLIENT_DISCARD_REASONS = new Set(['before_send', 'sample_rate']);
 
 function isConfiguredDrop({outcome, reason}: Annotation): boolean {
@@ -14,36 +12,18 @@ function isConfiguredDrop({outcome, reason}: Annotation): boolean {
 }
 
 /**
- * The drop ratio each severity level starts at, parallel to
- * `SEVERITY_OPACITIES`. A bucket under the first cutoff has severity 0 and is
- * never drawn:
- *
- *   (none)  below 5%          draw nothing
- *   1       5% to below 10%   Some data missing
- *   2       10% to below 25%  Significant loss
- *   3       25% to below 50%  Heavy loss
- *   4       50% and above     Most data missing
+ * Severity opacity is a gradient from 0.15 to 1,
+ * clamping full opacity at 0.5.
  */
-const SEVERITY_RATIO_THRESHOLDS = [0.05, 0.1, 0.25, 0.5];
+const MIN_OPACITY = 0.15;
+const FULL_AT_RATIO = 0.5;
 
-/**
- * TODO: temporary. The denominator in `groupIntoBuckets` is every accepted
- * event in the bucket rather than only the accepted events comparable to what
- * was dropped, so real ratios land orders of magnitude below the cutoffs above
- * and the band never draws. Shrinking the cutoffs keeps it visible until the
- * backend can return accepted annotations broken down by outcome and reason;
- * delete this and use the cutoffs as-is at that point.
- *
- * `ratio` itself is deliberately left unscaled, so the tooltip still reports
- * the true share and a bucket's color currently reads more severe than its
- * percentage.
- */
-const TEMPORARY_THRESHOLD_SCALE = 1 / 10_000;
+export function opacityForRatio(ratio: number): number {
+  if (ratio <= 0) {
+    return 0;
+  }
 
-function severityForRatio(ratio: number): number {
-  return SEVERITY_RATIO_THRESHOLDS.filter(
-    threshold => ratio >= threshold * TEMPORARY_THRESHOLD_SCALE
-  ).length;
+  return Math.min(1, MIN_OPACITY + (1 - MIN_OPACITY) * (ratio / FULL_AT_RATIO));
 }
 
 interface AnnotationVolume {
@@ -65,7 +45,6 @@ export interface AnnotationBucket {
   dropped: AnnotationVolume;
   end: number;
   ratio: number;
-  severity: number;
   start: number;
 }
 
@@ -148,10 +127,6 @@ export function groupIntoBuckets(
 
   return Array.from(drafts.values()).map(draft => {
     const accepted = acceptedByStart.get(draft.start) ?? emptyVolume();
-    // TODO: we currently do the total based on total accepted, but we don't have the
-    // granularity to know the type of accepted outcomes. Therefore, the numbers at the
-    // moment are not particularly useful. We need to fix this. Until then
-    // `TEMPORARY_THRESHOLD_SCALE` compensates.
     const total = draft.dropped.eventCount + accepted.eventCount;
     const ratio = total > 0 ? draft.dropped.eventCount / total : 0;
 
@@ -165,7 +140,6 @@ export function groupIntoBuckets(
       dropped: draft.dropped,
       accepted,
       ratio,
-      severity: severityForRatio(ratio),
     };
   });
 }

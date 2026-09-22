@@ -19,13 +19,13 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
   const {
     aiConfig,
     autofix,
-    enableBashTools,
+    enableBashMode,
     handleCopyMarkdown,
     handleOpenSeerAgent,
     handleRestart,
     referrer,
     runState,
-    setEnableBashTools,
+    setEnableBashMode,
     warnings,
   } = useSeerPanel({group, project});
   const {containerRef, onScrollHandler} = useAutoScroll({key: runState});
@@ -40,9 +40,9 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
     >
       <SeerDrawerHeader
         autofixState={runState}
-        enableBashTools={enableBashTools}
+        enableBashMode={enableBashMode}
         onCopyMarkdown={handleCopyMarkdown}
-        onEnableBashToolsChange={setEnableBashTools}
+        onEnableBashModeChange={setEnableBashMode}
         onOpenSeerAgent={handleOpenSeerAgent}
         onReset={handleRestart}
         referrer={referrer}

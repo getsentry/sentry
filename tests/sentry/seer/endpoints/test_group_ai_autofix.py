@@ -772,7 +772,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             user_context=None,
             insert_index=None,
             user=ANY,
-            enable_bash_tools=False,
+            enable_bash_mode=False,
             actor_user_id=None,
         )
 
@@ -808,7 +808,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             user_context=None,
             insert_index=3,
             user=ANY,
-            enable_bash_tools=False,
+            enable_bash_mode=False,
             actor_user_id=None,
         )
 

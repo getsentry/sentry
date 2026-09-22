@@ -123,6 +123,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   releases?: Release[];
 
   /**
+   * Returns extra HTML to append to the tooltip's series block.
+   */
+  renderTooltipSeriesDetails?: (seriesNames: string[], timestamp: number) => string;
+
+  /**
    * When false, hide the dropped-data band and collapse the reserved space.
    * Defaults to true when `droppedData` is provided.
    */
@@ -380,6 +385,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
         );
       },
+      renderSeriesDetails: props.renderTooltipSeriesDetails,
       truncate: false,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
