@@ -132,10 +132,6 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     }
 
     if (expanding) {
-      // Adding the index check here because the node may not be in the list,
-      // since we explicitly hide all non-transaction nodes on load in the eap-watefall.
-      // The node is part of the tree, but not visible yet. Check can be pushed to the top of the function
-      // when we no longer have to support non-eap traces.
       if (index !== -1) {
         tree.list.splice(index + 1, this.visibleChildren.length);
       }
@@ -146,10 +142,6 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
         c.parent = this.tail;
       }
 
-      // Adding the index check here because the node may not be in the list,
-      // since we explicitly hide all non-transaction nodes on load in the eap-watefall.
-      // The node is part of the tree, but not visible yet.Check can be pushed to the top of the function
-      // when we no longer have to support non-eap traces.
       if (index !== -1) {
         tree.list.splice(index + 1, 0, this.head, ...this.head.visibleChildren);
       }

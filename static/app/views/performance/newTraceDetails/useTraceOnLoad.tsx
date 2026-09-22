@@ -20,9 +20,7 @@ function maybeAutoExpandTrace(tree: TraceTree): TraceTree {
   if (
     !(
       tree.collapsed_nodes < AUTO_EXPAND_TRANSACTIONS_THRESHOLD ||
-      // We only collect the spans count for EAP traces atm, so we can't auto expand non-EAP traces
-      // by spans count.
-      (tree.eap_spans_count && tree.eap_spans_count < AUTO_EXPAND_SPANS_THRESHOLD)
+      tree.eap_spans_count < AUTO_EXPAND_SPANS_THRESHOLD
     )
   ) {
     return tree;
