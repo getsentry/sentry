@@ -2144,6 +2144,55 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
     },
 )
 
+SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
+    {
+        "id": "contributor",
+        "name": "Contributor",
+        "desc": "Contributors can view and act on events, as well as view most other data within the team's projects.",
+        "scopes": {
+            "event:read",
+            "event:write",
+            # "event:admin",  # Scope granted/withdrawn by "sentry:events_member_admin" to org-level role
+            "project:releases",
+            "project:read",
+            "org:read",
+            "member:read",
+            "team:read",
+            "alerts:read",
+            # "alerts:write",  # Scope granted/withdrawn by "sentry:alerts_member_write" to org-level role
+        },
+    },
+    {
+        "id": "admin",
+        "name": "Team Admin",
+        "desc": (
+            # TODO: Editing pass
+            """
+            Admin privileges on the team. They can create and remove projects,
+            and can manage the team's memberships.
+            """
+        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "org:read",
+            "member:read",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+        },
+        "is_minimum_role_for": "admin",
+    },
+)
+
 # Copy of SENTRY_ROLES that also grants granular scopes (e.g. dashboard:*). Used in
 # place of SENTRY_ROLES when `organizations:granular-permission-scopes` is enabled.
 # Keep the two in sync until the flag is removed; the goal is to eventually delete
@@ -2272,55 +2321,6 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:delete",
         },
         "is_global": True,
-    },
-)
-
-SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
-    {
-        "id": "contributor",
-        "name": "Contributor",
-        "desc": "Contributors can view and act on events, as well as view most other data within the team's projects.",
-        "scopes": {
-            "event:read",
-            "event:write",
-            # "event:admin",  # Scope granted/withdrawn by "sentry:events_member_admin" to org-level role
-            "project:releases",
-            "project:read",
-            "org:read",
-            "member:read",
-            "team:read",
-            "alerts:read",
-            # "alerts:write",  # Scope granted/withdrawn by "sentry:alerts_member_write" to org-level role
-        },
-    },
-    {
-        "id": "admin",
-        "name": "Team Admin",
-        "desc": (
-            # TODO: Editing pass
-            """
-            Admin privileges on the team. They can create and remove projects,
-            and can manage the team's memberships.
-            """
-        ),
-        "scopes": {
-            "event:read",
-            "event:write",
-            "event:admin",
-            "org:read",
-            "member:read",
-            "project:read",
-            "project:write",
-            "project:admin",
-            "project:releases",
-            "team:read",
-            "team:write",
-            "team:admin",
-            "org:integrations",
-            "alerts:read",
-            "alerts:write",
-        },
-        "is_minimum_role_for": "admin",
     },
 )
 
