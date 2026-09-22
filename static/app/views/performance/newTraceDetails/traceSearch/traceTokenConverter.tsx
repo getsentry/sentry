@@ -7,11 +7,26 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 
 // Span keys
 type TransactionPrefix = 'Transaction';
+type LegacyTraceSearchKey =
+  | 'duration'
+  | 'exclusive_time'
+  | 'hash'
+  | 'origin'
+  | 'parent_event_id'
+  | 'same_process_as_parent'
+  | 'self_time'
+  | 'span_id'
+  | 'status'
+  | 'timestamp'
+  | 'total_time'
+  | 'trace_id'
+  | 'transaction.duration'
+  | 'transaction.op'
+  | 'transaction.status';
+type EAPSpanSearchKey = keyof TraceTree.EAPSpan | LegacyTraceSearchKey;
 // The keys can be prefixed by the entity type they belong to, this ensures that
 // conflicting keys on different entities are resolved to the correct entity.
-type TransactionKey =
-  | `${TransactionPrefix}.${keyof TraceTree.Transaction}`
-  | keyof TraceTree.Transaction;
+type TransactionKey = `${TransactionPrefix}.${EAPSpanSearchKey}` | EAPSpanSearchKey;
 // Transaction keys
 const TRANSACTION_TEXT_KEYS: TransactionKey[] = [
   'event_id',
@@ -31,12 +46,7 @@ const TRANSACTION_NUMERIC_KEYS: TransactionKey[] = [
 
 const TRANSACTION_DURATION_KEYS: TransactionKey[] = ['transaction.duration'];
 
-const TRANSACTION_DURATION_SYNTHETIC_KEYS: TransactionKey[] = [
-  // @ts-expect-error TS(2322): Type '"duration"' is not assignable to type 'Trans... Remove this comment to see the full error message
-  'duration',
-  // @ts-expect-error TS(2322): Type '"total_time"' is not assignable to type 'Tra... Remove this comment to see the full error message
-  'total_time',
-];
+const TRANSACTION_DURATION_SYNTHETIC_KEYS: TransactionKey[] = ['duration', 'total_time'];
 
 // @TODO the current date parsing does not support timestamps, so we
 // exclude these keys for now and parse them as numeric keys
@@ -50,7 +60,7 @@ const TRANSACTION_BOOLEAN_KEYS: TransactionKey[] = [];
 type SpanPrefix = 'span';
 // The keys can be prefixed by the entity type they belong to, this ensures that
 // conflicting keys on different entities are resolved to the correct entity.
-type SpanKey = `${SpanPrefix}.${keyof TraceTree.Span}` | keyof TraceTree.Span;
+type SpanKey = `${SpanPrefix}.${EAPSpanSearchKey}` | EAPSpanSearchKey;
 const SPAN_TEXT_KEYS: SpanKey[] = [
   'hash',
   'description',
@@ -67,14 +77,7 @@ const SPAN_DURATION_KEYS: SpanKey[] = ['exclusive_time'];
 
 // The keys below are not real keys returned by the API, but are instead
 // mapped by the frontend to the correct keys for convenience and UX reasons
-const SPAN_DURATION_SYNTHETIC_KEYS: SpanKey[] = [
-  // @ts-expect-error TS(2322): Type '"duration"' is not assignable to type 'SpanK... Remove this comment to see the full error message
-  'duration',
-  // @ts-expect-error TS(2322): Type '"total_time"' is not assignable to type 'Spa... Remove this comment to see the full error message
-  'total_time',
-  // @ts-expect-error TS(2322): Type '"self_time"' is not assignable to type 'Span... Remove this comment to see the full error message
-  'self_time',
-];
+const SPAN_DURATION_SYNTHETIC_KEYS: SpanKey[] = ['duration', 'total_time', 'self_time'];
 
 // New span keys that are available on Span-First SDK and OTLP SDK spans for
 // now. In the future we'll backfill the `name` key for all spans, and this can

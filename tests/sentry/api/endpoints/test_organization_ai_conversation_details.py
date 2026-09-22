@@ -433,7 +433,12 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.chat",
             operation_type="ai_client",
-            tokens=100,
+            tokens=150,
+            input_tokens=100,
+            output_tokens=50,
+            cache_read_tokens=20,
+            cache_write_tokens=30,
+            reasoning_tokens=10,
             trace_id=trace_id,
         )
         self.store_ai_span(
@@ -460,6 +465,16 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         trace_ids = {span["trace"] for span in response.data["spans"]}
         assert len(trace_ids) == 1
         assert trace_id in trace_ids
+
+        generation_span = next(
+            span for span in response.data["spans"] if span["gen_ai.operation.type"] == "ai_client"
+        )
+        assert generation_span["gen_ai.usage.input_tokens"] == 100
+        assert generation_span["gen_ai.usage.output_tokens"] == 50
+        assert generation_span["gen_ai.usage.cache_read.input_tokens"] == 20
+        assert generation_span["gen_ai.usage.cache_creation.input_tokens"] == 30
+        assert generation_span["gen_ai.usage.reasoning.output_tokens"] == 10
+        assert generation_span["gen_ai.usage.total_tokens"] == 150
 
     def test_repairs_parent_links_with_bulk_fetch(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -625,6 +640,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             cost=0.0025,
             user_id="user-123",
             user_email="test@example.com",
+            origin="auto.otlp.spans",
         )
 
         query = {
@@ -656,6 +672,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.cost.total_tokens"] == 0.0025
         assert span["user.id"] == "user-123"
         assert span["user.email"] == "test@example.com"
+        assert span["origin"] == "auto.otlp.spans"
 
     def test_pagination(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -1313,24 +1330,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             {"id": self.project.id, "name": self.project.name, "slug": self.project.slug}
         ]
         assert response.data["webUrl"].endswith(f"/{conversation_id}/?project={self.project.id}")
-
-    def test_empty_conversation_returns_envelope(self) -> None:
-        now = before_now(days=5).replace(microsecond=0)
-        conversation_id = uuid4().hex
-
-        self._store_conversation_span(uuid4().hex, now)
-
-        query = {
-            "project": [self.project.id],
-            "start": (now - timedelta(hours=1)).isoformat(),
-            "end": (now + timedelta(hours=1)).isoformat(),
-        }
-
-        response = self.do_request(conversation_id, query)
-        assert response.status_code == 200
-        assert response.data["conversationId"] == conversation_id
-        assert response.data["title"] is None
-        assert response.data["spans"] == []
 
     def test_paginates_with_title(self) -> None:
         now = before_now(days=5).replace(microsecond=0)

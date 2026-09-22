@@ -191,10 +191,13 @@ function getTriggerFieldValues(
 function useSerializedValueMemo<T>(value: T, serializedValue: string): T {
   const ref = useRef<{serializedValue: string; value: T} | null>(null);
 
+  // oxlint-disable-next-line react/refs
   if (ref.current?.serializedValue !== serializedValue) {
+    // oxlint-disable-next-line react/refs
     ref.current = {serializedValue, value};
   }
 
+  // oxlint-disable-next-line react/refs
   return ref.current.value;
 }
 
@@ -612,6 +615,7 @@ export function SentryAppExternalForm({
     setAsyncOptionsCache({});
     setIsFetchingDependentFields(false);
     setIsFetchingInitialCascade(willCascade);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [action, element, normalizedResetValues, resolvedFieldGroups]);
 
   // After the reset above, cascade-fetch dependent fields starting from any
@@ -702,6 +706,7 @@ export function SentryAppExternalForm({
   }, [
     action,
     appName,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     cascadeFetchDependents,
     config.uri,
     element,

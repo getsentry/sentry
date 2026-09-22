@@ -124,7 +124,7 @@ export const SEER_EMBED_SCHEMAS = {
     description:
       'Link to a page in the Sentry documentation (docs.sentry.io only). ' +
       'The href MUST be an absolute https://docs.sentry.io/... URL. ' +
-      'NEVER use this for Sentry issue links — use the `issue` or `issues` embed instead.',
+      'NEVER use this for Sentry issue links — use `issue` or `issuesQuery` instead.',
     level: ['inline'],
     schema: z.object({href: z.string(), title: z.string()}),
     examples: [
@@ -185,37 +185,45 @@ export const SEER_EMBED_SCHEMAS = {
   },
   issue: {
     description:
-      'The ONLY way to reference a Sentry issue. Requires the issue short ID ' +
-      '(e.g. "PROJECT-123"). ' +
+      'The ONLY way to reference a Sentry issue. ' +
+      'Pass BOTH ids the issues API returns for the issue: `id` is the numeric ' +
+      'group ID (e.g. "7716642857") and `shortId` is the short ID (e.g. ' +
+      '"JAVASCRIPT-22SP"). Copy each one from the field of the same name — never ' +
+      'put the numeric ID in `shortId`, and never invent a short ID you have not ' +
+      'seen. Omit `shortId` when you genuinely do not have it; the embed reads ' +
+      'better with it, since it labels the link. ' +
       'Inline: renders a compact link with the short id. ' +
-      'Block: renders a full interactive issue row with title, events, users, ' +
+      'Block: renders a full interactive issue row with title, events, ' +
       'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
-      'MUST NOT appear inside a markdown table or list. ' +
-      'When referencing 2+ issues, use the `issues` embed instead. ' +
+      'When referencing 2+ issues, use `issuesQuery` with an issue ID search. ' +
       'Never use `docs` or markdown links for issue references.',
     level: ['inline', 'block'],
-    schema: z.object({id: z.string()}),
+    schema: z.object({
+      id: idString.describe(
+        'The issue ID exactly as the issues API returns it in `id` — normally ' +
+          'the numeric group ID (e.g. "7716642857"). A short ID is accepted here ' +
+          'when that is the only id you have.'
+      ),
+      shortId: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          'The issue short ID exactly as the issues API returns it in `shortId` ' +
+            '(e.g. "JAVASCRIPT-22SP"): a project slug, a hyphen, and a short ' +
+            'alphanumeric suffix. Omit it rather than guessing one.'
+        ),
+    }),
     examples: [
-      {label: 'Inline', level: 'inline', data: {id: 'JAVASCRIPT-22SP'}},
-      {label: 'Block', level: 'block', data: {id: 'JAVASCRIPT-22SP'}},
-    ],
-  },
-  issues: {
-    description:
-      'The ONLY way to list multiple Sentry issues. Renders an interactive ' +
-      'table with title, trend graph, events, users, priority, and assignee ' +
-      'for each issue — do NOT duplicate any of that data as text. ' +
-      'ALWAYS use this when referencing 2+ issues. ' +
-      'MUST NOT appear inside a markdown table or list. ' +
-      'Never use `docs`, `issue`, or markdown tables for multiple issues. ' +
-      'Provide only the array of issue short IDs (e.g. "PROJECT-123").',
-    level: ['block'],
-    schema: z.object({ids: z.array(z.string())}),
-    examples: [
+      {
+        label: 'Inline',
+        level: 'inline',
+        data: {id: '7716642857', shortId: 'JAVASCRIPT-22SP'},
+      },
       {
         label: 'Block',
         level: 'block',
-        data: {ids: ['JAVASCRIPT-22SP', 'JAVASCRIPT-39HX', 'JAVASCRIPT-39ZF']},
+        data: {id: '7716642857', shortId: 'JAVASCRIPT-22SP'},
       },
     ],
   },
@@ -496,7 +504,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
       'Block: loads the saved filters and renders a live preview of matching issues. ' +
-      'Do not duplicate the issue titles, event counts, users, priorities, or assignees as text. ' +
+      'Do not duplicate the issue titles, event counts, priorities, or assignees as text. ' +
       'Never use a markdown link for issue view references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -704,7 +712,7 @@ export const SEER_EMBED_SCHEMAS = {
       'When referencing a SET of logs defined by a search, use the `logsQuery` ' +
       'embed instead. ' +
       'Inline: renders a compact link that opens the log row in Explore. ' +
-      'Block: renders the log row with its severity, message, and timestamp — ' +
+      'Block: renders the log row with its message, severity, and timestamp — ' +
       'do NOT duplicate any of that as text. ' +
       'Set `view` to "attributes" to also render the full attribute list for the ' +
       'log, or to "attribute" together with `attribute` to break that one ' +
@@ -774,11 +782,15 @@ export const SEER_EMBED_SCHEMAS = {
   },
   issuesQuery: {
     description:
-      'Link to the issue stream filtered by a search query. ' +
-      'Use this when pointing the user at a SET of issues defined by a search ' +
-      'rather than specific known issues — if you already have the short IDs, ' +
-      'use the `issue` or `issues` embed instead. ' +
-      '`query` uses issue search syntax, e.g. "is:unresolved level:error".',
+      'The ONLY way to list multiple Sentry issues. Accepts any issue search terms, ' +
+      'including a specific list of issue IDs such as ' +
+      '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. ' +
+      'The `issue:` filter only accepts short IDs — to search by numeric group ID, ' +
+      'use `issue.id:[7716642857,7716642858]` instead. ' +
+      'Inline renders a link; block renders the first five matching issues with ' +
+      'title, trend graph, events, priority, and assignee. ' +
+      'Do NOT duplicate those issues as text or a markdown table. ' +
+      'Use the singular `issue` embed only when referencing one known issue.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
@@ -793,6 +805,14 @@ export const SEER_EMBED_SCHEMAS = {
           query: 'is:unresolved level:error',
           statsPeriod: '7d',
           title: 'Unresolved errors',
+        },
+      },
+      {
+        label: 'Specific issues',
+        level: 'block',
+        data: {
+          query: 'issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX,JAVASCRIPT-39ZF]',
+          title: 'Related issues',
         },
       },
     ],
@@ -810,7 +830,9 @@ export const SEER_EMBED_SCHEMAS = {
       'a timeseries chart of the total across the period — the chart is never ' +
       'broken out per group. When aggregate mode names only aggregates and no ' +
       'group-by columns, the chart replaces the table. Provide `yAxes` to pick ' +
-      'which aggregate is charted; samples mode charts the event count.',
+      'which aggregate is charted; samples mode charts the event count. ' +
+      'The block already lists those rows and charts them, so do NOT repeat ' +
+      'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
@@ -870,7 +892,9 @@ export const SEER_EMBED_SCHEMAS = {
       'other query charts a single total for the period. Provide `yAxes` to pick ' +
       'which aggregate is charted — samples mode, and any query naming none, ' +
       'charts "count(span.duration)". When aggregate mode supplies no `groupBy` ' +
-      'there is only one row to show, so the chart replaces the table.',
+      'there is only one row to show, so the chart replaces the table. ' +
+      'The block already lists those rows and charts them, so do NOT repeat ' +
+      'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object(exploreQueryFields),
     examples: [
@@ -920,7 +944,9 @@ export const SEER_EMBED_SCHEMAS = {
       'Inline renders a link; block renders the first five matching rows ' +
       'beneath a timeseries — one series per group when grouped, log volume ' +
       'otherwise. An aggregate that groups by nothing collapses to a single ' +
-      'row, so there the chart replaces the table.',
+      'row, so there the chart replaces the table. ' +
+      'The block already lists those rows and charts them, so do NOT repeat ' +
+      'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object(exploreQueryFields),
     examples: [
@@ -981,7 +1007,8 @@ export const SEER_EMBED_SCHEMAS = {
       '"gen_ai.request.model:gpt-4o". Negation is not supported. ' +
       'Use `agents` to filter to specific agent names. ' +
       'Inline renders a link; block renders the first five matching conversations ' +
-      'with their duration, message count, errors and cost.',
+      'with their duration, message count, errors and cost — do NOT repeat ' +
+      'those rows as a markdown table or restate their values as text.',
     featureFlag: 'organizations:gen-ai-conversations',
     level: ['inline', 'block'],
     schema: z.object({
@@ -1011,7 +1038,8 @@ export const SEER_EMBED_SCHEMAS = {
       'specific replay ID, use the `replay` embed instead. ' +
       '`query` uses replay search syntax, e.g. "user.email:user@example.com". ' +
       'Inline renders a link; block renders the first five matching replays ' +
-      'with their duration, error count and rage clicks.',
+      'with their platform, duration, error count and activity — do NOT repeat ' +
+      'those rows as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
@@ -1037,7 +1065,9 @@ export const SEER_EMBED_SCHEMAS = {
       "metric's type. " +
       'Inline renders a link; block renders a timeseries chart with the first ' +
       'five matching rows beneath it. An aggregate that groups by nothing ' +
-      'collapses to a single row, so there the chart replaces the table.',
+      'collapses to a single row, so there the chart replaces the table. ' +
+      'The block already lists those rows and charts them, so do NOT repeat ' +
+      'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object({
       ...exploreQueryFields,

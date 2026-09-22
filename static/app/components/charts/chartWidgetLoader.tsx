@@ -34,6 +34,7 @@ const CHART_MAP = {
  */
 export function ChartWidgetLoader(props: Props) {
   const query = useQuery<{default: React.FC<LoadableChartWidgetProps>}>({
+    // oxlint-disable-next-line react/refs
     queryKey: [`widget-${props.id}`],
     queryFn: () => {
       if (Object.hasOwn(CHART_MAP, props.id)) {
@@ -65,5 +66,6 @@ export function ChartWidgetLoader(props: Props) {
     return <Placeholder height="100%" error={t('Error loading widget')} />;
   }
 
+  // oxlint-disable-next-line react/refs
   return <Component {...props} chartRef={props.ref} />;
 }

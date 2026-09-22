@@ -1,3 +1,4 @@
+from time import time
 from unittest.mock import patch
 
 import pytest
@@ -34,6 +35,23 @@ class AuthConfigEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["nextUri"] == "/organizations/ricks-org/issues/"
+
+    def test_logged_in_preserves_next(self) -> None:
+        user = self.create_user("foo@example.com")
+        self.login_as(user)
+        self.session["_next"] = "/_admin/"
+        self.save_session()
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["nextUri"] == "/_admin/"
+        assert self.client.session["_next"] == "/_admin/"
+
+        response = self.client.get(self.path, {"next": "/settings/account/"})
+
+        assert response.data["nextUri"] == "/settings/account/"
+        assert self.client.session["_next"] == "/_admin/"
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @assume_test_silo_mode(SiloMode.MONOLITH)  # Single org IS monolith mode
@@ -86,6 +104,22 @@ class AuthConfigEndpointTest(APITestCase):
         }
         assert self.client.session["_pending_2fa"][0] == self.user.id
         assert self.client.session["_next"] == "/settings/account/"
+
+    def test_pending_mfa_for_authenticated_user(self) -> None:
+        TotpInterface().enroll(self.user)
+        self.login_as(self.user)
+        pending_2fa = [self.user.id, time()]
+        self.session["_pending_2fa"] = pending_2fa
+        self.save_session()
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["pendingMfa"] == {
+            "mfaRequired": True,
+            "mfaMethods": [{"id": "totp"}],
+        }
+        assert self.client.session["_pending_2fa"] == pending_2fa
 
     def test_pending_mfa_consumes_session_expired_warning(self) -> None:
         TotpInterface().enroll(self.user)

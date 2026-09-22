@@ -21,7 +21,7 @@ class LevelConditionHandler(DataConditionHandler[WorkflowEventData]):
         "type": "object",
         "properties": {
             "level": {"type": "integer", "enum": [level.value for level in LogLevel]},
-            "match": {"type": "string", "enum": [*MatchType]},
+            "match": {"type": "string", "enum": list(LEVEL_MATCH_CHOICES)},
         },
         "required": ["level", "match"],
         "additionalProperties": False,

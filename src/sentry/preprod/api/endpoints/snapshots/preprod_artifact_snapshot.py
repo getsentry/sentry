@@ -34,7 +34,6 @@ from sentry.issues.action_log import resolve_action_source
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.analytics import (
     PreprodArtifactApiDeleteEvent,
     PreprodArtifactApiGetSnapshotDetailsEvent,
@@ -79,6 +78,7 @@ from sentry.preprod.snapshots.precompute import (
     load_precomputed_head_images,
     refresh_manifest_expiration,
 )
+from sentry.preprod.snapshots.storage import get_snapshot_storage
 from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.preprod.snapshots.utils import (
     find_base_snapshot_artifact,
@@ -355,7 +355,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             return Response({"detail": "Snapshot metrics not found"}, status=404)
 
         extras = snapshot_metrics.extras or {}
-        session = get_session(UsecaseId.PREPROD, artifact.project)
+        session = get_snapshot_storage(artifact.project)
 
         image_list: list[SnapshotImageResponseDict]
         precomputed = load_precomputed_head_images(session, extras.get("head_images_key"))
@@ -370,7 +370,11 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             try:
                 get_response = session.get(manifest_key)
                 if get_response is None:
-                    raise FileNotFoundError("Manifest does not exist in objectstore")
+                    logger.info(
+                        "preprod.snapshot.manifest_missing",
+                        extra={"preprod_artifact_id": artifact.id, "manifest_key": manifest_key},
+                    )
+                    return Response({"detail": "Snapshot manifest not found"}, status=404)
                 with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
                     raw_manifest = get_response.payload.read()
                 with start_span(
@@ -844,7 +848,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
-            session = get_session(UsecaseId.PREPROD, project)
+            session = get_snapshot_storage(project)
             manifest_bytes = manifest.json(exclude_none=True).encode()
             manifest_size_bytes = len(manifest_bytes)
             session.put(manifest_bytes, key=manifest_key)

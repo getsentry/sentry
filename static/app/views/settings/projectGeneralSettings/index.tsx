@@ -123,6 +123,65 @@ function isPlatformAllowed({
   return organization.enabledConsolePlatforms?.includes(platform) && !isSelfHosted;
 }
 
+function RemoveProjectSection({
+  onRemoveProject,
+  organization,
+  project,
+}: {
+  onRemoveProject: () => void;
+  organization: Organization;
+  project: DetailedProject;
+}) {
+  const isProjectAdmin = hasEveryAccess(['project:admin'], {
+    organization,
+    project,
+  });
+  const {isInternal} = project;
+
+  return (
+    <SettingsFieldGroup
+      label={t('Remove Project')}
+      help={tct(
+        'Remove the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
+        {
+          project: <strong>{project.slug}</strong>,
+          linebreak: <br />,
+        }
+      )}
+    >
+      {!isProjectAdmin &&
+        t('You do not have the required permission to remove this project.')}
+
+      {isInternal &&
+        t('This project cannot be removed. It is used internally by the Sentry server.')}
+
+      {isProjectAdmin && !isInternal && (
+        <Confirm
+          onConfirm={onRemoveProject}
+          priority="danger"
+          confirmText={t('Remove Project')}
+          message={
+            <div>
+              <TextBlock>
+                <strong>
+                  {t('Removing this project is permanent and cannot be undone!')}
+                </strong>
+              </TextBlock>
+              <TextBlock>
+                {t('This will also remove all associated event data.')}
+              </TextBlock>
+            </div>
+          }
+        >
+          <div>
+            <Button variant="danger">{t('Remove Project')}</Button>
+          </div>
+        </Confirm>
+      )}
+    </SettingsFieldGroup>
+  );
+}
+
 const slugSchema = z.object({
   slug: z.string().min(1, t('Slug is required')),
 });
@@ -501,6 +560,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   const api = useApi({persistInFlight: true});
 
   const disabled = !hasEveryAccess(['project:write'], {organization, project});
+  const isOrgOwner = hasEveryAccess(['org:admin'], {organization});
 
   const projectMutationOptions = useUpdateProjectMutationOptions(project);
   const updateProject = useMutation(projectMutationOptions);
@@ -549,135 +609,6 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
         handleXhrErrorResponse('Unable to transfer project', err);
       }
     }
-  };
-
-  const renderRemoveProject = () => {
-    const isProjectAdmin = hasEveryAccess(['project:admin'], {
-      organization,
-      project,
-    });
-    const {isInternal} = project;
-
-    return (
-      <SettingsFieldGroup
-        label={t('Remove Project')}
-        help={tct(
-          'Remove the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
-          {
-            project: <strong>{project.slug}</strong>,
-            linebreak: <br />,
-          }
-        )}
-      >
-        {!isProjectAdmin &&
-          t('You do not have the required permission to remove this project.')}
-
-        {isInternal &&
-          t(
-            'This project cannot be removed. It is used internally by the Sentry server.'
-          )}
-
-        {isProjectAdmin && !isInternal && (
-          <Confirm
-            onConfirm={handleRemoveProject}
-            priority="danger"
-            confirmText={t('Remove Project')}
-            message={
-              <div>
-                <TextBlock>
-                  <strong>
-                    {t('Removing this project is permanent and cannot be undone!')}
-                  </strong>
-                </TextBlock>
-                <TextBlock>
-                  {t('This will also remove all associated event data.')}
-                </TextBlock>
-              </div>
-            }
-          >
-            <div>
-              <Button variant="danger">{t('Remove Project')}</Button>
-            </div>
-          </Confirm>
-        )}
-      </SettingsFieldGroup>
-    );
-  };
-
-  const renderTransferProject = () => {
-    const {isInternal} = project;
-    const isOrgOwner = hasEveryAccess(['org:admin'], {
-      organization,
-    });
-
-    return (
-      <SettingsFieldGroup
-        label={t('Transfer Project')}
-        help={tct(
-          'Transfer the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
-          {
-            project: <strong>{project.slug}</strong>,
-            linebreak: <br />,
-          }
-        )}
-      >
-        {!isOrgOwner &&
-          t('You do not have the required permission to transfer this project.')}
-
-        {isInternal &&
-          t(
-            'This project cannot be transferred. It is used internally by the Sentry server.'
-          )}
-
-        {isOrgOwner && !isInternal && (
-          <Confirm
-            onConfirm={() => {
-              handleTransferProject();
-            }}
-            priority="danger"
-            confirmText={t('Transfer project')}
-            renderMessage={({confirm}) => (
-              <div>
-                <TextBlock>
-                  <strong>
-                    {t('Transferring this project is permanent and cannot be undone!')}
-                  </strong>
-                </TextBlock>
-                <TextBlock>
-                  {t(
-                    'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
-                  )}
-                </TextBlock>
-                <Panel>
-                  <Form
-                    hideFooter
-                    onFieldChange={handleTransferFieldChange}
-                    onSubmit={(_data, _onSuccess, _onError, e) => {
-                      e.stopPropagation();
-                      confirm();
-                    }}
-                  >
-                    <TextField
-                      name="email"
-                      label={t('Organization Owner')}
-                      placeholder="admin@example.com"
-                      required
-                      help={t(
-                        'A request will be emailed to this address, asking the organization owner to accept the project transfer.'
-                      )}
-                    />
-                  </Form>
-                </Panel>
-              </div>
-            )}
-          >
-            <div>
-              <Button variant="danger">{t('Transfer Project')}</Button>
-            </div>
-          </Confirm>
-        )}
-      </SettingsFieldGroup>
-    );
   };
 
   const platformOptions = useMemo(
@@ -1023,8 +954,77 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
       <Panel>
         <PanelHeader>{t('Project Administration')}</PanelHeader>
-        {renderRemoveProject()}
-        {renderTransferProject()}
+        <RemoveProjectSection
+          onRemoveProject={handleRemoveProject}
+          organization={organization}
+          project={project}
+        />
+        <SettingsFieldGroup
+          label={t('Transfer Project')}
+          help={tct(
+            'Transfer the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
+            {
+              project: <strong>{project.slug}</strong>,
+              linebreak: <br />,
+            }
+          )}
+        >
+          {!isOrgOwner &&
+            t('You do not have the required permission to transfer this project.')}
+
+          {project.isInternal &&
+            t(
+              'This project cannot be transferred. It is used internally by the Sentry server.'
+            )}
+
+          {isOrgOwner && !project.isInternal && (
+            <Confirm
+              onConfirm={() => {
+                handleTransferProject();
+              }}
+              priority="danger"
+              confirmText={t('Transfer project')}
+              renderMessage={({confirm}) => (
+                <div>
+                  <TextBlock>
+                    <strong>
+                      {t('Transferring this project is permanent and cannot be undone!')}
+                    </strong>
+                  </TextBlock>
+                  <TextBlock>
+                    {t(
+                      'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
+                    )}
+                  </TextBlock>
+                  <Panel>
+                    <Form
+                      hideFooter
+                      onFieldChange={handleTransferFieldChange}
+                      onSubmit={(_data, _onSuccess, _onError, e) => {
+                        e.stopPropagation();
+                        confirm();
+                      }}
+                    >
+                      <TextField
+                        name="email"
+                        label={t('Organization Owner')}
+                        placeholder="admin@example.com"
+                        required
+                        help={t(
+                          'A request will be emailed to this address, asking the organization owner to accept the project transfer.'
+                        )}
+                      />
+                    </Form>
+                  </Panel>
+                </div>
+              )}
+            >
+              <div>
+                <Button variant="danger">{t('Transfer Project')}</Button>
+              </div>
+            </Confirm>
+          )}
+        </SettingsFieldGroup>
       </Panel>
     </div>
   );

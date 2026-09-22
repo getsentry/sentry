@@ -12,6 +12,7 @@ import {
 import {IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 
+import {AnrFrameAction} from './anrFrameAction';
 import {IssueSourceLinkAction} from './issueSourceLinkAction';
 import {IssueSourceMapsDebuggerAction} from './issueSourceMapsDebuggerAction';
 
@@ -27,6 +28,7 @@ export function IssueFrameActions({isHovering}: IssueFrameActionsProps) {
     <Fragment>
       <IssueSourceLinkAction isHovering={isHovering} />
       <IssueSourceMapsDebuggerAction />
+      <AnrFrameAction />
       {hiddenFrameCount ? <HiddenFramesToggleAction /> : null}
       {timesRepeated > 0 ? (
         <Tooltip

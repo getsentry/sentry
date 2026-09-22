@@ -2,13 +2,13 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
@@ -97,8 +97,8 @@ export function EventTagsTreeRow({
 
   return (
     <RevealOnHover>
-      {({className}) => (
-        <TreeRow hasErrors={hasTagErrors} {...props} className={className}>
+      {revealOnHoverProps => (
+        <TreeRow hasErrors={hasTagErrors} {...props} {...revealOnHoverProps}>
           <TreeKeyTrunk spacerCount={spacerCount}>
             {spacerCount > 0 && (
               <Fragment>
