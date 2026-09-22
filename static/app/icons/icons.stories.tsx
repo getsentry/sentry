@@ -1738,6 +1738,7 @@ const PLUGIN_ICON_KEYS: Array<PluginIconProps['pluginId']> = [
   'bitbucket',
   'bitbucket_pipelines',
   'bitbucket_server',
+  'cursor_origin',
   'discord',
   'github',
   'github_enterprise',

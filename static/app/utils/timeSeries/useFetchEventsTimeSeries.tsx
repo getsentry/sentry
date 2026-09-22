@@ -47,9 +47,13 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   groupBy?: Attribute[];
   /**
-   * Whether to request annotations (dropped-data outcomes) on the response's `meta.annotations`. Off by default, and gated behind the `explore-data-fidelity-annotations` feature flag.
+   * Whether to request annotations (dropped-data outcomes) on the response's `meta.droppedAnnotations` and `meta.acceptedAnnotations`. Off by default, and gated behind the `explore-data-fidelity-annotations` feature flag.
    */
   includeAnnotations?: boolean;
+  /**
+   * Whether to request measured ingestion delay metadata.
+   */
+  includeMeasuredIngestionDelayMetadata?: boolean;
   /**
    * Duration between items in the time series, as a string. e.g., `"5m"`
    */
@@ -114,6 +118,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     groupBy,
     extrapolate,
     includeAnnotations,
+    includeMeasuredIngestionDelayMetadata,
     query,
     sampling,
     caseInsensitive,
@@ -176,6 +181,9 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           metricQuery: metricQueryParams,
           spanQuery: spanQueryParams,
           includeAnnotations: includeAnnotations ? 1 : undefined,
+          includeMeasuredIngestionDelayMetadata: includeMeasuredIngestionDelayMetadata
+            ? 1
+            : undefined,
         },
         staleTime: Infinity,
       }
@@ -188,14 +196,21 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   });
 }
 
-interface Annotation {
+/**
+ * One time bucket's volume for a system data-fidelity annotation.
+ */
+export interface Annotation {
   category: string;
-  droppedCount: number;
   end: number;
-  label: string;
+  eventCount: number;
+  outcome: string;
   reason: string;
   start: number;
   type: string;
+  /**
+   * Only sent for datasets with a paired byte category (logs today).
+   */
+  byteSize?: number;
 }
 
 export type EventsTimeSeriesResponse = {
@@ -204,6 +219,10 @@ export type EventsTimeSeriesResponse = {
     dataset: DiscoverDatasets;
     end: number;
     start: number;
-    annotations?: Annotation[];
+    acceptedAnnotations?: Annotation[];
+    completeThrough?: number;
+    droppedAnnotations?: Annotation[];
+    estimatedIngestionDelaySeconds?: number;
+    ingestionDelayStatus?: 'healthy' | 'stalled' | 'idle' | 'unknown';
   };
 };

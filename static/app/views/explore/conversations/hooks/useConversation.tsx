@@ -70,6 +70,7 @@ interface ConversationApiSpan {
   'gen_ai.usage.reasoning.output_tokens'?: number;
   'gen_ai.usage.total_tokens'?: number;
   occurrences?: TraceTree.EAPOccurrence[];
+  origin?: string;
   'span.description'?: string;
   'span.op'?: string;
   'user.email'?: string;
@@ -142,6 +143,8 @@ function createNodeFromApiSpan(
       // spans, which don't have a dedicated gen_ai.operation.type. Kept off the
       // op-type path so the timeline still renders them as before.
       [SpanFields.SPAN_OP]: apiSpan['span.op'] ?? '',
+      // Identifies Anthropic OTel conversations (see enrichAnthropicAgentMessages).
+      [SpanFields.SENTRY_ORIGIN]: apiSpan.origin ?? '',
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: apiSpan['gen_ai.embeddings.input'] ?? '',
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
@@ -386,6 +389,7 @@ export function useConversation(
     if (!isFetching && canFetchNextPage) {
       fetchNextPage();
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [data, isFetching, canFetchNextPage, fetchNextPage]);
 
   const allSpans = useMemo(

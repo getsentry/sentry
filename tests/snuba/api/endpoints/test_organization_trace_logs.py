@@ -29,6 +29,39 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert response.status_code == 404, response.content
 
+    def test_routing_hint_metadata(self) -> None:
+        self.create_project(organization=self.organization)
+        routing_hint = " opaque+/== "
+        with patch("sentry.snuba.rpc_dataset_common.RPCBase._run_table_query") as mock_run_query:
+            mock_run_query.return_value = {
+                "data": [],
+                "meta": {
+                    "fields": {"message": "string"},
+                    "routing_hint": routing_hint,
+                },
+            }
+
+            response = self.client_get(data={"traceId": uuid4().hex}, url=self.url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "fields": {"message": "string"},
+            "routingHint": routing_hint,
+        }
+
+    def test_missing_routing_hint_metadata(self) -> None:
+        self.create_project(organization=self.organization)
+        with patch("sentry.snuba.rpc_dataset_common.RPCBase._run_table_query") as mock_run_query:
+            mock_run_query.return_value = {
+                "data": [],
+                "meta": {"fields": {"message": "string"}},
+            }
+
+            response = self.client_get(data={"traceId": uuid4().hex}, url=self.url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {"fields": {"message": "string"}}
+
     def test_invalid_trace_id(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32

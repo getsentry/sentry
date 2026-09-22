@@ -1,10 +1,10 @@
 import {Tag} from '@sentry/scraps/badge';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

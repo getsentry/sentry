@@ -20,13 +20,16 @@ from sentry.integrations.base import (
 from sentry.integrations.cursor_origin.client import (
     CursorOriginApiClient,
     CursorOriginSetupApiClient,
+    OriginRepositorySummary,
 )
 from sentry.integrations.cursor_origin.constants import (
     CURSOR_ORIGIN_INSTALL_URL,
     CURSOR_ORIGIN_SCOPES,
     CURSOR_ORIGIN_WEB_BASE_URL,
 )
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
@@ -34,8 +37,10 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -55,7 +60,7 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
 
     @property
     def repo_search(self) -> bool:
-        return False
+        return True
 
     def get_client(self) -> CursorOriginApiClient:
         return CursorOriginApiClient(
@@ -74,13 +79,12 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         raise_on_page_limit: bool = False,
         parallel: bool = False,
     ) -> list[RepositoryInfo]:
-        """Repositories this installation can see.
+        """Repositories this installation can see, narrowed by `query` where given.
 
-        The remaining keyword arguments exist for base-class compatibility. Origin has no
-        search endpoint, so `query` filters locally.
+        The remaining keyword arguments exist for base-class compatibility.
         """
 
-        def to_repository_info(raw: list[dict[str, Any]]) -> list[RepositoryInfo]:
+        def to_repository_info(raw: Sequence[OriginRepositorySummary]) -> list[RepositoryInfo]:
             return [
                 {
                     "name": repo["fullName"],
@@ -92,7 +96,7 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
             ]
 
         try:
-            raw_repos = self.get_client().get_repositories()
+            raw_repos = self.get_client().get_repositories(query)
         except ApiPaginationTruncated as e:
             if raise_on_page_limit:
                 raise ApiPaginationTruncated(to_repository_info(e.partial_data)) from e
@@ -101,13 +105,7 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
             logger.info("cursor_origin.get_repositories.error", extra={"error": str(e)})
             self.raise_error(e)
 
-        repos = to_repository_info(raw_repos)
-
-        if query:
-            lowered = query.lower()
-            repos = [repo for repo in repos if lowered in repo["name"].lower()]
-
-        return repos
+        return to_repository_info(raw_repos)
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         try:
@@ -140,9 +138,12 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         branch = branch or repo.config["default_branch"]
         return (
-            f"{CURSOR_ORIGIN_WEB_BASE_URL}/{repo.name}/blob/"
+            f"{CURSOR_ORIGIN_WEB_BASE_URL}/{quote(repo.name)}/blob/"
             f"{quote(branch, safe='')}/{quote(filepath)}"
         )
+
+    def encode_source_url(self, url: str) -> str:
+        return url
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
         return unquote(self._split_blob_url(repo, url)[0])
@@ -151,12 +152,16 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         return unquote(self._split_blob_url(repo, url)[1])
 
     def _split_blob_url(self, repo: Repository, url: str) -> tuple[str, str]:
-        prefix = f"{urlparse(CURSOR_ORIGIN_WEB_BASE_URL).path}/{repo.name}/blob/"
+        base = urlparse(CURSOR_ORIGIN_WEB_BASE_URL).path
         path = urlparse(url).path
-        if not path.startswith(prefix):
-            return "", ""
-        branch, _, filepath = path[len(prefix) :].partition("/")
-        return branch, filepath
+        # `project_repo_path_parsing` unquotes the path before it gets here, so the
+        # repository name arrives either as we encoded it or decoded.
+        for name in (quote(repo.name), repo.name):
+            prefix = f"{base}/{name}/blob/"
+            if path.startswith(prefix):
+                branch, _, filepath = path[len(prefix) :].partition("/")
+                return branch, filepath
+        return "", ""
 
     def uninstall(self) -> None:
         """Remove the installation on Origin; a failure must not block disconnecting."""
@@ -196,7 +201,7 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
 
 
 DESCRIPTION = """
-Connect your Cursor Origin repositories to Sentry. Origin is Cursor's git forge --
+Connect your Cursor Origin repositories to Sentry. Origin is SpaceXAI's git forge --
 linking it lets Sentry suggest the right platform when you create a project and map
 stack traces back to source.
 """
@@ -214,6 +219,12 @@ FEATURES = [
         Link stack traces directly to source code in Origin.
         """,
         IntegrationFeatures.STACKTRACE_LINK,
+    ),
+    FeatureDescription(
+        """
+        Import your Origin CODEOWNERS file to use email-based ownership rules in Sentry.
+        """,
+        IntegrationFeatures.CODEOWNERS,
     ),
 ]
 
@@ -238,7 +249,13 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
     # there is no separate OAuth identity to link.
     needs_default_identity = False
 
-    features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.STACKTRACE_LINK])
+    features = frozenset(
+        [
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
+        ]
+    )
 
     requires_feature_flag = True
 
@@ -260,6 +277,11 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
         except ApiError as e:
             raise IntegrationError(f"Could not read the Cursor Origin installation: {e}")
 
+        if installation.get("suspendedAt"):
+            raise IntegrationError(
+                "This Origin installation is suspended. Unsuspend it in Origin, then install again."
+            )
+
         name = installation["target"]["slug"]
 
         return {
@@ -273,6 +295,26 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
                 "domain_name": f"{CURSOR_ORIGIN_WEB_BASE_URL}/{name}",
             },
         }
+
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
+    ) -> None:
+        """Link repositories now; the sweep that would otherwise do it runs daily."""
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id, organization_id=organization.id
+        )
+        if org_integration is None:
+            logger.warning(
+                "cursor_origin.post_install.no_org_integration",
+                extra={"integration_id": integration.id, "organization_id": organization.id},
+            )
+            return
+
+        sync_repos_for_org.apply_async(kwargs={"organization_integration_id": org_integration.id})
 
     def setup(self) -> None:
         from sentry.plugins.base import bindings
@@ -294,6 +336,7 @@ def build_install_url(state: str, redirect_uri: str, scopes: Sequence[str] | Non
             "scope": " ".join(scopes or CURSOR_ORIGIN_SCOPES),
             "redirect_uri": redirect_uri,
             "state": state,
+            "include_granted_scopes": "true",
         },
         quote_via=quote,
     )

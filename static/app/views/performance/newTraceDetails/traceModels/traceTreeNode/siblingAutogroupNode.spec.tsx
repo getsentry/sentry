@@ -5,13 +5,11 @@ import {
   makeEAPSpan,
   makeSiblingAutogroup,
   makeTraceError,
-  makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
 import {SiblingAutogroupNode} from './siblingAutogroupNode';
-import {TransactionNode} from './transactionNode';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
@@ -213,23 +211,6 @@ describe('SiblingAutogroupNode', () => {
       const path = node.pathToNode();
       expect(path).toHaveLength(1);
       expect(path[0]).toBe('ag-parent-span-id'); // Should use parent id
-    });
-
-    it('should include transaction ID in path when closest transaction parent found', () => {
-      const extra = createMockExtra();
-      const transactionValue = makeTransaction({
-        event_id: 'transaction-id',
-        'transaction.op': 'navigation',
-      });
-      const autogroupValue = makeSiblingAutogroup({});
-
-      const transactionNode = new TransactionNode(null, transactionValue, extra);
-      const node = new SiblingAutogroupNode(transactionNode, autogroupValue, extra);
-
-      const path = node.pathToNode();
-      expect(path).toHaveLength(2);
-      expect(path[0]).toBe('ag-transaction-id');
-      expect(path[1]).toBe('txn-transaction-id');
     });
   });
 

@@ -79,11 +79,7 @@ export default function SeerAutomationAdvancedSettings() {
                 <field.Switch
                   checked={field.state.value}
                   onChange={field.handleChange}
-                  disabled={
-                    organization.features.includes('seer-disable-coding-setting')
-                      ? t('Code generation is managed by your organization.')
-                      : !canWrite
-                  }
+                  disabled={!canWrite}
                 />
               </field.Layout.Row>
             )}

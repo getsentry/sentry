@@ -2895,18 +2895,19 @@ def save_transaction_events(
     _nodestore_save_many(jobs=jobs, app_feature="transactions")
     _eventstream_insert_many(jobs)
 
-    for job in jobs:
-        # NOTE: This puts a postgres query in the critical ingestion path for transactions.
-        # `save_pending_attachments` currently early-returns for most projects, but before graduation,
-        # we should make sure that the extra load on postgres is justifiable, given the facts that transactions
-        # are a legacy feature and transaction attachments are a niche use case.
-        safe_execute(
-            save_pending_attachments,
-            project=projects[job["project_id"]],
-            event_id=job["event"].event_id,
-            group_id=None,
-            source="save_transaction_events",
-        )
+    if options.get("store.transactions.check-pending-attachments"):
+        for job in jobs:
+            # NOTE: This puts a postgres query in the critical ingestion path for transactions.
+            # `save_pending_attachments` currently early-returns for most projects, but before graduation,
+            # we should make sure that the extra load on postgres is justifiable, given the facts that transactions
+            # are a legacy feature and transaction attachments are a niche use case.
+            safe_execute(
+                save_pending_attachments,
+                project=projects[job["project_id"]],
+                event_id=job["event"].event_id,
+                group_id=None,
+                source="save_transaction_events",
+            )
 
     for job in jobs:
         track_sampled_event(

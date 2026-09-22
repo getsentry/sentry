@@ -112,15 +112,11 @@ function GroupEventDetails() {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
-  const renderContent = () => {
-    if (isLoadingEvent) {
-      return <GroupEventDetailsLoading />;
-    }
-
-    return (
-      <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
-    );
-  };
+  const content = isLoadingEvent ? (
+    <GroupEventDetailsLoading />
+  ) : (
+    <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
+  );
 
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
@@ -143,7 +139,7 @@ function GroupEventDetails() {
               }
             />
           ) : (
-            renderContent()
+            content
           )}
         </div>
       </VisuallyCompleteWithData>

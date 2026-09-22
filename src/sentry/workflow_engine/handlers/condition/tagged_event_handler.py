@@ -26,7 +26,7 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
             "key": _TAG_KEY_SCHEMA,
             "match": {
                 "type": "string",
-                "enum": [*MatchType],
+                "enum": list(MATCH_CHOICES),
             },
             "value": {
                 "type": "string",
