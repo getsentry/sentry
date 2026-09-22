@@ -6,7 +6,7 @@ import Prism from 'prismjs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {loadPrismLanguage} from '@sentry/scraps/code';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {List} from 'sentry/components/list';
 import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
@@ -121,7 +121,7 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
   const erroredLines = getErrorLineNumbers(errors);
 
   return (
-    <div>
+    <Stack gap="sm">
       <pre className="language-graphql" data-line={erroredLines.join(',')}>
         <code className="language-graphql" ref={ref}>
           {data.query}
@@ -138,7 +138,7 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
           )
         )}
       </Grid>
-    </div>
+    </Stack>
   );
 }
 
