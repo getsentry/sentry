@@ -86,8 +86,11 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             assert not GroupInbox.objects.filter(group=self.group).exists()
 
     @django_db_all
+    @patch("sentry.issues.status_change_consumer.issue_resolved")
     @patch("sentry.issues.status_change_consumer.kick_off_status_syncs")
-    def test_valid_payload_resolved(self, mock_kick_off_status_syncs: MagicMock) -> None:
+    def test_valid_payload_resolved(
+        self, mock_kick_off_status_syncs: MagicMock, mock_issue_resolved: MagicMock
+    ) -> None:
         message = get_test_message_status_change(self.project.id, fingerprint=["touch-id"])
         result = _process_message(message)
         assert result is not None
@@ -102,6 +105,16 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             GroupHistoryStatus.RESOLVED,
             ActivityType.SET_RESOLVED,
             group_inbox_reason=None,
+        )
+
+        mock_issue_resolved.send_robust.assert_called_once_with(
+            organization_id=self.project.organization_id,
+            user=None,
+            group=group,
+            project=self.project,
+            resolution_type="autoresolve",
+            commit_id=None,
+            sender="status_change_consumer",
         )
 
         mock_kick_off_status_syncs.apply_async.assert_called_once_with(
