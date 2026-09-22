@@ -425,8 +425,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tag-key-sample-n", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable dynamic grouping UI (top issues)
     manager.add("organizations:top-issues-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable feature to use span only trace endpoint.
-    manager.add("organizations:trace-spans-format", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extraction metrics for transactions during ingestion.
     manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Normalize URL transaction names during ingestion.

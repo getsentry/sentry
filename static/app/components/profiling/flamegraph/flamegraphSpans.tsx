@@ -29,8 +29,8 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';

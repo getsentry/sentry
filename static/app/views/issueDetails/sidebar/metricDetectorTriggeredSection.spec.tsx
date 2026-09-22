@@ -321,7 +321,7 @@ describe('MetricDetectorTriggeredSection', () => {
     render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
     const button = await screen.findByRole('button', {name: 'Launch Investigation'});
-    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-disabled', 'true');
     await userEvent.hover(button);
     // Deliberately vague: naming the cause would reveal whether an issue the
     // viewer cannot access exists.
@@ -350,7 +350,7 @@ describe('MetricDetectorTriggeredSection', () => {
     render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
     const button = await screen.findByRole('button', {name: 'Launch Investigation'});
-    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-disabled', 'true');
     // Open periods are already on the page, so naming this one gives nothing away.
     await userEvent.hover(button);
     expect(

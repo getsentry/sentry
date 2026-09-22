@@ -10,6 +10,8 @@ import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settin
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
+  getSavedQueryDatasetLabel,
+  isExploreSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
@@ -88,7 +90,10 @@ function ExploreSecondaryNavigationImpl() {
     starredQueries: (starredQueries ?? []).map(query => ({
       id: query.id,
       name: query.name,
-      dataset: query.dataset,
+      dataset: isExploreSavedQuery(query)
+        ? getSavedQueryDatasetLabel(query.dataset)
+        : 'Errors',
+      queryType: query.queryType,
     })),
   });
 

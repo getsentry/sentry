@@ -179,7 +179,10 @@ describe('InvestigationFixtureApi', () => {
 
     it('serves the projection to the hypothesis row', async () => {
       renderStoryHypotheses();
-      await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
+      // The panel is up before the projection lands, so wait for the real
+      // cards before opening it.
+      await screen.findAllByTestId('investigation-hypothesis');
+      await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
 
       expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
       expect(
@@ -195,7 +198,10 @@ describe('InvestigationFixtureApi', () => {
 
     it('applies a disposition command and returns the new projection', async () => {
       renderStoryHypotheses();
-      await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
+      // The panel is up before the projection lands, so wait for the real
+      // cards before opening it.
+      await screen.findAllByTestId('investigation-hypothesis');
+      await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
 
       await userEvent.click(
         await screen.findByRole('button', {
@@ -216,7 +222,10 @@ describe('InvestigationFixtureApi', () => {
 
     it('clears a disposition back to the agent verdict', async () => {
       renderStoryHypotheses();
-      await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
+      // The panel is up before the projection lands, so wait for the real
+      // cards before opening it.
+      await screen.findAllByTestId('investigation-hypothesis');
+      await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
 
       const trigger = await screen.findByRole('button', {
         name: 'Actions for An external SSO provider slowed the response',
@@ -240,7 +249,10 @@ describe('InvestigationFixtureApi', () => {
 
     it('puts a retried hypothesis back into investigation', async () => {
       renderStoryHypotheses();
-      await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
+      // The panel is up before the projection lands, so wait for the real
+      // cards before opening it.
+      await screen.findAllByTestId('investigation-hypothesis');
+      await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
 
       await userEvent.click(
         await screen.findByRole('button', {

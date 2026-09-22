@@ -167,7 +167,7 @@ describe('MetricsEquationVisualize', () => {
     const deleteButtons = screen.getAllByRole('button', {name: 'Delete Metric'});
     const equationDeleteButton = deleteButtons[deleteButtons.length - 1]!;
 
-    expect(equationDeleteButton).toBeDisabled();
+    expect(equationDeleteButton).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('replaces rate aggregates with defaults and deduplicates', async () => {

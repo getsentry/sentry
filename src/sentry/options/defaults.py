@@ -1434,7 +1434,7 @@ register(
 register(
     "issues.action_log.use_db_sequence_for_outbox_identifier",
     type=Bool,
-    default=True,
+    default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3673,6 +3673,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Whether the data source by detector and source id cache is enabled
+# When disabled, detector handlers query directly instead of using the cache
+register(
+    "workflow_engine.data_source_by_detector_and_source_id_cache.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
 # table.
@@ -3714,6 +3723,14 @@ register(
     "uptime.config-drift.cycle-hours",
     type=Int,
     default=24,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Whether the drift sweep republishes the configs it finds missing, rather than only counting them.
+register(
+    "uptime.config-drift.repair",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4423,5 +4440,13 @@ register(
     "ingestion-delay.measurement-lookback-minutes",
     type=Int,
     default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# How long an ingestion delay measurement is cached, in seconds. 0 disables the cache.
+register(
+    "ingestion-delay.measurement-cache-seconds",
+    type=Int,
+    default=30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
