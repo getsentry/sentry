@@ -39,6 +39,7 @@ import {
 } from 'sentry/views/investigations/api';
 import {
   InvestigationCell,
+  isBlockWorking,
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
@@ -468,7 +469,10 @@ function isAwaitingReportCell(investigation: InvestigationDetail) {
   if (orchestration?.status !== 'processing' || orchestration.phase !== 'reporting') {
     return false;
   }
-  return (investigation.blocks ?? []).every(block => block.outputStatus === 'available');
+  // Only a cell Seer is working on rules this out, because that cell is already
+  // showing a placeholder of its own. A cell that finished, failed or was
+  // cancelled is done, and more are still coming.
+  return !(investigation.blocks ?? []).some(isBlockWorking);
 }
 
 function isTitleGenerationActive(status: string | null | undefined) {

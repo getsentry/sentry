@@ -263,7 +263,7 @@ function CellResult({
       <CellExecutionAlert block={block} />
       {markdown ? (
         <SeerMarkdown raw={markdown} />
-      ) : isBlockGenerating(block) ? (
+      ) : isBlockWorking(block) ? (
         // The text this stands in for ends with the space below its last
         // paragraph, so the placeholder has to carry that space itself.
         <Container paddingBottom="xl">
@@ -402,7 +402,7 @@ function QueryResult({
                     raw={output.tableMarkdown}
                     components={{Table: FlushTable}}
                   />
-                ) : isBlockGenerating(block) ? (
+                ) : isBlockWorking(block) ? (
                   // The result's own header lands here, not the cell title the
                   // toolbar above already shows.
                   <InvestigationCellPlaceholder />
@@ -1117,29 +1117,21 @@ function getExecutionTitle(status: InvestigationExecutionStatus | undefined) {
   return t('Analysis complete');
 }
 
-// A query cell's `outputStatus` describes the run that produced its result, so
-// it can look finished while the cell itself is being run again. The execution
-// status covers that case.
-function isBlockGenerating(block: InvestigationBlock) {
-  return (
-    isExecutionActive(block.outputStatus) ||
-    isExecutionActive(block.currentExecution?.status)
-  );
-}
-
 function hasRenderableContent(block: InvestigationBlock) {
   return Boolean(block.output) || Boolean(block.content.trim());
 }
 
-// Everything but `pending`: a cell Seer has started, including one paused on a
-// question or being stopped. Those two keep a cell on screen that would
-// otherwise vanish mid-run, taking an unanswered question with it.
-const WORKING_STATUSES = ['running', 'awaiting_input', 'stopping'];
-
-function isBlockWorking(block: InvestigationBlock) {
+/**
+ * Whether Seer has a run going for this cell — queued, working, paused on a
+ * question, or stopping. These are the four the server itself treats as live.
+ *
+ * `notRun` is the one unfinished state left out: nothing has been dispatched
+ * for the cell, and an auto-run cell whose dependency failed never will be.
+ */
+export function isBlockWorking(block: InvestigationBlock) {
   return (
-    WORKING_STATUSES.includes(block.outputStatus) ||
-    WORKING_STATUSES.includes(block.currentExecution?.status ?? '')
+    isExecutionActive(block.outputStatus) ||
+    isExecutionActive(block.currentExecution?.status)
   );
 }
 
