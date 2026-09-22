@@ -17,7 +17,7 @@ assert_not_in_sys_modules = "\n".join(f'assert "{module}" not in sys.modules' fo
 
 assert_in_sys_modules = "\n".join(f'assert "{module}" in sys.modules' for module in modules)
 
-SUBPROCESS_TEST_WGI_WARMUP = f"""
+SUBPROCESS_TEST_WGSI_WARMUP = f"""
 import sys
 
 {assert_not_in_sys_modules}
@@ -41,5 +41,5 @@ def test_wsgi_init() -> None:
     various resources we want to be "warm"
     """
     subprocess.check_call(
-        [sys.executable, "-c", SUBPROCESS_TEST_WGI_WARMUP],
+        [sys.executable, "-c", SUBPROCESS_TEST_WGSI_WARMUP],
     )

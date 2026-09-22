@@ -102,6 +102,7 @@ export function CustomRepositories({
 
   useEffect(() => {
     openDebugFileSourceDialog();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location.query, openDebugFileSourceDialog]);
 
   function handleAddRepository(repoType: CustomRepoType) {

@@ -1309,6 +1309,7 @@ function SaveQueryButton({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setQueryName('');
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [eventView.id]);
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(

@@ -42,7 +42,6 @@ export const AlwaysPresentTraceMetricFields: TraceMetricFieldKey[] = [
  */
 export const HiddenTraceMetricDetailFields: TraceMetricFieldKey[] = [
   ...AlwaysHiddenTraceMetricFields,
-  TraceMetricKnownFieldKey.SPAN_ID,
 
   // deprecated/otel fields that clutter the UI
   TraceMetricKnownFieldKey.TIMESTAMP_NANOS,

@@ -35,6 +35,7 @@ from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
     archive_investigation_with_orchestration,
     create_agentic_manual_investigation,
+    get_orchestration_projection,
     update_investigation_with_orchestration,
 )
 from sentry.investigations.services.orchestration_events import (
@@ -62,6 +63,49 @@ class SeerRunMirrorMixin:
 
 
 class InvestigationOrchestrationEventTransportTest(SeerRunMirrorMixin, TestCase):
+    def test_event_persists_timing_for_the_api(self) -> None:
+        investigation, run = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+        run.update(seer_run=self.seer_run_mirror(8128))
+        timing = {
+            "startedAt": "2025-01-01T00:00:00Z",
+            "finishedAt": None,
+            "activeSince": "2025-01-01T00:05:00Z",
+            "activeTimeElapsedSeconds": 34.5,
+        }
+        receipt = deliver_orchestration_event(
+            organization_id=self.organization.id,
+            event={
+                "schema_version": 1,
+                "event_id": uuid4(),
+                "run_id": 8128,
+                "investigation_id": investigation.id,
+                "sequence": 1,
+                "generation": 1,
+                "type": "workflow_updated",
+                "payload": {
+                    "projection": {
+                        **run.projection,
+                        **timing,
+                        "runId": 8128,
+                        "status": "processing",
+                        "heartbeatAt": "2025-01-01T00:05:00Z",
+                    }
+                },
+            },
+        )
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        run.refresh_from_db()
+        assert {key: run.projection[key] for key in timing} == timing
+        projection = get_orchestration_projection(investigation)
+        assert {key: projection[key] for key in timing} == timing
+
     def test_replays_the_stored_application_status(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
@@ -255,6 +299,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         execution_id = block.current_execution_id
         assert block.current_execution.started_at == started_at
         assert block.current_execution.completed_at == completed_at
+        assert block.current_execution.input_snapshot["source"] == self.orchestration_run.source
 
         self.deliver(
             self.event(

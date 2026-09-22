@@ -12,14 +12,13 @@ supported-markers = [
 
 [[package]]
 name = "anyio"
-version = "3.7.1"
+version = "4.14.2"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "idna" },
-    { name = "sniffio" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/anyio-3.7.1-py3-none-any.whl", hash = "sha256:91dee416e570e92c64041bd18b900d1d6fa78dff7048769ce5ac5ddad004fbb5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/anyio-4.14.2-py3-none-any.whl", hash = "sha256:9f505dda5ac9f0c8309b5e8bd445a8c2bf7246f3ce950121e45ea15bc41d1494" },
 ]
 
 [[package]]
@@ -306,14 +305,6 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/devservices-1.4.2-py3-none-any.whl", hash = "sha256:505088e43ad81d4a89f874b96b8129858ae6ae4c53d5bda1d232ffa1213adbdf" },
-]
-
-[[package]]
-name = "distro"
-version = "1.8.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/distro-1.8.0-py3-none-any.whl", hash = "sha256:99522ca3e365cac527b44bde033f64c6945d90eb9f769703caaec52b09bbd3ff" },
 ]
 
 [[package]]
@@ -1008,20 +999,6 @@ wheels = [
 ]
 
 [[package]]
-name = "httpx"
-version = "0.28.1"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "anyio" },
-    { name = "certifi" },
-    { name = "httpcore" },
-    { name = "idna" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad" },
-]
-
-[[package]]
 name = "huggingface-hub"
 version = "0.35.3"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1371,22 +1348,6 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/objectstore_client-0.2.5-py3-none-any.whl", hash = "sha256:d080ae54573d7b1eb10a6a282dee03de1efa459b54c3dc99c2569b253d0b6dd3" },
-]
-
-[[package]]
-name = "openai"
-version = "1.3.5"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "anyio" },
-    { name = "distro" },
-    { name = "httpx" },
-    { name = "pydantic" },
-    { name = "tqdm" },
-    { name = "typing-extensions" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/openai-1.3.5-py3-none-any.whl", hash = "sha256:9437458978fb502e61336c3082e02b09c49feebe0e8516a2b8fb4563e6e4af4e" },
 ]
 
 [[package]]
@@ -2181,7 +2142,6 @@ dependencies = [
     { name = "msgpack" },
     { name = "msgspec" },
     { name = "objectstore-client" },
-    { name = "openai" },
     { name = "orjson" },
     { name = "packaging" },
     { name = "parsimonious" },
@@ -2350,7 +2310,6 @@ requires-dist = [
     { name = "msgpack", specifier = ">=1.2.1" },
     { name = "msgspec", specifier = ">=0.19.0" },
     { name = "objectstore-client", specifier = ">=0.2.5" },
-    { name = "openai", specifier = ">=1.3.5" },
     { name = "orjson", specifier = ">=3.10.10" },
     { name = "packaging", specifier = ">=24.1" },
     { name = "parsimonious", specifier = ">=0.10.0" },
@@ -2385,7 +2344,7 @@ requires-dist = [
     { name = "sentry-kafka-schemas", specifier = ">=3.0.2" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
     { name = "sentry-options", specifier = ">=1.2.8" },
-    { name = "sentry-protos", specifier = ">=0.71.0" },
+    { name = "sentry-protos", specifier = ">=0.73.1" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.30" },
     { name = "sentry-scm", specifier = "==1.5.0" },
@@ -2565,7 +2524,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.71.0"
+version = "0.73.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs" },
@@ -2573,7 +2532,7 @@ dependencies = [
     { name = "protobuf" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.71.0-py3-none-any.whl", hash = "sha256:f61a30388e3d4b36299b965f001f6e7cc02a2f791ab994bb27a9a8093b7726cd" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.73.1-py3-none-any.whl", hash = "sha256:4ae5653912f6d55c123c9d329bf3d4c2261b77a5ea7bd4aac45772a3c703d7dc" },
 ]
 
 [[package]]
@@ -2721,10 +2680,10 @@ wheels = [
 
 [[package]]
 name = "soupsieve"
-version = "2.8.4"
+version = "2.9"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/soupsieve-2.8.4-py3-none-any.whl", hash = "sha256:e7e6b0769c8f51ed59acab6e994b00621096cfb1c640a7509295987388fbaf65" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/soupsieve-2.9-py3-none-any.whl", hash = "sha256:a2b2c76d67df2382d245409fd71e321a571717e58463efa32ace87dcadac2c12" },
 ]
 
 [[package]]

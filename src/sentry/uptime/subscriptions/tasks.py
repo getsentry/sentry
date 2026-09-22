@@ -4,12 +4,23 @@ import logging
 from datetime import timedelta
 from uuid import uuid4
 
+from django.conf import settings
 from django.utils import timezone
 from taskbroker_client.retry import Retry
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
-from sentry import audit_log
+from sentry import audit_log, options
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import uptime_tasks
+from sentry.uptime.config_drift import (
+    SUBSCRIPTION_ID_PREFIX_BUCKETS,
+    SWEEP_RUN_INTERVAL,
+    ConfigStore,
+    find_missing_configs,
+    find_orphaned_configs,
+    get_config_stores,
+    sweep_slice,
+)
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
     UptimeRegionScheduleMode,
@@ -234,3 +245,107 @@ def broken_monitor_checker(**kwargs):
             logger.exception("uptime.subscriptions.disable_broken_failed")
 
     metrics.incr("uptime.subscriptions.disable_broken", amount=count, sample_rate=1.0)
+
+
+@instrumented_task(
+    name="sentry.uptime.tasks.config_drift_dispatcher",
+    namespace=uptime_tasks,
+    processing_deadline_duration=60,
+)
+def config_drift_dispatcher(**kwargs):
+    """
+    Fans out this hour's slice of the Redis/Postgres config drift sweep; see sweep_slice for
+    how a slice is chosen.
+    """
+    if not options.get("uptime.config-drift.enabled"):
+        return
+
+    cycle_hours = options.get("uptime.config-drift.cycle-hours")
+    now = timezone.now()
+    stores = get_config_stores()
+
+    # One task per (prefix, store) so a failing store doesn't take the others down with it.
+    for bucket in sweep_slice(SUBSCRIPTION_ID_PREFIX_BUCKETS, cycle_hours, now):
+        for store in stores:
+            check_missing_configs.delay(
+                subscription_id_prefix=f"{bucket:02x}",
+                cluster=store.cluster,
+                key_prefix=store.key_prefix,
+            )
+
+    partitions = sweep_slice(settings.UPTIME_CONFIG_PARTITIONS, cycle_hours, now)
+    for store in stores:
+        for partition in partitions:
+            check_orphaned_configs.delay(
+                cluster=store.cluster, key_prefix=store.key_prefix, partition=partition
+            )
+
+
+def _find_store(cluster: str, key_prefix: str) -> ConfigStore | None:
+    stores = get_config_stores()
+    store = next((s for s in stores if (s.cluster, s.key_prefix) == (cluster, key_prefix)), None)
+    if store is None:
+        logger.warning(
+            "uptime.config_drift.unknown_store",
+            extra={"cluster": cluster, "key_prefix": key_prefix},
+        )
+    return store
+
+
+@instrumented_task(
+    name="sentry.uptime.tasks.check_missing_configs",
+    namespace=uptime_tasks,
+    processing_deadline_duration=60,
+    expires=SWEEP_RUN_INTERVAL,
+    retry=Retry(times=3, delay=120, on=(Exception, ProcessingDeadlineExceeded)),
+)
+def check_missing_configs(subscription_id_prefix: str, cluster: str, key_prefix: str, **kwargs):
+    """
+    Postgres → Redis direction of the drift sweep: for ACTIVE subscriptions in this
+    subscription_id prefix, count those whose config is absent from one store.
+    """
+    store = _find_store(cluster, key_prefix)
+    if store is None:
+        return
+
+    count = find_missing_configs(store, subscription_id_prefix)
+    tags = {"cluster": store.cluster, "direction": "missing"}
+    metrics.incr("uptime.config_drift.checked", amount=count.checked, tags=tags, sample_rate=1.0)
+    metrics.incr("uptime.config_drift.missing", amount=count.drifted, tags=tags, sample_rate=1.0)
+    if count.drifted:
+        logger.warning(
+            "uptime.config_drift.missing",
+            extra={
+                "subscription_id_prefix": subscription_id_prefix,
+                "cluster": store.cluster,
+                "count": count.drifted,
+            },
+        )
+
+
+@instrumented_task(
+    name="sentry.uptime.tasks.check_orphaned_configs",
+    namespace=uptime_tasks,
+    processing_deadline_duration=60,
+    expires=SWEEP_RUN_INTERVAL,
+    retry=Retry(times=3, delay=120, on=(Exception, ProcessingDeadlineExceeded)),
+)
+def check_orphaned_configs(cluster: str, key_prefix: str, partition: int, **kwargs):
+    """
+    Redis → Postgres direction of the drift sweep: for one config partition in one store,
+    count configs that no ACTIVE, CREATING or UPDATING subscription owns in a region served
+    by that store.
+    """
+    store = _find_store(cluster, key_prefix)
+    if store is None:
+        return
+
+    count = find_orphaned_configs(store, partition)
+    tags = {"cluster": store.cluster, "direction": "orphaned"}
+    metrics.incr("uptime.config_drift.checked", amount=count.checked, tags=tags, sample_rate=1.0)
+    metrics.incr("uptime.config_drift.orphaned", amount=count.drifted, tags=tags, sample_rate=1.0)
+    if count.drifted:
+        logger.warning(
+            "uptime.config_drift.orphaned",
+            extra={"partition": partition, "cluster": store.cluster, "count": count.drifted},
+        )

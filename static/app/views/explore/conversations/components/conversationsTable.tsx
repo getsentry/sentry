@@ -5,6 +5,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {markdownToPlainText} from '@sentry/scraps/markdown';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -26,7 +27,6 @@ import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -85,7 +85,7 @@ const COLUMN_ORDER: ColumnKey[] = [
 // have sensible starting widths that the user can drag to resize.
 const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
   conversation: {name: t('Conversation'), width: COL_WIDTH_UNDEFINED},
-  duration: {name: t('Duration'), width: 120},
+  duration: {name: t('Timespan'), width: 120},
   messages: {name: t('Messages'), width: 120},
   errors: {name: t('Errors'), width: 100},
   cost: {name: t('Cost'), width: 120},
@@ -96,7 +96,6 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
 const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
 
 const SORT_FIELD_BY_COLUMN: Partial<Record<ColumnKey, ConversationSortField>> = {
-  duration: CONVERSATION_FIELDS.generationDuration.key,
   messages: CONVERSATION_FIELDS.messages.key,
   errors: CONVERSATION_FIELDS.errors.key,
   cost: CONVERSATION_FIELDS.totalCost.key,
@@ -112,6 +111,19 @@ type ColumnWidths = Partial<Record<ColumnKey, number>>;
 
 // Plain-text title/first-message is ellipsized to this length before rendering.
 const CELL_MAX_CHARS = 256;
+
+export function getConversationTimespan(
+  conversation: Pick<
+    Conversation,
+    'startTimestamp' | 'endTimestamp' | 'generationDuration'
+  >
+): number {
+  const elapsedDuration = conversation.endTimestamp - conversation.startTimestamp;
+  if (elapsedDuration < 0) {
+    return 0;
+  }
+  return elapsedDuration || conversation.generationDuration;
+}
 
 export function normalizeUserField(value: string | null | undefined): string | null {
   if (!value || value.toLowerCase() === 'none') {
@@ -375,7 +387,7 @@ function BodyCell({
       return (
         <Text tabular>
           <PerformanceDuration
-            milliseconds={conversation.generationDuration}
+            milliseconds={getConversationTimespan(conversation)}
             abbreviation
           />
         </Text>
@@ -591,6 +603,7 @@ function ToolsCell({toolNames}: {toolNames: string[]}) {
       badgeWidth: badgeEl?.getBoundingClientRect().width ?? 0,
       rowHeight: badgeEl?.getBoundingClientRect().height ?? 0,
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [toolsKey]);
 
   const visibleCount = useMemo(() => {
