@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from sentry import eventstore
-from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.models.group import Group
 from sentry.notifications.platform.discord.provider import DiscordRenderable
 from sentry.notifications.platform.registry import renderer_registry
@@ -25,6 +24,8 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
     ) -> DiscordRenderable:
         if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueDiscordRenderer does not support {data.__class__.__name__}")
+
+        from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 
         # Retrieving Group and Event data is an anti-pattern, do not do this
         # in permanent renderers.

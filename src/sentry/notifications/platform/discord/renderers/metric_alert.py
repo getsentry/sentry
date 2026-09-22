@@ -1,12 +1,6 @@
 from __future__ import annotations
 
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.integrations.discord.message_builder import INCIDENT_COLOR_MAPPING, LEVEL_TO_COLOR
-from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
-from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
-from sentry.integrations.discord.message_builder.base.embed.image import DiscordMessageEmbedImage
-from sentry.integrations.discord.message_builder.metric_alerts import get_started_at
-from sentry.integrations.metric_alerts import get_status_text
 from sentry.notifications.platform.discord.provider import DiscordRenderable
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -31,6 +25,18 @@ class DiscordMetricAlertRenderer(NotificationRenderer[DiscordRenderable]):
             raise ValueError(
                 f"DiscordMetricAlertRenderer does not support '{data.__class__.__name__}'. Provide a MetricAlertNotificationData instead."
             )
+
+        from sentry.integrations.discord.message_builder import (
+            INCIDENT_COLOR_MAPPING,
+            LEVEL_TO_COLOR,
+        )
+        from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+        from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
+        from sentry.integrations.discord.message_builder.base.embed.image import (
+            DiscordMessageEmbedImage,
+        )
+        from sentry.integrations.discord.message_builder.metric_alerts import get_started_at
+        from sentry.integrations.metric_alerts import get_status_text
 
         status = get_status_text(IncidentStatus(data.new_status))
         description = f"{data.text}{get_started_at(data.open_period_context.date_started)}"

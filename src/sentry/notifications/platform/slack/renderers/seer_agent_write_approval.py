@@ -1,8 +1,6 @@
 from django.conf import settings
 from slack_sdk.models.blocks import ActionsBlock, ButtonElement, MarkdownBlock
 
-from sentry.integrations.slack.message_builder.routing import encode_action_id
-from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
@@ -27,6 +25,9 @@ class SeerAgentWriteApprovalSlackRenderer(NotificationRenderer[SlackRenderable])
             raise ValueError(
                 f"SeerAgentWriteApprovalSlackRenderer does not support {data.__class__.__name__}"
             )
+
+        from sentry.integrations.slack.message_builder.routing import encode_action_id
+        from sentry.integrations.slack.message_builder.types import SlackAction
 
         scope_descriptions = {
             scope: description
