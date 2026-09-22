@@ -167,7 +167,7 @@ function EditTagHighlightSection({
           data-test-id="highlights-tag-search"
         />
       </Subtitle>
-      <Grid align="start" columns={`repeat(${columnCount}, minmax(0, 1fr))`}>
+      <Grid columns={`repeat(${columnCount}, minmax(0, 1fr))`}>
         {splitIntoColumns(tagData, columnCount).map((columnTagKeys, index) => (
           <EditHighlightColumn key={index}>
             <Stack gap="2xs">
@@ -260,7 +260,7 @@ function EditContextHighlightSection({
           data-test-id="highlights-context-search"
         />
       </Subtitle>
-      <Grid align="start" columns={`repeat(${columnCount}, minmax(0, 1fr))`}>
+      <Grid columns={`repeat(${columnCount}, minmax(0, 1fr))`}>
         {splitIntoColumns(filteredCtxItems, columnCount).map((columnCtxItems, index) => (
           <EditHighlightColumn key={index}>
             {columnCtxItems.map(([contextType, contextKeys]) => (
