@@ -77,6 +77,20 @@ Connect your Sentry organization to an organization in your GitLab instance or g
 FEATURES = [
     FeatureDescription(
         """
+        Get automated code reviews from Seer on your GitLab merge requests,
+        surfacing bugs and issues before they reach production.
+        """,
+        IntegrationFeatures.SEER_CONTEXT,
+    ),
+    FeatureDescription(
+        """
+        Let Seer's Autofix find the root cause of your Sentry issues and open a
+        merge request with the fix.
+        """,
+        IntegrationFeatures.SEER_CONTEXT,
+    ),
+    FeatureDescription(
+        """
         Track commits and releases (learn more
         [here](https://docs.sentry.io/learn/releases/))
         """,
