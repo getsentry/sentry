@@ -56,13 +56,13 @@ export function Button({
     >
       <StyledButton
         aria-label={accessibleLabel}
-        aria-disabled={disabled}
         aria-busy={busy}
         disabled={useAriaDisabled ? undefined : disabled}
         size={size}
         type={type}
         busy={busy}
         {...props}
+        aria-disabled={disabled}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={useAriaDisabled ? undefined : handleClick}
         onKeyDown={useAriaDisabled ? preventKeyboardSubmit : undefined}
