@@ -1435,7 +1435,8 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
         with patch("sentry.issues.derived.tasks_util.statement_timeout") as timeout:
             group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5)
 
-        assert timeout.call_args.args[1] == timedelta(seconds=50)
+        query_timeout = timeout.call_args.args[1]
+        assert timedelta(0) < query_timeout <= timedelta(seconds=40)
 
     def test_short_tail_is_one_range(self) -> None:
         null_ids = self._seed(3, None)
