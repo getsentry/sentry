@@ -6,7 +6,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
-import {useSpanProfileDetails} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
+import {
+  useSpanProfileDetails,
+  type SpanProfileDetailsContext,
+} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -18,6 +21,7 @@ import {
   type EventTransaction,
 } from 'sentry/types/event';
 import type {NewQuery} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
@@ -115,25 +119,21 @@ export function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
   const profileId = node.profileId;
   const profilerId = node.profilerId;
 
-  const transaction = node.value.is_transaction ? node : node.findParentEapTransaction();
-  const profilerStart = transaction?.startTimestamp;
-  const profilerEnd = transaction?.endTimestamp;
-
   const profileMeta = useMemo(() => {
     if (profileId) {
       return profileId;
     }
 
-    if (profilerId && profilerStart && profilerEnd) {
+    if (profilerId) {
       return {
         profiler_id: profilerId,
-        start: new Date(profilerStart * 1000).toISOString(),
-        end: new Date(profilerEnd * 1000).toISOString(),
+        start: new Date(node.value.start_timestamp * 1000).toISOString(),
+        end: new Date(node.value.end_timestamp * 1000).toISOString(),
       };
     }
 
     return '';
-  }, [profileId, profilerId, profilerStart, profilerEnd]);
+  }, [node.value.end_timestamp, node.value.start_timestamp, profileId, profilerId]);
 
   const project = projects.find(proj => proj.slug === node.projectSlug);
 
@@ -244,12 +244,13 @@ function EAPSpanNodeDetailsContent({
 }) {
   const attributes = traceItemData.attributes;
 
-  const attributesMap = attributes.reduce<Record<string, string | number | boolean>>(
-    (acc, attribute) => {
-      acc[attribute.name] = attribute.value;
-      return acc;
-    },
-    {}
+  const attributesMap = useMemo(
+    () =>
+      attributes.reduce<Record<string, string | number | boolean>>((acc, attribute) => {
+        acc[attribute.name] = attribute.value;
+        return acc;
+      }, {}),
+    [attributes]
   );
 
   const links = traceItemData.links;
@@ -267,7 +268,10 @@ function EAPSpanNodeDetailsContent({
     )?.data;
 
   const threadIdAttribute = attributesMap['thread.id'];
-  const threadId = typeof threadIdAttribute === 'string' ? threadIdAttribute : undefined;
+  const threadId =
+    typeof threadIdAttribute === 'string' || typeof threadIdAttribute === 'number'
+      ? String(threadIdAttribute)
+      : undefined;
 
   const span = useMemo(() => {
     return {
@@ -278,12 +282,32 @@ function EAPSpanNodeDetailsContent({
     };
   }, [node, threadId]);
 
-  const {profile, frames} = useSpanProfileDetails(
-    organization,
-    project,
-    eventTransaction,
-    span
-  );
+  const profileContext = useMemo<SpanProfileDetailsContext>(() => {
+    const platform = attributesMap.platform;
+    const sdkName = attributesMap['sdk.name'];
+    const sdkVersion = attributesMap['sdk.version'];
+    const release = attributesMap.release;
+    const deviceArch = attributesMap['device.arch'];
+
+    return {
+      deviceArch: typeof deviceArch === 'string' ? deviceArch : undefined,
+      endTimestamp: node.value.end_timestamp,
+      platform:
+        typeof platform === 'string' ? (platform as PlatformKey) : project?.platform,
+      profileId: node.profileId,
+      profilerId: node.profilerId,
+      projectId: String(node.value.project_id),
+      projectSlug: node.value.project_slug,
+      release: typeof release === 'string' ? release : undefined,
+      sdkName: typeof sdkName === 'string' ? sdkName : node.sdkName,
+      sdkVersion: typeof sdkVersion === 'string' ? sdkVersion : undefined,
+      startTimestamp: node.value.start_timestamp,
+      traceId,
+      transactionId: node.transactionId,
+    };
+  }, [attributesMap, node, project?.platform, traceId]);
+
+  const {profile, frames} = useSpanProfileDetails(organization, profileContext, span);
   const logsQueryResult = useLogsPageDataQueryResult();
   const hasProfileDetails = defined(profile) && frames.length > 0;
   const hasLogDetails = (logsQueryResult?.data?.length ?? 0) > 0;
@@ -411,11 +435,10 @@ function EAPSpanNodeDetailsContent({
           />
         ) : null}
 
-        {eventTransaction && organization.features.includes('profiling') ? (
+        {organization.features.includes('profiling') ? (
           <ProfileDetails
             organization={organization}
-            project={project}
-            event={eventTransaction}
+            context={profileContext}
             span={span}
           />
         ) : null}

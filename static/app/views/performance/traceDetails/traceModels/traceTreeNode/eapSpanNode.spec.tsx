@@ -342,7 +342,19 @@ describe('EapSpanNode', () => {
       });
     });
 
-    it('should inherit profiling and transaction IDs from its EAP transaction', () => {
+    it('should use direct IDs and inherit missing IDs from its EAP transaction', () => {
+      const standaloneSpan = new EapSpanNode(
+        null,
+        makeEAPSpan({
+          event_id: 'standalone-span-id',
+          transaction_id: 'legacy-transaction-event-id',
+          is_transaction: false,
+          additional_attributes: {
+            'transaction.span_id': 'standalone-transaction-id',
+          },
+        }),
+        createMockExtra()
+      );
       const transaction = new EapSpanNode(
         null,
         makeEAPSpan({
@@ -363,6 +375,7 @@ describe('EapSpanNode', () => {
         createMockExtra()
       );
 
+      expect(standaloneSpan.transactionId).toBe('standalone-transaction-id');
       expect(transaction.transactionId).toBe('transaction-id');
       expect(span.transactionId).toBe('transaction-id');
       expect(span.profileId).toBe('profile-id');
