@@ -648,7 +648,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.STACKTRACE_LINK,
             IntegrationFeatures.CODEOWNERS,
-            IntegrationFeatures.SEER_CONTEXT,
         ]
     )
 
