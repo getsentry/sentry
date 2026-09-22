@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {useIsSeerCodeMode} from 'sentry/components/events/autofix/v3/useIsSeerCodeMode';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 
 /**
@@ -14,10 +14,9 @@ import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer
  * throw away the context that makes it answerable.
  */
 export function useAskSeerHandoff() {
-  const organization = useOrganization();
   const {openSeerExplorerDrawer} = useSeerExplorerDrawer();
 
-  const isCodeMode = organization.features.includes('seer-explorer-code-mode-tools');
+  const isCodeMode = useIsSeerCodeMode();
 
   const askSeer = useCallback(
     (prompt: string) => {
