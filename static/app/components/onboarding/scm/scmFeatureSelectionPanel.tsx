@@ -1,5 +1,4 @@
 import {type ReactNode, useCallback, useMemo} from 'react';
-import {motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -239,7 +238,7 @@ export function ScmFeatureSelectionPanel({
   return (
     <ScmCollapsibleReveal open={showSection}>
       <Stack gap="0" width="100%">
-        <MotionStack layout="position" width="100%">
+        <Stack width="100%">
           {/* Padding, unlike a flex gap, is clipped during the card reveal. */}
           <Stack gap="0" paddingTop={isOnboarding ? 'xs' : undefined}>
             {isOnboarding ? null : (
@@ -264,11 +263,9 @@ export function ScmFeatureSelectionPanel({
               </Container>
             </ScmCollapsibleReveal>
           </Stack>
-        </MotionStack>
+        </Stack>
         {trailing}
       </Stack>
     </ScmCollapsibleReveal>
   );
 }
-
-const MotionStack = motion.create(Stack);

@@ -16,6 +16,7 @@ import {
   useAgenticProgressInit,
   useRestartAgenticRun,
 } from 'sentry/views/onboarding/agenticProgress/useAgenticProgressInit';
+import {ONBOARDING_ENTER} from 'sentry/views/onboarding/animations';
 import {
   AgentSetupCard,
   type AgentSetupCopySource,
@@ -23,8 +24,6 @@ import {
 import {ManualSetupCard} from 'sentry/views/onboarding/components/manualSetupCard';
 
 const MotionContainer = motion.create(Container);
-
-const CARD_MORPH_TRANSITION = {duration: 0.25, ease: 'easeOut'} as const;
 
 export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
   const initialization = useAgenticProgressInit({enabled});
@@ -107,34 +106,27 @@ export function WelcomeAgentSetup({
         </Alert>
       </ScmCollapsibleReveal>
 
-      <MotionContainer
-        layout
-        width="100%"
-        position="relative"
-        transition={CARD_MORPH_TRANSITION}
-      >
-        <AnimatePresence initial={false} mode="popLayout">
+      <Container width="100%" position="relative">
+        <AnimatePresence initial={false} mode="wait">
           {run && isAgentConnected ? (
             <MotionContainer
               key="progress"
-              layout="position"
               width="100%"
-              initial={{opacity: 0}}
-              animate={{opacity: 1}}
-              exit={{opacity: 0}}
-              transition={CARD_MORPH_TRANSITION}
+              {...ONBOARDING_ENTER}
+              initial="initial"
+              animate="animate"
+              exit="exit"
             >
               <AgenticProgress run={run} onboardingCode={onboardingCode} />
             </MotionContainer>
           ) : (
             <MotionContainer
               key="setup"
-              layout="position"
               width="100%"
-              initial={{opacity: 0}}
-              animate={{opacity: 1}}
-              exit={{opacity: 0}}
-              transition={CARD_MORPH_TRANSITION}
+              {...ONBOARDING_ENTER}
+              initial="initial"
+              animate="animate"
+              exit="exit"
             >
               <AgentSetupCard
                 hasSetupFailed={hasInitFailed}
@@ -145,7 +137,7 @@ export function WelcomeAgentSetup({
             </MotionContainer>
           )}
         </AnimatePresence>
-      </MotionContainer>
+      </Container>
 
       <ScmCollapsibleReveal open={hasRunFailed}>
         <Button variant="primary" onClick={onRetry}>

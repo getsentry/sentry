@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {AnimatePresence, motion, type MotionProps} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useExperiment} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from 'sentry/views/onboarding/animations';
 import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {
   NewWelcomeProductCard,
@@ -32,10 +33,7 @@ import {
   WelcomeAgentSetup,
 } from 'sentry/views/onboarding/components/welcomeAgentSetup';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
-import {
-  ONBOARDING_WELCOME_STAGGER_ITEM,
-  SCM_STEP_CONTENT_WIDTH,
-} from 'sentry/views/onboarding/consts';
+import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 import {OnboardingWelcomeProductId, type StepProps} from 'sentry/views/onboarding/types';
 import {useWelcomeAnalyticsEffect} from 'sentry/views/onboarding/useWelcomeAnalyticsEffect';
 import {useWelcomeHandleComplete} from 'sentry/views/onboarding/useWelcomeHandleComplete';
@@ -44,26 +42,6 @@ const MotionContainer = motion.create(Container);
 const MotionFlex = motion.create(Flex);
 const MotionStack = motion.create(Stack);
 const MotionGrid = motion.create(Grid);
-
-const STAGGER_CONTAINER: MotionProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  transition: {
-    staggerChildren: 0.125,
-    delayChildren: 0.075,
-    duration: 0.25,
-    ease: 'easeOut',
-  },
-  variants: {
-    exit: {
-      transition: {
-        staggerChildren: 0.05,
-        delayChildren: 0.0125,
-      },
-    },
-  },
-};
 
 // Product options in display order (3x2 grid: row1: Error, Logging, Session; row2: Metrics, Tracing, Profiling)
 const PRODUCT_OPTIONS: ProductOption[] = [
@@ -207,35 +185,39 @@ export function NewWelcomeUI(props: StepProps) {
       maxWidth={hasScmOnboarding ? SCM_STEP_CONTENT_WIDTH : '900px'}
       position="relative"
     >
-      <MotionFlex direction="column" align="center" {...STAGGER_CONTAINER}>
+      <MotionFlex direction="column" align="center" {...ONBOARDING_STAGGER}>
         <Stack gap="3xl" align="center" width="100%">
-          <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%">
+          <MotionStack gap="md" width="100%" {...ONBOARDING_STAGGER}>
             {hasScmOnboarding ? (
               <Stack gap="lg" paddingBottom="xl">
-                <Heading as="h2" size="3xl" align="center" wrap="pre-line">
-                  {scmHeading.title}
-                </Heading>
-                <Text align="center" variant="muted" size="lg" density="comfortable">
-                  {scmHeading.description}
-                </Text>
+                <MotionContainer {...ONBOARDING_ENTER}>
+                  <Heading as="h2" size="3xl" align="center" wrap="pre-line">
+                    {scmHeading.title}
+                  </Heading>
+                </MotionContainer>
+                <MotionContainer {...ONBOARDING_ENTER}>
+                  <Text align="center" variant="muted" size="lg" density="comfortable">
+                    {scmHeading.description}
+                  </Text>
+                </MotionContainer>
               </Stack>
             ) : (
               <Stack gap="sm" paddingBottom="2xl">
-                <Container>
+                <MotionContainer {...ONBOARDING_ENTER}>
                   <Heading as="h1" density="comfortable">
                     {t('Welcome to Sentry')}
                   </Heading>
-                </Container>
-                <Container>
+                </MotionContainer>
+                <MotionContainer {...ONBOARDING_ENTER}>
                   <Text variant="muted" size="xl" bold wrap="pre-line">
                     {t("Your code is probably broken. Let's fix it faster.")}
                   </Text>
-                </Container>
+                </MotionContainer>
               </Stack>
             )}
 
             {hasScmOnboarding ? null : (
-              <Stack gap="2xs">
+              <MotionStack gap="2xs" {...ONBOARDING_ENTER}>
                 <Flex align="center" gap="md">
                   <Container>
                     <IconLightning size="md" variant="accent" />
@@ -255,7 +237,7 @@ export function NewWelcomeUI(props: StepProps) {
                     )}
                   </Text>
                 </Container>
-              </Stack>
+              </MotionStack>
             )}
           </MotionStack>
 
@@ -272,7 +254,7 @@ export function NewWelcomeUI(props: StepProps) {
                 initial="initial"
                 animate="animate"
                 exit="exit"
-                {...ONBOARDING_WELCOME_STAGGER_ITEM}
+                {...ONBOARDING_ENTER}
               >
                 <WelcomeAgentSetup
                   hasInitFailed={hasInitFailed}
@@ -285,12 +267,7 @@ export function NewWelcomeUI(props: StepProps) {
                 />
               </MotionContainer>
             ) : (
-              <MotionStack
-                key="products"
-                gap="3xl"
-                width="100%"
-                transition={{staggerChildren: 0.125}}
-              >
+              <MotionStack key="products" gap="3xl" width="100%" {...ONBOARDING_STAGGER}>
                 <MotionGrid
                   columns={{
                     'screen:xs': '1fr',
@@ -298,7 +275,7 @@ export function NewWelcomeUI(props: StepProps) {
                   }}
                   gap="3xl"
                   width="100%"
-                  {...ONBOARDING_WELCOME_STAGGER_ITEM}
+                  {...ONBOARDING_ENTER}
                   border={hasScmOnboarding ? 'primary' : 'muted'}
                   background={hasScmOnboarding ? 'primary' : 'secondary'}
                   radius="xl"
@@ -310,11 +287,7 @@ export function NewWelcomeUI(props: StepProps) {
                 </MotionGrid>
 
                 {hasScmOnboarding ? (
-                  <MotionFlex
-                    {...ONBOARDING_WELCOME_STAGGER_ITEM}
-                    width="100%"
-                    justify="center"
-                  >
+                  <MotionFlex {...ONBOARDING_ENTER} width="100%" justify="center">
                     <Button
                       variant="primary"
                       onClick={handleComplete}
@@ -324,7 +297,7 @@ export function NewWelcomeUI(props: StepProps) {
                     </Button>
                   </MotionFlex>
                 ) : (
-                  <MotionContainer {...ONBOARDING_WELCOME_STAGGER_ITEM}>
+                  <MotionContainer {...ONBOARDING_ENTER}>
                     <Flex align="center" gap="md" justify="center">
                       <IconCheckmark size="md" variant="success" />
                       <Text size="md" variant="muted">

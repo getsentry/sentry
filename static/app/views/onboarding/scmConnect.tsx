@@ -1,4 +1,4 @@
-import {LayoutGroup, motion} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText, InfoTip} from '@sentry/scraps/info';
@@ -13,6 +13,7 @@ import {IconCheckmark, IconClose, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 
+import {ONBOARDING_ENTER} from './animations';
 import type {StepProps} from './types';
 
 interface ScmConnectProps {
@@ -105,127 +106,125 @@ export function ScmConnect({
           )}
         />
 
-        <LayoutGroup>
-          {/* The note belongs to the control above it, so the two sit together
+        {/* The note belongs to the control above it, so the two sit together
               rather than a step's worth of space apart. */}
-          <Stack gap="md" width="100%">
-            <ScmIntegrationConnect
-              analyticsFlow="onboarding"
-              onClearDerivedState={onClearDerivedState}
-              onIntegrationChange={onIntegrationChange}
-              onRepositoryChange={onRepositoryChange}
-              selectedIntegration={selectedIntegration}
-              selectedRepository={selectedRepository}
-              pillsJustify="center"
-            />
+        <MotionStack gap="md" width="100%" {...ONBOARDING_ENTER}>
+          <ScmIntegrationConnect
+            analyticsFlow="onboarding"
+            onClearDerivedState={onClearDerivedState}
+            onIntegrationChange={onIntegrationChange}
+            onRepositoryChange={onRepositoryChange}
+            selectedIntegration={selectedIntegration}
+            selectedRepository={selectedRepository}
+            pillsJustify="center"
+          />
 
-            {/* The provider buttons are the page's focus until one is
+          {/* The provider buttons are the page's focus until one is
                 connected; after that the note follows the repo picker's edge. */}
-            <MotionFlex
-              layout="position"
-              gap="sm"
-              align="center"
-              justify={effectiveIntegration ? 'start' : 'center'}
-            >
-              <IconLock size="sm" variant="secondary" locked />
-              <Text variant="secondary" size="md" density="comfortable">
-                {t('Revoke access any time in settings')}
-              </Text>
-            </MotionFlex>
-          </Stack>
-
-          <MotionGrid
-            columns="1fr"
-            gap="2xl"
-            width="100%"
-            layout="position"
-            background="secondary"
-            border="primary"
-            radius="xl"
-            padding="xl"
-          >
-            {SCM_INFO_SECTIONS.map(section => (
-              <Stack key={section.title} gap="lg">
-                <Flex align="center" gap="sm">
-                  <Text size="md" density="compressed" variant="primary">
-                    {section.title}
-                  </Text>
-                  {section.tooltip && <InfoTip title={section.tooltip} size="sm" />}
-                </Flex>
-                <Flex wrap="wrap" gap="md 2xl">
-                  {section.items.map(item => (
-                    <Grid key={item.label} columns="max-content 1fr" gap="md">
-                      <Flex paddingTop="2xs">{section.icon}</Flex>
-                      <Flex>
-                        {item.tooltip ? (
-                          <InfoText
-                            title={item.tooltip}
-                            variant="primary"
-                            size="md"
-                            density="comfortable"
-                          >
-                            {item.label}
-                          </InfoText>
-                        ) : (
-                          <Text variant="primary" size="md" density="comfortable">
-                            {item.label}
-                          </Text>
-                        )}
-                      </Flex>
-                    </Grid>
-                  ))}
-                </Flex>
-              </Stack>
-            ))}
-          </MotionGrid>
-
           <MotionFlex
-            layout="position"
+            gap="sm"
             align="center"
-            justify="between"
-            gap="md"
-            width="100%"
-            paddingTop="2xl"
+            justify={effectiveIntegration ? 'start' : 'center'}
           >
-            <Flex align="center">{genBackButton?.()}</Flex>
-            <Flex align="center" gap="md">
-              <Button
-                analyticsEventKey="onboarding.scm_connect_skip_clicked"
-                analyticsEventName="Onboarding: SCM Connect Skip Clicked"
-                analyticsParams={{
-                  has_integration: !!effectiveIntegration,
-                }}
-                onClick={() => onComplete()}
-                variant="transparent"
-              >
-                {t('Continue without a repo')}
-              </Button>
-
-              <Button
-                variant="primary"
-                analyticsEventKey="onboarding.scm_connect_continue_clicked"
-                analyticsEventName="Onboarding: SCM Connect Continue Clicked"
-                analyticsParams={{
-                  provider: effectiveIntegration?.provider.key ?? '',
-                  repo: selectedRepository?.name ?? '',
-                }}
-                onClick={() => {
-                  if (effectiveIntegration && !selectedIntegration) {
-                    onIntegrationChange(effectiveIntegration);
-                  }
-                  onComplete();
-                }}
-                disabled={!selectedRepository?.id}
-              >
-                {t('Continue')}
-              </Button>
-            </Flex>
+            <IconLock size="sm" variant="secondary" locked />
+            <Text variant="secondary" size="md" density="comfortable">
+              {t('Revoke access any time in settings')}
+            </Text>
           </MotionFlex>
-        </LayoutGroup>
+        </MotionStack>
+
+        <MotionGrid
+          {...ONBOARDING_ENTER}
+          columns="1fr"
+          gap="2xl"
+          width="100%"
+          background="secondary"
+          border="primary"
+          radius="xl"
+          padding="xl"
+        >
+          {SCM_INFO_SECTIONS.map(section => (
+            <Stack key={section.title} gap="lg">
+              <Flex align="center" gap="sm">
+                <Text size="md" density="compressed" variant="primary">
+                  {section.title}
+                </Text>
+                {section.tooltip && <InfoTip title={section.tooltip} size="sm" />}
+              </Flex>
+              <Flex wrap="wrap" gap="md 2xl">
+                {section.items.map(item => (
+                  <Grid key={item.label} columns="max-content 1fr" gap="md">
+                    <Flex paddingTop="2xs">{section.icon}</Flex>
+                    <Flex>
+                      {item.tooltip ? (
+                        <InfoText
+                          title={item.tooltip}
+                          variant="primary"
+                          size="md"
+                          density="comfortable"
+                        >
+                          {item.label}
+                        </InfoText>
+                      ) : (
+                        <Text variant="primary" size="md" density="comfortable">
+                          {item.label}
+                        </Text>
+                      )}
+                    </Flex>
+                  </Grid>
+                ))}
+              </Flex>
+            </Stack>
+          ))}
+        </MotionGrid>
+
+        <MotionFlex
+          {...ONBOARDING_ENTER}
+          align="center"
+          justify="between"
+          gap="md"
+          width="100%"
+          paddingTop="2xl"
+        >
+          <Flex align="center">{genBackButton?.()}</Flex>
+          <Flex align="center" gap="md">
+            <Button
+              analyticsEventKey="onboarding.scm_connect_skip_clicked"
+              analyticsEventName="Onboarding: SCM Connect Skip Clicked"
+              analyticsParams={{
+                has_integration: !!effectiveIntegration,
+              }}
+              onClick={() => onComplete()}
+              variant="transparent"
+            >
+              {t('Continue without a repo')}
+            </Button>
+
+            <Button
+              variant="primary"
+              analyticsEventKey="onboarding.scm_connect_continue_clicked"
+              analyticsEventName="Onboarding: SCM Connect Continue Clicked"
+              analyticsParams={{
+                provider: effectiveIntegration?.provider.key ?? '',
+                repo: selectedRepository?.name ?? '',
+              }}
+              onClick={() => {
+                if (effectiveIntegration && !selectedIntegration) {
+                  onIntegrationChange(effectiveIntegration);
+                }
+                onComplete();
+              }}
+              disabled={!selectedRepository?.id}
+            >
+              {t('Continue')}
+            </Button>
+          </Flex>
+        </MotionFlex>
       </ScmStepLayout>
     </Stack>
   );
 }
 
 const MotionFlex = motion.create(Flex);
+const MotionStack = motion.create(Stack);
 const MotionGrid = motion.create(Grid);

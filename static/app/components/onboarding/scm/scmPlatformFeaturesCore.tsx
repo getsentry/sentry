@@ -22,6 +22,7 @@ import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ONBOARDING_ENTER} from 'sentry/views/onboarding/animations';
 
 import {
   type ScmAnalyticsFlow,
@@ -445,8 +446,9 @@ export function ScmPlatformFeaturesCore({
           <MotionFlex
             key="detecting"
             justify="center"
-            initial={{opacity: 0}}
-            animate={{opacity: 1}}
+            {...ONBOARDING_ENTER}
+            initial="initial"
+            animate="animate"
           >
             <LoadingIndicator mini />
           </MotionFlex>
@@ -460,8 +462,9 @@ export function ScmPlatformFeaturesCore({
             }}
             gap="lg"
             role="radiogroup"
-            initial={{opacity: 0}}
-            animate={{opacity: 1}}
+            {...ONBOARDING_ENTER}
+            initial="initial"
+            animate="animate"
           >
             {resolvedPlatforms.map(({platform, info}) => (
               <ScmPlatformRow
@@ -478,8 +481,9 @@ export function ScmPlatformFeaturesCore({
         <MotionStack
           key="manual"
           width="100%"
-          initial={{opacity: 0}}
-          animate={{opacity: 1}}
+          {...ONBOARDING_ENTER}
+          initial="initial"
+          animate="animate"
         >
           {/* Two literal variants instead of clearable={!detectedPlatformKey}: the
               core Select types `clearable` as a discriminated-union literal (`?: false`

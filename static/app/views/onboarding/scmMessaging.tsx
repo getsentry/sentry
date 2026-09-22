@@ -1,9 +1,9 @@
 import {useState} from 'react';
-import {AnimatePresence, LayoutGroup, motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -23,6 +23,7 @@ import {
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 
+import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from './animations';
 import type {StepProps} from './types';
 
 /**
@@ -107,148 +108,145 @@ export function ScmMessaging({
     // higher up, so each SCM step declares its own.
     <Stack containerType="inline-size">
       <ScmStepLayout>
-        <Stack gap="lg" paddingBottom="2xl">
-          <Heading as="h2" size="3xl" align="center">
-            {SCM_MESSAGING_TITLE}
-          </Heading>
-          <Text align="center" variant="muted" size="lg" density="comfortable">
-            {t(
-              'Send high priority issue alerts to Slack, Discord, or Teams. Email alerts stay on even if you skip. You can change this anytime.'
+        <MotionStack gap="lg" paddingBottom="2xl" {...ONBOARDING_STAGGER}>
+          <MotionContainer {...ONBOARDING_ENTER}>
+            <Heading as="h2" size="3xl" align="center">
+              {SCM_MESSAGING_TITLE}
+            </Heading>
+          </MotionContainer>
+          <MotionContainer {...ONBOARDING_ENTER}>
+            <Text align="center" variant="muted" size="lg" density="comfortable">
+              {t(
+                'Send high priority issue alerts to Slack, Discord, or Teams. Email alerts stay on even if you skip. You can change this anytime.'
+              )}
+            </Text>
+          </MotionContainer>
+        </MotionStack>
+
+        {hasValidationAlert && (
+          <MotionStack gap="sm" paddingBottom="sm" {...ONBOARDING_ENTER}>
+            {validation.staleReason === 'integration' && (
+              <Alert variant="warning" showIcon>
+                {t("We couldn't find the saved integration. Choose a destination again.")}
+              </Alert>
             )}
-          </Text>
-        </Stack>
-
-        <LayoutGroup>
-          {hasValidationAlert && (
-            <MotionStack layout="position" gap="sm" paddingBottom="sm">
-              {validation.staleReason === 'integration' && (
-                <Alert variant="warning" showIcon>
-                  {t(
-                    "We couldn't find the saved integration. Choose a destination again."
-                  )}
-                </Alert>
-              )}
-              {validation.staleReason === 'inactiveIntegration' && (
-                <Alert variant="warning" showIcon>
-                  {t(
-                    'The saved integration is no longer active. Choose a destination again.'
-                  )}
-                </Alert>
-              )}
-              {validation.staleReason === 'ineligibleIntegration' && (
-                <Alert variant="warning" showIcon>
-                  {t(
-                    'The saved workspace can no longer receive issue alerts. Choose a destination again.'
-                  )}
-                </Alert>
-              )}
-              {validation.staleReason === 'channel' && (
-                <Alert variant="warning" showIcon>
-                  {t("We couldn't verify the saved channel. Choose a destination again.")}
-                </Alert>
-              )}
-              {validation.isError && (
-                <Alert variant="danger" showIcon>
-                  {t(
-                    "We couldn't check the saved destination. Reload the page to try again."
-                  )}
-                </Alert>
-              )}
-            </MotionStack>
-          )}
-
-          <AnimatePresence mode="wait" initial={false}>
-            {isPending ? (
-              <MotionStack
-                key="pending"
-                initial={{opacity: 0}}
-                animate={{opacity: 1}}
-                exit={{opacity: 0}}
-                transition={{duration: 0.15}}
-              >
-                <Flex justify="center">
-                  <LoadingIndicator />
-                </Flex>
-              </MotionStack>
-            ) : isError ? (
-              <MotionStack
-                key="error"
-                initial={{opacity: 0}}
-                animate={{opacity: 1}}
-                exit={{opacity: 0}}
-                transition={{duration: 0.15}}
-              >
-                <Alert
-                  variant="warning"
-                  trailingItems={
-                    <Alert.Button onClick={retry}>{t('Retry')}</Alert.Button>
-                  }
-                >
-                  {t('Failed to load integrations.')}
-                </Alert>
-              </MotionStack>
-            ) : providers.length > 0 ? (
-              <MotionStack
-                key="list"
-                layout="position"
-                initial={{opacity: 0}}
-                animate={{opacity: 1}}
-                exit={{opacity: 0}}
-                transition={{duration: 0.15}}
-                gap="lg"
-              >
-                {visibleProviders.map(resolvedProvider => (
-                  <ScmMessagingProviderRow
-                    key={resolvedProvider.providerKey}
-                    resolvedProvider={resolvedProvider}
-                    messagingSetup={messagingSetup}
-                    onMessagingSetupChange={onMessagingSetupChange}
-                    onInstallComplete={handleInstallComplete}
-                    activeRow={validatedActiveRow}
-                    onActiveRowChange={setActiveRow}
-                    isRefetchingIntegrations={isRefetchingIntegrations}
-                    onContinue={handleContinue}
-                  />
-                ))}
-              </MotionStack>
-            ) : null}
-          </AnimatePresence>
-
-          {validatedActiveRow === null && (
-            <MotionFlex
-              layout="position"
-              align="center"
-              justify="between"
-              gap="md"
-              width="100%"
-              paddingTop="2xl"
-            >
-              <Flex align="center">{genBackButton?.()}</Flex>
-              <Flex align="center" gap="md">
-                {showContinue ? (
-                  <Button
-                    variant="primary"
-                    disabled={!canContinue}
-                    analyticsEventKey="onboarding.scm_messaging_continue_clicked"
-                    analyticsEventName="Onboarding: SCM Messaging Continue Clicked"
-                    onClick={handleContinue}
-                  >
-                    {t('Continue')}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="transparent"
-                    analyticsEventKey="onboarding.scm_messaging_setup_later_clicked"
-                    analyticsEventName="Onboarding: SCM Messaging Setup Later Clicked"
-                    onClick={handleSetupLater}
-                  >
-                    {t('Set up later')}
-                  </Button>
+            {validation.staleReason === 'inactiveIntegration' && (
+              <Alert variant="warning" showIcon>
+                {t(
+                  'The saved integration is no longer active. Choose a destination again.'
                 )}
+              </Alert>
+            )}
+            {validation.staleReason === 'ineligibleIntegration' && (
+              <Alert variant="warning" showIcon>
+                {t(
+                  'The saved workspace can no longer receive issue alerts. Choose a destination again.'
+                )}
+              </Alert>
+            )}
+            {validation.staleReason === 'channel' && (
+              <Alert variant="warning" showIcon>
+                {t("We couldn't verify the saved channel. Choose a destination again.")}
+              </Alert>
+            )}
+            {validation.isError && (
+              <Alert variant="danger" showIcon>
+                {t(
+                  "We couldn't check the saved destination. Reload the page to try again."
+                )}
+              </Alert>
+            )}
+          </MotionStack>
+        )}
+
+        <AnimatePresence mode="wait" initial={false}>
+          {isPending ? (
+            <MotionStack
+              key="pending"
+              {...ONBOARDING_ENTER}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <Flex justify="center">
+                <LoadingIndicator />
               </Flex>
-            </MotionFlex>
-          )}
-        </LayoutGroup>
+            </MotionStack>
+          ) : isError ? (
+            <MotionStack
+              key="error"
+              {...ONBOARDING_ENTER}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <Alert
+                variant="warning"
+                trailingItems={<Alert.Button onClick={retry}>{t('Retry')}</Alert.Button>}
+              >
+                {t('Failed to load integrations.')}
+              </Alert>
+            </MotionStack>
+          ) : providers.length > 0 ? (
+            <MotionStack
+              key="list"
+              {...ONBOARDING_ENTER}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              gap="lg"
+            >
+              {visibleProviders.map(resolvedProvider => (
+                <ScmMessagingProviderRow
+                  key={resolvedProvider.providerKey}
+                  resolvedProvider={resolvedProvider}
+                  messagingSetup={messagingSetup}
+                  onMessagingSetupChange={onMessagingSetupChange}
+                  onInstallComplete={handleInstallComplete}
+                  activeRow={validatedActiveRow}
+                  onActiveRowChange={setActiveRow}
+                  isRefetchingIntegrations={isRefetchingIntegrations}
+                  onContinue={handleContinue}
+                />
+              ))}
+            </MotionStack>
+          ) : null}
+        </AnimatePresence>
+
+        {validatedActiveRow === null && (
+          <MotionFlex
+            {...ONBOARDING_ENTER}
+            align="center"
+            justify="between"
+            gap="md"
+            width="100%"
+            paddingTop="2xl"
+          >
+            <Flex align="center">{genBackButton?.()}</Flex>
+            <Flex align="center" gap="md">
+              {showContinue ? (
+                <Button
+                  variant="primary"
+                  disabled={!canContinue}
+                  analyticsEventKey="onboarding.scm_messaging_continue_clicked"
+                  analyticsEventName="Onboarding: SCM Messaging Continue Clicked"
+                  onClick={handleContinue}
+                >
+                  {t('Continue')}
+                </Button>
+              ) : (
+                <Button
+                  variant="transparent"
+                  analyticsEventKey="onboarding.scm_messaging_setup_later_clicked"
+                  analyticsEventName="Onboarding: SCM Messaging Setup Later Clicked"
+                  onClick={handleSetupLater}
+                >
+                  {t('Set up later')}
+                </Button>
+              )}
+            </Flex>
+          </MotionFlex>
+        )}
       </ScmStepLayout>
     </Stack>
   );
@@ -318,3 +316,4 @@ function listedProviders(
 
 const MotionFlex = motion.create(Flex);
 const MotionStack = motion.create(Stack);
+const MotionContainer = motion.create(Container);

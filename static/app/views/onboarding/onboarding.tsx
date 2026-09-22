@@ -33,6 +33,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from 'sentry/views/onboarding/animations';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 
 import {FOOTER_HEIGHT} from './components/genericFooter';
@@ -268,16 +269,7 @@ function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableP
       : OnboardingStep;
 
   return (
-    <Component
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      variants={{animate: {}}}
-      transition={{
-        staggerChildren: 0.2,
-      }}
-      data-test-id={`onboarding-step-${props.id}`}
-    >
+    <Component {...ONBOARDING_STAGGER} data-test-id={`onboarding-step-${props.id}`}>
       {props.children}
     </Component>
   );
@@ -519,20 +511,7 @@ export function OnboardingWithoutContext() {
           </Container>
         )}
         {stepIndex > 0 && !hasScmOnboarding && (
-          <BackMotionDiv
-            initial="initial"
-            animate="visible"
-            variants={{
-              initial: {opacity: 0, visibility: 'hidden'},
-              visible: {
-                opacity: 1,
-                transition: {delay: 1},
-                transitionEnd: {
-                  visibility: 'visible',
-                },
-              },
-            }}
-          >
+          <BackMotionDiv {...ONBOARDING_ENTER}>
             <Button
               onClick={() => handleGoBack()}
               icon={<IconArrow direction="left" />}
