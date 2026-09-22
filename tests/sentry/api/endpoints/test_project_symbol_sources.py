@@ -139,6 +139,41 @@ class ProjectSymbolSourcesPostTest(APITestCase):
         )
         assert "id" in response.data
 
+    azure_config = {
+        "id": "honk",
+        "name": "honk source",
+        "layout": {
+            "type": "native",
+        },
+        "type": "azure",
+        "account": "honkaccount",
+        "container": "honk",
+        "tenant_id": "tenant",
+        "client_id": "client",
+        "client_secret": "beepbeep",
+    }
+
+    def test_submit_azure_successful(self) -> None:
+        config = dict(self.azure_config)
+
+        project = self.project  # force creation
+        self.login_as(user=self.user)
+
+        with self.feature("organizations:azure-symbol-sources"):
+            response = self.get_success_response(
+                project.organization.slug, project.slug, raw_data=config
+            )
+        assert response.data == redact_source_secrets([config])[0]
+        assert response.data["client_secret"] == {"hidden-secret": True}
+
+    def test_submit_azure_without_feature(self) -> None:
+        project = self.project  # force creation
+        self.login_as(user=self.user)
+
+        self.get_error_response(
+            project.organization.slug, project.slug, raw_data=dict(self.azure_config)
+        )
+
     def test_submit_duplicate(self) -> None:
         config = {
             "id": "honk",
