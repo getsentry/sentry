@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
-import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -22,9 +21,7 @@ export function DroppedDataPanelContent({droppedData}: DroppedDataPanelContentPr
         </Text>
       </DrawerHeader>
       <DrawerBody>
-        <Container padding="xl">
-          <DroppedDataChart annotations={droppedData} />
-        </Container>
+        <DroppedDataChart annotations={droppedData} />
       </DrawerBody>
     </Fragment>
   );

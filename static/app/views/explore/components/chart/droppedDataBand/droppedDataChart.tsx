@@ -35,13 +35,15 @@ function getDroppedDataCategoryColors(
   categories: DroppedDataCategory[],
   theme: Theme
 ): Record<DroppedDataCategory, string> {
-  const ordered = orderCategories(categories);
-  const palette = theme.chart.getColorPalette(Math.max(ordered.length - 1, 0));
+  const palette = theme.chart.getColorPalette(Math.max(categories.length - 1, 0));
 
-  return ordered.reduce<Record<DroppedDataCategory, string>>((acc, category, index) => {
-    acc[category] = palette[index % palette.length]!;
-    return acc;
-  }, {});
+  return categories.reduce<Record<DroppedDataCategory, string>>(
+    (acc, category, index) => {
+      acc[category] = palette[index % palette.length]!;
+      return acc;
+    },
+    {}
+  );
 }
 
 export function annotationsToSeries(
