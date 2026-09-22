@@ -17,7 +17,7 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
+import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
@@ -28,7 +28,6 @@ import {
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -124,32 +123,27 @@ function LogsHeader() {
     />
   ) : null;
 
-  const titleTooltip = (
-    <PageHeadingQuestionTooltip
-      docsUrl="https://docs.sentry.io/product/explore/logs/"
-      title={t(
-        'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
-      )}
-      linkLabel={t('Read the Docs')}
-    />
-  );
-
-  const hasBreadcrumb = Boolean(title && defined(pageId));
-
   return (
     <Fragment>
       {documentTitle}
-      <TopBar.Slot name="title">
-        {hasBreadcrumb ? (
-          <ExploreBreadcrumb
-            traceItemDataset={TraceItemDataset.LOGS}
-            savedQueryName={savedQuery?.name}
+      {defined(pageId) && title ? (
+        <ExploreSavedQueryBreadcrumbs
+          surface="logs"
+          savedQueryId={pageId}
+          title={title}
+        />
+      ) : (
+        <TopBar.Slot name="title">
+          {title || t('Logs')}
+          <PageHeadingQuestionTooltip
+            docsUrl="https://docs.sentry.io/product/explore/logs/"
+            title={t(
+              'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
+            )}
+            linkLabel={t('Read the Docs')}
           />
-        ) : (
-          title || t('Logs')
-        )}
-        {titleTooltip}
-      </TopBar.Slot>
+        </TopBar.Slot>
+      )}
       <TopBar.Slot name="feedback">
         <FeedbackButton
           feedbackOptions={logsFeedbackOptions}
