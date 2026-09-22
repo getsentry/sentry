@@ -46,6 +46,7 @@ import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plott
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {navigationTypeSuppressesThresholds} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
@@ -404,8 +405,9 @@ function VisualizationWidgetContent({
   );
 
   if (
-    defined(widget.thresholds?.max_values?.max1) ||
-    defined(widget.thresholds?.max_values?.max2)
+    !navigationTypeSuppressesThresholds(dashboardFilters, organization) &&
+    (defined(widget.thresholds?.max_values?.max1) ||
+      defined(widget.thresholds?.max_values?.max2))
   ) {
     plottables.push(
       new Thresholds({

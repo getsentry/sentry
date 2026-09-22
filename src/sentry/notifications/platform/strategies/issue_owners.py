@@ -5,15 +5,13 @@ from dataclasses import dataclass
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.notifications.platform.target import GenericNotificationTarget
-from sentry.notifications.platform.types import (
-    NotificationProviderKey,
-    NotificationStrategy,
-    NotificationTarget,
-    NotificationTargetResourceType,
+from sentry.models.team import Team
+from sentry.notifications.platform.strategies.actor_routing import (
+    TeamRoutingStrategy,
+    UserRoutingStrategy,
 )
-from sentry.users.services.user.service import user_service
+from sentry.notifications.platform.types import NotificationStrategy, NotificationTarget
+from sentry.notifications.types import NotificationSettingEnum
 
 
 @dataclass(frozen=True)
@@ -28,32 +26,27 @@ class IssueOwnersActivityAlertStrategy(NotificationStrategy):
 
     def get_targets(self) -> list[NotificationTarget]:
         user_ids, team_ids = self.get_issue_owner_ids()
+        project = self.group.project
+        teams = list(Team.objects.filter(id__in=team_ids, organization_id=project.organization_id))
 
-        if team_ids:
-            members = OrganizationMemberTeam.objects.filter(team_id__in=team_ids).select_related(
-                "organizationmember"
-            )
-            for member in members:
-                uid = member.organizationmember.user_id
-                if uid is not None:
-                    user_ids.add(uid)
+        targets = UserRoutingStrategy(
+            project=project,
+            user_ids=list(user_ids),
+            settings_key=NotificationSettingEnum.ISSUE_ALERTS,
+        ).get_targets()
+        targets.extend(
+            TeamRoutingStrategy(
+                project=project,
+                teams=teams,
+                settings_key=NotificationSettingEnum.ISSUE_ALERTS,
+            ).get_targets()
+        )
 
-        if not user_ids:
-            return []
-
-        users = user_service.get_many_by_id(ids=list(user_ids))
-        targets: list[NotificationTarget] = []
-        for user in users:
-            if not user.email:
-                continue
-            targets.append(
-                GenericNotificationTarget(
-                    provider_key=NotificationProviderKey.EMAIL,
-                    resource_type=NotificationTargetResourceType.EMAIL,
-                    resource_id=user.email,
-                )
-            )
-        return targets
+        deduplicated_targets: list[NotificationTarget] = []
+        for target in targets:
+            if target not in deduplicated_targets:
+                deduplicated_targets.append(target)
+        return deduplicated_targets
 
     def get_issue_owner_ids(self) -> tuple[set[int], set[int]]:
         """

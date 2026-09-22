@@ -76,14 +76,8 @@ describe('EventList', () => {
     });
   });
 
-  function renderAllEvents() {
-    render(<EventList group={group} />, {
-      initialRouterConfig,
-    });
-  }
-
   it('renders the list using a discover event query', async () => {
-    renderAllEvents();
+    render(<EventList group={group} />, {initialRouterConfig});
     const {result} = renderHook(() => useEventColumns(group, organization));
 
     expect(await screen.findByText('All Events')).toBeInTheDocument();

@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
@@ -14,13 +15,51 @@ import {PanelFooter} from 'sentry/components/panels/panelFooter';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Automation, AutomationStats} from 'sentry/types/workflowEngine/automations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {getUtcDateString} from 'sentry/utils/dates';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 interface IssueAlertDetailsProps extends DateTimeObject {
   automationId: Automation['id'];
+}
+
+type WorkflowStatsResponse = {
+  meta: {
+    dataset: string;
+    end: number;
+    start: number;
+  };
+  timeSeries: TimeSeries[];
+};
+
+type WorkflowStatsApiResponse = AutomationStats[] | WorkflowStatsResponse;
+
+type WorkflowStats = {
+  values: TimeSeries['values'];
+  timeframe?: WorkflowStatsResponse['meta'];
+};
+
+function normalizeWorkflowStatsResponse(
+  response: WorkflowStatsApiResponse | undefined
+): WorkflowStats | undefined {
+  if (!response) {
+    return undefined;
+  }
+
+  if (Array.isArray(response)) {
+    return {
+      values: response.map(({date, count}) => ({
+        timestamp: Date.parse(date),
+        value: count,
+      })),
+    };
+  }
+
+  return {
+    timeframe: response.meta,
+    values: response.timeSeries[0]?.values ?? [],
+  };
 }
 
 export function AutomationStatsChart({
@@ -34,28 +73,28 @@ export function AutomationStatsChart({
   const organization = useOrganization();
   const chartZoomProps = useChartZoom({saveOnZoom: true});
   const {
-    data: fireHistory,
+    data: statsResponse,
     isPending,
     isError,
-  } = useApiQuery<AutomationStats[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/stats/', {
-        path: {organizationIdOrSlug: organization.slug, workflowId: automationId},
-      }),
+  } = useQuery(
+    apiOptions.as<WorkflowStatsApiResponse>()(
+      '/organizations/$organizationIdOrSlug/workflows/$workflowId/stats/',
       {
+        path: {organizationIdOrSlug: organization.slug, workflowId: automationId},
         query: {
           ...(period && {statsPeriod: period}),
           start: start ? getUtcDateString(start) : undefined,
           end: end ? getUtcDateString(end) : undefined,
           utc: utc ? 'true' : undefined,
         },
-      },
-    ],
-    {staleTime: 30000}
+        staleTime: 30_000,
+      }
+    )
   );
 
+  const stats = normalizeWorkflowStatsResponse(statsResponse);
   const totalAlertsTriggered =
-    fireHistory?.reduce((acc, curr) => acc + curr.count, 0) ?? 0;
+    stats?.values.reduce((acc, curr) => acc + (curr.value ?? 0), 0) ?? 0;
 
   return (
     <Panel>
@@ -65,10 +104,14 @@ export function AutomationStatsChart({
         </Container>
         {isPending && <Placeholder height="200px" />}
         {isError && <LoadingError />}
-        {fireHistory && (
+        {stats && (
           <BarChart
             {...chartZoomProps}
+            period={period}
             showTimeInTooltip
+            start={start ? getUtcToLocalDateObject(start) : undefined}
+            end={end ? getUtcToLocalDateObject(end) : undefined}
+            utc={utc ?? undefined}
             grid={{
               left: theme.space['2xs'],
               right: theme.space.xl,
@@ -78,12 +121,20 @@ export function AutomationStatsChart({
             yAxis={{
               minInterval: 1,
             }}
+            xAxis={
+              stats.timeframe
+                ? {
+                    min: stats.timeframe.start,
+                    max: stats.timeframe.end,
+                  }
+                : undefined
+            }
             series={[
               {
                 seriesName: t('Alerts Triggered'),
-                data: fireHistory.map(automation => ({
-                  name: automation.date,
-                  value: automation.count,
+                data: stats.values.map(({timestamp, value}) => ({
+                  name: timestamp,
+                  value: value ?? 0,
                 })),
                 emphasis: {
                   disabled: true,

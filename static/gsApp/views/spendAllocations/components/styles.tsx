@@ -27,7 +27,12 @@ export function HalvedGrid({
   ...gridProps
 }: {children: React.ReactNode} & React.ComponentProps<typeof Grid>) {
   return (
-    <Grid columns="repeat(2, 1fr)" gap="3xl" align="center" {...gridProps}>
+    <Grid
+      columns={{zero: '1fr', md: 'repeat(2, 1fr)'}}
+      gap="3xl"
+      align="center"
+      {...gridProps}
+    >
       {children}
     </Grid>
   );
@@ -50,20 +55,4 @@ export function Divider() {
 
 export function Centered(props: FlexProps) {
   return <Flex justify="center" align="center" {...props} />;
-}
-
-export function Cell({
-  children,
-  textAlign,
-  ...props
-}: {
-  children?: React.ReactNode;
-  textAlign?: 'left' | 'center' | 'right';
-} & React.ComponentProps<'td'>) {
-  const theme = useTheme();
-  return (
-    <td style={{padding: theme.space.xl, textAlign}} {...props}>
-      {children}
-    </td>
-  );
 }

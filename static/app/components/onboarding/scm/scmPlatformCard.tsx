@@ -17,6 +17,7 @@ interface ScmPlatformCardProps {
   onClick: () => void;
   platform: PlatformKey;
   type: string;
+  autoFocus?: boolean;
 }
 
 const KIND_LABELS: Record<PlatformKind, string> = {
@@ -32,9 +33,15 @@ export function ScmPlatformCard({
   type,
   isSelected,
   onClick,
+  autoFocus,
 }: ScmPlatformCardProps) {
   return (
-    <ScmCardButton onClick={onClick} role="radio" aria-checked={isSelected}>
+    <ScmCardButton
+      onClick={onClick}
+      role="radio"
+      aria-checked={isSelected}
+      autoFocus={autoFocus}
+    >
       <ScmSelectableContainer isSelected={isSelected} padding="lg">
         <Flex gap="md" align="center">
           <Flex flexShrink={0}>

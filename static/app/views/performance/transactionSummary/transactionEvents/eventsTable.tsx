@@ -40,7 +40,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {COLUMN_TITLES} from 'sentry/views/performance/data';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {
   generateProfileLink,
   generateReplayLink,
