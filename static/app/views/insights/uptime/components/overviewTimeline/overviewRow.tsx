@@ -63,7 +63,7 @@ export function OverviewRow({uptimeDetector, timeWindowConfig, single}: Props) {
   // XXX(epurkhiser): This is a hack, we're seeing some uptime detectors with
   // missing dataSources. That should never happen, but for now let's make sure
   // we're not totally blowing up customers views
-  if (uptimeDetector.dataSources === null) {
+  if (!uptimeDetector.dataSources.length) {
     return null;
   }
 
