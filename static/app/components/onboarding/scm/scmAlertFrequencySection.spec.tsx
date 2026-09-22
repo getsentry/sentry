@@ -117,7 +117,8 @@ describe('ScmAlertFrequencySection', () => {
     );
   });
 
-  it('disables the Integration checkbox when the plan lacks alert-rule integrations', async () => {
+  it('keeps the Integration checkbox focusable but inert when the plan lacks alert-rule integrations', async () => {
+    const setActions = jest.fn();
     jest.spyOn(integrationUtil, 'getIntegrationFeatureGate').mockReturnValue({
       IntegrationFeatures: p =>
         p.children({
@@ -128,14 +129,21 @@ describe('ScmAlertFrequencySection', () => {
         }),
       FeatureList: () => null,
     });
-    renderSection({analyticsFlow: 'onboarding'});
+    renderSection({
+      analyticsFlow: 'onboarding',
+      notificationProps: {...notificationProps, setActions},
+    });
 
     const checkbox = screen.getByRole('checkbox', {
       name: 'Integration (Slack, Discord, MS Teams, etc.)',
     });
-    expect(checkbox).toBeDisabled();
-    await userEvent.hover(checkbox.closest('label')!);
+    expect(checkbox).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.click(checkbox);
+    expect(setActions).not.toHaveBeenCalled();
+    expect(checkbox).toHaveFocus();
     expect(await screen.findByText('Requires Team Plan or above')).toBeInTheDocument();
+    expect(checkbox).toHaveAccessibleDescription('Requires Team Plan or above');
   });
 
   it('tracks integration toggles in project creation', async () => {

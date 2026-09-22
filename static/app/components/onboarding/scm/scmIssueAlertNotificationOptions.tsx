@@ -76,12 +76,17 @@ export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Prop
               features={ALERT_RULE_INTEGRATION_FEATURES}
             >
               {({disabled, disabledReason}) => (
-                <Tooltip title={disabledReason} disabled={!disabled} skipWrapper>
-                  <Flex as="label" align="start" gap="md">
+                <Flex as="label" align="start" gap="md">
+                  {/* aria-disabled rather than disabled so the checkbox stays
+                  focusable and the plan tooltip opens on keyboard focus. */}
+                  <Tooltip title={disabledReason} disabled={!disabled} skipWrapper>
                     <Checkbox
                       checked={actions.includes(MultipleCheckboxOptions.INTEGRATION)}
-                      disabled={disabled}
+                      aria-disabled={disabled || undefined}
                       onChange={e => {
+                        if (disabled) {
+                          return;
+                        }
                         setActions(
                           e.target.checked
                             ? [...actions, MultipleCheckboxOptions.INTEGRATION]
@@ -98,11 +103,11 @@ export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Prop
                         }
                       }}
                     />
-                    <Text bold={false} ellipsis>
-                      {t('Integration (Slack, Discord, MS Teams, etc.)')}
-                    </Text>
-                  </Flex>
-                </Tooltip>
+                  </Tooltip>
+                  <Text bold={false} ellipsis>
+                    {t('Integration (Slack, Discord, MS Teams, etc.)')}
+                  </Text>
+                </Flex>
               )}
             </IntegrationFeatures>
           )}
