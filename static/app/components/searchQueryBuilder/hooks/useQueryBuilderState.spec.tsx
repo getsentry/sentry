@@ -454,6 +454,14 @@ describe('regex filters', () => {
     ).toBe('message://a\\/\\/ b//');
   });
 
+  it('restores an escaped slash pair when switching away from matches regex', () => {
+    const query = 'message://a\\/\\/ b//';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.DEFAULT)
+    ).toBe('message:"a// b"');
+  });
+
   it('quotes a character class pattern when switching away from matches regex', () => {
     const query = 'message://[0-9]//';
 

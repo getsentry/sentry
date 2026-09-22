@@ -381,7 +381,8 @@ export function modifyFilterOperatorQuery(
     !isRegexOperator(internalOp) &&
     newToken.value.type === Token.VALUE_TEXT
   ) {
-    const {value} = newToken.value;
+    // Undo the escaping stringifyToken applies to an inner `//`.
+    const value = newToken.value.value.replaceAll(/\\\/\\\/(?=[\t\n )])/g, '//');
     const quoted = !value.endsWith('\\');
     newToken.value = {
       ...newToken.value,
