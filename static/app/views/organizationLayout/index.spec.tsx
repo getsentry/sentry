@@ -1,8 +1,15 @@
 import {Fragment, useEffect} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ReleaseMetaFixture} from 'sentry-fixture/releaseMeta';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -152,6 +159,46 @@ describe('OrganizationLayout', () => {
     expect(
       await screen.findByText(/Celery workers have not checked in/)
     ).toBeInTheDocument();
+  });
+
+  it('closes the releases drawer and preserves unrelated query parameters', async () => {
+    const organization = OrganizationFixture();
+    OrganizationStore.onUpdate(organization);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/test-release/meta/`,
+      body: ReleaseMetaFixture({projects: []}),
+    });
+
+    const {router} = render(<OrganizationLayout />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/1/`,
+          query: {
+            project: '1',
+            query: 'is:unresolved',
+            rd: 'show',
+            rdFilesCursor: 'cursor',
+            rdRelease: 'test-release',
+            rdReleaseProjectId: '1',
+            rdSource: 'release-version-link',
+          },
+        },
+      },
+    });
+
+    const drawer = await screen.findByRole('complementary', {
+      name: 'Releases drawer',
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
+    await waitForElementToBeRemoved(drawer);
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        project: '1',
+        query: 'is:unresolved',
+      });
+    });
   });
 
   describe('new navigation layout', () => {
