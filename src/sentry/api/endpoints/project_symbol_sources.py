@@ -280,13 +280,13 @@ class _SymbolSourceErrorResponse(TypedDict):
     error: str
 
 
-@extend_schema(tags=["Projects"])
 def _can_use_source_type(project: Project, source: Any) -> bool:
     return source.get("type") != "azure" or features.has(
         "organizations:azure-symbol-sources", project.organization
     )
 
 
+@extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
