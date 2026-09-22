@@ -19,10 +19,14 @@ def get_integration_from_channel_data(data: Mapping[str, Any]) -> RpcIntegration
     )
 
 
-def _integration_lookups(data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+def _external_id_lookup(external_id: str) -> Mapping[str, Any]:
+    return {"provider": IntegrationProviderSlug.MSTEAMS.value, "external_id": external_id}
+
+
+def _routable_lookups(data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     """
-    The `integration_service.get_integration` filters that could identify the integration a
-    request belongs to, most specific first. Empty when the request carries no usable identifier.
+    The `integration_service.get_integration` filters identifying an integration whose events
+    are served from the cells, most specific first.
     """
     lookups: list[Mapping[str, Any]] = []
 
@@ -36,21 +40,31 @@ def _integration_lookups(data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     if integration_id is not None:
         lookups.append({"integration_id": integration_id})
 
-    # Team installs are keyed by team id, personal installs by tenant id.
-    for external_id in (
-        get_path(data, "channelData", "team", "id"),
-        get_path(data, "channelData", "tenant", "id"),
-    ):
-        if external_id is not None:
-            lookups.append(
-                {"provider": IntegrationProviderSlug.MSTEAMS.value, "external_id": external_id}
-            )
+    team_id = get_path(data, "channelData", "team", "id")
+    if team_id is not None:
+        lookups.append(_external_id_lookup(team_id))
+
+    return lookups
+
+
+def _integration_lookups(data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    """
+    The `integration_service.get_integration` filters that could identify the integration a
+    request belongs to, most specific first. Empty when the request carries no usable identifier.
+    """
+    lookups = _routable_lookups(data=data)
+
+    # Personal installs are keyed by tenant id. Their events are handled in the control silo,
+    # where the identities they operate on live, so a tenant id is not routable on its own.
+    tenant_id = get_path(data, "channelData", "tenant", "id")
+    if tenant_id is not None:
+        lookups.append(_external_id_lookup(tenant_id))
 
     return lookups
 
 
 def can_infer_integration(data: Mapping[str, Any]) -> bool:
-    return len(_integration_lookups(data=data)) > 0
+    return len(_routable_lookups(data=data)) > 0
 
 
 def get_integration_from_request_data(data: Mapping[str, Any]) -> RpcIntegration | None:

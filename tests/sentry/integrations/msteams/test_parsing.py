@@ -75,10 +75,10 @@ class GetIntegrationFromRequestDataTest(TestCase):
 
         assert parsing.can_infer_integration(data=data) is True
 
-    def test_can_infer_from_tenant_id_alone(self) -> None:
+    def test_cannot_infer_from_tenant_id_alone(self) -> None:
         data = self.request_data(tenant_id="m17hr4nd1r")
 
-        assert parsing.can_infer_integration(data=data) is True
+        assert parsing.can_infer_integration(data=data) is False
 
     def test_cannot_infer_without_any_identifiers(self) -> None:
         assert parsing.can_infer_integration(data=self.request_data()) is False
