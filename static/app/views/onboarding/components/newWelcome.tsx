@@ -244,10 +244,8 @@ export function NewWelcomeUI(props: StepProps) {
           {/* Let the onboarding step's exit animate through this nested boundary. */}
           <AnimatePresence mode="wait" initial={false} propagate>
             {showAgentSetup ? (
-              // The agent setup swaps in after the stagger has already run, so it
-              // drives the shared variants itself rather than inheriting them.
-              // Declaring `animate` makes it a variant root, which also stops the
-              // step-level exit label from propagating in — hence the explicit exit.
+              // Swaps in after the stagger has run, so it drives the variants
+              // itself rather than inheriting the step's.
               <MotionContainer
                 key="agent-setup"
                 width="100%"

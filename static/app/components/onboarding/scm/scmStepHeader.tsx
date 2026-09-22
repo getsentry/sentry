@@ -11,10 +11,6 @@ interface ScmStepHeaderProps {
   subtitle: string;
 }
 
-/**
- * The block itself holds still; the title and subtitle each enter on their own
- * so the heading reads as settling into place rather than sliding up.
- */
 export function ScmStepHeader({heading, subtitle}: ScmStepHeaderProps) {
   return (
     <MotionStack

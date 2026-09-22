@@ -66,7 +66,6 @@ export function ScmFeatureRow({
                   {label}
                 </Text>
               </Flex>
-              {/* Presentational only: let the card own hover and cursor. */}
               <Flex flexShrink={0} pointerEvents="none">
                 <Checkbox
                   checked={isSelected}
@@ -78,8 +77,6 @@ export function ScmFeatureRow({
               </Flex>
             </Flex>
 
-            {/* Grows so the volume row sits on the card's floor, level with
-                its siblings however long their descriptions run. */}
             <Stack flexGrow={1}>
               <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
                 {description}

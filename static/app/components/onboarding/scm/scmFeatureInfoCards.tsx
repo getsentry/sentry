@@ -46,7 +46,6 @@ export function ScmFeatureInfoCards({
             disabled={!isDisabled}
             delay={100}
           >
-            {/* Mirrors the toggleable card's inner layout, minus its checkbox. */}
             <Stack height="100%" gap="md">
               <Flex align="center" gap="md">
                 <Flex flexShrink={0}>

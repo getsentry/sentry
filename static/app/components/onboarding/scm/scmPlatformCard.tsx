@@ -44,7 +44,6 @@ export function ScmPlatformRow({
               {name}
             </InfoText>
           </Flex>
-          {/* Presentational only: let the card own hover and cursor. */}
           <Flex pointerEvents="none">
             <Radio
               checked={isSelected}

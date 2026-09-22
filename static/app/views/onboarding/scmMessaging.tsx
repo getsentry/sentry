@@ -75,9 +75,8 @@ export function ScmMessaging({
   const validatedActiveRow = validateActiveRow(activeRow, providers, messagingSetup);
   const visibleProviders = listedProviders(providers, validatedActiveRow, messagingSetup);
 
-  // The step offers exactly one way forward: Set up later until a destination is
-  // selected, then Continue, which creates the project and its alert rules and
-  // stays disabled until that destination is conclusively revalidated.
+  // Continue creates the project and its alert rules, so it waits for a
+  // destination and for that destination to revalidate.
   const showContinue = messagingSetup.mode === 'selected';
   const canContinue = validation.isValid;
 

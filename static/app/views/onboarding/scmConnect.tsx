@@ -31,7 +31,6 @@ interface ScmConnectProps {
 
 interface ScmInfoItem {
   label: string;
-  // Shown in a hover tooltip behind a dotted underline on the label.
   tooltip?: string;
 }
 
@@ -106,8 +105,6 @@ export function ScmConnect({
           )}
         />
 
-        {/* The note belongs to the control above it, so the two sit together
-              rather than a step's worth of space apart. */}
         <MotionStack gap="xl" width="100%" {...ONBOARDING_ENTER}>
           <ScmIntegrationConnect
             analyticsFlow="onboarding"
@@ -119,8 +116,6 @@ export function ScmConnect({
             pillsJustify="center"
           />
 
-          {/* The provider buttons are the page's focus until one is
-                connected; after that the note follows the repo picker's edge. */}
           <MotionFlex
             gap="sm"
             align="center"

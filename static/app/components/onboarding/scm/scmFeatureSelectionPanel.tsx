@@ -171,9 +171,7 @@ export function ScmFeatureSelectionPanel({
   const currentPlatformName = getPlatformName(currentPlatformKey);
   const isInformational = featureMode === 'informational';
 
-  // Onboarding frames the list as a question; project creation renders its own
-  // "Products" heading above instead. Both list variants share this header so
-  // the section reads the same whether or not the products are selectable.
+  // Project creation renders its own "Products" heading above instead.
   const sectionHeader = isOnboarding ? (
     <Stack gap="xs">
       <Heading as="h3" size="lg">
