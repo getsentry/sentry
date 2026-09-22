@@ -5,8 +5,7 @@ and thus cannot (yet) be refactored to use the new span schema.
 """
 
 import uuid
-from copy import deepcopy
-from typing import Any, cast
+from typing import Any
 
 import sentry_sdk
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
@@ -104,7 +103,8 @@ def build_shim_event_data(
     # TODO: Remove this code once `organizations:performance-issues-spans` has graduated
     # and performance issue detection runs 100% on spans.
     for span in spans:
-        event_span = cast(dict[str, Any], deepcopy(span))
+        # A shallow copy is sufficient here, since detectors don't mutate span data
+        event_span = {**span}
         event_span["timestamp"] = span["end_timestamp"]
         event_span["data"] = {}
         for key, value in (span.get("attributes") or {}).items():
