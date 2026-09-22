@@ -290,7 +290,7 @@ export function useGetSavedQueries({
   };
 
   const queryOptions = migrateDiscoverQueries
-    ? allSavedQueriesApiOptions<AllSavedQueryResponse[]>(organization, requestQuery)
+    ? allSavedQueriesApiOptions(organization, requestQuery)
     : savedQueriesApiOptions<AllSavedQueryResponse[]>(organization, requestQuery);
 
   const {data, isLoading, isFetched, isError} = useQuery({
