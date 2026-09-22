@@ -21,7 +21,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
@@ -67,7 +66,6 @@ import {
   TraceAttributeDivider,
   usePinnedAttribute,
 } from './tracePinnedAttribute';
-import type {TraceReducerState} from './traceState';
 
 const traceIssueIconBackgroundStyles = css`
   &.info {
@@ -132,11 +130,6 @@ interface TraceProps {
     event: React.MouseEvent<HTMLElement>,
     index: number
   ) => void;
-  onTraceSearch: (
-    query: string,
-    node: BaseNode,
-    behavior: 'track result' | 'persist'
-  ) => void;
   previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>;
   rerender: () => void;
   scheduler: TraceScheduler;
@@ -151,7 +144,6 @@ export function Trace({
   onScrollToNode,
   manager,
   previouslyFocusedNodeRef,
-  onTraceSearch,
   rerender,
   scheduler,
   forceRerender,
@@ -160,7 +152,6 @@ export function Trace({
 }: TraceProps) {
   const theme = useTheme();
   const pin = usePinnedAttribute();
-  const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
   const traceState = useTraceState();
@@ -169,15 +160,6 @@ export function Trace({
 
   const rerenderRef = useRef(rerender);
   rerenderRef.current = rerender;
-
-  const treePromiseStatusRef = useRef<Map<
-    BaseNode,
-    'loading' | 'error' | 'success'
-  > | null>(null);
-
-  if (!treePromiseStatusRef.current) {
-    treePromiseStatusRef.current = new Map();
-  }
 
   const treeRef = useRef(trace);
   treeRef.current = trace;
@@ -240,11 +222,6 @@ export function Trace({
     manager.draw();
   }, [manager, physicalWidth, timeCompressionOptions]);
 
-  const traceStatePreferencesRef = useRef<
-    Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
-  >(traceState.preferences);
-  traceStatePreferencesRef.current = traceState.preferences;
-
   useLayoutEffect(() => {
     const onTraceViewChange: TraceEvents['set trace view'] = () => {
       manager.recomputeTimelineIntervals();
@@ -293,35 +270,6 @@ export function Trace({
     };
   }, [manager, scheduler]);
 
-  const onNodeZoomIn = useCallback(
-    (event: React.MouseEvent | React.KeyboardEvent, node: BaseNode, value: boolean) => {
-      event.stopPropagation();
-      rerenderRef.current();
-
-      treeRef.current
-        .fetchNodeSubTree(value, node, {
-          api,
-          organization,
-          preferences: traceStatePreferencesRef.current,
-        })
-        .then(() => {
-          rerenderRef.current();
-
-          // If a query exists, we want to reapply the search after zooming in
-          // so that new nodes are also highlighted if they match a query
-          if (traceStateRef.current.search.query) {
-            onTraceSearch(traceStateRef.current.search.query, node, 'persist');
-          }
-
-          treePromiseStatusRef.current!.set(node, 'success');
-        })
-        .catch(_e => {
-          treePromiseStatusRef.current!.set(node, 'error');
-        });
-    },
-    [api, organization, onTraceSearch]
-  );
-
   const onNodeExpand = useCallback(
     (event: React.MouseEvent | React.KeyboardEvent, node: BaseNode, value: boolean) => {
       event.stopPropagation();
@@ -355,20 +303,14 @@ export function Trace({
       }
 
       if (event.key === 'ArrowLeft') {
-        if (node.hasFetchedChildren) {
-          onNodeZoomIn(event, node, false);
-        } else if (node.expanded) {
+        if (node.expanded) {
           onNodeExpand(event, node, false);
         }
       } else if (event.key === 'ArrowRight') {
-        if (node.canFetchChildren) {
-          onNodeZoomIn(event, node, true);
-        } else {
-          onNodeExpand(event, node, true);
-        }
+        onNodeExpand(event, node, true);
       }
     },
-    [manager, onNodeExpand, onNodeZoomIn, traceDispatch]
+    [manager, onNodeExpand, traceDispatch]
   );
 
   const projectLookup = useMemo(() => {
@@ -414,7 +356,7 @@ export function Trace({
           manager={manager}
           theme={theme}
           onExpand={onNodeExpand}
-          onZoomIn={onNodeZoomIn}
+          onZoomIn={onNodeExpand}
           onRowClick={onRowClick}
           onRowKeyDown={onRowKeyDown}
           tree={trace}
@@ -426,7 +368,6 @@ export function Trace({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       onNodeExpand,
-      onNodeZoomIn,
       manager,
       previouslyFocusedNodeRef,
       onRowKeyDown,
@@ -698,14 +639,6 @@ function RenderTraceRow(props: {
     },
     [node, onExpandProp]
   );
-
-  const onZoomInProp = props.onZoomIn;
-  const onZoomIn = useCallback(
-    (e: React.MouseEvent) => {
-      onZoomInProp(e, node, !node.hasFetchedChildren);
-    },
-    [node, onZoomInProp]
-  );
   const onExpandDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
   }, []);
@@ -726,7 +659,7 @@ function RenderTraceRow(props: {
   const rowProps: TraceRowProps<BaseNode> = {
     pinnedAttributeCell: <TracePinnedAttributeCell node={node} />,
     onExpand,
-    onZoomIn,
+    onZoomIn: onExpand,
     onRowClick,
     onRowKeyDown,
     previouslyFocusedNodeRef: props.previouslyFocusedNodeRef,

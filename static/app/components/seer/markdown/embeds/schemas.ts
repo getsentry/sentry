@@ -185,18 +185,46 @@ export const SEER_EMBED_SCHEMAS = {
   },
   issue: {
     description:
-      'The ONLY way to reference a Sentry issue. Requires the issue short ID ' +
-      '(e.g. "PROJECT-123"). ' +
+      'The ONLY way to reference a Sentry issue. ' +
+      'Pass BOTH ids the issues API returns for the issue: `id` is the numeric ' +
+      'group ID (e.g. "7716642857") and `shortId` is the short ID (e.g. ' +
+      '"JAVASCRIPT-22SP"). Copy each one from the field of the same name — never ' +
+      'put the numeric ID in `shortId`, and never invent a short ID you have not ' +
+      'seen. Omit `shortId` when you genuinely do not have it; the embed reads ' +
+      'better with it, since it labels the link. ' +
       'Inline: renders a compact link with the short id. ' +
-      'Block: renders a full interactive issue row with title, events, users, ' +
+      'Block: renders a full interactive issue row with title, events, ' +
       'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
       'When referencing 2+ issues, use `issuesQuery` with an issue ID search. ' +
       'Never use `docs` or markdown links for issue references.',
     level: ['inline', 'block'],
-    schema: z.object({id: z.string()}),
+    schema: z.object({
+      id: idString.describe(
+        'The issue ID exactly as the issues API returns it in `id` — normally ' +
+          'the numeric group ID (e.g. "7716642857"). A short ID is accepted here ' +
+          'when that is the only id you have.'
+      ),
+      shortId: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          'The issue short ID exactly as the issues API returns it in `shortId` ' +
+            '(e.g. "JAVASCRIPT-22SP"): a project slug, a hyphen, and a short ' +
+            'alphanumeric suffix. Omit it rather than guessing one.'
+        ),
+    }),
     examples: [
-      {label: 'Inline', level: 'inline', data: {id: 'JAVASCRIPT-22SP'}},
-      {label: 'Block', level: 'block', data: {id: 'JAVASCRIPT-22SP'}},
+      {
+        label: 'Inline',
+        level: 'inline',
+        data: {id: '7716642857', shortId: 'JAVASCRIPT-22SP'},
+      },
+      {
+        label: 'Block',
+        level: 'block',
+        data: {id: '7716642857', shortId: 'JAVASCRIPT-22SP'},
+      },
     ],
   },
   replay: {
@@ -476,7 +504,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
       'Block: loads the saved filters and renders a live preview of matching issues. ' +
-      'Do not duplicate the issue titles, event counts, users, priorities, or assignees as text. ' +
+      'Do not duplicate the issue titles, event counts, priorities, or assignees as text. ' +
       'Never use a markdown link for issue view references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -757,8 +785,10 @@ export const SEER_EMBED_SCHEMAS = {
       'The ONLY way to list multiple Sentry issues. Accepts any issue search terms, ' +
       'including a specific list of issue IDs such as ' +
       '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. ' +
+      'The `issue:` filter only accepts short IDs — to search by numeric group ID, ' +
+      'use `issue.id:[7716642857,7716642858]` instead. ' +
       'Inline renders a link; block renders the first five matching issues with ' +
-      'title, trend graph, events, users, priority, and assignee. ' +
+      'title, trend graph, events, priority, and assignee. ' +
       'Do NOT duplicate those issues as text or a markdown table. ' +
       'Use the singular `issue` embed only when referencing one known issue.',
     level: ['inline', 'block'],

@@ -155,7 +155,9 @@ def trigger_autofix_feature(
         )
 
     metrics.incr(
-        "autofix_feature.trigger", tags={"referrer": args.referrer.value, "step": args.step.value}
+        "autofix_feature.trigger",
+        tags={"referrer": args.referrer.value, "step": args.step.value},
+        sample_rate=1,
     )
 
     logger.info(

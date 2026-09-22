@@ -1673,6 +1673,24 @@ class TestStartFeatureRun(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    @with_feature("organizations:seer-agent-enable-assisted-query-code-mode")
+    def test_inherits_assisted_query_code_mode_from_org(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="night_shift",
+            payload={},
+            title="Test feature run",
+            flush=False,
+            referrer="night_shift",
+        )
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["agent_run_options"]["enable_assisted_query_code_mode"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     @with_feature("organizations:seer-explorer-allow-bash-mode")
     def test_forwards_bash_mode(self, mock_request, _mock_access) -> None:
         client = SeerAgentClient(self.organization, self.user, enable_bash_tools=True)
@@ -1708,7 +1726,9 @@ class TestStartFeatureRun(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
-    def test_agent_run_options_empty_without_org_flags(self, mock_request, _mock_access) -> None:
+    def test_agent_run_options_use_defaults_without_org_flags(
+        self, mock_request, _mock_access
+    ) -> None:
         client = SeerAgentClient(self.organization, self.user)
         run = client.start_feature_run(
             feature_id="night_shift",
@@ -1721,7 +1741,7 @@ class TestStartFeatureRun(TestCase):
         outbox = self._outbox_for(run)
         assert outbox is not None and outbox.payload is not None
         body = outbox.payload["body"]
-        assert body["agent_run_options"] == {}
+        assert body["agent_run_options"] == {"enable_assisted_query_code_mode": False}
 
 
 class TestContinueFeatureRun(TestCase):
@@ -1759,7 +1779,7 @@ class TestContinueFeatureRun(TestCase):
         assert body == {
             "feature_id": "autofix_rca",
             "payload": {"existing_run_id": 456, "insert_index": 2},
-            "agent_run_options": {},
+            "agent_run_options": {"enable_assisted_query_code_mode": False},
             "ref": str(run.uuid),
             "external_idempotency_key": str(run.uuid),
             "referrer": "autofix",

@@ -252,6 +252,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
+    "auth.v2.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
@@ -675,6 +681,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Desired chunk size for TUS uploads.
+register(
+    "relay.upload-chunk.size",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -775,6 +789,12 @@ register("github-console-sdk-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PR
 # Cursor Origin Integration
 register("cursor-origin-app.id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("cursor-origin-app.private-key", default="", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "cursor-origin-app.fetch-commits.max-compare-commits",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Github Enterprise Integration
 register(
@@ -4395,5 +4415,13 @@ register(
     "preprod.snapshots.objectstore.snapshots-usecase.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# How far back the ingestion delay measurement window reaches, in minutes.
+register(
+    "ingestion-delay.measurement-lookback-minutes",
+    type=Int,
+    default=60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

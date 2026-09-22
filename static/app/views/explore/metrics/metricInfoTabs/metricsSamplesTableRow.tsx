@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -169,6 +168,7 @@ interface SampleTableRowProps {
   meta: EventsMetaType;
   row: TraceMetricEventsResponseItem;
   ref?: RefObject<HTMLTableRowElement | null>;
+  routingHint?: string;
   source?: MetricsSamplesTableSource;
 }
 
@@ -276,6 +276,7 @@ function MetricDefaultCell({
 }
 
 export function SampleTableRow({
+  routingHint,
   row,
   columns,
   meta,
@@ -404,15 +405,12 @@ export function SampleTableRow({
         })}
       </StickyTableRow>
       {isExpanded && (
-        <SimpleTable.Row>
-          <SimpleTable.FullWidthCell>
-            <MetricDetails
-              dataRow={row}
-              ref={measureRef}
-              showTelemetry={source === 'metricsPage'}
-            />
-          </SimpleTable.FullWidthCell>
-        </SimpleTable.Row>
+        <MetricDetails
+          dataRow={row}
+          routingHint={routingHint}
+          ref={measureRef}
+          showTelemetry={source === 'metricsPage'}
+        />
       )}
     </Fragment>
   );

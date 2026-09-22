@@ -81,17 +81,15 @@ type RestoreSelectedIssueScroll = (issueId: string, element: HTMLDivElement) => 
 
 interface AssignmentCounts {
   all: number;
-  me: number;
   my_teams: number;
 }
 
 interface AlternateInbox {
-  filter: Exclude<AssignmentFilter, 'me'>;
+  filter: 'all';
   label: string;
 }
 
 const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
-  me: ' assigned_or_suggested:me',
   my_teams: ' assigned_or_suggested:[me,my_teams]',
   all: '',
 };
@@ -212,10 +210,9 @@ function useSelectFirstLoadedIssue({
   };
 }
 
-// Fetch counts for the assignment filter tabs (my/my teams/all)
+// Fetch counts for the assignment filter tabs (my teams/all)
 function useAssignmentCounts(): AssignmentCounts | null {
   const organization = useOrganization();
-  const meQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.me}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const myTeamsQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.my_teams}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const allQuery = `${ALL_ASSIGNMENT_COUNT_QUERY}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
 
@@ -224,7 +221,7 @@ function useAssignmentCounts(): AssignmentCounts | null {
       '/organizations/$organizationIdOrSlug/issues-count/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {query: [meQuery, myTeamsQuery, allQuery]},
+        query: {query: [myTeamsQuery, allQuery]},
         staleTime: 180_000,
       }
     ),
@@ -235,7 +232,6 @@ function useAssignmentCounts(): AssignmentCounts | null {
   }
 
   return {
-    me: data[meQuery] ?? 0,
     my_teams: data[myTeamsQuery] ?? 0,
     all: data[allQuery] ?? 0,
   };
@@ -245,11 +241,7 @@ function getAlternateInbox(
   assignmentFilter: AssignmentFilter,
   assignmentCounts: AssignmentCounts | null
 ): AlternateInbox | null {
-  if (assignmentFilter === 'me' && assignmentCounts?.my_teams) {
-    return {filter: 'my_teams', label: t('View team inbox')};
-  }
-
-  if (assignmentFilter !== 'all' && assignmentCounts?.all) {
+  if (assignmentFilter === 'my_teams' && assignmentCounts?.all) {
     return {filter: 'all', label: t('View all inbox')};
   }
 
@@ -269,7 +261,6 @@ function AssignmentTabs({
     assignmentCounts
       ? {
           assignment_filter: assignmentFilter,
-          count_me: assignmentCounts.me,
           count_my_teams: assignmentCounts.my_teams,
           count_all: assignmentCounts.all,
         }
@@ -285,15 +276,9 @@ function AssignmentTabs({
       value={assignmentFilter}
       onChange={onChange}
     >
-      <SegmentedControl.Item key="me" textValue={t('Me')}>
+      <SegmentedControl.Item key="my_teams" textValue={t('Me')}>
         <Flex as="span" align="center" gap="sm">
           {t('Me')}
-          <AssignmentCountBadge count={assignmentCounts?.me} />
-        </Flex>
-      </SegmentedControl.Item>
-      <SegmentedControl.Item key="my_teams" textValue={t('My Teams')}>
-        <Flex as="span" align="center" gap="sm">
-          {t('My Teams')}
           <AssignmentCountBadge count={assignmentCounts?.my_teams} />
         </Flex>
       </SegmentedControl.Item>

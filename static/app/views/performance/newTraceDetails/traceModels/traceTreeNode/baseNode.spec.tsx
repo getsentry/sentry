@@ -7,8 +7,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
+  makeEAPError,
   makeEAPOccurrence,
-  makeTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
@@ -272,11 +272,11 @@ describe('BaseNode', () => {
     it('should collect errors from value during construction', () => {
       const extra = createMockExtra();
       const errors = [
-        makeTraceError({
+        makeEAPError({
           issue_id: 1,
           event_id: 'error-1',
         }),
-        makeTraceError({
+        makeEAPError({
           issue_id: 2,
           event_id: 'error-2',
         }),
@@ -314,14 +314,14 @@ describe('BaseNode', () => {
       const node = new TestNode(null, createMockValue({event_id: 'test-id'}), extra);
 
       // Add duplicate issue IDs
-      node.errors.add(makeTraceError({issue_id: 1, event_id: 'error-1'}));
+      node.errors.add(makeEAPError({issue_id: 1, event_id: 'error-1'}));
       node.errors.add(
-        makeTraceError({
+        makeEAPError({
           issue_id: 1,
           event_id: 'error-1-duplicate',
         })
       );
-      node.errors.add(makeTraceError({issue_id: 2, event_id: 'error-2'}));
+      node.errors.add(makeEAPError({issue_id: 2, event_id: 'error-2'}));
 
       const uniqueErrors = node.uniqueErrorIssues;
       expect(uniqueErrors).toHaveLength(2);
@@ -361,7 +361,7 @@ describe('BaseNode', () => {
       const extra = createMockExtra();
       const node = new TestNode(null, createMockValue({event_id: 'test-id'}), extra);
 
-      node.errors.add(makeTraceError({issue_id: 1, event_id: 'error-1'}));
+      node.errors.add(makeEAPError({issue_id: 1, event_id: 'error-1'}));
       node.occurrences.add(
         makeEAPOccurrence({
           issue_id: 2,
@@ -388,7 +388,7 @@ describe('BaseNode', () => {
         extra
       );
       nodeWithErrors.errors.add(
-        makeTraceError({
+        makeEAPError({
           issue_id: 1,
           event_id: 'error-1',
         })
@@ -427,7 +427,7 @@ describe('BaseNode', () => {
         extra
       );
       nodeWithError.errors.add(
-        makeTraceError({
+        makeEAPError({
           issue_id: 1,
           event_id: 'error-1',
           level: 'error',
@@ -442,7 +442,7 @@ describe('BaseNode', () => {
         extra
       );
       nodeWithFatal.errors.add(
-        makeTraceError({
+        makeEAPError({
           issue_id: 1,
           event_id: 'fatal-1',
           level: 'fatal',
@@ -457,7 +457,7 @@ describe('BaseNode', () => {
         extra
       );
       nodeWithWarning.errors.add(
-        makeTraceError({
+        makeEAPError({
           issue_id: 1,
           event_id: 'warning-1',
           level: 'warning',
@@ -472,14 +472,14 @@ describe('BaseNode', () => {
         extra
       );
       nodeWithMixed.errors.add(
-        makeTraceError({
+        makeEAPError({
           issue_id: 1,
           event_id: 'warning-1',
           level: 'warning',
         })
       );
       nodeWithMixed.errors.add(
-        makeTraceError({
+        makeEAPError({
           issue_id: 2,
           event_id: 'error-1',
           level: 'error',
@@ -493,7 +493,7 @@ describe('BaseNode', () => {
       const node = new TestNode(null, createMockValue({event_id: 'test-id'}), extra);
 
       node.errors.add(
-        makeTraceError({
+        makeEAPError({
           issue_id: 1,
           event_id: 'error-1',
           level: 'fatal',
@@ -627,7 +627,7 @@ describe('BaseNode', () => {
       const extra = createMockExtra();
       const node = new TestNode(null, createMockValue({event_id: 'node-id'}), extra);
       node.errors.add(
-        makeTraceError({
+        makeEAPError({
           issue_id: 1,
           event_id: 'error-event-id',
         })
@@ -1252,7 +1252,7 @@ describe('BaseNode', () => {
         );
         // Add error to parent
         parent.errors.add(
-          makeTraceError({
+          makeEAPError({
             issue_id: 1,
             event_id: 'error-1',
           })
@@ -1781,30 +1781,6 @@ describe('BaseNode', () => {
     });
   });
 
-  describe('findParentTransaction', () => {
-    it('should return null when no transaction parent exists', () => {
-      const extra = createMockExtra();
-      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
-
-      expect(node.findParentNodeStoreTransaction()).toBeNull();
-    });
-
-    it('should find parent transaction node', () => {
-      const extra = createMockExtra();
-      const mockTransactionParent = {
-        type: 'txn',
-        id: 'transaction-parent',
-      };
-
-      const child = new TestNode(null, createMockValue({event_id: 'child'}), extra);
-      jest.spyOn(child, 'findParent').mockReturnValue(mockTransactionParent as any);
-
-      const result = child.findParentNodeStoreTransaction();
-      expect(result).toBe(mockTransactionParent);
-      expect(child.findParent).toHaveBeenCalledWith(expect.any(Function));
-    });
-  });
-
   describe('findParentEapTransaction', () => {
     it('should return null when no EAP transaction parent exists', () => {
       const extra = createMockExtra();
@@ -1843,7 +1819,7 @@ describe('BaseNode', () => {
       const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
 
       node.errors.add(
-        makeTraceError({
+        makeEAPError({
           issue_id: 1,
           event_id: 'error-1',
         })

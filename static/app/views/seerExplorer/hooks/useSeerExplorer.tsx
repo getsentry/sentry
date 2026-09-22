@@ -87,6 +87,8 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/monitors/:detectorId/',
   '/monitors/:detectorId/edit/',
   '/monitors/alerts/',
+  '/monitors/alerts/:automationId/',
+  '/monitors/alerts/:automationId/edit/',
   '/monitors/crons/',
   '/monitors/errors/',
   '/monitors/metrics/',
@@ -647,7 +649,7 @@ export const useSeerExplorer = () => {
     if (!session) {
       return null;
     }
-    return {...session, blocks: normalizeBlocks(session.blocks)};
+    return {...session, blocks: normalizeBlocks(session.blocks ?? [])};
   }, [apiData?.session]);
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.

@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -8,17 +8,21 @@ import type {
   CustomSeriesRenderItemReturn,
 } from 'echarts';
 
+import {useTimezone} from '@sentry/scraps/datetime';
+import {useRenderToString} from '@sentry/scraps/renderToString';
+
+import {isChartHovered} from 'sentry/components/charts/utils';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {DroppedDataTooltip} from 'sentry/views/explore/components/chart/droppedDataBand/droppedDataTooltip';
 import {
   groupIntoBuckets,
-  SEVERITY_OPACITIES,
+  opacityForRatio,
   type AnnotationBucket,
 } from 'sentry/views/explore/components/chart/droppedDataBand/utils';
 
 export const DROPPED_DATA_SERIES_ID = '__dropped_data__';
-
-const CLIENT_DISCARD_OUTCOME = 'client_discard';
 
 // Styling constants
 const BAR_SLOT_FILL = 0.69;
@@ -27,23 +31,6 @@ const BOX_HEIGHT = 8;
 export const BAND_HEIGHT = BAND_PADDING + BOX_HEIGHT + BAND_PADDING;
 const BOX_BORDER_RADIUS = 2;
 
-function severityOpacity(severity: number): number {
-  return SEVERITY_OPACITIES[severity - 1] ?? 1;
-}
-
-/**
- * The buckets that will actually be drawn. "Client discards" are filtered out
- * to prevent noisy data cluttering the band.
- * TODO: adjust this logic in another PR to discard only certain discard evetns,
- * filtered, and accepted annotations.
- */
-function getVisibleBuckets(annotations: Annotation[] | undefined): AnnotationBucket[] {
-  return groupIntoBuckets(
-    (annotations ?? []).filter(
-      annotation => annotation.outcome !== CLIENT_DISCARD_OUTCOME
-    )
-  ).filter(bucket => bucket.severity > 0);
-}
 const DROPPED_DATA_Y_AXIS = {
   type: 'value' as const,
   min: 0,
@@ -60,6 +47,8 @@ interface DroppedDataItem extends AnnotationBucket {
 interface DroppedDataSeriesProps {
   bandOffset: number;
   buckets: AnnotationBucket[];
+  chartRef: React.RefObject<ReactEchartsRef | null>;
+  renderTooltip: (bucket: AnnotationBucket) => string;
   theme: Theme;
   yAxisIndex?: number;
 }
@@ -67,6 +56,8 @@ interface DroppedDataSeriesProps {
 function createDroppedDataSeries({
   bandOffset,
   buckets,
+  chartRef,
+  renderTooltip,
   theme,
   yAxisIndex,
 }: DroppedDataSeriesProps): CustomSeriesOption {
@@ -96,7 +87,7 @@ function createDroppedDataSeries({
     const boxTop = boxStartY + bandOffset + BAND_PADDING;
 
     return {
-      // The single severity box. Its hue/intensity encodes severity.
+      // The single drop pill. Opacity encodes how much data is missing.
       type: 'rect',
       shape: {
         x: boxStartX - boxWidth / 2,
@@ -106,8 +97,10 @@ function createDroppedDataSeries({
         r: BOX_BORDER_RADIUS,
       },
       style: {
+        lineWidth: BAND_PADDING * 2,
+        stroke: 'transparent',
         fill: theme.tokens.dataviz.semantic.bad,
-        opacity: severityOpacity(dataItem.severity),
+        opacity: opacityForRatio(dataItem.ratio),
       },
     } satisfies CustomSeriesRenderItemReturn;
   };
@@ -122,38 +115,72 @@ function createDroppedDataSeries({
     color: theme.tokens.dataviz.semantic.bad,
     animation: false,
     legendHoverLink: false,
-    // TODO: modify this when adding tooltip support. `trigger: 'item'` has to
-    // stay either way, since it is what keeps the band out of the chart-level
-    // `trigger: 'axis'` tooltip's series list.
-    silent: true,
-    tooltip: {trigger: 'item', formatter: () => ''},
+    tooltip: {
+      trigger: 'item',
+      position: 'bottom',
+      formatter: params => {
+        if (!isChartHovered(chartRef.current)) {
+          return '';
+        }
+
+        return renderTooltip(params.data as DroppedDataItem);
+      },
+    },
   };
 }
 
 interface UseDroppedDataBandParams {
-  annotations?: Annotation[];
+  chartRef: React.RefObject<ReactEchartsRef | null>;
+  acceptedAnnotations?: Annotation[];
   bandOffset?: number;
+  droppedAnnotations?: Annotation[];
   showDroppedData?: boolean;
+  utc?: boolean | null;
   yAxisIndex?: number;
 }
 
 export function useDroppedDataBand({
-  annotations,
+  chartRef,
+  acceptedAnnotations,
+  droppedAnnotations,
   showDroppedData = true,
   bandOffset = 0,
+  utc,
   yAxisIndex,
 }: UseDroppedDataBandParams) {
   const theme = useTheme();
+  const renderToString = useRenderToString();
+  const userTimezone = useTimezone();
+  const timezone = utc ? 'UTC' : userTimezone;
 
-  const buckets = useMemo(() => getVisibleBuckets(annotations), [annotations]);
+  const buckets = useMemo(
+    () =>
+      groupIntoBuckets(droppedAnnotations ?? [], acceptedAnnotations ?? []).filter(
+        bucket => bucket.ratio > 0
+      ),
+    [acceptedAnnotations, droppedAnnotations]
+  );
   const isVisible = showDroppedData && buckets.length > 0;
+
+  const renderTooltip = useCallback(
+    (bucket: AnnotationBucket) =>
+      renderToString(<DroppedDataTooltip bucket={bucket} timezone={timezone} />),
+    [renderToString, timezone]
+  );
 
   const droppedDataSeries = useMemo(
     () =>
       isVisible
-        ? createDroppedDataSeries({bandOffset, buckets, theme, yAxisIndex})
+        ? createDroppedDataSeries({
+            bandOffset,
+            buckets,
+            chartRef,
+            renderTooltip,
+            theme,
+            yAxisIndex,
+          })
         : null,
-    [bandOffset, buckets, isVisible, theme, yAxisIndex]
+    [bandOffset, buckets, chartRef, isVisible, renderTooltip, theme, yAxisIndex]
   );
 
   return {
