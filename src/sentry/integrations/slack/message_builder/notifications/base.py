@@ -7,7 +7,10 @@ import orjson
 
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.types import SlackBlock
-from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.integrations.slack.utils.escape import (
+    escape_slack_link_label,
+    escape_slack_text,
+)
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.types.actor import Actor
@@ -37,11 +40,14 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
         block_id = orjson.dumps(callback_id_raw).decode() if callback_id_raw else None
 
         first_block_text = ""
+        # Slack only parses the <url|label> link syntax when the label is on a
+        # single line, and inline formatting like *bold* inside the label is
+        # not rendered (notably on mobile clients), so keep the label plain.
         if title_link:
             if title:
-                first_block_text += f"<{title_link}|*{escape_slack_text(title)}*>  \n"
+                first_block_text += f"<{title_link}|{escape_slack_link_label(title)}>  \n"
             else:
-                first_block_text += f"<{title_link}|*{escape_slack_text(title_link)}*>  \n"
+                first_block_text += f"<{title_link}|{escape_slack_link_label(title_link)}>  \n"
         elif title:  # ie. "ZeroDivisionError",
             first_block_text += f"*{escape_slack_text(title)}*  \n"
 
