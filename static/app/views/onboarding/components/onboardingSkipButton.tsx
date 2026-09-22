@@ -2,6 +2,7 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
+import {IconNext} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {QuickStartEventParameters} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
@@ -68,6 +69,7 @@ export function OnboardingSkipButton({stepId}: OnboardingSkipButtonProps) {
     <LinkButton
       variant="transparent"
       size="xs"
+      icon={<IconNext size="xs" />}
       onClick={handleClick}
       to={`/organizations/${organization.slug}/issues/?referrer=${config.referrer}`}
     >

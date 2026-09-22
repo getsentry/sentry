@@ -2,19 +2,11 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {ONBOARDING_ENTER} from 'sentry/views/onboarding/animations';
+
 export const OnboardingStepHeading = styled(
   (props: React.ComponentProps<typeof motion.h2> & {step?: number}) => (
-    <motion.h2
-      variants={{
-        initial: {clipPath: 'inset(0% 100% 0% 0%)', opacity: 1},
-        animate: {clipPath: 'inset(0% 0% 0% 0%)', opacity: 1},
-        exit: {opacity: 0},
-      }}
-      transition={{
-        duration: 0.3,
-      }}
-      {...props}
-    />
+    <motion.h2 {...ONBOARDING_ENTER} {...props} />
   )
 )`
   position: relative;

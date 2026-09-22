@@ -9,13 +9,7 @@ import {
   type GridProps,
 } from '@sentry/scraps/layout';
 
-const motionProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  variants: {animate: {}},
-  transition: {staggerChildren: 0.2},
-};
+import {ONBOARDING_STAGGER} from 'sentry/views/onboarding/animations';
 
 export const FOOTER_HEIGHT = '72px';
 
@@ -34,7 +28,12 @@ export function GenericFooter(
   props: React.ComponentProps<typeof motion.div> & FlexProps
 ) {
   return (
-    <MotionFlex {...footerChromeProps} justify="between" {...motionProps} {...props} />
+    <MotionFlex
+      {...footerChromeProps}
+      justify="between"
+      {...ONBOARDING_STAGGER}
+      {...props}
+    />
   );
 }
 
@@ -51,7 +50,7 @@ export function GridFooter(props: React.ComponentProps<typeof motion.div> & Grid
         // equal tracks would put each child on its own row instead.
         flow={{zero: 'column', xl: 'row'}}
         columns={{zero: 'none', xl: 'repeat(3, 1fr)'}}
-        {...motionProps}
+        {...ONBOARDING_STAGGER}
         {...props}
       />
     </Container>
