@@ -214,12 +214,11 @@ class IntegrationServiceTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test_refresh_permissions_mints_even_when_the_token_is_still_good(self, mock_jwt):
+    def test_refresh_permissions_reads_without_minting_a_token(self, mock_jwt):
         """The point of this call is the permissions, not the token.
 
-        A live token would satisfy refresh_github_access_token and leave a
-        months-old permissions snapshot in place, which is exactly the case
-        callers use this to get out of.
+        GitHub reports an installation's current permissions on the
+        installation itself, so the stored token is left alone.
         """
         integration = self.generate_integration(
             metadata={
@@ -230,13 +229,9 @@ class IntegrationServiceTest(TestCase):
         )
 
         responses.add(
-            responses.POST,
-            "https://api.github.com/app/installations/github:1/access_tokens",
-            json={
-                "token": "token_new",
-                "expires_at": "2025-01-01T06:22:00Z",
-                "permissions": {"contents": "write"},
-            },
+            responses.GET,
+            "https://api.github.com/app/installations/github:1",
+            json={"id": 1, "permissions": {"contents": "write"}},
             status=200,
             content_type="application/json",
         )
@@ -248,7 +243,11 @@ class IntegrationServiceTest(TestCase):
 
         assert rpc_integration is not None
         assert rpc_integration.metadata["permissions"] == {"contents": "write"}
-        assert rpc_integration.metadata["last_refresh_at"] == "2025-01-01T05:22:00"
+        assert rpc_integration.metadata["last_refresh_at"] == "2025-01-01T05:22:00+00:00"
+        assert rpc_integration.metadata["access_token"] == "token_valid"
+        assert rpc_integration.metadata["expires_at"] == "2025-01-01T05:32:01Z"
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.headers["Authorization"] == f"Bearer {self.jwt}"
 
     def test_refresh_permissions_for_an_install_on_another_organization(self):
         """An integration id alone is not enough to reach an installation.

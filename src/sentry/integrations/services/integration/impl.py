@@ -683,11 +683,18 @@ class DatabaseBackedIntegrationService(IntegrationService):
         except OrganizationIntegrationNotFound:
             return None
 
-        # Unconditional, unlike refresh_github_access_token: a token that is
-        # still valid was minted before the app's permissions changed, so
-        # letting it stand is exactly the stale answer we are here to replace.
-        if installation.get_client().refresh_access_token() is None:
-            return None
+        # Read with the app JWT rather than minting a token: the installation
+        # itself reports its current permissions, so there is no reason to
+        # rotate credentials just to see them.
+        client = installation.get_client()
+        info = client.get_installation_info(client._get_installation_id())
 
         integration.refresh_from_db()
+        integration.metadata.update(
+            {
+                "permissions": info.get("permissions"),
+                "last_refresh_at": timezone.now().isoformat(),
+            }
+        )
+        integration.save(update_fields=["metadata"])
         return serialize_integration(integration)
