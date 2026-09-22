@@ -228,7 +228,7 @@ function resolveTone(tone: SectionTone, readonly: boolean): TextProps<'span'>['v
     return 'secondary';
   }
   if (tone === 'value') {
-    return readonly ? 'secondary' : 'accent';
+    return readonly ? 'primary' : 'accent';
   }
   return 'primary';
 }
@@ -373,7 +373,7 @@ interface DismissableFlatChipProps extends BaseFlatChipProps {
 
 interface ReadonlyFlatChipProps extends BaseFlatChipProps {
   /**
-   * Renders a non-interactive summary: the value reads as secondary and the
+   * Renders a non-interactive summary: the value reads as primary and the
    * dismiss affordance is suppressed. Readonly chips cannot be dismissed.
    */
   readonly: true;
@@ -408,17 +408,13 @@ export function Chip({
   ...rest
 }: FlatChipProps) {
   const {t} = useTranslation();
-  const valueVariant = readonly
-    ? 'secondary'
-    : property === undefined
-      ? 'primary'
-      : 'accent';
-
   return (
     <ChipRoot size={size} readonly={readonly} {...rest}>
       {property !== undefined && <ChipProperty>{property}</ChipProperty>}
       {operator ? <ChipOperator>{operator}</ChipOperator> : null}
-      <ChipValue variant={valueVariant}>{value}</ChipValue>
+      <ChipValue variant={property === undefined ? 'primary' : undefined}>
+        {value}
+      </ChipValue>
       {!readonly && onDismiss ? (
         <ChipDismiss
           aria-label={t(

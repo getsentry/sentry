@@ -1,8 +1,31 @@
+import {Fragment} from 'react';
+import {ThemeFixture} from 'sentry-fixture/theme';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {Chip} from '@sentry/scraps/chip';
 
 describe('Chip', () => {
+  it('renders readonly flat and compound values with primary text', () => {
+    render(
+      <Fragment>
+        <Chip readonly property="Flat property" value="Flat value" />
+        <Chip.Root readonly>
+          <Chip.Value>Compound value</Chip.Value>
+        </Chip.Root>
+      </Fragment>
+    );
+
+    const primary = ThemeFixture().tokens.content.primary;
+    expect(getEmotionRules(screen.getByText('Flat value')).join('')).toContain(
+      `color: ${primary}`
+    );
+    expect(getEmotionRules(screen.getByText('Compound value')).join('')).toContain(
+      `color: ${primary}`
+    );
+  });
+
   describe('flat API', () => {
     it('renders property, operator, and value', () => {
       render(<Chip property="browser" operator="is" value="Chrome" />);

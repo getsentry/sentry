@@ -73,7 +73,7 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
     <Chip.Root readonly size="sm" aria-label={token.text}>
       <FilterKey token={token} />
       <Chip.Operator>{label}</Chip.Operator>
-      <Chip.Value maxWidth="300px" variant="accent">
+      <Chip.Value maxWidth="300px">
         <FilterValueText token={token} />
       </Chip.Value>
     </Chip.Root>
