@@ -55,6 +55,20 @@ describe('Button', () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
+  it('prevents form submission when disabled with tooltip', async () => {
+    const onSubmit = jest.fn(e => e.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <Button disabled type="submit" tooltipProps={{title: 'Not available'}}>
+          Submit
+        </Button>
+      </form>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it('uses native disabled when no tooltip is present', () => {
     render(<Button disabled>Save</Button>);
 
