@@ -577,6 +577,10 @@ from sentry.seer.endpoints.organization_seer_agent_chat import (
 from sentry.seer.endpoints.organization_seer_agent_update import (
     OrganizationSeerAgentUpdateEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_attachments import (
+    OrganizationSeerAttachmentContentEndpoint,
+    OrganizationSeerAttachmentsEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_autofix_overview import (
     OrganizationSeerAutofixOverviewEndpoint,
     OrganizationSeerAutofixScmInfoEndpoint,
@@ -2555,6 +2559,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/search-agent/state/(?P<run_id>[^/]+)/$",
         SearchAgentStateEndpoint.as_view(),
         name="sentry-api-0-search-agent-state",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-attachments/$",
+        OrganizationSeerAttachmentsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-explorer-attachments",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-attachments/(?P<key>[^/]+)/content/$",
+        OrganizationSeerAttachmentContentEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-explorer-attachment-content",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/$",

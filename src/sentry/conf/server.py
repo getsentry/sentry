@@ -3403,3 +3403,9 @@ if IS_DEV and os.environ.get("SENTRY_CELL_ROUTING"):
     # cell-scoped API XHRs cross to Synapse on :13000, so Django's CSRF origin check
     # needs the page origin trusted explicitly.
     CSRF_TRUSTED_ORIGINS = ["http://*.dev.getsentry.net:8000", "http://dev.getsentry.net:8000"]
+
+# Required before enabling Explorer attachment uploads. Credentials use ADC
+# (workload identity in deployment, GOOGLE_APPLICATION_CREDENTIALS locally).
+# There is intentionally no default location or global Vision fallback.
+SEER_ATTACHMENTS_VISION_PROJECT = ""
+SEER_ATTACHMENTS_VISION_LOCATION = ""  # "us" or "eu"

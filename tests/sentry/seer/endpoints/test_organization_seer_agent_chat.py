@@ -29,6 +29,57 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         self.login_as(user=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
 
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    @patch("sentry.seer.attachments.storage.head")
+    def test_attachment_only_message_with_uploads_disabled(self, head, client):
+        from sentry.seer.attachments.models import Attachment
+
+        head.return_value = Attachment("x.png", "image/png", 100, "image", 2, 3)
+        client.return_value.start_run.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123, user_id=self.user.id
+        )
+        response = self.client.post(self.url, {"attachment_keys": ["key"]}, format="json")
+        assert response.status_code == 200
+        assert client.return_value.start_run.call_args.kwargs["attachment_keys"] == ["key"]
+        assert client.return_value.start_run.call_args.kwargs["prompt"] == ""
+        head.assert_called_once_with("key")
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    @patch("sentry.seer.attachments.storage.head")
+    def test_followup_attachments(self, head, client):
+        from sentry.seer.attachments.models import Attachment
+
+        head.return_value = Attachment("x.md", "text/markdown", 100, "markdown")
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123, user_id=self.user.id
+        )
+        response = self.client.post(
+            f"{self.url}{run.uuid}/",
+            {"query": "Read this", "attachment_keys": ["key"]},
+            format="json",
+        )
+        assert response.status_code == 200
+        assert client.return_value.continue_run.call_args.kwargs["attachment_keys"] == ["key"]
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    @patch("sentry.seer.attachments.storage.head", return_value=None)
+    def test_missing_attachment_not_forwarded(self, head, client):
+        response = self.client.post(
+            self.url, {"query": "Read this", "attachment_keys": ["key"]}, format="json"
+        )
+        assert response.status_code == 400
+        assert response.data["code"] == "attachment_missing"
+        client.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_duplicate_attachment_not_forwarded(self, client):
+        response = self.client.post(
+            self.url, {"query": "Read this", "attachment_keys": ["key", "key"]}, format="json"
+        )
+        assert response.status_code == 400
+        assert response.data["code"] == "duplicate_keys"
+        client.assert_not_called()
+
     def test_get_without_run_id_returns_null_session(self) -> None:
         response = self.client.get(self.url)
 

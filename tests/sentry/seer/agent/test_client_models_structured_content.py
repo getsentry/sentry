@@ -7,7 +7,7 @@ the frontend; it is additive/optional so old seer responses (no field) still par
 
 from __future__ import annotations
 
-from sentry.seer.agent.client_models import ToolResult
+from sentry.seer.agent.client_models import Message, ToolResult
 
 
 def test_structured_content_is_parsed_from_seer():
@@ -40,3 +40,12 @@ def test_structured_content_round_trips_to_the_frontend_dict():
     # The chat endpoint serializes the run state via .dict(); the field must survive with its
     # camelCase name so the frontend can read tool_result.structuredContent.
     assert result.dict()["structuredContent"] == payload
+
+
+def test_attachment_keys_survive_seer_response_parsing():
+    message = Message.parse_obj({"role": "user", "content": "hello", "attachment_keys": ["key"]})
+    assert message.dict()["attachment_keys"] == ["key"]
+
+
+def test_old_seer_message_defaults_to_no_attachments():
+    assert Message(role="user", content="hello").attachment_keys == []
