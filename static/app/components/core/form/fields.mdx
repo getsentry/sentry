@@ -9,7 +9,7 @@ resources:
 
 import {Container} from '@sentry/scraps/layout';
 
-import {BaseFieldDemo, InputFieldDemo, NumberFieldDemo} from './__stories__/formDemos';
+import {BaseFieldDemo, NumberFieldDemo} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
 
@@ -43,31 +43,8 @@ Text input for single-line string values.
 </form.AppField>
 ```
 
-### Leading items
-
-Use `leadingItems` for content such as currency symbols that appears before the
+Use `leadingItems` to display content such as a currency symbol before the
 editable value.
-
-<Storybook.Demo>
-  <Container width="80%">
-    <InputFieldDemo />
-  </Container>
-</Storybook.Demo>
-
-```jsx
-<form.AppField name="amount">
-  {field => (
-    <field.Layout.Row label={t('Amount')}>
-      <field.Input
-        leadingItems="$"
-        value={field.state.value}
-        onChange={field.handleChange}
-        inputMode="numeric"
-      />
-    </field.Layout.Row>
-  )}
-</form.AppField>
-```
 
 ## Number
 
