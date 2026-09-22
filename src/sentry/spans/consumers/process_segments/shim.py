@@ -75,6 +75,14 @@ def _extract_attribute_values(
     return values_by_field_name
 
 
+def _get_event_tags(segment_span: CompatibleSpan) -> list[list[str]]:
+    tags = {"environment": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT)}
+
+    # Our processing pipeline expects tags to be a list of key-value pairs, each one itself
+    # formatted as a list (`[[<key1>, <value1>], [<key2>, <value2>], ...]`) rather than a dict.
+    return [[key, str(value)] for key, value in tags.items() if value is not None]
+
+
 def _get_event_contexts(segment_span: CompatibleSpan) -> dict[str, Any]:
     contexts = {}
 
@@ -103,9 +111,6 @@ def build_shim_event_data(
         "level": "info",
         "event_id": uuid.uuid4().hex,
         "project_id": segment_span["project_id"],
-        "tags": [
-            ["environment", attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT)]
-        ],
         "received": segment_span["received"],
         "timestamp": segment_span["end_timestamp"],
         "start_timestamp": segment_span["start_timestamp"],
@@ -115,6 +120,7 @@ def build_shim_event_data(
     }
 
     event["contexts"] = _get_event_contexts(segment_span)
+    event["tags"] = _get_event_tags(segment_span)
 
     # Add legacy span attributes required only by issue detectors. As opposed to
     # real event payloads, this also adds the segment span so detectors can run
