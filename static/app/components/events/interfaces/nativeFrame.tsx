@@ -385,6 +385,7 @@ export function NativeFrame({
                 disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
                 delay={tooltipDelay}
                 maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+                position="auto-start"
               >
                 <FileName>
                   {'('}
