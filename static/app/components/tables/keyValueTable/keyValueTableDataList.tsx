@@ -34,11 +34,11 @@ export function KeyValueTableDataList({
   const rows = shouldSort ? sortBy(data, [({key}) => key?.toLowerCase()]) : data;
 
   return (
-    <Grid
+    <TableGrid
       className={className}
       columns={{zero: 'minmax(0, 1fr)', sm: '175px minmax(0, 1fr)'}}
       gap="md"
-      marginBottom={margin ? undefined : '0'}
+      hasMargin={margin}
       role="table"
       width="100%"
       {...props}
@@ -51,9 +51,13 @@ export function KeyValueTableDataList({
           raw={raw}
         />
       ))}
-    </Grid>
+    </TableGrid>
   );
 }
+
+const TableGrid = styled(Grid)<{hasMargin: boolean}>`
+  margin-bottom: ${p => (p.hasMargin ? '20px' : 0)};
+`;
 
 function Row({
   item,
