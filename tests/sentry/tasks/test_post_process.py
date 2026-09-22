@@ -3791,7 +3791,37 @@ class PostProcessGroupFeedbackTest(
     InboxTestMixin,
     WorkflowEngineTestMixin,
     SnoozeTestMixin,
+    UpdateExistingAttachmentsTestMixin,
 ):
+    @pytest.mark.parametrize("is_spam", [False, True])
+    @pytest.mark.parametrize(
+        "feedback_type",
+        [
+            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+            FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+        ],
+    )
+    def test_promotes_pending_attachments(self, is_spam, feedback_type) -> None:
+        self.project.update_option("sentry:feedback_user_report_notifications", False)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+            feedback_type=feedback_type,
+            is_spam=is_spam,
+        )
+
+        with patch("sentry.event_manager.save_pending_attachments") as promote:
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=True, event=event
+            )
+
+        promote.assert_called_once_with(
+            project=event.project,
+            event_id=event.event_id,
+            group_id=event.group_id,
+            source="post_process",
+        )
+
     def create_event(
         self,
         data,

@@ -244,6 +244,32 @@ def test_fix_for_issue_platform_environment(environment) -> None:
 
 
 @django_db_all
+@pytest.mark.parametrize("promotion_fails", [False, True])
+def test_create_feedback_promotes_pending_attachments(
+    default_project, mock_produce_occurrence_to_kafka, promotion_fails
+) -> None:
+    event = mock_feedback_event(default_project.id)
+    event["contexts"]["feedback"]["associated_event_id"] = "b" * 32
+    with patch(
+        "sentry.feedback.usecases.ingest.create_feedback.save_pending_attachments",
+        side_effect=RuntimeError("Attachment storage unavailable") if promotion_fails else None,
+    ) as promote:
+        result = create_feedback_issue(
+            event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+    assert result is not None
+    mock_produce_occurrence_to_kafka.assert_called_once()
+    promote.assert_called_once_with(
+        project=default_project,
+        event_id=result["event_id"],
+        group_id=None,
+        source="create_feedback_issue",
+    )
+    assert result["event_id"] != "b" * 32
+
+
+@django_db_all
 def test_create_feedback_filters_unreal(default_project, mock_produce_occurrence_to_kafka) -> None:
     event = {
         "project_id": 1,
