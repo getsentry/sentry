@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 import time_machine
-from django.db import connection, router, transaction
+from django.db import OperationalError, connection, router, transaction
 from django.db.models.functions import Now
 from django.utils import timezone as django_timezone
 
@@ -67,6 +67,7 @@ from sentry.issues.derived.processing import (
 )
 from sentry.issues.derived.promote import PromotionResult, promote_to_live
 from sentry.issues.derived.store import GroupDerivedDataStore
+from sentry.issues.derived.tasks import process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
@@ -111,6 +112,107 @@ class ProcessGroupLogTest(TestCase):
                 action=ViewAction(),
                 actor=GroupActionActor.user(self.user.id),
             )
+
+    def test_inline_corruption_preserves_data_without_rescheduling(self) -> None:
+        self._assert_corruption_preserves_data(ProcessingStrategy.INLINE)
+
+    def test_async_corruption_preserves_data_without_rescheduling(self) -> None:
+        self._assert_corruption_preserves_data(ProcessingStrategy.ASYNC)
+
+    def _assert_corruption_preserves_data(self, strategy: ProcessingStrategy) -> None:
+        group = self.create_group()
+        derived = self.create_group_derived_data(
+            group, data={"status": "invalid"}, pipeline_hash=PIPELINE.pipeline_hash
+        )
+        entry = self.create_group_action_log_entry(group)
+        before = GroupDerivedData.objects.filter(id=derived.id).values().get()
+        with (
+            patch("sentry.issues.derived.processing.process_group_log_task.delay") as delay,
+            patch("sentry.issues.derived.reporting.logger") as logger,
+        ):
+            # The async task is executed directly to exercise its exception boundary.
+            runners = {
+                ProcessingStrategy.INLINE: lambda: processing.trigger_group_log_processing(
+                    group.id, strategy=ProcessingStrategy.INLINE
+                ),
+                ProcessingStrategy.ASYNC: lambda: process_group_log_task(group.id),
+            }
+            runners[strategy]()
+        delay.assert_not_called()
+        assert GroupDerivedData.objects.filter(id=derived.id).values().get() == before
+        assert GroupActionLogEntry.objects.filter(id=entry.id).exists()
+        extra = logger.exception.call_args.kwargs["extra"]
+        assert extra["group_id"] == group.id
+        assert extra["cursor_id"] == derived.cursor_id
+        assert extra["pipeline_hash"] == PIPELINE.pipeline_hash
+        assert extra["feature_name"] == "status"
+
+    def test_sync_processing_raises_corruption(self) -> None:
+        group = self.create_group()
+        self.create_group_derived_data(
+            group, data={"status": "invalid"}, pipeline_hash=PIPELINE.pipeline_hash
+        )
+        self.create_group_action_log_entry(group)
+        with pytest.raises(DerivedDataError):
+            processing.trigger_group_log_processing(group.id, strategy=ProcessingStrategy.SYNC)
+
+    def test_aggregator_failure_discards_whole_batch(self) -> None:
+        group = self.create_group()
+        self.create_group_action_log_entry(group)
+        bad_entry = self.create_group_action_log_entry(group)
+
+        @aggregator((VIEW_COUNT,))
+        def fail_second(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+            if entry.id == bad_entry.id:
+                raise KeyError("bad action")
+            return StateUpdate({VIEW_COUNT: state[VIEW_COUNT] + 1})
+
+        pipeline = Pipeline([fail_second])
+        derived = self.create_group_derived_data(group, pipeline_hash=pipeline.pipeline_hash)
+        before = GroupDerivedData.objects.filter(id=derived.id).values().get()
+        with pytest.raises(DerivedDataError) as exc:
+            process_group_log(group.id, pipeline=pipeline)
+        assert exc.value.entry_id == bad_entry.id
+        assert GroupDerivedData.objects.filter(id=derived.id).values().get() == before
+
+    def test_encode_failure_does_not_advance_cursor(self) -> None:
+        group = self.create_group()
+        self.create_group_action_log_entry(group)
+        derived = self.create_group_derived_data(group, pipeline_hash=PIPELINE.pipeline_hash)
+        before = GroupDerivedData.objects.filter(id=derived.id).values().get()
+        with (
+            patch.object(
+                GroupDerivedDataStore,
+                "build_update",
+                side_effect=DerivedDataError("encode", feature_name="view_count"),
+            ),
+            pytest.raises(DerivedDataError),
+        ):
+            process_group_log(group.id)
+        assert GroupDerivedData.objects.filter(id=derived.id).values().get() == before
+
+    def test_inline_database_failure_propagates(self) -> None:
+        self._assert_database_failure_propagates(ProcessingStrategy.INLINE)
+
+    def test_async_database_failure_propagates(self) -> None:
+        self._assert_database_failure_propagates(ProcessingStrategy.ASYNC)
+
+    def _assert_database_failure_propagates(self, strategy: ProcessingStrategy) -> None:
+        group = self.create_group()
+        with (
+            patch(
+                "sentry.issues.derived.processing._entries_after_cursor",
+                side_effect=OperationalError("offline"),
+            ),
+            pytest.raises(OperationalError),
+        ):
+            runners = {
+                ProcessingStrategy.INLINE: lambda: processing.trigger_group_log_processing(
+                    group.id, strategy=ProcessingStrategy.INLINE
+                ),
+                ProcessingStrategy.ASYNC: lambda: process_group_log_task(group.id),
+            }
+            runners[strategy]()
 
     def test_missing_group_raises_does_not_exist(self) -> None:
         group = self.create_group()

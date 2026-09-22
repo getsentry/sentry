@@ -25,6 +25,7 @@ from django.db.models.functions import Now
 from django.utils import timezone
 
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.derived.processing import (
     DEFAULT_BATCH_SIZE,
     PIPELINE,
@@ -397,6 +398,10 @@ def build_and_promote_batch(
                 f"{log_key}.group_not_found",
                 extra={"group_id": group_id, "project_id": project_id},
             )
+        except DerivedDataError:
+            # _process_batch reported the failed replay. Continue other groups
+            # without counting this one as promoted or retrying it in this batch.
+            pass
         except PromotionFailed as e:
             processed[e.result] = processed.get(e.result, 0) + 1
             logger.exception(
