@@ -127,8 +127,7 @@ class IntegrationFeatures(StrEnum):
     CODING_AGENT = "coding-agent"
     # Adding this to IntegrationProvider.features lists the provider on Seer's
     # connectors page, which is intended for infrastructure telemetry (e.g. Datadog
-    # and GCP). Do not add it there solely to advertise Seer code review or Autofix
-    # support (e.g. GitHub/GitLab); use FeatureDescription metadata instead.
+    # and GCP).
     SEER_CONTEXT = "seer-context"
 
     # features currently only existing on plugins:
