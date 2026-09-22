@@ -39,9 +39,12 @@ import {
 } from 'sentry/views/investigations/api';
 import {
   InvestigationCell,
+  isBlockWorking,
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
+import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
+import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
@@ -368,9 +371,14 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 aria-busy={renameMutation.isPending}
               />
               {runStatus ? (
-                <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
-                  {runStatus.statusLabel}
-                </Tag>
+                <Flex align="center" gap="md" wrap="nowrap">
+                  <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
+                    {runStatus.statusLabel}
+                  </Tag>
+                  {orchestration ? (
+                    <InvestigationRunTimer orchestration={orchestration} />
+                  ) : null}
+                </Flex>
               ) : null}
             </Grid>
             <Flex align="center" justify="between" gap="md" wrap="wrap">
@@ -412,7 +420,10 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                */}
               {investigation.orchestration ? (
                 <Stack width="100%" minWidth={0} paddingBottom="xl">
-                  <InvestigationHypotheses investigationId={investigation.id} />
+                  <InvestigationHypotheses
+                    investigationId={investigation.id}
+                    phase={investigation.orchestration.phase}
+                  />
                 </Stack>
               ) : null}
 
@@ -439,6 +450,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                       investigation={investigation}
                     />
                   ))}
+                  {isAwaitingReportCell(investigation) ? (
+                    <InvestigationCellPlaceholder />
+                  ) : null}
                 </Stack>
               </Stack>
               <Container height="160px" flexShrink={0} aria-hidden />
@@ -448,6 +462,20 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       </Stack>
     </SentryDocumentTitle>
   );
+}
+
+// Seer reaches the reporting phase once it is done with the hypotheses, but the
+// report arrives as cells on a later poll. Until then the notebook stands in a
+// placeholder cell, unless a cell is already running — that one shows its own.
+function isAwaitingReportCell(investigation: InvestigationDetail) {
+  const {orchestration} = investigation;
+  if (orchestration?.status !== 'processing' || orchestration.phase !== 'reporting') {
+    return false;
+  }
+  // Only a cell Seer is working on rules this out, because that cell is already
+  // showing a placeholder of its own. A cell that finished, failed or was
+  // cancelled is done, and more are still coming.
+  return !(investigation.blocks ?? []).some(isBlockWorking);
 }
 
 function isTitleGenerationActive(status: string | null | undefined) {

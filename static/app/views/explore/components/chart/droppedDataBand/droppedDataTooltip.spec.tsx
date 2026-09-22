@@ -9,37 +9,45 @@ import {groupIntoBuckets} from 'sentry/views/explore/components/chart/droppedDat
 const START = Date.UTC(2024, 0, 12, 15, 0);
 const END = Date.UTC(2024, 0, 12, 15, 5);
 
-function renderTooltip(dropped: Annotation[], accepted: Annotation[] = []) {
+function ExampleDroppedDataTooltip({
+  dropped,
+  accepted = [],
+}: {
+  dropped: Annotation[];
+  accepted?: Annotation[];
+}) {
   const [bucket] = groupIntoBuckets(dropped, accepted);
 
-  render(<DroppedDataTooltip bucket={bucket!} timezone="UTC" />);
+  return <DroppedDataTooltip bucket={bucket!} timezone="UTC" />;
 }
 
 describe('DroppedDataTooltip', () => {
   it('shows the drop ratio, a row per outcome, and the time range', () => {
-    renderTooltip(
-      [
-        AnnotationFixture({
-          start: START,
-          end: END,
-          outcome: 'rate_limited',
-          eventCount: 40_000,
-        }),
-        AnnotationFixture({
-          start: START,
-          end: END,
-          outcome: 'invalid',
-          eventCount: 20_000,
-        }),
-      ],
-      [
-        AnnotationFixture({
-          start: START,
-          end: END,
-          outcome: 'accepted',
-          eventCount: 180_000,
-        }),
-      ]
+    render(
+      <ExampleDroppedDataTooltip
+        dropped={[
+          AnnotationFixture({
+            start: START,
+            end: END,
+            outcome: 'rate_limited',
+            eventCount: 40_000,
+          }),
+          AnnotationFixture({
+            start: START,
+            end: END,
+            outcome: 'invalid',
+            eventCount: 20_000,
+          }),
+        ]}
+        accepted={[
+          AnnotationFixture({
+            start: START,
+            end: END,
+            outcome: 'accepted',
+            eventCount: 180_000,
+          }),
+        ]}
+      />
     );
 
     expect(screen.getByText('Total Dropped')).toBeInTheDocument();
@@ -55,9 +63,11 @@ describe('DroppedDataTooltip', () => {
   });
 
   it('shows <0.01% for a drop ratio at or below 0.01%', () => {
-    renderTooltip(
-      [AnnotationFixture({start: START, end: END, eventCount: 1})],
-      [AnnotationFixture({start: START, end: END, eventCount: 9_999})]
+    render(
+      <ExampleDroppedDataTooltip
+        dropped={[AnnotationFixture({start: START, end: END, eventCount: 1})]}
+        accepted={[AnnotationFixture({start: START, end: END, eventCount: 9_999})]}
+      />
     );
 
     expect(screen.getByText('<0.01%')).toBeInTheDocument();
@@ -65,37 +75,49 @@ describe('DroppedDataTooltip', () => {
   });
 
   it('reads a drop with no accepted volume as the whole bucket', () => {
-    renderTooltip([AnnotationFixture({start: START, end: END, eventCount: 10})]);
+    render(
+      <ExampleDroppedDataTooltip
+        dropped={[AnnotationFixture({start: START, end: END, eventCount: 10})]}
+      />
+    );
 
     expect(screen.getByText('100%')).toBeInTheDocument();
     expect(screen.getByText('/10')).toBeInTheDocument();
   });
 
   it('labels an unintentional client discard as an SDK drop', () => {
-    renderTooltip([
-      AnnotationFixture({
-        start: START,
-        end: END,
-        outcome: 'client_discard',
-        reason: 'queue_overflow',
-        eventCount: 10,
-      }),
-    ]);
+    render(
+      <ExampleDroppedDataTooltip
+        dropped={[
+          AnnotationFixture({
+            start: START,
+            end: END,
+            outcome: 'client_discard',
+            reason: 'queue_overflow',
+            eventCount: 10,
+          }),
+        ]}
+      />
+    );
 
     expect(screen.getByText('SDK Data Dropped')).toBeInTheDocument();
   });
 
   it('shares one byte unit between the payload row numbers', () => {
-    renderTooltip(
-      [AnnotationFixture({start: START, end: END, eventCount: 10, byteSize: 26e9})],
-      [
-        AnnotationFixture({
-          start: START,
-          end: END,
-          eventCount: 90,
-          byteSize: 224e9,
-        }),
-      ]
+    render(
+      <ExampleDroppedDataTooltip
+        dropped={[
+          AnnotationFixture({start: START, end: END, eventCount: 10, byteSize: 26e9}),
+        ]}
+        accepted={[
+          AnnotationFixture({
+            start: START,
+            end: END,
+            eventCount: 90,
+            byteSize: 224e9,
+          }),
+        ]}
+      />
     );
 
     expect(screen.getByText('Payloads Rejected')).toBeInTheDocument();
@@ -104,20 +126,28 @@ describe('DroppedDataTooltip', () => {
   });
 
   it('omits the payload row for datasets without a byte category', () => {
-    renderTooltip([AnnotationFixture({start: START, end: END, eventCount: 10})]);
+    render(
+      <ExampleDroppedDataTooltip
+        dropped={[AnnotationFixture({start: START, end: END, eventCount: 10})]}
+      />
+    );
 
     expect(screen.queryByText('Payloads Rejected')).not.toBeInTheDocument();
   });
 
   it('falls back to a generic label for an unknown outcome', () => {
-    renderTooltip([
-      AnnotationFixture({
-        start: START,
-        end: END,
-        outcome: 'something_new',
-        eventCount: 10,
-      }),
-    ]);
+    render(
+      <ExampleDroppedDataTooltip
+        dropped={[
+          AnnotationFixture({
+            start: START,
+            end: END,
+            outcome: 'something_new',
+            eventCount: 10,
+          }),
+        ]}
+      />
+    );
 
     expect(screen.getByText('Other Rejected')).toBeInTheDocument();
   });

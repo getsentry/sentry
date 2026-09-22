@@ -27,7 +27,9 @@ class GetIngestionDelayStatusTest(TestCase):
     ) -> IngestionDelayStatus:
         with (
             mock.patch("sentry.ingestion_delay.status.datetime") as mock_datetime,
-            mock.patch("sentry.ingestion_delay.status.measure_ingestion_delay") as mock_measure,
+            mock.patch(
+                "sentry.ingestion_delay.status.get_ingestion_delay_measurement"
+            ) as mock_measure,
             mock.patch(
                 "sentry.ingestion_delay.status.has_accepted_outcomes", return_value=accepted
             ) as mock_accepted,

@@ -55,6 +55,16 @@ LITERAL_OPERATOR_MAP = {
 }
 IN_OPERATORS = ["IN", "NOT IN"]
 
+# Snuba applies the same type rules to OP_REGEXP as to OP_LIKE: the pattern matches string
+# values, or the string elements of a string array.
+REGEXP_ATTRIBUTE_TYPES = frozenset(
+    {
+        AttributeKey.TYPE_STRING,
+        AttributeKey.TYPE_ARRAY,
+        AttributeKey.TYPE_ARRAY_STRING,
+    }
+)
+
 AGGREGATION_OPERATOR_MAP = {
     "=": AggregationComparisonFilter.OP_EQUALS,
     "!=": AggregationComparisonFilter.OP_NOT_EQUALS,

@@ -53,9 +53,7 @@ class OrganizationInvestigationBlocksEndpoint(OrganizationInvestigationEndpoint)
             serialize(
                 block,
                 request.user,
-                InvestigationBlockSerializer(
-                    accessible_project_ids=request.access.accessible_project_ids
-                ),
+                InvestigationBlockSerializer(),
             ),
             status=status.HTTP_201_CREATED,
         )

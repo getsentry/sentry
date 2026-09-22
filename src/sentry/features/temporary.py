@@ -236,6 +236,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:api-fetch-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     # Enable derivation of the `client_kind` API-usage attribute.
     manager.add("organizations:api-client-kind-check", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
+    # Enable granular permission scopes (e.g. dashboard:read/write/delete) on API endpoints.
+    manager.add("organizations:granular-permission-scopes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     manager.add("organizations:sourcemap-issue-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable profiling
     manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -423,8 +425,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tag-key-sample-n", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable dynamic grouping UI (top issues)
     manager.add("organizations:top-issues-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable feature to use span only trace endpoint.
-    manager.add("organizations:trace-spans-format", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extraction metrics for transactions during ingestion.
     manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Normalize URL transaction names during ingestion.

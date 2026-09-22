@@ -52,7 +52,7 @@ import {
   computeVisualizeSampleTotals,
 } from 'sentry/views/explore/utils';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
+import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/traceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
 const {info, fmt} = Sentry.logger;
 

@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
@@ -10,6 +11,8 @@ from slack_sdk.models.blocks import (
 )
 from slack_sdk.web import SlackResponse
 
+from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.typings.metric_detector import OpenPeriodContext
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.provider import (
@@ -21,14 +24,17 @@ from sentry.notifications.platform.provider import (
 from sentry.notifications.platform.slack.provider import (
     SlackNotificationProvider,
     SlackRenderable,
+    SlackRenderer,
+    SlackStagingNotificationProvider,
 )
+from sentry.notifications.platform.slack.renderers.metric_alert import SlackMetricAlertRenderer
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
     IntegrationNotificationTarget,
 )
+from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.threading import ThreadContext, ThreadKey
 from sentry.notifications.platform.types import (
-    NotificationCategory,
     NotificationProviderKey,
     NotificationSource,
     NotificationTargetResourceType,
@@ -42,11 +48,8 @@ class SlackRendererTest(TestCase):
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
         rendered_template = template.render(data)
-        renderer = SlackNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
 
-        rendererable = renderer.render(data=data, rendered_template=rendered_template)
+        rendererable = SlackRenderer.render(data=data, rendered_template=rendered_template)
         rendererable_dict = [block.to_dict() for block in rendererable.get("blocks", [])]
 
         assert rendererable_dict == [
@@ -112,6 +115,24 @@ class SlackNotificationProviderTest(TestCase):
     def test_is_available(self) -> None:
         assert SlackNotificationProvider.is_available() is False
         assert SlackNotificationProvider.is_available(organization=self.organization) is False
+
+    def test_staging_resolves_slack_renderers(self) -> None:
+        data = MetricAlertNotificationData(
+            group_id=1,
+            organization_id=self.organization.id,
+            notification_uuid="test-uuid",
+            action_id=1,
+            open_period_context=OpenPeriodContext(id=1, date_started=datetime(2024, 1, 1)),
+            new_status=IncidentStatus.CRITICAL.value,
+            title="Critical: Example Alert",
+            title_link="https://sentry.io",
+            text="123 events in the last 5 minutes",
+        )
+        assert (
+            SlackStagingNotificationProvider.get_renderer(data=data)
+            is SlackNotificationProvider.get_renderer(data=data)
+            is SlackMetricAlertRenderer
+        )
 
 
 class SlackNotificationProviderSendTest(TestCase):

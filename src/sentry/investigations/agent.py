@@ -203,7 +203,7 @@ def start_execution_run(
     client.is_interactive = is_query
     client.enable_code_mode_tools = "only" if is_query else "off"
     client.enable_coding = False
-    client.enable_bash_tools = False
+    client.enable_bash_mode = False
     client.enable_embeds = is_query
     client.enable_streaming = True
     client.max_iterations = 20 if is_query else 5
@@ -1022,7 +1022,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         on_completion_hook=InvestigationAgentCompletionHook,
         enable_code_mode_tools="only",
         enable_coding=False,
-        enable_bash_tools=False,
+        enable_bash_mode=False,
         enable_embeds=False,
         enable_streaming=True,
         max_iterations=3,

@@ -708,11 +708,11 @@ export interface GroupActivityIntegrationData {
 }
 
 export interface GroupActivityNote extends GroupActivityBase {
+  commentId: string;
   data: {
     text: string;
   };
   type: GroupActivityType.NOTE;
-  commentId?: string;
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
