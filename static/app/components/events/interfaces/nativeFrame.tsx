@@ -406,8 +406,8 @@ export function NativeFrame({
             <Flex
               column={{
                 zero: '2 / 4',
-                xl: '5 / 7',
-                '2xl': '6 / 8',
+                xl: '5',
+                '2xl': '6',
               }}
               justify="end"
               minWidth="0"
@@ -550,7 +550,7 @@ function RowHeader({
         xl: 'auto',
       }}
     >
-      {({className}) => <StyledRowHeader {...props} className={className} />}
+      {gridProps => <StyledRowHeader {...props} {...gridProps} />}
     </Grid>
   );
 }
