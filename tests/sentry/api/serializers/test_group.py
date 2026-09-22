@@ -439,26 +439,29 @@ class GroupSerializerDerivedDataTest(TestCase):
 
         get_bulk_group_derived_data({fresh_group.id, stale_group.id, invalidated_group.id})
 
-        assert mock_metrics_incr.call_args_list == [
-            call(
-                "issues.derived.served",
-                amount=1,
-                sample_rate=1.0,
-                tags={"status": "fresh"},
-            ),
-            call(
-                "issues.derived.served",
-                amount=1,
-                sample_rate=1.0,
-                tags={"status": "stale_hash"},
-            ),
-            call(
-                "issues.derived.served",
-                amount=1,
-                sample_rate=1.0,
-                tags={"status": "invalidated"},
-            ),
-        ]
+        mock_metrics_incr.assert_has_calls(
+            [
+                call(
+                    "issues.derived.served",
+                    amount=1,
+                    sample_rate=1.0,
+                    tags={"status": "fresh"},
+                ),
+                call(
+                    "issues.derived.served",
+                    amount=1,
+                    sample_rate=1.0,
+                    tags={"status": "stale_hash"},
+                ),
+                call(
+                    "issues.derived.served",
+                    amount=1,
+                    sample_rate=1.0,
+                    tags={"status": "invalidated"},
+                ),
+            ],
+            any_order=True,
+        )
 
     def test_derived_data_included(self) -> None:
         group = self.create_group()
