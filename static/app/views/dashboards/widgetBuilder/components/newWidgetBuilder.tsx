@@ -16,8 +16,6 @@ import {Backdrop} from '@sentry/scraps/backdrop';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
@@ -51,15 +49,13 @@ import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {getTraceMetricAggregates} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {hasUnresolvedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnresolvedTraceMetric';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
-import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
-import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export interface ThresholdMetaState {
   dataType?: string;
@@ -282,7 +278,7 @@ export function WidgetPreviewContainer({
     widget.widgetType === WidgetType.TRACEMETRICS &&
     widget.queries.every(query => query.aggregates.length === 0) &&
     Boolean(
-      getTraceMetricAggregateSource(state.displayType, state.yAxis, state.fields)?.some(
+      getTraceMetricAggregates(state.displayType, state.yAxis, state.fields)?.some(
         aggregate =>
           aggregate.kind === FieldValueKind.EQUATION && aggregate.field.trim() === ''
       )
@@ -378,63 +374,52 @@ export function WidgetPreviewContainer({
   };
 
   return (
-    <DashboardsMEPProvider>
-      <MetricsCardinalityProvider organization={organization} location={location}>
-        <MetricsDataSwitcher location={location}>
-          {metricsDataSide => (
-            <MEPSettingProvider
-              location={location}
-              forceTransactions={metricsDataSide.forceTransactionsOnly}
-            >
-              {isDragEnabled && <DroppablePreviewContainer />}
-              <DraggableWidgetContainer
-                ref={setNodeRef}
-                id={WIDGET_PREVIEW_DRAG_ID}
-                style={draggableStyle}
-                aria-label={t('Draggable Preview')}
-                {...attributes}
-                {...listeners}
-              >
-                <SampleWidgetCard
-                  {...animatedProps}
-                  style={{
-                    width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
-                    height: getPreviewHeight(),
-                    outline: isDragEnabled
-                      ? // eslint-disable-next-line @sentry/scraps/use-semantic-token
-                        `8px solid ${theme.tokens.border.primary}`
-                      : undefined,
-                  }}
-                >
-                  {openWidgetTemplates && !hasUrlParams ? (
-                    <WidgetPreviewPlaceholder>
-                      <h6 style={{margin: 0}}>{t('Widget Title')}</h6>
-                      <TemplateWidgetPreviewPlaceholder>
-                        <p style={{margin: 0}}>{t('Select a widget to preview')}</p>
-                      </TemplateWidgetPreviewPlaceholder>
-                    </WidgetPreviewPlaceholder>
-                  ) : (
-                    <WidgetPreview
-                      dashboardFilters={dashboardFilters}
-                      dashboard={dashboard}
-                      previewStatus={previewStatus}
-                      onDataFetched={onDataFetched}
-                      shouldForceDescriptionTooltip={!isSmallScreen}
-                    />
-                  )}
-                </SampleWidgetCard>
-
-                {!isSmallScreen && (
-                  <FilterBarContainer {...animatedProps}>
-                    <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
-                  </FilterBarContainer>
-                )}
-              </DraggableWidgetContainer>
-            </MEPSettingProvider>
+    <Fragment>
+      {isDragEnabled && <DroppablePreviewContainer />}
+      <DraggableWidgetContainer
+        ref={setNodeRef}
+        id={WIDGET_PREVIEW_DRAG_ID}
+        style={draggableStyle}
+        aria-label={t('Draggable Preview')}
+        {...attributes}
+        {...listeners}
+      >
+        <SampleWidgetCard
+          {...animatedProps}
+          style={{
+            width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
+            height: getPreviewHeight(),
+            outline: isDragEnabled
+              ? // eslint-disable-next-line @sentry/scraps/use-semantic-token
+                `8px solid ${theme.tokens.border.primary}`
+              : undefined,
+          }}
+        >
+          {openWidgetTemplates && !hasUrlParams ? (
+            <WidgetPreviewPlaceholder>
+              <h6 style={{margin: 0}}>{t('Widget Title')}</h6>
+              <TemplateWidgetPreviewPlaceholder>
+                <p style={{margin: 0}}>{t('Select a widget to preview')}</p>
+              </TemplateWidgetPreviewPlaceholder>
+            </WidgetPreviewPlaceholder>
+          ) : (
+            <WidgetPreview
+              dashboardFilters={dashboardFilters}
+              dashboard={dashboard}
+              previewStatus={previewStatus}
+              onDataFetched={onDataFetched}
+              shouldForceDescriptionTooltip={!isSmallScreen}
+            />
           )}
-        </MetricsDataSwitcher>
-      </MetricsCardinalityProvider>
-    </DashboardsMEPProvider>
+        </SampleWidgetCard>
+
+        {!isSmallScreen && (
+          <FilterBarContainer {...animatedProps}>
+            <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+          </FilterBarContainer>
+        )}
+      </DraggableWidgetContainer>
+    </Fragment>
   );
 }
 

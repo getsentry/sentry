@@ -295,7 +295,7 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
     def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> bool:
         try:
             with transaction.atomic(router.db_for_write(ProjectKeyMapping)):
-                ProjectKeyMapping.objects.update_or_create(
+                _, created = ProjectKeyMapping.objects.update_or_create(
                     project_key_id=project_key.id,
                     cell_name=project_key.cell_name,
                     defaults={"public_key": project_key.public_key},
@@ -307,6 +307,9 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
             )
             _record_replica_write(OutboxCategory.PROJECT_KEY_UPDATE, "conflict")
             return False
+        _record_replica_write(
+            OutboxCategory.PROJECT_KEY_UPDATE, "created" if created else "updated"
+        )
         return True
 
     def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
@@ -318,10 +321,13 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
         self, *, organization_id: int, avatar_type: int, avatar_ident: str
     ) -> None:
         with transaction.atomic(router.db_for_write(OrganizationAvatarReplica)):
-            OrganizationAvatarReplica.objects.update_or_create(
+            _, created = OrganizationAvatarReplica.objects.update_or_create(
                 organization_id=organization_id,
                 defaults={"avatar_type": avatar_type, "avatar_ident": avatar_ident},
             )
+        _record_replica_write(
+            OutboxCategory.ORGANIZATION_AVATAR_UPDATE, "created" if created else "updated"
+        )
 
     def delete_organization_avatar_replica(self, *, organization_id: int) -> None:
         OrganizationAvatarReplica.objects.filter(organization_id=organization_id).delete()

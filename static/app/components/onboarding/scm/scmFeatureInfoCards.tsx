@@ -89,6 +89,7 @@ export function ScmFeatureInfoCards({
                       {...containerProps}
                       size="md"
                       variant={isDisabled ? 'muted' : undefined}
+                      aria-hidden
                     />
                   )}
                 </Container>

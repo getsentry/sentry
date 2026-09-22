@@ -25,7 +25,7 @@ import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/m
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {TraceViewMetricsProviderWrapper} from 'sentry/views/performance/newTraceDetails/traceMetrics';
+import {TraceViewMetricsProviderWrapper} from 'sentry/views/performance/traceDetails/traceMetrics';
 
 export function MetricsSection({
   event,

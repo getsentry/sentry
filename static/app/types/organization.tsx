@@ -113,12 +113,6 @@ export interface Organization extends OrganizationSummary {
   enableSeerCoding?: boolean;
   enabledConsolePlatforms?: string[];
   experiments?: Record<string, string>;
-  extraOptions?: {
-    traces: {
-      checkSpanExtractionDate: boolean;
-      spansExtractionDate: number;
-    };
-  };
   ingestThroughTrustedRelaysOnly?: 'enabled' | 'disabled';
   orgRole?: string;
   planSampleRate?: number | null;

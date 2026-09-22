@@ -48,6 +48,39 @@ describe('makeSeerLocation', () => {
     ).toEqual({project: '1', referrer: 'inbox', seerDrawer: 'true'});
   });
 
+  it('keeps page filters when forwarding a legacy drawer url to the tab', () => {
+    expect(
+      makeSeerLocation({
+        organization: withPage,
+        groupId: '101',
+        query: {
+          project: '1',
+          environment: 'prod',
+          statsPeriod: '7d',
+          seerDrawer: 'true',
+        },
+      })
+    ).toEqual({
+      pathname: '/organizations/org-slug/issues/101/autofix/',
+      query: {project: '1', environment: 'prod', statsPeriod: '7d'},
+    });
+  });
+
+  it('lets the action argument win over a stale one in the caller query', () => {
+    expect(
+      makeSeerLocation({
+        organization: withPage,
+        groupId: '101',
+        action: 'retry_code_changes',
+        query: {seerDrawerAction: 'something_else'},
+      }).query
+    ).toEqual({seerDrawerAction: 'retry_code_changes'});
+  });
+});
+
+describe('makeSeerQuery', () => {
+  const withPage = OrganizationFixture({features: ['autofix-page']});
+
   it('omits the action param when no action is given', () => {
     expect(makeSeerQuery(withPage)).not.toHaveProperty('seerDrawerAction');
   });

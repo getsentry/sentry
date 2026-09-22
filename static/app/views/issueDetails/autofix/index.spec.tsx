@@ -1,3 +1,4 @@
+import {ExplorerAutofixResponseFixture} from 'sentry-fixture/autofix';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -102,8 +103,7 @@ describe('GroupAutofix', () => {
       })
     );
 
-    // The toolbar now lives in the issue navigation row, so the tab itself
-    // renders only the analysis.
+    // The toolbar renders in the issue navigation row, not in the tab.
     expect(
       await screen.findByRole('button', {name: 'Start Analysis'})
     ).toBeInTheDocument();
@@ -132,6 +132,53 @@ describe('GroupAutofix', () => {
     expect(
       screen.queryByRole('button', {name: 'Start Analysis'})
     ).not.toBeInTheDocument();
+  });
+
+  it('keeps an existing run visible after the org loses its Autofix quota', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/seer/setup-check/`,
+      body: {
+        hasFreeAutofixAccess: false,
+        billing: {hasAutofixQuota: false, hasScannerQuota: false},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture(),
+    });
+
+    renderPage(
+      OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['gen-ai-features', 'autofix-page', 'seer-billing'],
+      })
+    );
+
+    // The CTA replaces the start card, not the analysis an org already paid for.
+    expect(
+      await screen.findByText('The issue was caused by an unexpected value.')
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('autofix-upgrade-cta')).not.toBeInTheDocument();
+  });
+
+  it('leaves the start card in place when the Seer setup check fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/seer/setup-check/`,
+      statusCode: 500,
+    });
+
+    renderPage(
+      OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['gen-ai-features', 'autofix-page', 'seer-billing'],
+      })
+    );
+
+    // A failed check reports no quota, which must not be read as "unsubscribed".
+    expect(
+      await screen.findByRole('button', {name: 'Start Analysis'})
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('autofix-upgrade-cta')).not.toBeInTheDocument();
   });
 
   it('shows the start card when the org still has Autofix quota', async () => {

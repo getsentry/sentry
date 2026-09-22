@@ -3,7 +3,6 @@ from __future__ import annotations
 from base64 import b64encode
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest import mock
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -143,22 +142,26 @@ class CursorOriginReadsTest(TestCase):
         with pytest.raises(ApiConflictError):
             self.origin_client.get_tree(REPO, "HEAD")
 
+    @responses.activate
     def test_get_languages_uses_a_tree_it_is_given(self) -> None:
         """Detection already holds the tree, so passing it avoids a second fetch."""
-        with mock.patch.object(self.origin_client, "get_tree") as mock_tree:
-            languages = self.origin_client.get_languages(REPO, [blob("a.py", 300)])
+        languages = self.origin_client.get_languages(REPO, [blob("a.py", 300)])
 
         assert languages == {"Python": 300}
-        assert not mock_tree.called
+        assert len(responses.calls) == 0
 
+    @responses.activate
     def test_get_languages_fetches_the_tree_when_not_given_one(self) -> None:
-        with mock.patch.object(
-            self.origin_client, "get_tree", return_value=[blob("a.py", 42)]
-        ) as mock_tree:
-            languages = self.origin_client.get_languages(REPO)
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/git/trees/HEAD",
+            json={"sha": "t", "tree": [blob("a.py", 42)], "truncated": False},
+        )
+
+        languages = self.origin_client.get_languages(REPO)
 
         assert languages == {"Python": 42}
-        assert mock_tree.called
+        assert len(responses.calls) == 1
 
     @responses.activate
     def test_get_commits_starts_from_a_ref(self) -> None:

@@ -741,6 +741,56 @@ describe('ToolUseBlock', () => {
     expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
+  it('links a direct spans API query without separate tool link metadata', () => {
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_links: [null],
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'done',
+          structuredContent: {
+            calls: [
+              {
+                id: 1,
+                kind: 'api',
+                method: 'GET',
+                path: '/api/0/organizations/{organization_id_or_slug}/events/',
+                path_params: {organization_id_or_slug: 'org-slug'},
+                resolved_path:
+                  '/api/0/organizations/org-slug/events/?dataset=spans&field=span.op&field=count()&query=span.op%3Adb&project=2&statsPeriod=30d&sort=-count()',
+                title: 'Querying spans for database calls',
+                status: 200,
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    expect(screen.getByText('Querying spans for database calls')).toBeInTheDocument();
+    const link = screen.getByRole('button', {name: 'View spans'});
+    const url = new URL(link.getAttribute('href')!, 'https://example.com');
+    expect(url.pathname).toBe('/organizations/org-slug/traces/');
+    expect(url.searchParams.get('query')).toBe('span.op:db');
+    expect(url.searchParams.get('project')).toBe('2');
+    expect(url.searchParams.get('statsPeriod')).toBe('30d');
+    expect(url.searchParams.get('mode')).toBe('aggregate');
+    // The aggregate table sorts from its own key, not the samples `sort`.
+    expect(url.searchParams.get('aggregateSort')).toBe('-count()');
+    expect(url.searchParams.get('sort')).toBeNull();
+    expect(
+      url.searchParams.getAll('aggregateField').map(value => JSON.parse(value))
+    ).toEqual([{yAxes: ['count()']}, {groupBy: 'span.op'}]);
+  });
+
   it('does not double-render a classic link present in both channels', () => {
     // A classic tool populates both the positional tool_links (row link) and structuredContent.links
     // during migration; the bus entry that duplicates the row link is deduped, so it renders once.

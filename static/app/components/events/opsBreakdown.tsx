@@ -34,8 +34,7 @@ type OpBreakdownType = OpStats[];
 
 export function generateStats(
   transactionEvent: EventTransaction | AggregateEventTransaction,
-  operationNameFilters: ActiveOperationFilter,
-  topN?: number
+  operationNameFilters: ActiveOperationFilter
 ): OpBreakdownType {
   if (!transactionEvent) {
     return [];
@@ -164,18 +163,18 @@ export function generateStats(
     }
   );
 
-  const breakdown = sortedOpsBreakdown
-    .slice(0, topN)
-    .map(([operationName, duration]: [OperationName, Duration]): OpStats => {
+  const breakdown = sortedOpsBreakdown.map(
+    ([operationName, duration]: [OperationName, Duration]): OpStats => {
       return {
         name: operationName,
         // percentage to be recalculated after the ops breakdown group is decided
         percentage: 0,
         totalInterval: duration,
       };
-    });
+    }
+  );
 
-  const other = sortedOpsBreakdown.slice(topN).reduce(
+  const other = sortedOpsBreakdown.reduce(
     (accOther: OpStats, [_operationName, duration]: [OperationName, Duration]) => {
       accOther.totalInterval += duration;
 

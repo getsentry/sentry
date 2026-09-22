@@ -700,6 +700,7 @@ from sentry.users.api.endpoints.user_authenticator_enroll import UserAuthenticat
 from sentry.users.api.endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
 from sentry.users.api.endpoints.user_avatar import UserAvatarEndpoint
 from sentry.users.api.endpoints.user_details import UserDetailsEndpoint
+from sentry.users.api.endpoints.user_display_preferences import UserDisplayPreferencesEndpoint
 from sentry.users.api.endpoints.user_emails import UserEmailsEndpoint
 from sentry.users.api.endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
 from sentry.users.api.endpoints.user_identity import UserIdentityEndpoint
@@ -715,10 +716,6 @@ from sentry.users.api.endpoints.user_permission_details import UserPermissionDet
 from sentry.users.api.endpoints.user_permissions import UserPermissionsEndpoint
 from sentry.users.api.endpoints.user_permissions_config import UserPermissionsConfigEndpoint
 from sentry.users.api.endpoints.user_regions import UserRegionsEndpoint
-from sentry.users.api.endpoints.user_role_details import UserUserRoleDetailsEndpoint
-from sentry.users.api.endpoints.user_roles import UserUserRolesEndpoint
-from sentry.users.api.endpoints.userroles_details import UserRoleDetailsEndpoint
-from sentry.users.api.endpoints.userroles_index import UserRolesEndpoint
 from sentry.workflow_engine.endpoints import urls as workflow_urls
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
@@ -1283,6 +1280,11 @@ USER_URLS = [
         name="sentry-api-0-user-authenticator-details",
     ),
     re_path(
+        r"^(?P<user_id>[^/]+)/display-preferences/$",
+        UserDisplayPreferencesEndpoint.as_view(),
+        name="sentry-api-0-user-display-preferences",
+    ),
+    re_path(
         r"^(?P<user_id>[^/]+)/emails/$",
         UserEmailsEndpoint.as_view(),
         name="sentry-api-0-user-emails",
@@ -1358,16 +1360,6 @@ USER_URLS = [
         name="sentry-api-0-user-permission-details",
     ),
     re_path(
-        r"^(?P<user_id>[^/]+)/roles/$",
-        UserUserRolesEndpoint.as_view(),
-        name="sentry-api-0-user-userroles",
-    ),
-    re_path(
-        r"^(?P<user_id>[^/]+)/roles/(?P<role_name>[^/]+)/$",
-        UserUserRoleDetailsEndpoint.as_view(),
-        name="sentry-api-0-user-userrole-details",
-    ),
-    re_path(
         r"^(?P<user_id>[^/]+)/subscriptions/$",
         UserSubscriptionsEndpoint.as_view(),
         name="sentry-api-0-user-subscriptions",
@@ -1386,19 +1378,6 @@ USER_URLS = [
         r"^(?P<user_id>[^/]+)/user-identities/(?P<category>[\w-]+)/(?P<identity_id>[^/]+)/$",
         UserIdentityConfigDetailsEndpoint.as_view(),
         name="sentry-api-0-user-identity-config-details",
-    ),
-]
-
-USER_ROLE_URLS = [
-    re_path(
-        r"^$",
-        UserRolesEndpoint.as_view(),
-        name="sentry-api-0-userroles",
-    ),
-    re_path(
-        r"^(?P<role_name>[^/]+)/$",
-        UserRoleDetailsEndpoint.as_view(),
-        name="sentry-api-0-userroles-details",
     ),
 ]
 
@@ -3893,11 +3872,6 @@ urlpatterns = [
     re_path(
         r"^users/",
         include(USER_URLS),
-    ),
-    # UserRoles
-    re_path(
-        r"^userroles/",
-        include(USER_ROLE_URLS),
     ),
     # Sentry Apps
     re_path(

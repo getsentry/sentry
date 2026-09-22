@@ -151,10 +151,13 @@ describe('SeerExplorerHeader', () => {
 
     it('disables both variants when disableNewChatButton is set', async () => {
       await renderHeader({disableNewChatButton: true});
-      expect(screen.getByRole('button', {name: 'New chat'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'New chat'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
       expect(
         screen.getByRole('button', {name: 'Start a new chat (/new)'})
-      ).toBeDisabled();
+      ).toHaveAttribute('aria-disabled', 'true');
     });
   });
 
