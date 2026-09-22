@@ -17,6 +17,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -306,7 +307,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
 
         try:
             enable_coding = organization.get_option(
-                "sentry:enable_seer_coding", False
+                "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
             ) and features.has(
                 "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
