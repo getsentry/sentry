@@ -3725,6 +3725,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Kill switch for sentinel-triggered whole-store repair. Defaults to True (repair off) so the
+# option is never left permanently True with no way to remove it.
+register(
+    "uptime.config-drift.sentinel-repair-disabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls whether uptime monitoring automatically detects hostnames from error events.
 register(
     "uptime.automatic-hostname-detection",

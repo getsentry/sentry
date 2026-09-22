@@ -364,7 +364,7 @@ class CheckConfigSentinelsTest(ConfigPusherTestMixin):
         super().setUp()
         self.enterContext(override_options({"uptime.config-drift.enabled": True}))
 
-    def test_option_off_emits_metric_only(self) -> None:
+    def test_sentinel_repair_disabled_emits_metric_only(self) -> None:
         cluster = redis.redis_clusters.get_binary("default")
         keys_before = set(cluster.keys())
 
@@ -386,7 +386,7 @@ class CheckConfigSentinelsTest(ConfigPusherTestMixin):
         assert not delay.called
         assert set(cluster.keys()) == keys_before
 
-    @override_options({"uptime.config-drift.repair": True})
+    @override_options({"uptime.config-drift.sentinel-repair-disabled": False})
     def test_sentinel_write_touches_no_config_hash(self) -> None:
         cluster = redis.redis_clusters.get_binary("default")
 
@@ -419,7 +419,7 @@ class CheckConfigSentinelsTest(ConfigPusherTestMixin):
         redis.redis_clusters.get_binary("default").delete(sentinel)
         return subscriptions, sentinel
 
-    @override_options({"uptime.config-drift.repair": True})
+    @override_options({"uptime.config-drift.sentinel-repair-disabled": False})
     def test_missing_sentinel_repairs_only_that_store(self) -> None:
         [subscription], _ = self._seed_lost_on_b()
 
@@ -434,7 +434,7 @@ class CheckConfigSentinelsTest(ConfigPusherTestMixin):
             "b1", subscription, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
         )
 
-    @override_options({"uptime.config-drift.repair": True})
+    @override_options({"uptime.config-drift.sentinel-repair-disabled": False})
     @mock.patch.object(tasks, "CONFIG_REPAIR_MAX_TASKS", 1)
     def test_sentinel_written_only_once_missing_fits_the_cap(self) -> None:
         lost, sentinel = self._seed_lost_on_b(count=2)

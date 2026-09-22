@@ -382,7 +382,7 @@ def check_orphaned_configs(cluster: str, key_prefix: str, partition: int, **kwar
 def check_config_sentinels(**kwargs):
     """
     Checks each config store's partition sentinels every minute; a missing sentinel means the
-    store lost data, so its whole-store comparison is queued when repair is on.
+    store lost data, so its whole-store comparison is queued unless sentinel repair is disabled.
     """
     if not options.get("uptime.config-drift.enabled"):
         return
@@ -400,7 +400,7 @@ def check_config_sentinels(**kwargs):
             tags={"cluster": store.cluster},
             sample_rate=1.0,
         )
-        if missing and options.get("uptime.config-drift.repair"):
+        if missing and not options.get("uptime.config-drift.sentinel-repair-disabled"):
             logger.warning(
                 "uptime.config_drift.sentinel_missing",
                 extra={"cluster": store.cluster, "count": len(missing), "partitions": missing},
