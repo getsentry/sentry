@@ -6,7 +6,6 @@ import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ActivityLineList} from 'sentry/components/activityLine/layout';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconChat, IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
@@ -22,6 +21,7 @@ import {
   type DisplayedActivityFeedItem,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 import {CollapsedStatusActivityRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/collapsedStatusActivityRow';
+import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
   isActivityNote,

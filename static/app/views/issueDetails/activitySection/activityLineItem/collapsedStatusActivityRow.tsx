@@ -4,8 +4,8 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {ActivityLineRow} from 'sentry/components/activityLine/layout';
 import {t, tn} from 'sentry/locale';
+import {ActivityLineRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {ActivityLineDotMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker';
 
 interface CollapsedStatusActivityRowProps {

@@ -1,11 +1,11 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {ActivityLineList, ActivityLineRow} from 'sentry/components/activityLine/layout';
-import {ActivityLineDotMarker} from 'sentry/components/activityLine/marker';
+import {Timeline} from 'sentry/components/timeline';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
@@ -44,6 +44,7 @@ export function HypothesisCard({
   hypothesis,
   isPrimary = false,
 }: HypothesisCardProps) {
+  const theme = useTheme();
   const steps = [...(hypothesis.verificationSteps ?? [])].sort(
     (a, b) => a.order - b.order
   );
@@ -103,26 +104,34 @@ export function HypothesisCard({
           {steps.map(step => {
             const isRunning = step.status === 'running';
             return (
-              <ActivityLineRow
+              <Timeline.Item
                 key={step.id}
                 as="li"
                 aria-current={isRunning ? 'step' : undefined}
-              >
-                <ActivityLineDotMarker
-                  variant={isRunning ? 'vibrant' : 'moderate'}
-                  label={step.title}
-                />
-                <StepTitle column={2} row={1} minWidth={0} minHeight="22px">
-                  <Text
+                icon={<Timeline.Dot />}
+                colorConfig={{
+                  // The step the agent is on is picked out; the rest are
+                  // markers on the way there.
+                  icon: isRunning
+                    ? theme.tokens.graphics.neutral.vibrant
+                    : theme.tokens.graphics.neutral.moderate,
+                  iconBorder: 'transparent',
+                  title: theme.tokens.content.primary,
+                }}
+                title={
+                  // A check reads as a line of evidence rather than a heading,
+                  // so it keeps the card's smaller, lighter type instead of the
+                  // timeline's bold default.
+                  <StepTitle
                     size="sm"
-                    density="comfortable"
+                    bold={false}
                     variant={isRunning ? 'primary' : 'muted'}
                     wordBreak="break-word"
                   >
                     {step.title}
-                  </Text>
-                </StepTitle>
-              </ActivityLineRow>
+                  </StepTitle>
+                }
+              />
             );
           })}
         </EvidenceList>
@@ -179,29 +188,24 @@ const Card = styled(Stack)`
 `;
 
 /**
- * The checks as a connected timeline — the same one the issue activity drawer
- * draws, so a hypothesis' progress reads the way activity does everywhere else:
- * a marker per step in a fixed gutter, with a line running between them. Each
- * step is an `ActivityLineRow`, which owns the gutter and the segment of line
- * running to the next step — including stopping it at the last one.
- *
- * `ol` markers would otherwise sit in the card's padding beside each step.
+ * The checks as a connected timeline — the same `Timeline` the breadcrumbs and
+ * open periods draw, with a dot marker instead of an icon. `ol` markers would
+ * otherwise sit in the card's padding beside each step.
  */
-const EvidenceList = styled(ActivityLineList)`
+const EvidenceList = styled(Timeline.Container)`
   list-style: none;
-  margin: 0;
   padding: 0;
-  padding-top: ${p => p.theme.space.md};
+  /* Margin, not padding: the connecting line is drawn down the container's box,
+   * so padding here would show a stub of it above the first marker. */
+  margin: ${p => p.theme.space.md} 0 0;
 `;
 
-// The row's second column, beside the marker — placed rather than left to
-// auto-placement, which is what the activity line's own headline does.
-//
-// A step's title is smaller than an activity headline, so centring it in the
-// marker's own 22px box is what puts the two on the same optical line: the
-// marker cell is a 22px box lifted 2px, and this matches it. Left to sit in
-// its own short line box at the top of the row, the title rides above the dot.
-const StepTitle = styled(Flex)`
-  align-items: center;
-  margin-top: -2px;
+/**
+ * A check's title is smaller than the timeline's own, which is sized for a
+ * heading. Holding its line box at the marker's height — the 20px icon box plus
+ * its 1px ring — keeps the two centred on each other. Left to its shorter
+ * natural line box, the title rides above the dot.
+ */
+const StepTitle = styled(Text)`
+  line-height: 22px;
 `;

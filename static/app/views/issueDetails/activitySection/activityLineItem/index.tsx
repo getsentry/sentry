@@ -1,15 +1,12 @@
 import {useMemo} from 'react';
 
-import {
-  ActivityLineHeadline,
-  ActivityLineRow,
-} from 'sentry/components/activityLine/layout';
 import {TimeSince} from 'sentry/components/timeSince';
 import {GroupActivityType, type Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ActivityFeedItem} from './activityFeedItem';
 import {getActivityItem} from './activityItem';
+import {ActivityLineHeadline, ActivityLineRow} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
 interface ActivityLineProps {

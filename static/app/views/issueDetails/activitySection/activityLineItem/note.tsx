@@ -6,11 +6,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
-import {
-  ActivityLineContent,
-  ActivityLineRow,
-  type ActivityLineVariant,
-} from 'sentry/components/activityLine/layout';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
@@ -20,6 +15,7 @@ import {ActivityInputFrame} from 'sentry/views/issueDetails/activitySection/acti
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 
 import {getActivityNoteAuthor} from './activityItem';
+import {ActivityLineContent, ActivityLineRow, type ActivityLineVariant} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
 type GroupActivityNote = Extract<GroupActivity, {type: GroupActivityType.NOTE}>;

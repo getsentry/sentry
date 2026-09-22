@@ -6,6 +6,14 @@ import {Flex, Container} from '@sentry/scraps/layout';
 
 export interface TimelineItemProps {
   title: React.ReactNode;
+  /**
+   * Renders the row as another element — an `li`, when the timeline is a list.
+   * The row itself has to be the list item: `:first-child` and `:last-child`
+   * above decide the row's margin and whether the connecting line is masked,
+   * and a wrapping `li` would make every row match both.
+   */
+  as?: React.ElementType;
+  'aria-current'?: React.AriaAttributes['aria-current'];
   children?: React.ReactNode;
   className?: string;
   colorConfig?: {
@@ -148,6 +156,24 @@ const Data = styled('div')`
   }
 `;
 
+/**
+ * A marker for an entry with no icon of its own: a plain point on the line.
+ *
+ * Passed as `icon`, so it sits in the same box an icon would and lands on the
+ * container's axis without the caller positioning anything. An icon marker is
+ * a 12px glyph inside 4px of margin; the dot is smaller, and its margin makes
+ * up the difference so the two share a centre. It takes its colour from
+ * `colorConfig.icon` like an icon does.
+ */
+const Dot = styled('span')`
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: 6px;
+  border-radius: 100%;
+  background: currentColor;
+`;
+
 const TimelineContainer = styled('div')`
   position: relative;
   /* vertical line connecting items */
@@ -165,6 +191,7 @@ const TimelineContainer = styled('div')`
 
 export const Timeline = {
   Data,
+  Dot,
   Text,
   Title,
   TitleRow,
