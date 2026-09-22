@@ -1,9 +1,8 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
-import {Container} from '@sentry/scraps/layout';
 
 import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
 import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
@@ -15,10 +14,10 @@ import {
   ComboBoxLayoutContext,
   type ComboBoxMenuPresentation,
 } from 'sentry/components/tokenizedInput/token/comboBoxLayout';
+import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {PanelProvider} from 'sentry/utils/panelProvider';
-import {useDimensions} from 'sentry/utils/useDimensions';
 
 export type {ComboBoxMenuPresentation};
 
@@ -94,13 +93,8 @@ export function ArithmeticBuilder({
     updateExpression: setExpression,
   });
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const setWrapperRef = useCallback((element: HTMLDivElement | null) => {
-    wrapperRef.current = element;
-  }, []);
   const panelRef = useRef<HTMLDivElement>(null);
   const [menuContainer, setMenuContainer] = useState<HTMLDivElement | null>(null);
-  const {height: builderHeight} = useDimensions({elementRef: wrapperRef});
 
   const contextValue = useMemo(() => {
     return {
@@ -142,7 +136,6 @@ export function ArithmeticBuilder({
       <ComboBoxLayoutContext value={layoutValue}>
         <ArithmeticBuilderContext value={contextValue}>
           <Wrapper
-            ref={setWrapperRef}
             className={className}
             aria-disabled={disabled}
             data-test-id={dataTestId ?? 'arithmetic-builder'}
@@ -160,72 +153,16 @@ export function ArithmeticBuilder({
     return builder;
   }
 
-  // useDimensions measures clientHeight; include the input's two 1px borders.
   return (
-    <Container
-      position="relative"
-      width="100%"
-      minWidth="0"
-      height={`${builderHeight + 2}px`}
+    <QueryBuilderPanel
+      ref={panelRef}
+      data-test-id="arithmetic-builder-panel"
+      onMenuContainerRef={setMenuContainer}
     >
-      <ArithmeticPanel
-        ref={panelRef}
-        data-test-id="arithmetic-builder-panel"
-        position="absolute"
-        top="0"
-        left="0"
-        right="0"
-        radius="md"
-        onPointerDown={event => {
-          if (
-            event.target === event.currentTarget ||
-            (event.target instanceof Element &&
-              event.target.hasAttribute('data-query-builder-menu'))
-          ) {
-            // Padding is part of the editor; keep focus on the current input/control.
-            event.preventDefault();
-          }
-        }}
-      >
-        {builder}
-        <Container ref={setMenuContainer} data-query-builder-menu />
-      </ArithmeticPanel>
-    </Container>
+      {builder}
+    </QueryBuilderPanel>
   );
 }
-
-const ArithmeticPanel = styled(Container)`
-  &:has([data-query-builder-menu] [data-overlay]) {
-    top: calc(-${p => p.theme.space.sm} - 1px);
-    left: calc(-${p => p.theme.space.sm} - 1px);
-    right: calc(-${p => p.theme.space.sm} - 1px);
-    padding: ${p => p.theme.space.sm};
-    background: ${p => p.theme.tokens.background.overlay};
-    border: 1px solid ${p => p.theme.tokens.border.primary};
-    box-shadow: ${p => p.theme.shadow.medium};
-  }
-
-  [data-query-builder-menu]:not(:empty) {
-    padding-top: ${p => p.theme.space.sm};
-    margin-inline: -${p => p.theme.space.sm};
-  }
-
-  [data-query-builder-menu] [data-overlay] {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    background: transparent;
-  }
-
-  [data-query-builder-menu] [role='listbox'] {
-    width: 100%;
-    min-width: 0;
-    text-align: left;
-  }
-`;
 
 const Wrapper = styled(Input.withComponent('div'))<{
   state: 'valid' | 'invalid';

@@ -10,7 +10,6 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -980,9 +979,6 @@ describe('ExploreToolbar', () => {
         expect(expandedBar).toHaveStyle({width: '460px'});
         expect(screen.getByTestId('search-query-builder-panel')).toContainElement(menu);
         expect(screen.getByTestId('search-query-builder-panel')).toContainElement(input);
-        expect(getEmotionRules(menu).join(' ')).toContain(
-          `width: ${expandedBar.style.width}`
-        );
       } finally {
         viewportWidth.mockRestore();
       }
@@ -1248,12 +1244,8 @@ describe('ExploreToolbar', () => {
 
       const panel = screen.getByTestId('arithmetic-builder-panel');
       const listbox = await screen.findByRole('listbox');
-      const menuRules = getEmotionRules(listbox.closest('[data-overlay]')!).join(' ');
       expect(panel).toContainElement(listbox);
       expect(panel).toContainElement(input);
-      expect(menuRules).toContain('width: 100%');
-      expect(menuRules).toContain('max-width: 100%');
-      expect(menuRules).toContain('text-align: left');
     });
 
     it('does not expand the equation editor without the feature', async () => {

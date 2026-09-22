@@ -89,7 +89,6 @@ interface SearchQueryBuilderLayoutContextData {
   menuPresentation: 'floating' | 'panel';
   panelRef: React.RefObject<HTMLDivElement | null>;
   portalTarget: HTMLElement | null | undefined;
-  searchBarHeight: number;
   setMenuContainer: (element: HTMLDivElement | null) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
@@ -382,7 +381,7 @@ export function SearchQueryBuilderProvider({
     setReopenDropdownOnQueryClear(false);
   }, []);
 
-  const {width: searchBarWidth, height: searchBarHeight} = useDimensions({
+  const {width: searchBarWidth} = useDimensions({
     elementRef: wrapperRef,
   });
   const size =
@@ -473,7 +472,6 @@ export function SearchQueryBuilderProvider({
       menuPresentation,
       panelRef,
       portalTarget: menuPresentation === 'panel' ? menuContainer : portalTarget,
-      searchBarHeight,
       setMenuContainer,
       size,
       wrapperRef,
@@ -487,7 +485,6 @@ export function SearchQueryBuilderProvider({
     menuContainer,
     panelRef,
     portalTarget,
-    searchBarHeight,
     size,
     wrapperRef,
   ]);

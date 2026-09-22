@@ -278,7 +278,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch, focusOverride} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
-  const {menuPresentation, panelRef, portalTarget} = useSearchQueryBuilderLayout();
+  const {menuPresentation, panelRef} = useSearchQueryBuilderLayout();
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -297,7 +297,11 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
 
   const {focusWithinProps} = useFocusWithin({
     onBlurWithin: event => {
-      if (menuPresentation === 'panel' && portalTarget?.contains(event.relatedTarget)) {
+      if (
+        menuPresentation === 'panel' &&
+        event.relatedTarget instanceof Node &&
+        panelRef.current?.contains(event.relatedTarget)
+      ) {
         return;
       }
       setIsEditing(false);

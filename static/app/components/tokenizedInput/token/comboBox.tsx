@@ -30,7 +30,10 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {useComboBoxLayout} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
+import {
+  useComboBoxLayout,
+  withPanelOverlayProps,
+} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {UnstyledInput} from 'sentry/components/tokenizedInput/token/unstyledInput';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
@@ -242,12 +245,8 @@ export function ComboBox({
         return false;
       }
 
-      // Keep the menu open when clicking panel padding or the suggestions gap,
-      // matching SearchQueryBuilder's unified panel.
-      if (
-        menuPresentation === 'panel' &&
-        (el === panelRef.current || el.hasAttribute('data-query-builder-menu'))
-      ) {
+      // Keep the menu open when clicking panel padding or the suggestions gap.
+      if (menuPresentation === 'panel' && panelRef.current?.contains(el)) {
         return false;
       }
 
@@ -386,17 +385,7 @@ export function ComboBox({
 
   const autosizeInputRef = useAutosizeInput({value: inputValue});
 
-  const overlayProps =
-    menuPresentation === 'panel'
-      ? {
-          ...positionedOverlayProps,
-          style: {
-            position: 'relative' as const,
-            width: '100%',
-            maxWidth: '100%',
-          },
-        }
-      : positionedOverlayProps;
+  const overlayProps = withPanelOverlayProps(positionedOverlayProps, menuPresentation);
 
   const overlay = (
     <StyledPositionWrapper

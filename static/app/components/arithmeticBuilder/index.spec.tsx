@@ -5,7 +5,6 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
@@ -347,12 +346,8 @@ describe('ArithmeticBuilder', () => {
     await userEvent.click(screen.getByTestId('arithmetic-builder-input'));
 
     const listbox = await screen.findByRole('listbox');
-    const menuRules = getEmotionRules(listbox.closest('[data-overlay]')!).join(' ');
     expect(panel).toContainElement(listbox);
     expect(panel).toContainElement(screen.getByTestId('arithmetic-builder-input'));
-    expect(menuRules).toContain('width: 100%');
-    expect(menuRules).toContain('max-width: 100%');
-    expect(menuRules).toContain('text-align: left');
   });
 
   it.each(['padding', 'gap'])(

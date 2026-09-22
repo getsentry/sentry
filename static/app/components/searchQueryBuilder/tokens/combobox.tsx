@@ -45,6 +45,7 @@ import {
   itemIsSection,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
+import {withPanelOverlayProps} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {useOverlay} from 'sentry/utils/useOverlay';
@@ -317,13 +318,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
 }) {
   const {enableAISearch} = useSearchQueryBuilderAI();
   const {menuPresentation} = useSearchQueryBuilderLayout();
-  const overlayProps =
-    menuPresentation === 'panel'
-      ? {
-          ...positionedOverlayProps,
-          style: {position: 'relative' as const, width: '100%', maxWidth: '100%'},
-        }
-      : positionedOverlayProps;
+  const overlayProps = withPanelOverlayProps(positionedOverlayProps, menuPresentation);
   const anyItemsShowing = totalOptions > hiddenOptions.size;
 
   if (!isOpen) {
