@@ -1,4 +1,4 @@
-import type {ComponentProps, PropsWithChildren} from 'react';
+import type {PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';

@@ -1,4 +1,3 @@
-import type {ComponentProps} from 'react';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
