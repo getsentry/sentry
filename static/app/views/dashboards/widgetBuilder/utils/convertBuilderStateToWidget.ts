@@ -154,6 +154,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     widgetType: state.dataset,
     limit,
     legendType: state.legendType ?? null,
+    chartPalette: state.chartPalette,
     thresholds: state.thresholds,
     axisRange: getAxisRange(state.axisRange) ?? datasetConfig.axisRange,
   };

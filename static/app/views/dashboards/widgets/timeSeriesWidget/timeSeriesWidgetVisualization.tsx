@@ -94,6 +94,8 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    */
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
 
+  colorPalette?: readonly string[];
+
   /**
    * Annotations rendered as a severity band between the plot and
    * the x-axis line. No-ops when empty.
@@ -260,8 +262,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const paletteSize = props.plottables.filter(plottable => plottable.needsColor).length;
 
   const palette = useMemo(
-    () => (paletteSize > 0 ? theme.chart.getColorPalette(paletteSize - 1) : []),
-    [paletteSize, theme.chart]
+    () =>
+      paletteSize > 0
+        ? (props.colorPalette ?? theme.chart.getColorPalette(paletteSize - 1))
+        : [],
+    [paletteSize, props.colorPalette, theme.chart]
   );
 
   // Create a lookup of series names (given to ECharts) to labels (from
