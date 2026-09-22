@@ -4,10 +4,7 @@ import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 // Timeseries with more than this ratio of low confidence intervals will be considered low confidence
 const LOW_CONFIDENCE_THRESHOLD = 0.25;
 
-export function determineTimeSeriesConfidence(
-  timeSeries: TimeSeries,
-  threshold = LOW_CONFIDENCE_THRESHOLD
-): Confidence {
+export function determineTimeSeriesConfidence(timeSeries: TimeSeries): Confidence {
   const {lowConfidence, highConfidence, nullConfidence} = timeSeries.values.reduce(
     (acc, item) => {
       if (item.confidence === 'low') {
@@ -22,7 +19,12 @@ export function determineTimeSeriesConfidence(
     {lowConfidence: 0, highConfidence: 0, nullConfidence: 0}
   );
 
-  return finalConfidence(lowConfidence, highConfidence, nullConfidence, threshold);
+  return finalConfidence(
+    lowConfidence,
+    highConfidence,
+    nullConfidence,
+    LOW_CONFIDENCE_THRESHOLD
+  );
 }
 
 function finalConfidence(

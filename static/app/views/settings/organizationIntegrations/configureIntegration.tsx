@@ -8,6 +8,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
@@ -30,7 +31,6 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -43,6 +43,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
+import {CrumbLink} from 'sentry/views/settings/components/settingsBreadcrumb';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {Divider} from 'sentry/views/settings/components/settingsBreadcrumb/divider';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -186,6 +187,7 @@ function ConfigureIntegration() {
   const {projects} = useProjects();
 
   const [isVerifyingGcp, setIsVerifyingGcp] = useState(false);
+  const [gcpVerificationError, setGcpVerificationError] = useState(false);
 
   useRouteAnalyticsEventNames(
     'integrations.details_viewed',
@@ -202,6 +204,7 @@ function ConfigureIntegration() {
 
   useEffect(() => {
     refetchIntegration();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [projects, refetchIntegration]);
 
   useEffect(() => {
@@ -402,6 +405,7 @@ function ConfigureIntegration() {
       onSuccess: async () => {
         const verifiesConnection = provider.key === 'gcp';
         if (verifiesConnection) {
+          setGcpVerificationError(false);
           setIsVerifyingGcp(true);
         }
 
@@ -419,6 +423,7 @@ function ConfigureIntegration() {
               // The save itself succeeded; the connection stays recorded as unverified
               // and the customer can re-test, so don't report this as a failed save.
               Sentry.captureException(error);
+              setGcpVerificationError(true);
             }
           }
         } finally {
@@ -436,6 +441,8 @@ function ConfigureIntegration() {
             configData={integration.configData}
             organization={organization}
             isVerifying={isVerifyingGcp}
+            verificationError={gcpVerificationError}
+            onVerificationStarted={() => setGcpVerificationError(false)}
             onRetested={() => queryClient.invalidateQueries(integrationQueryOptions)}
           />
         )}
@@ -550,7 +557,10 @@ function IntegrationNavigationHeader({
   integration: Integration;
   action?: React.ReactNode;
 }) {
+  const organization = useOrganization();
+  const {providerKey} = useParams<{providerKey: string}>();
   const externalUrl = getIntegrationExternalUrl(integration);
+  const configurationsHref = `/settings/${organization.slug}/integrations/${providerKey}/?tab=configurations`;
 
   return (
     <Fragment>
@@ -558,7 +568,7 @@ function IntegrationNavigationHeader({
       <SettingsPageHeader
         title={
           <Flex align="center" gap="sm">
-            <Text as="span">{t('Configurations')}</Text>
+            <CrumbLink to={configurationsHref}>{t('Configurations')}</CrumbLink>
             <Divider />
             <IntegrationIcon size={18} integration={integration} />
             {externalUrl ? (

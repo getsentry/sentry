@@ -60,7 +60,6 @@ describe('EventsSearchBar', () => {
           fieldAliases: undefined,
           fields: undefined,
           isHidden: undefined,
-          onDemand: undefined,
           selectedAggregate: undefined,
         }}
       />,
@@ -94,7 +93,6 @@ describe('EventsSearchBar', () => {
           fieldAliases: undefined,
           fields: undefined,
           isHidden: undefined,
-          onDemand: undefined,
           selectedAggregate: undefined,
         }}
       />,
@@ -137,7 +135,6 @@ describe('EventsSearchBar', () => {
           fieldAliases: undefined,
           fields: undefined,
           isHidden: undefined,
-          onDemand: undefined,
           selectedAggregate: undefined,
         }}
       />,
@@ -176,7 +173,6 @@ describe('EventsSearchBar', () => {
           fieldAliases: undefined,
           fields: undefined,
           isHidden: undefined,
-          onDemand: undefined,
           selectedAggregate: undefined,
         }}
       />,

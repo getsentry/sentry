@@ -109,6 +109,9 @@ from sentry.utils.tracing import set_span_data, start_span
 SCALAR_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
 POSSIBLE_ATTRIBUTE_TYPES = [*SCALAR_ATTRIBUTE_TYPES, "array"]
 
+# Max whole-array rows the attribute-values RPC will return in one call.
+MAX_ATTRIBUTE_VALUE_ROWS = 10_000
+
 # Subset of SupportedTraceItemType that get_column_definitions handles.
 SUPPORTED_DATASETS = [
     SupportedTraceItemType.SPANS.value,
@@ -217,8 +220,8 @@ EXPAND_QUERY_PARAM = OpenApiParameter(
     type=str,
     enum=["context"],
     # Withheld from the public OpenAPI spec because the context shape it returns
-    # is still evolving. The matching half is the ``exclude_fields=["context"]``
-    # on ``TraceItemAttributeKey``, which keeps that shape out of the spec too.
+    # is still evolving. The matching half is ``omit_from_public_schema`` on
+    # ``TraceItemAttributeKey``, which keeps that shape out of the spec too.
     exclude=True,
     description=(
         "Optional fields to expand. Pass `context` to include attribute metadata "
@@ -1216,7 +1219,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             array_key = AttributeKey(
                 name=self.attribute_key.name, type=AttributeKey.Type.TYPE_ARRAY_STRING
             )
-            return self.string_autocomplete_function(key=array_key)
+            return self.array_autocomplete_function(key=array_key)
 
         return []
 
@@ -1447,6 +1450,49 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             )
             for index, value in enumerate(values)
             if value
+        ]
+
+    def array_autocomplete_function(self, key: AttributeKey) -> list[TagValue]:
+        """Autocomplete the element values of a string-array attribute.
+
+        Array values come back in ``value_data`` (the deprecated ``values`` field is
+        empty for arrays), each row being one item's whole array. Substring matching is
+        applied here since the RPC only supports it on scalar strings.
+        """
+        meta = self.resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_VALUES_RPC.value)
+        # Pagination is over elements, but the RPC returns whole-array rows. Read a fixed
+        # row budget so the ranked element list is identical on every page, keeping the
+        # offset slice below stable (GenericOffsetPaginator requires a total ordering).
+        rpc_request = TraceItemAttributeValuesRequest(
+            meta=meta,
+            key=key,
+            limit=MAX_ATTRIBUTE_VALUE_ROWS,
+        )
+        rpc_response = snuba_rpc.attribute_values_rpc(rpc_request)
+
+        query = translate_escape_sequences(self.query)
+
+        counts_by_value: dict[str, int] = {}
+        for value_data in rpc_response.value_data:
+            # Dedupe within a row so a value repeated in one array counts once.
+            row_values = {
+                element.val_str
+                for element in value_data.value.val_array.values
+                if element.val_str and (not query or query in element.val_str)
+            }
+            for value in row_values:
+                counts_by_value[value] = counts_by_value.get(value, 0) + value_data.count
+
+        ranked = sorted(counts_by_value.items(), key=lambda item: (-item[1], item[0]))
+        return [
+            TagValue(
+                key=self.key,
+                value=value,
+                times_seen=times_seen,
+                first_seen=None,
+                last_seen=None,
+            )
+            for value, times_seen in ranked[self.offset : self.offset + self.limit]
         ]
 
 

@@ -1,18 +1,21 @@
 import {useCallback, useMemo} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {encodeSort} from 'sentry/utils/discover/eventView';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
+  isExploreSavedQuery,
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
-  type SavedQuery,
+  type AllSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
@@ -73,6 +76,9 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
 
   const [caseInsensitive] = useCaseInsensitivity();
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
+  const organization = useOrganization();
+  const invalidateSavedQueries = useInvalidateSavedQueries();
+  const invalidateSavedQuery = useInvalidateSavedQuery(id);
 
   const requestData = useMemo((): ExploreSavedQueryRequest => {
     return convertQueryParamsToRequest({
@@ -85,71 +91,45 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
     });
   }, [dataset, queryParams, pageFilters, interval, title, caseInsensitive]);
 
-  const {saveQueryApi, updateQueryApi} = useCreateOrUpdateSavedQuery(id);
-
-  const saveQuery = useCallback(
-    (newTitle: string, starred = true) => {
-      return saveQueryApi({...requestData, name: newTitle}, starred);
-    },
-    [saveQueryApi, requestData]
-  );
-
-  const updateQuery = useCallback(() => {
-    return updateQueryApi(requestData);
-  }, [updateQueryApi, requestData]);
-
-  return {saveQuery, updateQuery, saveQueryFromSavedQuery, updateQueryFromSavedQuery};
-}
-
-function useCreateOrUpdateSavedQuery(id?: string) {
-  const api = useApi();
-  const organization = useOrganization();
-  const invalidateSavedQueries = useInvalidateSavedQueries();
-  const invalidateSavedQuery = useInvalidateSavedQuery(id);
-
-  const saveQueryApi = useCallback(
-    async (data: ExploreSavedQueryRequest, starred = true) => {
-      const response = await api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+  const {mutateAsync: saveQuery} = useMutation({
+    mutationFn: ({name, starred = true}: {name: string; starred?: boolean}) =>
+      fetchMutation<{id: string}>({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'POST',
-          data: {
-            ...data,
-            starred,
-          },
-        }
-      );
+        method: 'POST',
+        data: {
+          ...requestData,
+          name,
+          starred,
+        },
+      }),
+    onSuccess: () => {
       invalidateSavedQueries();
       invalidateSavedQuery();
-      return response;
     },
-    [api, organization.slug, invalidateSavedQueries, invalidateSavedQuery]
-  );
+  });
 
-  const updateQueryApi = useCallback(
-    async (data: ExploreSavedQueryRequest) => {
-      const response = await api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+  const {mutateAsync: updateQuery} = useMutation({
+    mutationFn: () =>
+      fetchMutation<{id: string}>({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
           path: {organizationIdOrSlug: organization.slug, id: String(id)},
         }),
-        {
-          method: 'PUT',
-          data: {
-            ...data,
-            dataset: data.dataset === 'segment_spans' ? 'spans' : data.dataset,
-          },
-        }
-      );
+        method: 'PUT',
+        data: {
+          ...requestData,
+          dataset:
+            requestData.dataset === 'segment_spans' ? 'spans' : requestData.dataset,
+        },
+      }),
+    onSuccess: () => {
       invalidateSavedQueries();
       invalidateSavedQuery();
-      return response;
     },
-    [api, organization.slug, id, invalidateSavedQueries, invalidateSavedQuery]
-  );
+  });
 
-  return {saveQueryApi, updateQueryApi};
+  return {saveQuery, updateQuery, saveQueryFromSavedQuery, updateQueryFromSavedQuery};
 }
 
 /**
@@ -161,21 +141,32 @@ export function useFromSavedQuery() {
   const invalidateSavedQueries = useInvalidateSavedQueries();
 
   const saveQueryFromSavedQuery = useCallback(
-    async (savedQuery: SavedQuery) => {
-      const response = await api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'POST',
-          data: {
-            ...savedQuery,
-            // we want to make sure no new queries are saved with the segment_spans dataset
-            dataset:
-              savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
-          },
-        }
-      );
+    async (savedQuery: AllSavedQuery) => {
+      const response = isExploreSavedQuery(savedQuery)
+        ? await api.requestPromise(
+            getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
+            {
+              method: 'POST',
+              data: {
+                ...savedQuery,
+                // we want to make sure no new queries are saved with the segment_spans dataset
+                dataset:
+                  savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
+              },
+            }
+          )
+        : await api.requestPromise(
+            getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
+            {
+              method: 'POST',
+              data: savedQuery,
+            }
+          );
+
       invalidateSavedQueries();
       return response;
     },
@@ -183,21 +174,35 @@ export function useFromSavedQuery() {
   );
 
   const updateQueryFromSavedQuery = useCallback(
-    async (savedQuery: SavedQuery) => {
-      const response = await api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
-          path: {organizationIdOrSlug: organization.slug, id: savedQuery.id},
-        }),
-        {
-          method: 'PUT',
-          data: {
-            ...savedQuery,
-            // we want to make sure queries are locked in as spans once they're updated
-            dataset:
-              savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
-          },
-        }
-      );
+    async (savedQuery: AllSavedQuery) => {
+      const response = isExploreSavedQuery(savedQuery)
+        ? await api.requestPromise(
+            getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+              path: {organizationIdOrSlug: organization.slug, id: String(savedQuery.id)},
+            }),
+            {
+              method: 'PUT',
+              data: {
+                ...savedQuery,
+                // we want to make sure queries are locked in as spans once they're updated
+                dataset:
+                  savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
+              },
+            }
+          )
+        : await api.requestPromise(
+            getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                queryId: String(savedQuery.id),
+              },
+            }),
+            {
+              method: 'PUT',
+              data: savedQuery,
+            }
+          );
+
       invalidateSavedQueries();
       return response;
     },

@@ -198,6 +198,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "services",
         "settings",
         "signup",
+        "solutions",
         "sponsorship",
         "ssh",
         "sso",
@@ -527,6 +528,9 @@ class ObjectStatus:
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
 
+    # HIDDEN and DISABLED are the same value: a filter on one matches rows written with the
+    # other. Code that says "hidden" (e.g. repositories) and code that says "disabled" is
+    # talking about the same rows.
     DISABLED = 1
 
     _CHOICES = (

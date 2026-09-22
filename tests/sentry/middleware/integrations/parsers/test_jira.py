@@ -3,7 +3,6 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import responses
-from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from rest_framework import status
@@ -16,12 +15,12 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, Locality, RegionCategory
+from sentry.types.cell import Cell, Locality
 
 cell = Cell("us", 1, "http://us.testserver")
 eu_cell = Cell("eu", 2, "http://eu.testserver")
-locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT, new_org_cell="us")
-eu_locality = Locality("eu", frozenset(["eu"]), RegionCategory.MULTI_TENANT, new_org_cell="eu")
+locality = Locality("us", frozenset(["us"]), new_org_cell="us")
+eu_locality = Locality("eu", frozenset(["eu"]), new_org_cell="eu")
 
 cell_config = (cell, eu_cell)
 
@@ -148,8 +147,6 @@ class JiraRequestParserTest(TestCase):
     @override_cells(cell_config)
     def test_get_response_routing_to_cell_async_bucketed(self) -> None:
         integration = self.get_integration()
-        use_buckets_key = f"webhookpayload:jira:{integration.id}:use_buckets"
-        cache.set(use_buckets_key, 1)
         request = self.factory.post(
             path=f"{self.path_base}/issue-updated/",
             data={"issue": {"id": "10425"}},
@@ -161,7 +158,6 @@ class JiraRequestParserTest(TestCase):
             method.return_value = integration
             response = parser.get_response()
 
-        cache.delete(use_buckets_key)
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(

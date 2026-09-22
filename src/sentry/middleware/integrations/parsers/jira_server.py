@@ -31,6 +31,18 @@ class JiraServerRequestParser(BaseRequestParser):
             logger.info("%s.no_integration", self.provider, extra={"error": str(e)})
             return HttpResponse(status=status.HTTP_200_OK)
 
+        data = self.get_request_body()
+
+        # We only process webhooks with changelogs. Above the org and cell lookups a
+        # dropped payload never needs; below the token lookup so the log can name it.
+        if not data.get("changelog"):
+            logger.info("missing-changelog", extra={"integration_id": integration.id})
+            return HttpResponse(status=status.HTTP_200_OK)
+
+        shed_response = self.get_shed_response(integration_id=integration.id)
+        if shed_response is not None:
+            return shed_response
+
         organizations = self.get_organizations_from_integration(integration=integration)
 
         if len(organizations) == 0:
@@ -38,32 +50,15 @@ class JiraServerRequestParser(BaseRequestParser):
 
         cells = self.get_cells_from_organizations(organizations=organizations)
 
-        data = self.get_request_body()
-
-        # We only process webhooks with changelogs
-        if not data.get("changelog"):
-            logger.info("missing-changelog", extra={"integration_id": integration.id})
-            return HttpResponse(status=status.HTTP_200_OK)
-
         return self.get_response_from_webhookpayload(
             cells=cells,
-            identifier=self.get_mailbox_identifier(integration, data),
+            mailbox=self.get_mailbox(integration, data),
             integration_id=integration.id,
         )
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
-        """
-        Used by get_mailbox_identifier to find the issue.id a payload is for.
-        In high volume jira_server instances we shard messages by issue for greater
-        delivery throughput.
-        """
-        issue_id = data.get("issue", {}).get("id", None)
-        if not issue_id:
-            return None
-        try:
-            return int(issue_id)
-        except ValueError:
-            return None
+        """Only changelog webhooks reach a cell, and each names its issue."""
+        return self.bucket_key_at(data, "issue", "id")
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class == JiraServerIssueUpdatedWebhook:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest import mock
 
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry.investigations.models import (
     Investigation,
@@ -75,6 +76,12 @@ class OrganizationInvestigationIndexTest(APITestCase):
 
         assert response.status_code == 201, response.data
         assert "mode" not in response.data
+        assert response.data["orchestration"] == {
+            "phase": "intake",
+            "status": "awaiting_input",
+            "heartbeatAt": None,
+            "notebookRevision": 0,
+        }
         run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
         assert run.source == {
             "type": "manual",
@@ -102,6 +109,19 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert run.status == "pending"
         assert run.projection["pendingInput"] is None
         assert run.projection["broadScan"]["status"] == "queued"
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_agentic_creation_schedules_automatic_execution(self, dispatch: mock.Mock) -> None:
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                self.collection_url,
+                data={"source": {"type": "manual", "prompt": "Investigate latency"}},
+                format="json",
+            )
+
+        assert response.status_code == 201, response.data
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
+        dispatch.assert_called_once_with(run.id)
 
     def test_agentic_creation_rejects_an_inaccessible_project_atomically(self) -> None:
         foreign_project = self.create_project(organization=self.create_organization())
@@ -136,6 +156,34 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert listed["summaryDescription"] == (
             "Checkout errors increased.\nReview the latest release."
         )
+
+    def test_list_includes_orchestration_state_only_for_agentic_investigations(self) -> None:
+        heartbeat = timezone.now()
+        agentic = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Agentic"
+        )
+        self.create_investigation_orchestration_run(
+            investigation=agentic,
+            phase="judging",
+            status="processing",
+            notebook_revision=2,
+            heartbeat_at=heartbeat,
+        )
+        manual = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Manual"
+        )
+
+        response = self.client.get(self.collection_url)
+
+        assert response.status_code == 200
+        listed = {item["id"]: item for item in response.data}
+        assert listed[str(agentic.id)]["orchestration"] == {
+            "phase": "judging",
+            "status": "processing",
+            "heartbeatAt": heartbeat,
+            "notebookRevision": 2,
+        }
+        assert listed[str(manual.id)]["orchestration"] is None
 
     def test_regular_member_can_create_an_investigation(self) -> None:
         member_user = self.create_user()

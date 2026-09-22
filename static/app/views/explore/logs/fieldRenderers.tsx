@@ -65,6 +65,7 @@ import {
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 const {fmt} = Sentry.logger;
@@ -93,6 +94,7 @@ export interface RendererExtra extends RenderFunctionBaggage {
   shouldRenderHoverElements?: boolean;
   timestampRelativeTo?: number;
   traceItemMeta?: TraceItemDetailsResponse['meta'];
+  traceViewSource?: TraceViewSources;
   useFullSeverityText?: boolean;
   wrapBody?: true;
 }
@@ -406,7 +408,6 @@ function FilteredTooltip({
           ),
         }
       )}
-      isHoverable
     >
       {children}
     </Tooltip>
@@ -426,8 +427,40 @@ function TraceIDRenderer(props: LogFieldRendererProps) {
     organization: props.extra.organization,
     dateSelection: timestamp ? {} : normalizeDateTimeParams(props.extra.datetime),
     location: timestamp ? stripDateParamsFromLocation(location) : location,
-    source: TraceViewSources.LOGS,
+    source: props.extra.traceViewSource ?? TraceViewSources.LOGS,
   });
+  return <Link to={target}>{props.basicRendered}</Link>;
+}
+
+/**
+ * Links (opens) the span in the trace waterfall
+ */
+export function SpanIDRenderer(props: LogFieldRendererProps) {
+  const spanId = props.item.value;
+  const traceId = adjustLogTraceID(
+    (props.extra.attributes?.[OurLogKnownFieldKey.TRACE_ID] as string) ?? ''
+  );
+
+  if (typeof spanId !== 'string' || !spanId || !traceId) {
+    return props.basicRendered;
+  }
+
+  const timestamp = props.extra.attributes?.[OurLogKnownFieldKey.TIMESTAMP] as
+    | string
+    | number
+    | undefined;
+  const location = stripLogParamsFromLocation(props.extra.location);
+  const target = getTraceDetailsUrl({
+    traceSlug: traceId,
+    spanId,
+    timestamp,
+    organization: props.extra.organization,
+    dateSelection: timestamp ? {} : normalizeDateTimeParams(props.extra.datetime),
+    location: timestamp ? stripDateParamsFromLocation(location) : location,
+    source: props.extra.traceViewSource ?? TraceViewSources.LOGS,
+    tab: TraceLayoutTabKeys.WATERFALL,
+  });
+
   return <Link to={target}>{props.basicRendered}</Link>;
 }
 
@@ -673,6 +706,7 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
   [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
+  [OurLogKnownFieldKey.SPAN_ID]: SpanIDRenderer,
   [OurLogKnownFieldKey.CODE_FILE_PATH]: CodePathRenderer,
   [OurLogKnownFieldKey.RELEASE]: ReleaseRenderer,
   [OurLogKnownFieldKey.TEMPLATE]: LogTemplateRenderer,

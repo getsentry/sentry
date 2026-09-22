@@ -104,6 +104,9 @@ function AvatarCropper({maxDimension, minDimension, updateDataUrlState, dataUrl}
     drawToCanvas(newDimensions);
   };
 
+  // React Compiler could not prove this memoization is preserved; it bails out on
+  // code this callback depends on. Revisit once those bailouts are fixed.
+  // oxlint-disable-next-line react/preserve-manual-memoization
   const drawToCanvas = useCallback(
     (dimensions = resizeDimensions) => {
       if (!canvasRef.current || !imageRef.current) {
@@ -339,51 +342,47 @@ function AvatarCropper({maxDimension, minDimension, updateDataUrlState, dataUrl}
     };
   }, [resizeDirection, stopResize, updateSize]);
 
-  function renderImageCrop() {
-    if (!dataUrl) {
-      return null;
-    }
+  const imageCropStyle = {
+    top: resizeDimensions.top + offsets.top,
+    left: resizeDimensions.left + offsets.left,
+    width: resizeDimensions.size,
+    height: resizeDimensions.size,
+  };
 
-    const style = {
-      top: resizeDimensions.top + offsets.top,
-      left: resizeDimensions.left + offsets.left,
-      width: resizeDimensions.size,
-      height: resizeDimensions.size,
-    };
-
-    const maskClipPath = makeMaskClipPath({
-      top: style.top,
-      left: style.left,
-      size: resizeDimensions.size,
-    });
-
-    return (
-      <ImageCropper ref={cropContainerRef} resizeDirection={resizeDirection}>
-        <Image
-          ref={imageRef}
-          src={dataUrl}
-          crossOrigin="anonymous"
-          onLoad={onImageLoad}
-          onDragStart={e => e.preventDefault()}
-        />
-        <Mask style={{clipPath: maskClipPath}} />
-        <Cropper style={style} onMouseDown={onMouseDown}>
-          {Object.keys(RESIZER_POSITIONS).map(pos => (
-            <ResizeHandle
-              key={pos}
-              position={pos as Position}
-              onMouseDown={e => startResize(pos as Position, e)}
-            />
-          ))}
-        </Cropper>
-      </ImageCropper>
-    );
-  }
+  const imageCrop = dataUrl ? (
+    <ImageCropper ref={cropContainerRef} resizeDirection={resizeDirection}>
+      <Image
+        ref={imageRef}
+        src={dataUrl}
+        crossOrigin="anonymous"
+        onLoad={onImageLoad}
+        onDragStart={e => e.preventDefault()}
+      />
+      <Mask
+        style={{
+          clipPath: makeMaskClipPath({
+            top: imageCropStyle.top,
+            left: imageCropStyle.left,
+            size: resizeDimensions.size,
+          }),
+        }}
+      />
+      <Cropper style={imageCropStyle} onMouseDown={onMouseDown}>
+        {Object.keys(RESIZER_POSITIONS).map(pos => (
+          <ResizeHandle
+            key={pos}
+            position={pos as Position}
+            onMouseDown={e => startResize(pos as Position, e)}
+          />
+        ))}
+      </Cropper>
+    </ImageCropper>
+  ) : null;
 
   return (
     <Fragment>
       {dataUrl && <HiddenCanvas ref={canvasRef} className="sentry-block" />}
-      {renderImageCrop()}
+      {imageCrop}
     </Fragment>
   );
 }

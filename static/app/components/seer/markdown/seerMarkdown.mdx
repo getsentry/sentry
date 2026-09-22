@@ -9,10 +9,26 @@ resources:
 import * as Storybook from 'sentry/stories';
 
 import {BasicDemo, LinkifyDemo, StreamingEmbedExamples} from './__stories__/components';
+import {AlertEmbedStory} from './__stories__/alertEmbedStory';
+import {ConversationEmbedStory} from './__stories__/conversationEmbedStory';
 import {DashboardEmbedStory} from './__stories__/dashboardEmbedStory';
 import {EmbedStory} from './__stories__/embedStory';
+import {EventEmbedStory} from './__stories__/eventEmbedStory';
+import {LogEmbedStory} from './__stories__/logEmbedStory';
+import {MonitorEmbedStory} from './__stories__/monitorEmbedStory';
+import {
+  BaselineBlockDemo,
+  ListBlockPlacementDemo,
+  ListInlinePlacementDemo,
+  ListLeadingTagDemo,
+  TablePlacementDemo,
+} from './__stories__/placementStory';
+import {ProfileEmbedStory} from './__stories__/profileEmbedStory';
 import {ReleaseEmbedStory} from './__stories__/releaseEmbedStory';
 import {ReplayEmbedStory} from './__stories__/replayEmbedStory';
+import {SavedIssueViewEmbedStory} from './__stories__/savedIssueViewEmbedStory';
+import {SavedQueryEmbedStory} from './__stories__/savedQueryEmbedStory';
+import {TraceEmbedStory} from './__stories__/traceEmbedStory';
 
 `<SeerMarkdown>` wraps the core [`<Markdown>`](/scraps/core/markdown/) component with Seer-specific overrides: issue short ID linkification, origin-relative links, flattened headings, and an **embed system** that renders structured widgets inline from tag syntax.
 
@@ -40,6 +56,8 @@ Embeds are rich widgets rendered inline from [Markdoc-style tag syntax](https://
 
 Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated against a Zod schema before rendering — invalid data renders nothing (with a dev-mode console warning).
 
+Every embed also renders at a third level, **`markdown`**, used when a reply is copied to the clipboard. A link embed emits that same link as markdown, a text embed keeps its formatting, and a widget — a chart, an issue table, a trace waterfall — keeps only its name, since its contents are live data. Each example below shows the result under **Copied as markdown**.
+
 ### timestamp
 
 <EmbedStory name="timestamp" />
@@ -64,9 +82,9 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 <EmbedStory name="issue" />
 
-### issues
+### event
 
-<EmbedStory name="issues" />
+<EventEmbedStory />
 
 ### replay
 
@@ -86,27 +104,31 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 ### alert
 
-<EmbedStory name="alert" />
+<AlertEmbedStory />
 
 ### monitor
 
-<EmbedStory name="monitor" />
+<MonitorEmbedStory />
 
 ### savedIssueView
 
-<EmbedStory name="savedIssueView" />
+<SavedIssueViewEmbedStory />
 
 ### savedQuery
 
-<EmbedStory name="savedQuery" />
+<SavedQueryEmbedStory />
 
 ### trace
 
-<EmbedStory name="trace" />
+<TraceEmbedStory />
+
+### traceWaterfall
+
+<TraceEmbedStory name="traceWaterfall" />
 
 ### profile
 
-<EmbedStory name="profile" />
+<ProfileEmbedStory />
 
 ### issuesQuery
 
@@ -124,6 +146,10 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 <EmbedStory name="logsQuery" />
 
+### log
+
+<LogEmbedStory />
+
 ### replaysQuery
 
 <EmbedStory name="replaysQuery" />
@@ -131,6 +157,60 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 ### metricsQuery
 
 <EmbedStory name="metricsQuery" />
+
+### conversation
+
+<ConversationEmbedStory />
+
+### conversationsQuery
+
+<EmbedStory name="conversationsQuery" />
+
+## Placement: what decides inline vs block
+
+An embed renders as a block card when its tag is **alone on its line**, and inline when the
+tag **shares its line with prose**. That is the whole rule, and it holds the same way in a
+paragraph, a list item, or a table cell -- the container is not what decides. A list marker
+does not count as content, because marked strips it before the tag is ever looked at.
+
+A table cell is inline always: markdown gives a cell no way to hold block content.
+
+**Inline in a table.** Each embed is an anchor and sits in a cell the way a link does.
+
+<Storybook.Demo>
+  <TablePlacementDemo />
+</Storybook.Demo>
+
+**Inline in a list.** A bullet with a few words of lead-in keeps the reference inline.
+
+<Storybook.Demo>
+  <ListInlinePlacementDemo />
+</Storybook.Demo>
+
+**Also inline when the bullet opens with the tag.** This is the form a summary naturally
+takes -- lead with the issue, then say what about it. It reads the same as the one above,
+because the `-` is not content and the sentence continues past the tag.
+
+<Storybook.Demo>
+  <ListLeadingTagDemo />
+</Storybook.Demo>
+
+**A block card in a list, when you want one.** Give the tag its own line inside the item and
+it renders as a full card, nested as a sibling of the item's paragraph and keeping the
+list's indentation.
+
+<Storybook.Demo>
+  <ListBlockPlacementDemo />
+</Storybook.Demo>
+
+The same card at the top level, for comparison:
+
+<Storybook.Demo>
+  <BaselineBlockDemo />
+</Storybook.Demo>
+
+So: to reference something mid-sentence, write the sentence -- the embed follows. To show a
+card, give the tag a line of its own.
 
 ## Embed Architecture
 

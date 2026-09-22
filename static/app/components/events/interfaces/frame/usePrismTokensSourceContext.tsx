@@ -3,9 +3,10 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import Prism from 'prismjs';
 
+import {getPrismLanguage, loadPrismLanguage} from '@sentry/scraps/code';
+
 import type {Frame} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {breakTokensByLine} from 'sentry/utils/usePrismTokens';
 

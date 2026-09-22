@@ -170,7 +170,7 @@ vercel.json                                              @getsentry/owners-js-bu
 /.github/workflows/frontend.yml                          @getsentry/owners-js-build
 /.github/file-filters.yml                                @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
-eslint.config.ts                                         @getsentry/owners-js-build
+oxlint.config.ts                                         @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
 /tests/js/test-balancer/                                 @getsentry/owners-js-build
@@ -332,6 +332,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 /src/sentry/data_export/                                             @getsentry/data-browsing
 /tests/sentry/data_export/                                           @getsentry/data-browsing
+
+/src/sentry/ingestion_delay/                                         @getsentry/data-browsing
+/tests/sentry/ingestion_delay/                                       @getsentry/data-browsing
+/src/sentry/api/helpers/ingestion_delay.py                           @getsentry/data-browsing
 
 
 /src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/data-browsing
@@ -608,6 +612,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
 /static/app/views/explore/conversations/                                  @getsentry/telemetry-experience
+/static/app/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/ai*    @getsentry/data-browsing @getsentry/telemetry-experience
+/static/app/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcp*   @getsentry/data-browsing @getsentry/telemetry-experience
+/static/app/views/performance/newTraceDetails/traceDrawer/tabs/traceAi*                   @getsentry/data-browsing @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 ## Value Discovery
@@ -849,7 +856,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
 /static/CLAUDE.md                                     @getsentry/design-engineering
 /static/AGENTS.md                                     @getsentry/design-engineering
-/static/eslint/                                       @getsentry/design-engineering
+/static/oxlint/                                       @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
 /.agents/skills/design-system/                         @getsentry/design-engineering
 /.agents/skills/migrate-frontend-forms/                @getsentry/design-engineering
@@ -862,6 +869,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## End of Frontend Platform
 
 # Agent Interfaces
+/static/app/views/investigations/                         @getsentry/agent-interfaces-sentry-frontend
+/static/app/components/seer/                              @getsentry/agent-interfaces-sentry-frontend
 /static/app/components/prevent/                           @getsentry/agent-interfaces-sentry-frontend
 /static/app/views/prevent/                                @getsentry/agent-interfaces-sentry-frontend
 /static/app/views/nav/secondary/sections/prevent/         @getsentry/agent-interfaces-sentry-frontend

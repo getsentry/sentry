@@ -65,6 +65,29 @@ class RunsByIdsRequest(TypedDict):
     run_ids: list[int]
 
 
+class UserOrgContextTeam(TypedDict):
+    id: int
+    slug: str
+
+
+class UserOrgContextProject(TypedDict):
+    id: int
+    slug: str
+    repos: list[dict[str, Any]]
+
+
+class UserOrgContext(TypedDict):
+    org_slug: str
+    user_id: NotRequired[int]
+    user_ip: NotRequired[str | None]
+    user_name: NotRequired[str | None]
+    user_email: NotRequired[str | None]
+    user_timezone: NotRequired[str | None]
+    user_teams: NotRequired[list[UserOrgContextTeam]]
+    user_projects: NotRequired[list[UserOrgContextProject]]
+    all_org_projects: NotRequired[list[UserOrgContextProject]]
+
+
 class AgentChatRequest(TypedDict):
     organization_id: int
     query: str
@@ -75,7 +98,7 @@ class AgentChatRequest(TypedDict):
     page_name: NotRequired[str | None]
     page_location: NotRequired[dict[str, Any] | None]
     sent_at: NotRequired[list[str] | None]
-    user_org_context: NotRequired[dict[str, Any] | None]
+    user_org_context: NotRequired[UserOrgContext | None]
     intelligence_level: NotRequired[str]
     reasoning_effort: NotRequired[str]
     is_interactive: NotRequired[bool]
@@ -109,6 +132,7 @@ class AgentPrStateRequest(TypedDict):
 
 
 class AgentRunOptions(TypedDict):
+    enable_assisted_query_code_mode: NotRequired[bool]
     enable_frontend_code_search: NotRequired[bool | None]
     is_context_engine_enabled: NotRequired[bool]
     enable_bash_mode: NotRequired[bool]
@@ -123,6 +147,9 @@ class SeerFeatureRunRequest(TypedDict):
     feature_id: str
     payload: dict[str, Any]
     agent_run_options: NotRequired[AgentRunOptions]
+    user_org_context: NotRequired[UserOrgContext]
+    proxy_headers: NotRequired[dict[str, str] | None]
+    referrer: str
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):
@@ -327,17 +354,25 @@ def get_agent_state_from_pr_id(
     body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
     response = make_agent_state_pr_request(body)
 
+    if response.status == 404:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "no_run_for_org"})
+        return None
+
     if response.status >= 400:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "error"})
         raise SeerApiError("Seer request failed", response.status)
 
     result = response.json()
     if not result:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "empty_response"})
         return None
 
     session = result.get("session")
     if session is None:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "no_run_for_pr"})
         return None
 
+    metrics.incr("seer.agent.state_from_pr", tags={"outcome": "found"})
     return SeerRunState(**session)
 
 
@@ -376,7 +411,7 @@ def collect_user_org_context(
     user: SentryUser | RpcUser | AnonymousUser | None,
     organization: Organization,
     request: Request | None = None,
-) -> dict[str, Any]:
+) -> UserOrgContext:
     """Collect user and organization context for a new agent run."""
     all_projects = Project.objects.filter(
         organization=organization, status=ObjectStatus.ACTIVE
@@ -389,7 +424,7 @@ def collect_user_org_context(
         str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()
     }
 
-    all_org_projects = [
+    all_org_projects: list[UserOrgContextProject] = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
         for p in all_projects
     ]
@@ -416,7 +451,9 @@ def collect_user_org_context(
             "org_slug": organization.slug,
             "all_org_projects": all_org_projects,
         }
-    user_teams = [{"id": t.id, "slug": t.slug} for t in member.get_teams()]
+    user_teams: list[UserOrgContextTeam] = [
+        {"id": t.id, "slug": t.slug} for t in member.get_teams()
+    ]
     my_projects = (
         Project.objects.filter(
             organization=organization,
@@ -426,7 +463,7 @@ def collect_user_org_context(
         .distinct()
         .values("id", "slug")
     )
-    user_projects = [
+    user_projects: list[UserOrgContextProject] = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
         for p in my_projects
     ]

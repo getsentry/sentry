@@ -650,3 +650,16 @@ export function generateQueryTokensString(
 
   return parts.length > 0 ? parts.join(', ') : 'No query parameters set';
 }
+
+/**
+ * Stringify a query result for feedback tags, filtering out falsey values
+ * except for keys that are meaningful when empty.
+ */
+export function stringifyQueryForFeedback(query: QueryTokensProps): string {
+  const filtered = Object.fromEntries(
+    Object.entries(query).filter(
+      ([key, value]) => ['visualizations', 'query'].includes(key) || Boolean(value)
+    )
+  );
+  return JSON.stringify(filtered);
+}

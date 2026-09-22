@@ -165,6 +165,8 @@ describe('MessagingIntegrationAlertRule', () => {
       label: '#alerts (2)',
       value: '2',
       new: false,
+      channelId: '2',
+      channelName: '#alerts',
     });
   });
 
@@ -352,37 +354,6 @@ describe('MessagingIntegrationAlertRule', () => {
       "Moo Waan's Workspace"
     );
     expect(mockSetIntegration).toHaveBeenCalledWith(slackIntegrations[1]);
-  });
-
-  it('displays and sends channel id for microsoft teams', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/${msteamsIntegrations[0]!.id}/channels/`,
-      body: {
-        nextCursor: null,
-        results: [
-          {id: '1', name: 'general', display: '#general', type: 'text'},
-          {id: '2', name: 'alerts', display: '#alerts', type: 'text'},
-        ],
-      },
-    });
-    render(
-      <MessagingIntegrationAlertRule
-        {...{
-          ...notificationProps,
-          integration: msteamsIntegrations[0],
-          provider: 'msteams',
-        }}
-      />
-    );
-    await selectEvent.openMenu(getChannelSelect());
-    expect(await screen.findByText('#general (1)')).toBeInTheDocument();
-    expect(screen.getByText('#alerts (2)')).toBeInTheDocument();
-    await selectEvent.select(getChannelSelect(), /#alerts/);
-    expect(mockSetChannel).toHaveBeenCalledWith({
-      label: '#alerts (2)',
-      value: '2',
-      new: false,
-    });
   });
 });
 

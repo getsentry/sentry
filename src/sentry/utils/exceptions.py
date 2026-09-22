@@ -126,10 +126,7 @@ def quiet_redis_noise() -> Generator[None]:
     those to be treated as errors in Sentry.
     """
     from redis.exceptions import TimeoutError
-    from rediscluster.exceptions import (  # type: ignore[attr-defined]
-        MovedError,
-        RedisClusterException,
-    )
+    from rediscluster.exceptions import MovedError, RedisClusterException
 
     with (
         exception_grouping_context({RedisClusterException: "redis.redis_cluster_exception"}),

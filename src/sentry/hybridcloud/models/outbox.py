@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import contextlib
 import datetime
+import logging
 import threading
 from collections.abc import Generator, Iterable, Mapping
 from typing import Any, Self
@@ -42,6 +43,8 @@ from sentry.utils.env import in_test_environment
 from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
+
+logger = logging.getLogger(__name__)
 
 
 class OutboxFlushError(Exception):
@@ -91,10 +94,9 @@ class OutboxBase(Model):
     @classmethod
     def next_object_identifier(cls) -> int:
         using = router.db_for_write(cls)
-        with transaction.atomic(using=using):
-            with connections[using].cursor() as cursor:
-                cursor.execute("SELECT nextval(%s)", [f"{cls._meta.db_table}_id_seq"])
-                return cursor.fetchone()[0]
+        with connections[using].cursor() as cursor:
+            cursor.execute("SELECT nextval(%s)", [f"{cls._meta.db_table}_id_seq"])
+            return cursor.fetchone()[0]
 
     @classmethod
     def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> list[Mapping[str, Any]]:
@@ -146,6 +148,12 @@ class OutboxBase(Model):
                 return None
             else:
                 raise
+
+    def _silo_and_type_tags(self) -> dict[str, str]:
+        return {
+            "silo": SiloMode.get_current_mode().value.lower(),
+            "type": type(self).__name__,
+        }
 
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
@@ -201,11 +209,23 @@ class OutboxBase(Model):
             )
 
         if _outbox_context.flushing_enabled:
-            transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
+            transaction.on_commit(
+                self._drain_shard_with_metrics, using=router.db_for_write(type(self))
+            )
 
-        tags = {"category": OutboxCategory(self.category).name}
+        tags = {"category": OutboxCategory(self.category).name, **self._silo_and_type_tags()}
         metrics.incr("outbox.saved", 1, tags=tags)
         super().save(*args, **kwargs)
+
+    def _drain_shard_with_metrics(self) -> None:
+        with metrics.timer(
+            "outbox.sync_shard_drain.duration",
+            tags={
+                "category": OutboxCategory(self.category).name,
+                "outbox_name": self._meta.label,
+            },
+        ):
+            self.drain_shard()
 
     @contextlib.contextmanager
     def process_shard(self, latest_shard_row: OutboxBase | None) -> Generator[OutboxBase | None]:
@@ -235,7 +255,11 @@ class OutboxBase(Model):
     ) -> Generator[OutboxBase | None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
-        tags: dict[str, int | str] = {"category": "None", "synchronous": int(is_synchronous_flush)}
+        tags: dict[str, int | str] = {
+            "category": "None",
+            "synchronous": int(is_synchronous_flush),
+            **self._silo_and_type_tags(),
+        }
 
         if coalesced is not None:
             tags["category"] = OutboxCategory(self.category).name
@@ -253,26 +277,38 @@ class OutboxBase(Model):
         if coalesced is not None:
             assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
             deleted_count = 0
+            coalesced_older_count = 0
 
             # Use a fetch and delete loop as doing cleanup in a single query
             # causes timeouts with large datasets. Fetch in batches of 50 and
             # Apply the ID condition in python as filtering rows in postgres
             # leads to timeouts.
-            while True:
+            #
+            # When coalesced.id == first_coalesced.id the group has a single
+            # row, so there are no older rows to batch-delete and we can skip
+            # the probing SELECT entirely.
+            while coalesced.id != first_coalesced.id:
                 batch = self.select_coalesced_messages().values_list("id", flat=True)[:50]
                 delete_ids = [item_id for item_id in batch if item_id < coalesced.id]
                 if not len(delete_ids):
                     break
                 self.objects.filter(id__in=delete_ids).delete()
                 deleted_count += len(delete_ids)
+                coalesced_older_count += len(delete_ids)
 
             # Only process the highest id after the others have been batch processed.
             # It's not guaranteed that the ordering of the batch processing is in order,
             # meaning that failures during deletion could leave an old, staler outbox
             # alive.
+            coalesced_id = coalesced.id
             if not self.should_skip_shard():
                 deleted_count += 1
                 coalesced.delete()
+
+            if coalesced_older_count > 0:
+                self._maybe_log_unexpected_coalescing(
+                    coalesced_id=coalesced_id, coalesced_count=coalesced_older_count
+                )
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
@@ -287,6 +323,39 @@ class OutboxBase(Model):
                 - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
+
+    def _maybe_log_unexpected_coalescing(self, coalesced_id: int, coalesced_count: int) -> None:
+        """Log when older rows from a non-coalescing category were discarded.
+
+        ``coalesced_count`` is the number of discarded older rows.
+        """
+        try:
+            category = OutboxCategory(self.category)
+        except ValueError:
+            logger.warning(
+                "outbox.unknown_category",
+                extra={"category_value": self.category, "outbox_type": type(self).__name__},
+            )
+            return
+
+        if not category.is_non_coalescing():
+            return
+
+        extra: dict[str, Any] = {
+            "category": category.name,
+            "category_value": int(category),
+            "shard_scope": self.shard_scope,
+            "shard_identifier": self.shard_identifier,
+            "object_identifier": self.object_identifier,
+            "coalesced_count": coalesced_count,
+            "coalesced_id": coalesced_id,
+            "outbox_type": type(self).__name__,
+        }
+        cell_name = getattr(self, "cell_name", None)
+        if cell_name is not None:
+            extra["cell_name"] = cell_name
+
+        logger.error("outbox.unexpected_coalescing", extra=extra)
 
     def _set_span_data_for_coalesced_message(
         self, span: Span | StreamedSpan, message: OutboxBase
@@ -307,6 +376,7 @@ class OutboxBase(Model):
                         tags={
                             "category": OutboxCategory(coalesced.category).name,
                             "synchronous": int(is_synchronous_flush),
+                            **coalesced._silo_and_type_tags(),
                         },
                     ),
                     start_span(op="outbox.process", name="outbox.process") as span,
@@ -367,12 +437,18 @@ class OutboxBase(Model):
                     if _test_processing_barrier:
                         _test_processing_barrier.wait()
 
+                    at_last_shard_row = (
+                        shard_row.id == latest_shard_row.id if latest_shard_row else False
+                    )
+
                     processed = shard_row.process(is_synchronous_flush=not flush_all)
 
                     if _test_processing_barrier:
                         _test_processing_barrier.wait()
 
-                    if not processed:
+                    # If we just processed the last designated row with no
+                    # coalescing remaining, we're done. No need to check for more.
+                    if not processed or at_last_shard_row:
                         break
         except DatabaseError as e:
             raise OutboxDatabaseError(
@@ -400,15 +476,50 @@ class OutboxBase(Model):
         if limit is not None:
             base_depth_query = base_depth_query[0:limit]
 
-        aggregated_shard_information = list()
-        for shard_row in base_depth_query:
-            shard_information = {
-                shard_column: shard_row[shard_column] for shard_column in cls.sharding_columns
-            }
-            shard_information["depth"] = shard_row["depth"]
-            aggregated_shard_information.append(shard_information)
+        return list(base_depth_query)
 
-        return aggregated_shard_information
+    @classmethod
+    def get_shard_category_breakdown(
+        cls, shard_key: Mapping[str, int | str]
+    ) -> list[dict[str, int]]:
+        """
+        For a single shard (identified by its sharding column values), returns
+        depth broken down by category, ordered by depth descending. Intended
+        for enriching logging about a shard already known to be deep -- a
+        shard's sharding columns combined with category is too high
+        cardinality for a metric tag.
+
+        :param shard_key: A mapping of sharding column name to value, as
+        returned by get_shard_depths_descending.
+        :return: A list of dictionaries with "category" and "depth" keys,
+        ordered by depth descending.
+        """
+        missing_columns = set(cls.sharding_columns) - shard_key.keys()
+        assert not missing_columns, (
+            f"shard_key must include all sharding columns to avoid an unbounded query, "
+            f"missing: {missing_columns}"
+        )
+        rows = (
+            cls.objects.filter(**shard_key)
+            .values("category")
+            .annotate(depth=Count("*"))
+            .order_by("-depth")
+        )
+        return [{"category": row["category"], "depth": row["depth"]} for row in rows]
+
+    @classmethod
+    def get_category_depths(cls) -> dict[int, int]:
+        """
+        Queries all outbox shards for their total depth, summed across all
+        shards and grouped only by category. Unlike get_shard_depths_descending,
+        this collapses the shard dimension entirely, so it's suitable for
+        SLO/backlog metrics where a shard-identifier tag would blow up
+        cardinality.
+
+        :return: A mapping of category value to total depth across all shards.
+        """
+        rows = cls.objects.values("category").annotate(depth=Count("*"))
+        return {row["category"]: row["depth"] for row in rows}
 
     @classmethod
     def get_total_outbox_count(cls) -> int:

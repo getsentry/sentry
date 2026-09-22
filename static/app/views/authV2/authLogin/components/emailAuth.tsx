@@ -44,6 +44,7 @@ export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
   const authError = emailAuth.errorMessage;
   const isEmailAuthTransitioning = emailAuth.isPending || Boolean(emailAuth.result);
   const isPending = isEmailAuthTransitioning || passwordReset.isPending;
+  const hasLoginCredentials = Boolean(email && password);
 
   function handleEmailChange(event: React.ChangeEvent<HTMLInputElement>) {
     setEmail(event.currentTarget.value);
@@ -211,23 +212,27 @@ export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
           </Flex>
           <Flex flex="1" justify="end" paddingTop="sm">
             <AnimatePresence initial={false} mode="wait">
-              {!passwordReset.result &&
-                !isPasswordRecovery &&
-                Boolean(email && password) && (
-                  <MotionButton
-                    key="login"
-                    type="submit"
-                    variant="primary"
-                    size="sm"
-                    busy={isEmailAuthTransitioning}
-                    initial={{opacity: 0, y: 5}}
-                    animate={{opacity: 1, y: 0}}
-                    exit={{opacity: 0, scale: 0.96}}
-                    transition={theme.motion.framer.smooth.moderate}
-                  >
-                    {t('Log in to Sentry')}
-                  </MotionButton>
-                )}
+              {!passwordReset.result && !isPasswordRecovery && (
+                <MotionButton
+                  key="login"
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  busy={isEmailAuthTransitioning}
+                  tabIndex={hasLoginCredentials ? undefined : -1}
+                  initial={false}
+                  animate={
+                    hasLoginCredentials
+                      ? {opacity: 1, scale: 1, y: 0}
+                      : {opacity: 0, scale: 0.96, y: 5}
+                  }
+                  exit={{opacity: 0, scale: 0.96}}
+                  style={{pointerEvents: hasLoginCredentials ? 'auto' : 'none'}}
+                  transition={theme.motion.framer.smooth.moderate}
+                >
+                  {t('Log in to Sentry')}
+                </MotionButton>
+              )}
               {!passwordReset.result && isPasswordRecovery && Boolean(email) && (
                 <MotionButton
                   key="password-reset"

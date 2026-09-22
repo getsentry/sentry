@@ -22,17 +22,15 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import get_trace_tree_for_event
-from sentry.seer.autofix.autofix_agent import (
-    AutofixStep,
-    NoSeerQuotaException,
-    trigger_autofix_agent,
-)
+from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     AutofixReferrer,
     FixabilityScoreThresholds,
     SeerAutomationSource,
 )
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     is_seer_autotriggered_autofix_rate_limited,

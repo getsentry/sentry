@@ -235,6 +235,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         release = Release.objects.get(id=release.id)
         assert release.total_deploys == 1
         assert release.last_deploy_id == deploy.id
+        assert release.new_last_deploy_id == deploy.id
 
         rpe = ReleaseProjectEnvironment.objects.get(
             project=self.project, release=release, environment=environment
@@ -281,6 +282,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         release = Release.objects.get(id=release.id)
         assert release.total_deploys == 1
         assert release.last_deploy_id == deploy.id
+        assert release.new_last_deploy_id == deploy.id
 
         rpe = ReleaseProjectEnvironment.objects.get(
             project=self.project, release=release, environment=environment
@@ -336,6 +338,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         release = Release.objects.get(id=release.id)
         assert release.total_deploys == 1
         assert release.last_deploy_id == deploy.id
+        assert release.new_last_deploy_id == deploy.id
 
         assert not ReleaseProjectEnvironment.objects.filter(
             project=self.project, release=release, environment=environment
@@ -386,6 +389,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         release = Release.objects.get(id=release.id)
         assert release.total_deploys == 1
         assert release.last_deploy_id == deploy.id
+        assert release.new_last_deploy_id == deploy.id
 
         rpe = ReleaseProjectEnvironment.objects.get(
             project=self.project, release=release, environment=environment

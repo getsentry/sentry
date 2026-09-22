@@ -347,6 +347,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'authorizations/',
+      name: t('Authorized Applications'),
       component: make(
         () => import('sentry/views/settings/account/accountAuthorizations')
       ),
@@ -2451,6 +2452,10 @@ function buildRoutes(): RouteObject[] {
         () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
         <GroupEventDetailsLoading />
       ),
+    },
+    {
+      path: TabPaths[Tab.AUTOFIX],
+      component: make(() => import('sentry/views/issueDetails/autofix')),
     },
     {
       path: TabPaths[Tab.USER_FEEDBACK],

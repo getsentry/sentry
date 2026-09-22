@@ -8,7 +8,7 @@ import {Quote} from '@sentry/scraps/quote';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {isSafeHref, isInternalHref} from 'sentry/utils/marked/marked';
+import {isSafeHref, isInternalHref} from './marked';
 
 export function DefaultParagraph({children}: {children: ReactNode}) {
   return (
@@ -104,12 +104,12 @@ export function DefaultOrderedList({children}: {children: ReactNode}) {
   );
 }
 
-export function DefaultListItem({children}: {children: ReactNode; checked?: boolean}) {
+export function DefaultListItem({children}: {children: ReactNode}) {
   // Match DefaultParagraph so tight list items (inline-only content, no nested
   // <p>) keep md body size instead of inheriting a smaller parent size.
   return (
     <Text size="md" density="comfortable">
-      {({className}) => <li className={className}>{children}</li>}
+      {textProps => <li {...textProps}>{children}</li>}
     </Text>
   );
 }

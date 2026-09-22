@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {InvestigationsPage} from 'sentry/views/investigations';
@@ -10,7 +10,9 @@ import {
   InvestigationBlockFixture,
   InvestigationDetailFixture,
   InvestigationListItemFixture,
+  InvestigationOrchestrationFixture,
 } from 'sentry/views/investigations/fixtures';
+import {InvestigationHypotheses} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 
 const organization = OrganizationFixture({
   features: ['investigations'],
@@ -81,22 +83,22 @@ describe('InvestigationFixtureApi', () => {
       investigation.title
     );
 
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Add query cell (debug only)'})
-    );
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Cell title'}),
-      'Slow checkouts'
-    );
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Cell instructions'}),
-      'Compare checkout p95 before and after the deploy.'
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Add cell'}));
+    // Renaming is the detail mutation the page drives itself. Blurring the
+    // field cancels the debounce and writes immediately, so this needs no timer.
+    const titleField = screen.getByRole('textbox', {name: 'Investigation title'});
+    await userEvent.clear(titleField);
+    await userEvent.type(titleField, 'Invoice PDF timeouts everywhere');
+    await userEvent.tab();
 
-    expect(
-      await screen.findByRole('button', {name: 'Toggle Slow checkouts'})
-    ).toBeInTheDocument();
+    // Read back through the fixture API rather than the field: the input would
+    // show the new title from the optimistic cache update either way, so only a
+    // fresh fetch proves the fixture backend actually stored it.
+    await waitFor(async () => {
+      const stored = await QUERY_API_CLIENT.requestPromise(
+        `/organizations/storybook-investigation-detail-test/investigations/${investigation.id}/`
+      );
+      expect(stored.title).toBe('Invoice PDF timeouts everywhere');
+    });
   });
 
   it('keeps fixture IDs and block positions unique across mutations', async () => {
@@ -152,5 +154,106 @@ describe('InvestigationFixtureApi', () => {
     });
     expect(firstDuplicate.id).toBe('fixture-id-collisions-copy');
     expect(secondDuplicate.id).toBe('fixture-id-collisions-copy-2');
+  });
+
+  // These mirror the "Live, against a mocked orchestration API" story. The
+  // stories route is where this UI gets reviewed, so a fixture that no longer
+  // satisfies the component leaves a broken page rather than a failing build —
+  // rendering the story's contents here is what catches that.
+  describe('orchestration', () => {
+    function renderStoryHypotheses(
+      run = InvestigationOrchestrationFixture(),
+      investigationId = 'investigation-1'
+    ) {
+      return render(
+        <InvestigationFixtureApi
+          organizationSlug="hypotheses-story"
+          details={[InvestigationDetailFixture({id: investigationId, blocks: []})]}
+          orchestration={{[investigationId]: run}}
+        >
+          <InvestigationHypotheses investigationId={investigationId} />
+        </InvestigationFixtureApi>,
+        {organization}
+      );
+    }
+
+    it('serves the projection to the hypothesis row', async () => {
+      renderStoryHypotheses();
+      await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
+
+      expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
+      expect(
+        screen.getByRole('heading', {
+          name: 'Database or cache degradation delayed the response',
+        })
+      ).toBeInTheDocument();
+      expect(screen.getByText('Supported')).toBeInTheDocument();
+      expect(
+        screen.getByText('Compare FCP with server response time')
+      ).toBeInTheDocument();
+    });
+
+    it('applies a disposition command and returns the new projection', async () => {
+      renderStoryHypotheses();
+      await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
+
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: 'Actions for An external SSO provider slowed the response',
+        })
+      );
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
+
+      // The command response carries the updated projection, so the card
+      // changes without another read.
+      expect(await screen.findByText('Accepted by you')).toBeInTheDocument();
+      // Accepting settles the hypothesis, so its edge picks up the accent.
+      expect(screen.getAllByTestId('investigation-hypothesis')[1]).toHaveAttribute(
+        'data-border',
+        'accent'
+      );
+    });
+
+    it('clears a disposition back to the agent verdict', async () => {
+      renderStoryHypotheses();
+      await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
+
+      const trigger = await screen.findByRole('button', {
+        name: 'Actions for An external SSO provider slowed the response',
+      });
+      await userEvent.click(trigger);
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
+      await screen.findByText('Accepted by you');
+
+      await userEvent.click(trigger);
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Clear decision'})
+      );
+
+      expect(await screen.findByText('Refuted')).toBeInTheDocument();
+      // Back to the agent's verdict, so the edge breaks again.
+      expect(screen.getAllByTestId('investigation-hypothesis')[1]).toHaveAttribute(
+        'data-border',
+        'dashed'
+      );
+    });
+
+    it('puts a retried hypothesis back into investigation', async () => {
+      renderStoryHypotheses();
+      await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
+
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: 'Actions for Session validation created a shared bottleneck',
+        })
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Investigate again'})
+      );
+
+      expect(await screen.findByText('Verifying…')).toBeInTheDocument();
+      expect(screen.getByText('Inspect session and middleware spans')).toBeVisible();
+      expect(screen.queryByRole('listitem', {current: 'step'})).not.toBeInTheDocument();
+    });
   });
 });

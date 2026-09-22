@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {ExploreLocationQueryParamsProvider} from 'sentry/views/explore/exploreLocationQueryParamsProvider';
+import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   getReadableQueryParamsFromLocation,
   getTargetWithReadableQueryParams,
@@ -9,11 +10,16 @@ import {
 
 interface SpansQueryParamsProviderProps {
   children: ReactNode;
+  frozenParams?: Partial<ReadableQueryParamsOptions>;
 }
 
-export function SpansQueryParamsProvider({children}: SpansQueryParamsProviderProps) {
+export function SpansQueryParamsProvider({
+  children,
+  frozenParams,
+}: SpansQueryParamsProviderProps) {
   return (
     <ExploreLocationQueryParamsProvider
+      frozenParams={frozenParams}
       getReadableQueryParamsFromLocation={getReadableQueryParamsFromLocation}
       getTargetWithReadableQueryParams={getTargetWithReadableQueryParams}
       isDefaultFields={isDefaultFields}

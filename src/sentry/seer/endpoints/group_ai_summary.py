@@ -9,8 +9,6 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.helpers.deprecation import deprecated
-from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
@@ -38,11 +36,6 @@ class GroupAiSummaryEndpoint(GroupAiEndpoint):
         }
     )
 
-    @deprecated(
-        CELL_API_DEPRECATION_DATE,
-        suggested_api="sentry-api-0-organization-group-group-ai-summary",
-        url_names=["sentry-api-0-group-ai-summary"],
-    )
     def post(self, request: Request, group: Group) -> Response:
         data = orjson.loads(request.body) if request.body else {}
         force_event_id = data.get("event_id", None)

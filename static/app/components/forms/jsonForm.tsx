@@ -8,12 +8,7 @@ import type {FormPanelProps} from './formPanel';
 import {FormPanel} from './formPanel';
 import type {Field, FieldObject, JsonFormObject} from './types';
 
-interface JsonFormProps extends Omit<
-  FormPanelProps,
-  'highlighted' | 'fields' | 'additionalFieldProps'
-> {
-  additionalFieldProps?: Record<string, any>;
-
+interface JsonFormProps extends Omit<FormPanelProps, 'highlighted' | 'fields'> {
   /**
    * If `forms` is not defined, `title` + `fields` must be required.
    * Allows more fine grain control of title/fields
@@ -35,7 +30,6 @@ function JsonForm({
   forms,
   disabled,
   features,
-  additionalFieldProps,
   renderFooter,
   renderHeader,
   ...otherProps
@@ -68,6 +62,7 @@ function JsonForm({
     });
 
     return () => window.cancelAnimationFrame(animationFrame);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location?.hash]);
 
   const shouldDisplayForm = (fieldList: FieldObject[]): boolean => {
@@ -90,7 +85,6 @@ function JsonForm({
             renderFooter,
             renderHeader,
             ...otherProps,
-            ...additionalFieldProps,
           });
         }
         return !field.visible;
@@ -102,36 +96,10 @@ function JsonForm({
     return true;
   };
 
-  const renderForm = ({
-    fields,
-    formPanelProps,
-    title: formTitle,
-  }: {
-    fields: FieldObject[];
-    formPanelProps: ChildFormPanelProps;
-    title?: React.ReactNode;
-  }) => {
-    const displayForm = shouldDisplayForm(fields);
-
-    if (!displayForm && !formPanelProps?.renderFooter && !formPanelProps?.renderHeader) {
-      return null;
-    }
-
-    return (
-      <FormPanel
-        title={formTitle}
-        fields={fields}
-        {...formPanelProps}
-        initiallyCollapsed={formPanelProps.initiallyCollapsed}
-      />
-    );
-  };
-
   const formPanelProps: ChildFormPanelProps = {
     access,
     disabled,
     features,
-    additionalFieldProps,
     renderFooter,
     renderHeader,
     highlighted: location?.hash,
@@ -139,14 +107,43 @@ function JsonForm({
     initiallyCollapsed,
   };
 
+  const formGroups = forms?.map((formGroup, i) => {
+    const displayForm = shouldDisplayForm(formGroup.fields);
+    if (!displayForm && !formPanelProps.renderFooter && !formPanelProps.renderHeader) {
+      return null;
+    }
+
+    return (
+      <Fragment key={i}>
+        <FormPanel
+          title={formGroup.title}
+          fields={formGroup.fields}
+          {...formPanelProps}
+          initiallyCollapsed={formPanelProps.initiallyCollapsed}
+        />
+      </Fragment>
+    );
+  });
+
+  const shouldRenderSingleForm =
+    forms === undefined &&
+    propFields !== undefined &&
+    (shouldDisplayForm(propFields) ||
+      !!formPanelProps.renderFooter ||
+      !!formPanelProps.renderHeader);
+  const singleForm = shouldRenderSingleForm ? (
+    <FormPanel
+      title={title}
+      fields={propFields}
+      {...formPanelProps}
+      initiallyCollapsed={formPanelProps.initiallyCollapsed}
+    />
+  ) : null;
+
   return (
     <div {...otherProps}>
-      {forms?.map((formGroup, i) => (
-        <Fragment key={i}>{renderForm({formPanelProps, ...formGroup})}</Fragment>
-      ))}
-      {forms === undefined &&
-        propFields !== undefined &&
-        renderForm({fields: propFields, formPanelProps, title})}
+      {formGroups}
+      {singleForm}
     </div>
   );
 }
@@ -156,7 +153,6 @@ interface ChildFormPanelProps extends Pick<
   | 'access'
   | 'disabled'
   | 'features'
-  | 'additionalFieldProps'
   | 'renderFooter'
   | 'renderHeader'
   | 'initiallyCollapsed'

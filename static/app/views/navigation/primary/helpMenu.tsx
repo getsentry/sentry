@@ -1,9 +1,9 @@
 import {Fragment, useEffect} from 'react';
 
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   IconBroadcast,
@@ -49,7 +49,7 @@ export function PrimaryNavigationHelpMenu({
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
-  const {isAuthV2Enabled, setAuthV2CookieState} = useEnableAuthV2();
+  const {authV2CookieState, setAuthV2CookieState} = useEnableAuthV2();
 
   useEffect(() => {
     trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
@@ -106,17 +106,6 @@ export function PrimaryNavigationHelpMenu({
               <IconQuestion />
             </MenuIcon>
           ),
-        },
-        {
-          key: 'support',
-          label: t('Contact Support'),
-          ...contactSupportItem,
-          leadingItems: (
-            <MenuIcon>
-              <IconSupport />
-            </MenuIcon>
-          ),
-          hidden: !contactSupportItem,
         },
       ],
     },
@@ -189,21 +178,41 @@ export function PrimaryNavigationHelpMenu({
     },
     {
       key: 'auth-v2',
-      hidden: !organization.features.includes('authv2-enable-toggle'),
+      hidden: authV2CookieState !== AuthV2CookieState.DISABLED,
       children: [
         {
           key: 'toggle-auth-v2',
-          label: isAuthV2Enabled ? t('Disable new login') : t('Enable new login'),
+          label: t('Enable new login'),
           leadingItems: (
             <MenuIcon>
               <IconLab isSolid />
             </MenuIcon>
           ),
           onAction() {
-            setAuthV2CookieState(
-              isAuthV2Enabled ? AuthV2CookieState.DISABLED : AuthV2CookieState.ENABLED
-            );
+            trackAnalytics('auth_v2.rollout.changed', {
+              organization,
+              source: 'help_menu',
+              state: 'enabled',
+            });
+            setAuthV2CookieState(AuthV2CookieState.ENABLED);
           },
+        },
+      ],
+    },
+    {
+      key: 'contact-support',
+      hidden: !contactSupportItem,
+      children: [
+        {
+          key: 'support',
+          label: t('Contact Support'),
+          ...contactSupportItem,
+          leadingItems: (
+            <MenuIcon>
+              <IconSupport />
+            </MenuIcon>
+          ),
+          hidden: !contactSupportItem,
         },
       ],
     },
