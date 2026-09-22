@@ -5,6 +5,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {ActivityLineList} from 'sentry/components/activityLine/layout';
 import * as Storybook from 'sentry/stories';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, PriorityLevel} from 'sentry/types/group';
@@ -18,7 +19,6 @@ import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
   isActivityNote,

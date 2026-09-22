@@ -6,6 +6,12 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {NoteBody} from 'sentry/components/activity/note/body';
+import {
+  ActivityLineContent,
+  ActivityLineHeadline,
+  ActivityLineList,
+  ActivityLineRow,
+} from 'sentry/components/activityLine/layout';
 import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -16,12 +22,6 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import {getActivityNoteAuthor} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityItem';
-import {
-  ActivityLineContent,
-  ActivityLineHeadline,
-  ActivityLineList,
-  ActivityLineRow,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
 import {ActivityLineMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker';
 

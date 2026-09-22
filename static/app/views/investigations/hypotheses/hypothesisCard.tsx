@@ -4,6 +4,8 @@ import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {ActivityLineList, ActivityLineRow} from 'sentry/components/activityLine/layout';
+import {ActivityLineDotMarker} from 'sentry/components/activityLine/marker';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
@@ -97,31 +99,30 @@ export function HypothesisCard({
       ) : null}
 
       {steps.length > 0 ? (
-        <EvidenceList
-          as="ol"
-          padding="0"
-          paddingTop="md"
-          aria-label={t('Verification steps')}
-        >
-          {steps.map(step => (
-            <EvidenceStep
-              key={step.id}
-              as="li"
-              position="relative"
-              paddingLeft="2xl"
-              paddingBottom="lg"
-              aria-current={step.status === 'running' ? 'step' : undefined}
-            >
-              <Text
-                size="sm"
-                density="comfortable"
-                variant={step.status === 'running' ? 'primary' : 'muted'}
-                wordBreak="break-word"
+        <EvidenceList as="ol" aria-label={t('Verification steps')}>
+          {steps.map(step => {
+            const isRunning = step.status === 'running';
+            return (
+              <ActivityLineRow
+                key={step.id}
+                as="li"
+                aria-current={isRunning ? 'step' : undefined}
               >
-                {step.title}
-              </Text>
-            </EvidenceStep>
-          ))}
+                <ActivityLineDotMarker
+                  variant={isRunning ? 'vibrant' : 'moderate'}
+                  label={step.title}
+                />
+                <StepTitle
+                  size="sm"
+                  density="comfortable"
+                  variant={isRunning ? 'primary' : 'muted'}
+                  wordBreak="break-word"
+                >
+                  {step.title}
+                </StepTitle>
+              </ActivityLineRow>
+            );
+          })}
         </EvidenceList>
       ) : null}
     </Card>
@@ -175,45 +176,26 @@ const Card = styled(Stack)`
   }
 `;
 
-const EvidenceList = styled(Stack)`
+/**
+ * The checks as a connected timeline — the same one the issue activity drawer
+ * draws, so a hypothesis' progress reads the way activity does everywhere else:
+ * a marker per step in a fixed gutter, with a line running between them. Each
+ * step is an `ActivityLineRow`, which owns the gutter and the segment of line
+ * running to the next step — including stopping it at the last one.
+ *
+ * `ol` markers would otherwise sit in the card's padding beside each step.
+ */
+const EvidenceList = styled(ActivityLineList)`
   list-style: none;
   margin: 0;
+  padding: 0;
+  padding-top: ${p => p.theme.space.md};
 `;
 
-const EvidenceStep = styled(Flex)`
-  &::before {
-    content: '';
-    position: absolute;
-    top: 3px;
-    left: 0;
-    width: 10px;
-    height: 10px;
-    color: ${p => p.theme.tokens.content.secondary};
-    border: ${p => p.theme.border.md} solid currentColor;
-    border-radius: ${p => p.theme.radius.full};
-    background: ${p => p.theme.tokens.background.primary};
-    z-index: 1;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 8px;
-    bottom: -8px;
-    left: 4.5px;
-    border-left: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-
-  &[aria-current='step']::before {
-    border-color: ${p => p.theme.tokens.graphics.neutral.vibrant};
-    background: ${p => p.theme.tokens.graphics.neutral.vibrant};
-  }
-
-  &:last-child {
-    padding-bottom: 0;
-
-    &::after {
-      display: none;
-    }
-  }
+/* The row's second column, beside the marker — placed rather than left to
+ * auto-placement, which is what the activity line's own headline does. */
+const StepTitle = styled(Text)`
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
 `;

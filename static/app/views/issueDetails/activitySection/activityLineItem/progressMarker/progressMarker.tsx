@@ -2,6 +2,10 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {
+  ActivityLineDotGraphic,
+  ActivityLineIconFrame,
+} from 'sentry/components/activityLine/marker';
 import {ProgressState} from 'sentry/types/group';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 
@@ -20,12 +24,12 @@ export function ActivityProgressMarker({
   const marker =
     state === 'activity' ? (
       <ProgressDotFrame aria-label={label} role="img">
-        <ProgressDot />
+        <ActivityLineDotGraphic size={10} />
       </ProgressDotFrame>
     ) : (
-      <ProgressIconFrame aria-label={label} role="img">
+      <ActivityLineIconFrame aria-label={label} role="img">
         {getProgressIcon(state)}
-      </ProgressIconFrame>
+      </ActivityLineIconFrame>
     );
 
   if (state === 'activity' || state === ProgressState.FIX_APPLIED) {
@@ -39,18 +43,6 @@ export function ActivityProgressMarker({
   );
 }
 
-const ProgressIconFrame = styled('span')`
-  position: relative;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
-  border-radius: 100%;
-  background: ${p => p.theme.tokens.background.primary};
-`;
-
 const ProgressDotFrame = styled('span')`
   position: relative;
   z-index: 1;
@@ -58,13 +50,4 @@ const ProgressDotFrame = styled('span')`
   place-items: center;
   width: 22px;
   height: 22px;
-`;
-
-const ProgressDot = styled('span')`
-  width: 10px;
-  height: 10px;
-  border-radius: 100%;
-  background: ${p => p.theme.tokens.graphics.neutral.moderate};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  box-shadow: 0 0 0 4px ${p => p.theme.tokens.background.primary};
 `;
