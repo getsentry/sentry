@@ -18,7 +18,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LogAttributesRendererMap} from 'sentry/views/explore/logs/fieldRenderers';
+import {
+  LogAttributesRendererMap,
+  SpanIDRenderer,
+} from 'sentry/views/explore/logs/fieldRenderers';
 import {
   getLogColors,
   LogAttributeTreeWrapper,
@@ -36,8 +39,14 @@ import {
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
 import {useMetricAttributesTreeActions} from 'sentry/views/explore/metrics/useMetricAttributesTreeActions';
-import type {EAPTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/types';
-import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import type {EAPTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/types';
+import {useTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+
+const MetricAttributesRendererMap = {
+  ...LogAttributesRendererMap,
+  [TraceMetricKnownFieldKey.OLD_SPAN_ID]: SpanIDRenderer,
+};
 
 function MetricDetailsEmptyState({children}: {children: React.ReactNode}) {
   return (
@@ -119,7 +128,9 @@ export function MetricDetails({
     );
   }
 
-  const attributes: Record<string, TraceItemResponseAttribute['value']> = {};
+  const attributes: Record<string, TraceItemResponseAttribute['value']> = {
+    [TraceMetricKnownFieldKey.TIMESTAMP]: dataRow[TraceMetricKnownFieldKey.TIMESTAMP],
+  };
   const attributeTypes: Record<string, TraceItemResponseAttribute['type']> = {};
   for (const attr of traceDetailsData?.attributes ?? []) {
     attributes[attr.name] = attr.value;
@@ -147,7 +158,7 @@ export function MetricDetails({
                 <AttributesTree
                   attributes={visibleAttributes}
                   getCustomActions={getActions}
-                  renderers={LogAttributesRendererMap}
+                  renderers={MetricAttributesRendererMap}
                   rendererExtra={{
                     attributes,
                     attributeTypes,
@@ -161,6 +172,7 @@ export function MetricDetails({
                     projectSlug,
                     project,
                     traceItemMeta: traceDetailsData?.meta,
+                    traceViewSource: TraceViewSources.TRACE_METRICS,
                     theme,
                   }}
                 />

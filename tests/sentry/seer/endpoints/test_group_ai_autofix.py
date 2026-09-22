@@ -4,6 +4,7 @@ from unittest.mock import ANY, Mock, call, patch
 
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.github_permission_tiers import PR_ITERATION_TIER
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.action_log.types import GroupActionActor, TriggerAutofixAction
 from sentry.models.activity import Activity
@@ -348,7 +349,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                     status=0,
                 ),
                 repository_id=1,
-                missing_scopes=["contents"],
+                missing_tiers=[PR_ITERATION_TIER],
             )
         }
 
@@ -771,7 +772,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             user_context=None,
             insert_index=None,
             user=ANY,
-            enable_bash_tools=False,
+            enable_bash_mode=False,
             actor_user_id=None,
         )
 
@@ -807,7 +808,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             user_context=None,
             insert_index=3,
             user=ANY,
-            enable_bash_tools=False,
+            enable_bash_mode=False,
             actor_user_id=None,
         )
 
@@ -1421,6 +1422,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert payload["author"] == {
             "name": self.user.get_display_name(),
             "email": "583231+octocat@users.noreply.github.com",
+            "scm_login": "octocat",
         }
 
     def test_open_pr_no_run_id(self) -> None:

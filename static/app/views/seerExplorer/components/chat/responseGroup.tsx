@@ -205,7 +205,10 @@ export function ResponseGroup({
                 startTime={startTime}
                 endTime={endTime}
               >
-                {active || hasTrace
+                {/* `hasTrace`, not `active`: an active response with nothing to show yet still
+                    maps to a non-empty array of blocks that each render nothing, and an array is
+                    truthy, so ThinkingBlock would open its bordered panel around no content. */}
+                {hasTrace
                   ? group.map((block, i) => {
                       const isAnswer = block === answer;
                       // A block's own tool calls render after its thinking, so they count as

@@ -3,8 +3,12 @@ import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
+import type {
+  Organization,
+  SavedQuery as DiscoverSavedQueryBase,
+} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -13,6 +17,16 @@ import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSave
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+export enum SavedQueryType {
+  DISCOVER = 'discover',
+  EXPLORE = 'explore',
+}
+
+export type SavedQueryRef = {
+  queryId: number;
+  queryType: SavedQueryType;
+};
 
 export type RawGroupBy = {
   groupBy: string;
@@ -135,6 +149,7 @@ export type ReadableSavedQuery = {
 };
 
 export class SavedQuery {
+  queryType = SavedQueryType.EXPLORE as const;
   dateAdded: string;
   dateUpdated: string;
   id: number;
@@ -183,6 +198,28 @@ export class SavedQuery {
   }
 }
 
+export type DiscoverSavedQuery = DiscoverSavedQueryBase & {
+  id: string;
+  queryType: SavedQueryType.DISCOVER;
+  lastVisited?: string;
+  position?: number | null;
+  starred?: boolean;
+};
+
+/**
+ * This is for the all-queries view. If you aren't dealing with discover
+ * queries, use SavedQuery instead.
+ */
+export type AllSavedQuery = SavedQuery | DiscoverSavedQuery;
+
+export function isExploreSavedQuery(savedQuery: AllSavedQuery): savedQuery is SavedQuery {
+  return savedQuery.queryType === SavedQueryType.EXPLORE;
+}
+
+export function getSavedQueryKey(savedQuery: AllSavedQuery): string {
+  return `${savedQuery.queryType}:${savedQuery.id}`;
+}
+
 export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['dataset']) {
   return DATASET_TO_TRACE_ITEM_DATASET_MAP[dataset];
 }
@@ -199,12 +236,26 @@ function savedQueriesApiOptions<TData = ReadableSavedQuery[]>(
     staleTime: 0,
   });
 }
+type AllSavedQueryResponse =
+  | (ReadableSavedQuery & {queryType?: SavedQueryType.EXPLORE})
+  | DiscoverSavedQuery;
 
-export function starredSavedQueriesApiOptions(organization: Organization) {
-  return savedQueriesApiOptions<SavedQuery[]>(organization, {
-    per_page: MAX_STARRED_SAVED_QUERIES_IN_NAV,
-    starred: 1,
-  });
+/**
+ * Returns both explore and discover saved queries. Use `savedQueriesApiOptions`
+ * if only explore saved queries are needed
+ */
+function allSavedQueriesApiOptions<TData = AllSavedQueryResponse[]>(
+  organization: Organization,
+  query?: Record<string, unknown>
+) {
+  return apiOptions.as<TData>()(
+    '/organizations/$organizationIdOrSlug/explore/all-queries/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      query,
+      staleTime: 0,
+    }
+  );
 }
 
 type Props = {
@@ -225,29 +276,53 @@ export function useGetSavedQueries({
   query,
 }: Props) {
   const organization = useOrganization();
+  const migrateDiscoverQueries = organization.features.includes(
+    'discover-queries-in-all-queries'
+  );
+
+  const requestQuery = {
+    sortBy,
+    exclude,
+    per_page: perPage,
+    starred: starred ? 1 : undefined,
+    cursor,
+    query,
+  };
+
+  const queryOptions = migrateDiscoverQueries
+    ? allSavedQueriesApiOptions(organization, requestQuery)
+    : savedQueriesApiOptions<AllSavedQueryResponse[]>(organization, requestQuery);
 
   const {data, isLoading, isFetched, isError} = useQuery({
-    ...savedQueriesApiOptions(organization, {
-      sortBy,
-      exclude,
-      per_page: perPage,
-      starred: starred ? 1 : undefined,
-      cursor,
-      query,
-    }),
-    select: selectJsonWithHeaders,
+    ...queryOptions,
+    select: selectJsonWithHeaders as (
+      result: ApiResponse<AllSavedQueryResponse[]>
+    ) => ApiResponse<AllSavedQueryResponse[]>,
   });
-
-  const pageLinks = data?.headers.Link;
 
   const savedQueries = useMemo(
     () =>
       data?.json
-        ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
-        .map(q => new SavedQuery(q)),
-    [data?.json]
+        ?.filter(savedQuery =>
+          savedQuery.queryType === SavedQueryType.DISCOVER
+            ? migrateDiscoverQueries
+            : Array.isArray(savedQuery.query) && savedQuery.query.length > 0
+        )
+        .map(savedQuery =>
+          savedQuery.queryType === SavedQueryType.DISCOVER
+            ? savedQuery
+            : new SavedQuery(savedQuery)
+        ),
+    [data?.json, migrateDiscoverQueries]
   );
-  return {data: savedQueries, isLoading, pageLinks, isFetched, isError};
+
+  return {
+    data: savedQueries,
+    isLoading,
+    pageLinks: data?.headers.Link,
+    isFetched,
+    isError,
+  };
 }
 
 export function useInvalidateSavedQueries() {
@@ -255,8 +330,12 @@ export function useInvalidateSavedQueries() {
   const queryClient = useQueryClient();
 
   return useCallback(() => {
-    const baseKey = savedQueriesApiOptions(organization).queryKey;
-    queryClient.invalidateQueries({queryKey: baseKey});
+    queryClient.invalidateQueries({
+      queryKey: savedQueriesApiOptions(organization).queryKey,
+    });
+    queryClient.invalidateQueries({
+      queryKey: allSavedQueriesApiOptions(organization).queryKey,
+    });
   }, [queryClient, organization]);
 }
 
@@ -325,6 +404,8 @@ const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
   ai_conversations: TraceItemDataset.SPANS,
 };
 
-export function getSavedQueryDatasetLabel(dataset: ReadableSavedQuery['dataset']) {
+export function getSavedQueryDatasetLabel(
+  dataset: ReadableSavedQuery['dataset']
+): string {
   return DATASET_LABEL_MAP[dataset];
 }

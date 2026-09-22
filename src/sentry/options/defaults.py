@@ -252,6 +252,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
+    "auth.v2.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
@@ -783,6 +789,12 @@ register("github-console-sdk-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PR
 # Cursor Origin Integration
 register("cursor-origin-app.id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("cursor-origin-app.private-key", default="", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "cursor-origin-app.fetch-commits.max-compare-commits",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Github Enterprise Integration
 register(
@@ -1422,7 +1434,7 @@ register(
 register(
     "issues.action_log.use_db_sequence_for_outbox_identifier",
     type=Bool,
-    default=True,
+    default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2381,19 +2393,10 @@ register(
 )
 
 # Dynamic Sampling system-wide options
-# Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
-register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Number of large transactions to retrieve from Snuba for transaction re-balancing.
 register(
     "dynamic-sampling.prioritise_transactions.num_explicit_large_transactions",
     30,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Nothing reads this option any more. It stays registered until the options automator
-# has unset it, since the automator can only unset a registered option.
-register(
-    "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Lower bound on the per-transaction sample rate produced by transaction rebalancing. When a project
@@ -2439,14 +2442,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Nothing reads this option any more. It stays registered until the options automator
-# has unset it, since the automator can only unset a registered option.
-register(
-    "dynamic-sampling.legacy.killswitch",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Share of organizations the per-org dynamic sampling pipeline runs for, keyed on
 # organization id. 1.0 runs it for every org and is the default, so that the pipeline
 # works without any option set; 0.0 stops it for every org. Intermediate values select a
@@ -2457,24 +2452,6 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Nothing reads this option any more. It stays registered until the options automator
-# has unset it, since the automator can only unset a registered option.
-register(
-    "dynamic-sampling.per_org.serving-rollout-rate",
-    type=Float,
-    default=1.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Nothing reads this option any more. It stays registered until the options automator
-# has unset it, since the automator can only unset a registered option.
-register(
-    "dynamic-sampling.per_org.serving-org-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Sample rate for metrics emitted by the per-org dynamic sampling pipeline
@@ -2488,15 +2465,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Nothing reads this option any more. It stays registered until the options automator
-# has unset it, since the automator can only unset a registered option.
-register(
-    "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Per-project sample rate overrides for custom dynamic sampling. Maps a stringified
 # project id to a fixed sample rate (0.0-1.0) that hard-replaces the rate the custom
 # dynamic sampling path would otherwise compute for that project. Example:
@@ -2505,14 +2473,6 @@ register(
     "dynamic-sampling.sample-rate-override-per-project",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Nothing reads this option any more. It stays registered until the options automator
-# has unset it, since the automator can only unset a registered option.
-register(
-    "dynamic-sampling.prioritise_transactions.rebalance_intensity",
-    default=0.8,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # === Hybrid cloud subsystem options ===
@@ -3757,6 +3717,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Whether the drift sweep republishes the configs it finds missing, rather than only counting them.
+register(
+    "uptime.config-drift.repair",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls whether uptime monitoring automatically detects hostnames from error events.
 register(
     "uptime.automatic-hostname-detection",
@@ -4455,5 +4423,13 @@ register(
     "preprod.snapshots.objectstore.snapshots-usecase.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# How far back the ingestion delay measurement window reaches, in minutes.
+register(
+    "ingestion-delay.measurement-lookback-minutes",
+    type=Int,
+    default=60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

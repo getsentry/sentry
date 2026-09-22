@@ -37,13 +37,13 @@ export function AutofixStartCard({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
-  const [enableBashTools] = useForceBashMode();
+  const [enableBashMode] = useForceBashMode();
 
   const [startingRun, setStartingRun] = useState(false);
   const handleStartRootCause = async () => {
     setStartingRun(true);
     try {
-      await startStep('root_cause', {enableBashTools: enableBashTools || undefined});
+      await startStep('root_cause', {enableBashMode: enableBashMode || undefined});
     } catch {
       return;
     } finally {

@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
+from sentry import features
+from sentry.integrations.github.client import GitHubBaseClient
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.pullrequest import PullRequest, normalize_scm_provider
-from sentry.models.repository import Repository
-from sentry.preprod.integration_utils import get_commit_context_client
+from sentry.preprod.integration_utils import get_commit_context_client, get_github_client
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import (
@@ -49,6 +49,9 @@ POST_ON_CHANGED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_change
 POST_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_renamed"
 
 
+type _ProviderHeadStatus = Literal["matched", "mismatched", "unavailable"]
+
+
 def get_snapshot_pr_comment_reporting_criteria(project: Project) -> SnapshotChangeCriteria:
     return SnapshotChangeCriteria(
         added=project.get_option(POST_ON_ADDED_OPTION_KEY, default=False),
@@ -58,92 +61,63 @@ def get_snapshot_pr_comment_reporting_criteria(project: Project) -> SnapshotChan
     )
 
 
-def _emit_pr_head_comparison_telemetry(
+def _record_provider_head_check(status: _ProviderHeadStatus) -> None:
+    metrics.incr(
+        "preprod.snapshot_pr_comments.provider_head_check",
+        sample_rate=1.0,
+        tags={"result": status},
+    )
+
+
+def _check_provider_pr_head(
     *,
-    organization_id: int,
+    client: GitHubBaseClient,
     repo_name: str,
-    provider: str,
     pr_number: int,
     commit_comparison_id: int,
-    head_sha: str,
+    comparison_head_sha: str,
     artifact_id: int | None,
-) -> None:
+    organization_id: int,
+) -> _ProviderHeadStatus:
+    log_extra = {
+        "commit_comparison_id": commit_comparison_id,
+        "organization_id": organization_id,
+        "preprod_artifact_id": artifact_id,
+        "repo_name": repo_name,
+        "pr_number": pr_number,
+        "comparison_head_sha": comparison_head_sha,
+    }
+
     try:
-        repository, repository_resolution = Repository.objects.resolve_active(
-            organization_id=organization_id,
-            name=repo_name,
-            normalized_provider=normalize_scm_provider(provider),
-        )
-
-        pull_request_data = None
-        if repository is not None:
-            pull_request_data = (
-                PullRequest.objects.filter(
-                    organization_id=organization_id,
-                    repository_id=repository.id,
-                    key=str(pr_number),
-                )
-                .values_list("id", "head_commit_sha")
-                .first()
-            )
-
-        if repository is None:
-            result = f"repository_{repository_resolution}"
-            pr_head_sha = None
-        elif pull_request_data is None:
-            result = "missing_pr"
-            pr_head_sha = None
-        else:
-            _, pr_head_sha = pull_request_data
-            if pr_head_sha is None:
-                result = "missing_head_sha"
-            elif pr_head_sha == head_sha:
-                result = "matched"
-            else:
-                result = "mismatched"
-
-        metrics.incr(
-            "preprod.snapshot_pr_comments.head_comparison",
-            sample_rate=1.0,
-            tags={"result": result},
-        )
-
-        if result not in ("matched", "mismatched"):
-            logger.info(
-                "preprod.snapshot_pr_comments.post.head_comparison_unavailable",
-                extra={
-                    "commit_comparison_id": commit_comparison_id,
-                    "organization_id": organization_id,
-                    "preprod_artifact_id": artifact_id,
-                    "repo_name": repo_name,
-                    "pr_number": pr_number,
-                    "reason": result,
-                },
-            )
-        elif result == "mismatched":
-            logger.info(
-                "preprod.snapshot_pr_comments.post.head_mismatch",
-                extra={
-                    "commit_comparison_id": commit_comparison_id,
-                    "organization_id": organization_id,
-                    "preprod_artifact_id": artifact_id,
-                    "repo_name": repo_name,
-                    "pr_number": pr_number,
-                    "comparison_head_sha": head_sha,
-                    "pr_head_sha": pr_head_sha,
-                },
-            )
-    except Exception:
+        pull_request = client.get_pull_request(repo_name, str(pr_number))
+    except Exception as e:
+        _record_provider_head_check("unavailable")
         logger.exception(
-            "preprod.snapshot_pr_comments.post.head_comparison_telemetry_failed",
-            extra={
-                "commit_comparison_id": commit_comparison_id,
-                "organization_id": organization_id,
-                "preprod_artifact_id": artifact_id,
-                "repo_name": repo_name,
-                "pr_number": pr_number,
-            },
+            "preprod.snapshot_pr_comments.post.provider_head_check_failed",
+            extra={**log_extra, "error_type": type(e).__name__},
         )
+        return "unavailable"
+
+    provider_head = pull_request.get("head") if isinstance(pull_request, dict) else None
+    provider_head_sha = provider_head.get("sha") if isinstance(provider_head, dict) else None
+    if not isinstance(provider_head_sha, str) or not provider_head_sha:
+        _record_provider_head_check("unavailable")
+        logger.warning(
+            "preprod.snapshot_pr_comments.post.provider_head_check_invalid_response",
+            extra=log_extra,
+        )
+        return "unavailable"
+
+    if provider_head_sha != comparison_head_sha:
+        _record_provider_head_check("mismatched")
+        logger.info(
+            "preprod.snapshot_pr_comments.post.provider_head_mismatch",
+            extra={**log_extra, "provider_head_sha": provider_head_sha},
+        )
+        return "mismatched"
+
+    _record_provider_head_check("matched")
+    return "matched"
 
 
 @instrumented_task(
@@ -362,7 +336,7 @@ def post_snapshot_pr_comment_task(
         )
         return
 
-    client = get_commit_context_client(organization, repo_name, provider)
+    client = get_github_client(organization, repo_name, provider)
     if not client:
         logger.info(
             "preprod.snapshot_pr_comments.post.no_client",
@@ -375,14 +349,39 @@ def post_snapshot_pr_comment_task(
     db_alias = router.db_for_write(CommitComparison)
 
     try:
+        if features.has("organizations:preprod-snapshot-pr-comment-head-check", organization):
+            comparison_head_sha = (
+                CommitComparison.objects.filter(
+                    id=commit_comparison_id,
+                    organization_id=organization.id,
+                    head_repo_name=repo_name,
+                    pr_number=pr_number,
+                )
+                .values_list("head_sha", flat=True)
+                .first()
+            )
+            if comparison_head_sha is None:
+                raise CommitComparison.DoesNotExist
+            provider_head_status = _check_provider_pr_head(
+                client=client,
+                repo_name=repo_name,
+                pr_number=pr_number,
+                commit_comparison_id=commit_comparison_id,
+                comparison_head_sha=comparison_head_sha,
+                artifact_id=artifact_id,
+                organization_id=organization.id,
+            )
+            if provider_head_status == "mismatched":
+                return
+
         # The comment_id is re-derived under the lock instead of trusting the
         # value passed from the create task: when several artifacts on a commit
         # post at once, each create task reads no existing comment, so the
         # first post here would otherwise create a duplicate comment instead of
-        # updating the shared one. The GitHub call is held inside the lock (as
+        # updating the shared one. The comment write is held inside the lock (as
         # in create_preprod_pr_comment_task) so concurrent posters serialize on
-        # the decision; lock hold is bounded by the client timeout, which
-        # matches this task's processing deadline.
+        # the decision; lock hold is bounded by the client timeout, which matches
+        # this task's processing deadline.
         with transaction.atomic(db_alias):
             cc, comment_id = lock_pr_comparisons_for_update(
                 organization_id=organization.id,
@@ -436,21 +435,16 @@ def post_snapshot_pr_comment_task(
                     },
                 )
     except CommitComparison.DoesNotExist:
-        logger.info(
-            "preprod.snapshot_pr_comments.post.cc_deleted",
-            extra={"commit_comparison_id": commit_comparison_id},
+        logger.warning(
+            "preprod.snapshot_pr_comments.post.cc_unavailable",
+            extra={
+                "commit_comparison_id": commit_comparison_id,
+                "organization_id": organization_id,
+                "repo_name": repo_name,
+                "pr_number": pr_number,
+            },
         )
         return
-
-    _emit_pr_head_comparison_telemetry(
-        organization_id=organization.id,
-        repo_name=repo_name,
-        provider=provider,
-        pr_number=pr_number,
-        commit_comparison_id=cc.id,
-        head_sha=cc.head_sha,
-        artifact_id=artifact_id,
-    )
 
     # Re-raised outside the transaction so the failure record is committed
     # before the retry fires. Terminal 4xx (except 429) are swallowed; 429,

@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {Outlet} from 'react-router-dom';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
@@ -14,14 +13,12 @@ import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {
-  EXPLORE_AGENTS_SUB_PATH,
   CONVERSATIONS_LANDING_TITLE,
-  CONVERSATIONS_SIDEBAR_LABEL,
   MAX_PICKABLE_DAYS,
 } from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -88,16 +85,11 @@ function ConversationsHeader() {
 }
 
 function ConversationsLandingHeader() {
-  const organization = useOrganization();
   const location = useLocation();
   const savedQueryTitle = decodeScalar(location.query.title);
   const savedQueryId = decodeScalar(location.query.id);
   const hasSavedQuery =
     defined(savedQueryId) && defined(savedQueryTitle) && savedQueryTitle.length > 0;
-
-  const conversationsBaseUrl = normalizeUrl(
-    `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/`
-  );
 
   if (!hasSavedQuery) {
     return (
@@ -109,23 +101,11 @@ function ConversationsLandingHeader() {
   }
 
   return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: CONVERSATIONS_SIDEBAR_LABEL,
-              to: {pathname: conversationsBaseUrl, query: {statsPeriod: '24h'}},
-            },
-          ]}
-        />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title item={{type: 'page-title', label: savedQueryTitle}} />
-        <FeatureBadge type="new" />
-      </TopBar.Slot>
-    </Fragment>
+    <ExploreSavedQueryBreadcrumbs
+      surface="agents"
+      savedQueryId={savedQueryId}
+      title={savedQueryTitle}
+    />
   );
 }
 

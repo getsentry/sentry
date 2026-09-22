@@ -45,6 +45,7 @@ import {
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
+  type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {useLogsQueryTruncate} from 'sentry/views/explore/logs/useLogsQueryTruncate';
 import {
@@ -70,6 +71,7 @@ export function useExploreLogsTableRow(props: {
   projectId: string;
   traceId: string;
   enabled?: boolean;
+  routingHint?: string;
   timestamp?: number | null;
 }) {
   const {isReady: pageFiltersReady} = usePageFilters();
@@ -81,6 +83,7 @@ export function useExploreLogsTableRow(props: {
     referrer: 'api.explore.log-item-details',
     enabled: props.enabled && pageFiltersReady,
     timestamp: props.timestamp,
+    routingHint: props.routingHint,
   });
 }
 
@@ -647,9 +650,10 @@ export function useInfiniteLogsQuery({
     setTotalBytesScanned(previousBytesScanned => previousBytesScanned + bytesScanned);
   }, [lastPage]);
 
-  const _data = useMemo(() => {
+  const {rows: _data, routingHintsByRow} = useMemo(() => {
     const usedRowIds = new Set();
-    return (
+    const hints = new Map<OurLogsResponseItem, string | undefined>();
+    const rows =
       data?.pages.flatMap(page =>
         page.json.data.filter(row => {
           if (usedRowIds.has(row[OurLogKnownFieldKey.ID])) {
@@ -661,10 +665,11 @@ export function useInfiniteLogsQuery({
           }
 
           usedRowIds.add(row[OurLogKnownFieldKey.ID]);
+          hints.set(row, page.json.meta?.routingHint);
           return true;
         })
-      ) ?? []
-    );
+      ) ?? [];
+    return {rows, routingHintsByRow: hints};
   }, [data, virtualStreamedTimestamp]);
 
   const pageCount = data?.pages?.length;
@@ -738,6 +743,7 @@ export function useInfiniteLogsQuery({
       // started auto fetching the next page
       (_data.length === 0 && (isFetchingNextPage || shouldAutoFetchNextPage)),
     data: _data,
+    routingHintsByRow,
     meta: _meta,
     isRefetching: queryResult.isRefetching,
     isEmpty:

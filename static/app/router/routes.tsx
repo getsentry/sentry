@@ -1234,7 +1234,7 @@ function buildRoutes(): RouteObject[] {
 
   const traceView: SentryRouteObject = {
     path: 'trace/:traceSlug/',
-    component: make(() => import('sentry/views/performance/newTraceDetails/index')),
+    component: make(() => import('sentry/views/performance/traceDetails/index')),
   };
 
   const dashboardChildren: SentryRouteObject[] = [
@@ -2452,6 +2452,10 @@ function buildRoutes(): RouteObject[] {
         () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
         <GroupEventDetailsLoading />
       ),
+    },
+    {
+      path: TabPaths[Tab.AUTOFIX],
+      component: make(() => import('sentry/views/issueDetails/autofix')),
     },
     {
       path: TabPaths[Tab.USER_FEEDBACK],

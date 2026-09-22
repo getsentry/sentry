@@ -87,6 +87,8 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/monitors/:detectorId/',
   '/monitors/:detectorId/edit/',
   '/monitors/alerts/',
+  '/monitors/alerts/:automationId/',
+  '/monitors/alerts/:automationId/edit/',
   '/monitors/crons/',
   '/monitors/errors/',
   '/monitors/metrics/',
@@ -94,18 +96,6 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/monitors/my-monitors/',
   '/monitors/uptime/',
 ]);
-
-function supportsStructuredContext(
-  referrer: string,
-  organization: {features: string[]} | null | undefined
-): boolean {
-  if (STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
-    return (
-      organization?.features.includes('seer-explorer-structured-context-rollout') === true
-    );
-  }
-  return false;
-}
 
 const getOptimisticAssistantTexts = () => [
   t('Looking around...'),
@@ -497,13 +487,13 @@ export const useSeerExplorer = () => {
         Sentry.captureException(e);
       }
 
-      // Send structured LLMContext JSON on supported pages when the feature flag
-      // is enabled; fall back to a coarse ASCII screenshot otherwise.
+      // Send structured LLMContext JSON on allowlisted pages; fall back to a
+      // coarse ASCII screenshot everywhere else.
       let screenshot: string | undefined;
       if (
         snapshot &&
         overrideCtxEngEnable &&
-        supportsStructuredContext(getPageReferrer(), organization)
+        STRUCTURED_CONTEXT_ROUTES.has(getPageReferrer())
       ) {
         try {
           screenshot = JSON.stringify(snapshot);

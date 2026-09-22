@@ -24,9 +24,11 @@ from sentry.uptime.subscriptions.tasks import (
     check_missing_configs,
     check_orphaned_configs,
     config_drift_dispatcher,
+    update_remote_uptime_subscription,
     uptime_subscription_to_check_config,
 )
 from sentry.utils import redis
+from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
 # a1 and a2 share a store (same cluster and key prefix); b1 is a second store.
 REGIONS = [
@@ -72,13 +74,15 @@ class ConfigDriftDispatcherTest(UptimeTestCase):
     ) -> None:
         for cycle_hours in (24, 48):
             prefixes, partitions = self._run_one_cycle(cycle_hours, missing_delay, orphaned_delay)
-            assert sorted(prefixes) == [f"{bucket:02x}" for bucket in range(256)]
+            assert sorted(prefixes) == [
+                ("default", p, f"{bucket:02x}") for p in "ab" for bucket in range(256)
+            ]
             assert sorted(partitions) == [("default", p, i) for p in "ab" for i in range(128)]
 
     def _run_one_cycle(
         self, cycle_hours: int, missing_delay: mock.MagicMock, orphaned_delay: mock.MagicMock
-    ) -> tuple[list[str], list[tuple[str, str, int]]]:
-        prefixes: list[str] = []
+    ) -> tuple[list[tuple[str, str, str]], list[tuple[str, str, int]]]:
+        prefixes: list[tuple[str, str, str]] = []
         partitions: list[tuple[str, str, int]] = []
         with override_options(
             {"uptime.config-drift.enabled": True, "uptime.config-drift.cycle-hours": cycle_hours}
@@ -87,10 +91,15 @@ class ConfigDriftDispatcherTest(UptimeTestCase):
                 with freeze_time(EPOCH + timedelta(hours=hour, minutes=5)):
                     config_drift_dispatcher()
                 run_prefixes = [
-                    c.kwargs["subscription_id_prefix"] for c in missing_delay.mock_calls
+                    (
+                        c.kwargs["cluster"],
+                        c.kwargs["key_prefix"],
+                        c.kwargs["subscription_id_prefix"],
+                    )
+                    for c in missing_delay.mock_calls
                 ]
-                # Spread across the cycle, not front-loaded into one run.
-                assert len(run_prefixes) <= math.ceil(256 / cycle_hours)
+                # Spread across the cycle, not front-loaded into one run; one task per store.
+                assert len(run_prefixes) <= math.ceil(256 / cycle_hours) * 2
                 prefixes.extend(run_prefixes)
                 partitions.extend(
                     (c.kwargs["cluster"], c.kwargs["key_prefix"], c.kwargs["partition"])
@@ -113,7 +122,7 @@ class ConfigDriftDispatcherTest(UptimeTestCase):
 
 
 @override_settings(UPTIME_REGIONS=REGIONS)
-class CheckMissingConfigsTest(UptimeTestCase):
+class CheckMissingConfigsTest(ConfigPusherTestMixin):
     def test_counts_absent_configs_per_store(self) -> None:
         # Two slugs in store A: checked once there, not twice.
         published = self.create_uptime_subscription(
@@ -139,7 +148,8 @@ class CheckMissingConfigsTest(UptimeTestCase):
             mock.patch.object(tasks, "metrics") as metrics,
             mock.patch.object(tasks.logger, "warning") as warning,
         ):
-            check_missing_configs(subscription_id_prefix=PREFIX)
+            check_missing_configs(subscription_id_prefix=PREFIX, cluster="default", key_prefix="a")
+            check_missing_configs(subscription_id_prefix=PREFIX, cluster="default", key_prefix="b")
 
         assert metrics.incr.mock_calls == [
             mock.call("uptime.config_drift.checked", amount=3, tags=MISSING_TAGS, sample_rate=1.0),
@@ -160,7 +170,7 @@ class CheckMissingConfigsTest(UptimeTestCase):
             mock.patch.object(router, "db_for_read", wraps=router.db_for_read) as db_for_read,
             CaptureQueriesContext(connections[db]) as queries,
         ):
-            check_missing_configs(subscription_id_prefix=PREFIX)
+            check_missing_configs(subscription_id_prefix=PREFIX, cluster="default", key_prefix="a")
 
         db_for_read.assert_any_call(UptimeSubscriptionRegion, replica=True)
         region_queries = [
@@ -168,11 +178,68 @@ class CheckMissingConfigsTest(UptimeTestCase):
             for q in queries.captured_queries
             if "uptime_uptimesubscriptionregion" in q["sql"]
         ]
-        assert len(region_queries) == 2  # one per store
-        for sql in region_queries:
-            select_clause = sql.removeprefix("SELECT ").split(" FROM ")[0]
-            columns = [column.split(" AS ")[0] for column in select_clause.split(", ")]
-            assert columns == ['"uptime_uptimesubscription"."subscription_id"'], sql
+        assert len(region_queries) == 1
+        select_clause = region_queries[0].removeprefix("SELECT ").split(" FROM ")[0]
+        columns = [column.split(" AS ")[0] for column in select_clause.split(", ")]
+        assert columns == ['"uptime_uptimesubscription"."subscription_id"'], region_queries[0]
+
+    def _seed_lost_on_b(self) -> tuple[UptimeSubscription, UptimeSubscription]:
+        published = self.create_uptime_subscription(
+            subscription_id=_subscription_id(), region_slugs=["a1", "b1"]
+        )
+        _publish(published, ["a1", "b1"])
+        lost_on_b = self.create_uptime_subscription(
+            subscription_id=_subscription_id(), region_slugs=["a1", "b1"]
+        )
+        _publish(lost_on_b, ["a1"])
+        return published, lost_on_b
+
+    def test_repair_option_off_publishes_nothing(self) -> None:
+        _, lost_on_b = self._seed_lost_on_b()
+
+        with mock.patch.object(update_remote_uptime_subscription, "delay") as delay:
+            check_missing_configs(subscription_id_prefix=PREFIX, cluster="default", key_prefix="b")
+
+        assert not delay.called
+        self.assert_redis_config("b1", lost_on_b, None, None)
+
+    @override_options({"uptime.config-drift.repair": True})
+    def test_repairs_only_missing_and_keeps_status(self) -> None:
+        published, lost_on_b = self._seed_lost_on_b()
+        assert lost_on_b.status == UptimeSubscription.Status.ACTIVE.value
+
+        with (
+            mock.patch.object(tasks, "metrics") as metrics,
+            self.tasks(),
+            mock.patch.object(
+                update_remote_uptime_subscription,
+                "delay",
+                wraps=update_remote_uptime_subscription.delay,
+            ) as delay,
+        ):
+            check_missing_configs(subscription_id_prefix=PREFIX, cluster="default", key_prefix="b")
+
+        delay.assert_called_once_with(uptime_subscription_id=lost_on_b.id, region_slugs=["b1"])
+        self.assert_redis_config(
+            "b1", lost_on_b, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
+        )
+        for sub in (published, lost_on_b):
+            sub.refresh_from_db()
+            assert sub.status == UptimeSubscription.Status.ACTIVE.value
+        metrics.incr.assert_any_call(
+            "uptime.config_repair.queued", amount=1, tags={"cluster": "default"}, sample_rate=1.0
+        )
+
+    @override_options({"uptime.config-drift.repair": True})
+    def test_second_run_queues_nothing(self) -> None:
+        self._seed_lost_on_b()
+        with self.tasks():
+            check_missing_configs(subscription_id_prefix=PREFIX, cluster="default", key_prefix="b")
+
+        with mock.patch.object(update_remote_uptime_subscription, "delay") as delay:
+            check_missing_configs(subscription_id_prefix=PREFIX, cluster="default", key_prefix="b")
+
+        assert not delay.called
 
 
 @override_settings(UPTIME_REGIONS=REGIONS)
@@ -202,6 +269,13 @@ class CheckOrphanedConfigsTest(UptimeTestCase):
         )
         _publish(disabled, ["b1"])
         _hset_raw("b", same_partition_id())
+        # Mid-update: its config is legitimately in Redis while the row is not ACTIVE.
+        updating = self.create_uptime_subscription(
+            subscription_id=same_partition_id(),
+            status=UptimeSubscription.Status.UPDATING,
+            region_slugs=["b1"],
+        )
+        _publish(updating, ["b1"])
 
         with (
             mock.patch.object(tasks, "metrics") as metrics,
@@ -218,7 +292,7 @@ class CheckOrphanedConfigsTest(UptimeTestCase):
             mock.call(
                 "uptime.config_drift.orphaned", amount=0, tags=ORPHANED_TAGS, sample_rate=1.0
             ),
-            mock.call("uptime.config_drift.checked", amount=4, tags=ORPHANED_TAGS, sample_rate=1.0),
+            mock.call("uptime.config_drift.checked", amount=5, tags=ORPHANED_TAGS, sample_rate=1.0),
             mock.call(
                 "uptime.config_drift.orphaned", amount=3, tags=ORPHANED_TAGS, sample_rate=1.0
             ),
@@ -259,7 +333,7 @@ class ConfigDriftTasksReadOnlyTest(UptimeTestCase):
 
         with CaptureQueriesContext(connections[db]) as queries, self.tasks():
             config_drift_dispatcher()
-            check_missing_configs(subscription_id_prefix=PREFIX)
+            check_missing_configs(subscription_id_prefix=PREFIX, cluster="default", key_prefix="a")
             check_orphaned_configs(cluster="default", key_prefix="a", partition=partition)
 
         writes = [

@@ -1,3 +1,5 @@
+from typing import Mapping
+
 from django.db import models, router, transaction
 
 from sentry.backup.scopes import RelocationScope
@@ -9,8 +11,6 @@ class CacheVersionBase(Model):
     class Meta:
         abstract = True
 
-    # Deprecated - use keyname instead.
-    key = models.CharField(max_length=64, null=True, unique=True)
     keyname = models.CharField(max_length=200, null=False, unique=True)
     version = models.PositiveBigIntegerField(null=False, default=0)
 
@@ -18,24 +18,25 @@ class CacheVersionBase(Model):
     def incr_version(cls, key: str) -> int:
         with enforce_constraints(transaction.atomic(router.db_for_write(cls))):
             obj, created = cls.objects.select_for_update().get_or_create(
-                keyname=key, defaults=dict(version=1, key=key)
+                keyname=key, defaults=dict(version=1)
             )
             if created:
                 return obj.version
 
             obj.version += 1
-            updated = ["version"]
-            # Dual write to old column to maintain consistency during deploy
-            if obj.key is None or obj.key == "":
-                obj.key = key
-                updated.append("key")
-
-            obj.save(update_fields=updated)
+            obj.save(update_fields=["version"])
             return obj.version
 
     @classmethod
     def get_versions(cls, keys: list[str]) -> list[int]:
         return list(cls.objects.filter(keyname__in=keys).values_list("version", flat=True))
+
+    @classmethod
+    def get_version_map(cls, keys: list[str]) -> Mapping[str, int]:
+        return {
+            row[0]: row[1]
+            for row in cls.objects.filter(keyname__in=keys).values_list("keyname", "version")
+        }
 
 
 @cell_silo_model

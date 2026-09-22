@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -318,6 +318,9 @@ describe('ResponseGroup', () => {
     );
 
     expect(queryReasoningBox(container)).toBeInTheDocument();
+    // Title only. The panel is the bordered card, so opening it around nothing draws an
+    // empty box under "Thinking..." for as long as the agent takes to report anything.
+    expect(within(reasoningBox(container)).queryByRole('group')).not.toBeInTheDocument();
   });
 
   it('gates thinking prose on the showThinking toggle but keeps tool calls', async () => {
