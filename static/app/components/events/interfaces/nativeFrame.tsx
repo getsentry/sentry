@@ -538,7 +538,7 @@ function RowHeader({
       align="center"
       alignContent="center"
       columns={{
-        zero: 'auto minmax(0, 1fr) 56px 24px',
+        zero: 'auto minmax(0, 1fr) max-content 24px',
         xl: 'auto 150px 120px minmax(0, 1fr) auto auto 24px',
         '2xl': 'auto 150px 120px minmax(120px, 4fr) repeat(3, auto) 24px',
       }}
