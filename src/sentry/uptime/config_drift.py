@@ -20,6 +20,8 @@ SWEEP_RUN_INTERVAL = 3600
 SUBSCRIPTION_ID_PREFIX_BUCKETS = 256
 # Bounds the IN list when a partition holds many configs.
 IN_CHUNK_SIZE = 1000
+# Refreshed by every run of a pass; if it lapses, the pass restarts from the first missing id.
+REPAIR_CURSOR_TTL = 3600
 
 
 @dataclass(frozen=True)
@@ -142,6 +144,10 @@ def find_missing_configs_for_store(store: ConfigStore) -> DriftResult:
 def get_sentinel_key(key_prefix: str, partition: int) -> str:
     # Redis hash tag: lands in the config key's slot, so a node that loses it loses this too.
     return f"{{{get_config_key(key_prefix, partition)}}}:sentinel"
+
+
+def get_repair_cursor_key(key_prefix: str) -> str:
+    return f"{key_prefix}uptime:configs:repair-cursor"
 
 
 def find_missing_sentinels(store: ConfigStore) -> list[int]:

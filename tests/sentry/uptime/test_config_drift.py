@@ -436,21 +436,23 @@ class CheckConfigSentinelsTest(ConfigPusherTestMixin):
 
     @override_options({"uptime.config-drift.sentinel-repair-disabled": False})
     @mock.patch.object(tasks, "CONFIG_REPAIR_MAX_TASKS", 1)
-    def test_sentinel_written_only_once_missing_fits_the_cap(self) -> None:
+    def test_unpublishable_configs_end_the_pass(self) -> None:
         lost, sentinel = self._seed_lost_on_b(count=2)
+        first, second = sorted(lost, key=lambda subscription: subscription.subscription_id or "")
         cluster = redis.redis_clusters.get_binary("default")
 
-        # Two missing against a cap of one: not everything was handed off, so no sentinel.
+        # The republishes never land, so both stay missing on every run.
         with mock.patch.object(update_remote_uptime_subscription, "delay") as delay:
             repair_config_store(cluster="default", key_prefix="b")
-
-        assert delay.call_count == 1
-        assert not cluster.exists(sentinel)
-
-        # One missing fits the cap: the sentinel returns while that one is still in flight.
-        _publish(lost[0], ["b1"])
-        with mock.patch.object(update_remote_uptime_subscription, "delay") as delay:
+            assert not cluster.exists(sentinel)
             repair_config_store(cluster="default", key_prefix="b")
 
-        delay.assert_called_once_with(uptime_subscription_id=lost[1].id, region_slugs=["b1"])
+        assert delay.call_args_list == [
+            mock.call(uptime_subscription_id=first.id, region_slugs=["b1"]),
+            mock.call(uptime_subscription_id=second.id, region_slugs=["b1"]),
+        ]
         assert cluster.exists(sentinel)
+
+        with mock.patch.object(repair_config_store, "delay") as repair:
+            check_config_sentinels()
+        assert not repair.called

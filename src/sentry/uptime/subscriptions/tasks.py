@@ -15,6 +15,7 @@ from sentry import audit_log, options
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import uptime_tasks
 from sentry.uptime.config_drift import (
+    REPAIR_CURSOR_TTL,
     SUBSCRIPTION_ID_PREFIX_BUCKETS,
     SWEEP_RUN_INTERVAL,
     ConfigStore,
@@ -23,6 +24,7 @@ from sentry.uptime.config_drift import (
     find_missing_sentinels,
     find_orphaned_configs,
     get_config_stores,
+    get_repair_cursor_key,
     sweep_slice,
     write_sentinels,
 )
@@ -33,7 +35,7 @@ from sentry.uptime.models import (
     UptimeSubscriptionRegion,
 )
 from sentry.uptime.types import CheckConfig
-from sentry.utils import metrics
+from sentry.utils import metrics, redis
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -416,22 +418,37 @@ def check_config_sentinels(**kwargs):
 )
 def repair_config_store(cluster: str, key_prefix: str, **kwargs):
     """
-    Whole-store comparison after a sentinel went missing, then repair.
+    One step of a pass over the store's missing configs after a sentinel went missing.
     """
     store = _find_store(cluster, key_prefix)
     if store is None:
         return
 
+    client = redis.redis_clusters.get(store.cluster)
+    cursor_key = get_repair_cursor_key(store.key_prefix)
+    cursor = client.get(cursor_key) or ""
     result = find_missing_configs_for_store(store)
-    missing = len(result.drifted_ids)
+    # Each missing id is queued once per pass, so ids that can't be published neither hold
+    # the sentinels back nor crowd out the ids after them.
+    pending = sorted(i for i in result.drifted_ids if i > cursor)
+    batch = pending[:CONFIG_REPAIR_MAX_TASKS]
     logger.info(
         "uptime.config_drift.store_repair",
-        extra={"cluster": store.cluster, "checked": result.checked, "missing": missing},
+        extra={
+            "cluster": store.cluster,
+            "checked": result.checked,
+            "missing": len(result.drifted_ids),
+            "pending": len(pending),
+        },
     )
-    if missing:
-        repair_missing_configs(store, result.drifted_ids, limit=CONFIG_REPAIR_MAX_TASKS)
-    if missing <= CONFIG_REPAIR_MAX_TASKS:
+    if batch:
+        repair_missing_configs(store, batch, limit=CONFIG_REPAIR_MAX_TASKS)
+    if len(pending) <= CONFIG_REPAIR_MAX_TASKS:
+        # Cleared first, so a failed sentinel write restarts the pass rather than skipping ids.
+        client.delete(cursor_key)
         write_sentinels(store)
+    else:
+        client.set(cursor_key, batch[-1], ex=REPAIR_CURSOR_TTL)
 
 
 def repair_missing_configs(
