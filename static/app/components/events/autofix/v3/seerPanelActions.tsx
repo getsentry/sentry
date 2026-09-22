@@ -15,9 +15,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface SeerPanelActionsProps {
   autofixState?: ExplorerAutofixState | null;
-  enableBashTools?: boolean;
+  enableBashMode?: boolean;
   onCopyMarkdown?: () => void;
-  onEnableBashToolsChange?: (enabled: boolean) => void;
+  onEnableBashModeChange?: (enabled: boolean) => void;
   onOpenSeerAgent?: () => void;
   onReset?: () => void;
 }
@@ -28,9 +28,9 @@ export interface SeerPanelActionsProps {
  */
 export function SeerPanelActions({
   autofixState,
-  enableBashTools,
+  enableBashMode,
   onCopyMarkdown,
-  onEnableBashToolsChange,
+  onEnableBashModeChange,
   onOpenSeerAgent,
   onReset,
 }: SeerPanelActionsProps) {
@@ -59,13 +59,13 @@ export function SeerPanelActions({
         aria-label={t('Copy analysis as Markdown')}
         variant="transparent"
       />
-      {isSentryEmployee && onEnableBashToolsChange && (
+      {isSentryEmployee && onEnableBashModeChange && (
         <Tooltip title={t('Force bash mode on for the autofix analysis')} skipWrapper>
           <Flex align="center" gap="xs">
             <Text size="xs">{t('Bash')}</Text>
             <Switch
-              checked={enableBashTools ?? false}
-              onChange={() => onEnableBashToolsChange(!enableBashTools)}
+              checked={enableBashMode ?? false}
+              onChange={() => onEnableBashModeChange(!enableBashMode)}
               aria-label={t('Enable bash tools')}
             />
           </Flex>
