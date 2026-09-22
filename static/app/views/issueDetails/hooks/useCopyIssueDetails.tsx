@@ -1,7 +1,10 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
+import {MarkedLexer} from '@sentry/scraps/markdown';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   type ExplorerAutofixState,
@@ -12,6 +15,12 @@ import {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {
+  resolveSlowDBQueryEvidence,
+  slowDBQueryEvidenceOptions,
+  usesSlowDBQuerySpanData,
+} from 'sentry/components/events/interfaces/performance/slowDBQueryEvidence';
+import type {SlowDBQuerySpan} from 'sentry/components/events/interfaces/performance/slowDBQuerySpan';
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
@@ -38,7 +47,7 @@ function getActiveThreadId() {
   return _activeThreadId;
 }
 
-export function useActiveThreadId() {
+function useActiveThreadId() {
   return useSyncExternalStore(callback => {
     _listeners.add(callback);
     return () => _listeners.delete(callback);
@@ -253,6 +262,46 @@ function formatEventToMarkdown(event: Event, activeThreadId: number | undefined)
   return markdownText;
 }
 
+/** Replace only the server's evidence section, retaining all other source text. */
+function replaceSpanEvidenceMarkdown(markdown: string, evidence: string): string {
+  // The lexer normalizes line endings. Keep offsets into the original document
+  // so its formatting and line endings survive outside the replaced section.
+  const crlfOffsets = Array.from(
+    markdown.matchAll(/\r\n/g),
+    (match, index) => match.index - index
+  );
+  const originalOffset = (index: number) =>
+    index + crlfOffsets.filter(offset => offset < index).length;
+  const normalized = markdown.replace(/\r\n?/g, '\n');
+  let offset = 0;
+  let start: number | undefined;
+
+  for (const token of MarkedLexer.lex(normalized)) {
+    // Reference definitions can be omitted by the lexer. Locate each token in
+    // the original source rather than reconstructing the document from tokens.
+    const tokenStart = normalized.indexOf(token.raw, offset);
+    offset = tokenStart + token.raw.length;
+    if (token.type !== 'heading' || token.depth > 2) {
+      continue;
+    }
+    if (start !== undefined) {
+      return (
+        markdown.slice(0, originalOffset(start)) +
+        evidence.trim() +
+        '\n\n' +
+        markdown.slice(originalOffset(tokenStart))
+      );
+    }
+    if (token.depth === 2 && token.text === 'Span Evidence') {
+      start = tokenStart;
+    }
+  }
+
+  return start === undefined
+    ? `${markdown}\n\n${evidence.trim()}`
+    : markdown.slice(0, originalOffset(start)) + evidence.trim();
+}
+
 interface IssueAndEventToMarkdownOptions {
   group: Group;
   organization: Organization;
@@ -260,6 +309,7 @@ interface IssueAndEventToMarkdownOptions {
   autofixData?: ExplorerAutofixState | null;
   autofixFormatted?: string | null;
   event?: Event | null;
+  slowDBQuerySpan?: SlowDBQuerySpan | null;
 }
 
 export const issueAndEventToMarkdown = ({
@@ -268,6 +318,7 @@ export const issueAndEventToMarkdown = ({
   autofixData,
   activeThreadId,
   autofixFormatted,
+  slowDBQuerySpan,
 }: IssueAndEventToMarkdownOptions): string => {
   const formatted = event?.formatted?.content;
   if (formatted) {
@@ -277,7 +328,11 @@ export const issueAndEventToMarkdown = ({
     }
     // no date here: the server-rendered body already opens with a `Date` field in UTC, and a
     // second one formatted in the viewer's timezone would just disagree with it
-    llmMarkdown += `\n${formatted}`;
+    const evidence =
+      event && slowDBQuerySpan !== undefined
+        ? formatSpanEvidenceToMarkdown(event, group, slowDBQuerySpan)
+        : '';
+    llmMarkdown += `\n${evidence ? replaceSpanEvidenceMarkdown(formatted, evidence) : formatted}`;
     if (autofixFormatted) {
       llmMarkdown += `\n\n${autofixFormatted}`;
     }
@@ -346,22 +401,32 @@ export const issueAndEventToMarkdown = ({
   }
 
   if (event) {
-    markdownText += formatSpanEvidenceToMarkdown(event, group);
+    markdownText += formatSpanEvidenceToMarkdown(event, group, slowDBQuerySpan);
     markdownText += formatEventToMarkdown(event, activeThreadId);
   }
 
   return markdownText;
 };
 
-export const useCopyIssueDetails = (group: Group, event?: Event) => {
+export const useIssueDetailsMarkdown = (group: Group, event?: Event) => {
   const organization = useOrganization();
 
   const {runState: autofixData, autofixFormatted} = useExplorerAutofix(group, {
     enabled: false,
   });
   const activeThreadId = useActiveThreadId();
+  const options = slowDBQueryEvidenceOptions({
+    organization,
+    event,
+    projectSlug: group.project.slug,
+  });
+  const spanQuery = useQuery(options);
+  const isPending = options.enabled && spanQuery.isPending;
 
   const text = useMemo(() => {
+    if (isPending) {
+      return '';
+    }
     return issueAndEventToMarkdown({
       group,
       event,
@@ -369,21 +434,44 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
       activeThreadId,
       organization,
       autofixFormatted,
+      slowDBQuerySpan: usesSlowDBQuerySpanData(organization, event)
+        ? resolveSlowDBQueryEvidence(event, spanQuery.data)
+        : undefined,
     });
-  }, [group, event, autofixData, activeThreadId, organization, autofixFormatted]);
+  }, [
+    group,
+    event,
+    autofixData,
+    activeThreadId,
+    organization,
+    autofixFormatted,
+    spanQuery.data,
+    isPending,
+  ]);
+
+  return {text, isPending, hasAutofix: Boolean(autofixData)};
+};
+
+export const useCopyIssueDetails = (group: Group, event?: Event) => {
+  const organization = useOrganization();
+  const {text, isPending, hasAutofix} = useIssueDetailsMarkdown(group, event);
 
   const {copy} = useCopyToClipboard();
 
   const handleCopyIssueDetailsAsMarkdown = useCallback(() => {
+    if (isPending) {
+      toast.message(t('Span evidence is loading. Try copying again in a moment.'));
+      return;
+    }
     copy(text, {successMessage: t('Copied issue to clipboard as Markdown')}).then(() => {
       trackAnalytics('issue_details.copy_issue_details_as_markdown', {
         organization,
         groupId: group.id,
         eventId: event?.id,
-        hasAutofix: Boolean(autofixData),
+        hasAutofix,
       });
     });
-  }, [copy, text, organization, group.id, event?.id, autofixData]);
+  }, [copy, text, organization, group.id, event?.id, hasAutofix, isPending]);
 
   useHotkeys([
     {

@@ -1,4 +1,4 @@
-import {EventFixture} from 'sentry-fixture/event';
+import {EventFixture, TransactionEventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
@@ -129,6 +129,122 @@ describe('useCopyIssueDetails', () => {
       } finally {
         ConfigStore.set('user', UserFixture());
       }
+    });
+
+    describe('resolved slow-query evidence in server Markdown', () => {
+      const slowQueryGroup = GroupFixture({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_SLOW_DB_QUERY,
+      });
+      const span = {
+        description: 'SELECT id FROM books',
+        durationMs: 250,
+        codeFilepath: '/app/books.py',
+        codeLineNumber: 42,
+      };
+
+      function copyServerMarkdown(content: string, evidence = span) {
+        return issueAndEventToMarkdown({
+          group: slowQueryGroup,
+          organization,
+          event: TransactionEventFixture({
+            startTimestamp: 0,
+            endTimestamp: 1,
+            formatted: {format: 'markdown', content},
+          }),
+          slowDBQuerySpan: evidence,
+          autofixFormatted: '## Root Cause\nServer-formatted analysis',
+        });
+      }
+
+      it.each(['\n', '\r\n'])(
+        'preserves other server sections and Autofix with %j line endings',
+        newline => {
+          const before = [
+            '## Title',
+            'Server title',
+            '**Date:** 2023-01-01 00:00:00 UTC',
+            '',
+            '## Request',
+            '````',
+            '## Span Evidence',
+            'This is request content, not an evidence section.',
+            '````',
+            '',
+            '[docs]: https://example.com',
+            '',
+            '[docs]: https://example.com',
+            '',
+            '',
+          ].join(newline);
+          const oldEvidence = [
+            '## Span Evidence',
+            '```sql',
+            'SELECT id FROM recorded_books',
+            '## This heading is inside the old SQL block',
+            '```',
+            '',
+            '',
+          ].join(newline);
+          const after = [
+            '## Tags',
+            '**environment:** test',
+            '',
+            '## Contexts',
+            'server-only context',
+          ].join(newline);
+          const result = copyServerMarkdown(before + oldEvidence + after);
+
+          expect(result).toContain(before);
+          expect(result).toMatch(/SELECT id\s+FROM books/);
+          expect(result).toContain('25% of txn');
+          expect(result).toContain('/app/books.py:42');
+          expect(result).not.toContain('recorded_books');
+          expect(result).not.toContain('This heading is inside the old SQL block');
+          expect(
+            result.endsWith(`${after}\n\n## Root Cause\nServer-formatted analysis`)
+          ).toBe(true);
+          expect(result.match(/\*\*Date:\*\*/g)).toHaveLength(1);
+        }
+      );
+
+      it('adds evidence when the server omitted that section', () => {
+        const content = '## Title\nServer title\n\n## Contexts\nserver-only context';
+        const result = copyServerMarkdown(content);
+
+        expect(result).toContain(content);
+        expect(result).toMatch(/SELECT id\s+FROM books/);
+        expect(result.match(/^## Span Evidence$/gm)).toHaveLength(1);
+        expect(result).toContain('## Root Cause\nServer-formatted analysis');
+      });
+
+      it('replaces an evidence section at the end of the document', () => {
+        const result = copyServerMarkdown(
+          '## Title\nServer title\n\n## Span Evidence\nSELECT id FROM recorded_books'
+        );
+
+        expect(result).toContain('## Title\nServer title');
+        expect(result).not.toContain('recorded_books');
+        expect(result).toMatch(/SELECT id\s+FROM books/);
+      });
+
+      it('replaces stale evidence with the unavailable state', () => {
+        const result = issueAndEventToMarkdown({
+          group: slowQueryGroup,
+          organization,
+          event: TransactionEventFixture({
+            formatted: {
+              format: 'markdown',
+              content: '## Span Evidence\nOld span\n\n## Tags\n**environment:** test',
+            },
+          }),
+          slowDBQuerySpan: null,
+        });
+
+        expect(result).toContain('Span evidence is unavailable.');
+        expect(result).not.toContain('Old span');
+        expect(result).toContain('## Tags\n**environment:** test');
+      });
     });
 
     it("renders the date in the user's timezone and clock preference", () => {
