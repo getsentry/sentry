@@ -21,7 +21,7 @@ describe('WidgetBuilderGroupBySelector', () => {
   it('renders', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
+        <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -36,7 +36,7 @@ describe('WidgetBuilderGroupBySelector', () => {
   it('renders the group by field and works for spans', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
+        <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -67,7 +67,7 @@ describe('WidgetBuilderGroupBySelector', () => {
   it('renders the group by field and works for logs', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
+        <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -107,7 +107,7 @@ describe('WidgetBuilderGroupBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
+        <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
       {
         organization: OrganizationFixture({features: ['ourlogs-enabled']}),
@@ -149,7 +149,7 @@ describe('WidgetBuilderGroupBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
+        <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
       {
         organization: OrganizationFixture({features: ['ourlogs-enabled']}),
@@ -179,7 +179,7 @@ describe('WidgetBuilderGroupBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
+        <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
       {
         initialRouterConfig: {
@@ -211,7 +211,7 @@ describe('WidgetBuilderGroupBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
+        <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
       {
         initialRouterConfig: {
@@ -242,7 +242,7 @@ describe('WidgetBuilderGroupBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
+        <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
       {
         initialRouterConfig: {
@@ -279,7 +279,7 @@ describe('WidgetBuilderGroupBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
+        <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
       {
         organization,

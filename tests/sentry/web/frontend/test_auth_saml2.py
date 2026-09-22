@@ -20,7 +20,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
-from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
@@ -136,11 +136,11 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert resp.status_code == 200
         assert resp.redirect_chain == [("/organizations/saml2-org/issues/", 302)]
 
+    @override_options({"auth.v2.enabled": True})
     def test_auth_sp_initiated_login_with_react_auth_skips_login_page(self) -> None:
         AuthIdentity.objects.create(
             user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
         )
-        self.client.cookies["sentry_react_auth"] = "1"
         self.client.post(self.login_path, {"init": True})
 
         response = self.accept_auth(follow=True)

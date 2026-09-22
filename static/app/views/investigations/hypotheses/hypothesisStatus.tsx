@@ -5,7 +5,6 @@ import {humanize} from 'sentry/utils/string/humanize';
 import type {
   InvestigationHypothesis,
   InvestigationHypothesisStatus,
-  InvestigationOrchestrationWorkStatus,
   InvestigationVerificationStep,
 } from 'sentry/views/investigations/types';
 
@@ -102,45 +101,6 @@ export function getHypothesisCardBorder(
     return 'accent';
   }
   return status === 'pending' || status === 'investigating' ? 'solid' : 'dashed';
-}
-
-/** The heading above the steps, which depends on whether any have run yet. */
-export function getEvidenceSectionLabel(steps: InvestigationVerificationStep[]): string {
-  return steps.some(hasRun) ? t('Evidence checked') : t('Evidence to check');
-}
-
-/**
- * What a verification step says about itself while it has no result yet. A step
- * only carries a `result` once it has finished, so everything short of that
- * needs a stand-in line rather than an empty row.
- */
-export function getVerificationStepStatusLabel(
-  status: InvestigationOrchestrationWorkStatus
-): string {
-  switch (status) {
-    // Queued and running read the same from outside: the answer is not here
-    // yet. Only the states that need someone to act get their own line.
-    case 'not_started':
-    case 'queued':
-    case 'running':
-      return t('Awaiting evidence');
-    case 'blocked':
-      return t('Blocked on an earlier step.');
-    case 'reauth_required':
-      return t('Waiting on reauthentication.');
-    case 'stalled':
-      return t('Stalled.');
-    case 'cancelled':
-      return t('Cancelled before it finished.');
-    case 'failed':
-      return t('This check failed.');
-    case 'completed':
-      // A completed step with no result is a gap in the projection, not a state
-      // worth naming in the UI.
-      return t('No result was recorded.');
-    default:
-      return humanize(status);
-  }
 }
 
 type HypothesisStatusProps = {
