@@ -16,8 +16,8 @@ import {isCollapsedNode} from 'sentry/views/performance/newTraceDetails/traceGua
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getTraceTargetFromEvent} from 'sentry/views/performance/newTraceDetails/traceTarget';
 import type {TraceWaterfallSource} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
-import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
 
 import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 

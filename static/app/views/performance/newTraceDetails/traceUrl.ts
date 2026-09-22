@@ -11,7 +11,6 @@ import {
   TRACE_SOURCE_TO_NON_INSIGHT_ROUTES,
   TraceViewSources,
 } from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
@@ -86,14 +85,7 @@ export function getTraceDetailsUrl({
     delete queryParams.pinnedAttribute;
   }
 
-  if (shouldForceRouteToOldView(organization, timestamp)) {
-    return {
-      pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
-      query: queryParams,
-    };
-  }
-
-  queryParams.node = getNodePath(spanId);
+  queryParams.node = spanId ? [`span-${spanId}`] : [];
 
   return {
     pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
@@ -106,29 +98,4 @@ export function getTraceDetailsUrl({
       tab,
     },
   };
-}
-
-function getNodePath(spanId: string | undefined): TraceTree.NodePath[] {
-  return spanId ? [`span-${spanId}`] : [];
-}
-
-/**
- * Single tenant, on-premise etc. users may not have span extraction enabled.
- *
- * This code can be removed at the time we're sure all STs have rolled out span extraction.
- */
-function shouldForceRouteToOldView(
-  organization: Organization,
-  timestamp: string | number | undefined
-) {
-  const usableTimestamp = getTimeStampFromTableDateField(timestamp);
-  if (!usableTimestamp) {
-    // Timestamps must always be provided for the new view, if it doesn't exist, fall back to the old view.
-    return true;
-  }
-
-  return (
-    organization.extraOptions?.traces.checkSpanExtractionDate &&
-    organization.extraOptions?.traces.spansExtractionDate > usableTimestamp
-  );
 }

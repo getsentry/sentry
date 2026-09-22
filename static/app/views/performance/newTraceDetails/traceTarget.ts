@@ -12,7 +12,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {getTraceDetailsUrl} from 'sentry/views/performance/newTraceDetails/traceUrl';
 
 function isTransaction(event: Event): event is EventTransaction {
   return event.type === 'transaction';

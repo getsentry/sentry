@@ -52,7 +52,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ModuleName, type SpanProperty} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {getTraceDetailsUrl} from 'sentry/views/performance/newTraceDetails/traceUrl';
 import {generateProfileLink} from 'sentry/views/performance/transactionSummary/utils';
 import {
   platformToPerformanceType,

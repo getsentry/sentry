@@ -45,7 +45,7 @@ import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceMo
 import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
 import {usePinnedAttribute} from 'sentry/views/performance/newTraceDetails/tracePinnedAttribute';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {getTraceDetailsUrl} from 'sentry/views/performance/newTraceDetails/traceUrl';
 
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
 
