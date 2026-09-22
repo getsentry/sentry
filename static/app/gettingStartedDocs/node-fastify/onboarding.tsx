@@ -7,29 +7,23 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getImportInstrumentSnippet,
+  getImport,
   getInstallCodeBlock,
   getSdkInitSnippet,
-  getSentryImportSnippet,
 } from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 
 const getSdkSetupSnippet = () => `
-${getImportInstrumentSnippet()}
+${getImport('@sentry/node', 'esm-only').join('\n')}
+import Fastify from "fastify";
 
-// All other imports below
-${getSentryImportSnippet('@sentry/node')}
-const Fastify = require('fastify')
+const fastify = Fastify();
 
-const app = Fastify();
-
-Sentry.setupFastifyErrorHandler(app);
-
-app.get("/", function rootHandler(req, res) {
+fastify.get("/", function rootHandler(req, res) {
   res.send("Hello world!");
 });
 
-app.listen(3000);
+fastify.listen({ port: 3000 });
 `;
 
 export const onboarding: OnboardingConfig = {
@@ -62,7 +56,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs].',
+            'To initialize the SDK before everything else, create an external file called [code:instrument.js]. These snippets use ESM syntax, so your [code:package.json] needs [code:"type": "module"].',
             {code: <code />}
           ),
         },
@@ -72,15 +66,15 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'JavaScript',
               language: 'javascript',
-              filename: 'instrument.(js|mjs)',
-              code: getSdkInitSnippet(params, 'node'),
+              filename: 'instrument.js',
+              code: getSdkInitSnippet(params, 'node', 'esm-only'),
             },
           ],
         },
         {
           type: 'text',
           text: tct(
-            "Make sure to import [code:instrument.js/mjs] at the top of your file. Set up the error handler. This setup is typically done in your application's entry point file, which is usually [code:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
+            'Start your application with the [code:--import] flag, so that [code:instrument.js] loads before any other module. For alternative ways to set up Sentry, read about [docs:installation methods in our docs].',
             {
               code: <code />,
               docs: (
@@ -91,14 +85,33 @@ export const onboarding: OnboardingConfig = {
         },
         {
           type: 'code',
+          language: 'bash',
+          code: 'node --import ./instrument.js index.js',
+        },
+        {
+          type: 'text',
+          text: tct(
+            'This is what your application entry point, usually [code:index.js], looks like:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           tabs: [
             {
               label: 'JavaScript',
               language: 'javascript',
-              filename: 'index.(js|mjs)',
+              filename: 'index.js',
               code: getSdkSetupSnippet(),
             },
           ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'The default [code:fastifyIntegration] captures errors from your route handlers automatically. You do not have to add an error handler.',
+            {code: <code />}
+          ),
         },
       ],
     },
@@ -121,7 +134,7 @@ export const onboarding: OnboardingConfig = {
           type: 'code',
           language: 'javascript',
           code: `
-app.get("/debug-sentry", function mainHandler(req, res) {${
+fastify.get("/debug-sentry", function mainHandler(req, res) {${
             params.isLogsSelected
               ? `
   // Send a log before throwing the error
