@@ -3793,15 +3793,29 @@ class PostProcessGroupFeedbackTest(
     SnoozeTestMixin,
     UpdateExistingAttachmentsTestMixin,
 ):
-    @pytest.mark.parametrize("is_spam", [False, True])
-    @pytest.mark.parametrize(
-        "feedback_type",
-        [
-            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-            FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
-        ],
-    )
-    def test_promotes_pending_attachments(self, is_spam, feedback_type) -> None:
+    def test_promotes_pending_attachments(self) -> None:
+        self.assert_promotes_pending_attachments(
+            is_spam=False, feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+    def test_promotes_pending_attachments_for_spam(self) -> None:
+        self.assert_promotes_pending_attachments(
+            is_spam=True, feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+    def test_promotes_pending_attachments_for_legacy_feedback(self) -> None:
+        self.assert_promotes_pending_attachments(
+            is_spam=False, feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+        )
+
+    def test_promotes_pending_attachments_for_legacy_spam(self) -> None:
+        self.assert_promotes_pending_attachments(
+            is_spam=True, feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+        )
+
+    def assert_promotes_pending_attachments(
+        self, *, is_spam: bool, feedback_type: FeedbackCreationSource
+    ) -> None:
         self.project.update_option("sentry:feedback_user_report_notifications", False)
         event = self.create_event(
             data={"message": "testing"},
