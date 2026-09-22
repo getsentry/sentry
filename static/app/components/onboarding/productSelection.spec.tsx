@@ -7,7 +7,14 @@ import {
   platformProductAvailability,
   ProductSelection,
 } from 'sentry/components/onboarding/productSelection';
+import {
+  profiling,
+  withLoggingOnboarding,
+  withMetricsOnboarding,
+  withPerformanceOnboarding,
+} from 'sentry/data/platformCategories';
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {PlatformKey} from 'sentry/types/platform';
 
 describe('Onboarding Product Selection', () => {
   const organization = OrganizationFixture({
@@ -17,6 +24,19 @@ describe('Onboarding Product Selection', () => {
   beforeEach(() => {
     ConfigStore.init();
   });
+
+  it.each(['node-eve', 'node-flue', 'node-mastra'] satisfies PlatformKey[])(
+    'gives %s the same product onboarding as Node',
+    platform => {
+      expect(platformProductAvailability[platform]).toEqual(
+        platformProductAvailability.node
+      );
+      expect(withPerformanceOnboarding).toContain(platform);
+      expect(withLoggingOnboarding).toContain(platform);
+      expect(withMetricsOnboarding).toContain(platform);
+      expect(profiling).toContain(platform);
+    }
+  );
 
   it('renders default state', async () => {
     const initialQuery = {

@@ -156,6 +156,29 @@ describe('Onboarding deployment target', () => {
     ).toBeInTheDocument();
   });
 
+  it.each([
+    ['node-mastra', 'Mastra'],
+    ['node-flue', 'Flue'],
+    ['node-eve', 'Eve'],
+  ] as const)(
+    'defaults a %s project to the %s integration',
+    async (platform, integration) => {
+      const {organization} = setupProject(platform);
+
+      render(<Onboarding />, {organization});
+
+      expect(await screen.findByRole('button', {name: integration})).toBeInTheDocument();
+    }
+  );
+
+  it('shows Conversations guidance for Eve projects', async () => {
+    const {organization} = setupProject('node-eve');
+
+    render(<Onboarding />, {organization});
+
+    expect(await screen.findByRole('link', {name: 'Conversations'})).toBeInTheDocument();
+  });
+
   it('pins Cloudflare Workers projects to the Cloudflare runtime with no Node toggle', async () => {
     const {organization} = setupProject('node-cloudflare-workers');
 

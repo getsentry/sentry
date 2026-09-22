@@ -298,16 +298,17 @@ function getCloudflareWrapBlocks(integration: AgentIntegration): ContentBlock[] 
 }
 
 export const mastraOnboarding: OnboardingConfig = {
-  install: () => [
+  install: params => [
     {
       type: StepType.INSTALL,
       content: [
         {
           type: 'text',
           text: tct(
-            'Install the [code:@mastra/sentry] package to enable Sentry integration with Mastra.',
+            'Install the Sentry Node SDK and [code:@mastra/observability]. If you previously used [legacy:@mastra/sentry], remove that exporter because it initializes Sentry itself and conflicts with the built-in integration.',
             {
               code: <code />,
+              legacy: <code />,
             }
           ),
         },
@@ -317,17 +318,17 @@ export const mastraOnboarding: OnboardingConfig = {
             {
               label: 'npm',
               language: 'bash',
-              code: 'npm install @mastra/sentry',
+              code: `npm install @sentry/node${params.isProfilingSelected ? ' @sentry/profiling-node' : ''} @mastra/observability`,
             },
             {
               label: 'yarn',
               language: 'bash',
-              code: 'yarn add @mastra/sentry',
+              code: `yarn add @sentry/node${params.isProfilingSelected ? ' @sentry/profiling-node' : ''} @mastra/observability`,
             },
             {
               label: 'pnpm',
               language: 'bash',
-              code: 'pnpm add @mastra/sentry',
+              code: `pnpm add @sentry/node${params.isProfilingSelected ? ' @sentry/profiling-node' : ''} @mastra/observability`,
             },
           ],
         },
@@ -341,10 +342,10 @@ export const mastraOnboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Configure Mastra to use Sentry by adding the [code:SentryExporter] to your Mastra observability config. For more details, see the [link:@mastra/sentry package].',
+            'Create [code:src/mastra/public/instrument.mjs]. Mastra copies files in [public:public/] next to the compiled server, allowing the Sentry SDK to load before Mastra and the AI SDK.',
             {
               code: <code />,
-              link: <ExternalLink href="https://www.npmjs.com/package/@mastra/sentry" />,
+              public: <code />,
             }
           ),
         },
@@ -354,26 +355,59 @@ export const mastraOnboarding: OnboardingConfig = {
             {
               label: 'JavaScript',
               language: 'javascript',
-              code: `import { Mastra } from '@mastra/core';
-import { SentryExporter } from '@mastra/sentry';
+              filename: 'src/mastra/public/instrument.mjs',
+              code: `import * as Sentry from "@sentry/node";${
+                params.isProfilingSelected
+                  ? '\nimport { nodeProfilingIntegration } from "@sentry/profiling-node";'
+                  : ''
+              }
 
-const mastra = new Mastra({
-  // ... your existing config
-  observability: {
-    configs: {
-      sentry: {
-        serviceName: 'my-service',
-        exporters: [
-          new SentryExporter({
-            dsn: '${params.dsn.public}',
-            // Tracing must be enabled for agent monitoring to work
-            tracesSampleRate: 1.0,
-          }),
-        ],
-      },
-    },
-  },
+Sentry.init({
+  dsn: "${params.dsn.public}",${
+    params.isProfilingSelected
+      ? `
+  integrations: [nodeProfilingIntegration()],`
+      : ''
+  }${
+    params.isPerformanceSelected
+      ? `
+  tracesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+  profileSessionSampleRate: 1.0,`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+  enableLogs: true,`
+      : ''
+  }
 });`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Preload the instrument file for both development and production with Mastra’s [code:--custom-args] option:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'package.json',
+              language: 'json',
+              filename: 'package.json',
+              code: `{
+  "scripts": {
+    "dev": "mastra dev --custom-args=\\"--import=./instrument.mjs\\"",
+    "start": "mastra start --custom-args=\\"--import=./instrument.mjs\\""
+  }
+}`,
             },
           ],
         },
@@ -386,27 +420,9 @@ const mastra = new Mastra({
       content: [
         {
           type: 'text',
-          text: t('Verify that your instrumentation works by simply calling your LLM.'),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: `import { Agent } from '@mastra/core/agent';
-
-// This agent needs to be registered in your Mastra config
-const agent = new Agent({
-  id: 'my-agent',
-  name: 'My Agent',
-  instructions: 'You are a helpful assistant',
-  model: 'openai/gpt-5.4',
-});
-
-const result = await agent.generate([{ role: "user", content: "Hello!" }]);`,
-            },
-          ],
+          text: t(
+            'Run one of your Mastra agents, then open Agent Tracing in Sentry to verify its model generations, tool calls, token usage, latency, and errors.'
+          ),
         },
       ],
     },
@@ -564,111 +580,106 @@ SENTRY_TRACES_SAMPLE_RATE=1`,
 
 /**
  * Eve is Vercel's filesystem-first framework for durable backend AI agents. It
- * doesn't use `Sentry.init` - its `eve add instrumentation/sentry` command
- * generates an `agent/instrumentation.ts` that wires `@vercel/otel` to Sentry's
- * OTLP traces endpoint, reading the endpoint and public key from the
- * environment. Eve runs on Node only.
+ * auto-discovers instrumentation providers under `agent/instrumentation/`.
+ * The Sentry provider initializes the Node SDK before Eve loads the agent and
+ * AI SDK. Eve runs on Node only.
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing/eve/
  */
 export const eveOnboarding: OnboardingConfig = {
-  install: () => [
+  install: params => [
     {
       type: StepType.INSTALL,
       content: [
         {
           type: 'text',
-          text: tct(
-            'Add the Sentry instrumentation to your Eve project. This generates [code:agent/instrumentation.ts] and installs the required OpenTelemetry packages.',
-            {
-              code: <code />,
-            }
-          ),
+          text: t('Install the Sentry Node SDK in your Eve project:'),
         },
         {
           type: 'code',
           tabs: [
             {
-              label: 'bash',
+              label: 'npm',
               language: 'bash',
-              code: 'eve add instrumentation/sentry',
+              code: `npm install @sentry/node${params.isProfilingSelected ? ' @sentry/profiling-node' : ''}`,
+            },
+            {
+              label: 'yarn',
+              language: 'bash',
+              code: `yarn add @sentry/node${params.isProfilingSelected ? ' @sentry/profiling-node' : ''}`,
+            },
+            {
+              label: 'pnpm',
+              language: 'bash',
+              code: `pnpm add @sentry/node${params.isProfilingSelected ? ' @sentry/profiling-node' : ''}`,
             },
           ],
         },
       ],
     },
   ],
-  configure: params => {
-    // `dsn.public` is the full DSN; Eve's `x-sentry-auth` header only needs the
-    // public key portion (the DSN's userinfo).
-    const publicKey = new URL(params.dsn.public).username;
-
-    return [
-      {
-        title: t('Configure'),
-        content: [
-          {
-            type: 'text',
-            text: tct(
-              'The generated [code:agent/instrumentation.ts] reads your Sentry OTLP endpoint and public key from the environment. Set these variables so Eve exports traces to Sentry:',
-              {
-                code: <code />,
+  configure: params => [
+    {
+      title: t('Configure'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Create [code:agent/instrumentation/sentry.ts]. Eve auto-discovers this provider and runs it before loading your agent and the AI SDK.',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'TypeScript',
+              language: 'typescript',
+              filename: 'agent/instrumentation/sentry.ts',
+              code: `import * as Sentry from "@sentry/node";${
+                params.isProfilingSelected
+                  ? '\nimport { nodeProfilingIntegration } from "@sentry/profiling-node";'
+                  : ''
               }
-            ),
-          },
-          {
-            type: 'code',
-            tabs: [
-              {
-                label: 'bash',
-                language: 'bash',
-                code: [
-                  `SENTRY_OTLP_TRACES_ENDPOINT="${params.dsn.otlp_traces}"`,
-                  `SENTRY_PUBLIC_KEY="${publicKey}"`,
-                ].join('\n'),
-              },
-            ],
-          },
-          {
-            type: 'text',
-            text: tct(
-              'For reference, the generated instrumentation looks like this. See the [link:Eve docs] for details.',
-              {
-                link: <ExternalLink href={EVE_AGENT_TRACING_DOCS} />,
-              }
-            ),
-          },
-          {
-            type: 'code',
-            tabs: [
-              {
-                label: 'agent/instrumentation.ts',
-                language: 'typescript',
-                code: `import { OTLPHttpProtoTraceExporter, registerOTel } from "@vercel/otel";
 import { defineInstrumentation } from "eve/instrumentation";
 
-export default defineInstrumentation({
-  // Capture prompts and responses; set either to false to omit them.
-  recordInputs: true,
-  recordOutputs: true,
-  setup: ({ agentName }) =>
-    registerOTel({
-      serviceName: agentName,
-      traceExporter: new OTLPHttpProtoTraceExporter({
-        url: process.env.SENTRY_OTLP_TRACES_ENDPOINT!,
-        headers: {
-          "x-sentry-auth": \`sentry sentry_key=\${process.env.SENTRY_PUBLIC_KEY}\`,
+export default defineInstrumentation(
+  Sentry.eveInstrumentation({
+    dsn: "${params.dsn.public}",${
+      params.isProfilingSelected
+        ? `
+    integrations: [nodeProfilingIntegration()],`
+        : ''
+    }${
+      params.isPerformanceSelected
+        ? `
+    tracesSampleRate: 1.0,`
+        : ''
+    }${
+      params.isProfilingSelected
+        ? `
+    profileSessionSampleRate: 1.0,`
+        : ''
+    }${
+      params.isLogsSelected
+        ? `
+    enableLogs: true,`
+        : ''
+    }
+  }),
+);`,
+            },
+          ],
         },
-      }),
-    }),
-});`,
-              },
-            ],
-          },
-        ],
-      },
-    ];
-  },
+        {
+          type: 'text',
+          text: tct('See the [link:Eve guide] for privacy controls and details.', {
+            link: <ExternalLink href={EVE_AGENT_TRACING_DOCS} />,
+          }),
+        },
+      ],
+    },
+  ],
   verify: () => [
     {
       type: StepType.VERIFY,
