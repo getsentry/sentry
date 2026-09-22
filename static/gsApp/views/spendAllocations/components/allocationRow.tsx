@@ -10,7 +10,6 @@ import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import type {BigNumUnits} from 'getsentry/views/spendAllocations/utils';
 import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 
-import {ALLOCATION_COLUMNS} from './allocationColumns';
 import {Centered, Divider, HalvedWithDivider} from './styles';
 import type {SpendAllocation} from './types';
 
@@ -29,11 +28,9 @@ export function AllocationRow({
 }: AllocationRowProps) {
   return (
     <Table.Row>
-      <AllocationCell columnKey={ALLOCATION_COLUMNS.project.key}>
-        {allocation.targetSlug}
-      </AllocationCell>
-      <AllocationCell columnKey={ALLOCATION_COLUMNS.allocatedLabel.key} />
-      <AllocationCell columnKey={ALLOCATION_COLUMNS.allocatedValues.key}>
+      <AllocationCell>{allocation.targetSlug}</AllocationCell>
+      <AllocationCell />
+      <AllocationCell>
         <HalvedWithDivider>
           {allocation.costPerItem === 0 && (
             <Centered>
@@ -65,8 +62,8 @@ export function AllocationRow({
           </Centered>
         </HalvedWithDivider>
       </AllocationCell>
-      <AllocationCell columnKey={ALLOCATION_COLUMNS.consumedLabel.key} />
-      <AllocationCell columnKey={ALLOCATION_COLUMNS.consumedValues.key}>
+      <AllocationCell />
+      <AllocationCell>
         <HalvedWithDivider>
           {allocation.costPerItem === 0 && (
             <Centered>
@@ -107,7 +104,7 @@ export function AllocationRow({
           </Centered>
         </HalvedWithDivider>
       </AllocationCell>
-      <AllocationCell columnKey={ALLOCATION_COLUMNS.actions.key}>
+      <AllocationCell>
         <Flex justify="end" gap="md">
           {allocation.targetType !== 'Organization' && (
             <Button

@@ -53,10 +53,8 @@ export function ProjectAllocationsTable({
     >
       <Table.Head>
         <Table.Row>
-          <HeaderCell columnKey={ALLOCATION_COLUMNS.project.key}>
-            {t('Project')}
-          </HeaderCell>
-          <HeaderCell columnKey={ALLOCATION_COLUMNS.allocatedLabel.key} align="right">
+          <HeaderCell>{t('Project')}</HeaderCell>
+          <HeaderCell align="right">
             <InfoText
               variant="inherit"
               title={t(
@@ -66,7 +64,7 @@ export function ProjectAllocationsTable({
               {t('Allocated')}
             </InfoText>
           </HeaderCell>
-          <HeaderCell columnKey={ALLOCATION_COLUMNS.allocatedValues.key}>
+          <HeaderCell>
             <HalvedWithDivider margin="0">
               <Centered>{t('Spend')}</Centered>
               <Centered>
@@ -75,7 +73,7 @@ export function ProjectAllocationsTable({
               <Centered>{t('Events')}</Centered>
             </HalvedWithDivider>
           </HeaderCell>
-          <HeaderCell columnKey={ALLOCATION_COLUMNS.consumedLabel.key} align="right">
+          <HeaderCell align="right">
             <InfoText
               variant="inherit"
               title={t('Consumed events indicate your usage per allocation')}
@@ -83,7 +81,7 @@ export function ProjectAllocationsTable({
               {t('Consumed')}
             </InfoText>
           </HeaderCell>
-          <HeaderCell columnKey={ALLOCATION_COLUMNS.consumedValues.key}>
+          <HeaderCell>
             <HalvedWithDivider margin="0">
               <Centered>{t('Spend')}</Centered>
               <Centered>
@@ -92,7 +90,7 @@ export function ProjectAllocationsTable({
               <Centered>{t('Events')}</Centered>
             </HalvedWithDivider>
           </HeaderCell>
-          <HeaderCell columnKey={ALLOCATION_COLUMNS.actions.key} />
+          <HeaderCell />
         </Table.Row>
       </Table.Head>
       <Table.Body>
