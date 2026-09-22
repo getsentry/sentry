@@ -101,11 +101,9 @@ describe('SpansSearchBar', () => {
 
     render(
       <SpansSearchBar
-        {...{
-          widgetQuery: WidgetQueryFixture({conditions: 'span.op:function'}),
-          onSearch: jest.fn(),
-          onClose: jest.fn(),
-        }}
+        widgetQuery={WidgetQueryFixture({conditions: 'span.op:function'})}
+        onSearch={jest.fn()}
+        onClose={jest.fn()}
       />
     );
 
@@ -117,11 +115,9 @@ describe('SpansSearchBar', () => {
 
     render(
       <SpansSearchBar
-        {...{
-          widgetQuery: WidgetQueryFixture({conditions: ''}),
-          onSearch,
-          onClose: jest.fn(),
-        }}
+        widgetQuery={WidgetQueryFixture({conditions: ''})}
+        onSearch={onSearch}
+        onClose={jest.fn()}
       />
     );
 
@@ -146,11 +142,9 @@ describe('SpansSearchBar', () => {
 
     render(
       <SpansSearchBar
-        {...{
-          widgetQuery: WidgetQueryFixture({conditions: ''}),
-          onSearch: jest.fn(),
-          onClose,
-        }}
+        widgetQuery={WidgetQueryFixture({conditions: ''})}
+        onSearch={jest.fn()}
+        onClose={onClose}
       />
     );
 
