@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
@@ -14,11 +14,15 @@ import {
   investigationOrchestrationQueryOptions,
   useInvestigationOrchestrationCommandMutation,
 } from 'sentry/views/investigations/api';
-import {HypothesisList} from 'sentry/views/investigations/hypotheses/hypothesisList';
+import {
+  HypothesisList,
+  HypothesisListPlaceholder,
+} from 'sentry/views/investigations/hypotheses/hypothesisList';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {
   InvestigationHypothesis,
+  InvestigationOrchestrationPhase,
   InvestigationOrchestrationStatus,
 } from 'sentry/views/investigations/types';
 
@@ -39,6 +43,33 @@ const POLL_INTERVAL_MS = 2000;
  * asking instead of polling a stopped run forever.
  */
 const COMMAND_SETTLE_MS = 30_000;
+
+/**
+ * Phases a run passes through before it has written its first hypothesis.
+ *
+ * All of them are real work — reading the problem, scanning broadly, deciding
+ * what to test — and together they cover a good share of a run's opening
+ * stretch. An empty `hypotheses` in one of them means "not yet", so the panel
+ * holds the row's space. An empty one anywhere else means the run produced
+ * none, and drawing cards for that would promise something not coming.
+ */
+const PRE_HYPOTHESIS_PHASES = new Set<string>(['intake', 'broad_scan', 'planning']);
+
+/**
+ * Phases where whatever hypotheses the run has are the ones it will end with.
+ *
+ * Used to decide whether the panel is worth putting up before the first read
+ * lands: a run that is already writing its report is not about to produce
+ * cards, and a skeleton that appears and then collapses into a finished panel
+ * is the jump this is meant to remove, not a smaller version of it.
+ */
+const SETTLED_PHASES = new Set<string>([
+  'reporting',
+  'metadata',
+  'completed',
+  'failed',
+  'cancelled',
+]);
 
 /** Statuses the agent will never move out of on its own. */
 const TERMINAL_STATUSES = new Set<string>(['completed', 'failed', 'cancelled']);
@@ -83,6 +114,15 @@ type InvestigationHypothesesProps = {
    * orchestration endpoint 404s for those, and there is nothing to poll.
    */
   enabled?: boolean;
+  /**
+   * The run's phase from the investigation summary, when the caller has one.
+   *
+   * Only used for the first paint, before the projection arrives: it is what
+   * lets a finished run open straight into a collapsed panel instead of a
+   * skeleton that collapses a moment later. The projection supersedes it the
+   * instant it lands, so a caller without one can leave it out.
+   */
+  phase?: InvestigationOrchestrationPhase;
 };
 
 /**
@@ -102,6 +142,7 @@ type InvestigationHypothesesProps = {
 export function InvestigationHypotheses({
   enabled = true,
   investigationId,
+  phase: summaryPhase,
 }: InvestigationHypothesesProps) {
   const organization = useOrganization();
   // When the last accepted command was sent, or null if none has been. A
@@ -109,7 +150,7 @@ export function InvestigationHypotheses({
   // rewrite the projection behind it.
   const [commandSentAt, setCommandSentAt] = useState<number | null>(null);
 
-  const {data: projection} = useQuery({
+  const {data: projection, isPending} = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigationId),
     enabled,
     refetchInterval: query => {
@@ -129,9 +170,12 @@ export function InvestigationHypotheses({
     {onSuccess: () => setCommandSentAt(Date.now())}
   );
 
+  // The summary's phase stands in until the projection lands, so a run that is
+  // already done opens collapsed rather than expanding and then closing.
+  const phase = projection?.phase ?? summaryPhase;
   const verificationComplete =
     projection?.status === 'completed' ||
-    ['reporting', 'metadata', 'completed'].includes(projection?.phase ?? '');
+    ['reporting', 'metadata', 'completed'].includes(phase ?? '');
   const [panelState, setPanelState] = useState({
     verificationComplete,
     expanded: !verificationComplete,
@@ -144,8 +188,25 @@ export function InvestigationHypotheses({
   // The status block is the run talking, so it appears as soon as there is a
   // run — before the first hypothesis exists, which is exactly when a viewer
   // most needs to be told that something is happening.
+  //
+  // Until the first read lands there is nothing for it to say, so the panel
+  // goes up holding the row's space and nothing else: the area a run is about
+  // to fill is on the page from the first paint rather than appearing under the
+  // summary a second later. A disabled or 404ing run renders nothing at all —
+  // there is no run behind it to wait for.
   if (!projection) {
-    return null;
+    const worthHoldingSpaceFor = enabled && isPending && !SETTLED_PHASES.has(phase ?? '');
+
+    return worthHoldingSpaceFor ? (
+      <Stack gap="2xl">
+        <HypothesesPanel
+          expanded={panelState.expanded}
+          onExpandedChange={expanded => setPanelState({verificationComplete, expanded})}
+        >
+          <HypothesisListPlaceholder />
+        </HypothesesPanel>
+      </Stack>
+    ) : null;
   }
 
   const statusBlock = getSeerStatusBlock(projection);
@@ -216,26 +277,25 @@ export function InvestigationHypotheses({
     ];
   }
 
+  const hasHypotheses = projection.hypotheses.length > 0;
+  // The status block already says what Seer is doing, so the placeholders only
+  // have to hold the space the cards will take.
+  const awaitingFirstHypothesis =
+    !hasHypotheses && PRE_HYPOTHESIS_PHASES.has(projection.phase);
+
   return (
     <Stack gap="2xl">
       {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
-      {projection.hypotheses.length > 0 ? (
-        <Disclosure
+      {hasHypotheses || awaitingFirstHypothesis ? (
+        <HypothesesPanel
           expanded={panelState.expanded}
           onExpandedChange={expanded => setPanelState({verificationComplete, expanded})}
-          border="primary"
-          radius="xl"
-          background="secondary"
-          padding="lg"
-          gap={panelState.expanded ? 'xl' : undefined}
-          data-test-id="investigation-run-panel"
-        >
-          <HypothesesTitle>
-            <Stack gap="xs" minWidth={0}>
-              <Text variant="muted" bold>
-                {t('Hypotheses')}
-              </Text>
-              <Text variant="muted" density="comfortable" bold={false}>
+          // Before the first hypothesis there is nothing to count, and "0
+          // plausible causes" reads as a verdict rather than a wait. The status
+          // block above is already saying what Seer is doing.
+          meta={
+            hasHypotheses ? (
+              <Fragment>
                 {tn(
                   '%s plausible cause',
                   '%s plausible causes',
@@ -243,19 +303,67 @@ export function InvestigationHypotheses({
                 )}
                 {' • '}
                 {tn('%s check completed', '%s checks completed', completedChecks)}
-              </Text>
-            </Stack>
-          </HypothesesTitle>
-          <HypothesesContent>
+              </Fragment>
+            ) : null
+          }
+        >
+          {hasHypotheses ? (
             <HypothesisList
               hypotheses={projection.hypotheses}
               primaryHypothesisId={projection.report.primaryHypothesisId}
               getActions={getActions}
             />
-          </HypothesesContent>
-        </Disclosure>
+          ) : (
+            <HypothesisListPlaceholder />
+          )}
+        </HypothesesPanel>
       ) : null}
     </Stack>
+  );
+}
+
+/**
+ * The collapsible box the hypothesis row lives in.
+ *
+ * Shared by the row and its placeholder so the panel does not change size or
+ * shape when the first hypothesis lands — only what is inside it does.
+ */
+function HypothesesPanel({
+  children,
+  expanded,
+  meta,
+  onExpandedChange,
+}: {
+  children: React.ReactNode;
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
+  meta?: React.ReactNode;
+}) {
+  return (
+    <Disclosure
+      expanded={expanded}
+      onExpandedChange={onExpandedChange}
+      border="primary"
+      radius="xl"
+      background="secondary"
+      padding="lg"
+      gap={expanded ? 'xl' : undefined}
+      data-test-id="investigation-run-panel"
+    >
+      <HypothesesTitle>
+        <Stack gap="xs" minWidth={0}>
+          <Text variant="muted" bold>
+            {t('Hypotheses')}
+          </Text>
+          {meta ? (
+            <Text variant="muted" density="comfortable" bold={false}>
+              {meta}
+            </Text>
+          ) : null}
+        </Stack>
+      </HypothesesTitle>
+      <HypothesesContent>{children}</HypothesesContent>
+    </Disclosure>
   );
 }
 

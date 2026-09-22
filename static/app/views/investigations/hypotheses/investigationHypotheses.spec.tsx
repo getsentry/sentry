@@ -20,14 +20,19 @@ const orchestrationUrl =
   '/organizations/org-slug/investigations/investigation-1/orchestration/';
 const commandsUrl = `${orchestrationUrl}commands/`;
 
-function renderHypotheses() {
+function renderHypotheses(
+  props: Partial<React.ComponentProps<typeof InvestigationHypotheses>> = {}
+) {
   const queryClient = makeTestQueryClient();
-  const result = render(<InvestigationHypotheses investigationId="investigation-1" />, {
-    additionalWrapper: ({children}) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    ),
-    organization,
-  });
+  const result = render(
+    <InvestigationHypotheses investigationId="investigation-1" {...props} />,
+    {
+      additionalWrapper: ({children}) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      ),
+      organization,
+    }
+  );
   return {...result, queryClient};
 }
 
@@ -105,9 +110,11 @@ describe('InvestigationHypotheses', () => {
     MockApiClient.addMockResponse({url: orchestrationUrl, body: projection});
     const {queryClient} = renderHypotheses();
 
-    const toggle = await screen.findByRole('button', {name: /Hypotheses/});
+    expect(
+      await screen.findByText('2 plausible causes • 1 check completed')
+    ).toBeVisible();
+    const toggle = screen.getByRole('button', {name: /Hypotheses/});
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText('2 plausible causes • 1 check completed')).toBeVisible();
 
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
@@ -138,7 +145,8 @@ describe('InvestigationHypotheses', () => {
       body: InvestigationOrchestrationFixture({phase: 'investigating'}),
     });
     const {queryClient} = renderHypotheses();
-    const toggle = await screen.findByRole('button', {name: /Hypotheses/});
+    await screen.findAllByTestId('investigation-hypothesis');
+    const toggle = screen.getByRole('button', {name: /Hypotheses/});
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
     MockApiClient.addMockResponse({
@@ -166,9 +174,12 @@ describe('InvestigationHypotheses', () => {
         url: orchestrationUrl,
         body: InvestigationOrchestrationFixture({phase}),
       });
-      renderHypotheses();
+      // The detail view knows the phase from the investigation summary, and
+      // passing it is what keeps a finished run from opening on a skeleton.
+      renderHypotheses({phase});
+      await screen.findAllByTestId('investigation-hypothesis');
 
-      expect(await screen.findByRole('button', {name: /Hypotheses/})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: /Hypotheses/})).toHaveAttribute(
         'aria-expanded',
         'false'
       );
@@ -259,8 +270,9 @@ describe('InvestigationHypotheses', () => {
     });
 
     renderHypotheses();
+    await screen.findAllByTestId('investigation-hypothesis');
 
-    await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
+    await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
 
     await userEvent.click(
       await screen.findByRole('button', {
@@ -321,8 +333,9 @@ describe('InvestigationHypotheses', () => {
     });
 
     renderHypotheses();
+    await screen.findAllByTestId('investigation-hypothesis');
 
-    await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
+    await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
 
     await userEvent.click(
       await screen.findByRole('button', {
@@ -417,5 +430,64 @@ describe('InvestigationHypotheses', () => {
     // at all is the assertion: either one throws on a missing list.
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
     expect(screen.getAllByText('Formed')).toHaveLength(3);
+  });
+
+  it('holds the row open with placeholders until the first projection lands', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'investigating'}),
+    });
+
+    renderHypotheses();
+
+    // The panel is up before the first read resolves, so the area a run is
+    // about to fill is on the page from the first paint.
+    expect(
+      screen.getByTestId('investigation-hypotheses-placeholder')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /Hypotheses/})).toBeInTheDocument();
+
+    expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
+    expect(
+      screen.queryByTestId('investigation-hypotheses-placeholder')
+    ).not.toBeInTheDocument();
+  });
+
+  it.each(['intake', 'broad_scan', 'planning'] as const)(
+    'holds the row open while the run is still in %s',
+    async phase => {
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({phase, hypotheses: []}),
+      });
+
+      renderHypotheses({phase});
+
+      expect(
+        await screen.findByTestId('investigation-hypotheses-placeholder')
+      ).toBeInTheDocument();
+      // Nothing is known to count yet, and "0 plausible causes" would read as a
+      // verdict rather than a wait.
+      expect(screen.queryByText(/plausible cause/)).not.toBeInTheDocument();
+    }
+  );
+
+  it('draws no placeholder for a run that is already past its hypotheses', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', hypotheses: []}),
+    });
+
+    // A skeleton that appears and then collapses into a finished panel is the
+    // jump this is meant to remove, not a smaller version of it.
+    renderHypotheses({phase: 'completed'});
+
+    expect(
+      screen.queryByTestId('investigation-hypotheses-placeholder')
+    ).not.toBeInTheDocument();
+    expect(await screen.findByTestId('seer-status-block')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('investigation-hypotheses-placeholder')
+    ).not.toBeInTheDocument();
   });
 });
