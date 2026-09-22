@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django.db.models import (
     Case,
     DateTimeField,
@@ -46,6 +47,7 @@ from sentry.discover.models import (
     DatasetSourcesTypes,
     DiscoverSavedQuery,
     DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryStarred,
     DiscoverSavedQueryTypes,
 )
 from sentry.models.organization import Organization
@@ -269,6 +271,14 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
         model.set_projects(data["project_ids"])
+
+        try:
+            if "starred" in request.data and request.data["starred"]:
+                DiscoverSavedQueryStarred.objects.insert_starred_query(
+                    organization, request.user.id, model, starred=True
+                )
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
 
         return Response(
             serialize(model, serializer=DiscoverSavedQueryModelSerializer()), status=201
