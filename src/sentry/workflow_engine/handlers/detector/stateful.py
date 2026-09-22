@@ -10,6 +10,9 @@ from django.db.models import Q
 from django.utils import timezone
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
+from sentry import features
+from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -23,7 +26,7 @@ from sentry.workflow_engine.handlers.detector.base import (
     EventData,
     GroupedDetectorEvaluationResult,
 )
-from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
+from sentry.workflow_engine.models import DataPacket, DataSource, Detector, DetectorState
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
