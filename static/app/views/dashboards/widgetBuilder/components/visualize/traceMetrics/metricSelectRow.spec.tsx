@@ -4,6 +4,7 @@ import type {
   AggregationKeyWithAlias,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {decodeList} from 'sentry/utils/queryString';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
 import {
@@ -15,14 +16,6 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
-
-/**
- * A query param holding a single value comes back as a string rather than a
- * one-element array, so normalise before comparing to a serialized list.
- */
-function queryList(value: string | string[] | undefined | null) {
-  return value === undefined || value === null ? [] : [value].flat();
-}
 
 describe('MetricSelectRow', () => {
   beforeEach(() => {
@@ -184,18 +177,15 @@ describe('MetricSelectRow', () => {
   });
 
   it('preserves table grouping fields when updating an aggregate', async () => {
-    let fields: QueryFieldValue[] | undefined;
-
     function MetricSelectRows() {
       const {state} = useWidgetBuilderContext();
-      fields = state.fields;
 
       return state.fields?.map((field, index) => (
         <MetricSelectRow key={index} field={field} index={index} disabled={false} />
       ));
     }
 
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <MetricSelectRows />
       </WidgetBuilderProvider>,
@@ -223,7 +213,7 @@ describe('MetricSelectRow', () => {
     await userEvent.click(await screen.findByRole('option', {name: 'beta_metric'}));
 
     await waitFor(() => {
-      expect(serializeFields(fields ?? [])).toEqual([
+      expect(decodeList(router.location.query.field)).toEqual([
         'span.op',
         'span.description',
         'sum(value,beta_metric,counter,none)',
@@ -268,7 +258,7 @@ describe('MetricSelectRow', () => {
 
     // p50 is invalid for counter, so it should be replaced with sum
     await waitFor(() => {
-      expect(queryList(router.location.query.yAxis)).toEqual(
+      expect(decodeList(router.location.query.yAxis)).toEqual(
         serializeFields([
           {
             kind: FieldValueKind.FUNCTION,
@@ -315,7 +305,7 @@ describe('MetricSelectRow', () => {
 
     // sum should remain since it's valid for distribution, but args updated
     await waitFor(() => {
-      expect(queryList(router.location.query.yAxis)).toEqual(
+      expect(decodeList(router.location.query.yAxis)).toEqual(
         serializeFields([
           {
             kind: FieldValueKind.FUNCTION,
@@ -366,7 +356,7 @@ describe('MetricSelectRow', () => {
 
     // per_second stays, p99 replaced with sum, count replaced with sum
     await waitFor(() => {
-      expect(queryList(router.location.query.yAxis)).toEqual(
+      expect(decodeList(router.location.query.yAxis)).toEqual(
         serializeFields([
           {
             kind: FieldValueKind.FUNCTION,
@@ -425,7 +415,7 @@ describe('MetricSelectRow', () => {
 
     // avg is invalid for counter, replaced with sum
     await waitFor(() => {
-      expect(queryList(router.location.query.field)).toEqual(
+      expect(decodeList(router.location.query.field)).toEqual(
         serializeFields([
           {
             kind: FieldValueKind.FUNCTION,
@@ -472,7 +462,7 @@ describe('MetricSelectRow', () => {
 
     // p50 is invalid for counter, replaced with avg
     await waitFor(() => {
-      expect(queryList(router.location.query.yAxis)).toEqual(
+      expect(decodeList(router.location.query.yAxis)).toEqual(
         serializeFields([
           {
             kind: FieldValueKind.FUNCTION,
@@ -514,7 +504,7 @@ describe('MetricSelectRow', () => {
     await userEvent.click(await screen.findByRole('option', {name: 'counter_metric'}));
 
     await waitFor(() => {
-      expect(queryList(router.location.query.yAxis)).toEqual(
+      expect(decodeList(router.location.query.yAxis)).toEqual(
         serializeFields([
           {
             kind: FieldValueKind.FUNCTION,
