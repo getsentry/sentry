@@ -168,7 +168,7 @@ export default function IntegrationOrganizationLink() {
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organizations, location.search, selectOrganization]);
 
-  const hasAccess = organization?.access.includes('org:integrations');
+  const hasAccess = organization?.access?.includes('org:integrations');
 
   const {startFlow} = useAddIntegration();
 

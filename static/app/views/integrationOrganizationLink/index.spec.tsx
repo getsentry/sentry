@@ -236,4 +236,33 @@ describe('IntegrationOrganizationLink', () => {
       })
     );
   });
+
+  it('does not throw when organization is loaded without an access field', async () => {
+    // Regression test: organization?.access.includes() would throw when
+    // `access` is absent from the API response. Verify no error is thrown.
+    setupConfigStore(org2);
+
+    const orgWithoutAccess = {...org2, access: undefined} as unknown as Organization;
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/config/integrations/`,
+      match: [MockApiClient.matchQuery({provider_key: 'vercel'})],
+      body: {providers: [VercelProviderFixture()]},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/`,
+      match: [MockApiClient.matchQuery({include_feature_flags: 1})],
+      body: orgWithoutAccess,
+    });
+
+    render(<IntegrationOrganizationLink />, {initialRouterConfig});
+
+    // The org select should still render; the access check must not throw.
+    // Use getAllByRole because a URL input may also be present after org auto-selection.
+    const textboxes = await screen.findAllByRole('textbox');
+    await selectEvent.select(textboxes[0]!, org2.name);
+    // Install button should be disabled (no access granted).
+    expect(screen.queryByRole('button', {name: 'Install Vercel'})).toBeDisabled();
+  });
 });
