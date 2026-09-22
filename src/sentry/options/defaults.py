@@ -4433,3 +4433,11 @@ register(
     default=60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# How long an ingestion delay measurement is cached, in seconds. 0 disables the cache.
+register(
+    "ingestion-delay.measurement-cache-seconds",
+    type=Int,
+    default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

@@ -29,7 +29,7 @@ import {
   getSavedQueryTraceItemDataset,
   isExploreSavedQuery,
   useGetSavedQueries,
-  type AllSavedQuery,
+  type CombinedSavedQuery,
   type SortOption,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
@@ -91,7 +91,7 @@ export function SavedQueriesTable({
   }, [isFetched, data]);
 
   const starQueryHandler = useCallback(
-    (query: AllSavedQuery, starred: boolean) => {
+    (query: CombinedSavedQuery, starred: boolean) => {
       const key = getSavedQueryKey(query);
       if (starred) {
         setStarredKeys(prev => [...prev, key]);
@@ -133,22 +133,22 @@ export function SavedQueriesTable({
   );
 
   const getHandleUpdateFromSavedQuery = useCallback(
-    (savedQuery: AllSavedQuery) => {
+    (savedQuery: CombinedSavedQuery) => {
       return ({name}: {name: string}) => {
         return updateQueryFromSavedQuery({
           ...savedQuery,
           name,
-        } as AllSavedQuery);
+        } as CombinedSavedQuery);
       };
     },
     [updateQueryFromSavedQuery]
   );
 
-  const duplicateQuery = async (savedQuery: AllSavedQuery) => {
+  const duplicateQuery = async (savedQuery: CombinedSavedQuery) => {
     await saveQueryFromSavedQuery({
       ...savedQuery,
       name: `${savedQuery.name} (Copy)`,
-    } as AllSavedQuery);
+    } as CombinedSavedQuery);
   };
 
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
@@ -161,7 +161,7 @@ export function SavedQueriesTable({
   const debouncedOnClick = useMemo(
     () =>
       debounce(
-        (query: AllSavedQuery, starred: boolean) => {
+        (query: CombinedSavedQuery, starred: boolean) => {
           if (starred) {
             addLoadingMessage(t('Unstarring query...'));
             starQueryHandler(query, false);

@@ -100,7 +100,7 @@ describe('ExploreExportModalButton', () => {
     renderButton({isDataEmpty: true});
 
     const button = screen.getByRole('button', {name: 'Export'});
-    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-disabled', 'true');
     await userEvent.hover(button);
     expect(await screen.findByText('No data to export')).toBeInTheDocument();
   });

@@ -1,5 +1,5 @@
 from sentry.integrations.types import ExternalProviders
-from sentry.notifications.platform.types import NotificationProviderKey
+from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.testutils.cases import TestCase
 
 
@@ -30,3 +30,24 @@ class NotificationsDjangoAppTest(TestCase):
         assert provider_registry.get(NotificationProviderKey.MSTEAMS) is not None
         assert provider_registry.get(NotificationProviderKey.SLACK) is not None
         assert provider_registry.get(NotificationProviderKey.SLACK_STAGING) is not None
+
+    def test_registers_platform_renderers(self) -> None:
+        """
+        If this test is failing for you, ensure the module holding your `@renderer_registry.register`
+        decorator is imported by `sentry.notifications.apps.Config.ready`.
+        """
+        from sentry.notifications.platform.registry import renderer_registry
+
+        assert set(renderer_registry.registrations) == {
+            (NotificationProviderKey.DISCORD, NotificationSource.ISSUE),
+            (NotificationProviderKey.DISCORD, NotificationSource.METRIC_ALERT),
+            (NotificationProviderKey.SLACK, NotificationSource.ISSUE),
+            (NotificationProviderKey.SLACK, NotificationSource.METRIC_ALERT),
+            (NotificationProviderKey.SLACK, NotificationSource.SEER_AGENT_ERROR),
+            (NotificationProviderKey.SLACK, NotificationSource.SEER_AGENT_RESPONSE),
+            (NotificationProviderKey.SLACK, NotificationSource.SEER_AGENT_WRITE_APPROVAL),
+            (NotificationProviderKey.SLACK, NotificationSource.SEER_AUTOFIX_ERROR),
+            (NotificationProviderKey.SLACK, NotificationSource.SEER_AUTOFIX_SUCCESS),
+            (NotificationProviderKey.SLACK, NotificationSource.SEER_AUTOFIX_TRIGGER),
+            (NotificationProviderKey.SLACK, NotificationSource.SEER_AUTOFIX_UPDATE),
+        }

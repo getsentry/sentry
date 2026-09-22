@@ -28,6 +28,7 @@ function renderActions(
 ) {
   return render(
     <RowActions
+      focusRef={null}
       visualState={visualState}
       resolvedProvider={installableSlack}
       onConnect={jest.fn()}
