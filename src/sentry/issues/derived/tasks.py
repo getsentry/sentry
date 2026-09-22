@@ -11,7 +11,9 @@ from django.db import router
 from django.db.models import Exists, OuterRef
 from django.db.utils import OperationalError
 
+from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.derived.heal_state import HealSchedulerState, load_state, save_state
+from sentry.issues.derived.reporting import report_derived_data_error
 from sentry.silo.base import SiloMode
 
 if TYPE_CHECKING:
@@ -128,6 +130,9 @@ def process_group_log_task(group_id: int, incremental: bool = False, **kwargs: o
     derived_metrics = DerivedMetrics(mode=ProcessingStrategy.ASYNC, incremental=incremental)
     try:
         process_group_log(group_id, derived_metrics=derived_metrics)
+    except DerivedDataError:
+        # _process_batch reported the failure. Leave the cursor for an explicit retry.
+        return
     except Group.DoesNotExist:
         logger.info("process_group_log_task.group_not_found", extra={"group_id": group_id})
 
@@ -177,6 +182,9 @@ def generate_group_derived_data(
         )
     except Group.DoesNotExist:
         logger.info("generate_group_derived_data.group_not_found", extra={"group_id": group_id})
+        return
+    except DerivedDataError:
+        # Failed replay was reported by _process_batch; do not self-reschedule it.
         return
     except PromotionFailed:
         logger.exception("generate_group_derived_data.promotion_failed")
@@ -865,7 +873,12 @@ def check_fresh_derived_data_batch(
                 mark_spawned(_CHECK_FRESH_BATCH_TASK_KEY, activation_id)
             return
 
-        _record_check_result(result)
+        except DerivedDataError as error:
+            report_derived_data_error(
+                error, derived=derived, operation="check", pipeline_hash=PIPELINE.pipeline_hash
+            )
+        else:
+            _record_check_result(result)
         if time.monotonic() - start >= timeout_seconds:
             check_fresh_derived_data_batch.delay(
                 group_id_start=derived.group_id + 1,
