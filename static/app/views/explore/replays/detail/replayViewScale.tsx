@@ -26,14 +26,14 @@ export function ReplayViewScale({isLoading}: Props) {
     <Tooltip
       skipWrapper
       title={
-        <NoWrapDescriptionList gap="md 2xl">
+        <ContentWidthDescriptionList gap="md 2xl">
           <DescriptionList.Term>{t('Original size')}</DescriptionList.Term>
           <DescriptionList.Details>
             {dimensions.width} &times; {dimensions.height}
           </DescriptionList.Details>
           <DescriptionList.Term>{t('Rendered size')}</DescriptionList.Term>
           <DescriptionList.Details>{toPercent(scale, 1)}</DescriptionList.Details>
-        </NoWrapDescriptionList>
+        </ContentWidthDescriptionList>
       }
     >
       <IconRuler size="md" />
@@ -41,8 +41,9 @@ export function ReplayViewScale({isLoading}: Props) {
   );
 }
 
-// The replay video panel squeezes this tooltip narrow enough that dimensions
-// would otherwise break mid-number.
-const NoWrapDescriptionList = styled(DescriptionList)`
-  white-space: nowrap;
+// The tooltip is portalled into the replay video panel, so its overlay can only
+// shrink-to-fit the space left of that panel's edge. Sizing the list to its own
+// content makes the overlay grow to match instead of clipping the dimensions.
+const ContentWidthDescriptionList = styled(DescriptionList)`
+  width: max-content;
 `;
