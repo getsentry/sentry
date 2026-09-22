@@ -680,5 +680,19 @@ describe('searchSyntax/parser', () => {
         expect.objectContaining({type: InvalidReason.FILTER_MUST_HAVE_VALUE})
       );
     });
+
+    it('flags an empty pattern on an array membership key as missing a value', () => {
+      const filter = parseRegexFilter('tags[csv_headers,array][*]:////');
+
+      expect(filter.invalid).toEqual(
+        expect.objectContaining({type: InvalidReason.FILTER_MUST_HAVE_VALUE})
+      );
+    });
+
+    it('does not flag a pattern on an array membership key when it has a value', () => {
+      const filter = parseRegexFilter('tags[csv_headers,array][*]://^a b//');
+
+      expect(filter.invalid).toBeNull();
+    });
   });
 });

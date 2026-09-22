@@ -1025,6 +1025,12 @@ export class TokenConverter {
       };
     }
 
+    // An array membership filter skips the text checks below, so the pattern
+    // rule it shares with them is applied here.
+    if (filter === FilterType.ARRAY_INCLUDES && operator === TermOperator.MATCHES) {
+      return this.checkInvalidRegexPattern(value as TextFilter['value']);
+    }
+
     if (filter === FilterType.TEXT) {
       return this.checkInvalidTextFilter(
         key as TextFilter['key'],
@@ -1126,19 +1132,27 @@ export class TokenConverter {
   };
 
   /**
+   * Validates the pattern of a regex filter
+   */
+  checkInvalidRegexPattern = (value: TextFilter['value']) =>
+    value.value === ''
+      ? {
+          type: InvalidReason.FILTER_MUST_HAVE_VALUE,
+          reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE],
+        }
+      : null;
+
+  /**
    * Validates the value of a text filter
    */
   checkInvalidTextValue = (
     value: TextFilter['value'],
     operator?: TextFilter['operator']
   ) => {
+    // `*` and `"` are regex syntax rather than mistakes, so the checks below
+    // don't apply.
     if (operator === TermOperator.MATCHES) {
-      return value.value === ''
-        ? {
-            type: InvalidReason.FILTER_MUST_HAVE_VALUE,
-            reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE],
-          }
-        : null;
+      return this.checkInvalidRegexPattern(value);
     }
 
     if (this.config.disallowWildcard && value.value.includes('*')) {
