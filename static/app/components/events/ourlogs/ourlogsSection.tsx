@@ -265,6 +265,7 @@ function OurlogsSectionContent({
             {abbreviatedTableData?.map((row, index) => (
               <LogRowContent
                 dataRow={row}
+                routingHint={tableData.routingHintsByRow.get(row)}
                 meta={tableData.meta}
                 highlightTerms={highlightTerms}
                 embedded

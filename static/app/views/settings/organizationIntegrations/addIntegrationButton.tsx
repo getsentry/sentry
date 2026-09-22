@@ -61,6 +61,7 @@ export function AddIntegrationButton({
     >
       <Button
         disabled={!provider.canAdd}
+        aria-label={t('Add integration')}
         {...buttonProps}
         onClick={() => {
           if (label === t('Reinstall')) {
@@ -79,7 +80,6 @@ export function AddIntegrationButton({
             onError,
           });
         }}
-        aria-label={t('Add integration')}
       >
         {label}
       </Button>

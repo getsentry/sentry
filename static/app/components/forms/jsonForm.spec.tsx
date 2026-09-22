@@ -131,7 +131,6 @@ describe('JsonForm', () => {
     });
 
     it('missing additionalFieldProps required in "valid" prop', () => {
-      jest.spyOn(console, 'error').mockImplementation(jest.fn());
       expect(() =>
         render(
           <JsonForm

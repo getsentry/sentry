@@ -8,11 +8,14 @@ from enum import StrEnum
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry.ingestion_delay.activity import has_accepted_outcomes
-from sentry.ingestion_delay.query import MEASUREMENT_LOOKBACK, measure_ingestion_delay
+from sentry.ingestion_delay.query import (
+    get_ingestion_delay_measurement,
+    get_measurement_lookback,
+)
 
 logger = logging.getLogger(__name__)
 
-# Buffer for outlier ingestion delays.
+# Buffer for outlier ingestion delays and other delays not captured by received_at and ingested_at attributes.
 STALL_MARGIN = timedelta(seconds=60)
 
 # Buffer for projects just exiting idle.
@@ -42,13 +45,17 @@ def get_ingestion_delay_status(
     The measured delay, and the time through which data is believed complete.
     """
     now = datetime.now(tz=UTC)
-    measurement = measure_ingestion_delay(organization_id, item_type, now)
+    measurement = get_ingestion_delay_measurement(organization_id, item_type, now)
 
     # Snuba query failure tells us nothing about the pipeline.
     if not measurement.succeeded:
         return IngestionDelayStatus(None, None, IngestionStatus.UNKNOWN)
 
-    delay_seconds = measurement.delay_seconds
+    delay_seconds = (
+        None
+        if measurement.delay_seconds is None
+        else measurement.delay_seconds + STALL_MARGIN.total_seconds()
+    )
     last_ingested_at = measurement.last_ingested_at
 
     complete_through = now - timedelta(seconds=delay_seconds) if delay_seconds is not None else None
@@ -64,7 +71,7 @@ def get_ingestion_delay_status(
     if (
         complete_through is not None
         and last_ingested_at is not None
-        and last_ingested_at > complete_through - STALL_MARGIN
+        and last_ingested_at > complete_through
     ):
         return result(IngestionStatus.HEALTHY)
 
@@ -72,13 +79,13 @@ def get_ingestion_delay_status(
     # Check outcomes to determine if the pipeline is stalled or idle.
     # Add some buffer to account for outliers and projects just exiting idle.
     if delay_seconds is not None and last_ingested_at is not None:
-        evidence_end = now - (timedelta(seconds=delay_seconds) + STALL_MARGIN)
+        evidence_end = now - timedelta(seconds=delay_seconds)
         evidence_start = last_ingested_at
         if evidence_end <= evidence_start:
             return result(IngestionStatus.UNKNOWN, None)
     else:
         evidence_end = now - STALL_GRACE
-        evidence_start = now - MEASUREMENT_LOOKBACK
+        evidence_start = now - get_measurement_lookback()
 
     accepted = has_accepted_outcomes(
         organization_id=organization_id,

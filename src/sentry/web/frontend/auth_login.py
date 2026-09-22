@@ -34,11 +34,11 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
-    REACT_AUTH_COOKIE,
     construct_link_with_query,
     get_login_redirect,
     has_user_registration,
     initiate_login,
+    is_react_auth_enabled,
     is_valid_redirect,
     login,
 )
@@ -89,7 +89,7 @@ def should_render_react_auth(request: HttpRequest) -> bool:
         request.method == "GET"
         and request.resolver_match
         and request.resolver_match.url_name in REACT_AUTH_URL_NAMES
-        and request.COOKIES.get(REACT_AUTH_COOKIE) == "1"
+        and is_react_auth_enabled(request)
     )
 
 

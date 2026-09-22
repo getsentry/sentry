@@ -21,7 +21,6 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.userpermission import UserPermission
-from sentry.users.models.userrole import UserRole
 
 
 class UserDetailsTest(APITestCase):
@@ -85,14 +84,13 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "permissions" in resp.data
         assert resp.data["permissions"] == ["users.admin"]
 
-        role = UserRole.objects.create(name="test", permissions=["broadcasts.admin"])
-        role.users.add(self.superuser)
+        UserPermission.objects.create(user=self.superuser, permission="broadcasts.admin")
 
         resp = self.get_success_response(self.superuser.id)
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
     @override_options({"staff.ga-rollout": True})
-    def test_staff_includes_roles_and_permissions(self) -> None:
+    def test_staff_includes_permissions(self) -> None:
         self.add_user_permission(self.staff_user, "users.admin")
         self.login_as(user=self.staff_user, staff=True)
 
@@ -102,8 +100,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "permissions" in resp.data
         assert resp.data["permissions"] == ["users.admin"]
 
-        role = UserRole.objects.create(name="test", permissions=["broadcasts.admin"])
-        role.users.add(self.staff_user)
+        UserPermission.objects.create(user=self.staff_user, permission="broadcasts.admin")
 
         resp = self.get_success_response(self.staff_user.id)
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]

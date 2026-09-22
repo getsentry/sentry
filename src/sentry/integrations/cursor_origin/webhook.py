@@ -18,17 +18,31 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.cursor_origin.constants import (
     CURSOR_ORIGIN_WEBHOOK_DEDUPE_SECONDS,
     CURSOR_ORIGIN_WEBHOOK_SIGNATURE_PREFIX,
     CURSOR_ORIGIN_WEBHOOK_TOLERANCE_SECONDS,
 )
-from sentry.integrations.cursor_origin.handlers import HANDLERS
+from sentry.integrations.cursor_origin.handlers import (
+    InstallationRemovedHandler,
+    InstallationRestoredHandler,
+    InstallationUpdatedHandler,
+    WebhookEventHandler,
+)
 from sentry.integrations.cursor_origin.keys import signing_keys_for
+from sentry.integrations.cursor_origin.pull_request import PullRequestLifecycleHandler
+from sentry.integrations.cursor_origin.push import RepositoryPushedHandler
+from sentry.integrations.cursor_origin.repository_events import (
+    RepositoryMetadataUpdatedHandler,
+    refresh_repository_name,
+)
+from sentry.integrations.cursor_origin.webhook_types import OriginPayloadError
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
+from sentry.silo.base import SiloMode
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.cursor_origin")
@@ -65,7 +79,7 @@ def _release_delivery(delivery_id: str) -> None:
     cache.delete(f"cursor_origin:webhook:{delivery_id}")
 
 
-def _timestamp_is_fresh(timestamp: str) -> bool:
+def timestamp_is_fresh(timestamp: str) -> bool:
     try:
         sent_at = int(timestamp)
     except ValueError:
@@ -86,7 +100,9 @@ def verify_delivery(request: HttpRequest, body: bytes) -> Verification:
         logger.warning("cursor_origin.webhook.unsigned")
         return Verification.REFUSED
 
-    if not _timestamp_is_fresh(timestamp):
+    # We only ever verify timestamps in control. In cells, the request was already
+    # forwarded from control and verified there, so we don't need to do it again.
+    if SiloMode.get_current_mode() is not SiloMode.CELL and not timestamp_is_fresh(timestamp):
         logger.warning("cursor_origin.webhook.stale_timestamp", extra={"delivery_id": delivery_id})
         return Verification.REFUSED
 
@@ -122,7 +138,27 @@ def verify_delivery(request: HttpRequest, body: bytes) -> Verification:
     return Verification.REFUSED
 
 
-@control_silo_endpoint
+# Installation events are handled on control; repository events are forwarded to the
+# cells, where commits live.
+# `installation.created` is deliberately absent: the install pipeline has already done
+# the work by the time it arrives.
+HANDLERS: dict[str, type[WebhookEventHandler]] = {
+    "installation.deleted": InstallationRemovedHandler,
+    "installation.suspended": InstallationRemovedHandler,
+    "installation.unsuspended": InstallationRestoredHandler,
+    "installation.updated": InstallationUpdatedHandler,
+    "pull_request.closed": PullRequestLifecycleHandler,
+    "pull_request.created": PullRequestLifecycleHandler,
+    "pull_request.merged": PullRequestLifecycleHandler,
+    "pull_request.metadata.updated": PullRequestLifecycleHandler,
+    "pull_request.published": PullRequestLifecycleHandler,
+    "pull_request.reopened": PullRequestLifecycleHandler,
+    "repository.metadata.updated": RepositoryMetadataUpdatedHandler,
+    "repository.pushed": RepositoryPushedHandler,
+}
+
+
+@all_silo_endpoint
 class CursorOriginWebhookEndpoint(Endpoint):
     """Origin webhook reference: https://cursor.com/docs/api/origin
 
@@ -190,13 +226,49 @@ class CursorOriginWebhookEndpoint(Endpoint):
         if handler_cls is None:
             return HttpResponse(status=204)
 
+        installation_id = envelope.get("installationId")
+
         try:
+            # Resolved once here, so no handler reads the envelope, and every lookup
+            # downstream is organization-scoped.
+            context = (
+                integration_service.organization_contexts(
+                    provider=IntegrationProviderSlug.CURSOR_ORIGIN.value,
+                    external_id=installation_id,
+                )
+                if installation_id
+                else None
+            )
+            if context is None or context.integration is None:
+                logger.info(
+                    "cursor_origin.webhook.unknown_installation",
+                    extra={"delivery_id": delivery_id, "installation_id": installation_id},
+                )
+                metrics.incr("cursor_origin.webhook.unknown_installation", sample_rate=1.0)
+                return HttpResponse(status=204)
+
+            payload = event.get("payload") or {}
+            refresh_repository_name(payload, context.organization_integrations, delivery_id)
+
             with IntegrationWebhookEvent(
                 interaction_type=handler_cls.EVENT_TYPE,
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                 provider_key=IntegrationProviderSlug.CURSOR_ORIGIN.value,
             ).capture():
-                handler_cls()(event.get("payload") or {}, delivery_id)
+                handler_cls()(
+                    payload,
+                    delivery_id,
+                    context.integration,
+                    context.organization_integrations,
+                )
+        except OriginPayloadError as e:
+            _release_delivery(delivery_id)
+            logger.warning(
+                "cursor_origin.webhook.invalid_payload",
+                extra={"delivery_id": delivery_id, "event_type": event_type, "error": str(e)},
+            )
+            metrics.incr("cursor_origin.webhook.invalid_payload", sample_rate=1.0)
+            return HttpResponse(status=400)
         except Exception:
             _release_delivery(delivery_id)
             raise
