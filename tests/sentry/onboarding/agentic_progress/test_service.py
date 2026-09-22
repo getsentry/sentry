@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 import pytest
 from django.utils import timezone as django_timezone
-from redis.exceptions import WatchError
 
 from sentry.onboarding.agentic_progress.model import (
     OnboardingRunTerminal,
@@ -25,6 +24,8 @@ from sentry.onboarding.agentic_progress.service import (
     RunOwnershipMismatch,
 )
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.redis import use_redis_cluster
+from sentry.utils import redis
 
 
 @pytest.fixture
@@ -33,9 +34,25 @@ def frozen_time() -> Iterator[Any]:
         yield frozen
 
 
-@pytest.fixture
-def service(frozen_time: Any) -> Iterator[OnboardingProgressService]:
-    yield OnboardingProgressService()
+@pytest.fixture(params=["single", "cluster"])
+def service(
+    request: pytest.FixtureRequest, frozen_time: Any
+) -> Iterator[OnboardingProgressService]:
+    if request.param == "single":
+        yield OnboardingProgressService()
+        return
+
+    # The service must also work when `default` is a Redis cluster, which does not
+    # support WATCH/MULTI. Use a different cluster name so that the cached `default`
+    # client stays a single host for other tests.
+    with use_redis_cluster("agentic-onboarding"):
+        service = OnboardingProgressService()
+        service.redis = redis.redis_clusters.get_binary("agentic-onboarding")
+        service.redis.flushall()
+        try:
+            yield service
+        finally:
+            redis.redis_clusters._clusters_bytes.pop("agentic-onboarding", None)
 
 
 def create_run(
@@ -316,11 +333,128 @@ def test_corrupted_state_is_treated_as_missing(service: OnboardingProgressServic
 def test_atomic_update_bounds_contention_retries(service: OnboardingProgressService) -> None:
     created, _ = create_run(service, user_id=1, organization_id=2, client_run_id="browser-session")
 
-    with patch.object(service.redis, "pipeline") as pipeline:
-        active_pipeline = pipeline.return_value.__enter__.return_value
-        active_pipeline.get.return_value = service._serialize(created)
-        active_pipeline.execute.side_effect = WatchError
+    with patch.object(service, "_compare_and_set", return_value=False) as compare_and_set:
         with pytest.raises(RuntimeError, match="Unable to update onboarding progress"):
             service.cancel(run_id=created.run_id, user_id=1, organization_id=2)
 
-    assert pipeline.call_count == ATOMIC_UPDATE_RETRIES
+    assert compare_and_set.call_count == ATOMIC_UPDATE_RETRIES
+    stored = service.get(run_id=created.run_id, user_id=1, organization_id=2)
+    assert stored is not None
+    assert stored.run_status is RunStatus.ACTIVE
+
+
+def test_atomic_update_retries_after_a_concurrent_write(
+    service: OnboardingProgressService,
+) -> None:
+    created, token = create_run(
+        service, user_id=1, organization_id=2, client_run_id="browser-session"
+    )
+    state_key = service._state_key(created.run_id)
+    original_deserialize = service._deserialize
+    reads = 0
+
+    def deserialize_then_race(raw: bytes | str) -> Any:
+        nonlocal reads
+        reads += 1
+        current = original_deserialize(raw)
+        if reads == 1:
+            # Another writer lands between this read and the compare-and-set.
+            competing = replace(current, sequence=current.sequence + 5)
+            service.redis.set(state_key, service._serialize(competing), ex=60)
+        return current
+
+    with patch.object(service, "_deserialize", side_effect=deserialize_then_race):
+        updated, changed, _ = service.update(
+            token=token,
+            user_id=1,
+            organization_id=2,
+            update=ProgressUpdate(stage=Stage.CONNECT_MCP, status=StageStatus.COMPLETED),
+        )
+
+    assert reads == 2
+    assert changed is True
+    # The retry applied the update on top of the competing write.
+    assert updated.sequence == 6
+    stored = service.get(run_id=created.run_id, user_id=1, organization_id=2)
+    assert stored == updated
+
+
+def test_client_claim_retries_after_a_concurrent_claim(
+    service: OnboardingProgressService,
+) -> None:
+    winner, _ = create_run(service, user_id=1, organization_id=2, client_run_id="browser-session")
+    index_key = service._client_index_key(1, 2, "browser-session")
+    original_get = service.redis.get
+    stale_reads = 0
+
+    def stale_first_read(key: str) -> Any:
+        nonlocal stale_reads
+        if key == index_key and stale_reads == 0:
+            # Simulate a read that happened before the winner claimed the key.
+            stale_reads += 1
+            return None
+        return original_get(key)
+
+    with patch.object(service.redis, "get", side_effect=stale_first_read):
+        claim = service._claim_client_run(index_key)
+
+    assert stale_reads == 1
+    assert claim.claimed_run_id is None
+    assert claim.existing == winner
+    assert service.redis.get(index_key) == winner.run_id.encode()
+
+
+def test_token_claim_rejects_an_active_owner(service: OnboardingProgressService) -> None:
+    create_run(service, user_id=1, organization_id=2, client_run_id="browser-session")
+    key = service._token_index_key(service._hash_token("abcdefghij"))
+    owner = service.redis.get(key)
+
+    with pytest.raises(ValueError, match="already in use"):
+        service._claim_token_index(key, "competing-run", 60)
+
+    assert service.redis.get(key) == owner
+
+
+def test_token_claim_takes_over_a_finished_owner(service: OnboardingProgressService) -> None:
+    created, _ = create_run(service, user_id=1, organization_id=2, client_run_id="browser-session")
+    service.cancel(run_id=created.run_id, user_id=1, organization_id=2)
+    key = service._token_index_key(service._hash_token("abcdefghij"))
+
+    service._claim_token_index(key, "next-run", 60)
+
+    assert service.redis.get(key) == b"next-run"
+    assert service.redis.ttl(key) == 60
+
+
+def test_release_index_deletes_own_claim(service: OnboardingProgressService) -> None:
+    key = service._token_index_key(service._hash_token("abcdefghij"))
+    service.redis.set(key, "owning-run")
+
+    service._release_index(key, "owning-run")
+    service._release_index(key, "owning-run")
+
+    assert service.redis.get(key) is None
+
+
+def test_compare_and_set(service: OnboardingProgressService) -> None:
+    key = "agentic-onboarding:test:compare-and-set"
+    service.redis.delete(key)
+
+    assert service._compare_and_set(key, None, "first", 30) is True
+    assert service.redis.get(key) == b"first"
+    assert service.redis.ttl(key) == 30
+
+    # The key exists, so a writer that expected it to be absent loses.
+    assert service._compare_and_set(key, None, "second", 30) is False
+    # A stale expected value loses.
+    assert service._compare_and_set(key, b"stale", "second", 30) is False
+    assert service.redis.get(key) == b"first"
+
+    assert service._compare_and_set(key, b"first", "second", 90) is True
+    assert service.redis.get(key) == b"second"
+    assert service.redis.ttl(key) == 90
+
+    service.redis.delete(key)
+    # The key is gone, so a writer that expected a value loses.
+    assert service._compare_and_set(key, b"second", "third", 30) is False
+    assert service.redis.get(key) is None
