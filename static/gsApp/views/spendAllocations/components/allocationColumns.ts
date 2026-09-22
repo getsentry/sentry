@@ -7,4 +7,4 @@ export const ALLOCATION_COLUMNS = {
   consumedLabel: {key: 'consumed-label', width: 120},
   consumedValues: {key: 'consumed-values', width: 180},
   actions: {key: 'actions', width: 100},
-} satisfies Record<string, TableColumnConfig>;
+} as const satisfies Record<string, TableColumnConfig>;
