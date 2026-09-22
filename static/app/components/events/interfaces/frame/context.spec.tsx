@@ -50,9 +50,10 @@ describe('Frame - Context', () => {
       expect(rows).toHaveLength(isExpanded ? 3 : 1);
       const activeRow = rows[isExpanded ? 1 : 0]!;
       expect(activeRow).toHaveAttribute('aria-current', 'location');
-      expect(activeRow).toContainElement(
-        screen.getByRole('img', {name: 'Current frame line'})
-      );
+      expect(activeRow).toContainElement(screen.getByText('81'));
+      expect(
+        screen.queryByRole('img', {name: 'Current frame line'})
+      ).not.toBeInTheDocument();
       // All syntax tokens on the highlighted row inherit its contrasting text color.
       expect(activeRow.querySelector('.token')).not.toBeInTheDocument();
       expect(activeRow).toHaveTextContent('capture_exception(exc)');
@@ -79,9 +80,6 @@ describe('Frame - Context', () => {
       {organization: org}
     );
 
-    expect(
-      screen.queryByRole('img', {name: 'Current frame line'})
-    ).not.toBeInTheDocument();
     expect(screen.getByTestId('context-line')).not.toHaveAttribute('aria-current');
   });
 

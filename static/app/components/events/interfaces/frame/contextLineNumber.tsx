@@ -1,8 +1,5 @@
 import styled from '@emotion/styled';
 
-import {IconArrow} from 'sentry/icons';
-import {t} from 'sentry/locale';
-
 interface Props {
   isActive: boolean;
   lineNumber: number;
@@ -12,16 +9,7 @@ interface Props {
 export function ContextLineNumber({lineNumber, isActive}: Props) {
   return (
     <Wrapper className={isActive ? 'active' : ''}>
-      <div className="line-number">
-        {lineNumber}
-        {isActive && (
-          <ActiveLineMarker
-            direction="right"
-            size="xs"
-            aria-label={t('Current frame line')}
-          />
-        )}
-      </div>
+      <div className="line-number">{lineNumber}</div>
     </Wrapper>
   );
 }
@@ -36,7 +24,6 @@ const Wrapper = styled('div')`
   margin-right: ${p => p.theme.space.md};
 
   .line-number {
-    position: relative;
     display: flex;
     align-items: center;
     flex-direction: row;
@@ -55,9 +42,4 @@ const Wrapper = styled('div')`
   &.active {
     background: none;
   }
-`;
-
-const ActiveLineMarker = styled(IconArrow)`
-  position: absolute;
-  right: ${p => p.theme.space.xs};
 `;
