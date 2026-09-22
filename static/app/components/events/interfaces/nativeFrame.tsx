@@ -441,8 +441,8 @@ export function NativeFrame({
               xl: '7',
             }}
             gap="sm"
+            height="32px"
             justify="end"
-            minHeight="32px"
           >
             {showStacktraceLink && (
               <ErrorBoundary>
