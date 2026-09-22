@@ -259,6 +259,24 @@ class RepositoryDeletedHandlerTest(TestCase):
         with pytest.raises(OriginPayloadError, match="repository -> id"):
             self._handle({"repository": {"name": "rocket"}})
 
+    def test_an_inactive_installation_disables_nothing(self) -> None:
+        """After a suspension, a late delivery must not act on the repositories."""
+        self.rpc_integration = self.rpc_integration.copy(update={"status": ObjectStatus.DISABLED})
+
+        self._handle({"repository": {"id": REPO_EXTERNAL_ID, "name": "rocket"}})
+
+        assert Repository.objects.get(id=self.repo.id).status == ObjectStatus.ACTIVE
+
+    def test_an_organization_being_uninstalled_is_skipped(self) -> None:
+        self.org_integrations = [
+            oi.copy(update={"status": ObjectStatus.PENDING_DELETION})
+            for oi in self.org_integrations
+        ]
+
+        self._handle({"repository": {"id": REPO_EXTERNAL_ID, "name": "rocket"}})
+
+        assert Repository.objects.get(id=self.repo.id).status == ObjectStatus.ACTIVE
+
 
 @cell_silo_test
 class RepositoryCreatedHandlerTest(TestCase):
@@ -321,8 +339,47 @@ class RepositoryCreatedHandlerTest(TestCase):
         assert repo.integration_id == self.integration.id
         assert [call.kwargs["event_name"] for call in mock_log.call_args_list] == ["REPO_ENABLED"]
 
-    def test_a_redelivery_adds_nothing(self) -> None:
-        self._handle()
-        self._handle()
+    def test_a_redelivery_adds_and_audits_nothing(self) -> None:
+        with mock.patch(
+            "sentry.integrations.cursor_origin.repository_events.log_repo_change"
+        ) as mock_log:
+            self._handle()
+            self._handle()
 
         assert len(self._repositories()) == 1
+        assert [call.kwargs["event_name"] for call in mock_log.call_args_list] == ["REPO_ADDED"]
+
+    def test_a_repository_the_sync_already_added_is_not_audited(self) -> None:
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name=REPO,
+            provider="integrations:cursor_origin",
+            external_id=REPO_EXTERNAL_ID,
+            integration_id=self.integration.id,
+            config={"name": REPO, "default_branch": "main"},
+        )
+
+        with mock.patch(
+            "sentry.integrations.cursor_origin.repository_events.log_repo_change"
+        ) as mock_log:
+            self._handle()
+
+        assert len(self._repositories()) == 1
+        assert mock_log.call_count == 0
+
+    def test_an_inactive_installation_adds_nothing(self) -> None:
+        self.rpc_integration = self.rpc_integration.copy(update={"status": ObjectStatus.DISABLED})
+
+        self._handle()
+
+        assert self._repositories() == []
+
+    def test_an_organization_being_uninstalled_is_skipped(self) -> None:
+        self.org_integrations = [
+            oi.copy(update={"status": ObjectStatus.PENDING_DELETION})
+            for oi in self.org_integrations
+        ]
+
+        self._handle()
+
+        assert self._repositories() == []

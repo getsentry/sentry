@@ -98,6 +98,20 @@ def store_default_branch(repo: Repository, snapshot: RepositorySnapshot, deliver
     repo.update(config={**repo.config, "default_branch": snapshot.default_branch})
 
 
+def _active_org_integrations(
+    integration: RpcIntegration,
+    org_integrations: Sequence[RpcOrganizationIntegration],
+    delivery_id: str,
+) -> list[RpcOrganizationIntegration]:
+    if integration.status != ObjectStatus.ACTIVE:
+        logger.info(
+            "cursor_origin.repository.inactive_integration",
+            extra={"delivery_id": delivery_id, "integration_id": integration.id},
+        )
+        return []
+    return [oi for oi in org_integrations if oi.status == ObjectStatus.ACTIVE]
+
+
 class RepositoryCreatedHandler(WebhookEventHandler):
     EVENT_TYPE = IntegrationWebhookEventType.INBOUND_SYNC
 
@@ -117,6 +131,7 @@ class RepositoryCreatedHandler(WebhookEventHandler):
             "integration_id": integration.id,
         }
 
+        org_integrations = _active_org_integrations(integration, org_integrations, delivery_id)
         for organization in Organization.objects.filter(
             id__in=[oi.organization_id for oi in org_integrations]
         ):
@@ -156,7 +171,7 @@ class RepositoryDeletedHandler(WebhookEventHandler):
         org_integrations: Sequence[RpcOrganizationIntegration],
     ) -> None:
         external_id = RepositoryDeletedEvent.from_payload(payload).repository.id
-        for org_integration in org_integrations:
+        for org_integration in _active_org_integrations(integration, org_integrations, delivery_id):
             organization_id = org_integration.organization_id
             if repository_service.find_recently_active_repo_external_ids(
                 organization_id=organization_id,

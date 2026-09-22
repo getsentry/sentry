@@ -293,7 +293,8 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         Returns (created, reactivated, missing) — newly created repos, repos that
         were reactivated or updated from a hidden/unlinked state, and repo configs
         that could not be created because a repository with that configuration
-        already exists.
+        already exists. A repo that was already active has its config refreshed but
+        is not reported as reactivated.
         """
         external_id_to_repo_config: dict[str, RepositoryConfig] = {}
         for config in configs:
@@ -301,6 +302,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             external_id_to_repo_config[result["external_id"]] = result
 
         repos_to_update: list[RpcRepository] = []
+        refreshed_repos: list[RpcRepository] = []
         created_repos: list[RpcRepository] = []
         transferred_repos: list[RpcRepository] = []
 
@@ -368,7 +370,10 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                 missing_repos.append(repo_config)
                 # We anticipate to only update one repository, but we update any duplicates as well.
                 for repo in repositories:
-                    repos_to_update.append(self._apply_repo_config(repo, repo_config))
+                    if repo.status == ObjectStatus.ACTIVE:
+                        refreshed_repos.append(self._apply_repo_config(repo, repo_config))
+                    else:
+                        repos_to_update.append(self._apply_repo_config(repo, repo_config))
                 continue
 
             # if we don't find the repo on this integration, the unique constraint was hit by a
@@ -394,12 +399,12 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             )
             missing_repos.append(repo_config)
 
-        if repos_to_update:
+        if repos_to_update or refreshed_repos:
             repository_service.update_repositories(
                 organization_id=organization.id,
-                updates=repos_to_update,
+                updates=repos_to_update + refreshed_repos,
             )
-            for repo in repos_to_update:
+            for repo in repos_to_update + refreshed_repos:
                 self.on_create_repository(repo, organization)
 
         return created_repos, repos_to_update + transferred_repos, missing_repos
