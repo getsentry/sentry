@@ -33,12 +33,12 @@ GITHUB_NOREPLY_DOMAIN = "users.noreply.github.com"
 class SeerCommitAuthor(TypedDict):
     """Git commit author sent to Seer; wire-compatible with ``scm.types.CommitAuthorParam``.
 
-    ``login`` is the GitHub handle behind ``email``, which Seer assigns the PR to.
+    ``scm_login`` is the GitHub handle behind ``email``, which Seer assigns the PR to.
     """
 
     name: str
     email: str
-    login: NotRequired[str]
+    scm_login: NotRequired[str]
 
 
 def _record_outcome(outcome: str) -> None:
@@ -59,7 +59,7 @@ def _build_author(
         if external_id.isdigit()
         else f"{login}@{GITHUB_NOREPLY_DOMAIN}"
     )
-    return SeerCommitAuthor(name=name or login, email=email, login=login)
+    return SeerCommitAuthor(name=name or login, email=email, scm_login=login)
 
 
 def commit_author_for_github_actor(
@@ -230,8 +230,8 @@ def parse_commit_author(raw: str | None) -> SeerCommitAuthor | None:
     if not isinstance(name, str) or not isinstance(email, str):
         return None
     author = SeerCommitAuthor(name=name, email=email)
-    # Authors stored before ``login`` existed have none; the PR just goes unassigned.
-    login = data.get("login")
-    if isinstance(login, str) and login:
-        author["login"] = login
+    # Authors stored before ``scm_login`` existed have none; the PR just goes unassigned.
+    scm_login = data.get("scm_login")
+    if isinstance(scm_login, str) and scm_login:
+        author["scm_login"] = scm_login
     return author

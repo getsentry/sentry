@@ -1818,7 +1818,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert mock_trigger.call_args.kwargs["commit_author"] == {
             "name": "octocat",
             "email": "583231+octocat@users.noreply.github.com",
-            "login": "octocat",
+            "scm_login": "octocat",
         }
 
         # Two different commenters in one batch: no single author to attribute to.
