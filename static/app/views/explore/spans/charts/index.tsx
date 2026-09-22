@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconClock, IconContract, IconExpand, IconGraph, IconStack} from 'sentry/icons';
@@ -27,7 +27,6 @@ import {
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
 import {DroppedDataPanelContent} from 'sentry/views/explore/components/chart/droppedDataBand/droppedDataPanelContent';
-import type {AnnotationBucket} from 'sentry/views/explore/components/chart/droppedDataBand/utils';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
@@ -186,8 +185,7 @@ function Chart({
     : undefined;
   const hasDroppedData = defined(droppedData) && droppedData.length > 0;
   const [showDroppedData, setShowDroppedData] = useState(true);
-  const [selectedDroppedDataBucket, setSelectedDroppedDataBucket] =
-    useState<AnnotationBucket | null>(null);
+  const {openDrawer} = useDrawer();
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
@@ -367,88 +365,83 @@ function Chart({
     chartSelection?.chartIndex === index ? chartSelection.selection : undefined;
 
   return (
-    <Fragment>
-      <ChartWrapper ref={chartWrapperRef}>
-        <Widget
-          Title={Title}
-          TitleBadges={TitleBadges}
-          Actions={Actions}
-          Visualization={
-            visualize.visible && (
-              <ChartVisualization
-                chartInfo={chartInfo}
-                chartRef={chartRef}
-                acceptedData={acceptedData}
-                droppedData={droppedData}
-                showDroppedData={showDroppedData}
-                onDroppedDataClick={(bucket: AnnotationBucket) =>
-                  setSelectedDroppedDataBucket(bucket)
-                }
-                chartXRangeSelection={{
-                  initialSelection: initialChartSelection,
-                  onSelectionEnd: () => {
-                    if (!isChartSelectionAlertDismissed) {
-                      dismissChartSelectionAlert();
-                    }
-                  },
-                  onInsideSelectionClick: params => {
-                    if (!params.selectionState) {
-                      return;
-                    }
+    <ChartWrapper ref={chartWrapperRef}>
+      <Widget
+        Title={Title}
+        TitleBadges={TitleBadges}
+        Actions={Actions}
+        Visualization={
+          visualize.visible && (
+            <ChartVisualization
+              chartInfo={chartInfo}
+              chartRef={chartRef}
+              acceptedData={acceptedData}
+              droppedData={droppedData}
+              showDroppedData={showDroppedData}
+              onDroppedDataClick={() =>
+                openDrawer(() => <DroppedDataPanelContent />, {
+                  ariaLabel: t('Dropped Data'),
+                })
+              }
+              chartXRangeSelection={{
+                initialSelection: initialChartSelection,
+                onSelectionEnd: () => {
+                  if (!isChartSelectionAlertDismissed) {
+                    dismissChartSelectionAlert();
+                  }
+                },
+                onInsideSelectionClick: params => {
+                  if (!params.selectionState) {
+                    return;
+                  }
 
-                    params.setSelectionState({
-                      ...params.selectionState,
-                      isActionMenuVisible: true,
-                    });
-                  },
-                  onOutsideSelectionClick: params => {
-                    if (!params.selectionState?.isActionMenuVisible) {
-                      return;
-                    }
+                  params.setSelectionState({
+                    ...params.selectionState,
+                    isActionMenuVisible: true,
+                  });
+                },
+                onOutsideSelectionClick: params => {
+                  if (!params.selectionState?.isActionMenuVisible) {
+                    return;
+                  }
 
-                    params.setSelectionState({
-                      ...params.selectionState,
-                      isActionMenuVisible: false,
-                    });
-                  },
-                  onClearSelection: () => {
-                    setChartSelection(null);
-                  },
-                  disabled: false,
-                  actionMenuRenderer: params => {
-                    return <FloatingTrigger chartIndex={index} params={params} />;
-                  },
-                }}
-              />
-            )
-          }
-          Footer={
-            visualize.visible && (
-              <ConfidenceFooter
-                extrapolate={extrapolate}
-                sampleCount={chartInfo.sampleCount}
-                isLoading={chartInfo.timeseriesResult?.isPending || false}
-                isSampled={chartInfo.isSampled}
-                confidence={chartInfo.confidence}
-                topEvents={
-                  topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
-                }
-                dataScanned={chartInfo.dataScanned}
-                rawSpanCounts={rawSpanCounts}
-                userQuery={query.trim()}
-              />
-            )
-          }
-          height={chartHeight}
-          revealActions="always"
-        />
-      </ChartWrapper>
-      {selectedDroppedDataBucket && (
-        <SlideOverPanel position="right">
-          <DroppedDataPanelContent onClose={() => setSelectedDroppedDataBucket(null)} />
-        </SlideOverPanel>
-      )}
-    </Fragment>
+                  params.setSelectionState({
+                    ...params.selectionState,
+                    isActionMenuVisible: false,
+                  });
+                },
+                onClearSelection: () => {
+                  setChartSelection(null);
+                },
+                disabled: false,
+                actionMenuRenderer: params => {
+                  return <FloatingTrigger chartIndex={index} params={params} />;
+                },
+              }}
+            />
+          )
+        }
+        Footer={
+          visualize.visible && (
+            <ConfidenceFooter
+              extrapolate={extrapolate}
+              sampleCount={chartInfo.sampleCount}
+              isLoading={chartInfo.timeseriesResult?.isPending || false}
+              isSampled={chartInfo.isSampled}
+              confidence={chartInfo.confidence}
+              topEvents={
+                topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
+              }
+              dataScanned={chartInfo.dataScanned}
+              rawSpanCounts={rawSpanCounts}
+              userQuery={query.trim()}
+            />
+          )
+        }
+        height={chartHeight}
+        revealActions="always"
+      />
+    </ChartWrapper>
   );
 }
 
