@@ -51,6 +51,7 @@ export enum CustomRepoType {
   HTTP = 'http',
   S3 = 's3',
   GCS = 'gcs',
+  AZURE = 'azure',
 }
 
 export type CustomRepoHttp = CustomRepoMetadata & {
@@ -86,7 +87,20 @@ export type CustomRepoGCS = CustomRepoMetadata & {
   private_key?: Secret;
 };
 
-export type CustomRepo = CustomRepoHttp | CustomRepoS3 | CustomRepoGCS;
+export type CustomRepoAzure = CustomRepoMetadata & {
+  account: string;
+  client_id: string;
+  container: string;
+  id: string;
+  layout: {casing: string; type: string};
+  name: string;
+  tenant_id: string;
+  type: CustomRepoType.AZURE;
+  client_secret?: Secret;
+  prefix?: string;
+};
+
+export type CustomRepo = CustomRepoHttp | CustomRepoS3 | CustomRepoGCS | CustomRepoAzure;
 
 type FlattenedLayout = {
   'layout.casing': string;
@@ -99,4 +113,6 @@ export type CustomRepoFormData =
   | (Omit<CustomRepoS3, 'layout' | 'secret_key'> &
       FlattenedLayout & {secret_key?: Secret | string})
   | (Omit<CustomRepoGCS, 'layout' | 'private_key'> &
-      FlattenedLayout & {private_key?: Secret | string});
+      FlattenedLayout & {private_key?: Secret | string})
+  | (Omit<CustomRepoAzure, 'layout' | 'client_secret'> &
+      FlattenedLayout & {client_secret?: Secret | string});
