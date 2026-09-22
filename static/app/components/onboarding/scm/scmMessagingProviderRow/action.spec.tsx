@@ -22,11 +22,11 @@ const permissionLimitedSlack: ScmMessagingResolvedProvider = {
   status: 'permission-limited',
 };
 
-function renderActions(
-  visualState: RowVisualState,
-  overrides: Partial<React.ComponentProps<typeof RowActions>> = {}
-) {
-  return render(
+function ExampleRowActions({
+  visualState,
+  ...overrides
+}: {visualState: RowVisualState} & Partial<React.ComponentProps<typeof RowActions>>) {
+  return (
     <RowActions
       visualState={visualState}
       resolvedProvider={installableSlack}
@@ -44,14 +44,14 @@ function renderActions(
 describe('RowActions', () => {
   describe.each<RowVisualState>(['loading', 'installing'])('%s state', visualState => {
     it('shows a spinner', () => {
-      renderActions(visualState);
+      render(<ExampleRowActions visualState={visualState} />);
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     });
   });
 
   describe('installable state', () => {
     it('renders an enabled Connect button', () => {
-      renderActions('installable');
+      render(<ExampleRowActions visualState="installable" />);
       expect(screen.getByRole('button', {name: /Connect Slack/})).toBeEnabled();
     });
   });
@@ -61,14 +61,19 @@ describe('RowActions', () => {
     ['permission-limited', permissionLimitedSlack],
   ])('%s state', (visualState, resolvedProvider) => {
     it('renders a disabled Connect button', () => {
-      renderActions(visualState, {resolvedProvider});
+      render(
+        <ExampleRowActions
+          visualState={visualState}
+          resolvedProvider={resolvedProvider}
+        />
+      );
       expect(screen.getByRole('button', {name: /Connect/})).toBeDisabled();
     });
   });
 
   describe('choose-destination state', () => {
     it('renders the Choose destination button', () => {
-      renderActions('choose-destination');
+      render(<ExampleRowActions visualState="choose-destination" />);
       expect(
         screen.getByRole('button', {name: /Choose destination for Slack/})
       ).toBeInTheDocument();
@@ -77,7 +82,7 @@ describe('RowActions', () => {
 
   describe('configured state', () => {
     it('renders Edit and Remove buttons', () => {
-      renderActions('configured');
+      render(<ExampleRowActions visualState="configured" />);
 
       expect(screen.getByRole('button', {name: /Edit/})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: /Remove/})).toBeInTheDocument();
@@ -86,7 +91,7 @@ describe('RowActions', () => {
 
   describe('removing state', () => {
     it('renders Cancel and Remove buttons', () => {
-      renderActions('removing');
+      render(<ExampleRowActions visualState="removing" />);
 
       expect(screen.getByRole('button', {name: /Cancel/})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Remove'})).toBeInTheDocument();
@@ -97,7 +102,7 @@ describe('RowActions', () => {
     '%s state',
     visualState => {
       it('renders nothing', () => {
-        const {container} = renderActions(visualState);
+        const {container} = render(<ExampleRowActions visualState={visualState} />);
         expect(container).toBeEmptyDOMElement();
       });
     }
