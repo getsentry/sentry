@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import errno
 import logging
+from uuid import uuid4
 
+from redis.exceptions import RedisError
 from rest_framework import status
 from taskbroker_client.retry import Retry
 
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_WEBHOOK_VERSION_KEY
 from sentry.integrations.gitlab.metrics import (
     GitLabTaskEvent,
     GitLabTaskInteractionType,
@@ -25,8 +26,10 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
+from sentry.utils.redis import load_redis_script, redis_clusters
 
 logger = logging.getLogger(__name__)
+release_debounce = load_redis_script("utils/locking/delete_lock.lua")
 
 GITLAB_RETRY_CODES = (
     status.HTTP_429_TOO_MANY_REQUESTS,
@@ -100,7 +103,7 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
             }
         )
 
-        if not webhook_id or not project_id:
+        if not project_id:
             lifecycle.record_halt(
                 GitLabWebhookUpdateHaltReason.MISSING_WEBHOOK_CONFIG,
             )
@@ -110,7 +113,10 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
         client = installation.get_client()
 
         try:
-            client.update_project_webhook(project_id, webhook_id)
+            hook_id = client.ensure_project_webhook(project_id, webhook_id)
+            if hook_id != webhook_id:
+                repo.config["webhook_id"] = hook_id
+                repository_service.update_repository(organization_id=organization_id, update=repo)
         except (ApiUnauthorized, ApiForbiddenError) as e:
             lifecycle.record_halt(e)
             # Don't retry if we've lost access
@@ -132,7 +138,9 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60, on=(Exception,), ignore=(Integration.DoesNotExist,)),
 )
-def update_all_project_webhooks(integration_id: int, organization_id: int) -> None:
+def update_all_project_webhooks(
+    integration_id: int, organization_id: int, force: bool = False
+) -> None:
     """
     Spawn individual tasks to update all project webhooks for a GitLab integration.
     Triggered after installation or sync settings changes to refresh tokens and event subscriptions.
@@ -153,23 +161,6 @@ def update_all_project_webhooks(integration_id: int, organization_id: int) -> No
         interaction_type=GitLabTaskInteractionType.UPDATE_ALL_PROJECT_WEBHOOKS,
         integration=integration,
     ).capture() as lifecycle:
-        # Get all active repositories linked to this integration
-        repositories = repository_service.get_repositories(
-            integration_id=integration_id,
-            organization_id=organization_id,
-            status=ObjectStatus.ACTIVE,
-        )
-
-        if not repositories:
-            logger.info(
-                "update-all-project-webhooks.no-repositories",
-                extra={"integration_id": integration_id, "organization_id": organization_id},
-            )
-            lifecycle.record_halt(GitLabWebhookUpdateHaltReason.NO_REPOSITORIES)
-            return
-
-        lifecycle.add_extra("total_repositories", len(repositories))
-
         # Verify org integration exists before spawning tasks
         org_integration = integration_service.get_organization_integration(
             integration_id=integration_id, organization_id=organization_id
@@ -182,9 +173,62 @@ def update_all_project_webhooks(integration_id: int, organization_id: int) -> No
             lifecycle.record_halt(GitLabWebhookUpdateHaltReason.ORG_INTEGRATION_NOT_FOUND)
             return
 
-        # Spawn individual tasks for each repository webhook update
-        for repo in repositories:
-            update_project_webhook.delay(integration_id, organization_id, repo.id)
+        # Settings auto-save each field separately. Coalesce those refreshes, while
+        # allowing installs to repair hooks even after a recent settings save.
+        debounce_key = f"gitlab:webhook-reconcile:{organization_id}:{integration_id}"
+        debounce_token = uuid4().hex
+        acquired = False
+        try:
+            redis = redis_clusters.get("default")
+            acquired = bool(redis.set(debounce_key, debounce_token, nx=True, ex=600))
+        except RedisError:
+            # Debounce is best-effort: a Redis outage must not block webhook repair.
+            logger.exception(
+                "update-all-project-webhooks.debounce-unavailable",
+                extra={"integration_id": integration_id, "organization_id": organization_id},
+            )
+        else:
+            if not acquired and not force:
+                logger.info(
+                    "update-all-project-webhooks.debounced",
+                    extra={"integration_id": integration_id, "organization_id": organization_id},
+                )
+                lifecycle.record_halt(GitLabWebhookUpdateHaltReason.DEBOUNCED)
+                return
+
+        try:
+            repositories = repository_service.get_repositories(
+                integration_id=integration_id,
+                organization_id=organization_id,
+                status=ObjectStatus.ACTIVE,
+            )
+            if not repositories:
+                logger.info(
+                    "update-all-project-webhooks.no-repositories",
+                    extra={"integration_id": integration_id, "organization_id": organization_id},
+                )
+                lifecycle.record_halt(GitLabWebhookUpdateHaltReason.NO_REPOSITORIES)
+                return
+
+            lifecycle.add_extra("total_repositories", len(repositories))
+            for repo in repositories:
+                update_project_webhook.delay(integration_id, organization_id, repo.id)
+        except Exception:
+            # Allow retry after a failed lookup or fan-out. If our TTL expired,
+            # leave any subsequent run's debounce key intact.
+            if acquired:
+                try:
+                    release_debounce((debounce_key,), (debounce_token,), redis)
+                except RedisError:
+                    # Expired ownership or a Redis outage must not hide the task's failure.
+                    logger.exception(
+                        "update-all-project-webhooks.debounce-release-failed",
+                        extra={
+                            "integration_id": integration_id,
+                            "organization_id": organization_id,
+                        },
+                    )
+            raise
 
         logger.info(
             "update-all-project-webhooks.tasks-spawned",
@@ -194,12 +238,4 @@ def update_all_project_webhooks(integration_id: int, organization_id: int) -> No
                 "total_repositories": len(repositories),
                 "repository_ids": [repo.id for repo in repositories],
             },
-        )
-
-        # Update webhook version to prevent re-triggering on subsequent config changes
-        config = org_integration.config.copy()
-        config[GITLAB_WEBHOOK_VERSION_KEY] = GITLAB_WEBHOOK_VERSION
-        integration_service.update_organization_integration(
-            org_integration_id=org_integration.id,
-            config=config,
         )

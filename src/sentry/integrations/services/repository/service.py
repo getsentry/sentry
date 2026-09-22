@@ -157,10 +157,11 @@ class RepositoryService(RpcService):
         *,
         organization_id: int,
         integration_id: int,
+        force: bool = False,
     ) -> None:
         """
         Schedules a task to update all GitLab project webhooks for an integration.
-        This is used when sync settings change and webhooks need to be updated.
+        Settings saves are debounced; installations pass force to always repair hooks.
         """
 
     @cell_rpc_method(resolve=ByOrganizationId())

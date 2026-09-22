@@ -1,4 +1,5 @@
 from functools import cached_property
+from unittest.mock import patch
 
 import orjson
 import pytest
@@ -101,10 +102,12 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         }
 
     @responses.activate
-    def test_create_repository(self) -> None:
+    @patch("sentry.integrations.gitlab.client.metrics.incr")
+    def test_create_repository(self, incr) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
         assert response.status_code == 201
         self.assert_repository(self.default_repository_config)
+        incr.assert_any_call("gitlab.project_webhook.reconcile", tags={"outcome": "created"})
 
     @responses.activate
     def test_create_repository_verify_payload(self) -> None:
@@ -188,7 +191,15 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         )
 
         repo = self.get_repository(pk=response.data["id"])
-        self.relink_repository(repo)
+        with (
+            patch("sentry.integrations.gitlab.client.metrics.incr") as incr,
+            patch(
+                "sentry.integrations.gitlab.repository.repository_service.update_repository"
+            ) as update,
+        ):
+            self.relink_repository(repo)
+        update.assert_not_called()
+        incr.assert_any_call("gitlab.project_webhook.reconcile", tags={"outcome": "updated"})
 
         assert [call.request.method for call in responses.calls] == ["PUT"]
         # An install-triggered task may run after sync has already repaired the hook.

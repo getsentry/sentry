@@ -82,58 +82,21 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         client = installation.get_client()
         project_id = repo.config["project_id"]
         existing_webhook_id = repo.config.get("webhook_id")
-        if existing_webhook_id and self._update_webhook(
-            installation, client, project_id, existing_webhook_id, log_extra
-        ):
-            return
         try:
-            hook_id = client.create_project_webhook(project_id)
+            hook_id = client.ensure_project_webhook(project_id, existing_webhook_id)
         except Exception as e:
             raise installation.raise_error(e)
-        repo.config["webhook_id"] = hook_id
-        repository_service.update_repository(organization_id=organization.id, update=repo)
-        logger.info(
-            (
+        if hook_id != existing_webhook_id:
+            repo.config["webhook_id"] = hook_id
+            repository_service.update_repository(organization_id=organization.id, update=repo)
+            event = (
                 "gitlab.repository.webhook_recreated"
                 if existing_webhook_id
                 else "gitlab.repository.webhook_created"
-            ),
-            extra={**log_extra, "gitlab.repository.webhook_id": hook_id},
-        )
-
-    def _update_webhook(self, installation, client, project_id, webhook_id, log_extra) -> bool:
-        """Push the current hook config to the stored hook.
-
-        Returns False when the hook has to be created afresh instead.
-        """
-        try:
-            hook = client.update_project_webhook(project_id, webhook_id)
-        except ApiError as e:
-            # Only a missing hook may fall through to create. An update that reached
-            # GitLab but reported anything else may well have applied, and creating a
-            # second hook on top of it would double every delivery.
-            if e.code != 404:
-                raise installation.raise_error(e)
-            return False
-        # GitLab stops delivering to a hook after repeated failed deliveries. A temporarily
-        # disabled hook re-enables itself once the backoff expires, but nothing short of
-        # replacing it revives one disabled for good.
-        alert_status = hook.get("alert_status")
-        log_extra = {
-            **log_extra,
-            "gitlab.repository.webhook_id": webhook_id,
-            "gitlab.repository.alert_status": alert_status,
-        }
-        if alert_status != "disabled":
-            logger.info("gitlab.repository.webhook_updated", extra=log_extra)
-            return True
-        logger.info("gitlab.repository.replacing_webhook_disabled_by_gitlab", extra=log_extra)
-        try:
-            client.delete_project_webhook(project_id, webhook_id)
-        except ApiError as e:
-            if e.code != 404:
-                raise installation.raise_error(e)
-        return False
+            )
+        else:
+            event = "gitlab.repository.webhook_updated"
+        logger.info(event, extra={**log_extra, "gitlab.repository.webhook_id": hook_id})
 
     def on_delete_repository(self, repo):
         """Clean up the attached webhook"""
