@@ -205,9 +205,10 @@ describe('SpendLimitsEditModal', () => {
     await userEvent.type(input, '123');
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
-    expect(
-      await screen.findByText('Ensure this value is less than or equal to 500.')
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'sharedMaxBudget: Ensure this value is less than or equal to 500.'
+    );
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
     expect(closeModal).not.toHaveBeenCalled();
   });
 });

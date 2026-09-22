@@ -2,7 +2,6 @@ import {useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -105,34 +104,20 @@ const spendLimitFormSchema = z.object({
   sharedMaxBudget: nonNegativeBudgetSchema,
 });
 
-function renderRequestError(error: Error | null, plan: Plan) {
-  if (!error) {
-    return null;
-  }
-
+function getRequestErrorMessage(error: Error, plan: Plan) {
   if (error instanceof RequestError && error.responseJSON) {
-    const errors = Object.entries(error.responseJSON);
-    if (errors.length > 0) {
-      return (
-        <Alert system variant="danger">
-          <ul>
-            {errors.map(([field, messages]) => (
-              <li key={field}>
-                <strong>{field}</strong>{' '}
-                {Array.isArray(messages) ? messages.join(' ') : String(messages)}
-              </li>
-            ))}
-          </ul>
-        </Alert>
-      );
+    const message = Object.entries(error.responseJSON)
+      .map(
+        ([field, messages]) =>
+          `${field}: ${Array.isArray(messages) ? messages.join(' ') : String(messages)}`
+      )
+      .join(' ');
+    if (message) {
+      return message;
     }
   }
 
-  return (
-    <Alert system variant="danger">
-      {getBudgetSaveError(plan)}
-    </Alert>
-  );
+  return getBudgetSaveError(plan);
 }
 
 function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: Props) {
@@ -149,8 +134,8 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
         method: 'POST',
         data: onDemandBudgets,
       }),
-    onError: () => {
-      addErrorMessage(getBudgetSaveError(subscription.planDetails));
+    onError: error => {
+      addErrorMessage(getRequestErrorMessage(error, subscription.planDetails));
     },
   });
 
@@ -203,7 +188,6 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
 
   return (
     <form.AppForm form={form}>
-      {renderRequestError(mutation.error, subscription.planDetails)}
       <form.Subscribe selector={state => state.values}>
         {values => (
           <form.AppField name="budgetMode">
