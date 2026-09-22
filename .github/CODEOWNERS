@@ -887,7 +887,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/integrations/source_code_management/                        @getsentry/agent-interfaces-sentry-backend @getsentry/scm
 /src/sentry/integrations/repository/                                    @getsentry/scm
 /src/sentry/integrations/cursor_origin/                                 @getsentry/scm
-/src/sentry/middleware/integrations/parsers/cursor_origin.py             @getsentry/scm
+/src/sentry/middleware/integrations/parsers/cursor_origin.py            @getsentry/scm
 /src/sentry/integrations/github_enterprise/                             @getsentry/scm
 /src/sentry/integrations/gitlab/                                        @getsentry/scm
 /src/sentry/integrations/bitbucket/                                     @getsentry/scm
@@ -898,7 +898,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/integrations/source_code_management/                      @getsentry/agent-interfaces-sentry-backend @getsentry/scm
 /tests/sentry/integrations/repository/                                  @getsentry/scm
 /tests/sentry/integrations/cursor_origin/                               @getsentry/scm
-/tests/sentry/middleware/integrations/parsers/test_cursor_origin.py      @getsentry/scm
+/tests/sentry/middleware/integrations/parsers/test_cursor_origin.py     @getsentry/scm
 /tests/sentry/integrations/github_enterprise/                           @getsentry/scm
 /tests/sentry/integrations/gitlab/                                      @getsentry/scm
 /tests/sentry/integrations/bitbucket/                                   @getsentry/scm
