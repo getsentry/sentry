@@ -1184,7 +1184,7 @@ describe('ScmCreateProject', () => {
       },
     });
     mockExistingGithubRepository([githubRepository, relayRepository]);
-    const {project} = mockProjectCreation('python-relay', 'python');
+    const {createRequest, project} = mockProjectCreation('python-relay', 'python');
     const repoLinkRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/repo/`,
       method: 'POST',
@@ -1212,5 +1212,6 @@ describe('ScmCreateProject', () => {
         expect.objectContaining({data: {repositoryId: relayRepository.id}})
       );
     });
+    expect(createRequest).toHaveBeenCalled();
   });
 });
