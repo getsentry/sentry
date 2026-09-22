@@ -1,5 +1,4 @@
 import type {PopperProps} from 'react-popper';
-import type {SerializedStyles} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {HTMLMotionProps, MotionProps, MotionStyle} from 'framer-motion';
 import {motion, useIsPresent} from 'framer-motion';
@@ -30,10 +29,6 @@ export interface OverlayProps
    * would be the arrow (or tip).
    */
   originPoint?: OriginPoint;
-  /**
-   * Additional style rules for the overlay content.
-   */
-  overlayStyle?: React.CSSProperties | SerializedStyles;
   /**
    * Indicates where the overlay is placed. This is useful for the animation to
    * be animated 'towards' the placment origin, giving it a pleasing effect.
@@ -102,7 +97,6 @@ export function Overlay({
   placement,
   originPoint,
   style,
-  overlayStyle: _overlayStyle,
   ...props
 }: OverlayProps) {
   const isTestEnv = NODE_ENV === 'test';
@@ -132,7 +126,6 @@ export function Overlay({
 }
 
 const OverlayInner = styled(motion.div)<{
-  overlayStyle?: React.CSSProperties | SerializedStyles;
   placement?: OverlayProps['placement'];
 }>`
   position: relative;
@@ -146,12 +139,6 @@ const OverlayInner = styled(motion.div)<{
   /* Override z-index from useOverlayPosition */
   z-index: ${p => p.theme.zIndex.dropdown} !important;
   will-change: transform, opacity;
-
-  /* Specificity hack to allow override styles to have higher specificity than
-   * styles provided in any styled components which extend Overlay */
-  :where(*) {
-    ${p => p.overlayStyle as any}
-  }
 `;
 
 interface PositionWrapperProps extends React.HTMLAttributes<HTMLDivElement> {

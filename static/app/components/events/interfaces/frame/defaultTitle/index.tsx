@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
@@ -225,14 +226,16 @@ export function DefaultTitle({
         key="info-tooltip"
         size="xs"
         delay={tooltipDelay}
-        overlayStyle={{maxWidth: 400, wordBreak: 'break-all'}}
+        maxWidth={400}
         skipWrapper
         title={
           <Fragment>
             <div>
               <strong>{t('Source Map')}</strong>
             </div>
-            {text}
+            <Text as="div" wordBreak="break-all">
+              {text}
+            </Text>
           </Fragment>
         }
       />

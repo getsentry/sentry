@@ -207,9 +207,8 @@ const issuesCountRenderer = (
     <Container>
       <Tooltip
         skipWrapper
-        overlayStyle={{padding: 0}}
         title={
-          <div>
+          <div data-tooltip-section>
             {filteredCount ? (
               <Fragment>
                 <StyledLink to={filteredDiscoverLink}>
