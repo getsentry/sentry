@@ -119,12 +119,10 @@ def _review_feedback(
 
 
 class ParseSerializeFeedbackTest(TestCase):
-    def test_check_suite_event_requires_expected_fields_and_preserves_extra_fields(self) -> None:
+    def test_check_suite_event_requires_expected_fields(self) -> None:
         event = _check_suite_event()
-        event["extra"] = "value"
         source = _check_suite_source(event)
 
-        assert source.event.dict()["extra"] == "value"
         assert source.app_name == "CI"
         assert get_check_suite_url(source.event) == (
             "https://github.com/owner/repo/commit/abc/checks?check_suite_id=1"
@@ -138,6 +136,42 @@ class ParseSerializeFeedbackTest(TestCase):
         del event["check_suite"]["check_runs_url"]
         with pytest.raises(ValidationError):
             CheckSuiteFeedbackSource(event=event)
+
+    def test_check_suite_event_drops_undeclared_webhook_fields(self) -> None:
+        event = _check_suite_event()
+        event["sender"] = {"login": "octocat", "email": "octocat@example.com"}
+        event["installation"] = {"id": 3, "account": {"login": "owner"}}
+        event["repository"]["private"] = True
+        event["check_suite"]["head_commit"] = {"author": {"email": "dev@example.com"}}
+        event["check_suite"]["app"]["owner"] = {"login": "ci-owner"}
+        event["check_suite"]["pull_requests"] = [
+            {"id": 7, "number": 8, "base": {"ref": "main", "repo": {"id": 9, "name": "repo"}}}
+        ]
+
+        serialized = serialize_feedback([Feedback(source=_check_suite_source(event))])
+
+        for leaked in ("octocat", "account", "private", "head_commit", "ci-owner", "number", "ref"):
+            assert leaked not in serialized
+
+        [parsed] = parse_feedback(serialized)
+        assert isinstance(parsed.source, CheckSuiteFeedbackSource)
+        assert parsed.source.event.dict() == {
+            "check_suite": {
+                "id": 1,
+                "head_sha": "abc",
+                "check_runs_url": "https://github.com/owner/repo/check-runs",
+                "app": {"name": "CI"},
+                "conclusion": None,
+                "updated_at": "2024-01-01T00:00:00Z",
+                "pull_requests": [{"id": 7, "base": {"repo": {"id": 9}}}],
+            },
+            "repository": {
+                "html_url": "https://github.com/owner/repo",
+                "id": None,
+                "full_name": None,
+            },
+            "installation": {"id": 3},
+        }
 
     def test_construct_does_not_resolve(self) -> None:
         with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run") as mock_resolve:
