@@ -15,6 +15,33 @@ from typing import Any, ClassVar, Final, Literal, Protocol, runtime_checkable
 _MISSING = object()
 
 
+class DerivedDataError(ValueError):
+    """A codec or aggregator failed; the original exception is chained as its cause."""
+
+    def __init__(
+        self,
+        stage: Literal["decode", "aggregate", "encode"],
+        *,
+        feature_name: str | None = None,
+        aggregator_name: str | None = None,
+        entry_id: int | None = None,
+    ) -> None:
+        self.stage = stage
+        self.feature_name = feature_name
+        self.aggregator_name = aggregator_name
+        self.entry_id = entry_id
+        context = ", ".join(
+            f"{key}={value}"
+            for key, value in (
+                ("feature", feature_name),
+                ("aggregator", aggregator_name),
+                ("entry_id", entry_id),
+            )
+            if value is not None
+        )
+        super().__init__(f"Derived data {stage} failed" + (f" ({context})" if context else ""))
+
+
 # ---------------------------------------------------------------------------
 # Codec
 # ---------------------------------------------------------------------------
@@ -33,20 +60,44 @@ class Codec[T]:
     on ``from_column`` so that column-loaded values are real enum instances).
     """
 
-    def to_json(self, value: T) -> Any:
+    def _validate(self, value: Any) -> T:
         return value
+
+    def to_json(self, value: T) -> Any:
+        return self._validate(value)
 
     def from_json(self, raw: Any) -> T:
-        return raw
+        return self._validate(raw)
 
     def to_column(self, value: T) -> Any:
-        return value
+        return self._validate(value)
 
     def from_column(self, raw: Any) -> T:
-        return raw
+        return self._validate(raw)
 
 
 IDENTITY_CODEC: Codec[Any] = Codec()
+
+
+class BoolCodec(Codec[bool]):
+    def _validate(self, value: Any) -> bool:
+        if not isinstance(value, bool):
+            raise TypeError("Expected a boolean")
+        return value
+
+
+class IntCodec(Codec[int]):
+    def _validate(self, value: Any) -> int:
+        if type(value) is not int:
+            raise TypeError("Expected an integer")
+        return value
+
+
+class IntListCodec(Codec[list[int]]):
+    def _validate(self, value: Any) -> list[int]:
+        if not isinstance(value, list) or any(type(item) is not int for item in value):
+            raise TypeError("Expected a list of integers")
+        return value
 
 
 class EnumCodec[E: StrEnum](Codec[E]):
@@ -67,8 +118,13 @@ class EnumCodec[E: StrEnum](Codec[E]):
 
 
 class DateTimeCodec(Codec[datetime]):
+    def _validate(self, value: Any) -> datetime:
+        if not isinstance(value, datetime):
+            raise TypeError("Expected a datetime")
+        return value
+
     def to_json(self, value: datetime) -> str:
-        return value.isoformat()
+        return self._validate(value).isoformat()
 
     def from_json(self, raw: Any) -> datetime:
         return datetime.fromisoformat(raw)
@@ -137,17 +193,25 @@ class Feature[T]:
             return self._default_factory()
         return self._default
 
+    def _convert[U](
+        self, convert: Callable[[Any], U], value: Any, stage: Literal["decode", "encode"]
+    ) -> U:
+        try:
+            return convert(value)
+        except Exception as error:
+            raise DerivedDataError(stage, feature_name=self.name) from error
+
     def to_json(self, value: T) -> Any:
-        return self._codec.to_json(value)
+        return self._convert(self._codec.to_json, value, "encode")
 
     def from_json(self, raw: Any) -> T:
-        return self._codec.from_json(raw)
+        return self._convert(self._codec.from_json, raw, "decode")
 
     def to_column(self, value: T) -> Any:
-        return self._codec.to_column(value)
+        return self._convert(self._codec.to_column, value, "encode")
 
     def from_column(self, raw: Any) -> T:
-        return self._codec.from_column(raw)
+        return self._convert(self._codec.from_column, raw, "decode")
 
     def value(self, val: T) -> FeatureEntry:
         return (self, val)
@@ -406,7 +470,12 @@ class Pipeline[E: HasType]:
                     continue
             subset = state.view(view_fields)
             snapshot = copy.deepcopy(subset._data) if self._check_mutations else None
-            result = agg.fn(subset, entry)
+            try:
+                result = agg.fn(subset, entry)
+            except Exception as error:
+                raise DerivedDataError(
+                    "aggregate", aggregator_name=agg.name, entry_id=getattr(entry, "id", None)
+                ) from error
             if snapshot is not None:
                 for f, original in snapshot.items():
                     if f in view_fields and subset._data[f] != original:

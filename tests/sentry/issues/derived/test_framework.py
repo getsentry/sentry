@@ -1,14 +1,20 @@
 from datetime import datetime, timezone
 from enum import IntEnum
+from typing import Any, Literal
 
 import pytest
 
 from sentry.issues.derived.features import IssueStatus
 from sentry.issues.derived.framework import (
     AggregatorResult,
+    BoolCodec,
+    Codec,
     DateTimeCodec,
+    DerivedDataError,
     EnumCodec,
     Feature,
+    IntCodec,
+    IntListCodec,
     OptionalCodec,
     Pipeline,
     Scope,
@@ -287,3 +293,79 @@ class TestEnumCodecCoverage:
         if raw is not None:
             assert isinstance(loaded, IssueProgressState)
         assert codec.to_column(loaded) == raw
+
+
+@pytest.mark.parametrize(
+    "method,stage",
+    [
+        ("to_json", "encode"),
+        ("from_json", "decode"),
+        ("to_column", "encode"),
+        ("from_column", "decode"),
+    ],
+)
+def test_codec_error_context(method: str, stage: Literal["decode", "encode"]) -> None:
+    cause = RuntimeError("codec failed")
+
+    class BrokenCodec(Codec[Any]):
+        def _validate(self, value: Any) -> Any:
+            raise cause
+
+    feature = Feature("broken", default=0, codec=BrokenCodec())
+    with pytest.raises(DerivedDataError) as exc:
+        getattr(feature, method)("sensitive value")
+    assert exc.value.stage == stage
+    assert exc.value.feature_name == "broken"
+    assert exc.value.__cause__ is cause
+    assert "sensitive value" not in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "codec,value",
+    [
+        (BoolCodec(), 1),
+        (BoolCodec(), "false"),
+        (IntCodec(), True),
+        (IntCodec(), 1.5),
+        (IntCodec(), "1"),
+        (IntListCodec(), [True]),
+        (IntListCodec(), ["1"]),
+        (IntListCodec(), {}),
+        (DateTimeCodec(), "2025-01-01"),
+    ],
+)
+@pytest.mark.parametrize("method", ["from_column", "to_column"])
+def test_invalid_typed_values(codec: Codec[Any], value: Any, method: str) -> None:
+    with pytest.raises(DerivedDataError) as exc:
+        getattr(Feature("typed", default=None, codec=codec), method)(value)
+    assert exc.value.feature_name == "typed"
+    assert isinstance(exc.value.__cause__, TypeError)
+
+
+def test_aggregator_error_context() -> None:
+    feature = Feature[int]("count", default=0)
+    cause = KeyError("missing field")
+
+    @aggregator((feature,))
+    def broken(state: StateView, entry: object) -> AggregatorResult:
+        raise cause
+
+    class Entry:
+        type = 0
+        id = 123
+
+    with pytest.raises(DerivedDataError) as exc:
+        Pipeline([broken]).run([Entry()])
+    assert exc.value.stage == "aggregate"
+    assert exc.value.aggregator_name == "broken"
+    assert exc.value.entry_id == 123
+    assert exc.value.__cause__ is cause
+
+
+def test_codec_does_not_wrap_process_interrupt() -> None:
+    class InterruptCodec(Codec[Any]):
+        def _validate(self, value: Any) -> Any:
+            raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        Feature("interrupt", default=None, codec=InterruptCodec()).from_json(None)
