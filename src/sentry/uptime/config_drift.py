@@ -140,7 +140,7 @@ def find_missing_configs_for_store(store: ConfigStore) -> DriftResult:
 
 
 def get_sentinel_key(key_prefix: str, partition: int) -> str:
-    # Hash-tagged so it shares a cluster slot with the partition hash it stands for.
+    # Redis hash tag: lands in the config key's slot, so a node that loses it loses this too.
     return f"{{{get_config_key(key_prefix, partition)}}}:sentinel"
 
 
