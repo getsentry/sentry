@@ -44,6 +44,7 @@ from sentry.seer.autofix.feature.dispatch import (
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     LEGACY_FEATURE_ID,
+    CodeChangesStepArgs,
     RCAStepArgs,
     RepoPin,
     RepoPins,
@@ -547,19 +548,32 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    use_seer_feature = (step == AutofixStep.ROOT_CAUSE) or (
-        step == AutofixStep.SOLUTION
-        and features.has("organizations:autofix-solution-in-seer", group.organization, actor=user)
+    use_seer_feature = (
+        step == AutofixStep.ROOT_CAUSE
+        or (
+            step == AutofixStep.SOLUTION
+            and features.has(
+                "organizations:autofix-solution-in-seer", group.organization, actor=user
+            )
+        )
+        or (
+            step == AutofixStep.CODE_CHANGES
+            and features.has(
+                "organizations:autofix-code-changes-in-seer", group.organization, actor=user
+            )
+        )
     )
     if use_seer_feature:
         if run_id is not None:
             _assert_existing_run_belongs_to_group(group, run_id)
 
-        step_args: RCAStepArgs | SolutionStepArgs
+        step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs
         if step == AutofixStep.ROOT_CAUSE:
             step_args = RCAStepArgs(repo_pins=_build_repo_pins(group, referrer))
         elif step == AutofixStep.SOLUTION:
             step_args = SolutionStepArgs(should_run_repo_checks=enable_bash_tools)
+        elif step == AutofixStep.CODE_CHANGES:
+            step_args = CodeChangesStepArgs(should_run_repo_checks=enable_bash_tools)
         else:
             raise ValueError(f"invalid step: {step}")
 
