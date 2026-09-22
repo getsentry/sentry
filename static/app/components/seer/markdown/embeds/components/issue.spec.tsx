@@ -111,5 +111,19 @@ describe('issue embed', () => {
     it('ignores a group id handed over as the short id', async () => {
       await expectQuery({id: '7716642857', shortId: '7716642857'}, 'issue.id:7716642857');
     });
+
+    it('heads the card with the short id and links it to the group id', () => {
+      mockIssuesRequest();
+
+      renderEmbed({name: 'issue', data: {id: '7716642857', shortId: 'JAVASCRIPT-22SP'}});
+
+      // The heading names the issue the way the inline link does, while the
+      // link out uses the group id the way the inline link's href does.
+      expect(screen.getByRole('button', {name: 'JAVASCRIPT-22SP'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'View Issue'})).toHaveAttribute(
+        'href',
+        '/issues/7716642857/'
+      );
+    });
   });
 });
