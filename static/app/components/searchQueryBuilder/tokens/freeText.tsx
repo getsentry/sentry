@@ -437,6 +437,7 @@ function SearchQueryBuilderInputInternal({
       restoreFocusAfterBlurRef.current = false;
       inputRef.current.focus();
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [trimmedTokenValue]);
 
   useEffect(() => {

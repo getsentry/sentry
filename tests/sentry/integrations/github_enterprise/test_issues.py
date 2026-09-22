@@ -50,6 +50,12 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
         assert request.headers[PROXY_BASE_URL_HEADER] == f"https://{self._IP_ADDRESS}"
         assert PROXY_SIGNATURE_HEADER in request.headers
 
+    def test_get_issue_url_uses_enterprise_host(self) -> None:
+        assert (
+            self.install.get_issue_url("getsentry/sentry#321")
+            == f"https://{self._IP_ADDRESS}/getsentry/sentry/issues/321"
+        )
+
     def test_issue_url_uses_enterprise_host(self) -> None:
         self.create_repo(
             name="getsentry/sentry", project=self.project, integration_id=self.model.id

@@ -11,7 +11,10 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {AggregateProfileSource} from 'sentry/utils/analytics/profilingAnalyticsEvents';
 import {defined} from 'sentry/utils/defined';
-import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import type {
+  CanvasPoolManager,
+  CanvasScheduler,
+} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
@@ -115,6 +118,7 @@ function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
 
 interface AggregateFlamegraphTreeTableProps {
   canvasPoolManager: CanvasPoolManager;
+  canvasScheduler: CanvasScheduler;
   frameFilter: 'system' | 'application' | 'all';
   profileType: AggregateProfileSource;
   recursion: 'collapsed' | null;
@@ -124,6 +128,7 @@ interface AggregateFlamegraphTreeTableProps {
 
 export function AggregateFlamegraphTreeTable({
   canvasPoolManager,
+  canvasScheduler,
   expanded,
   profileType,
   recursion,
@@ -346,6 +351,7 @@ export function AggregateFlamegraphTreeTable({
     scrollContainerStyles: scrollContainerStyles,
     containerStyles: fixedContainerStyles,
     handleSortingChange,
+    handleScrollTo,
     handleExpandTreeNode,
     handleRowClick: _handleRowClick,
     handleRowKeyDown,
@@ -378,6 +384,19 @@ export function AggregateFlamegraphTreeTable({
     },
     [canvasPoolManager, _handleRowClick, getNodeAtIndex]
   );
+
+  useEffect(() => {
+    function onShowInTableView(frame: FlamegraphFrame) {
+      handleScrollTo(node => node.node === frame.node);
+    }
+
+    canvasScheduler.on('zoom at frame', onShowInTableView);
+    canvasScheduler.on('show in table view', onShowInTableView);
+    return () => {
+      canvasScheduler.off('show in table view', onShowInTableView);
+      canvasScheduler.off('zoom at frame', onShowInTableView);
+    };
+  }, [canvasScheduler, handleScrollTo]);
 
   const onSortChange = useCallback(
     (newSort: 'sample count' | 'duration' | 'name') => {

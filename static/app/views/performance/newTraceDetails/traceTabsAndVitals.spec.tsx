@@ -7,8 +7,8 @@ import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTrace
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
-  makeTrace,
-  makeTransaction,
+  makeEAPSpan,
+  makeEAPTrace,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 import {TraceTabsAndVitals} from 'sentry/views/performance/newTraceDetails/traceTabsAndVitals';
 import {
@@ -53,17 +53,15 @@ describe('TraceTabsAndVitals', () => {
   it('uses the router location when navigating from a vital pill', async () => {
     const organization = OrganizationFixture();
     const tree = TraceTree.FromTrace(
-      makeTrace({
-        transactions: [
-          makeTransaction({
-            event_id: 'root-transaction',
-            measurements: {lcp: {value: 500, unit: 'millisecond'}},
-            parent_span_id: null,
-            project_id: 1,
-            project_slug: 'project-slug',
-          }),
-        ],
-      }),
+      makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'root-transaction',
+          measurements: {'measurements.lcp': 500},
+          parent_span_id: null,
+          project_id: 1,
+          project_slug: 'project-slug',
+        }),
+      ]),
       {meta: null, organization, replay: null}
     );
     const rootEventResults = {data: {}} as TraceRootEventQueryResults;

@@ -13,7 +13,6 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
-import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -55,8 +54,6 @@ import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
-import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergroupDrawer';
-import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -90,11 +87,9 @@ const MAX_ISSUES_COUNT = 100;
 interface Props {
   headerActions?: ReactNode;
   initialQuery?: string;
-  initialSort?: IssueSortOptions;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
-  withColumns?: GroupListColumn[];
 }
 
 interface EndpointParams extends Partial<PageFilterDatetime> {
@@ -139,12 +134,10 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
 
 function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
-  initialSort = DEFAULT_ISSUE_STREAM_SORT,
   shouldFetchOnMount = true,
   title = t('Issues'),
   titleDescription,
   headerActions,
-  withColumns,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -191,11 +184,6 @@ function IssueListOverviewInner({
 
   useIssuesINPObserver();
 
-  const {data: supergroupLookup, isLoading: supergroupsLoading} =
-    useSuperGroups(groupIds);
-
-  useSupergroupDrawer({lookup: supergroupLookup, memberList});
-
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
       // Note: We do not update state with cursors from polling,
@@ -230,11 +218,9 @@ function IssueListOverviewInner({
   // Saved views persist their own sort, so they neither read nor write it.
   const defaultSort = urlParams.viewId
     ? (groupSearchView?.querySort ?? DEFAULT_ISSUE_STREAM_SORT)
-    : initialSort === DEFAULT_ISSUE_STREAM_SORT
-      ? hasRecommendedSortDefault
-        ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
-        : DEFAULT_ISSUE_STREAM_SORT
-      : initialSort;
+    : hasRecommendedSortDefault
+      ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
+      : DEFAULT_ISSUE_STREAM_SORT;
   const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
@@ -570,11 +556,6 @@ function IssueListOverviewInner({
     num_issues: groups.length,
     group_ids: groups.map(group => group.id),
     total_issues_count: queryCount,
-    total_issue_group_count: new Set(
-      Object.values(supergroupLookup)
-        .filter(sg => sg !== null)
-        .map(sg => sg.id)
-    ).size,
     sort,
     realtime_active: realtimeActive,
     is_view: urlParams.viewId ? true : false,
@@ -716,11 +697,7 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
-    if (
-      hasRecommendedSortDefault &&
-      !urlParams.viewId &&
-      initialSort === DEFAULT_ISSUE_STREAM_SORT
-    ) {
+    if (hasRecommendedSortDefault && !urlParams.viewId) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});
@@ -1012,12 +989,10 @@ function IssueListOverviewInner({
                 allResultsVisible={allResultsVisible()}
                 displayReprocessingActions={displayReprocessingActions}
                 memberList={memberList}
-                issuesLoading={issuesLoading || supergroupsLoading}
+                issuesLoading={issuesLoading}
                 statsLoading={statsLoading}
-                supergroupLookup={supergroupLookup}
                 error={error}
                 refetchGroups={fetchData}
-                withColumns={withColumns}
                 paginationCaption={
                   !issuesLoading && modifiedQueryCount > 0
                     ? tct('[start]-[end] of [total]', {

@@ -25,6 +25,7 @@ export function useFeedbackOnboardingSidebarPanel() {
     if (location.hash === FEEDBACK_HASH || location.hash === CRASH_REPORT_HASH) {
       OnboardingDrawerStore.open(OnboardingDrawerKey.FEEDBACK_ONBOARDING);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location.hash, organization]);
 
   const activateSidebar = useCallback((event: {preventDefault: () => void}) => {

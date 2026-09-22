@@ -112,7 +112,8 @@ class GetNightShiftOrgTweaksTest(TestCase):
 
         assert tweaks is not None
         assert tweaks.max_candidates == 20
-        assert tweaks.intelligence_level == "high"
+        assert tweaks.intelligence_level == "medium"
+        assert tweaks.reasoning_effort == "medium"
 
     def test_other_org_returns_none(self) -> None:
         with self.options(

@@ -24,6 +24,7 @@ import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -438,7 +439,9 @@ export function EventGraph({
     currentTab,
   ]);
 
-  const bucketSize = eventSeries ? getBucketSize(series) : undefined;
+  const bucketSize = eventView.interval
+    ? intervalToMilliseconds(eventView.interval)
+    : getBucketSize(series);
 
   const legendConfig = legend({
     theme,

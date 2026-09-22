@@ -203,6 +203,7 @@ function useRefreshOnStepResult(groupId: string, section: AutofixSection | undef
     if (status === 'completed') {
       refreshAutofixProgressQueries();
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [step, status, refreshAutofixProgressQueries]);
 }
 
