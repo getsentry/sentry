@@ -95,6 +95,10 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.scm_messaging_channel_selected': ScmMessagingProviderParams & {
+    // Whether the channel came from the loaded list or was typed in.
+    source: 'list' | 'typed';
+  };
   'onboarding.scm_messaging_channel_validation_failed': ScmMessagingProviderParams;
   'onboarding.scm_messaging_choose_destination_cancelled': ScmMessagingProviderParams;
   'onboarding.scm_messaging_choose_destination_clicked': ScmMessagingProviderParams;
@@ -248,6 +252,8 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.scm_dsn_copied': 'Onboarding: SCM DSN Copied',
   'onboarding.scm_js_loader_npm_docs_shown':
     'Onboarding: SCM JS Loader Switch to npm Instructions',
+  'onboarding.scm_messaging_channel_selected':
+    'Onboarding: SCM Messaging Channel Selected',
   'onboarding.scm_messaging_channel_validation_failed':
     'Onboarding: SCM Messaging Channel Validation Failed',
   'onboarding.scm_messaging_choose_destination_cancelled':

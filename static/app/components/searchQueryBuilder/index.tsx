@@ -27,6 +27,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
 import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
@@ -188,6 +189,8 @@ export interface SearchQueryBuilderProps {
    * ```
    */
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  /** Render the input and suggestions together in one panel. */
+  menuPresentation?: 'floating' | 'panel';
   /**
    * If provided, filters recent searches by this query string on the backend.
    * This query will not be displayed in the UI because it is stripped from the
@@ -306,7 +309,8 @@ function SearchQueryBuilderUI({
   onChange,
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch} = useSearchQueryBuilderState();
-  const {wrapperRef, actionBarRef, size} = useSearchQueryBuilderLayout();
+  const {wrapperRef, actionBarRef, size, menuPresentation, panelRef, setMenuContainer} =
+    useSearchQueryBuilderLayout();
   const {skipNextSearchQueryBuilderAutoFocusRef} = useSearchQueryBuilderAI();
   const autoFocusOnMount = useRef(
     // oxlint-disable-next-line react/refs
@@ -330,7 +334,7 @@ function SearchQueryBuilderUI({
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
 
-  return (
+  const searchBar = (
     <Wrapper
       className={className}
       onBlur={() =>
@@ -339,8 +343,6 @@ function SearchQueryBuilderUI({
       ref={setWrapperRef}
       aria-disabled={disabled}
       data-test-id="search-query-builder"
-      // Styling hook only; the icon itself is what tests should look for.
-      data-hide-search-icon={showSearchIcon ? undefined : true}
     >
       <PanelProvider>
         {showSearchIcon ? (
@@ -356,6 +358,7 @@ function SearchQueryBuilderUI({
             autoFocus={autoFocusOnMount.current}
             label={label}
             actionBarWidth={actionBarWidth}
+            hideSearchIcon={!showSearchIcon}
           />
         )}
         {size !== 'small' && (
@@ -364,6 +367,20 @@ function SearchQueryBuilderUI({
       </PanelProvider>
     </Wrapper>
   );
+
+  if (menuPresentation === 'panel') {
+    return (
+      <QueryBuilderPanel
+        ref={panelRef}
+        data-test-id="search-query-builder-panel"
+        onMenuContainerRef={setMenuContainer}
+      >
+        {searchBar}
+      </QueryBuilderPanel>
+    );
+  }
+
+  return searchBar;
 }
 
 export function SearchQueryBuilder({...props}: SearchQueryBuilderProps) {
@@ -388,11 +405,6 @@ const Wrapper = styled(Input.withComponent('div'))`
   contain: inline-size;
   font-size: ${p => p.theme.font.size.md};
   cursor: text;
-
-  /* Reclaim the space the search icon would have occupied. */
-  &[data-hide-search-icon='true'] [role='grid'] {
-    padding-left: ${p => p.theme.space.sm};
-  }
 `;
 
 const ButtonsWrapper = styled('div')`

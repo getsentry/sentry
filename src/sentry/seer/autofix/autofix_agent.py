@@ -382,7 +382,7 @@ def get_autofix_agent_client(
     reasoning_effort: Literal["low", "medium", "high"] | None = None,
     enable_coding: bool = False,
     code_review_enabled: bool = False,
-    enable_bash_tools: bool = False,
+    enable_bash_mode: bool = False,
     enable_pr_context_tools: bool = False,
     user: User | RpcUser | AnonymousUser | None = None,
 ) -> SeerAgentClient:
@@ -403,7 +403,7 @@ def get_autofix_agent_client(
         hook_call_on_failure=True,
         enable_coding=enable_coding,
         code_review_enabled=code_review_enabled,
-        enable_bash_tools=enable_bash_tools,
+        enable_bash_mode=enable_bash_mode,
         enable_pr_context_tools=enable_pr_context_tools,
     )
 
@@ -509,7 +509,7 @@ def trigger_autofix_agent(
     insert_index: int | None = None,
     feedback: Sequence[Feedback] | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
-    enable_bash_tools: bool = False,
+    enable_bash_mode: bool = False,
     actor_user_id: int | None = None,
     commit_author: SeerCommitAuthor | None = None,
     iteration_id: int | None = None,
@@ -542,7 +542,7 @@ def trigger_autofix_agent(
 
     # If autofix-should-run-repo-checks is enabled,
     # we should force bash tools on as it is dependent on bash tools
-    enable_bash_tools = enable_bash_tools or (
+    enable_bash_mode = enable_bash_mode or (
         referrer == AutofixReferrer.NIGHT_SHIFT
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
@@ -559,7 +559,7 @@ def trigger_autofix_agent(
         if step == AutofixStep.ROOT_CAUSE:
             step_args = RCAStepArgs(repo_pins=_build_repo_pins(group, referrer))
         elif step == AutofixStep.SOLUTION:
-            step_args = SolutionStepArgs(should_run_repo_checks=enable_bash_tools)
+            step_args = SolutionStepArgs(should_run_repo_checks=enable_bash_mode)
         else:
             raise ValueError(f"invalid step: {step}")
 
@@ -573,7 +573,7 @@ def trigger_autofix_agent(
             stopping_point=stopping_point,
             allow_free_cohort=allow_free_cohort,
             user=user,
-            enable_bash_tools=enable_bash_tools,
+            enable_bash_mode=enable_bash_mode,
         )
         feature_run = trigger_autofix_feature(group, args)
         feature_run_id = feature_run.seer_run_state_id
@@ -607,7 +607,7 @@ def trigger_autofix_agent(
 
     client = get_autofix_agent_client(
         group,
-        enable_bash_tools=enable_bash_tools,
+        enable_bash_mode=enable_bash_mode,
         enable_coding=config.enable_coding,
         enable_pr_context_tools=is_iteration_step,
         user=user,
@@ -632,7 +632,7 @@ def trigger_autofix_agent(
         group,
         user_context,
         run_state=run_state,
-        should_run_repo_checks=enable_bash_tools,
+        should_run_repo_checks=enable_bash_mode,
     )
     prompt_metadata = {
         "step": step.value,

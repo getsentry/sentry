@@ -413,7 +413,7 @@ describe('SeerDrawerNextStep', () => {
       const dropdownButton = await screen.findByRole('button', {
         name: 'More code fix options',
       });
-      expect(dropdownButton).toBeDisabled();
+      expect(dropdownButton).toHaveAttribute('aria-disabled', 'true');
       await userEvent.hover(dropdownButton);
       expect(
         await screen.findByText(/requires a connected GitHub repository/)
@@ -446,7 +446,7 @@ describe('SeerDrawerNextStep', () => {
       const dropdownButton = await screen.findByRole('button', {
         name: 'More code fix options',
       });
-      expect(dropdownButton).toBeDisabled();
+      expect(dropdownButton).toHaveAttribute('aria-disabled', 'true');
       await userEvent.hover(dropdownButton);
       expect(
         await screen.findByText(

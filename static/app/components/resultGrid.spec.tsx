@@ -19,10 +19,10 @@ describe('ResultGrid', () => {
     );
   }
 
-  function renderBasicGrid(
-    extraProps: Partial<React.ComponentProps<typeof ResultGrid>> = {}
+  function ExampleBasicResultGrid(
+    extraProps: Partial<React.ComponentProps<typeof ResultGrid>>
   ) {
-    return render(
+    return (
       <ResultGrid
         endpoint={endpoint}
         path={path}
@@ -47,7 +47,7 @@ describe('ResultGrid', () => {
       headers: {Link: makeLinkHeader()},
     });
 
-    renderBasicGrid();
+    render(<ExampleBasicResultGrid />);
 
     expect(await screen.findByText('alpha')).toBeInTheDocument();
     expect(screen.getByText('beta')).toBeInTheDocument();
@@ -63,7 +63,7 @@ describe('ResultGrid', () => {
       headers: {Link: makeLinkHeader()},
     });
 
-    const {router} = renderBasicGrid();
+    const {router} = render(<ExampleBasicResultGrid />);
 
     await userEvent.type(await screen.findByPlaceholderText('Search'), 'hello');
     await userEvent.click(screen.getByRole('button', {name: 'Search'}));
@@ -81,7 +81,7 @@ describe('ResultGrid', () => {
       headers: {Link: makeLinkHeader()},
     });
 
-    const {router} = renderBasicGrid();
+    const {router} = render(<ExampleBasicResultGrid />);
 
     await screen.findByTestId('pagination');
 
@@ -103,9 +103,11 @@ describe('ResultGrid', () => {
       headers: {Link: makeLinkHeader()},
     });
 
-    const {router} = renderBasicGrid({
-      filters: {status: {name: 'Status', options: [['active', 'Active']]}},
-    });
+    const {router} = render(
+      <ExampleBasicResultGrid
+        filters={{status: {name: 'Status', options: [['active', 'Active']]}}}
+      />
+    );
 
     await screen.findByTestId('pagination');
     await userEvent.click(screen.getByRole('button', {name: /Status/}));
@@ -127,7 +129,7 @@ describe('ResultGrid', () => {
       cancel: () => {},
     });
 
-    renderBasicGrid();
+    render(<ExampleBasicResultGrid />);
     const alert = await screen.findByText('Something bad happened :/');
 
     expect(alert).toBeInTheDocument();

@@ -186,7 +186,7 @@ export type InvestigationCandidate =
 /** A known set of string values that still accepts one Seer added later. */
 type InvestigationOrchestrationOpenString<T extends string> = T | (string & {});
 
-type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenString<
+export type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenString<
   | 'intake'
   | 'broad_scan'
   | 'planning'
@@ -380,10 +380,17 @@ export type InvestigationOrchestration = {
   status: InvestigationOrchestrationStatus;
   updatedAt: string;
   workflowVersion: number;
+  activeSince?: string | null;
+  /** Active work only; absent on runs created before timing was tracked. */
+  activeTimeElapsedSeconds?: number | null;
+  finishedAt?: string | null;
   pendingInput?: {
     missingFields: Array<'prompt' | 'time_range'>;
     prompt: string;
   } | null;
+  /** Fresh API server time, independent of the projection's last update. */
+  serverTime?: string;
+  startedAt?: string | null;
   steeringIntents?: Array<{
     createdAt: string;
     id: string;

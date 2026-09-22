@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Protocol
 
 from django.db import connections, router
@@ -13,6 +13,7 @@ from sentry.issues.derived.check import CheckFailure, CheckId, CheckInvalidated,
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import metrics
+from sentry.utils.db import statement_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ _MAX_CHECK_GROUPS = 10_000
 # Safety valve on the number of group IDs one ``group_id_ranges_for_hash`` call may
 # walk, however large the requested chunking is.
 _MAX_SCANNED_GROUP_IDS = 2_000_000
+_GROUP_ID_RANGE_TIMEOUT = timedelta(seconds=50)
 
 
 @dataclass(frozen=True)
@@ -170,6 +172,7 @@ def group_id_ranges_for_hash(
 
     using = router.db_for_read(GroupDerivedData)
     with (
+        statement_timeout(using, _GROUP_ID_RANGE_TIMEOUT),
         metrics.timer("issues.derived.group_id_range_query"),
         connections[using].cursor() as cursor,
     ):

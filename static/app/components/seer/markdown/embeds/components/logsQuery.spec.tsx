@@ -20,9 +20,9 @@ const TIME_SERIES = [
   },
 ];
 
-function renderEmbed(data: Record<string, unknown>) {
+function ExampleLogsQueryEmbed({data}: {data: Record<string, unknown>}) {
   const tag = `{% logsQuery %}${JSON.stringify(data)}{% /logsQuery %}`;
-  return render(<SeerMarkdown raw={tag} />);
+  return <SeerMarkdown raw={tag} />;
 }
 
 describe('logs query embed', () => {
@@ -54,7 +54,11 @@ describe('logs query embed', () => {
       },
     });
 
-    renderEmbed({query: 'severity:error', mode: 'samples', statsPeriod: '24h'});
+    render(
+      <ExampleLogsQueryEmbed
+        data={{query: 'severity:error', mode: 'samples', statsPeriod: '24h'}}
+      />
+    );
 
     expect(await screen.findByText('Connection refused')).toBeInTheDocument();
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
@@ -98,13 +102,17 @@ describe('logs query embed', () => {
       body: {data: [{severity: 'error', 'count(message)': 42}]},
     });
 
-    renderEmbed({
-      query: '',
-      mode: 'aggregate',
-      groupBy: ['severity'],
-      yAxes: ['count(message)'],
-      statsPeriod: '7d',
-    });
+    render(
+      <ExampleLogsQueryEmbed
+        data={{
+          query: '',
+          mode: 'aggregate',
+          groupBy: ['severity'],
+          yAxes: ['count(message)'],
+          statsPeriod: '7d',
+        }}
+      />
+    );
 
     expect(await screen.findByText('error')).toBeInTheDocument();
 
@@ -131,14 +139,18 @@ describe('logs query embed', () => {
       body: {data: [{severity: 'error', 'count(message)': 42}]},
     });
 
-    renderEmbed({
-      query: '',
-      mode: 'aggregate',
-      groupBy: ['severity'],
-      yAxes: ['count(message)'],
-      sort: 'severity',
-      statsPeriod: '7d',
-    });
+    render(
+      <ExampleLogsQueryEmbed
+        data={{
+          query: '',
+          mode: 'aggregate',
+          groupBy: ['severity'],
+          yAxes: ['count(message)'],
+          sort: 'severity',
+          statsPeriod: '7d',
+        }}
+      />
+    );
 
     expect(await screen.findByText('error')).toBeInTheDocument();
 
@@ -169,7 +181,11 @@ describe('logs query embed', () => {
       body: {data: []},
     });
 
-    renderEmbed({query: 'severity:error', mode: 'samples', statsPeriod: '24h'});
+    render(
+      <ExampleLogsQueryEmbed
+        data={{query: 'severity:error', mode: 'samples', statsPeriod: '24h'}}
+      />
+    );
 
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
 
@@ -195,12 +211,16 @@ describe('logs query embed', () => {
 
     // The logs dataset rejects an orderby that names no selected column, so
     // the default `-timestamp` cannot survive a field list without it.
-    renderEmbed({
-      query: 'severity:error',
-      mode: 'samples',
-      fields: ['message'],
-      statsPeriod: '24h',
-    });
+    render(
+      <ExampleLogsQueryEmbed
+        data={{
+          query: 'severity:error',
+          mode: 'samples',
+          fields: ['message'],
+          statsPeriod: '24h',
+        }}
+      />
+    );
 
     expect(await screen.findByText('Connection refused')).toBeInTheDocument();
 
@@ -225,12 +245,16 @@ describe('logs query embed', () => {
       body: {data: [{timestamp: '2026-08-27T12:00:00Z', message: 'Retrying'}]},
     });
 
-    renderEmbed({
-      query: '',
-      mode: 'samples',
-      sort: '-span.duration',
-      statsPeriod: '24h',
-    });
+    render(
+      <ExampleLogsQueryEmbed
+        data={{
+          query: '',
+          mode: 'samples',
+          sort: '-span.duration',
+          statsPeriod: '24h',
+        }}
+      />
+    );
 
     expect(await screen.findByText('Retrying')).toBeInTheDocument();
 
@@ -252,7 +276,9 @@ describe('logs query embed', () => {
       body: {data: []},
     });
 
-    renderEmbed({query: '', mode: 'aggregate', statsPeriod: '24h'});
+    render(
+      <ExampleLogsQueryEmbed data={{query: '', mode: 'aggregate', statsPeriod: '24h'}} />
+    );
 
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
