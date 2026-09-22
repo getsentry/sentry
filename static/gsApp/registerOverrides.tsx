@@ -22,6 +22,7 @@ import {DisabledRateLimits} from 'getsentry/components/features/disabledRateLimi
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
 import {PerformanceNewProjectPrompt} from 'getsentry/components/features/performanceNewProjectPrompt';
 import {ProjectPerformanceScoreCard} from 'getsentry/components/features/projectPerformanceScoreCard';
+import {FeedbackInit} from 'getsentry/components/feedbackInit';
 import {InviteMembersButtonCustomization} from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
@@ -164,6 +165,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    * like `/onboarding/*` are covered too.
    */
   'component:replay-init': ReplayInit,
+  'component:feedback-init': FeedbackInit,
 
   /**
    * Augment the header with the getsentry banners. This includes banners

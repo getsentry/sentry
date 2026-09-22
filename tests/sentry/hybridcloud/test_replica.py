@@ -1,3 +1,7 @@
+from unittest.mock import Mock, call, patch
+
+import pytest
+
 from sentry.auth.services.auth.serial import serialize_auth_provider
 from sentry.hybridcloud.models import ApiKeyReplica
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -146,3 +150,113 @@ def test_replicate_auth_identity() -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             for ai, next_ident in zip(auth_identities, [*auth_idents[1:], auth_idents[0]]):
                 assert AuthIdentityReplica.objects.get(auth_identity_id=ai.id).ident == next_ident
+
+
+@django_db_all(transaction=True)
+@all_silo_test(cells=create_test_cells("us"))
+@patch("sentry.hybridcloud.services.replica.impl.metrics")
+def test_replica_write_records_created_then_updated(mock_metrics: Mock) -> None:
+    user = Factories.create_user()
+    org = Factories.create_organization(owner=user)
+    mock_metrics.reset_mock()
+
+    with assume_test_silo_mode(SiloMode.CELL):
+        # The replica write runs in the cell; under MONOLITH the mode is monolith.
+        expected_silo = SiloMode.get_current_mode().value.lower()
+
+    with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+        auth_provider = AuthProvider.objects.create(
+            organization_id=org.id, provider="abc", config={"a": 1}
+        )
+    with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+        auth_provider.provider = "new_provider"
+        auth_provider.save()
+
+    write_tags = {"silo": expected_silo, "category": "AUTH_PROVIDER_UPDATE"}
+    assert mock_metrics.incr.mock_calls == [
+        call(
+            "hybridcloud.replication.write",
+            tags={**write_tags, "outcome": "created"},
+        ),
+        call(
+            "hybridcloud.replication.write",
+            tags={**write_tags, "outcome": "updated"},
+        ),
+    ]
+
+
+@django_db_all(transaction=True)
+@all_silo_test(cells=create_test_cells("us"))
+@patch("sentry.hybridcloud.services.replica.impl.metrics")
+def test_replica_write_records_error_and_reraises(mock_metrics: Mock) -> None:
+    from django.db import DataError
+
+    from sentry.hybridcloud.services.replica.impl import handle_replication
+
+    org = Factories.create_organization()
+    with assume_test_silo_mode(SiloMode.CELL):
+        # provider is varchar(128); Postgres rejects the save with a DataError.
+        broken_replica = AuthProviderReplica(
+            auth_provider_id=12345, organization_id=org.id, provider="x" * 200
+        )
+        with pytest.raises(DataError):
+            handle_replication(AuthProvider, broken_replica)
+        expected_silo = SiloMode.get_current_mode().value.lower()
+
+    assert mock_metrics.incr.mock_calls == [
+        call(
+            "hybridcloud.replication.write",
+            tags={"silo": expected_silo, "category": "AUTH_PROVIDER_UPDATE", "outcome": "error"},
+        )
+    ]
+
+
+@django_db_all(transaction=True)
+@all_silo_test(cells=create_test_cells("us"))
+@patch("sentry.hybridcloud.services.replica.impl.metrics")
+def test_project_key_mapping_write_is_recorded(mock_metrics: Mock) -> None:
+    from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
+    from sentry.hybridcloud.services.replica import control_replica_service
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        expected_silo = SiloMode.get_current_mode().value.lower()
+        assert control_replica_service.upsert_project_key_mapping(
+            project_key=RpcProjectKeyMapping(id=1, public_key="samekey", cell_name="us")
+        )
+        assert control_replica_service.upsert_project_key_mapping(
+            project_key=RpcProjectKeyMapping(id=1, public_key="samekey", cell_name="us")
+        )
+        # public_key is unique, so a different project key with the same public_key conflicts.
+        assert not control_replica_service.upsert_project_key_mapping(
+            project_key=RpcProjectKeyMapping(id=2, public_key="samekey", cell_name="us")
+        )
+
+    tags = {"silo": expected_silo, "category": "PROJECT_KEY_UPDATE"}
+    assert mock_metrics.incr.mock_calls == [
+        call("hybridcloud.replication.write", tags={**tags, "outcome": "created"}),
+        call("hybridcloud.replication.write", tags={**tags, "outcome": "updated"}),
+        call("hybridcloud.replication.write", tags={**tags, "outcome": "conflict"}),
+    ]
+
+
+@django_db_all(transaction=True)
+@all_silo_test(cells=create_test_cells("us"))
+@patch("sentry.hybridcloud.services.replica.impl.metrics")
+def test_organization_avatar_replica_write_is_recorded(mock_metrics: Mock) -> None:
+    from sentry.hybridcloud.services.replica import control_replica_service
+
+    org = Factories.create_organization()
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        expected_silo = SiloMode.get_current_mode().value.lower()
+        control_replica_service.upsert_organization_avatar_replica(
+            organization_id=org.id, avatar_type=1, avatar_ident="abc"
+        )
+        control_replica_service.upsert_organization_avatar_replica(
+            organization_id=org.id, avatar_type=1, avatar_ident="def"
+        )
+
+    tags = {"silo": expected_silo, "category": "ORGANIZATION_AVATAR_UPDATE"}
+    assert mock_metrics.incr.mock_calls == [
+        call("hybridcloud.replication.write", tags={**tags, "outcome": "created"}),
+        call("hybridcloud.replication.write", tags={**tags, "outcome": "updated"}),
+    ]

@@ -1,0 +1,220 @@
+---
+title: DropdownMenu
+description: Dropdown menus display a list of actions, links, or nested menu options from a trigger.
+category: navigation
+source: '@sentry/scraps/dropdownMenu'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/dropdownMenu/index.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.3: https://www.w3.org/TR/WCAG22/#focus-order
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WAI-ARIA Menu Button: https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/
+    WAI-ARIA Menu: https://www.w3.org/WAI/ARIA/apg/patterns/menu/
+---
+
+import {Button} from '@sentry/scraps/button';
+import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
+import {Flex} from '@sentry/scraps/layout';
+
+import {IconCopy, IconDelete, IconDownload, IconEdit} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/dropdownMenu');
+
+Use `DropdownMenu` for an action menu or a short list of links. It renders an accessible trigger and menu together.
+
+Use `CompactSelect` when the user chooses a value that stays selected. Use `DropdownMenu` when the items perform actions or navigate somewhere.
+
+```jsx
+<DropdownMenu
+  triggerLabel="Actions"
+  items={[
+    {key: 'edit', label: 'Edit', onAction: () => {}},
+    {key: 'delete', label: 'Delete', onAction: () => {}},
+  ]}
+/>
+```
+
+## Actions
+
+Set `label` and `onAction` on each item. Keys must be unique across the complete menu, including nested submenus. Use `disabled` to prevent an item from being selected.
+
+<Storybook.Demo>
+  <DropdownMenu
+    triggerLabel="Actions"
+    items={[
+      {
+        key: 'edit',
+        label: 'Edit',
+        leadingItems: <IconEdit size="sm" />,
+        onAction: () => {},
+      },
+      {
+        key: 'copy',
+        label: 'Copy',
+        leadingItems: <IconCopy size="sm" />,
+        onAction: () => {},
+      },
+      {
+        key: 'download',
+        label: 'Download',
+        leadingItems: <IconDownload size="sm" />,
+        onAction: () => {},
+      },
+      {
+        key: 'delete',
+        label: 'Delete',
+        leadingItems: <IconDelete size="sm" />,
+        disabled: true,
+        onAction: () => {},
+      },
+    ]}
+  />
+</Storybook.Demo>
+
+```jsx
+<DropdownMenu
+  triggerLabel="Actions"
+  items={[
+    {key: 'edit', label: 'Edit', onAction: () => {}},
+    {key: 'copy', label: 'Copy', onAction: () => {}},
+    {key: 'download', label: 'Download', onAction: () => {}},
+    {key: 'delete', label: 'Delete', disabled: true, onAction: () => {}},
+  ]}
+/>
+```
+
+## Sections, Links, and Submenus
+
+Group related items by adding `children` without setting `submenu`. Use `to` for internal links and `externalHref` for external links. Set `submenu` and `children` together to create a nested menu.
+
+<Storybook.Demo>
+  <Flex direction="column" gap="md">
+    <DropdownMenu
+      triggerLabel="Organized actions"
+      items={[
+        {
+          key: 'edit',
+          label: 'Edit',
+          children: [
+            {key: 'rename', label: 'Rename', onAction: () => {}},
+            {key: 'duplicate', label: 'Duplicate', onAction: () => {}},
+          ],
+        },
+        {
+          key: 'export',
+          label: 'Export',
+          submenu: {title: 'Export options'},
+          children: [
+            {key: 'csv', label: 'Export as CSV', onAction: () => {}},
+            {key: 'json', label: 'Export as JSON', onAction: () => {}},
+          ],
+        },
+      ]}
+    />
+    <DropdownMenu
+      triggerLabel="Links"
+      items={[
+        {key: 'project', label: 'Project settings', to: '/settings/'},
+        {
+          key: 'docs',
+          label: 'Documentation',
+          externalHref: 'https://docs.sentry.io',
+        },
+      ]}
+    />
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<DropdownMenu
+  triggerLabel="Organized actions"
+  items={[
+    {
+      key: 'export',
+      label: 'Export',
+      submenu: {title: 'Export options'},
+      children: [
+        {key: 'csv', label: 'Export as CSV', onAction: () => {}},
+        {key: 'json', label: 'Export as JSON', onAction: () => {}},
+      ],
+    },
+  ]}
+/>
+
+<DropdownMenu
+  triggerLabel="Links"
+  items={[
+    {key: 'project', label: 'Project settings', to: '/settings/'},
+    {key: 'docs', label: 'Documentation', externalHref: 'https://docs.sentry.io'},
+  ]}
+/>
+```
+
+Submenus open on hover or with the right arrow key. Pass an object to `submenu` to set a title or change the submenu position.
+
+## Sizes, Custom Triggers, and Footers
+
+The `size` prop controls the trigger and menu item size. The available values are `md` (default), `sm`, and `xs`. Set `isDisabled` to disable the trigger and menu.
+
+Use `trigger` when the default trigger does not fit the layout. The custom trigger must forward the props and ref it receives. Add `menuFooter` for supporting content below the items.
+
+<Storybook.Demo>
+  <Flex direction="column" gap="md">
+    <DropdownMenu
+      size="sm"
+      triggerLabel="Small"
+      items={[{key: 'item', label: 'Small item', onAction: () => {}}]}
+    />
+    <DropdownMenu
+      isDisabled
+      triggerLabel="Disabled"
+      items={[{key: 'item', label: 'Unavailable item', onAction: () => {}}]}
+    />
+    <DropdownMenu
+      trigger={(triggerProps, isOpen) => (
+        <Button {...triggerProps} aria-expanded={isOpen} variant="primary">
+          Custom trigger
+        </Button>
+      )}
+      items={[{key: 'item', label: 'Menu item', onAction: () => {}}]}
+      menuFooter={<DropdownMenuFooter>Footer content</DropdownMenuFooter>}
+    />
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<DropdownMenu size="sm" triggerLabel="Small" items={items} />
+<DropdownMenu isDisabled triggerLabel="Disabled" items={items} />
+<DropdownMenu
+  trigger={(triggerProps, isOpen) => (
+    <Button {...triggerProps} aria-expanded={isOpen} variant="primary">
+      Custom trigger
+    </Button>
+  )}
+  items={items}
+  menuFooter={<DropdownMenuFooter>Footer content</DropdownMenuFooter>}
+/>
+```
+
+## Accessibility
+
+`DropdownMenu` follows the [WAI-ARIA menu button pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/):
+
+- The trigger exposes its expanded state and opens the menu with Enter, Space, or the arrow keys.
+- Menu items support keyboard focus and selection.
+- Links retain their destination and close the menu after selection.
+- Submenus support hover and left/right arrow navigation.
+
+### Developer responsibilities
+
+- Give every menu item a unique `key`, including items in submenus.
+- Use visible `triggerLabel` text or provide an accessible name when using a custom trigger.
+- Forward all trigger props and the ref when using `trigger`.
+- Use `textValue` when an item label is not plain text and needs a searchable keyboard value.
+
+## See Also
+
+- [CompactSelect](/stories/core/compactselect/) — use for choosing and keeping a value.
+- [MenuListItem](/stories/core/menulistitem/) — use for building a custom menu or list item.

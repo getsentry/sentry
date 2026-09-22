@@ -122,6 +122,9 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.request.model",
     "gen_ai.response.model",
     "gen_ai.agent.name",
+    # Distinguishes ingest sources; the transcript uses it to recognize Anthropic
+    # OTel conversations, whose messages live only on the invoke_agent span.
+    "origin",
     "user.id",
     "user.email",
     "user.username",

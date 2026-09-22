@@ -58,6 +58,7 @@ export function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
     if (projectSlug && replayRecord.id && !replayRecord.has_viewed) {
       markAsViewed({projectSlug, replayId: replayRecord.id});
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [markAsViewed, organization, projectSlug, replayRecord]);
 
   const [{playlistStart, playlistEnd, playlistSort, ...locationQuery}] =

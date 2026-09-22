@@ -100,9 +100,7 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "UserNotificationSettingsProvidersEndpoint",
     "UserPermissionsConfigEndpoint",
     "UserPermissionsEndpoint",
-    "UserRolesEndpoint",
     "UserSubscriptionsEndpoint",
-    "UserUserRolesEndpoint",
     "VstsSearchEndpoint",
     "OrganizationWorkflowStatsEndpoint",
 }

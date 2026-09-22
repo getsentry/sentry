@@ -136,21 +136,19 @@ export function ReleasesAdoptionChart({
     [organization, selection, location, navigate]
   );
 
-  const renderEmpty = () => {
-    return (
-      <Panel>
-        <PanelBody withPadding>
-          <ChartHeader>
-            <Placeholder height="24px" />
-          </ChartHeader>
-          <Placeholder height="200px" />
-        </PanelBody>
-        <ChartFooter>
-          <Placeholder height="34px" />
-        </ChartFooter>
-      </Panel>
-    );
-  };
+  const emptyState = (
+    <Panel>
+      <PanelBody withPadding>
+        <ChartHeader>
+          <Placeholder height="24px" />
+        </ChartHeader>
+        <Placeholder height="200px" />
+      </PanelBody>
+      <ChartFooter>
+        <Placeholder height="34px" />
+      </ChartFooter>
+    </Panel>
+  );
 
   const {start, end, period, utc} = selection.datetime;
   const field = sessionDisplayToField(activeDisplay);
@@ -180,7 +178,7 @@ export function ReleasesAdoptionChart({
   const releasesSeries = getReleasesSeries(response);
 
   if (isPending) {
-    return renderEmpty();
+    return emptyState;
   }
 
   if (!releasesSeries?.length) {

@@ -291,32 +291,6 @@ div.traceback > ul {
       background: #fff;
       margin: 0;
 
-      table.key-value {
-        border-top: 1px solid @trim;
-        padding: 0;
-        margin: 0;
-
-        td {
-          border-bottom: 1px solid @trim !important;
-
-          &.key {
-            width: 145px;
-            max-width: 145px;
-            padding-left: 20px !important;
-          }
-
-          &.value pre {
-            background: inherit;
-          }
-        }
-
-        tr:last-child {
-          td {
-            border-bottom: 0 !important;
-          }
-        }
-      }
-
       &.expanded {
         display: block;
       }
@@ -326,10 +300,6 @@ div.traceback > ul {
       color: #aaa;
       font-size: 0.9em;
       margin-left: 10px;
-    }
-
-    > div > table.key-value {
-      margin-bottom: 5px;
     }
 
     .btn-toggle {
@@ -449,10 +419,6 @@ div.traceback > ul {
     list-style-type: decimal-leading-zero;
     border-radius: 5px;
     padding-left: 0;
-
-    .key-value pre {
-      overflow: auto;
-    }
 
     > li {
       font-family: @font-family-code;

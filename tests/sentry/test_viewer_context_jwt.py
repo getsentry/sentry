@@ -6,7 +6,10 @@ import jwt as pyjwt
 import pytest
 from django.test import override_settings
 
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
@@ -14,6 +17,53 @@ from sentry.viewer_context import (
     encode_viewer_context,
     is_jwt_viewer_context,
 )
+
+
+class TestEncodeEarlyAdopterClaim(TestCase):
+    def _claims(self, vc: ViewerContext) -> dict:
+        return pyjwt.decode(encode_viewer_context(vc), "test-secret-key", algorithms=["HS256"])
+
+    @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
+    def test_early_adopter_organization_sets_claim(self):
+        organization = self.create_organization()
+        organization.flags.early_adopter = True
+        organization.save()
+
+        claims = self._claims(ViewerContext(organization_id=organization.id))
+
+        assert claims["organization_is_early_adopter"] is True
+
+    @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
+    def test_early_adopter_claim_in_control_silo(self):
+        with outbox_runner():
+            organization = self.create_organization()
+            organization.flags.early_adopter = True
+            organization.save()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            claims = self._claims(ViewerContext(organization_id=organization.id))
+
+        assert claims["organization_is_early_adopter"] is True
+
+    @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
+    def test_regular_organization_omits_claim(self):
+        organization = self.create_organization()
+
+        claims = self._claims(ViewerContext(organization_id=organization.id))
+
+        assert "organization_is_early_adopter" not in claims
+
+    @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
+    def test_missing_organization_omits_claim(self):
+        claims = self._claims(ViewerContext(organization_id=987654321))
+
+        assert "organization_is_early_adopter" not in claims
+
+    @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
+    def test_no_organization_omits_claim(self):
+        claims = self._claims(ViewerContext(actor_type=ActorType.SYSTEM))
+
+        assert "organization_is_early_adopter" not in claims
 
 
 class TestEncodeDecodeRoundtrip(TestCase):

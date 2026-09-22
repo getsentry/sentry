@@ -21,6 +21,7 @@ RELAY_OPTIONS: list[str] = [
     "relay.endpoint-fetch-config.enabled",
     "relay.attachment-inline.limit",
     "relay.generic-metrics.disabled",
+    "relay.upload-chunk.size",
 ]
 
 
