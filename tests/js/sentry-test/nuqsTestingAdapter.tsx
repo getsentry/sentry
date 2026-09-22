@@ -56,31 +56,36 @@ export function SentryNuqsTestingAdapter({
       // Get search params from the current location
       const searchParams = new URLSearchParams(location.search || '');
 
-      const updateUrl: AdapterInterface['updateUrl'] = (search, options) => {
-        const newSearchParams = new URLSearchParams(search);
-        const queryString = renderQueryString(newSearchParams);
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const updateUrl = useCallback<AdapterInterface['updateUrl']>(
+        (search, options) => {
+          const newSearchParams = new URLSearchParams(search);
+          const queryString = renderQueryString(newSearchParams);
 
-        // Call the onUrlUpdate callback if provided
-        onUrlUpdate?.({
-          searchParams: new URLSearchParams(search), // make a copy
-          queryString,
-          options,
-        });
+          // Call the onUrlUpdate callback if provided
+          onUrlUpdate?.({
+            searchParams: new URLSearchParams(search), // make a copy
+            queryString,
+            options,
+          });
 
-        // Navigate to the new location using Sentry's navigate
-        // We need to construct the full path with the search string
-        const newPath = queryString
-          ? `${locationRef.current.pathname}${queryString}`
-          : locationRef.current.pathname;
+          // Navigate to the new location using Sentry's navigate
+          // We need to construct the full path with the search string
+          const newPath = queryString
+            ? `${locationRef.current.pathname}${queryString}`
+            : locationRef.current.pathname;
 
-        // The navigate function from TestRouter already wraps this in act()
-        navigate(newPath, {replace: options.history === 'replace'});
-      };
+          // The navigate function from TestRouter already wraps this in act()
+          navigate(newPath, {replace: options.history === 'replace'});
+        },
+        [navigate]
+      );
 
-      const getSearchParamsSnapshot = () => {
-        // Always read from the current location
-        return new URLSearchParams(locationRef.current.search || '');
-      };
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const getSearchParamsSnapshot = useCallback(
+        () => new URLSearchParams(locationRef.current.search || ''),
+        []
+      );
 
       return {
         searchParams,
