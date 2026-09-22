@@ -165,7 +165,7 @@ export function Context({
                       />
                       <ContextLineCode>
                         {line.map((token, key) => (
-                          // Syntax colors can lose contrast on the vibrant active row.
+                          // Use a single contrasting text color on the highlighted row.
                           <span
                             key={key}
                             className={isActive ? undefined : token.className}
@@ -249,9 +249,9 @@ const ContextLineWrapper = styled('div')<{isActive: boolean}>`
   gap: ${p => p.theme.space.md};
   background: ${p =>
     p.isActive
-      ? p.theme.tokens.background.warning.vibrant
+      ? p.theme.stacktrace.activeLineBackground
       : p.theme.tokens.background.primary};
-  color: ${p => (p.isActive ? p.theme.tokens.content.onVibrant.dark : 'inherit')};
+  color: ${p => (p.isActive ? p.theme.tokens.content.primary : 'inherit')};
   padding-right: ${p => p.theme.space.xl};
 `;
 

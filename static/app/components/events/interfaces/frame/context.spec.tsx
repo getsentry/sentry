@@ -53,7 +53,7 @@ describe('Frame - Context', () => {
       expect(activeRow).toContainElement(
         screen.getByRole('img', {name: 'Current frame line'})
       );
-      // All syntax tokens on the yellow row inherit its contrasting text color.
+      // All syntax tokens on the highlighted row inherit its contrasting text color.
       expect(activeRow.querySelector('.token')).not.toBeInTheDocument();
       expect(activeRow).toHaveTextContent('capture_exception(exc)');
 

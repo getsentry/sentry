@@ -54,7 +54,6 @@ const Wrapper = styled('div')`
 
   &.active {
     background: none;
-    color: ${p => p.theme.tokens.content.onVibrant.dark};
   }
 `;
 
