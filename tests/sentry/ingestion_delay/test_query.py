@@ -147,7 +147,10 @@ class GetIngestionDelayMeasurementCacheTest(TestCase):
             self.organization.id, item_type or self.item_type, self.now
         )
 
-    def test_second_call_is_served_from_cache(self, mock_measure: mock.MagicMock) -> None:
+    @mock.patch("sentry.ingestion_delay.query.metrics.incr")
+    def test_second_call_is_served_from_cache(
+        self, mock_incr: mock.MagicMock, mock_measure: mock.MagicMock
+    ) -> None:
         mock_measure.return_value = self.measurement
 
         assert self._get(TraceItemType.TRACE_ITEM_TYPE_SPAN) == self.measurement
@@ -155,6 +158,10 @@ class GetIngestionDelayMeasurementCacheTest(TestCase):
         assert self._get(TraceItemType.TRACE_ITEM_TYPE_LOG) == self.measurement
         assert self._get(TraceItemType.TRACE_ITEM_TYPE_LOG) == self.measurement
         assert mock_measure.call_count == 2
+        assert mock_incr.call_args_list == [
+            mock.call("ingestion_delay.measurement_cache", tags={"result": result})
+            for result in ("miss", "hit", "miss", "hit")
+        ]
 
     def test_failed_measurement_is_not_cached(self, mock_measure: mock.MagicMock) -> None:
         mock_measure.side_effect = [FAILED_MEASUREMENT, self.measurement]
