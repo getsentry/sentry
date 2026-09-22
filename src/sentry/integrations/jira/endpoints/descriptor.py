@@ -6,9 +6,10 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.integrations.utils.jira import get_jira_key
 from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.http import absolute_uri
+
+from .. import JIRA_KEY
 
 scopes = ["read", "write", "act_as_user"]
 # For Jira, only approved apps can use the access_email_addresses scope
@@ -44,7 +45,7 @@ class JiraDescriptorEndpoint(Endpoint):
             {
                 "name": "Sentry",
                 "description": "Connect your Sentry organization to one or more of your Jira cloud instances. Get started streamlining your bug-squashing workflow by allowing your Sentry and Jira instances to work together.",
-                "key": get_jira_key(),
+                "key": JIRA_KEY,
                 "baseUrl": absolute_uri(),
                 "vendor": {"name": "Sentry", "url": "https://sentry.io"},
                 "authentication": {"type": "jwt"},

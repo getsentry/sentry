@@ -4,7 +4,6 @@ import re
 from urllib.parse import parse_qs, urlparse
 
 from sentry.integrations.utils.issue_url import get_url_origin
-from sentry.utils.http import absolute_uri
 
 ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 
@@ -12,15 +11,6 @@ ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 #   /browse/ABC-123
 #   /projects/ABC/issues/ABC-123
 _ISSUE_PATH_PARENTS = frozenset({"browse", "issues"})
-
-
-def get_jira_key() -> str:
-    """
-    The Atlassian Connect app key, shared by the cloud and server clients. Must match the `key`
-    served by the Jira descriptor endpoint, and can only be resolved once the options store is
-    available.
-    """
-    return f"{urlparse(absolute_uri()).hostname}.jira"
 
 
 def _path_segments(path: str) -> list[str]:
