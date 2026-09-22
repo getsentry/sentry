@@ -4167,15 +4167,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# SCM
-
-register(
-    "sentry.scm.stream.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
 # human feedback resets the streak. See ``automated_iteration_cap_reached``.
 register(
