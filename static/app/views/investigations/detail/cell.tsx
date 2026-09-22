@@ -69,10 +69,12 @@ export function InvestigationCell({
     : null;
   const autoOpenedExecutionId = useRef(activeExecutionId);
   // A cell that has nothing in it yet is showing a placeholder, so opening the
-  // Seer panel over it would bury that. Runs started from this page still open
-  // it, through `openPanel` and the effect below.
+  // Seer panel over it would bury that. A cell waiting on an answer is the
+  // exception — the question lives in the panel. Runs started from this page
+  // still open it, through `openPanel` and the effect below.
   const [panelOpen, setPanelOpen] = useState(
-    Boolean(activeExecutionId) && hasRenderableContent(block)
+    Boolean(activeExecutionId) &&
+      (hasRenderableContent(block) || block.currentExecution?.status === 'awaiting_input')
   );
   const [traceExecutionId, setTraceExecutionId] = useState<string | null>(
     activeExecutionId
@@ -498,10 +500,10 @@ function getCellProgressState(
 }
 
 export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
-  // Seer names a cell before it fills it, so a running cell with a title can be
-  // shown right away. A cell that is only queued stays hidden — it may never
-  // produce anything.
-  if (isBlockRunning(block) && block.title.trim()) {
+  // Seer names a cell before it fills it, so a cell it has started can be shown
+  // right away. A cell that is only queued stays hidden — it may never produce
+  // anything.
+  if (isBlockWorking(block) && block.title.trim()) {
     return true;
   }
   if (block.kind === 'text') {
@@ -1129,8 +1131,16 @@ function hasRenderableContent(block: InvestigationBlock) {
   return Boolean(block.output) || Boolean(block.content.trim());
 }
 
-function isBlockRunning(block: InvestigationBlock) {
-  return block.outputStatus === 'running' || block.currentExecution?.status === 'running';
+// Everything but `pending`: a cell Seer has started, including one paused on a
+// question or being stopped. Those two keep a cell on screen that would
+// otherwise vanish mid-run, taking an unanswered question with it.
+const WORKING_STATUSES = ['running', 'awaiting_input', 'stopping'];
+
+function isBlockWorking(block: InvestigationBlock) {
+  return (
+    WORKING_STATUSES.includes(block.outputStatus) ||
+    WORKING_STATUSES.includes(block.currentExecution?.status ?? '')
+  );
 }
 
 function isExecutionActive(status: InvestigationExecutionStatus | undefined) {

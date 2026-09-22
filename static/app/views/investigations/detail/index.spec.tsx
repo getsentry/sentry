@@ -331,6 +331,56 @@ describe('Investigation detail', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('keeps an empty cell on screen when it pauses on a question', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[0]!,
+        content: '',
+        outputStatus: 'awaiting_input',
+        currentExecution: {
+          id: 'execution-awaiting-input',
+          status: 'awaiting_input',
+          startedAt: '2026-08-18T20:00:00Z',
+          completedAt: null,
+          error: null,
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-1/executions/execution-awaiting-input/`,
+      body: {
+        id: 'execution-awaiting-input',
+        status: 'awaiting_input',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: {
+          id: 'input-1',
+          input_type: 'ask_user_question',
+          data: {
+            questions: [
+              {
+                question: 'Which environment should I inspect?',
+                options: [{label: 'Production', description: 'Use production events'}],
+              },
+            ],
+          },
+        },
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+
+    renderView();
+
+    // The cell stays put rather than vanishing with the question inside it.
+    expect(await screen.findByTestId('investigation-cell-block-1')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Which environment should I inspect?')
+    ).toBeInTheDocument();
+  });
+
   it('renders a placeholder title and body while the report is still being written', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
