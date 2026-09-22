@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {DisabledTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   MessagingIntegrationAnalyticsView,
@@ -78,45 +78,55 @@ export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Prop
               features={ALERT_RULE_INTEGRATION_FEATURES}
             >
               {({disabled, disabledReason}) => (
-                <Flex align="center" gap="sm">
-                  <Flex as="label" align="start" gap="md" minWidth="0">
-                    <Checkbox
-                      checked={actions.includes(MultipleCheckboxOptions.INTEGRATION)}
-                      disabled={disabled}
-                      aria-describedby={disabled ? disabledReasonId : undefined}
-                      onChange={e => {
-                        setActions(
-                          e.target.checked
-                            ? [...actions, MultipleCheckboxOptions.INTEGRATION]
-                            : actions.filter(
-                                a => a !== MultipleCheckboxOptions.INTEGRATION
-                              )
-                        );
-                        if (analyticsFlow === 'project-creation') {
-                          trackAnalytics('project_creation.notify_integration_toggled', {
-                            organization,
-                            enabled: e.target.checked,
-                            variant: 'scm',
-                          });
-                        }
-                      }}
-                    />
-                    <Text bold={false} ellipsis>
-                      {t('Integration (Slack, Discord, MS Teams, etc.)')}
-                    </Text>
-                  </Flex>
-                  {/* Same pattern as a scraps form field disabled with a reason:
-                  the lock icon is a tab stop for keyboard and pointer users, and
-                  the hidden copy describes the checkbox for screen readers. */}
+                <Fragment>
+                  <Tooltip title={disabledReason} disabled={!disabled} skipWrapper>
+                    <Flex as="label" align="start" gap="md">
+                      {/* aria-disabled rather than disabled keeps the checkbox
+                      focusable, so focus inside the label opens the tooltip. The
+                      tooltip describes the label, so the checkbox gets the reason
+                      from the hidden copy instead. */}
+                      <Checkbox
+                        checked={actions.includes(MultipleCheckboxOptions.INTEGRATION)}
+                        aria-disabled={disabled || undefined}
+                        aria-describedby={disabled ? disabledReasonId : undefined}
+                        onChange={e => {
+                          if (disabled) {
+                            return;
+                          }
+                          setActions(
+                            e.target.checked
+                              ? [...actions, MultipleCheckboxOptions.INTEGRATION]
+                              : actions.filter(
+                                  a => a !== MultipleCheckboxOptions.INTEGRATION
+                                )
+                          );
+                          if (analyticsFlow === 'project-creation') {
+                            trackAnalytics(
+                              'project_creation.notify_integration_toggled',
+                              {
+                                organization,
+                                enabled: e.target.checked,
+                                variant: 'scm',
+                              }
+                            );
+                          }
+                        }}
+                      />
+                      <Text
+                        bold={false}
+                        ellipsis
+                        variant={disabled ? 'muted' : undefined}
+                      >
+                        {t('Integration (Slack, Discord, MS Teams, etc.)')}
+                      </Text>
+                    </Flex>
+                  </Tooltip>
                   {disabled && (
-                    <Fragment>
-                      <DisabledTip title={disabledReason} size="sm" />
-                      <VisuallyHidden id={disabledReasonId}>
-                        {disabledReason}
-                      </VisuallyHidden>
-                    </Fragment>
+                    <VisuallyHidden id={disabledReasonId}>
+                      {disabledReason}
+                    </VisuallyHidden>
                   )}
-                </Flex>
+                </Fragment>
               )}
             </IntegrationFeatures>
           )}
