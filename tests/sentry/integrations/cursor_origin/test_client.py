@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -49,16 +50,36 @@ class SetupApiClientTest(TestCase):
         assert mock_jwt.call_count == 2
 
     @responses.activate
+    def test_get_app_reads_the_registration(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/app",
+            json={"id": "app_1", "webhookUrl": "https://sentry.io/hook", "events": ["push"]},
+        )
+
+        app = CursorOriginSetupApiClient().get_app()
+
+        assert app["id"] == "app_1"
+        assert app["events"] == ["push"]
+
+    @responses.activate
     def test_get_installation(self, mock_jwt: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
             f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}",
-            json={"target": {"slug": "acme"}},
+            json={
+                "id": INSTALLATION_ID,
+                "target": {"slug": "acme", "id": "ns_1", "type": "team"},
+                "repoSelectionMode": "selected",
+                "scopes": ["repository:contents:read"],
+            },
         )
 
         result = CursorOriginSetupApiClient().get_installation(INSTALLATION_ID)
 
-        assert result == {"target": {"slug": "acme"}}
+        assert result["target"]["slug"] == "acme"
+        assert result["repoSelectionMode"] == "selected"
+        assert result["scopes"] == ["repository:contents:read"]
 
     @responses.activate
     def test_delete_installation(self, mock_jwt: mock.MagicMock) -> None:
@@ -234,7 +255,9 @@ class PaginateTest(TestCase):
             {"repositories": [{"id": "2"}], "nextPageToken": ""},
         ]
         with mock.patch.object(self.origin_client, "get", side_effect=pages) as mock_get:
-            result = self.origin_client._paginate("/installation/repos", "repositories")
+            result: list[dict[str, Any]] = self.origin_client._paginate(
+                "/installation/repos", "repositories"
+            )
 
         assert result == [{"id": "1"}, {"id": "2"}]
         assert mock_get.call_args_list[0].kwargs["params"] == {"pageSize": 100}
@@ -249,7 +272,9 @@ class PaginateTest(TestCase):
             "get",
             return_value={"repositories": [{"id": "1"}], "nextPageToken": ""},
         ) as mock_get:
-            result = self.origin_client._paginate("/installation/repos", "repositories")
+            result: list[dict[str, Any]] = self.origin_client._paginate(
+                "/installation/repos", "repositories"
+            )
 
         assert result == [{"id": "1"}]
         assert mock_get.call_count == 1

@@ -2,18 +2,15 @@ import {useEffect, useState} from 'react';
 import type {QueryStatus} from '@tanstack/react-query';
 
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-import {isEmptyTrace} from './utils';
-
 type UseTraceTreeParams = {
   replay: HydratedReplayRecord | null;
-  trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
+  trace: UseApiQueryResult<TraceTree.EAPTrace | undefined, any>;
 };
 
 function getTraceViewQueryStatus(traceQueryStatus: QueryStatus): QueryStatus {
@@ -29,7 +26,6 @@ function getTraceViewQueryStatus(traceQueryStatus: QueryStatus): QueryStatus {
 }
 
 export function useIssuesTraceTree({trace, replay}: UseTraceTreeParams): IssuesTraceTree {
-  const api = useApi();
   const traceState = useTraceState();
   const organization = useOrganization();
 
@@ -43,7 +39,7 @@ export function useIssuesTraceTree({trace, replay}: UseTraceTreeParams): IssuesT
       return;
     }
 
-    if (trace.data && isEmptyTrace(trace.data)) {
+    if (trace.data && trace.data.length === 0) {
       setTree(t => (t.type === 'empty' ? t : IssuesTraceTree.Empty()));
       return;
     }
@@ -67,7 +63,7 @@ export function useIssuesTraceTree({trace, replay}: UseTraceTreeParams): IssuesT
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, organization, replay, trace.status, trace.data]);
+  }, [organization, replay, trace.status, trace.data]);
 
   return tree;
 }

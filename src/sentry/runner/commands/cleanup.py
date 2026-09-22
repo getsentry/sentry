@@ -12,11 +12,13 @@ from typing import TYPE_CHECKING, Any, Final, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import click
+import sentry_sdk
 from django.conf import settings
 from django.db import router as db_router
 from django.db.models import Exists, OuterRef, QuerySet
 from django.utils import timezone
 from sentry_sdk import capture_exception, traces
+from sentry_sdk.scope import Scope
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
@@ -126,11 +128,20 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
         try:
             traces.new_trace()
-            with traces.start_span(
-                name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
-                attributes={"sentry.op": "cleanup"},
-                parent_span=None,
-            ):
+            active_propagation_context = (
+                sentry_sdk.get_current_scope().get_active_propagation_context()
+            )
+            prev_sampling_context = active_propagation_context.custom_sampling_context
+            Scope.set_custom_sampling_context({"sample_rate": 1.0})
+            try:
+                span = traces.start_span(
+                    name="backpressure.monitoring",
+                    parent_span=None,
+                )
+            finally:
+                active_propagation_context.custom_sampling_context = prev_sampling_context
+
+            with span:
                 task_execution(model_name, chunk, project_id)
         except Exception:
             metrics.incr(

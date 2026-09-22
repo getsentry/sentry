@@ -8,7 +8,7 @@ import {Quote} from '@sentry/scraps/quote';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {isSafeHref, isInternalHref} from 'sentry/utils/marked/marked';
+import {isSafeHref, isInternalHref} from './marked';
 
 export function DefaultParagraph({children}: {children: ReactNode}) {
   return (

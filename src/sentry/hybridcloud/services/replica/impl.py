@@ -29,9 +29,22 @@ from sentry.models.organization import Organization
 from sentry.models.organizationavatarreplica import OrganizationAvatarReplica
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.projectkeymapping import ProjectKeyMapping
+from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+def _record_replica_write(category: OutboxCategory, outcome: str) -> None:
+    metrics.incr(
+        "hybridcloud.replication.write",
+        tags={
+            "silo": SiloMode.get_current_mode().value.lower(),
+            "category": category.name,
+            "outcome": outcome,
+        },
+    )
 
 
 def get_foreign_key_columns(
@@ -117,21 +130,28 @@ def handle_replication(
     fk = fk or get_foreign_key_column(destination, source_model)
     dest_filter: Mapping[str, Any] = {fk: getattr(destination, fk)}
 
-    with enforce_constraints(transaction.atomic(router.db_for_write(destination_model))):
-        for columns in get_conflicting_unique_columns(destination, fk, category):
-            destination_model.objects.filter(
-                **{c: getattr(destination, c) for c in columns}
-            ).exclude(**dest_filter).delete()
-        existing = destination_model.objects.filter(**dest_filter).first()
-        if existing:
-            update: Mapping[str, Any] = {
-                field.name: getattr(destination, field.name)
-                for field in destination_model._meta.get_fields()
-                if field.editable and field.name not in ("id", "date_added")
-            }
-            existing.update(**update)
-        else:
-            destination.save()
+    try:
+        with enforce_constraints(transaction.atomic(router.db_for_write(destination_model))):
+            for columns in get_conflicting_unique_columns(destination, fk, category):
+                destination_model.objects.filter(
+                    **{c: getattr(destination, c) for c in columns}
+                ).exclude(**dest_filter).delete()
+            existing = destination_model.objects.filter(**dest_filter).first()
+            if existing:
+                update: Mapping[str, Any] = {
+                    field.name: getattr(destination, field.name)
+                    for field in destination_model._meta.get_fields()
+                    if field.editable and field.name not in ("id", "date_added")
+                }
+                existing.update(**update)
+                outcome = "updated"
+            else:
+                destination.save()
+                outcome = "created"
+    except Exception:
+        _record_replica_write(category, "error")
+        raise
+    _record_replica_write(category, outcome)
 
 
 class DatabaseBackedCellReplicaService(CellReplicaService):
@@ -275,7 +295,7 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
     def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> bool:
         try:
             with transaction.atomic(router.db_for_write(ProjectKeyMapping)):
-                ProjectKeyMapping.objects.update_or_create(
+                _, created = ProjectKeyMapping.objects.update_or_create(
                     project_key_id=project_key.id,
                     cell_name=project_key.cell_name,
                     defaults={"public_key": project_key.public_key},
@@ -285,7 +305,11 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
                 "project_key_mapping.conflict",
                 extra={"project_key_id": project_key.id, "cell_name": project_key.cell_name},
             )
+            _record_replica_write(OutboxCategory.PROJECT_KEY_UPDATE, "conflict")
             return False
+        _record_replica_write(
+            OutboxCategory.PROJECT_KEY_UPDATE, "created" if created else "updated"
+        )
         return True
 
     def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
@@ -297,10 +321,13 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
         self, *, organization_id: int, avatar_type: int, avatar_ident: str
     ) -> None:
         with transaction.atomic(router.db_for_write(OrganizationAvatarReplica)):
-            OrganizationAvatarReplica.objects.update_or_create(
+            _, created = OrganizationAvatarReplica.objects.update_or_create(
                 organization_id=organization_id,
                 defaults={"avatar_type": avatar_type, "avatar_ident": avatar_ident},
             )
+        _record_replica_write(
+            OutboxCategory.ORGANIZATION_AVATAR_UPDATE, "created" if created else "updated"
+        )
 
     def delete_organization_avatar_replica(self, *, organization_id: int) -> None:
         OrganizationAvatarReplica.objects.filter(organization_id=organization_id).delete()

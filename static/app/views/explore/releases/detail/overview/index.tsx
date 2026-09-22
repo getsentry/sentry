@@ -39,6 +39,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {ReleaseContext} from 'sentry/views/explore/releases/detail';
 import {
   getReleaseParams,
   isReleaseArchived,
@@ -50,8 +51,6 @@ import {
 } from 'sentry/views/performance/transactionSummary/utils';
 import type {TrendView} from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
-
-import {ReleaseContext} from '..';
 
 import {CommitAuthorBreakdown} from './sidebar/commitAuthorBreakdown';
 import {Deploys} from './sidebar/deploys';

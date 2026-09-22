@@ -115,6 +115,8 @@ const COLUMN_ORDER: SampledEventsColumn[] = [
   {key: 'profile.id', name: t('Profile'), width: COL_WIDTH_UNDEFINED},
 ];
 
+const SORTABLE_FIELDS = ['request.method', 'span.duration', 'timestamp'] as const;
+
 type Props = {
   eventView: EventView;
   isMaxDurationLoading: boolean;
@@ -237,6 +239,7 @@ export function SampledEventsTable({
               column,
               location,
               sort,
+              sortableFields: SORTABLE_FIELDS,
               sortParameterName: QueryParameterNames.SPANS_SORT,
             }),
           renderHeadCell: column => {

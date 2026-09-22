@@ -68,6 +68,8 @@ export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
             : null}
         </div>
       </div>
+      {/* oxlint-disable-next-line react/refs -- This is a React element, not a ref. */}
+      {props.pinnedAttributeCell}
     </div>
   );
 }

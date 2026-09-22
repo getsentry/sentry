@@ -176,6 +176,7 @@ export default function FeedbackListPage() {
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setSelectedItemIndex(null);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [pageFilters, searchQuery]);
 
   const handleJumpToSelectedItem = () => {

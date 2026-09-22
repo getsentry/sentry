@@ -15,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {
@@ -274,12 +275,41 @@ describe('logsTableRow', () => {
     jest.useRealTimers();
   });
 
+  it('uses the row hint for expanded details and the debug API link', async () => {
+    const previousUser = ConfigStore.get('user');
+    try {
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={{...LogFixtureMeta(rowData), routingHint: 'unrelated-table-hint'}}
+          routingHint=" opaque+/== "
+          isExpanded
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+      );
+
+      act(() => ConfigStore.set('user', UserFixture({isSuperuser: true})));
+      const link = await screen.findByRole('button', {name: 'Debug JSON'});
+      expect(
+        new URL(link.getAttribute('href')!, 'https://sentry.io').searchParams.get(
+          'routing_hint'
+        )
+      ).toBe(' opaque+/== ');
+      expect(rowDetailsMock.mock.calls[0]![1].query.routing_hint).toBe(' opaque+/== ');
+    } finally {
+      act(() => ConfigStore.set('user', previousUser));
+    }
+  });
+
   it('hovering the row causes prefetching of the row details', async () => {
     jest.useFakeTimers();
     expect(rowDetailsMock).toHaveBeenCalledTimes(0);
     render(
       <LogRowContent
         dataRow={rowData}
+        routingHint="row-hint"
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
         sharedHoverTimeoutRef={{current: null}}
@@ -307,6 +337,7 @@ describe('logsTableRow', () => {
     await act(async () => {});
     expect(rowDetailsMock.mock.calls[0]![1].query).toMatchObject({
       timestamp: Math.trunc(rowDataTimestamp),
+      routing_hint: 'row-hint',
     });
     expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
   });
