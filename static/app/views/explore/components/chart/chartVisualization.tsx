@@ -18,6 +18,7 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import type {AnnotationBucket} from 'sentry/views/explore/components/chart/droppedDataBand/utils';
 import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -30,6 +31,7 @@ interface ChartVisualizationProps {
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   droppedData?: Annotation[];
+  onDroppedDataClick?: (bucket: AnnotationBucket) => void;
   showDroppedData?: boolean;
 }
 
@@ -71,6 +73,7 @@ export function ChartVisualization({
   chartRef,
   droppedData,
   showDroppedData,
+  onDroppedDataClick,
 }: ChartVisualizationProps) {
   const plottables = useChartVisualizationPlottables(chartInfo);
   const previousPlottables = usePrevious(
@@ -122,6 +125,7 @@ export function ChartVisualization({
         acceptedData={acceptedData}
         droppedData={droppedData}
         showDroppedData={showDroppedData}
+        onDroppedDataClick={onDroppedDataClick}
         renderTooltipSeriesDetails={renderTooltipSeriesDetails}
       />
     </StyledTransparentLoadingMask>

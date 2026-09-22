@@ -15,7 +15,7 @@ from sentry.integrations.cursor_origin.keys import OriginSigningKey
 from sentry.integrations.cursor_origin.webhook import has_already_processed
 from sentry.integrations.models.integration import Integration
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import cell_silo_test, control_silo_test
 
 KEYS = "sentry.integrations.cursor_origin.webhook.signing_keys_for"
 APP_ID = "app_01example"
@@ -239,3 +239,57 @@ class CursorOriginWebhookTest(APITestCase):
     def test_an_empty_body_is_refused(self) -> None:
         response = self.client.post(path=self.url, data=b"", content_type="application/json")
         assert response.status_code == 400
+
+
+@cell_silo_test
+class CursorOriginWebhookCellTest(APITestCase):
+    """A cell sees deliveries replayed from the mailbox, which may have waited."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.url = "/extensions/cursor_origin/webhook/"
+        self.private, self.public = _signing_key()
+
+    def _post(self, timestamp: str) -> int:
+        with (
+            self.options({"cursor-origin-app.id": APP_ID}),
+            mock.patch(KEYS, return_value=[self.public]),
+        ):
+            response = self.client.post(
+                path=self.url,
+                data=BODY,
+                content_type="application/json",
+                headers={
+                    "webhook-id": DELIVERY_ID,
+                    "webhook-timestamp": timestamp,
+                    "webhook-signature": _signature(self.private, DELIVERY_ID, timestamp, BODY),
+                    "webhook-event-type": "installation.deleted",
+                },
+            )
+        return response.status_code
+
+    def test_a_delivery_held_in_the_mailbox_is_still_accepted(self) -> None:
+        """The window is checked at the edge; a queue wait must not lose the delivery."""
+        assert self._post(str(int(time.time()) - 3600)) == 204
+
+    def test_a_forged_signature_is_still_refused(self) -> None:
+        """Dropping the window must not drop the signature with it."""
+        other, _ = _signing_key()
+        timestamp = str(int(time.time()))
+        with (
+            self.options({"cursor-origin-app.id": APP_ID}),
+            mock.patch(KEYS, return_value=[self.public]),
+        ):
+            response = self.client.post(
+                path=self.url,
+                data=BODY,
+                content_type="application/json",
+                headers={
+                    "webhook-id": DELIVERY_ID,
+                    "webhook-timestamp": timestamp,
+                    "webhook-signature": _signature(other, DELIVERY_ID, timestamp, BODY),
+                    "webhook-event-type": "installation.deleted",
+                },
+            )
+
+        assert response.status_code == 401

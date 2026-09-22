@@ -127,8 +127,8 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
 type LogsRowProps = {
   dataRow: OurLogsResponseItem;

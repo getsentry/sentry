@@ -212,6 +212,7 @@ class SeerOperatorTest(TestCase):
         assert mock_push_changes.call_args.kwargs["author"] == {
             "name": self.user.get_display_name(),
             "email": "583231+octocat@users.noreply.github.com",
+            "scm_login": "octocat",
         }
 
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")

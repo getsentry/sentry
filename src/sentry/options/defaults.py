@@ -1434,7 +1434,7 @@ register(
 register(
     "issues.action_log.use_db_sequence_for_outbox_identifier",
     type=Bool,
-    default=True,
+    default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3717,6 +3717,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Whether the drift sweep republishes the configs it finds missing, rather than only counting them.
+register(
+    "uptime.config-drift.repair",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls whether uptime monitoring automatically detects hostnames from error events.
 register(
     "uptime.automatic-hostname-detection",
@@ -4423,5 +4431,13 @@ register(
     "ingestion-delay.measurement-lookback-minutes",
     type=Int,
     default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# How long an ingestion delay measurement is cached, in seconds. 0 disables the cache.
+register(
+    "ingestion-delay.measurement-cache-seconds",
+    type=Int,
+    default=30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

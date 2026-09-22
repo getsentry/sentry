@@ -39,7 +39,7 @@ import type {
   SavedQuery,
   RawGroupBy,
   RawVisualize,
-  AllSavedQuery,
+  CombinedSavedQuery,
   DiscoverSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
@@ -513,7 +513,7 @@ export function confirmDeleteSavedQuery({
 }: {
   handleDelete: () => void;
   // Only the name is shown, so this works for either kind of saved query.
-  savedQuery: Pick<AllSavedQuery, 'name'>;
+  savedQuery: Pick<CombinedSavedQuery, 'name'>;
 }) {
   openConfirmModal({
     message: t('Are you sure you want to delete the query "%s"?', savedQuery.name),
@@ -712,7 +712,7 @@ export function getSavedQueryTraceItemUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: AllSavedQuery;
+  savedQuery: CombinedSavedQuery;
 }) {
   if (!isExploreSavedQuery(savedQuery)) {
     return getDiscoverSavedQueryUrl({savedQuery, organization});
