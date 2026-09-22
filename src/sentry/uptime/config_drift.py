@@ -78,7 +78,7 @@ def _live_region_rows() -> QuerySet[UptimeSubscriptionRegion]:
 
 
 def find_missing_configs(store: ConfigStore, subscription_id_prefix: str) -> DriftResult:
-    cluster = redis.redis_clusters.get_binary(store.cluster)
+    cluster = redis.redis_clusters.get(store.cluster)
     pipe = cluster.pipeline()
     subscription_ids: list[str] = []
     # One row per (subscription, region); slugs sharing a store must be checked once.
@@ -103,10 +103,8 @@ def find_missing_configs(store: ConfigStore, subscription_id_prefix: str) -> Dri
 
 
 def find_orphaned_configs(store: ConfigStore, partition: int) -> DriftResult:
-    cluster = redis.redis_clusters.get_binary(store.cluster)
-    stored = {
-        field.decode() for field in cluster.hkeys(get_config_key(store.key_prefix, partition))
-    }
+    cluster = redis.redis_clusters.get(store.cluster)
+    stored = set(cluster.hkeys(get_config_key(store.key_prefix, partition)))
     live: set[str | None] = set()
     for chunk in batched(stored, IN_CHUNK_SIZE):
         live.update(
@@ -127,18 +125,17 @@ def find_missing_configs_for_store(store: ConfigStore) -> DriftResult:
     """
     # Postgres first: a row ACTIVE now had its config written before now, so a config
     # published between the two reads can't show up as missing.
-    live = {
-        subscription_id
-        for subscription_id in _active_region_rows()
+    rows = (
+        _active_region_rows()
         .filter(region_slug__in=store.region_slugs)
         .values_list("uptime_subscription__subscription_id", flat=True)
-        if subscription_id is not None
-    }
-    cluster = redis.redis_clusters.get_binary(store.cluster)
+    )
+    live = {subscription_id for subscription_id in rows if subscription_id is not None}
+    cluster = redis.redis_clusters.get(store.cluster)
     pipe = cluster.pipeline()
     for partition in range(settings.UPTIME_CONFIG_PARTITIONS):
         pipe.hkeys(get_config_key(store.key_prefix, partition))
-    stored = {field.decode() for fields in pipe.execute() for field in fields}
+    stored = {field for fields in pipe.execute() for field in fields}
     return DriftResult(checked=len(live), drifted_ids=frozenset(live - stored))
 
 
@@ -148,7 +145,7 @@ def get_sentinel_key(key_prefix: str, partition: int) -> str:
 
 
 def find_missing_sentinels(store: ConfigStore) -> list[int]:
-    cluster = redis.redis_clusters.get_binary(store.cluster)
+    cluster = redis.redis_clusters.get(store.cluster)
     pipe = cluster.pipeline()
     for partition in range(settings.UPTIME_CONFIG_PARTITIONS):
         pipe.exists(get_sentinel_key(store.key_prefix, partition))
@@ -156,8 +153,8 @@ def find_missing_sentinels(store: ConfigStore) -> list[int]:
 
 
 def write_sentinels(store: ConfigStore) -> None:
-    cluster = redis.redis_clusters.get_binary(store.cluster)
+    cluster = redis.redis_clusters.get(store.cluster)
     pipe = cluster.pipeline()
     for partition in range(settings.UPTIME_CONFIG_PARTITIONS):
-        pipe.set(get_sentinel_key(store.key_prefix, partition), b"1")
+        pipe.set(get_sentinel_key(store.key_prefix, partition), "1")
     pipe.execute()
