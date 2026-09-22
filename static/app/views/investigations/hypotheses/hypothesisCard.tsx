@@ -112,13 +112,15 @@ export function HypothesisCard({
                   variant={isRunning ? 'vibrant' : 'moderate'}
                   label={step.title}
                 />
-                <StepTitle
-                  size="sm"
-                  density="comfortable"
-                  variant={isRunning ? 'primary' : 'muted'}
-                  wordBreak="break-word"
-                >
-                  {step.title}
+                <StepTitle column={2} row={1} minWidth={0} minHeight="22px">
+                  <Text
+                    size="sm"
+                    density="comfortable"
+                    variant={isRunning ? 'primary' : 'muted'}
+                    wordBreak="break-word"
+                  >
+                    {step.title}
+                  </Text>
                 </StepTitle>
               </ActivityLineRow>
             );
@@ -192,10 +194,14 @@ const EvidenceList = styled(ActivityLineList)`
   padding-top: ${p => p.theme.space.md};
 `;
 
-/* The row's second column, beside the marker — placed rather than left to
- * auto-placement, which is what the activity line's own headline does. */
-const StepTitle = styled(Text)`
-  grid-column: 2;
-  grid-row: 1;
-  min-width: 0;
+// The row's second column, beside the marker — placed rather than left to
+// auto-placement, which is what the activity line's own headline does.
+//
+// A step's title is smaller than an activity headline, so centring it in the
+// marker's own 22px box is what puts the two on the same optical line: the
+// marker cell is a 22px box lifted 2px, and this matches it. Left to sit in
+// its own short line box at the top of the row, the title rides above the dot.
+const StepTitle = styled(Flex)`
+  align-items: center;
+  margin-top: -2px;
 `;
