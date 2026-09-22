@@ -75,6 +75,24 @@ def _extract_attribute_values(
     return values_by_field_name
 
 
+def _get_event_contexts(segment_span: CompatibleSpan) -> dict[str, Any]:
+    contexts = {}
+
+    profile_id = attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_PROFILE_ID)
+    if profile_id:
+        contexts["profile"] = {"profile_id": profile_id, "type": "profile"}
+
+    contexts["trace"] = {
+        "trace_id": segment_span["trace_id"],
+        "span_id": segment_span["span_id"],
+        "op": attribute_value(segment_span, "sentry.transaction.op"),
+        "hash": segment_span["hash"],
+        "type": "trace",
+    }
+
+    return contexts
+
+
 def build_shim_event_data(
     segment_span: CompatibleSpan, spans: list[CompatibleSpan]
 ) -> dict[str, Any]:
@@ -83,15 +101,6 @@ def build_shim_event_data(
     event: dict[str, Any] = {
         "type": "transaction",
         "level": "info",
-        "contexts": {
-            "trace": {
-                "trace_id": segment_span["trace_id"],
-                "type": "trace",
-                "op": attribute_value(segment_span, "sentry.transaction.op"),
-                "span_id": segment_span["span_id"],
-                "hash": segment_span["hash"],
-            },
-        },
         "event_id": uuid.uuid4().hex,
         "project_id": segment_span["project_id"],
         "tags": [
@@ -105,8 +114,7 @@ def build_shim_event_data(
         **_extract_attribute_values(segment_span, TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME),
     }
 
-    if (profile_id := attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_PROFILE_ID)) is not None:
-        event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
+    event["contexts"] = _get_event_contexts(segment_span)
 
     # Add legacy span attributes required only by issue detectors. As opposed to
     # real event payloads, this also adds the segment span so detectors can run
