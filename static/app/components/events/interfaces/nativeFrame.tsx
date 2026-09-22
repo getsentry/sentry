@@ -335,7 +335,7 @@ export function NativeFrame({
               ellipsis
               maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               position="auto-start"
-              style={{maxWidth: '100%', width: 'fit-content'}}
+              style={{maxWidth: '100%', paddingRight: '2px', width: 'fit-content'}}
               variant="inherit"
             >
               {frame.package
