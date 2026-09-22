@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("hybridcloud", "0040_cacheversion_key_remove"),
+        ("hybridcloud", "0041_add_dashboard_scopes"),
     ]
 
     operations = [
