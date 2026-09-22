@@ -251,7 +251,10 @@ function useSavedQueryMenuItems({
         handleDelete: async () => {
           addLoadingMessage(t('Deleting query...'));
           try {
-            await deleteQuery(savedQuery.id);
+            await deleteQuery({
+              queryId: savedQuery.id,
+              queryType: savedQuery.queryType,
+            });
             addSuccessMessage(t('Query deleted'));
           } catch (error) {
             addErrorMessage(t('Unable to delete query'));

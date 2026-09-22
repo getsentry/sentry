@@ -66,6 +66,17 @@ def _active_region_rows() -> QuerySet[UptimeSubscriptionRegion]:
     )
 
 
+def _live_region_rows() -> QuerySet[UptimeSubscriptionRegion]:
+    # CREATING and UPDATING rows can already have config in Redis, so they aren't orphans.
+    return UptimeSubscriptionRegion.objects.using_replica().filter(
+        uptime_subscription__status__in=[
+            UptimeSubscription.Status.ACTIVE.value,
+            UptimeSubscription.Status.CREATING.value,
+            UptimeSubscription.Status.UPDATING.value,
+        ]
+    )
+
+
 def find_missing_configs(store: ConfigStore, subscription_id_prefix: str) -> DriftCount:
     # One row per (subscription, region); slugs sharing a store must be checked once.
     subscription_ids = set(
@@ -95,7 +106,7 @@ def find_orphaned_configs(store: ConfigStore, partition: int) -> DriftCount:
     live: set[str | None] = set()
     for chunk in batched(stored, IN_CHUNK_SIZE):
         live.update(
-            _active_region_rows()
+            _live_region_rows()
             .filter(
                 uptime_subscription__subscription_id__in=chunk,
                 region_slug__in=store.region_slugs,

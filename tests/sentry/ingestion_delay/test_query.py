@@ -17,6 +17,7 @@ from sentry.ingestion_delay.query import (
     measure_ingestion_delay,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -106,3 +107,20 @@ class GetIngestionDelayMeasurementTest(OrganizationEventsEndpointTestBase):
     def test_query_failure_does_not_propagate(self, mock_table_rpc: mock.MagicMock) -> None:
         mock_table_rpc.side_effect = Exception("snuba is down")
         assert self._measure_ingestion_delay() == FAILED_MEASUREMENT
+
+    @mock.patch("sentry.ingestion_delay.query.snuba_rpc.table_rpc")
+    def test_lookback_option_sets_the_measurement_window(
+        self, mock_table_rpc: mock.MagicMock
+    ) -> None:
+        mock_table_rpc.return_value = [self._response()]
+        now = datetime.now(tz=UTC)
+
+        with override_options({"ingestion-delay.measurement-lookback-minutes": 15}):
+            measure_ingestion_delay(
+                organization_id=self.organization.id,
+                item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                now=now,
+            )
+
+        meta = mock_table_rpc.call_args[0][0][0].meta
+        assert meta.end_timestamp.seconds - meta.start_timestamp.seconds == 15 * 60

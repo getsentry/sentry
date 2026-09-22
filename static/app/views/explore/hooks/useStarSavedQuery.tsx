@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  SavedQueryType,
   useGetSavedQuery,
   useInvalidateSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -60,7 +61,7 @@ export function useStarSavedQuery({
         }
 
         setIsStarred(starred);
-        starQuery(parseInt(id, 10), starred)
+        starQuery({queryId: parseInt(id, 10), queryType: SavedQueryType.EXPLORE}, starred)
           .then(() => {
             // `useStarQuery` invalidates the saved query *list* but not the
             // individual query, so `savedQuery.starred` would stay stale.

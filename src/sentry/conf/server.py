@@ -1900,6 +1900,9 @@ SENTRY_SCOPES = {
     "event:admin",
     "alerts:read",
     "alerts:write",
+    "dashboard:read",
+    "dashboard:write",
+    "dashboard:delete",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
@@ -1914,6 +1917,7 @@ SENTRY_READONLY_SCOPES = {
     "project:read",
     "event:read",
     "alerts:read",
+    "dashboard:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -1939,6 +1943,9 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "event:admin": {"event:read", "event:write", "event:admin"},
     "alerts:read": {"alerts:read"},
     "alerts:write": {"alerts:read", "alerts:write"},
+    "dashboard:read": {"dashboard:read"},
+    "dashboard:write": {"dashboard:read", "dashboard:write"},
+    "dashboard:delete": {"dashboard:read", "dashboard:write", "dashboard:delete"},
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -1999,6 +2006,11 @@ SENTRY_SCOPE_SETS = (
         ("alerts:write", "Read and write alerts"),
         ("alerts:read", "Read alerts"),
     ),
+    (
+        ("dashboard:delete", "Read, write, and delete access to dashboards."),
+        ("dashboard:write", "Read and write access to dashboards."),
+        ("dashboard:read", "Read access to dashboards."),
+    ),
     (("openid", "Confirms authentication status and provides basic information."),),
     (
         (
@@ -2034,6 +2046,9 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "team:read",
             "alerts:read",
             "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
         },
     },
     {
@@ -2066,6 +2081,9 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
         },
         "is_retired": True,
     },
@@ -2093,6 +2111,9 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
         },
         "is_global": True,
     },
@@ -2127,6 +2148,9 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:admin",
             "alerts:read",
             "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
         },
         "is_global": True,
     },
