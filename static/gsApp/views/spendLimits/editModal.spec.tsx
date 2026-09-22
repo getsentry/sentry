@@ -170,4 +170,44 @@ describe('SpendLimitsEditModal', () => {
       )
     );
   });
+
+  it('shows field errors returned when saving the spending limit', async () => {
+    const organization = OrganizationFixture({features: ['ondemand-budgets']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      onDemandMaxSpend: 0,
+    });
+    const closeModal = jest.fn();
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {sharedMaxBudget: ['Ensure this value is less than or equal to 500.']},
+    });
+
+    render(
+      <SpendLimitsEditModal
+        Header={() => <div />}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(closeModal)}
+        closeModal={closeModal}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    const input = screen.getByRole('spinbutton', {
+      name: 'Custom shared spending limit (in dollars)',
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, '123');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(
+      await screen.findByText('Ensure this value is less than or equal to 500.')
+    ).toBeInTheDocument();
+    expect(closeModal).not.toHaveBeenCalled();
+  });
 });

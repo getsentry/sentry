@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -14,6 +15,7 @@ import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
@@ -103,6 +105,36 @@ const spendLimitFormSchema = z.object({
   sharedMaxBudget: nonNegativeBudgetSchema,
 });
 
+function renderRequestError(error: Error | null, plan: Plan) {
+  if (!error) {
+    return null;
+  }
+
+  if (error instanceof RequestError && error.responseJSON) {
+    const errors = Object.entries(error.responseJSON);
+    if (errors.length > 0) {
+      return (
+        <Alert system variant="danger">
+          <ul>
+            {errors.map(([field, messages]) => (
+              <li key={field}>
+                <strong>{field}</strong>{' '}
+                {Array.isArray(messages) ? messages.join(' ') : String(messages)}
+              </li>
+            ))}
+          </ul>
+        </Alert>
+      );
+    }
+  }
+
+  return (
+    <Alert system variant="danger">
+      {getBudgetSaveError(plan)}
+    </Alert>
+  );
+}
+
 function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: Props) {
   const [currentOnDemandBudget] = useState(() =>
     parseOnDemandBudgetsFromSubscription(subscription)
@@ -171,6 +203,7 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
 
   return (
     <form.AppForm form={form}>
+      {renderRequestError(mutation.error, subscription.planDetails)}
       <form.Subscribe selector={state => state.values}>
         {values => (
           <form.AppField name="budgetMode">
