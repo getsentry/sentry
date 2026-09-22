@@ -28,6 +28,7 @@ export function useTraceSpaceListeners(props: {
         // physical space matches the actual renderable column width. When a
         // vertical scrollbar is visible, the rows inside the scroll container
         // are narrower than the outer container measured by ResizeObserver.
+        props.viewManager.syncPinnedColumnWidths(container[2]);
         const adjustedWidth = container[2] - props.viewManager.scrollbar_width;
         props.view.setTracePhysicalSpace(container, [
           0,

@@ -25,7 +25,7 @@ import type {
   WidgetBuilderSearchBarProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/base';
-import {getTimeseriesSortOptions} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {getTimeseriesSortOptions} from 'sentry/views/dashboards/datasetConfig/events';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {

@@ -8,11 +8,11 @@ from enum import StrEnum
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry.ingestion_delay.activity import has_accepted_outcomes
-from sentry.ingestion_delay.query import MEASUREMENT_LOOKBACK, measure_ingestion_delay
+from sentry.ingestion_delay.query import get_measurement_lookback, measure_ingestion_delay
 
 logger = logging.getLogger(__name__)
 
-# Buffer for outlier ingestion delays.
+# Buffer for outlier ingestion delays and other delays not captured by received_at and ingested_at attributes.
 STALL_MARGIN = timedelta(seconds=60)
 
 # Buffer for projects just exiting idle.
@@ -48,7 +48,11 @@ def get_ingestion_delay_status(
     if not measurement.succeeded:
         return IngestionDelayStatus(None, None, IngestionStatus.UNKNOWN)
 
-    delay_seconds = measurement.delay_seconds
+    delay_seconds = (
+        None
+        if measurement.delay_seconds is None
+        else measurement.delay_seconds + STALL_MARGIN.total_seconds()
+    )
     last_ingested_at = measurement.last_ingested_at
 
     complete_through = now - timedelta(seconds=delay_seconds) if delay_seconds is not None else None
@@ -59,6 +63,8 @@ def get_ingestion_delay_status(
         return IngestionDelayStatus(delay_seconds, through, status)
 
     # The newest row is inside the window the expected delay accounts for.
+    # STALL_MARGIN adds some tolerance for ingestion slow downs and also covers other sources
+    # of pipeline delays not captured in our attributes, like batch insert wait times.
     if (
         complete_through is not None
         and last_ingested_at is not None
@@ -70,13 +76,13 @@ def get_ingestion_delay_status(
     # Check outcomes to determine if the pipeline is stalled or idle.
     # Add some buffer to account for outliers and projects just exiting idle.
     if delay_seconds is not None and last_ingested_at is not None:
-        evidence_end = now - (timedelta(seconds=delay_seconds) + STALL_MARGIN)
+        evidence_end = now - timedelta(seconds=delay_seconds)
         evidence_start = last_ingested_at
         if evidence_end <= evidence_start:
             return result(IngestionStatus.UNKNOWN, None)
     else:
         evidence_end = now - STALL_GRACE
-        evidence_start = now - MEASUREMENT_LOOKBACK
+        evidence_start = now - get_measurement_lookback()
 
     accepted = has_accepted_outcomes(
         organization_id=organization_id,

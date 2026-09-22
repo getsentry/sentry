@@ -236,6 +236,7 @@ function useRevalidateMediumThreshold() {
 
   useEffect(() => {
     formContext.form?.validateField(METRIC_DETECTOR_FORM_FIELDS.mediumThreshold);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [highThreshold, formContext.form]);
 }
 
@@ -387,6 +388,7 @@ function IntervalPicker() {
         intervalChoices[0]![0]
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [intervalChoices, formContext.form, interval, dataset]);
 
   return (

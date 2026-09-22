@@ -127,7 +127,10 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
         try:
             with start_span(
-                op="cleanup", name=f"{TRANSACTION_PREFIX}.multiprocess_worker", transaction=True
+                op="cleanup",
+                name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
+                transaction=True,
+                custom_sampling_context={"sample_rate": 0.5 * settings.SENTRY_BACKEND_APM_SAMPLING},
             ):
                 task_execution(model_name, chunk, project_id)
         except Exception:

@@ -319,6 +319,8 @@ export function SeerExplorerHeaderActionsMenu({
         items={items}
         size="xs"
         position="bottom-end"
+        // Let submenus extend beyond the Seer panel's overflow boundary.
+        strategy="fixed"
         triggerProps={{
           'aria-label': t('More actions'),
           icon: <IconEllipsis />,

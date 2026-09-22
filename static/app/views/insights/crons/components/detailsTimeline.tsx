@@ -24,8 +24,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
+import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 
-import {useMonitorStats} from './../utils/useMonitorStats';
 import {OverviewRow} from './overviewTimeline/overviewRow';
 import {CronServiceIncidents} from './serviceIncidents';
 

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import {analyzeFramesForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
-import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {NoStackTraceMessage} from 'sentry/components/events/interfaces/noStackTraceMessage';
 import {getThreadStacktrace} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {
@@ -15,10 +14,14 @@ import {
 import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
+import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
+import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
+import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
+import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {StackView} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -113,14 +116,20 @@ export function AnrRootCause({event, organization}: Props) {
         {anrCulprit?.resources}
         <StackTraceWrapper>
           {defined(stackTrace) ? (
-            <StackTraceContent
-              stacktrace={stackTrace}
-              stackView={StackView.FULL}
-              newestFirst
-              event={event}
-              platform={platform}
-              lockAddress={address ?? undefined}
-            />
+            <StackTraceViewStateProvider defaultView="full" platform={platform}>
+              <StackTraceProvider
+                stacktrace={stackTrace}
+                event={event}
+                platform={platform}
+                thread={culpritThread}
+                lockAddress={address ?? undefined}
+              >
+                <StackTraceFrames
+                  frameActionsComponent={IssueFrameActions}
+                  frameContextComponent={FrameContent}
+                />
+              </StackTraceProvider>
+            </StackTraceViewStateProvider>
           ) : (
             <NoStackTraceMessage />
           )}

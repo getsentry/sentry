@@ -6,6 +6,7 @@ action_log.types — safe to import from models and other dependency-sensitive c
 from __future__ import annotations
 
 import logging
+import secrets
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -22,6 +23,7 @@ from sentry.issues.action_log.types import (
 )
 
 if TYPE_CHECKING:
+    from sentry.hybridcloud.models.outbox import CellOutboxBase
     from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
@@ -53,6 +55,18 @@ class ActionContext:
 
 
 _action_context: ContextVar[ActionContext | None] = ContextVar("action_context", default=None)
+
+
+def _get_outbox_identifier(outbox_model: type[CellOutboxBase]) -> int:
+    from sentry import options
+
+    if options.get("issues.action_log.use_db_sequence_for_outbox_identifier"):
+        return outbox_model.next_object_identifier()
+
+    # This only needs to be unique among currently stored outboxes for the same group,
+    # typically one or two rows. Even with 10k rows, the collision probability for
+    # positive signed bigint is about 1 in 184 billion.
+    return secrets.randbelow(2**63 - 1) + 1
 
 
 @contextmanager
@@ -170,7 +184,7 @@ def publish_action(
                 shard_scope=OutboxScope.GROUP_SCOPE,
                 shard_identifier=group_id,
                 category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
-                object_identifier=GroupActionLogOutbox.next_object_identifier(),
+                object_identifier=_get_outbox_identifier(GroupActionLogOutbox),
                 payload=payload,
             )
             outbox.save()

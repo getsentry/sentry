@@ -33,8 +33,6 @@ export const sortDirections = {
 
 export function getDiscoverDatasetFromWidgetType(widgetType: WidgetType) {
   switch (widgetType) {
-    case WidgetType.TRANSACTIONS:
-      return DiscoverDatasets.METRICS_ENHANCED;
     case WidgetType.ERRORS:
       return DiscoverDatasets.ERRORS;
     default:

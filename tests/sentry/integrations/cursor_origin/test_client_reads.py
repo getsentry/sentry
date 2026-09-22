@@ -4,6 +4,7 @@ from base64 import b64encode
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest import mock
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
@@ -45,18 +46,37 @@ class CursorOriginReadsTest(TestCase):
         )
         self.origin_client = CursorOriginApiClient(integration=self.integration)
 
-    # -- repositories -----------------------------------------------------
-
+    @responses.activate
     def test_get_repositories_paginates(self) -> None:
-        with mock.patch.object(
-            self.origin_client,
-            "_paginate",
-            return_value=[{"id": "1", "fullName": REPO, "name": "rocket"}],
-        ) as mock_paginate:
-            repos = self.origin_client.get_repositories()
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/installation/repos",
+            json={
+                "repositories": [{"id": "1", "fullName": REPO, "name": "rocket"}],
+                "nextPageToken": "",
+            },
+        )
 
-        assert repos == [{"id": "1", "fullName": REPO, "name": "rocket"}]
-        assert mock_paginate.call_args.args == ("/installation/repos", "repositories")
+        repos = self.origin_client.get_repositories()
+
+        assert [repo["fullName"] for repo in repos] == [REPO]
+        assert "filter" not in parse_qs(urlparse(responses.calls[0].request.url).query)
+
+    @responses.activate
+    def test_a_query_is_sent_as_origin_s_filter(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/installation/repos",
+            json={
+                "repositories": [{"id": "1", "fullName": REPO, "name": "rocket"}],
+                "nextPageToken": "",
+            },
+        )
+
+        self.origin_client.get_repositories("acme/rock")
+
+        query = parse_qs(urlparse(responses.calls[0].request.url).query)
+        assert query["filter"] == ["acme/rock"]
 
     @responses.activate
     def test_get_repo(self) -> None:
@@ -64,7 +84,24 @@ class CursorOriginReadsTest(TestCase):
             responses.GET, f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}", json={"fullName": REPO}
         )
 
-        assert self.origin_client.get_repo(REPO) == {"fullName": REPO}
+        assert self.origin_client.get_repo(REPO)["fullName"] == REPO
+
+    @responses.activate
+    def test_get_branches_reads_tip_commits(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/branches",
+            json={
+                "branches": [{"name": "main", "commit": {"sha": "abc"}}],
+                "nextPageToken": "",
+            },
+        )
+
+        branches = self.origin_client.get_branches(REPO)
+
+        assert [(branch["name"], branch["commit"]["sha"]) for branch in branches] == [
+            ("main", "abc")
+        ]
 
     @responses.activate
     def test_get_tree_requests_a_recursive_walk(self) -> None:
@@ -124,6 +161,101 @@ class CursorOriginReadsTest(TestCase):
         assert mock_tree.called
 
     @responses.activate
+    def test_get_commits_starts_from_a_ref(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/commits",
+            json={"commits": [{"sha": "abc"}], "nextPageToken": ""},
+        )
+
+        commits = self.origin_client.get_commits(REPO, sha="main")
+
+        assert [commit["sha"] for commit in commits] == ["abc"]
+        assert "sha=main" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_a_limited_read_asks_for_no_more_than_it_wants(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/commits",
+            json={"commits": [{"sha": f"c{i}"} for i in range(20)], "nextPageToken": "page-2"},
+        )
+
+        commits = self.origin_client.get_commits(REPO, sha="main", limit=20)
+
+        assert len(commits) == 20
+        assert "pageSize=20" in responses.calls[0].request.url
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_get_commits_defaults_to_the_default_branch(self) -> None:
+        """Origin reads an absent `sha` as the repository's default branch."""
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/commits",
+            json={"commits": [], "nextPageToken": ""},
+        )
+
+        self.origin_client.get_commits(REPO)
+
+        assert "sha=" not in responses.calls[0].request.url
+
+    @responses.activate
+    def test_paging_repeats_the_parameters_the_token_was_made_with(self) -> None:
+        """Commit files reject a token whose `sha` and `pageSize` do not match it."""
+        url = f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/commits/abc/files"
+        responses.add(
+            responses.GET, url, json={"files": [{"filename": "a.py"}], "nextPageToken": "page-2"}
+        )
+        responses.add(
+            responses.GET, url, json={"files": [{"filename": "b.py"}], "nextPageToken": ""}
+        )
+
+        files = self.origin_client.get_commit_files(REPO, "abc")
+
+        assert [f["filename"] for f in files] == ["a.py", "b.py"]
+        second_request = responses.calls[1].request.url
+        assert "pageToken=page-2" in second_request
+        assert "sha=abc" in second_request
+        assert "pageSize=100" in second_request
+
+    @responses.activate
+    def test_get_commit_reads_one_commit(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/commits/abc",
+            json={"sha": "abc", "stats": {"total": 2}},
+        )
+
+        assert self.origin_client.get_commit(REPO, "abc")["stats"] == {"total": 2}
+
+    @responses.activate
+    def test_compare_commits_reads_the_summary(self) -> None:
+        """Origin embeds neither the commits nor the files in a comparison."""
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/compare/abc...def",
+            json={"status": "ahead", "aheadBy": 2, "behindBy": 0},
+        )
+
+        comparison = self.origin_client.compare_commits(REPO, "abc", "def")
+
+        assert comparison["status"] == "ahead"
+        assert comparison["aheadBy"] == 2
+
+    @responses.activate
+    def test_get_compare_files_reads_what_differs(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/compare/abc...def/files",
+            json={"files": [{"filename": "a.py", "status": "modified"}], "nextPageToken": ""},
+        )
+
+        files = self.origin_client.get_compare_files(REPO, "abc", "def")
+
+        assert [(f["filename"], f["status"]) for f in files] == [("a.py", "modified")]
+
+    @responses.activate
     def test_get_contents_passes_the_path_as_a_query_parameter(self) -> None:
         """Origin serves contents from ?path=; the path form 404s misleadingly."""
         responses.add(
@@ -137,6 +269,50 @@ class CursorOriginReadsTest(TestCase):
         request_url = responses.calls[0].request.url
         assert "/contents?" in request_url
         assert "path=src%2Fapp.py" in request_url
+
+    @responses.activate
+    def test_get_contents_on_a_directory_lists_its_children(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/contents",
+            json={
+                "type": "dir",
+                "name": "src",
+                "path": "src",
+                "sha": "def",
+                "encoding": "",
+                "size": "0",
+                "entries": [
+                    {
+                        "type": "file",
+                        "name": "app.py",
+                        "path": "src/app.py",
+                        "sha": "abc",
+                        "size": "312",
+                    }
+                ],
+            },
+        )
+
+        contents = self.origin_client.get_contents(REPO, "src")
+
+        assert contents["type"] == "dir"
+        assert [entry["path"] for entry in contents["entries"]] == ["src/app.py"]
+
+    @responses.activate
+    def test_get_blob_reads_base64_content(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/git/blobs/abc",
+            json={
+                "sha": "abc",
+                "size": 2,
+                "encoding": "base64",
+                "content": b64encode(b"hi").decode(),
+            },
+        )
+
+        assert self.origin_client.get_blob(REPO, "abc")["content"] == b64encode(b"hi").decode()
 
     @responses.activate
     def test_get_file_decodes_base64(self) -> None:

@@ -2,6 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {getPrismLanguage} from '@sentry/scraps/code';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -15,7 +16,6 @@ import {
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {getPrismLanguage} from 'sentry/utils/prism';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 interface FileDiffViewerProps {
