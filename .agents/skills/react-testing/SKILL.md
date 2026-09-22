@@ -120,47 +120,28 @@ const project = ProjectFixture(partialProject)
 
 ```
 
-### Render the component, not a local `renderFoo()` helper
+### Render a component, not a `renderFoo()` helper
 
-Do not wrap `render()` in a local helper. Every file invents its own name and
-argument shape, so a reader has to go find the helper before any `it()` block
-makes sense, and `rerender` stops behaving because the call site no longer
-controls the element.
-
-When a test needs fixed props, wrapper providers or a bit of glue, put that in a
-component and render it.
+A local helper hides the JSX from every test that calls it, and `rerender` takes
+an element, so the call site can no longer control what renders.
 
 ```tsx
-// ❌ The JSX under test is hidden behind a helper
-function renderComponent(props: LoadingContainerProps = {}) {
-  return render(
-    <LoadingContainer {...props}>
-      <div>hello!</div>
-    </LoadingContainer>
-  );
+// ❌ Don't wrap render() in a helper
+function renderComponent(props: Props = {}) {
+  return render(<Widget {...props}>hello</Widget>);
 }
 
-// ✅ An Example component keeps the call site in the usual shape
-function ExampleLoadingContainer(props: LoadingContainerProps) {
-  return (
-    <LoadingContainer {...props}>
-      <div>hello!</div>
-    </LoadingContainer>
-  );
+// ✅ Put the fixed parts in a component
+function ExampleWidget(props: Props) {
+  return <Widget {...props}>hello</Widget>;
 }
-
-const {rerender} = render(<ExampleLoadingContainer isLoading />);
-rerender(<ExampleLoadingContainer />);
+render(<ExampleWidget isLoading />);
 ```
 
-Keep `render()` options (`organization`, `initialRouterConfig`,
-`additionalWrapper`) at the call site, and declare the component at module scope
-so `rerender` keeps the same component type and preserves state.
-
-If the helper adds nothing over the component's own props, drop it and call
-`render(<Foo ... />)` directly. A helper that only registers `MockApiClient`
-mocks, or one that takes the element to render as a parameter, is not this
-pattern and is fine as it is.
+Declare it at module scope so `rerender` keeps the same component type, and keep
+`render()` options at the call site. If the helper adds nothing over the
+component's own props, drop it and call `render(<Widget />)` directly. Helpers
+that only register mocks, or that take the element as a parameter, are fine.
 
 ### Use `screen` instead of destructuring
 
