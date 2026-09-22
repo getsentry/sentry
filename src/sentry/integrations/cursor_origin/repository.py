@@ -7,6 +7,7 @@ from typing import Any
 from django.utils import timezone
 
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.client import (
     CursorOriginApiClient,
     OriginCommit,
@@ -14,6 +15,7 @@ from sentry.integrations.cursor_origin.client import (
 )
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_WEB_BASE_URL
 from sentry.integrations.cursor_origin.integration import CursorOriginIntegration
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
@@ -33,9 +35,40 @@ MAX_COMPARE_COMMITS_OPTION_KEY = "cursor-origin-app.fetch-commits.max-compare-co
 RECENT_COMMIT_COUNT = 20
 
 
+def active_repositories(
+    external_id: str, org_integrations: Sequence[RpcOrganizationIntegration]
+) -> Sequence[Repository]:
+    return list(
+        Repository.objects.filter(
+            organization_id__in=[oi.organization_id for oi in org_integrations],
+            provider=f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}",
+            external_id=external_id,
+            status=ObjectStatus.ACTIVE,
+        )
+    )
+
+
+def file_changes_from(files: Sequence[OriginCommitFile]) -> list[CommitPatchFile]:
+    """Origin's file statuses as Sentry's change types."""
+    changes: list[CommitPatchFile] = []
+    for file in files:
+        status = file["status"]
+        if status == "modified":
+            changes.append({"path": file["filename"], "type": "M"})
+        elif status in ("added", "copied"):
+            changes.append({"path": file["filename"], "type": "A"})
+        elif status == "removed":
+            changes.append({"path": file["filename"], "type": "D"})
+        elif status == "renamed":
+            changes.append({"path": file["previousFilename"], "type": "D"})
+            changes.append({"path": file["filename"], "type": "A"})
+    return changes
+
+
 class CursorOriginRepositoryProvider(IntegrationRepositoryProvider[CursorOriginIntegration]):
     name = "Cursor Origin"
     repo_provider = IntegrationProviderSlug.CURSOR_ORIGIN.value
+    can_transfer_repositories = True
 
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]
@@ -133,19 +166,7 @@ class CursorOriginRepositoryProvider(IntegrationRepositoryProvider[CursorOriginI
 
     def _patch_set(self, files: Sequence[OriginCommitFile]) -> list[CommitPatchFile]:
         """File changes in the shape `Release.set_commits` expects."""
-        changes: list[CommitPatchFile] = []
-        for file in files:
-            status = file["status"]
-            if status == "modified":
-                changes.append({"path": file["filename"], "type": "M"})
-            elif status in ("added", "copied"):
-                changes.append({"path": file["filename"], "type": "A"})
-            elif status == "removed":
-                changes.append({"path": file["filename"], "type": "D"})
-            elif status == "renamed":
-                changes.append({"path": file["previousFilename"], "type": "D"})
-                changes.append({"path": file["filename"], "type": "A"})
-        return changes
+        return file_changes_from(files)
 
     def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str:
         return f"{CURSOR_ORIGIN_WEB_BASE_URL}/{repo.name}/pull/{pull_request.key}"

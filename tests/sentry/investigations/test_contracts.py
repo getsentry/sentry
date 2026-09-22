@@ -245,6 +245,30 @@ def test_projection_phase_and_status_must_be_known_values() -> None:
     rejects(OrchestrationProjectionSerializer, projection(status="not_a_status"))
 
 
+@pytest.mark.parametrize("field", ["startedAt", "finishedAt", "activeSince"])
+@pytest.mark.parametrize("value", ["bad", "2025-01-01T00:00:00", "2025-02-30T00:00:00Z", 123])
+def test_projection_rejects_invalid_timing_timestamps(field: str, value: Any) -> None:
+    rejects(OrchestrationProjectionSerializer, projection(**{field: value}))
+
+
+@pytest.mark.parametrize("value", [-1, "10", True])
+def test_projection_rejects_invalid_active_duration(value: Any) -> None:
+    rejects(OrchestrationProjectionSerializer, projection(activeTimeElapsedSeconds=value))
+
+
+def test_projection_accepts_missing_and_null_timing_from_older_seer() -> None:
+    result = validated(OrchestrationProjectionSerializer, projection())
+    assert "startedAt" not in result
+    assert "activeTimeElapsedSeconds" not in result
+    result = validated(
+        OrchestrationProjectionSerializer,
+        projection(
+            startedAt=None, finishedAt=None, activeSince=None, activeTimeElapsedSeconds=None
+        ),
+    )
+    assert result["activeTimeElapsedSeconds"] is None
+
+
 def test_projection_integers_stay_within_their_database_columns() -> None:
     rejects(OrchestrationProjectionSerializer, projection(workflowVersion=I32_MAX + 1))
     rejects(OrchestrationProjectionSerializer, projection(generation=I32_MAX + 1))

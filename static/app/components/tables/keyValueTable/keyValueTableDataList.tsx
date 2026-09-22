@@ -118,15 +118,20 @@ function Row({
 }
 
 const ValueWrapper = styled('div')`
-  > pre {
-    margin: 0;
-    padding: ${p => p.theme.space.md} 10px;
-  }
   pre {
-    && {
-      word-break: break-all;
-    }
+    box-sizing: border-box;
+    white-space: pre-wrap;
+    margin: 2px 0;
+    word-break: break-word;
+    padding: 8px 10px;
+    font-size: 12px;
+    overflow: visible;
   }
+
+  pre .val-string:first-child {
+    padding-left: 0;
+  }
+
   pre > pre {
     display: inline-block;
     margin: 0 !important;
