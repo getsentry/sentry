@@ -63,7 +63,7 @@ export function SpendLimitInput({
           pattern="[0-9]*"
           placeholder="300"
           value={(currentSpendingLimit / 100).toString()}
-          onChange={(event) => {
+          onChange={event => {
             const value = Math.max(parseInt(event.target.value, 10) || 0, 0);
             onUpdate({newData: {[inputName]: value * 100}});
           }}
