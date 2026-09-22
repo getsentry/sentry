@@ -4,6 +4,7 @@ import {InfoText} from '@sentry/scraps/info';
 
 import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -54,7 +55,8 @@ export function ExploreSavedQueryNavigationItems({queries}: Props) {
       {({query}) => {
         const to = getSavedQueryTraceItemUrl({savedQuery: query, organization});
         const isActive =
-          id === query.id.toString() && location.pathname === to.split('?')[0];
+          id === query.id.toString() &&
+          location.pathname === normalizeUrl(to).split('?')[0];
 
         return (
           <SecondaryNavigation.ReorderableLink
