@@ -11,7 +11,10 @@ import {
   type EquationModeSnapshot,
   useTraceMetricsVisualizeModeState,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
-import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {
+  BuilderStateAction,
+  serializeFields,
+} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -186,8 +189,8 @@ describe('useTraceMetricsVisualizeModeState', () => {
   it('preserves table grouping fields when switching between series and equation mode', () => {
     function useCombinedStateHooks() {
       const visualizeModeState = useTraceMetricsVisualizeModeState();
-      const {state} = useWidgetBuilderContext();
-      return {visualizeModeState, widgetBuilderState: state};
+      const {state, dispatch} = useWidgetBuilderContext();
+      return {dispatch, visualizeModeState, widgetBuilderState: state};
     }
 
     const {result} = renderHookWithProviders(useCombinedStateHooks, {
@@ -209,14 +212,34 @@ describe('useTraceMetricsVisualizeModeState', () => {
       },
     });
 
+    expect(serializeFields(result.current.widgetBuilderState.fields ?? [])).toEqual([
+      'span.op',
+      'span.description',
+      'sum(value,alpha_metric,counter,none)',
+    ]);
+
     act(() => {
       result.current.visualizeModeState.handleModeToggle(true);
+    });
+
+    act(() => {
+      result.current.dispatch({
+        type: BuilderStateAction.SET_FIELDS,
+        payload: [
+          {kind: FieldValueKind.FIELD, field: 'span.status_code'},
+          ...(result.current.widgetBuilderState.fields?.filter(
+            field => field.kind !== FieldValueKind.FIELD
+          ) ?? []),
+        ],
+      });
+    });
+
+    act(() => {
       result.current.visualizeModeState.handleModeToggle(false);
     });
 
     expect(serializeFields(result.current.widgetBuilderState.fields ?? [])).toEqual([
-      'span.op',
-      'span.description',
+      'span.status_code',
       'sum(value,alpha_metric,counter,none)',
     ]);
   });
