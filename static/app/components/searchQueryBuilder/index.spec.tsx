@@ -388,6 +388,36 @@ describe('SearchQueryBuilder', () => {
     }
   );
 
+  it('closes the previous value editor when focusing another filter in panel mode', async () => {
+    render(
+      <SearchQueryBuilder
+        {...defaultProps}
+        menuPresentation="panel"
+        initialQuery="browser.name:Chrome assigned:me"
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+    );
+    expect(
+      await screen.findByRole('combobox', {name: 'Edit filter value'})
+    ).toBeInTheDocument();
+
+    // Other tokens are aria-hidden while the value combobox is open.
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Edit value for filter: assigned', hidden: true})
+    );
+
+    expect(screen.getAllByRole('combobox', {name: 'Edit filter value'})).toHaveLength(1);
+    expect(
+      screen.getByRole('button', {
+        name: 'Edit value for filter: browser.name',
+        hidden: true,
+      })
+    ).toBeInTheDocument();
+  });
+
   it('keeps the date picker below the input in panel mode', async () => {
     const onChange = jest.fn();
     render(

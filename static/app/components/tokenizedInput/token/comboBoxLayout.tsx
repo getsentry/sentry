@@ -22,6 +22,18 @@ export function withPanelOverlayProps<T extends {style?: CSSProperties}>(
   };
 }
 
+/**
+ * Padding is the panel root; suggestions live in `menuSlot`. Other tokens are
+ * also inside the panel and must still count as outside.
+ */
+export function isQueryBuilderPanelChrome(
+  node: Node,
+  panelRoot: Element | null,
+  menuSlot: Element | null | undefined
+): boolean {
+  return node === panelRoot || Boolean(menuSlot?.contains(node));
+}
+
 interface ComboBoxLayoutContextData {
   menuPresentation: ComboBoxMenuPresentation;
   panelRef: RefObject<HTMLDivElement | null>;

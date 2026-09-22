@@ -350,6 +350,25 @@ describe('ArithmeticBuilder', () => {
     expect(panel).toContainElement(screen.getByTestId('arithmetic-builder-input'));
   });
 
+  it('closes equation suggestions when focusing another token in panel mode', async () => {
+    render(
+      <ArithmeticBuilderWrapper
+        expression="avg(span.duration)"
+        menuPresentation="panel"
+      />
+    );
+
+    const trailingInput = screen.getAllByRole('combobox', {name: 'Add a term'}).at(-1)!;
+    await userEvent.click(trailingInput);
+    expect(await screen.findByRole('listbox')).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('combobox', {name: 'Select an attribute', hidden: true})
+    );
+
+    expect(screen.getAllByRole('listbox')).toHaveLength(1);
+  });
+
   it.each(['padding', 'gap'])(
     'preserves equation editing when clicking panel %s',
     async target => {

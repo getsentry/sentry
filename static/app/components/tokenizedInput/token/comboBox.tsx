@@ -31,6 +31,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {
+  isQueryBuilderPanelChrome,
   useComboBoxLayout,
   withPanelOverlayProps,
 } from 'sentry/components/tokenizedInput/token/comboBoxLayout';
@@ -245,14 +246,16 @@ export function ComboBox({
         return false;
       }
 
-      // Keep the menu open when clicking panel padding or the suggestions gap.
-      if (menuPresentation === 'panel' && panelRef.current?.contains(el)) {
+      if (
+        menuPresentation === 'panel' &&
+        isQueryBuilderPanelChrome(el, panelRef.current, portalTarget)
+      ) {
         return false;
       }
 
       return shouldCloseOnInteractOutside?.(el) ?? true;
     },
-    [menuPresentation, panelRef, shouldCloseOnInteractOutside]
+    [menuPresentation, panelRef, portalTarget, shouldCloseOnInteractOutside]
   );
 
   const handleComboBoxFocus: FocusEventHandler<HTMLInputElement> = useCallback(

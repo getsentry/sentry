@@ -45,7 +45,10 @@ import {
   itemIsSection,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
-import {withPanelOverlayProps} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
+import {
+  isQueryBuilderPanelChrome,
+  withPanelOverlayProps,
+} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {useOverlay} from 'sentry/utils/useOverlay';
@@ -591,7 +594,8 @@ export function SearchQueryBuilderCombobox<
       if (
         popoverRef.current?.contains(el) ||
         wrapperRef.current?.contains(el) ||
-        panelRef.current?.contains(el)
+        (menuPresentation === 'panel' &&
+          isQueryBuilderPanelChrome(el, panelRef.current, portalTarget))
       ) {
         return false;
       }
