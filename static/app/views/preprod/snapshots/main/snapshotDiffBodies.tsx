@@ -10,7 +10,10 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
-import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  getImageName,
+  getSnapshotImageUrlForKey,
+} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {useD3Zoom, useSyncedD3Zoom} from './imageDisplay/useD3Zoom';
 import {ZoomControls, zoomTransformStyle} from './imageDisplay/zoomControls';
@@ -60,7 +63,7 @@ export const SplitPairBody = memo(function SplitPairBodyImpl({
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
   const diffMaskUrl =
     hasVisibleOverlay && diffImageKey && diffImageBaseUrl
-      ? `${diffImageBaseUrl}${diffImageKey}/`
+      ? getSnapshotImageUrlForKey(diffImageBaseUrl, diffImageKey)
       : null;
   return (
     <Container position="relative">
@@ -271,6 +274,7 @@ export const OnionCardBody = memo(function OnionCardBodyImpl({
         </Text>
         <Flex width="200px">
           <Slider
+            aria-label={t('Head image opacity')}
             value={opacity}
             onChange={setOpacity}
             formatOptions={{style: 'unit', unit: 'percent'}}
@@ -302,6 +306,7 @@ function LazyImage({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setLoaded(false);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [src]);
 
   const onLoad = useCallback(() => setLoaded(true), []);

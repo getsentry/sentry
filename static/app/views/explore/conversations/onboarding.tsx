@@ -249,13 +249,9 @@ function AgentSetupInstructions({
         size="md"
         variant="primary"
         icon={<IconCopy />}
-        analyticsEventKey="onboarding.ai_prompt_copied"
-        analyticsEventName="Onboarding: AI Prompt Copied"
-        analyticsParams={{
-          platform: project.platform ?? 'unknown',
-          product: 'conversations',
-          source: 'prompt',
-        }}
+        analyticsEventKey="conversations.onboarding.interaction"
+        analyticsEventName="Conversations: Onboarding Interaction"
+        analyticsParams={{action: 'copy_agent_prompt'}}
         onClick={() => {
           copy(prompt, {
             successMessage: t('Copied setup prompt to clipboard'),
@@ -767,14 +763,6 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
             borderless
             steps={steps}
             source="conversations_onboarding"
-            onCopy={() => {
-              trackAnalytics('onboarding.ai_prompt_copied', {
-                organization,
-                platform: project.platform ?? 'unknown',
-                product: 'conversations',
-                source: 'prompt',
-              });
-            }}
           />
         </Flex>
         <Separator orientation="horizontal" />

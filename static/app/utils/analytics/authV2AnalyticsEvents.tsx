@@ -11,7 +11,7 @@ export type AuthV2EventParameters = {
     state: AuthV2LoginState;
   };
   'auth_v2.rollout.changed': {
-    source: 'feature_flag' | 'help_menu';
+    source: 'help_menu';
     state: 'disabled' | 'enabled' | 'unset';
   };
 };

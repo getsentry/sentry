@@ -17,6 +17,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import Serializer, serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -475,6 +476,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                             )
                         link_data.update(url_data)
                 data = installation.get_issue(link_data["externalIssue"], data=link_data)
+            except IntegrationConfigurationError as exc:
+                lifecycle.record_halt(exc)
+                return Response({"non_field_errors": [str(exc)]}, status=400)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
                 return Response(dict(exc.field_errors or {}), status=400)
@@ -509,6 +513,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             installation.store_issue_last_defaults(group.project, request.user, link_data)
             try:
                 installation.after_link_issue(external_issue, data=link_data)
+            except IntegrationConfigurationError as exc:
+                lifecycle.record_halt(exc)
+                return Response({"non_field_errors": [str(exc)]}, status=400)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
                 return Response(dict(exc.field_errors or {}), status=400)
@@ -598,9 +605,10 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         # note here externalIssue refers to `ExternalIssue.id` whereas above
         # it refers to the id from the provider
-        external_issue_id = request.GET.get("externalIssue")
-        if not external_issue_id:
+        raw_external_issue_id = request.GET.get("externalIssue")
+        if not raw_external_issue_id:
             return Response({"detail": "External ID required"}, status=400)
+        external_issue_id = to_valid_int_id("externalIssue", raw_external_issue_id)
 
         organization_id = group.project.organization_id
         result = integration_service.organization_context(

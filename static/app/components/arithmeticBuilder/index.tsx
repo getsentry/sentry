@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,9 +10,16 @@ import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
+import {
+  ComboBoxLayoutContext,
+  type ComboBoxMenuPresentation,
+} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
+import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {PanelProvider} from 'sentry/utils/panelProvider';
+
+export type {ComboBoxMenuPresentation};
 
 interface ArithmeticBuilderProps {
   aggregations: string[];
@@ -43,6 +50,11 @@ interface ArithmeticBuilderProps {
    */
   hasConditionalAggregates?: boolean;
   /**
+   * Render the equation input and suggestions together in one panel,
+   * matching SearchQueryBuilder's `menuPresentation="panel"`.
+   */
+  menuPresentation?: ComboBoxMenuPresentation;
+  /**
    * When provided, the arithmetic builder will use the references to suggest
    * keys for the user instead of aggregations and function arguments.
    */
@@ -62,6 +74,7 @@ export function ArithmeticBuilder({
   getFilterTagValues,
   getSuggestedKey,
   hasConditionalAggregates = false,
+  menuPresentation = 'floating',
   className,
   disabled,
   references,
@@ -79,6 +92,9 @@ export function ArithmeticBuilder({
     references,
     updateExpression: setExpression,
   });
+
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [menuContainer, setMenuContainer] = useState<HTMLDivElement | null>(null);
 
   const contextValue = useMemo(() => {
     return {
@@ -106,24 +122,51 @@ export function ArithmeticBuilder({
     references,
   ]);
 
-  return (
+  const layoutValue = useMemo(
+    () => ({
+      menuPresentation,
+      panelRef,
+      portalTarget: menuPresentation === 'panel' ? menuContainer : null,
+    }),
+    [menuContainer, menuPresentation]
+  );
+
+  const builder = (
     <PanelProvider>
-      <ArithmeticBuilderContext value={contextValue}>
-        <Wrapper
-          className={className}
-          aria-disabled={disabled}
-          data-test-id={dataTestId ?? 'arithmetic-builder'}
-          state={state.expression.isValid ? 'valid' : 'invalid'}
-          disabled={disabled}
-        >
-          <TokenGrid tokens={state.expression.tokens} />
-        </Wrapper>
-      </ArithmeticBuilderContext>
+      <ComboBoxLayoutContext value={layoutValue}>
+        <ArithmeticBuilderContext value={contextValue}>
+          <Wrapper
+            className={className}
+            aria-disabled={disabled}
+            data-test-id={dataTestId ?? 'arithmetic-builder'}
+            state={state.expression.isValid ? 'valid' : 'invalid'}
+            disabled={disabled}
+          >
+            <TokenGrid tokens={state.expression.tokens} />
+          </Wrapper>
+        </ArithmeticBuilderContext>
+      </ComboBoxLayoutContext>
     </PanelProvider>
+  );
+
+  if (menuPresentation !== 'panel') {
+    return builder;
+  }
+
+  return (
+    <QueryBuilderPanel
+      ref={panelRef}
+      data-test-id="arithmetic-builder-panel"
+      onMenuContainerRef={setMenuContainer}
+    >
+      {builder}
+    </QueryBuilderPanel>
   );
 }
 
-const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>`
+const Wrapper = styled(Input.withComponent('div'))<{
+  state: 'valid' | 'invalid';
+}>`
   min-height: ${p => p.theme.form.md.minHeight};
   padding: 0;
   height: auto;

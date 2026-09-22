@@ -19,8 +19,8 @@ import {useConversationSelection} from 'sentry/views/explore/conversations/hooks
 import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
 
 export type ConversationViewTab = 'transcript' | 'timeline';
 
@@ -82,6 +82,7 @@ export function ConversationViewContent({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setTimelineDefaultDismissed(false);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [activeTab]);
 
   const displayedNode = useMemo(() => {

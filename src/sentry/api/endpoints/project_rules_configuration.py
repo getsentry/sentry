@@ -23,6 +23,7 @@ from sentry.rules import rules
 from sentry.rules.actions.integrations.create_ticket.base import TicketEventAction
 from sentry.rules.actions.notify_event_service import NotifyEventServiceAction
 from sentry.rules.actions.sentry_apps.base import SentryAppEventAction
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 
 
 @cell_silo_endpoint
@@ -37,6 +38,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         """
         Retrieve the list of configuration options for a given project.
         """
+        enforce_alerts_api_deprecation(project.organization)
         action_list: list[Mapping[str, Any]] = []
         condition_list = []
         filter_list = []

@@ -196,7 +196,12 @@ export function CustomerDetails() {
   const onToggleBillingPlatformMigrationMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
       fetchMutation({
-        url: `/_admin/customers/${orgId}/billing-platform-migration/`,
+        url: getApiUrl(
+          '/_admin/customers/$organizationIdOrSlug/billing-platform-migration/',
+          {
+            path: {organizationIdOrSlug: orgId},
+          }
+        ),
         method: 'POST',
         data: params,
       }),

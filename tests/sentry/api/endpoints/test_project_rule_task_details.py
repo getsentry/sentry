@@ -21,6 +21,14 @@ class ProjectRuleTaskDetailsTest(APITestCase):
         assert response.data["status"] == "pending"
         assert response.data["rule"] is None
 
+    def test_deprecated_api_disabled(self) -> None:
+        with self.feature({"organizations:legacy-alerts-api": False}):
+            response = self.get_error_response(
+                self.organization.slug, self.project.slug, self.uuid, status_code=410
+            )
+
+        assert response.data == {"detail": "This API no longer exists."}
+
     @patch("sentry.integrations.slack.utils.rule_status.RedisRuleStatus.get_value")
     def test_status_failed(self, mock_get_value: MagicMock) -> None:
         mock_get_value.return_value = {"status": "failed", "error": "This failed"}

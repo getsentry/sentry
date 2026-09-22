@@ -288,7 +288,7 @@ export function ScmMessaging({
 
         <LayoutGroup>
           {hasValidationAlert && (
-            <MotionStack layout="position" gap="sm" paddingBottom="sm">
+            <MotionStack layout="position" gap="sm" paddingBottom="sm" role="alert">
               {validation.staleReason === 'integration' && (
                 <Alert variant="warning" showIcon>
                   {t(
@@ -339,7 +339,11 @@ export function ScmMessaging({
                 exit={{opacity: 0}}
                 transition={{duration: 0.15}}
               >
-                <Flex justify="center">
+                <Flex
+                  justify="center"
+                  role="status"
+                  aria-label={t('Loading integrations')}
+                >
                   <LoadingIndicator />
                 </Flex>
               </MotionStack>
@@ -353,6 +357,7 @@ export function ScmMessaging({
               >
                 <Alert
                   variant="warning"
+                  role="alert"
                   trailingItems={
                     <Alert.Button onClick={handleRetryProviders}>
                       {t('Retry')}

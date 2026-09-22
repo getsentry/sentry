@@ -5,7 +5,6 @@ import threading
 import time
 from collections.abc import Callable
 from datetime import datetime
-from difflib import SequenceMatcher
 from typing import Any, Literal, NamedTuple
 
 import orjson
@@ -13,15 +12,14 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import IntegrityError, models
 from django.db.models import F, Func, Value
 from django.utils import timezone
-from objectstore_client import RequestError, Session
+from objectstore_client import RequestError
 from pydantic import BaseModel, ValidationError
 from taskbroker_client.retry import Retry
 
 from sentry import analytics, options
-from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
-from sentry.preprod.snapshots.categorize import categorize_image_sets
+from sentry.preprod.snapshots.categorize import categorize_image_diff
 from sentry.preprod.snapshots.constants import (
     MISSING_BASE_GRACE_PERIOD_SECONDS,
     RECONSTRUCTION_RETRY_COUNTDOWN_SECONDS,
@@ -43,6 +41,7 @@ from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ComparisonPlan,
     ComparisonSummary,
+    ImageMetadata,
     SnapshotManifest,
 )
 from sentry.preprod.snapshots.models import (
@@ -50,10 +49,11 @@ from sentry.preprod.snapshots.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.preprod.snapshots.reconstruction import reconstruct_base_manifest
+from sentry.preprod.snapshots.storage import SnapshotStorage, get_snapshot_storage
 from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_snapshots_tasks, preprod_tasks
+from sentry.taskworker.namespaces import preprod_snapshots_tasks
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -112,24 +112,23 @@ def _retry_objectstore[T](operation: Callable[[], T]) -> T:
     raise AssertionError("unreachable")
 
 
-def _read_objectstore(session: Session, key: str) -> bytes:
+def _read_objectstore(session: SnapshotStorage, key: str) -> bytes:
     response = session.get(key)
     if response is None:
         raise FileNotFoundError("Object does not exist in objectstore")
     return response.payload.read()
 
 
-def _get_json[T: BaseModel](session: Session, key: str, model_cls: type[T]) -> T:
+def _get_json[T: BaseModel](session: SnapshotStorage, key: str, model_cls: type[T]) -> T:
     return model_cls(**orjson.loads(_retry_objectstore(lambda: _read_objectstore(session, key))))
 
 
-def _put_json(session: Session, key: str, model: BaseModel) -> None:
-    _retry_objectstore(
-        lambda: session.put(orjson.dumps(model.dict()), key=key, content_type="application/json")
-    )
+def _put_json(session: SnapshotStorage, key: str, model: BaseModel) -> None:
+    data = orjson.dumps(model.dict())
+    _retry_objectstore(lambda: session.put(data, key=key, content_type="application/json"))
 
 
-def _put_diff_mask(session: Session, key: str, data: bytes) -> None:
+def _put_diff_mask(session: SnapshotStorage, key: str, data: bytes) -> None:
     _retry_objectstore(lambda: session.put(data, key=key, content_type="image/png"))
 
 
@@ -159,118 +158,13 @@ def _mark_chunk_done(comparison_id: int, chunk_index: int) -> None:
     )
 
 
-class _DiffCandidate(NamedTuple):
-    name: str
-    head_hash: str
-    base_hash: str
-    pixel_count: int
-    kind: Literal["base", "sibling"] = "base"
-
-
-class _ImageDiffResult(NamedTuple):
-    renamed_pairs: list[tuple[str, str]]
-    added: set[str]
-    removed: set[str]
-    matched: set[str]
-    head_by_name: dict[str, str]
-    base_by_name: dict[str, str]
-    skipped: set[str]
-
-
-# When multiple added/removed files share the same content hash (e.g. dark/light
-# theme variants), greedily pair them by filename similarity for rename detection.
-def _match_by_name_similarity(
-    added_names: list[str], removed_names: list[str]
-) -> list[tuple[str, str]]:
-    scored: list[tuple[float, int, int]] = []
-    for ai, a in enumerate(added_names):
-        for ri, r in enumerate(removed_names):
-            scored.append((SequenceMatcher(None, a, r).ratio(), ai, ri))
-
-    scored.sort(reverse=True)
-
-    pairs: list[tuple[str, str]] = []
-    used_added: set[int] = set()
-    used_removed: set[int] = set()
-
-    for _, ai, ri in scored:
-        if ai in used_added or ri in used_removed:
-            continue
-        pairs.append((added_names[ai], removed_names[ri]))
-        used_added.add(ai)
-        used_removed.add(ri)
-
-    return pairs
-
-
-def categorize_image_diff(
-    head_manifest: SnapshotManifest, base_manifest: SnapshotManifest
-) -> _ImageDiffResult:
-    head_by_name = {key: meta.content_hash for key, meta in head_manifest.images.items()}
-    base_by_name = {key: meta.content_hash for key, meta in base_manifest.images.items()}
-
-    matched, added, removed, skipped = categorize_image_sets(head_manifest, base_manifest)
-
-    added_hash_to_names: dict[str, list[str]] = {}
-    for name in added:
-        h = head_by_name[name]
-        added_hash_to_names.setdefault(h, []).append(name)
-
-    removed_hash_to_names: dict[str, list[str]] = {}
-    for name in removed:
-        h = base_by_name[name]
-        removed_hash_to_names.setdefault(h, []).append(name)
-
-    renamed_pairs: list[tuple[str, str]] = []
-    for h in added_hash_to_names.keys() & removed_hash_to_names.keys():
-        a_names = added_hash_to_names[h]
-        r_names = removed_hash_to_names[h]
-        if len(a_names) == 1 and len(r_names) == 1:
-            renamed_pairs.append((a_names[0], r_names[0]))
-        else:
-            renamed_pairs.extend(_match_by_name_similarity(a_names, r_names))
-
-    for new_name, old_name in renamed_pairs:
-        added.discard(new_name)
-        removed.discard(old_name)
-        h = head_by_name[new_name]
-        if h in added_hash_to_names:
-            names = added_hash_to_names[h]
-            if new_name in names:
-                names.remove(new_name)
-            if not names:
-                del added_hash_to_names[h]
-
-    if skipped:
-        skipped_hash_to_names: dict[str, list[str]] = {}
-        for name in skipped:
-            h = base_by_name[name]
-            skipped_hash_to_names.setdefault(h, []).append(name)
-
-        for h in added_hash_to_names.keys() & skipped_hash_to_names.keys():
-            a_names = added_hash_to_names[h]
-            s_names = skipped_hash_to_names[h]
-            if len(a_names) == 1 and len(s_names) == 1:
-                matched_pairs = [(a_names[0], s_names[0])]
-            else:
-                matched_pairs = _match_by_name_similarity(a_names, s_names)
-            for a_name, s_name in matched_pairs:
-                renamed_pairs.append((a_name, s_name))
-                added.discard(a_name)
-                skipped.discard(s_name)
-
-    return _ImageDiffResult(
-        renamed_pairs, added, removed, matched, head_by_name, base_by_name, skipped
-    )
-
-
 def _image_name_to_path_stem(name: str) -> str:
     normalized = name.replace("\\", "/").strip("/")
     return normalized.rsplit(".", 1)[0] if "." in normalized else normalized
 
 
 def _fetch_batch_images(
-    session: Session,
+    session: SnapshotStorage,
     key_prefix: str,
     hashes: set[str],
 ) -> tuple[dict[str, bytes], set[str]]:
@@ -295,11 +189,11 @@ def _fetch_batch_images(
 
 
 def _create_pixel_batches(
-    items: list[_DiffCandidate],
+    items: list[ChunkCandidate],
     max_pixels_per_batch: int,
-) -> list[list[_DiffCandidate]]:
-    batches: list[list[_DiffCandidate]] = []
-    current_batch: list[_DiffCandidate] = []
+) -> list[list[ChunkCandidate]]:
+    batches: list[list[ChunkCandidate]] = []
+    current_batch: list[ChunkCandidate] = []
     current_pixels = 0
     for item in items:
         pixels = item.pixel_count
@@ -393,7 +287,7 @@ class SiblingComparison(NamedTuple):
 
 
 def _find_approved_sibling(
-    head_artifact: PreprodArtifact, session: Session
+    head_artifact: PreprodArtifact, session: SnapshotStorage
 ) -> SiblingComparison | None:
     cc = head_artifact.commit_comparison
     if not cc or not cc.pr_number or not cc.head_repo_name:
@@ -411,6 +305,7 @@ def _find_approved_sibling(
             # Human approvals only: chaining through auto-approvals would let
             # sub-threshold drift compound across rebuilds.
             preprodcomparisonapproval__extras__auto_approval__isnull=True,
+            # Required: keeps force-approved failed/missing-base builds from seeding auto-approval.
             preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.SUCCESS,
         )
         .exclude(id=head_artifact.id)
@@ -476,7 +371,7 @@ def _try_auto_approve_snapshot(
     comparison_manifest: ComparisonManifest,
     plan: ComparisonPlan,
     sibling_images: dict[str, ComparisonImageResult],
-    session: Session,
+    session: SnapshotStorage,
 ) -> None:
     if plan.sibling_artifact_id is None or not plan.sibling_comparison_key:
         return
@@ -558,6 +453,27 @@ def _try_auto_approve_snapshot(
     )
 
 
+def _build_chunk_candidate(
+    name: str,
+    head_meta: ImageMetadata,
+    reference_meta: ImageMetadata,
+    diff_threshold: float,
+    kind: Literal["base", "sibling"] = "base",
+) -> ChunkCandidate:
+    comparison_size = get_comparison_size(
+        ImageSize(head_meta.width, head_meta.height),
+        ImageSize(reference_meta.width, reference_meta.height),
+    )
+    return ChunkCandidate(
+        name=name,
+        head_hash=head_meta.content_hash,
+        base_hash=reference_meta.content_hash,
+        pixel_count=comparison_size.pixel_count,
+        diff_threshold=diff_threshold,
+        kind=kind,
+    )
+
+
 def _build_comparison_plan(
     head_manifest: SnapshotManifest,
     base_manifest: SnapshotManifest,
@@ -582,8 +498,7 @@ def _build_comparison_plan(
     skipped = categories.skipped
 
     non_diff_images: dict[str, ComparisonImageResult] = {}
-    eligible: list[_DiffCandidate] = []
-    eligible_thresholds: dict[str, float] = {}
+    eligible: list[ChunkCandidate] = []
 
     for name in sorted(matched):
         head_hash = head_by_name[name]
@@ -597,13 +512,14 @@ def _build_comparison_plan(
             )
             continue
 
-        head_meta = head_meta_by_hash[head_hash]
-        base_meta = base_meta_by_hash[base_hash]
-        head_size = ImageSize(head_meta.width, head_meta.height)
-        base_size = ImageSize(base_meta.width, base_meta.height)
-        pixel_count = get_comparison_size(head_size, base_size).pixel_count
+        candidate = _build_chunk_candidate(
+            name,
+            head_meta_by_hash[head_hash],
+            base_meta_by_hash[base_hash],
+            _effective_diff_threshold(head_manifest, name),
+        )
 
-        if pixel_count > MAX_DIFF_PIXELS:
+        if candidate.pixel_count > MAX_DIFF_PIXELS:
             non_diff_images[name] = ComparisonImageResult(
                 status="errored",
                 head_hash=head_hash,
@@ -612,8 +528,7 @@ def _build_comparison_plan(
             )
             continue
 
-        eligible.append(_DiffCandidate(name, head_hash, base_hash, pixel_count))
-        eligible_thresholds[name] = _effective_diff_threshold(head_manifest, name)
+        eligible.append(candidate)
 
     for name in sorted(added):
         non_diff_images[name] = ComparisonImageResult(
@@ -664,35 +579,23 @@ def _build_comparison_plan(
             sibling_hash = sibling_image.head_hash
             if not sibling_hash or sibling_hash == head_hash:
                 continue
-            head_meta = head_meta_by_hash[head_hash]
-            head_size = ImageSize(head_meta.width, head_meta.height)
             sibling_meta = sibling_meta_by_hash.get(sibling_hash)
             if sibling_meta is None:
                 continue
-            sibling_size = ImageSize(sibling_meta.width, sibling_meta.height)
-            pixel_count = get_comparison_size(head_size, sibling_size).pixel_count
-            if pixel_count > MAX_DIFF_PIXELS:
+            candidate = _build_chunk_candidate(
+                name,
+                head_meta_by_hash[head_hash],
+                sibling_meta,
+                _effective_diff_threshold(head_manifest, name),
+                kind="sibling",
+            )
+            if candidate.pixel_count > MAX_DIFF_PIXELS:
                 continue
-            eligible.append(_DiffCandidate(name, head_hash, sibling_hash, pixel_count, "sibling"))
-            eligible_thresholds[name] = _effective_diff_threshold(head_manifest, name)
+            eligible.append(candidate)
 
     batches = _create_pixel_batches(eligible, MAX_PIXELS_PER_BATCH)
     chunks = [
-        ChunkAssignment(
-            chunk_index=i,
-            candidates=[
-                ChunkCandidate(
-                    name=candidate.name,
-                    head_hash=candidate.head_hash,
-                    base_hash=candidate.base_hash,
-                    pixel_count=candidate.pixel_count,
-                    diff_threshold=eligible_thresholds[candidate.name],
-                    kind=candidate.kind,
-                )
-                for candidate in batch
-            ],
-        )
-        for i, batch in enumerate(batches)
+        ChunkAssignment(chunk_index=index, candidates=batch) for index, batch in enumerate(batches)
     ]
 
     return ComparisonPlan(
@@ -706,7 +609,7 @@ def _build_comparison_plan(
 
 
 def _process_chunk(
-    session: Session,
+    session: SnapshotStorage,
     assignment: ChunkAssignment,
     org_id: int,
     project_id: int,
@@ -888,7 +791,6 @@ def _process_chunk(
 @instrumented_task(
     name="sentry.preprod.tasks.process_snapshot_comparison_chunk",
     namespace=preprod_snapshots_tasks,
-    alias_namespace=preprod_tasks,
     retry=Retry(times=3),
     silo_mode=SiloMode.CELL,
     processing_deadline_duration=CHUNK_PROCESSING_DEADLINE,
@@ -902,7 +804,7 @@ def process_snapshot_comparison_chunk(
     base_artifact_id: int,
     **kwargs: Any,
 ) -> None:
-    session = get_session(UsecaseId.PREPROD, project_id, org=org_id)
+    session = get_snapshot_storage(project_id, org=org_id)
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
 
     try:
@@ -941,10 +843,17 @@ def process_snapshot_comparison_chunk(
     )
 
 
+def _base_manifest_missing_message(head_artifact: PreprodArtifact) -> str:
+    commit_comparison = head_artifact.commit_comparison
+    base_sha = (commit_comparison.base_sha or "") if commit_comparison else ""
+    if not base_sha:
+        return "Base snapshot not found."
+    return f"Base snapshot for commit {base_sha[:7]} not found."
+
+
 @instrumented_task(
     name="sentry.preprod.tasks.compare_snapshots",
     namespace=preprod_snapshots_tasks,
-    alias_namespace=preprod_tasks,
     retry=Retry(times=3),
     silo_mode=SiloMode.CELL,
     processing_deadline_duration=300,
@@ -1101,8 +1010,22 @@ def compare_snapshots(
                 preprod_artifact_id=head_artifact_id, caller="compare_failure"
             )
 
+    def _fail_manifest_load(which: str) -> None:
+        logger.exception(
+            "compare_snapshots: failed to load or parse %s manifest",
+            which,
+            extra={
+                "head_artifact_id": head_artifact_id,
+                "base_artifact_id": base_artifact_id,
+            },
+        )
+        _fail_comparison(
+            PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
+            "Failed to load or parse snapshot manifest.",
+        )
+
     try:
-        session = get_session(UsecaseId.PREPROD, project_id, org=org_id)
+        session = get_snapshot_storage(project_id, org=org_id)
 
         head_manifest_key = (head_metrics.extras or {}).get("manifest_key")
         base_manifest_key = (base_metrics.extras or {}).get("manifest_key")
@@ -1120,27 +1043,37 @@ def compare_snapshots(
         if not head_manifest_key or not base_manifest_key:
             raise ValueError("Missing manifest key")
 
-        try:
-            head_manifest = _get_json(session, head_manifest_key, SnapshotManifest)
-            base_manifest = _get_json(session, base_manifest_key, SnapshotManifest)
-        except (
+        manifest_errors = (
             orjson.JSONDecodeError,
             FileNotFoundError,
             RequestError,
             ValidationError,
             TypeError,
-        ):
-            logger.exception(
-                "compare_snapshots: failed to load or parse manifest",
+        )
+        try:
+            head_manifest = _get_json(session, head_manifest_key, SnapshotManifest)
+        except manifest_errors:
+            _fail_manifest_load("head")
+            return
+
+        try:
+            base_manifest = _get_json(session, base_manifest_key, SnapshotManifest)
+        except FileNotFoundError:
+            logger.warning(
+                "compare_snapshots: base manifest missing",
                 extra={
                     "head_artifact_id": head_artifact_id,
                     "base_artifact_id": base_artifact_id,
+                    "base_manifest_key": base_manifest_key,
                 },
             )
             _fail_comparison(
-                PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
-                "Failed to load or parse snapshot manifest.",
+                PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING,
+                _base_manifest_missing_message(head_artifact),
             )
+            return
+        except manifest_errors:
+            _fail_manifest_load("base")
             return
 
         # Gate on the manifest, not base_metrics.is_selective: the manifest is the source of
@@ -1332,7 +1265,6 @@ def _finalize_if_all_chunks_done(
 @instrumented_task(
     name="sentry.preprod.tasks.finalize_snapshot_comparison",
     namespace=preprod_snapshots_tasks,
-    alias_namespace=preprod_tasks,
     retry=Retry(times=3),
     silo_mode=SiloMode.CELL,
     processing_deadline_duration=300,
@@ -1365,7 +1297,7 @@ def finalize_snapshot_comparison(
     ).update(date_updated=timezone.now())
 
     comparison.refresh_from_db(fields=["chunks_done_indices"])
-    session = get_session(UsecaseId.PREPROD, project_id, org=org_id)
+    session = get_snapshot_storage(project_id, org=org_id)
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
     try:
         plan = _get_json(session, plan_key, ComparisonPlan)

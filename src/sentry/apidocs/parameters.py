@@ -327,7 +327,7 @@ class ReleaseParams:
         required=False,
         type=str,
         description="The field used to sort results by. By default, this is `date`.",
-        enum=["date", "sessions", "users", "crash_free_users", "crash_free_sessions"],
+        enum=["date"],
     )
     STATUS_FILTER = OpenApiParameter(
         name="status",
@@ -368,7 +368,7 @@ class IssueParams:
         location="query",
         required=False,
         type=str,
-        description="Sort order of the resulting tag values. Prefix with '-' for descending order. Default is '-id'.",
+        description="Sort order of the resulting tag values. Default is `id`.",
         enum=["id", "date", "age", "count"],
     )
 
@@ -1257,7 +1257,6 @@ class DashboardParams:
             "owned",
             "shared",
             "showHidden",
-            "showUserHidden",
         ],
         description="Filter the dashboards returned. Repeat this parameter to apply multiple filters.",
     )
