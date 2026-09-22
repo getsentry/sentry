@@ -726,6 +726,33 @@ describe('SeerDrawerNextStep', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('keeps the write-access gate when code mode has no chat to hand to', async () => {
+      addRepoPermissionsResponse(false);
+      addGithubIntegrationResponse();
+      const autofix = makeAutofix();
+
+      // With nowhere to send the question, "yes" falls back to creating the PR,
+      // so the permissions check has to stay in front of it.
+      render(
+        <AutofixChatProvider sendMessage={undefined}>
+          <SeerDrawerNextStep
+            group={GroupFixture()}
+            sections={[makeSection('code_changes')]}
+            autofix={autofix}
+          />
+        </AutofixChatProvider>,
+        {organization: codeModeOrganization}
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'Yes, view GitHub permissions'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Yes, draft a PR'})
+      ).not.toBeInTheDocument();
+      expect(autofix.createPR).not.toHaveBeenCalled();
+    });
+
     it('checks provider permissions on refocus and proceeds when access is granted', async () => {
       addRepoPermissionsResponse(false);
       addGithubIntegrationResponse({

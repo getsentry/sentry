@@ -10,7 +10,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useIsSeerCodeMode} from 'sentry/components/events/autofix/v3/useIsSeerCodeMode';
+import {useAskSeerHandoff} from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
 import {IconSubscribed} from 'sentry/icons/iconSubscribed';
 import {t} from 'sentry/locale';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
@@ -42,7 +42,7 @@ export function SeerEnableNotifications({status}: Props) {
   const {isServiceWorkerSupported, controller} = useServiceWorker();
   const {permission, supportsNotifications, askNotificationPermission} =
     useNotificationPermission();
-  const isCodeMode = useIsSeerCodeMode();
+  const {isCodeMode} = useAskSeerHandoff();
 
   const analyticsArea = useAnalyticsArea();
 

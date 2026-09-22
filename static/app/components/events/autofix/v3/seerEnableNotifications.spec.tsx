@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
+import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
 
 // Service workers and the Notification API do not exist in jsdom, and
 // `supportsNotifications` is read once at module scope, so there is no store or
@@ -48,20 +49,25 @@ describe('SeerEnableNotifications', () => {
   });
 
   it('stays quiet in code mode, where the agent owns the run', () => {
-    render(<SeerEnableNotifications status="processing" />, {
-      // Code mode needs the Explorer's own prerequisites alongside its flag,
-      // since a run can only move to chat when chat is reachable.
-      organization: OrganizationFixture({
-        features: [
-          'autofix-browser-notifications',
-          'seer-explorer-code-mode-tools',
-          'seer-explorer',
-          'gen-ai-features',
-        ],
-        openMembership: true,
-        hideAiFeatures: false,
-      }),
-    });
+    render(
+      <AutofixChatProvider sendMessage={jest.fn()}>
+        <SeerEnableNotifications status="processing" />
+      </AutofixChatProvider>,
+      {
+        // Code mode needs the Explorer's own prerequisites alongside its flag,
+        // and a chat that can take the run.
+        organization: OrganizationFixture({
+          features: [
+            'autofix-browser-notifications',
+            'seer-explorer-code-mode-tools',
+            'seer-explorer',
+            'gen-ai-features',
+          ],
+          openMembership: true,
+          hideAiFeatures: false,
+        }),
+      }
+    );
 
     // Being ineligible short-circuits the prompt lookup, so nothing can arrive
     // late and render the button after this assertion.

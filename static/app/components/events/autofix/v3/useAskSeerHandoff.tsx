@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 
-import {useIsSeerCodeMode} from 'sentry/components/events/autofix/v3/useIsSeerCodeMode';
 import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 /**
  * With code mode on, Seer Agent can drive the run itself, so the next-step
@@ -10,17 +11,25 @@ import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
  * buttons is that they do not have to phrase it.
  *
  * Posting through the chat context rather than opening the Explorer drawer
- * keeps the question on whichever surface is already showing — sidebar, drawer
- * or popped out — instead of stacking a second one beside it. Sending without
- * `newChat` adds to the run already open, so the question keeps the context on
- * screen that makes it answerable.
+ * keeps the question on whichever surface is already showing instead of
+ * stacking a second one beside it. Sending without `newChat` adds to the run
+ * already open, so the question keeps the context on screen that makes it
+ * answerable.
  *
- * `isCodeMode` is false when no chat is reachable, so callers keep the ordinary
- * Autofix buttons rather than offering a hand-off that goes nowhere.
+ * `isCodeMode` is the single answer to "has this run been handed to the agent".
+ * It needs the flag, the Explorer's own prerequisites, and a chat that can take
+ * the message; anything that behaves differently in code mode — the buttons, the
+ * pull-request gate, the notifications prompt — reads it here, so none of them
+ * can disagree about which path a click will take.
  */
 export function useAskSeerHandoff() {
+  const organization = useOrganization();
   const {sendMessage} = useAutofixChat();
-  const isCodeMode = useIsSeerCodeMode() && Boolean(sendMessage);
+
+  const isCodeMode =
+    organization.features.includes('seer-explorer-code-mode-tools') &&
+    isSeerExplorerEnabled(organization) &&
+    Boolean(sendMessage);
 
   const askSeer = useCallback(
     (prompt: string) => {
