@@ -2,34 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sentry import eventstore
-from sentry.integrations.messaging.message_builder import (
-    build_attachment_text,
-    build_attachment_title,
-    build_footer,
-    format_actor_option_non_slack,
-)
-from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
-from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
-from sentry.integrations.msteams.card_builder.block import (
-    Action,
-    ActionType,
-    Block,
-    ColumnSetBlock,
-    ContentAlignment,
-    OpenUrlAction,
-    TextBlock,
-    TextSize,
-    TextWeight,
-    create_column_block,
-    create_column_set_block,
-    create_footer_column_block,
-    create_footer_logo_block,
-    create_footer_text_block,
-    create_text_block,
-)
-from sentry.integrations.msteams.card_builder.utils import IssueConstants
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -47,6 +22,14 @@ from sentry.notifications.platform.types import (
 )
 from sentry.services.eventstore.models import Event, GroupEvent
 
+if TYPE_CHECKING:
+    from sentry.integrations.msteams.card_builder.block import (
+        Action,
+        Block,
+        ColumnSetBlock,
+        TextBlock,
+    )
+
 
 @renderer_registry.register(NotificationProviderKey.MSTEAMS, sources=[NotificationSource.ISSUE])
 class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
@@ -56,6 +39,8 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
     ) -> MSTeamsRenderable:
         if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueMSTeamsRenderer does not support {data.__class__.__name__}")
+
+        from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 
         # Retrieving Group and Event data is an anti-pattern, do not do this
         # in permanent renderers.
@@ -99,6 +84,13 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
     @classmethod
     def build_title(cls, *, group: Group, issue_url: str) -> TextBlock:
+        from sentry.integrations.messaging.message_builder import build_attachment_title
+        from sentry.integrations.msteams.card_builder.block import (
+            TextSize,
+            TextWeight,
+            create_text_block,
+        )
+
         title_text = build_attachment_title(group)
         return create_text_block(
             f"[{title_text}]({issue_url})",
@@ -108,6 +100,13 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
     @classmethod
     def build_description(cls, group: Group) -> TextBlock | None:
+        from sentry.integrations.messaging.message_builder import build_attachment_text
+        from sentry.integrations.msteams.card_builder.block import (
+            TextSize,
+            TextWeight,
+            create_text_block,
+        )
+
         text = build_attachment_text(group)
         if text:
             return create_text_block(text, size=TextSize.MEDIUM, weight=TextWeight.BOLDER)
@@ -121,6 +120,21 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         event: Event | GroupEvent | None,
         rules: Sequence[Rule],
     ) -> ColumnSetBlock:
+        from sentry.integrations.messaging.message_builder import build_footer
+        from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
+        from sentry.integrations.msteams.card_builder.block import (
+            ContentAlignment,
+            TextSize,
+            TextWeight,
+            create_column_block,
+            create_column_set_block,
+            create_footer_column_block,
+            create_footer_logo_block,
+            create_footer_text_block,
+            create_text_block,
+        )
+        from sentry.integrations.msteams.card_builder.utils import IssueConstants
+
         project = Project.objects.get_from_cache(id=group.project_id)
         footer_text = build_footer(
             group=group, project=project, url_format=MSTEAMS_URL_FORMAT, rules=rules
@@ -147,6 +161,10 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
     @classmethod
     def build_assignee_note(cls, group: Group) -> TextBlock | None:
+        from sentry.integrations.messaging.message_builder import format_actor_option_non_slack
+        from sentry.integrations.msteams.card_builder.block import TextSize, create_text_block
+        from sentry.integrations.msteams.card_builder.utils import IssueConstants
+
         assignee = group.get_assignee()
         if assignee:
             assignee_text = format_actor_option_non_slack(assignee)["text"]
@@ -158,4 +176,6 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
     @classmethod
     def build_actions(cls, *, issue_url: str) -> list[Action]:
+        from sentry.integrations.msteams.card_builder.block import ActionType, OpenUrlAction
+
         return [OpenUrlAction(type=ActionType.OPEN_URL, title="View Issue", url=issue_url)]
