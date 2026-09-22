@@ -752,9 +752,11 @@ function getSpanEvidenceValue(span: Span | null) {
 }
 
 const StyledCodeSnippet = styled(CodeBlock)`
-  pre {
+  pre[class*='language-'] {
     /* overflow is set to visible in global styles so need to enforce auto here */
     overflow: auto !important;
+    /* Keeps the code flush with the plain values in the card's value column */
+    padding-inline: 0;
   }
 
   z-index: 0;
