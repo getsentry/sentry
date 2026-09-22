@@ -10,7 +10,6 @@ import jsonschema
 
 from sentry import options
 from sentry.constants import DataCategory
-from sentry.event_manager import save_pending_attachments
 from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
 from sentry.feedback.usecases.label_generation import (
     AI_LABEL_TAG_PREFIX,
@@ -34,7 +33,7 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
-from sentry.utils.safe import get_path, safe_execute
+from sentry.utils.safe import get_path
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
@@ -441,14 +440,6 @@ def create_feedback_issue(
         event_id=event["event_id"],
         category=DataCategory.USER_REPORT_V2,
         quantity=1,
-    )
-
-    safe_execute(
-        save_pending_attachments,
-        project=project,
-        event_id=event_fixed["event_id"],
-        group_id=None,
-        source="create_feedback_issue",
     )
 
     return event_fixed
