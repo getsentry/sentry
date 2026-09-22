@@ -121,6 +121,11 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             date_started=ended_at - timedelta(hours=2),
             date_ended=ended_at,
         )
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.login_as(member)
         source = {
             "type": "metric_open_period",
             "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
@@ -170,6 +175,9 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         self, schedule_auto_run: mock.Mock
     ) -> None:
         group, open_period = self.create_metric_open_period()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.login_as(member)
         source = {
             "type": "metric_open_period",
             "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
@@ -506,7 +514,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert launched.data["id"] == str(investigation.id)
         assert Investigation.objects.count() == 1
 
-    def test_launch_and_candidate_require_access_to_the_existing_investigation(self) -> None:
+    def test_members_without_project_membership_can_reuse_existing_investigations(self) -> None:
         group, open_period = self.create_metric_open_period()
         source = {
             "type": "metric_open_period",
@@ -530,18 +538,17 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         )
         self.create_investigation_project(investigation=investigation, project=restricted_project)
         viewer = self.create_user()
-        self.create_member(
-            organization=self.organization, user=viewer, role="member", teams=[self.team]
-        )
+        self.create_member(organization=self.organization, user=viewer, role="member", teams=[])
         self.login_as(viewer)
 
         with mock.patch(
             "sentry.investigations.endpoints.organization_investigation_index."
             "schedule_eligible_auto_run_blocks"
-        ) as schedule_auto_run:
+        ):
             duplicate = self.client.post(self.collection_url, launch_payload, format="json")
-        assert duplicate.status_code == 403
-        schedule_auto_run.assert_not_called()
+        assert duplicate.status_code == 200
+        assert duplicate.data["id"] == str(investigation.id)
+        assert Investigation.objects.count() == 1
 
         candidate = self.client.post(
             self.candidates_url,
@@ -553,7 +560,9 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             format="json",
         )
         assert candidate.status_code == 200
-        assert candidate.data == {"items": [{"status": "unavailable"}]}
+        assert candidate.data == {
+            "items": [{"status": "view", "investigationId": str(investigation.id)}]
+        }
 
     def test_launch_rolls_back_when_auto_run_scheduling_fails(self) -> None:
         group, open_period = self.create_metric_open_period()
