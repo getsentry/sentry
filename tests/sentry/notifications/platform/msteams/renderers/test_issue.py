@@ -206,6 +206,35 @@ class IssueMSTeamsRendererTest(TestCase):
             group=group, event=event, description="something went wrong"
         )
 
+    def test_render_uses_triggering_event_description(self) -> None:
+        data, _, group = self._create_data(
+            event_data={
+                "exception": {
+                    "values": [{"type": "ValueError", "value": "triggering event"}],
+                },
+                "fingerprint": ["same-issue"],
+            },
+        )
+        latest_event = self.store_event(
+            data={
+                "exception": {
+                    "values": [{"type": "ValueError", "value": "latest event"}],
+                },
+                "fingerprint": ["same-issue"],
+            },
+            project_id=self.project.id,
+        )
+        assert latest_event.group_id == group.id
+
+        result = IssueMSTeamsRenderer.render(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
+        )
+
+        assert result["body"][1] == create_text_block(
+            "triggering event", size=TextSize.MEDIUM, weight=TextWeight.BOLDER
+        )
+
     def test_render_with_assignee(self) -> None:
         data, event, group = self._create_data()
         GroupAssignee.objects.assign(group, self.user)

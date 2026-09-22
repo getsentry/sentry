@@ -64,7 +64,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         issue_url = cls.build_issue_url(group=group, notification_uuid=data.notification_uuid)
 
         fields: list[Block | None] = [
-            cls.build_description(group),
+            cls.build_description(group=group, event=event),
             cls.build_footer(group=group, event=event, rules=rules),
             cls.build_assignee_note(group),
         ]
@@ -99,7 +99,9 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         )
 
     @classmethod
-    def build_description(cls, group: Group) -> TextBlock | None:
+    def build_description(
+        cls, *, group: Group, event: Event | GroupEvent | None
+    ) -> TextBlock | None:
         from sentry.integrations.messaging.message_builder import build_attachment_text
         from sentry.integrations.msteams.card_builder.block import (
             TextSize,
@@ -107,7 +109,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             create_text_block,
         )
 
-        text = build_attachment_text(group)
+        text = build_attachment_text(group, event)
         if text:
             return create_text_block(text, size=TextSize.MEDIUM, weight=TextWeight.BOLDER)
         return None
