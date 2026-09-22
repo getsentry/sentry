@@ -10,6 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
+import {ONBOARDING_ENTER} from 'sentry/views/onboarding/animations';
 
 import {ScmSelectableCardButton} from './scmCardButton';
 
@@ -52,6 +53,7 @@ export function ScmFeatureRow({
         onClick={onClick}
         role="checkbox"
         aria-checked={isSelected}
+        {...ONBOARDING_ENTER}
       >
         <Container height="100%" radius="lg" padding="xl">
           <Stack height="100%" gap="md">

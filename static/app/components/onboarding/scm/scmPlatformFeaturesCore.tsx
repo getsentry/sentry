@@ -22,7 +22,10 @@ import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ONBOARDING_ENTER} from 'sentry/views/onboarding/animations';
+import {
+  ONBOARDING_ENTER,
+  ONBOARDING_STAGGER_CHILDREN,
+} from 'sentry/views/onboarding/animations';
 
 import {
   type ScmAnalyticsFlow,
@@ -462,7 +465,7 @@ export function ScmPlatformFeaturesCore({
             }}
             gap="lg"
             role="radiogroup"
-            {...ONBOARDING_ENTER}
+            {...ONBOARDING_STAGGER_CHILDREN}
             initial="initial"
             animate="animate"
           >

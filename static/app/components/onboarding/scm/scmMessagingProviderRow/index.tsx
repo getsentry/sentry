@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 import type {ReactNode} from 'react';
+import {motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -26,6 +27,7 @@ import type {
 } from 'sentry/types/integrations';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ONBOARDING_ENTER} from 'sentry/views/onboarding/animations';
 
 import {RowActions} from './action';
 import {ProviderLogo} from './logo';
@@ -241,10 +243,11 @@ export function ScmMessagingProviderRow({
   const errorMessage = getInstallErrorMessage(installState);
 
   return (
-    <Container
+    <MotionContainer
       background="primary"
       border={visualState === 'removing' ? 'danger' : 'primary'}
       radius="xl"
+      {...ONBOARDING_ENTER}
     >
       <Stack>
         {visualState === 'install-error' && (
@@ -338,6 +341,8 @@ export function ScmMessagingProviderRow({
             </Container>
           )}
       </Stack>
-    </Container>
+    </MotionContainer>
   );
 }
+
+const MotionContainer = motion.create(Container);

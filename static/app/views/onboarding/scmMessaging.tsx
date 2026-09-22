@@ -23,7 +23,11 @@ import {
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 
-import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from './animations';
+import {
+  ONBOARDING_ENTER,
+  ONBOARDING_STAGGER,
+  ONBOARDING_STAGGER_CHILDREN,
+} from './animations';
 import type {StepProps} from './types';
 
 /**
@@ -190,7 +194,7 @@ export function ScmMessaging({
           ) : providers.length > 0 ? (
             <MotionStack
               key="list"
-              {...ONBOARDING_ENTER}
+              {...ONBOARDING_STAGGER_CHILDREN}
               initial="initial"
               animate="animate"
               exit="exit"

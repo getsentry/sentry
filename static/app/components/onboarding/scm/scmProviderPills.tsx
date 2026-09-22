@@ -1,4 +1,6 @@
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {motion} from 'framer-motion';
+
+import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
@@ -6,6 +8,10 @@ import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  ONBOARDING_ENTER,
+  ONBOARDING_STAGGER_CHILDREN,
+} from 'sentry/views/onboarding/animations';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
@@ -52,58 +58,64 @@ function ScmProviderPillRow({
   const iconSize = 'sm';
 
   return (
-    <Flex wrap="wrap" justify={justify} gap="md">
+    <MotionFlex wrap="wrap" justify={justify} gap="md" {...ONBOARDING_STAGGER_CHILDREN}>
       {primaryProviders.map(provider => (
-        <IntegrationContext
-          key={provider.key}
-          value={{
-            provider,
-            type: 'first_party',
-            installStatus: 'Not Installed',
-            analyticsParams: {
-              view,
-              variant: 'scm',
-              already_installed: false,
-            },
-            suppressSuccessMessage: true,
-          }}
-        >
-          <IntegrationButton
-            userHasAccess
-            onAddIntegration={onInstall}
-            onExternalClick={() => {}}
-            buttonProps={{
-              size: buttonSize,
-              icon: getIntegrationIcon(provider.key, iconSize),
-              buttonText: provider.name,
+        <MotionContainer key={provider.key} {...ONBOARDING_ENTER}>
+          <IntegrationContext
+            value={{
+              provider,
+              type: 'first_party',
+              installStatus: 'Not Installed',
+              analyticsParams: {
+                view,
+                variant: 'scm',
+                already_installed: false,
+              },
+              suppressSuccessMessage: true,
             }}
-          />
-        </IntegrationContext>
+          >
+            <IntegrationButton
+              userHasAccess
+              onAddIntegration={onInstall}
+              onExternalClick={() => {}}
+              buttonProps={{
+                size: buttonSize,
+                icon: getIntegrationIcon(provider.key, iconSize),
+                buttonText: provider.name,
+              }}
+            />
+          </IntegrationContext>
+        </MotionContainer>
       ))}
       {moreProviders.length > 0 && (
-        <DropdownMenu
-          triggerLabel={t('More')}
-          position="bottom-end"
-          size={buttonSize}
-          items={moreProviders.map(provider => ({
-            key: provider.key,
-            label: provider.name,
-            leadingItems: getIntegrationIcon(provider.key, iconSize),
-            onAction: () =>
-              startFlow({
-                provider,
-                organization,
-                onInstall,
-                analyticsParams: {
-                  view,
-                  variant: 'scm',
-                  already_installed: false,
-                },
-                suppressSuccessMessage: true,
-              }),
-          }))}
-        />
+        <MotionContainer {...ONBOARDING_ENTER}>
+          <DropdownMenu
+            triggerLabel={t('More')}
+            position="bottom-end"
+            size={buttonSize}
+            items={moreProviders.map(provider => ({
+              key: provider.key,
+              label: provider.name,
+              leadingItems: getIntegrationIcon(provider.key, iconSize),
+              onAction: () =>
+                startFlow({
+                  provider,
+                  organization,
+                  onInstall,
+                  analyticsParams: {
+                    view,
+                    variant: 'scm',
+                    already_installed: false,
+                  },
+                  suppressSuccessMessage: true,
+                }),
+            }))}
+          />
+        </MotionContainer>
       )}
-    </Flex>
+    </MotionFlex>
   );
 }
+
+const MotionFlex = motion.create(Flex);
+const MotionContainer = motion.create(Container);

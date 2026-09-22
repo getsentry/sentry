@@ -24,6 +24,18 @@ export const ONBOARDING_STAGGER: MotionProps = {
 };
 
 /**
+ * Put on a list whose items should enter one after another. The list itself
+ * does not move, so an item's own entry is the only thing on screen.
+ */
+export const ONBOARDING_STAGGER_CHILDREN: MotionProps = {
+  variants: {
+    initial: {},
+    animate: {transition: {staggerChildren: STAGGER}},
+    exit: {},
+  },
+};
+
+/**
  * Put on each thing that enters: a section, a paragraph, a card. Meant to sit
  * inside an `ONBOARDING_STAGGER` container, which drives the timing.
  */

@@ -1,8 +1,11 @@
+import {motion} from 'framer-motion';
+
 import {Grid} from '@sentry/scraps/layout';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
+import {ONBOARDING_STAGGER_CHILDREN} from 'sentry/views/onboarding/animations';
 
 import {ScmFeatureRow} from './scmFeatureCard';
 import type {FeatureMeta} from './useScmFeatureMeta';
@@ -27,13 +30,14 @@ export function ScmFeatureSelectionCards({
   isOnboarding,
 }: ScmFeatureSelectionCardsProps) {
   return (
-    <Grid
+    <MotionGrid
       width="100%"
       columns={{
         zero: '1fr',
         md: 'repeat(2, minmax(0, 1fr))',
       }}
       gap="lg"
+      {...ONBOARDING_STAGGER_CHILDREN}
     >
       {availableFeatures.map(feature => {
         const meta = featureMeta[feature];
@@ -58,6 +62,8 @@ export function ScmFeatureSelectionCards({
           />
         );
       })}
-    </Grid>
+    </MotionGrid>
   );
 }
+
+const MotionGrid = motion.create(Grid);

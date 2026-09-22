@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 /**
  * A button with all default browser styling removed.
@@ -29,7 +30,7 @@ export const ScmCardButton = styled('button')`
 const CARD_LIFT = '1px';
 const CARD_HOVER_LIFT = '2px';
 
-export const ScmSelectableCardButton = styled(ScmCardButton)`
+const SelectableCard = styled(ScmCardButton)`
   /* Buttons center their contents vertically; these cards stretch to their
      tallest sibling and must stay top-aligned. */
   display: block;
@@ -121,3 +122,6 @@ export const ScmSelectableCardButton = styled(ScmCardButton)`
     }
   }
 `;
+
+/** Motion-aware so a grid of these can stagger its items in. */
+export const ScmSelectableCardButton = motion.create(SelectableCard);

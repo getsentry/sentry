@@ -5,6 +5,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
 import type {PlatformKey} from 'sentry/types/platform';
+import {ONBOARDING_ENTER} from 'sentry/views/onboarding/animations';
 
 import {ScmSelectableCardButton} from './scmCardButton';
 
@@ -27,7 +28,12 @@ export function ScmPlatformRow({
   onClick,
 }: ScmPlatformRowProps) {
   return (
-    <ScmSelectableCardButton onClick={onClick} role="radio" aria-checked={isSelected}>
+    <ScmSelectableCardButton
+      onClick={onClick}
+      role="radio"
+      aria-checked={isSelected}
+      {...ONBOARDING_ENTER}
+    >
       <Container height="100%" radius="lg" padding="xl">
         <Flex gap="lg" align="center">
           <Flex flexShrink={0}>
