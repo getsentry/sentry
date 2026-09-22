@@ -5,7 +5,7 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -235,19 +235,18 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                                 {t('Monthly spending limit')}
                               </Heading>
                               <Container width="100%">
-                                <field.Input
+                                <field.Number
                                   aria-label={t(
                                     'Custom shared spending limit (in dollars)'
                                   )}
-                                  leadingItems={<Text variant="muted">$</Text>}
-                                  type="text"
-                                  inputMode="numeric"
-                                  pattern="[0-9]*"
+                                  leadingItems="$"
+                                  min={0}
+                                  step={1}
                                   placeholder="300"
-                                  value={(field.state.value / 100).toString()}
+                                  value={field.state.value / 100}
                                   onChange={value =>
                                     field.handleChange(
-                                      Math.max(parseInt(value, 10) || 0, 0) * 100
+                                      Math.max(Math.trunc(value ?? 0), 0) * 100
                                     )
                                   }
                                 />
@@ -273,20 +272,19 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                       <form.AppField name={`budgets.${category}`}>
                         {field => (
                           <Container width="100%">
-                            <field.Input
+                            <field.Number
                               aria-label={t(
                                 'Custom %s spending limit (in dollars)',
                                 displayName
                               )}
-                              leadingItems={<Text variant="muted">$</Text>}
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
+                              leadingItems="$"
+                              min={0}
+                              step={1}
                               placeholder="300"
-                              value={((field.state.value ?? 0) / 100).toString()}
+                              value={(field.state.value ?? 0) / 100}
                               onChange={value =>
                                 field.handleChange(
-                                  Math.max(parseInt(value, 10) || 0, 0) * 100
+                                  Math.max(Math.trunc(value ?? 0), 0) * 100
                                 )
                               }
                             />

@@ -1,6 +1,5 @@
 import {InputGroup} from '@sentry/scraps/input';
 import {Container} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -45,13 +44,9 @@ export function SpendLimitInput({
   return (
     <Container width="100%">
       <InputGroup>
-        <InputGroup.LeadingItems disablePointerEvents>
-          <Text variant="muted">$</Text>
-        </InputGroup.LeadingItems>
+        <InputGroup.LeadingItems disablePointerEvents>$</InputGroup.LeadingItems>
         <InputGroup.Input
           aria-label={t('Custom %s spending limit (in dollars)', displayName)}
-          name={`spending-limit-${inputName}`}
-          type="text"
           inputMode="numeric"
           pattern="[0-9]*"
           placeholder="300"

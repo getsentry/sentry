@@ -41,7 +41,7 @@ describe('SpendLimitsEditModal', () => {
       />
     );
 
-    const input = screen.getByRole('textbox', {
+    const input = screen.getByRole('spinbutton', {
       name: 'Custom shared spending limit (in dollars)',
     });
     await userEvent.clear(input);
@@ -95,7 +95,7 @@ describe('SpendLimitsEditModal', () => {
     await userEvent.click(
       screen.getByRole('radio', {name: 'Per-category spending limit mode'})
     );
-    const errorsInput = screen.getByRole('textbox', {
+    const errorsInput = screen.getByRole('spinbutton', {
       name: 'Custom errors spending limit (in dollars)',
     });
     await userEvent.clear(errorsInput);
@@ -144,7 +144,7 @@ describe('SpendLimitsEditModal', () => {
       />
     );
 
-    const input = screen.getByRole('textbox', {
+    const input = screen.getByRole('spinbutton', {
       name: 'Custom shared spending limit (in dollars)',
     });
     await userEvent.clear(input);
