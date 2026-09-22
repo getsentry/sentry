@@ -174,6 +174,10 @@ const ValueWrapper = styled('div')<{hasSuffix: boolean}>`
 `;
 
 const ActionButtonWrapper = styled('div')<{actionButtonAlwaysVisible?: boolean}>`
+  font-family: ${p => p.theme.font.family.sans};
+  /* Cancels RowWrapper's vertical padding so a button doesn't grow the row past its own height */
+  margin-block: calc(-1 * ${p => p.theme.space['2xs']});
+
   ${p =>
     !p.actionButtonAlwaysVisible &&
     css`
