@@ -36,7 +36,7 @@ export function BrowserOSIcons({
   return (
     <Tooltip
       title={
-        <DescriptionList gap="md 2xl">
+        <NoWrapDescriptionList gap="md 2xl">
           {showBrowser && (
             <Fragment>
               <DescriptionList.Term>{t('Browser')}</DescriptionList.Term>
@@ -49,7 +49,7 @@ export function BrowserOSIcons({
           <DescriptionList.Details>
             {replayRecord?.os.name ?? ''} {replayRecord?.os.version ?? ''}
           </DescriptionList.Details>
-        </DescriptionList>
+        </NoWrapDescriptionList>
       }
     >
       <Flex>
@@ -75,6 +75,12 @@ export function BrowserOSIcons({
     </Tooltip>
   );
 }
+
+// The replay video panel squeezes this tooltip narrow enough that a browser name
+// would otherwise break away from its version.
+const NoWrapDescriptionList = styled(DescriptionList)`
+  white-space: nowrap;
+`;
 
 const Overlap = styled('div')`
   margin-right: -${p => p.theme.space.sm};

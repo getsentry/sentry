@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -24,17 +26,23 @@ export function ReplayViewScale({isLoading}: Props) {
     <Tooltip
       skipWrapper
       title={
-        <DescriptionList gap="md 2xl">
+        <NoWrapDescriptionList gap="md 2xl">
           <DescriptionList.Term>{t('Original size')}</DescriptionList.Term>
           <DescriptionList.Details>
             {dimensions.width} &times; {dimensions.height}
           </DescriptionList.Details>
           <DescriptionList.Term>{t('Rendered size')}</DescriptionList.Term>
           <DescriptionList.Details>{toPercent(scale, 1)}</DescriptionList.Details>
-        </DescriptionList>
+        </NoWrapDescriptionList>
       }
     >
       <IconRuler size="md" />
     </Tooltip>
   );
 }
+
+// The replay video panel squeezes this tooltip narrow enough that dimensions
+// would otherwise break mid-number.
+const NoWrapDescriptionList = styled(DescriptionList)`
+  white-space: nowrap;
+`;
