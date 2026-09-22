@@ -3673,6 +3673,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Whether the data source by detector and source id cache is enabled
+# When disabled, detector handlers query directly instead of using the cache
+register(
+    "workflow_engine.data_source_by_detector_and_source_id_cache.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
 # table.

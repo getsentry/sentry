@@ -1,13 +1,18 @@
+from collections.abc import Mapping
 from typing import Any
 from unittest import mock
 from uuid import UUID
 
+from sentry.deletions.base import ModelRelation
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import _prepare_occurrence_message
 from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.organization import Organization
 from sentry.testutils.abstract import Abstract
+from sentry.testutils.helpers.options import override_options
 from sentry.types.group import PriorityLevel
+from sentry.utils.registry import AlreadyRegisteredError
 from sentry.workflow_engine.handlers.detector import (
     BaseDetectorHandler,
     DataPacketEvaluationType,
@@ -18,7 +23,7 @@ from sentry.workflow_engine.handlers.detector import (
 )
 from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.handlers.detector.stateful import DetectorCounters
-from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
+from sentry.workflow_engine.models import DataConditionGroup, DataPacket, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors import (
     DataConditionEvaluation,
@@ -26,15 +31,49 @@ from sentry.workflow_engine.processors import (
     DetectorEvaluation,
 )
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
-from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.registry import data_source_type_registry, detector_settings_registry
 from sentry.workflow_engine.types import (
     ConditionError,
+    DataSourceTypeHandler,
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorResult,
     DetectorSettings,
 )
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
+
+MOCK_DATA_SOURCE_TYPE = "detector_handler_test_source"
+
+
+class MockDataSourceTypeHandler(DataSourceTypeHandler[None]):
+    """A data source type with no query object, so evidence data can be built without one."""
+
+    @staticmethod
+    def bulk_get_query_object(data_sources: list[DataSource]) -> dict[int, None]:
+        return {data_source.id: None for data_source in data_sources}
+
+    @staticmethod
+    def related_model(instance: DataSource) -> list[ModelRelation]:
+        return []
+
+    @staticmethod
+    def get_instance_limit(org: Organization) -> int | None:
+        return None
+
+    @staticmethod
+    def get_current_instance_count(org: Organization) -> int:
+        return 0
+
+    @staticmethod
+    def get_relocation_model_name() -> str:
+        return "sentry.querysubscription"
+
+
+try:
+    data_source_type_registry.register(MOCK_DATA_SOURCE_TYPE)(MockDataSourceTypeHandler)
+except AlreadyRegisteredError:
+    # This module is imported under more than one name, but the registry is global.
+    pass
 
 
 def build_mock_group_evaluation() -> DataConditionGroupEvaluation:
@@ -888,3 +927,128 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
         assert set(result.keys()) == {"group-one", "group-two"}
         assert isinstance(result["group-one"].result, IssueOccurrence)
         assert isinstance(result["group-two"].result, IssueOccurrence)
+
+
+class TestDetectorHandlerEvidenceData(BaseGroupTypeTest):
+    """
+    Covers the evidence data that DetectorHandler attaches to every occurrence it builds,
+    including the cached data source lookup behind it.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        class EvidenceConditionGroupType(GroupType):
+            type_id = 7
+            slug = "evidence_condition_handler"
+            description = "evidence condition handler"
+            category = GroupCategory.METRIC.value
+
+        @detector_settings_registry.register(EvidenceConditionGroupType.slug)
+        class EvidenceConditionDetectorSettings(DetectorSettings):
+            handler = MockDefaultDetectorHandler
+
+        self.group_type = EvidenceConditionGroupType
+
+        self.source_id = "evidence-source-1"
+
+        self.detector = self.create_detector(
+            project=self.project,
+            workflow_condition_group=self.create_data_condition_group(),
+            type=self.group_type.slug,
+        )
+
+        self.condition = self.create_data_condition(
+            type=Condition.GREATER,
+            comparison=5,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=self.detector.workflow_condition_group,
+        )
+
+        self.data_source = self.create_data_source(
+            organization=self.organization,
+            type=MOCK_DATA_SOURCE_TYPE,
+            source_id=self.source_id,
+        )
+
+        self.data_source.detectors.set([self.detector])
+
+        self.handler = MockDefaultDetectorHandler(self.detector)
+
+    def packet(self, value: int = 10) -> DataPacket[dict[str, Any]]:
+        return DataPacket(source_id=self.source_id, packet={"value": value})
+
+    def evaluate_evidence_data(self) -> Mapping[str, Any]:
+        occurrence = self.handler.evaluate(self.packet()).result[None].result
+
+        assert isinstance(occurrence, IssueOccurrence)
+
+        return occurrence.evidence_data
+
+    def test_evidence_data__carries_the_workflow_engine_fields(self) -> None:
+        evidence_data = self.evaluate_evidence_data()
+
+        assert evidence_data["detector_id"] == self.detector.id
+        assert evidence_data["value"] == 10
+        assert evidence_data["data_packet_source_id"] == self.source_id
+        assert evidence_data["config"] == self.detector.config
+
+    def test_evidence_data__carries_the_triggered_conditions(self) -> None:
+        assert self.evaluate_evidence_data()["conditions"] == [dict(self.condition.get_snapshot())]
+
+    def test_evidence_data__serializes_the_matching_data_source(self) -> None:
+        assert self.evaluate_evidence_data()["data_sources"] == [
+            {
+                "id": str(self.data_source.id),
+                "organization_id": str(self.organization.id),
+                "type": MOCK_DATA_SOURCE_TYPE,
+                "source_id": self.source_id,
+                "query_obj": None,
+            }
+        ]
+
+    def test_build_evidence_data_sources__is_empty_without_a_matching_data_source(self) -> None:
+        with mock.patch("sentry.workflow_engine.handlers.detector.base.logger") as mock_logger:
+            data_sources = self.handler._build_evidence_data_sources("unknown-source")
+
+        assert data_sources == []
+
+        mock_logger.warning.assert_called_once_with(
+            "Matching data source not found for detector while generating occurrence evidence data",
+            extra={
+                "detector_id": self.detector.id,
+                "data_packet_source_id": "unknown-source",
+            },
+        )
+
+    def test_build_evidence_data_sources__is_empty_when_serialization_fails(self) -> None:
+        with (
+            mock.patch(
+                "sentry.workflow_engine.handlers.detector.base.serialize",
+                side_effect=ValueError("could not serialize"),
+            ),
+            mock.patch("sentry.workflow_engine.handlers.detector.base.logger") as mock_logger,
+        ):
+            data_sources = self.handler._build_evidence_data_sources(self.source_id)
+
+        assert data_sources == []
+
+        mock_logger.exception.assert_called_once_with(
+            "Failed to serialize data source definition when building workflow engine evidence data"
+        )
+
+    @override_options({"workflow_engine.data_source_by_detector_and_source_id_cache.enabled": True})
+    def test_build_evidence_data_sources__reads_through_the_cache_when_enabled(self) -> None:
+        self.handler._build_evidence_data_sources(self.source_id)
+
+        with self.assertNumQueries(0):
+            assert len(self.handler._build_evidence_data_sources(self.source_id)) == 1
+
+    @override_options(
+        {"workflow_engine.data_source_by_detector_and_source_id_cache.enabled": False}
+    )
+    def test_build_evidence_data_sources__queries_directly_when_the_cache_is_disabled(self) -> None:
+        self.handler._build_evidence_data_sources(self.source_id)
+
+        with self.assertNumQueries(1):
+            assert len(self.handler._build_evidence_data_sources(self.source_id)) == 1
