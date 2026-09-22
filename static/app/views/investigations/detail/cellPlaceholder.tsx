@@ -8,21 +8,10 @@ import {t} from 'sentry/locale';
 
 type InvestigationCellPlaceholderProps = {
   className?: string;
-  /**
-   * Rendered in place of the title placeholder. Seer writes a block's title
-   * before its output, so a cell that is still running usually has a real title
-   * to show above the skeleton — only a cell that does not exist yet (the
-   * report Seer is about to write) falls back to a placeholder title.
-   */
   title?: string | null;
 };
 
-/**
- * The skeleton a notebook cell shows while Seer is still writing it.
- *
- * Deliberately shaped like the prose that replaces it — a title line and a few
- * lines of body — so the cell does not jump when the real content lands.
- */
+/** What a notebook cell looks like while Seer is still writing it. */
 export function InvestigationCellPlaceholder({
   className,
   title,

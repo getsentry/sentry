@@ -460,16 +460,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
 }
 
-/**
- * Whether Seer is about to write a notebook cell that does not exist yet.
- *
- * The run reaches `reporting` once every hypothesis has been judged, and the
- * report itself arrives as blocks on a later poll — so between those two there
- * is a stretch where the run is plainly still working and the notebook has
- * nothing new to show. A cell that is mid-flight renders its own skeleton
- * (`InvestigationCell`), so this only fires while every block that exists has
- * already settled — which includes the case where there are none at all.
- */
+// Seer reaches the reporting phase once it is done with the hypotheses, but the
+// report arrives as cells on a later poll. Until then the notebook stands in a
+// placeholder cell, unless a cell is already running — that one shows its own.
 function isAwaitingReportCell(investigation: InvestigationDetail) {
   const {orchestration} = investigation;
   if (orchestration?.status !== 'processing' || orchestration.phase !== 'reporting') {

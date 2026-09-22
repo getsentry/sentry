@@ -322,7 +322,7 @@ describe('Investigation detail', () => {
     expect(
       within(cell).getByTestId('investigation-cell-placeholder')
     ).toBeInTheDocument();
-    // The title is real, so only the body is a skeleton.
+    // The real title is shown, so only the body is a placeholder.
     expect(
       within(cell).queryByTestId('investigation-cell-placeholder-title')
     ).not.toBeInTheDocument();
@@ -545,7 +545,7 @@ describe('Investigation detail', () => {
     );
   });
 
-  it('reveals cells as results arrive, skeletoning only the running one', async () => {
+  it('shows a placeholder for the running cell, then the results', async () => {
     const investigation = InvestigationDetailFixture();
     investigation.blocks[0] = {
       ...investigation.blocks[0]!,
@@ -581,8 +581,7 @@ describe('Investigation detail', () => {
     const {queryClient} = renderView();
 
     await screen.findByText('Investigate database latency');
-    // The running cell shows its title over a skeleton; the cell waiting behind
-    // it is not shown at all.
+    // The cell waiting behind the running one is not shown at all.
     expect(screen.getByLabelText('Cell actions for Summary')).toBeInTheDocument();
     expect(screen.getByTestId('investigation-cell-placeholder')).toBeInTheDocument();
     expect(
