@@ -31,6 +31,8 @@ from sentry.issues.derived.tasks import (
 from sentry.issues.derived.tasks_util import (
     GroupIdRangeResult,
     SpawnState,
+    _estimate_group_id_ranges,
+    _exact_group_id_ranges,
     _pick_random_fresh_group_ranges,
     group_id_ranges_for_hash,
 )
@@ -829,8 +831,8 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
 
         mock_ranges.assert_called_once_with(
             None,
-            chunk_size=500,
-            max_chunks=1,
+            range_size=500,
+            max_ranges=1,
             group_id_lower_bound=0,
         )
         mock_save.assert_not_called()
@@ -1410,6 +1412,26 @@ class PickRandomFreshGroupRangesTest(DerivedDataTaskTestBase):
         assert result == [(group_ids[0], group_ids[1] + 1)]
 
 
+class TestGroupIdRangeMath:
+    def test_exact_ranges_use_lookahead_to_close_final_range(self) -> None:
+        assert _exact_group_id_ranges([10, 20, 30, 40, 50], range_size=2, max_ranges=2) == [
+            (10, 30),
+            (30, 50),
+        ]
+
+    def test_exact_ranges_close_short_tail_after_last_group(self) -> None:
+        assert _exact_group_id_ranges([10, 20, 30], range_size=2, max_ranges=5) == [
+            (10, 30),
+            (30, 31),
+        ]
+
+    def test_estimated_ranges_use_sample_density(self) -> None:
+        assert _estimate_group_id_ranges([10, 20, 31], range_size=2, range_count=2) == [
+            (10, 25),
+            (25, 40),
+        ]
+
+
 @with_feature("projects:issue-action-log-write-to-db")
 class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
     HASH = "a" * 16
@@ -1425,15 +1447,15 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
         self._seed(2, self.OTHER_HASH)
 
         assert group_id_ranges_for_hash(
-            self.HASH, chunk_size=2, max_chunks=5
+            self.HASH, range_size=2, max_ranges=5
         ) == GroupIdRangeResult(ranges=[], drained=True)
-        assert group_id_ranges_for_hash(None, chunk_size=2, max_chunks=5) == GroupIdRangeResult(
+        assert group_id_ranges_for_hash(None, range_size=2, max_ranges=5) == GroupIdRangeResult(
             ranges=[], drained=True
         )
 
     def test_query_has_statement_timeout(self) -> None:
         with patch("sentry.issues.derived.tasks_util.statement_timeout") as timeout:
-            group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5)
+            group_id_ranges_for_hash(self.HASH, range_size=2, max_ranges=5)
 
         query_timeout = timeout.call_args.args[1]
         assert timedelta(0) < query_timeout <= timedelta(seconds=40)
@@ -1442,37 +1464,37 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
         null_ids = self._seed(3, None)
         hash_ids = self._seed(3, self.HASH)
 
-        # Fewer rows than chunk_size, for both the NULL and the concrete-hash
+        # Fewer rows than range_size, for both the NULL and the concrete-hash
         # predicate, and neither picks up the other's rows.
-        assert group_id_ranges_for_hash(None, chunk_size=10, max_chunks=5).ranges == [
+        assert group_id_ranges_for_hash(None, range_size=10, max_ranges=5).ranges == [
             (null_ids[0], null_ids[-1] + 1)
         ]
-        assert group_id_ranges_for_hash(self.HASH, chunk_size=10, max_chunks=5).ranges == [
+        assert group_id_ranges_for_hash(self.HASH, range_size=10, max_ranges=5).ranges == [
             (hash_ids[0], hash_ids[-1] + 1)
         ]
 
     def test_exact_chunk_boundaries(self) -> None:
         group_ids = self._seed(5, self.HASH)
 
-        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5).ranges == [
+        assert group_id_ranges_for_hash(self.HASH, range_size=2, max_ranges=5).ranges == [
             (group_ids[0], group_ids[2]),
             (group_ids[2], group_ids[4]),
             (group_ids[4], group_ids[4] + 1),
         ]
 
-    def test_truncates_to_max_chunks(self) -> None:
+    def test_truncates_to_max_ranges(self) -> None:
         group_ids = self._seed(5, self.HASH)
 
         # The 5th group is left out rather than folded into an oversized last range.
-        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=2).ranges == [
+        assert group_id_ranges_for_hash(self.HASH, range_size=2, max_ranges=2).ranges == [
             (group_ids[0], group_ids[2]),
             (group_ids[2], group_ids[4]),
         ]
 
-    def test_truncates_full_tail_to_max_chunks(self) -> None:
+    def test_truncates_full_tail_to_max_ranges(self) -> None:
         group_ids = self._seed(6, self.HASH)
 
-        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=2).ranges == [
+        assert group_id_ranges_for_hash(self.HASH, range_size=2, max_ranges=2).ranges == [
             (group_ids[0], group_ids[2]),
             (group_ids[2], group_ids[4]),
         ]
@@ -1481,10 +1503,10 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
         self._seed(2, self.HASH)
 
         assert group_id_ranges_for_hash(
-            self.HASH, chunk_size=0, max_chunks=5
+            self.HASH, range_size=0, max_ranges=5
         ) == GroupIdRangeResult(ranges=[], drained=False)
         assert group_id_ranges_for_hash(
-            self.HASH, chunk_size=2, max_chunks=0
+            self.HASH, range_size=2, max_ranges=0
         ) == GroupIdRangeResult(ranges=[], drained=False)
 
     def test_density_probes_share_one_query_budget(self) -> None:
@@ -1496,7 +1518,7 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
             ),
             pytest.raises(OperationalError, match="query budget exceeded"),
         ):
-            group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5)
+            group_id_ranges_for_hash(self.HASH, range_size=2, max_ranges=5)
 
     def test_samples_local_density_for_approximate_ranges(self) -> None:
         groups = self.create_unprocessed_groups(81)
@@ -1514,7 +1536,7 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
             patch("sentry.issues.derived.tasks_util._RANGES_PER_DENSITY_SAMPLE", 2),
             patch("sentry.issues.derived.tasks_util._MAX_RANGE_DENSITY_SAMPLES", 2),
         ):
-            result = group_id_ranges_for_hash(self.HASH, chunk_size=4, max_chunks=4)
+            result = group_id_ranges_for_hash(self.HASH, range_size=4, max_ranges=4)
 
         assert len(result.ranges) == 4
         assert result.ranges == sorted(result.ranges)
@@ -1530,7 +1552,7 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
             patch("sentry.issues.derived.tasks_util._MAX_EXACT_RANGE_ROWS", 10),
             patch("sentry.issues.derived.tasks_util._RANGE_DENSITY_SAMPLE_SIZE", 2),
         ):
-            result = group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5)
+            result = group_id_ranges_for_hash(self.HASH, range_size=2, max_ranges=5)
 
         assert result.ranges == [
             (group_ids[0], group_ids[2]),
@@ -1543,8 +1565,8 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
 
         result = group_id_ranges_for_hash(
             self.HASH,
-            chunk_size=2,
-            max_chunks=5,
+            range_size=2,
+            max_ranges=5,
             group_id_lower_bound=group_ids[1],
         )
 

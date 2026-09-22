@@ -591,8 +591,8 @@ def heal_stale_derived_data(**kwargs: object) -> None:
         try:
             range_result = group_id_ranges_for_hash(
                 stale_hash,
-                chunk_size=batch_size,
-                max_chunks=remaining,
+                range_size=batch_size,
+                max_ranges=remaining,
                 group_id_lower_bound=lower_bound,
             )
         except OperationalError:
