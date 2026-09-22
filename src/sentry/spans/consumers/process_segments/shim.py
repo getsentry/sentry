@@ -21,6 +21,14 @@ from sentry.utils.dates import to_datetime
 
 EMPTY_ATTRIBUTE_VALUES = frozenset({"", None})
 
+TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
+    ATTRIBUTE_NAMES.SENTRY_RELEASE: "release",
+    ATTRIBUTE_NAMES.SENTRY_DIST: "dist",
+    ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT: "environment",
+    ATTRIBUTE_NAMES.SENTRY_PLATFORM: "platform",
+}
+
 
 def make_compatible(span: SpanEvent) -> CompatibleSpan:
     # Creates attributes for EAP spans that are required by logic shared with the
@@ -98,11 +106,6 @@ def build_shim_event_data(
         },
         "event_id": uuid.uuid4().hex,
         "project_id": segment_span["project_id"],
-        "transaction": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME),
-        "release": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_RELEASE),
-        "dist": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_DIST),
-        "environment": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT),
-        "platform": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_PLATFORM),
         "tags": [
             ["environment", attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT)]
         ],
@@ -111,6 +114,7 @@ def build_shim_event_data(
         "start_timestamp": segment_span["start_timestamp"],
         "datetime": to_datetime(segment_span["end_timestamp"]).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "spans": [],
+        **_extract_attribute_values(segment_span, TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME),
     }
 
     if (profile_id := attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_PROFILE_ID)) is not None:
