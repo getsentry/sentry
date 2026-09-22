@@ -8,7 +8,8 @@ import type {
   SavedQuery as DiscoverSavedQueryBase,
 } from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -235,8 +236,8 @@ function savedQueriesApiOptions<TData = ReadableSavedQuery[]>(
     staleTime: 0,
   });
 }
-export type AllSavedQueryResponse =
-  | (ReadableSavedQuery & {queryType: SavedQueryType.EXPLORE})
+type AllSavedQueryResponse =
+  | (ReadableSavedQuery & {queryType?: SavedQueryType.EXPLORE})
   | DiscoverSavedQuery;
 
 /**
@@ -288,46 +289,35 @@ export function useGetSavedQueries({
     query,
   };
 
-  // Using enabled, only one of these fetches based on the feature flag
-  const combined = useQuery({
-    ...allSavedQueriesApiOptions(organization, requestQuery),
-    enabled: migrateDiscoverQueries,
-    select: selectJsonWithHeaders,
-  });
+  const queryOptions = migrateDiscoverQueries
+    ? allSavedQueriesApiOptions<AllSavedQueryResponse[]>(organization, requestQuery)
+    : savedQueriesApiOptions<AllSavedQueryResponse[]>(organization, requestQuery);
 
-  const explore = useQuery({
-    ...savedQueriesApiOptions(organization, requestQuery),
-    enabled: !migrateDiscoverQueries,
-    select: selectJsonWithHeaders,
-  });
-
-  const {data, isLoading, isFetched, isError} = migrateDiscoverQueries
-    ? combined
-    : explore;
-
-  const pageLinks = data?.headers.Link;
-
-  const savedQueries: AllSavedQuery[] | undefined = useMemo(() => {
-    if (migrateDiscoverQueries) {
-      return combined.data?.json
-        ?.filter(savedQuery =>
-          savedQuery.queryType === SavedQueryType.EXPLORE
-            ? Array.isArray(savedQuery.query) && savedQuery.query.length > 0
-            : true
+  const {data, isLoading, isFetched, isError} = useQuery({
+    ...queryOptions,
+    select: (result: ApiResponse<AllSavedQueryResponse[]>) => ({
+      headers: result.headers,
+      json: result.json
+        .filter(savedQuery =>
+          savedQuery.queryType === SavedQueryType.DISCOVER
+            ? migrateDiscoverQueries
+            : Array.isArray(savedQuery.query) && savedQuery.query.length > 0
         )
         .map(savedQuery =>
-          savedQuery.queryType === SavedQueryType.EXPLORE
-            ? new SavedQuery(savedQuery)
-            : savedQuery
-        );
-    }
+          savedQuery.queryType === SavedQueryType.DISCOVER
+            ? savedQuery
+            : new SavedQuery(savedQuery)
+        ),
+    }),
+  });
 
-    return explore.data?.json
-      ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
-      .map(q => new SavedQuery(q));
-  }, [migrateDiscoverQueries, combined.data?.json, explore.data?.json]);
-
-  return {data: savedQueries, isLoading, pageLinks, isFetched, isError};
+  return {
+    data: data?.json,
+    isLoading,
+    pageLinks: data?.headers.Link,
+    isFetched,
+    isError,
+  };
 }
 
 export function useInvalidateSavedQueries() {
