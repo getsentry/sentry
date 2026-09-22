@@ -32,7 +32,6 @@ export interface TraceRowProps<T extends TraceTree.Node> {
   onRowDoubleClick: (e: React.MouseEvent) => void;
   onRowKeyDown: (e: React.KeyboardEvent) => void;
   onSpanArrowClick: (e: React.MouseEvent) => void;
-  onZoomIn: (e: React.MouseEvent) => void;
   previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>;
   projects: Record<string, PlatformKey | undefined>;
   registerListColumnRef: (e: HTMLDivElement | null) => void;
@@ -98,11 +97,10 @@ export function TraceRowConnectors(props: {
 
 export function TraceChildrenButton(props: {
   children: React.ReactNode;
-  expanded: boolean;
   icon: React.ReactNode;
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: (e: React.MouseEvent) => void;
-  status: BaseNode['fetchStatus'] | undefined;
+  status?: 'idle' | 'loading';
 }) {
   return (
     <button

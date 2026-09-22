@@ -14,7 +14,6 @@ import type {
   TracePerformanceIssue as TracePerformanceIssueType,
 } from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
   isEAPError,
   isEAPSpan,
@@ -270,7 +269,6 @@ export declare namespace TraceTree {
   type Node = BaseNode;
 
   type NodeType =
-    | 'txn'
     | 'span'
     | 'ag'
     | 'trace'
@@ -394,7 +392,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
   static FromTrace(
     trace: TraceTree.EAPTrace,
     options: {
-      meta: TraceMetaQueryResults['data'] | null;
       organization: Organization;
       replay: HydratedReplayRecord | null;
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
@@ -461,7 +458,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         });
       }
 
-      if (node.canFetchChildren || !node.expanded) {
+      if (!node.expanded) {
         tree.collapsed_nodes++;
       }
 
@@ -572,52 +569,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return tree;
   }
 
-  async fetchNodeSubTree(
-    expanding: boolean,
-    node: BaseNode,
-    options: {
-      api: Client;
-      organization: Organization;
-      preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
-    }
-  ) {
-    const newBounds = await node.fetchChildren(expanding, this, {
-      api: options.api,
-    });
-
-    // If the newly fetched children extend beyond the current bounds of the tree,
-    // we need to extend the current bounds of the tree.
-    if (newBounds) {
-      const previousStart = this.root.space[0];
-      const previousDuration = this.root.space[1];
-
-      const newStart = newBounds[0];
-      const newEnd = newBounds[0] + newBounds[1];
-
-      // Extend the start of the trace to include the new min start
-      if (newStart <= this.root.space[0]) {
-        this.root.space[0] = newStart;
-      }
-      // Extend the end of the trace to include the new max end
-      if (newEnd > this.root.space[0] + this.root.space[1]) {
-        this.root.space[1] = newEnd - this.root.space[0];
-      }
-
-      if (
-        previousStart !== this.root.space[0] ||
-        previousDuration !== this.root.space[1]
-      ) {
-        this.dispatch('trace timeline change', this.root.space);
-      }
-
-      if (options.preferences) {
-        TraceTree.ApplyPreferences(node, options);
-      }
-    }
-
-    this.build();
-  }
-
   appendTree(tree: TraceTree) {
     const baseTraceNode = this.root.children[0];
     const additionalTraceNode = tree.root.children[0];
@@ -675,7 +626,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
       c.invalidate();
     });
 
-    const previousEnd = this.root.space[0] + this.root.space[1];
+    const previousStart = this.root.space[0];
+    const previousDuration = this.root.space[1];
+    const previousEnd = previousStart + previousDuration;
     const newEnd = tree.root.space[0] + tree.root.space[1];
 
     this.root.space[0] = Math.min(tree.root.space[0], this.root.space[0]);
@@ -683,6 +636,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
       previousEnd - this.root.space[0],
       newEnd - this.root.space[0]
     );
+
+    if (previousStart !== this.root.space[0] || previousDuration !== this.root.space[1]) {
+      this.dispatch('trace timeline change', this.root.space);
+    }
 
     for (const child of tree.root.children) {
       this.list = this.list.concat(child.visibleChildren);
@@ -1378,7 +1335,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
   fetchAdditionalTraces(options: {
     api: Client;
     filters: any;
-    meta: TraceMetaQueryResults | null;
     organization: Organization;
     replayTraces: ReplayTrace[];
     rerender: () => void;
@@ -1389,7 +1345,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
     const {organization, api, urlParams, filters, rerender, replayTraces} = options;
     const clonedTraceIds = [...replayTraces];
 
-    const root = this.root.children[0]!;
+    const root = this.root.children[0];
+    if (!(root instanceof TraceNode)) {
+      throw new Error('No trace node found in tree');
+    }
     root.fetchStatus = 'loading';
     rerender();
 
@@ -1420,7 +1379,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
           if (result.status === 'fulfilled') {
             this.appendTree(
               TraceTree.FromTrace(result.value, {
-                meta: options.meta?.data,
                 replay: null,
                 preferences: options.preferences,
                 replayTraceSlug: traceSlug,

@@ -49,11 +49,9 @@ export function TraceLoadingRow(props: {
             className={`TraceChildrenCountWrapper ${props.node.isRootNodeChild() ? 'Root' : ''}`}
           >
             <TraceRowConnectors node={props.node} manager={props.manager} />
-            {props.node.children.length > 0 || props.node.canFetchChildren ? (
+            {props.node.children.length > 0 ? (
               <TraceChildrenButton
                 icon="+"
-                status={props.node.fetchStatus}
-                expanded={props.node.expanded || props.node.hasFetchedChildren}
                 onClick={() => void 0}
                 onDoubleClick={() => void 0}
               >

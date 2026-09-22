@@ -64,7 +64,6 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
 
       try {
         const tree = TraceTree.FromTrace(trace.data, {
-          meta: null,
           replay: null,
           preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
           organization,

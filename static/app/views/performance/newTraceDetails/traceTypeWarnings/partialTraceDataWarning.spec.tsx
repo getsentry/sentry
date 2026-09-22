@@ -37,7 +37,7 @@ describe('PartialTraceDataWarning', () => {
         <PartialTraceDataWarning
           logs={[]}
           timestamp={start}
-          tree={TraceTree.FromTrace(eapTrace, {replay: null, meta: null, organization})}
+          tree={TraceTree.FromTrace(eapTrace, {replay: null, organization})}
         />,
         {organization}
       );
@@ -90,7 +90,7 @@ describe('PartialTraceDataWarning', () => {
         <PartialTraceDataWarning
           logs={[]}
           timestamp={start}
-          tree={TraceTree.FromTrace(eapTrace, {replay: null, meta: null, organization})}
+          tree={TraceTree.FromTrace(eapTrace, {replay: null, organization})}
         />,
         {organization}
       );

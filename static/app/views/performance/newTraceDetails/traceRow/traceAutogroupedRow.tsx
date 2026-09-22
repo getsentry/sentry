@@ -51,10 +51,6 @@ export function TraceAutogroupedRow(
                 <TraceIcons.Chevron direction={props.node.expanded ? 'down' : 'right'} />
               }
               // oxlint-disable-next-line react/refs
-              status={props.node.fetchStatus}
-              // oxlint-disable-next-line react/refs
-              expanded={!props.node.expanded}
-              // oxlint-disable-next-line react/refs
               onClick={props.onExpand}
               // oxlint-disable-next-line react/refs
               onDoubleClick={props.onExpandDoubleClick}

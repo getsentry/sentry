@@ -44,12 +44,11 @@ export function TraceRootRow(props: TraceRowProps<TraceNode>) {
             {/* oxlint-disable-next-line react/refs */}
             <TraceRowConnectors node={props.node} manager={props.manager} />
             {/* oxlint-disable-next-line react/refs */}
-            {props.node.children.length > 0 || props.node.canFetchChildren ? (
+            {props.node.children.length > 0 || props.node.fetchStatus === 'loading' ? (
               <TraceChildrenButton
                 icon=""
                 // oxlint-disable-next-line react/refs
                 status={props.node.fetchStatus}
-                expanded
                 onClick={() => void 0}
                 // oxlint-disable-next-line react/refs
                 onDoubleClick={props.onExpandDoubleClick}

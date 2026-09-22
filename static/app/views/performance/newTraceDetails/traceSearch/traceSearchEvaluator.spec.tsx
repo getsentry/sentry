@@ -18,7 +18,6 @@ describe('TraceSearchEvaluator', () => {
       const tree = TraceTree.FromTrace(
         [makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'})],
         {
-          meta: null,
           replay: null,
           organization,
         }
@@ -36,7 +35,6 @@ describe('TraceSearchEvaluator', () => {
       const tree = TraceTree.FromTrace(
         [makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'})],
         {
-          meta: null,
           replay: null,
           organization,
         }
@@ -57,7 +55,6 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
         ],
         {
-          meta: null,
           replay: null,
           organization,
         }
@@ -78,7 +75,6 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
         ],
         {
-          meta: null,
           replay: null,
           organization,
         }
@@ -99,7 +95,6 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
         ],
         {
-          meta: null,
           replay: null,
           organization,
         }
@@ -117,7 +112,6 @@ describe('TraceSearchEvaluator', () => {
       const tree = TraceTree.FromTrace(
         [makeEAPSpan({name: 'authentication'}), makeEAPSpan({name: 'database'})],
         {
-          meta: null,
           replay: null,
           organization,
         }
@@ -135,7 +129,6 @@ describe('TraceSearchEvaluator', () => {
       const tree = TraceTree.FromTrace(
         [makeEAPSpan({name: 'authentication'}), makeEAPSpan({name: 'database'})],
         {
-          meta: null,
           replay: null,
           organization,
         }
@@ -156,7 +149,6 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({name: 'database_query', op: 'db'}),
         ],
         {
-          meta: null,
           replay: null,
           organization,
         }
@@ -177,7 +169,7 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({op: 'db', name: 'insert'}),
           makeEAPSpan({op: 'http', name: 'query'}),
         ],
-        {meta: null, replay: null, organization}
+        {replay: null, organization}
       );
 
       tree.build();
@@ -191,7 +183,7 @@ describe('TraceSearchEvaluator', () => {
     it('OR query', async () => {
       const tree = TraceTree.FromTrace(
         [makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'}), makeEAPSpan({op: 'cache'})],
-        {meta: null, replay: null, organization}
+        {replay: null, organization}
       );
 
       tree.build();
@@ -212,7 +204,7 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({op: 'db', name: 'insert'}),
           makeEAPSpan({op: 'http', name: 'request'}),
         ],
-        {meta: null, replay: null, organization}
+        {replay: null, organization}
       );
 
       tree.build();
@@ -230,7 +222,6 @@ describe('TraceSearchEvaluator', () => {
       'invalid query %s',
       async query => {
         const tree = TraceTree.FromTrace([makeEAPSpan({op: 'db'})], {
-          meta: null,
           replay: null,
           organization,
         });

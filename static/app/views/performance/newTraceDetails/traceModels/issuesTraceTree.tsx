@@ -1,7 +1,6 @@
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
-import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
@@ -37,7 +36,6 @@ export class IssuesTraceTree extends TraceTree {
   static FromTrace(
     trace: TraceTree.EAPTrace,
     options: {
-      meta: TraceMetaQueryResults['data'] | null;
       organization: Organization;
       replay: HydratedReplayRecord | null;
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
@@ -51,10 +49,14 @@ export class IssuesTraceTree extends TraceTree {
     return issuesTree;
   }
 
+  static findEventNode(tree: IssuesTraceTree, eventId: string): BaseNode | undefined {
+    return tree.root
+      .findAllChildren(node => node.matchById(eventId))
+      .toSorted((a, b) => b.searchPriority - a.searchPriority)[0];
+  }
+
   static ExpandToEvent(tree: IssuesTraceTree, event: Event): void {
-    const node = tree.root.findChild(n => {
-      return n.matchById(event.eventID);
-    });
+    const node = IssuesTraceTree.findEventNode(tree, event.eventID);
 
     if (node) {
       node.expand(true, tree);
@@ -75,7 +77,7 @@ export class IssuesTraceTree extends TraceTree {
     const preserveNodes = new Set(preserveLeafNodes);
 
     for (const node of preserveLeafNodes) {
-      const parentTransaction = node.findClosestParentTransaction();
+      const parentTransaction = node.findParentEapTransaction();
       if (parentTransaction) {
         preserveNodes.add(parentTransaction);
       }

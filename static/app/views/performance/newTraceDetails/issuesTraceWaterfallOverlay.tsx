@@ -14,7 +14,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isCollapsedNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import type {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
+import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceWaterfallSource} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
@@ -131,9 +131,9 @@ export function IssueTraceWaterfallOverlay({
   // Link to an offender span in the trace view if the event includes an occurrence.
   // Keeps the highlighted span consistent across issues and trace waterfalls.
   const spanId = event.occurrence?.evidenceData?.offenderSpanIds?.[0];
-  const baseNodePath: TraceTree.NodePath[] = spanId
-    ? [`span-${spanId}`, `txn-${event.eventID}`]
-    : [`txn-${event.eventID}`];
+  const baseNodePath: TraceTree.NodePath[] | undefined = spanId
+    ? [`span-${spanId}`]
+    : IssuesTraceTree.findEventNode(tree, event.eventID)?.pathToNode();
   const baseLink = getTraceLinkForIssue(traceTarget, baseNodePath);
 
   return (

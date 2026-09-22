@@ -51,28 +51,18 @@ export function TraceUptimeCheckTimingNodeRow(
             {/* oxlint-disable-next-line react/refs */}
             <TraceRowConnectors node={props.node} manager={props.manager} />
             {/* oxlint-disable-next-line react/refs */}
-            {props.node.children.length > 0 || props.node.canFetchChildren ? (
+            {props.node.children.length > 0 ? (
               <TraceChildrenButton
                 icon={
-                  // oxlint-disable-next-line react/refs
-                  props.node.canFetchChildren ? (
-                    '+'
-                  ) : (
-                    <TraceIcons.Chevron
-                      // oxlint-disable-next-line react/refs
-                      direction={props.node.expanded ? 'down' : 'right'}
-                    />
-                  )
+                  <TraceIcons.Chevron
+                    // oxlint-disable-next-line react/refs
+                    direction={props.node.expanded ? 'down' : 'right'}
+                  />
                 }
-                // oxlint-disable-next-line react/refs
-                status={props.node.fetchStatus}
-                // oxlint-disable-next-line react/refs
-                expanded={props.node.expanded || props.node.hasFetchedChildren}
                 // oxlint-disable-next-line react/refs
                 onDoubleClick={props.onExpandDoubleClick}
-                onClick={e =>
-                  props.node.canFetchChildren ? props.onZoomIn(e) : props.onExpand(e)
-                }
+                // oxlint-disable-next-line react/refs
+                onClick={props.onExpand}
               >
                 {/* oxlint-disable-next-line react/refs */}
                 {props.node.children.length > 0

@@ -62,7 +62,7 @@ describe('TraceTabsAndVitals', () => {
           project_slug: 'project-slug',
         }),
       ]),
-      {meta: null, organization, replay: null}
+      {organization, replay: null}
     );
     const rootEventResults = {data: {}} as TraceRootEventQueryResults;
 

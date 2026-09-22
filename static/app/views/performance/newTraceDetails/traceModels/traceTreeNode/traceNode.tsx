@@ -9,6 +9,7 @@ import type {RootNode} from './rootNode';
 export class TraceNode extends BaseNode<TraceTree.EAPTrace> {
   id: string;
   type: TraceTree.NodeType;
+  fetchStatus: 'idle' | 'loading' = 'idle';
 
   // We want to enforce the parent to only be a RootNode or null
   constructor(

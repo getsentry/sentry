@@ -115,9 +115,7 @@ export function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
   const profileId = node.profileId;
   const profilerId = node.profilerId;
 
-  const transaction = node.value.is_transaction
-    ? node
-    : node.findClosestParentTransaction();
+  const transaction = node.value.is_transaction ? node : node.findParentEapTransaction();
   const profilerStart = transaction?.startTimestamp;
   const profilerEnd = transaction?.endTimestamp;
 

@@ -826,7 +826,6 @@ describe('EapSpanNode', () => {
       const node = new EapSpanNode(null, value, extra);
 
       expect(node.matchByPath('span-spanId')).toBe(true);
-      expect(node.matchByPath('txn-spanId')).toBe(false);
     });
 
     it('should return correct pathToNode', () => {

@@ -93,7 +93,7 @@ export function getTraceDetailsUrl({
     };
   }
 
-  queryParams.node = getNodePath(spanId, targetId, eventId);
+  queryParams.node = getNodePath(spanId);
 
   return {
     pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
@@ -108,22 +108,8 @@ export function getTraceDetailsUrl({
   };
 }
 
-function getNodePath(
-  spanId: string | undefined,
-  targetId: string | undefined,
-  eventId: string | undefined
-): TraceTree.NodePath[] {
-  const path: TraceTree.NodePath[] = [];
-
-  if (spanId) {
-    path.push(`span-${spanId}`);
-
-    if (targetId || eventId) {
-      path.push(`txn-${targetId ?? eventId}`);
-    }
-  }
-
-  return path;
+function getNodePath(spanId: string | undefined): TraceTree.NodePath[] {
+  return spanId ? [`span-${spanId}`] : [];
 }
 
 /**

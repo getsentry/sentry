@@ -127,8 +127,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
   expand(expanding: boolean, tree: TraceTree): boolean {
     const index = tree.list.indexOf(this);
 
-    // Expanding is not allowed for zoomed in nodes
-    if (expanding === this.expanded || this.hasFetchedChildren) {
+    if (expanding === this.expanded) {
       return false;
     }
 
