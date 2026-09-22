@@ -38,7 +38,7 @@ import {
 } from 'getsentry/views/spendLimits/budgetModeSettings';
 import {
   formatPaygPricePerUnit,
-  getPaygPpe,
+  getPaygPricePerUnit,
 } from 'getsentry/views/spendLimits/pricingUtils';
 import {SharedSpendLimitPriceTable} from 'getsentry/views/spendLimits/sharedSpendLimitPriceTable';
 import {
@@ -137,7 +137,7 @@ function InnerSpendLimitSettings({
         <Container>
           {baseCategories.map((category, index) => {
             const reserved = currentReserved[category] ?? 0;
-            const paygPpe = getPaygPpe({activePlan, category, reserved});
+            const paygPpe = getPaygPricePerUnit({activePlan, category, reserved});
             const categoryInfo = getCategoryInfoFromPlural(category);
             const pluralName = getPlanCategoryName({
               plan: activePlan,

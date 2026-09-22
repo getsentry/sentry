@@ -25,7 +25,7 @@ import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/pr
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {
   formatPaygPricePerUnit,
-  getPaygPpe,
+  getPaygPricePerUnit,
 } from 'getsentry/views/spendLimits/pricingUtils';
 
 interface SharedSpendLimitPriceTableProps {
@@ -75,7 +75,7 @@ export function SharedSpendLimitPriceTable({
           category === DataCategory.TRANSACTIONS;
         const categoryInfo = getCategoryInfoFromPlural(category);
         const reserved = currentReserved[category] ?? 0;
-        const paygPpe = getPaygPpe({activePlan, category, reserved});
+        const paygPpe = getPaygPricePerUnit({activePlan, category, reserved});
         const hasConstantPpe = activePlan.planCategories[category]?.length === 1;
         const pluralName = getPlanCategoryName({plan: activePlan, category});
         const singularName =
@@ -171,7 +171,7 @@ export function SharedSpendLimitPriceTable({
             </Flex>
             <Container justifySelf={{zero: 'start', md: 'end'}}>
               {addOnInfo.dataCategories.map((category, index) => {
-                const paygPpe = getPaygPpe({
+                const paygPpe = getPaygPricePerUnit({
                   activePlan,
                   category,
                   reserved: reservedBudgetCategory ? RESERVED_BUDGET_QUOTA : 0,

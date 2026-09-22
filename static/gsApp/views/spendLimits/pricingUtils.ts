@@ -12,7 +12,7 @@ export function formatPaygPricePerUnit({paygPpe}: {paygPpe: number}) {
   });
 }
 
-export function getPaygPpe({
+export function getPaygPricePerUnit({
   activePlan,
   category,
   reserved,
