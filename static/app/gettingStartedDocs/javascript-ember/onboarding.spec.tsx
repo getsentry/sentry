@@ -28,6 +28,7 @@ describe('javascript-ember onboarding docs', () => {
 
     const setup = screen.getByText(textWithMarkupMatcher(/Sentry\.init\(/));
     expect(setup).toHaveTextContent('import config from "./config/environment"');
+    expect(setup).toHaveTextContent('loadInitializers(App, config.modulePrefix)');
     expect(setup).toHaveTextContent('dataCollection:');
     expect(setup).not.toHaveTextContent(/sendDefaultPii|enableLogs|enableMetrics/);
   });
