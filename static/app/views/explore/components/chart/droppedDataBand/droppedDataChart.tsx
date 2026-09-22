@@ -54,30 +54,31 @@ export function annotationsToSeries(
   // Each annotation's (start, end) is its bucket, so its span is the interval.
   const interval = annotations[0] ? annotations[0].end - annotations[0].start : 0;
 
-  const countByLabelAndStart = new Map<string, Map<number, number>>();
+  const eventCountByLabelAndTimestamp = new Map<string, Map<number, number>>();
   for (const annotation of annotations) {
     const label = outcomeLabel(annotation.outcome);
-    const byStart = countByLabelAndStart.get(label) ?? new Map<number, number>();
-    byStart.set(
+    const eventCountByTimestamp =
+      eventCountByLabelAndTimestamp.get(label) ?? new Map<number, number>();
+    eventCountByTimestamp.set(
       annotation.start,
-      (byStart.get(annotation.start) ?? 0) + annotation.eventCount
+      (eventCountByTimestamp.get(annotation.start) ?? 0) + annotation.eventCount
     );
-    countByLabelAndStart.set(label, byStart);
+    eventCountByLabelAndTimestamp.set(label, eventCountByTimestamp);
   }
 
-  const byLabel: Record<string, TimeSeries> = {};
-  for (const [label, byStart] of countByLabelAndStart) {
-    byLabel[label] = {
+  const seriesByLabel: Record<string, TimeSeries> = {};
+  for (const [label, eventCountByTimestamp] of eventCountByLabelAndTimestamp) {
+    seriesByLabel[label] = {
       yAxis: label,
       meta: {valueType: 'integer', valueUnit: null, interval},
       values: timestamps.map(timestamp => ({
         timestamp,
-        value: byStart.get(timestamp) ?? 0,
+        value: eventCountByTimestamp.get(timestamp) ?? 0,
       })),
     };
   }
 
-  return byLabel;
+  return seriesByLabel;
 }
 
 function ChartLegend({
