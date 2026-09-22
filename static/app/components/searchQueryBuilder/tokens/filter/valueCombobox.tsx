@@ -1010,11 +1010,6 @@ export function SearchQueryBuilderValueCombobox({
 
       // TODO(malwilley): Add visual feedback for invalid values
       if (cleanedValue === null) {
-        trackAnalytics('search.value_manual_submitted', {
-          ...analyticsData,
-          filter_value: value,
-          invalid: true,
-        });
         return false;
       }
 
@@ -1074,7 +1069,6 @@ export function SearchQueryBuilderValueCombobox({
       filterKeys,
       items,
       canSelectMultipleValues,
-      analyticsData,
       committedValues,
       editingChip,
       dispatch,
@@ -1236,11 +1230,11 @@ export function SearchQueryBuilderValueCombobox({
         return;
       }
 
-      const invalid = updateFilterValue(value);
+      const updated = updateFilterValue(value);
       trackAnalytics('search.value_manual_submitted', {
         ...analyticsData,
         filter_value: value,
-        invalid,
+        invalid: !updated,
       });
     },
     [
