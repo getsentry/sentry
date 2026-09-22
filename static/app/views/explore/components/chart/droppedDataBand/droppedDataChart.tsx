@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 
@@ -43,7 +44,7 @@ function getDroppedDataCategoryColors(
   }, {});
 }
 
-function annotationsToSeries(
+export function annotationsToSeries(
   annotations: Annotation[]
 ): Record<DroppedDataCategory, TimeSeries> {
   // Bars only stack when every series has a value at the same timestamps, so
@@ -51,6 +52,7 @@ function annotationsToSeries(
   const timestamps = [...new Set(annotations.map(annotation => annotation.start))].sort(
     (a, b) => a - b
   );
+  // Buckets are uniformly spaced, so the first gap is the interval.
   const interval = timestamps.length > 1 ? timestamps[1]! - timestamps[0]! : 0;
 
   const countByOutcomeAndStart = new Map<string, Map<number, number>>();
@@ -109,22 +111,29 @@ interface DroppedDataChartProps {
 
 export function DroppedDataChart({annotations}: DroppedDataChartProps) {
   const theme = useTheme();
-  const series = annotationsToSeries(annotations);
-  const categories = orderCategories(Object.keys(series));
-  const colors = getDroppedDataCategoryColors(categories, theme);
+
+  const {categories, colors, plottables} = useMemo(() => {
+    const series = annotationsToSeries(annotations);
+    const orderedCategories = orderCategories(Object.keys(series));
+    const categoryColors = getDroppedDataCategoryColors(orderedCategories, theme);
+
+    return {
+      categories: orderedCategories,
+      colors: categoryColors,
+      plottables: orderedCategories.map(
+        category =>
+          new Bars(series[category]!, {
+            stack: STACK_NAME,
+            color: categoryColors[category],
+            alias: category,
+          })
+      ),
+    };
+  }, [annotations, theme]);
 
   const totalDropped = annotations.reduce(
     (sum, annotation) => sum + annotation.eventCount,
     0
-  );
-
-  const plottables = categories.map(
-    category =>
-      new Bars(series[category]!, {
-        stack: STACK_NAME,
-        color: colors[category],
-        alias: category,
-      })
   );
 
   return (
@@ -141,7 +150,11 @@ export function DroppedDataChart({annotations}: DroppedDataChartProps) {
         <ChartLegend categories={categories} colors={colors} />
       </Flex>
       <Container height={CHART_HEIGHT}>
-        <TimeSeriesWidgetVisualization plottables={plottables} showLegend="never" />
+        {plottables.length > 0 ? (
+          <TimeSeriesWidgetVisualization plottables={plottables} showLegend="never" />
+        ) : (
+          <TimeSeriesWidgetVisualization.NoData />
+        )}
       </Container>
     </Container>
   );
