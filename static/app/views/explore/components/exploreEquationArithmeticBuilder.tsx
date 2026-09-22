@@ -1,4 +1,7 @@
-import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
+import {
+  ArithmeticBuilder,
+  type ComboBoxMenuPresentation,
+} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {TagCollection} from 'sentry/types/group';
 import {useExploreEquationBuilderConfig} from 'sentry/views/explore/hooks/useExploreEquationBuilderConfig';
@@ -12,6 +15,7 @@ interface ExploreEquationArithmeticBuilderProps {
   stringTags: TagCollection;
   traceItemType: TraceItemDataset;
   ['data-test-id']?: string;
+  menuPresentation?: ComboBoxMenuPresentation;
 }
 
 /**
@@ -26,6 +30,7 @@ export function ExploreEquationArithmeticBuilder({
   stringTags,
   booleanTags,
   'data-test-id': dataTestId,
+  menuPresentation,
 }: ExploreEquationArithmeticBuilderProps) {
   const {
     aggregations,
@@ -52,6 +57,7 @@ export function ExploreEquationArithmeticBuilder({
       expression={expression}
       setExpression={setExpression}
       getSuggestedKey={getSuggestedKey}
+      menuPresentation={menuPresentation}
     />
   );
 }

@@ -157,7 +157,10 @@ describe('OrganizationTeams', () => {
       TeamStore.loadInitialData(mockTeams, false, null);
       createWrapper();
 
-      expect(screen.getByRole('button', {name: 'Leave Team'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Leave Team'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('cannot join idp-provisioned team', () => {
@@ -169,7 +172,10 @@ describe('OrganizationTeams', () => {
         access: new Set(),
       });
 
-      expect(screen.getByRole('button', {name: 'Join Team'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Join Team'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 
@@ -233,7 +239,10 @@ describe('OrganizationTeams', () => {
         access: new Set(),
       });
 
-      expect(screen.getByRole('button', {name: 'Request Access'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Request Access'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('cannot leave idp-provisioned team', () => {
@@ -243,7 +252,10 @@ describe('OrganizationTeams', () => {
         access: new Set(),
       });
 
-      expect(screen.getByRole('button', {name: 'Leave Team'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Leave Team'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 

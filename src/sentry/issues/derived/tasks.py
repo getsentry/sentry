@@ -42,7 +42,7 @@ _MAX_CHECK_RUNS = 20
 _MAX_PROJECT_GROUPS = 10_000
 # Hard cap on distinct stale hashes discovered per scan.
 _MAX_STALE_HASHES = 5
-_STALE_HASH_DISCOVERY_TIMEOUT = timedelta(seconds=5)
+_STALE_HASH_DISCOVERY_TIMEOUT = timedelta(seconds=15)
 
 
 def _stale_pipeline_filter(qs: BaseQuerySet[Group], pipeline_hash: str) -> BaseQuerySet[Group]:
@@ -476,7 +476,7 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
     name="sentry.issues.derived.tasks.heal_stale_derived_data",
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
-    processing_deadline_duration=60,
+    processing_deadline_duration=120,
 )
 def heal_stale_derived_data(**kwargs: object) -> None:
     """Rebuild a chunk of GroupDerivedData rows whose ``pipeline_hash`` is stale/NULL."""
@@ -583,12 +583,28 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             "heal_stale_derived_data.range_selection_started",
             extra={"hash_kind": hash_kind, "remaining_budget": remaining},
         )
-        range_result = group_id_ranges_for_hash(
-            stale_hash,
-            chunk_size=batch_size,
-            max_chunks=remaining,
-            group_id_lower_bound=lower_bound,
-        )
+        range_selection_started_at = time.monotonic()
+        try:
+            range_result = group_id_ranges_for_hash(
+                stale_hash,
+                chunk_size=batch_size,
+                max_chunks=remaining,
+                group_id_lower_bound=lower_bound,
+            )
+        except OperationalError:
+            logger.exception(
+                "heal_stale_derived_data.range_selection_failed",
+                extra={
+                    "hash_kind": hash_kind,
+                    "elapsed": time.monotonic() - range_selection_started_at,
+                },
+            )
+            metrics.incr(
+                "issues.derived.heal_range_selection_failed",
+                sample_rate=1.0,
+                tags={"hash_kind": hash_kind},
+            )
+            continue
         ranges = range_result.ranges
         logger.info(
             "heal_stale_derived_data.range_selection_complete",
@@ -596,6 +612,7 @@ def heal_stale_derived_data(**kwargs: object) -> None:
                 "hash_kind": hash_kind,
                 "range_count": len(ranges),
                 "remaining_budget": remaining,
+                "elapsed": time.monotonic() - range_selection_started_at,
             },
         )
         if stale_hash is not None and range_result.drained:

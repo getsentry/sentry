@@ -42,6 +42,7 @@ describe('FeedbackActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: 'Existing feedback note'},
           dateCreated: '2020-01-01T00:00:00',
           user,
@@ -89,6 +90,7 @@ describe('FeedbackActivitySection', () => {
       method: 'POST',
       body: {
         id: 'note-2',
+        commentId: 'note-2',
         user,
         type: 'note',
         data: {text: comment},
@@ -127,6 +129,7 @@ describe('FeedbackActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: 'Existing feedback note'},
           dateCreated: '2020-01-01T00:00:00',
           user,

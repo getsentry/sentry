@@ -528,7 +528,6 @@ describe('MetricPanel', () => {
         performanceIssuesCount: 0,
         spansCount: 2,
         spansCountMap: {},
-        transactionChildCountMap: [],
         uptimeCount: 0,
       },
     });

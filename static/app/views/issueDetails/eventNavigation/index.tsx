@@ -282,9 +282,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               {currentTab === Tab.AUTOFIX && autofixPanel && (
                 <SeerPanelActions
                   autofixState={autofixPanel.runState}
-                  enableBashTools={autofixPanel.enableBashTools}
+                  enableBashMode={autofixPanel.enableBashMode}
                   onCopyMarkdown={autofixPanel.handleCopyMarkdown}
-                  onEnableBashToolsChange={autofixPanel.setEnableBashTools}
+                  onEnableBashModeChange={autofixPanel.setEnableBashMode}
                   onOpenSeerAgent={autofixPanel.handleOpenSeerAgent}
                   onReset={autofixPanel.handleRestart}
                 />

@@ -11,11 +11,7 @@ from sentry.dashboards.endpoints.organization_dashboards import (
     PREBUILT_DASHBOARDS,
     PrebuiltDashboardId,
 )
-from sentry.models.dashboard import (
-    Dashboard,
-    DashboardFavoriteUser,
-    DashboardLastVisited,
-)
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
@@ -2814,6 +2810,36 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400, response.data
         assert "queries" in response.data["widgets"][0], response.data
+
+    def test_post_tracemetrics_table_rejects_fields_without_aggregate(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Dashboard with Tracemetrics Table",
+            "widgets": [
+                {
+                    "displayType": "table",
+                    "title": "Metric Samples",
+                    "widgetType": "tracemetrics",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["metric.name"],
+                            "columns": ["metric.name"],
+                            "aggregates": ["sum(value,foo,counter,none)"],
+                            "conditions": "",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                },
+            ],
+        }
+
+        with self.feature("organizations:tracemetrics-dashboard-table"):
+            response = self.do_request("post", self.url, data=data)
+
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][0]["queries"] == [
+            "Application Metrics table widgets require at least one aggregate. Add an aggregate or remove this widget."
+        ]
 
     def test_post_validate_only_error_for_invalid_dashboard(self) -> None:
         data: dict[str, Any] = {

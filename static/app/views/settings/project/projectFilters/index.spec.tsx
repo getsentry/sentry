@@ -1168,7 +1168,10 @@ describe('ProjectFilters', () => {
     renderGlobalModal();
 
     expect(await screen.findByRole('checkbox', {name: 'Disable filter'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Add Filter'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Add Filter'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(screen.getByRole('button', {name: 'Edit filter'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Delete filter'})).toBeDisabled();
   });
@@ -1229,6 +1232,9 @@ describe('ProjectFilters', () => {
       },
     });
 
-    expect(await screen.findByRole('button', {name: 'Undiscard'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Undiscard'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });
