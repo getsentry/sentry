@@ -22,7 +22,7 @@ export function HypothesisEvidencePlaceholder({
     <Stack gap="lg" aria-hidden data-test-id="investigation-hypothesis-evidence-pending">
       {Array.from({length: rows}, (_, index) => (
         <Flex key={index} gap="md" align="center">
-          <Bar shape="circle" height="10px" width="10px" />
+          <Dot />
           <Bar
             height="12px"
             width={EVIDENCE_ROW_WIDTHS[index % EVIDENCE_ROW_WIDTHS.length]}
@@ -67,10 +67,12 @@ const PlaceholderCard = styled(Stack)`
   list-style: none;
 `;
 
-/**
- * `Placeholder` defaults to a card's corner radius, which is too round at bar
- * height. The circle keeps its own, or the status dot would square off.
- */
+/** `Placeholder` defaults to a card's corner radius, too round at bar height. */
 const Bar = styled(Placeholder)`
-  border-radius: ${p => (p.shape === 'circle' ? '100%' : p.theme.radius.sm)};
+  border-radius: ${p => p.theme.radius.sm};
 `;
+
+/** Where a verification step's status dot will sit. */
+function Dot() {
+  return <Placeholder shape="circle" height="10px" width="10px" />;
+}
