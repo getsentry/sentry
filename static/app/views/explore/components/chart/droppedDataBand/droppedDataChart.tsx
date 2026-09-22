@@ -6,71 +6,68 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {Outcome} from 'sentry/types/core';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
-export type DroppedDataCategory = string;
-
 const STACK_NAME = 'dropped';
 
 const CHART_HEIGHT = '112px';
 
+const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
+  [Outcome.CLIENT_DISCARD]: t('Client discard'),
+  [Outcome.FILTERED]: t('Inbound filter'),
+  [Outcome.INVALID]: t('Invalid or malformed'),
+  [Outcome.RATE_LIMITED]: t('Rate limited'),
+  [Outcome.ABUSE]: t('Abuse limit'),
+  [Outcome.CARDINALITY_LIMITED]: t('Cardinality limit'),
+};
+
 function outcomeLabel(outcome: string): string {
-  const words = outcome.split('_');
-  return words
-    .map((word, index) =>
-      index === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word
-    )
-    .join(' ');
+  return OUTCOME_LABELS[outcome as Outcome] ?? outcome;
 }
 
-function orderCategories(categories: DroppedDataCategory[]): DroppedDataCategory[] {
-  return [...categories].sort();
+function orderOutcomes(outcomes: string[]): string[] {
+  return [...outcomes].sort();
 }
 
-function getDroppedDataCategoryColors(
-  categories: DroppedDataCategory[],
-  theme: Theme
-): Record<DroppedDataCategory, string> {
-  const palette = theme.chart.getColorPalette(Math.max(categories.length - 1, 0));
+function getOutcomeColors(outcomes: string[], theme: Theme): Record<string, string> {
+  const palette = theme.chart.getColorPalette(Math.max(outcomes.length - 1, 0));
 
-  return categories.reduce<Record<DroppedDataCategory, string>>(
-    (acc, category, index) => {
-      acc[category] = palette[index % palette.length]!;
-      return acc;
-    },
-    {}
-  );
+  return outcomes.reduce<Record<string, string>>((acc, outcome, index) => {
+    acc[outcome] = palette[index % palette.length]!;
+    return acc;
+  }, {});
 }
 
 export function annotationsToSeries(
   annotations: Annotation[]
-): Record<DroppedDataCategory, TimeSeries> {
+): Record<string, TimeSeries> {
   // Bars only stack when every series has a value at the same timestamps, so
   // build one shared, sorted time axis and zerofill each outcome onto it.
   const timestamps = [...new Set(annotations.map(annotation => annotation.start))].sort(
     (a, b) => a - b
   );
-  // Buckets are uniformly spaced, so the first gap is the interval.
-  const interval = timestamps.length > 1 ? timestamps[1]! - timestamps[0]! : 0;
+  // Each annotation's (start, end) is its bucket, so its span is the interval.
+  const interval = annotations[0] ? annotations[0].end - annotations[0].start : 0;
 
-  const countByOutcomeAndStart = new Map<string, Map<number, number>>();
+  const countByLabelAndStart = new Map<string, Map<number, number>>();
   for (const annotation of annotations) {
     const label = outcomeLabel(annotation.outcome);
-    const byStart = countByOutcomeAndStart.get(label) ?? new Map<number, number>();
+    const byStart = countByLabelAndStart.get(label) ?? new Map<number, number>();
     byStart.set(
       annotation.start,
       (byStart.get(annotation.start) ?? 0) + annotation.eventCount
     );
-    countByOutcomeAndStart.set(label, byStart);
+    countByLabelAndStart.set(label, byStart);
   }
 
-  const byOutcome: Record<DroppedDataCategory, TimeSeries> = {};
-  for (const [label, byStart] of countByOutcomeAndStart) {
-    byOutcome[label] = {
+  const byLabel: Record<string, TimeSeries> = {};
+  for (const [label, byStart] of countByLabelAndStart) {
+    byLabel[label] = {
       yAxis: label,
       meta: {valueType: 'integer', valueUnit: null, interval},
       values: timestamps.map(timestamp => ({
@@ -80,27 +77,27 @@ export function annotationsToSeries(
     };
   }
 
-  return byOutcome;
+  return byLabel;
 }
 
 function ChartLegend({
-  categories,
+  outcomes,
   colors,
 }: {
-  categories: DroppedDataCategory[];
-  colors: Record<DroppedDataCategory, string>;
+  colors: Record<string, string>;
+  outcomes: string[];
 }) {
   return (
     <Flex align="center" gap="md">
-      {categories.map(category => (
-        <Flex key={category} align="center" gap="xs">
+      {outcomes.map(outcome => (
+        <Flex key={outcome} align="center" gap="xs">
           <Container
             width="8px"
             height="8px"
             radius="full"
-            style={{backgroundColor: colors[category]}}
+            style={{backgroundColor: colors[outcome]}}
           />
-          <Text size="xs">{category}</Text>
+          <Text size="xs">{outcome}</Text>
         </Flex>
       ))}
     </Flex>
@@ -114,20 +111,20 @@ interface DroppedDataChartProps {
 export function DroppedDataChart({annotations}: DroppedDataChartProps) {
   const theme = useTheme();
 
-  const {categories, colors, plottables} = useMemo(() => {
+  const {outcomes, colors, plottables} = useMemo(() => {
     const series = annotationsToSeries(annotations);
-    const orderedCategories = orderCategories(Object.keys(series));
-    const categoryColors = getDroppedDataCategoryColors(orderedCategories, theme);
+    const orderedOutcomes = orderOutcomes(Object.keys(series));
+    const outcomeColors = getOutcomeColors(orderedOutcomes, theme);
 
     return {
-      categories: orderedCategories,
-      colors: categoryColors,
-      plottables: orderedCategories.map(
-        category =>
-          new Bars(series[category]!, {
+      outcomes: orderedOutcomes,
+      colors: outcomeColors,
+      plottables: orderedOutcomes.map(
+        outcome =>
+          new Bars(series[outcome]!, {
             stack: STACK_NAME,
-            color: categoryColors[category],
-            alias: category,
+            color: outcomeColors[outcome],
+            alias: outcome,
           })
       ),
     };
@@ -147,9 +144,9 @@ export function DroppedDataChart({annotations}: DroppedDataChartProps) {
     >
       <Flex align="center" justify="between" paddingBottom="md">
         <Text size="lg" bold>
-          {t('%s dropped events', formatAbbreviatedNumber(totalDropped))}
+          {t('%s Dropped Events', formatAbbreviatedNumber(totalDropped))}
         </Text>
-        <ChartLegend categories={categories} colors={colors} />
+        <ChartLegend outcomes={outcomes} colors={colors} />
       </Flex>
       <Container height={CHART_HEIGHT}>
         {plottables.length > 0 ? (
