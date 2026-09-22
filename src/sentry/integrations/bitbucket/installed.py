@@ -1,3 +1,6 @@
+import logging
+from uuid import UUID
+
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.views.decorators.csrf import csrf_exempt
@@ -15,8 +18,12 @@ from sentry.integrations.utils.atlassian_connect import (
     get_integration_from_jwt,
     get_token,
 )
+from sentry.shared_integrations.exceptions import ApiError
 
+from .client import BitbucketApiClient
 from .integration import BitbucketIntegrationProvider
+
+logger = logging.getLogger("sentry.webhooks")
 
 
 @control_silo_endpoint
@@ -62,7 +69,33 @@ class BitbucketInstalledEndpoint(Endpoint):
             if rpc_integration.external_id != client_key:
                 return self.respond(status=403)
 
+        workspace_uuid = None
+        if not existing:
+            try:
+                workspace_uuid = f"{{{UUID(state['principal']['uuid'])}}}"
+            except (KeyError, TypeError, ValueError):
+                return self.respond(status=400)
+
         data = BitbucketIntegrationProvider().build_integration(state)
+        if not existing:
+            pending_integration = Integration(
+                provider=IntegrationProviderSlug.BITBUCKET.value,
+                external_id=client_key,
+                name=data.get("name", client_key),
+                metadata=data.get("metadata", {}),
+            )
+            assert workspace_uuid is not None
+            try:
+                BitbucketApiClient(pending_integration).get_workspace_hooks(workspace_uuid)
+            except ApiError as error:
+                if error.code is not None and 400 <= error.code < 500 and error.code != 429:
+                    logger.warning(
+                        "bitbucket.installed.invalid-credentials",
+                        extra={"status_code": error.code},
+                    )
+                    return self.respond(status=401)
+                raise
+
         ensure_integration(
             IntegrationProviderSlug.BITBUCKET.value,
             data,

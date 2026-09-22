@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
@@ -23,6 +24,7 @@ export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Proj
   );
   const organization = useOrganization();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const openSeerDrawer = useCallback(() => {
     if (
@@ -41,6 +43,7 @@ export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Proj
           organization,
           groupId: group.id,
           action: seerDrawerAction ?? undefined,
+          query: location.query,
         }),
         {replace: seerDrawer}
       );
@@ -83,6 +86,7 @@ export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Proj
     setDrawerQuery,
     organization,
     navigate,
+    location.query,
   ]);
 
   return {openSeerDrawer};

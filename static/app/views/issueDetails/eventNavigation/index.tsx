@@ -4,11 +4,9 @@ import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 import {keepPreviousData} from '@tanstack/react-query';
 
-import {Badge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import Feature from 'sentry/components/acl/feature';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
@@ -30,7 +28,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
-import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/eventNavigation/issueDetailsEventNavigation';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
@@ -49,17 +46,6 @@ import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRou
 interface IssueEventNavigationProps {
   event: Event | undefined;
   group: Group;
-}
-
-interface ContentTab {
-  /**
-   * The bare count, unstyled: tabs put it in a Badge, the dropdown right-aligns
-   * it in muted text. Null when the tab has nothing to count.
-   */
-  count: React.ReactNode;
-  hidden: boolean;
-  key: Tab;
-  name: string;
 }
 
 const LIST_VIEW_TABS = new Set([
@@ -92,16 +78,6 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     onResize: () => setSmallNav(checkNavIsSmall),
   });
 
-  // `autofix-page` rolls out with Seer, so the orgs that hide AI keep the
-  // dropdown rather than getting the tab list ahead of everyone else. The same
-  // conditions decide whether Autofix is one of the tabs, because the tab and
-  // the page behind it arrive together.
-  const showContentTabs =
-    hasAutofixPage(organization) &&
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures;
-
-  // Only consulted on the dropdown path, which tabs replace outright.
   const hideDropdownButton =
     !issueTypeConfig.pages.attachments.enabled &&
     !issueTypeConfig.pages.userFeedback.enabled &&
@@ -138,53 +114,6 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     [Tab.AUTOFIX]: t('Autofix'),
   };
 
-  const contentTabs: ContentTab[] = [
-    {
-      key: Tab.DETAILS,
-      name: TabName[Tab.DETAILS]!,
-      count: <Count value={eventCount ?? 0} />,
-      hidden: false,
-    },
-    {
-      key: Tab.AUTOFIX,
-      name: TabName[Tab.AUTOFIX]!,
-      // Autofix has no count to show; it is a single ongoing analysis.
-      count: null,
-      hidden: !showContentTabs,
-    },
-    {
-      key: Tab.REPLAYS,
-      name: TabName[Tab.REPLAYS]!,
-      count: replaysCount > 50 ? '50+' : <Count value={replaysCount} />,
-      hidden: !issueTypeConfig.pages.replays.enabled,
-    },
-    {
-      key: Tab.ATTACHMENTS,
-      name: TabName[Tab.ATTACHMENTS]!,
-      count: hasManyAttachments ? '50+' : attachments.attachments.length,
-      hidden: !issueTypeConfig.pages.attachments.enabled,
-    },
-    {
-      key: Tab.USER_FEEDBACK,
-      name: TabName[Tab.USER_FEEDBACK]!,
-      count: <Count value={group.userReportCount} />,
-      hidden: !issueTypeConfig.pages.userFeedback.enabled,
-    },
-  ];
-
-  const trackContentSelected = (key: Tab) => {
-    trackAnalytics('issue_details.issue_content_selected', {
-      organization,
-      content: TabName[key]!,
-    });
-  };
-
-  const contentLocation = (key: Tab) => ({
-    ...location,
-    pathname: `${baseUrl}${TabPaths[key]}`,
-    hash: undefined,
-  });
-
   const isListView = LIST_VIEW_TABS.has(currentTab);
 
   const activeThreadId = useActiveThreadId();
@@ -217,67 +146,110 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
 
   return (
     <EventNavigationWrapper role="navigation" ref={navigationRef}>
-      {showContentTabs ? (
-        <Tabs value={currentTab} onChange={key => trackContentSelected(key as Tab)}>
-          <TabList>
-            {contentTabs.map(tab => (
-              <TabList.Item
-                key={tab.key}
-                hidden={tab.hidden}
-                to={contentLocation(tab.key)}
-                textValue={tab.name}
-              >
-                <TabLabel>
-                  {tab.name}
-                  {tab.count === null ? null : <Badge variant="muted">{tab.count}</Badge>}
-                </TabLabel>
-              </TabList.Item>
-            ))}
-          </TabList>
-        </Tabs>
-      ) : (
-        <Flex align="center" gap="2xs" flexShrink={0}>
-          <DropdownMenu
-            usePortal
-            zIndex={theme.zIndex.stickyHeader + 1}
-            onAction={key => trackContentSelected(key as Tab)}
-            items={contentTabs.map(tab => ({
-              key: tab.key,
+      <Flex align="center" gap="2xs" flexShrink={0}>
+        <DropdownMenu
+          usePortal
+          zIndex={theme.zIndex.stickyHeader + 1}
+          onAction={key => {
+            trackAnalytics('issue_details.issue_content_selected', {
+              organization,
+              content: TabName[key as keyof typeof TabName]!,
+            });
+          }}
+          items={[
+            {
+              key: Tab.DETAILS,
               label: (
-                <DropdownCountWrapper isCurrentTab={currentTab === tab.key}>
-                  {tab.name} <MutedCount>{tab.count}</MutedCount>
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.DETAILS}>
+                  {TabName[Tab.DETAILS]} <ItemCount value={eventCount ?? 0} />
                 </DropdownCountWrapper>
               ),
-              textValue: tab.name,
-              to: contentLocation(tab.key),
-              hidden: tab.hidden,
-            }))}
-            offset={[-2, 1]}
-            trigger={(triggerProps, isOpen) =>
-              hideDropdownButton ? (
-                <NavigationLabel>
-                  {TabName[currentTab] ?? TabName[Tab.DETAILS]}
-                </NavigationLabel>
-              ) : (
-                <NavigationDropdownButton
-                  {...triggerProps}
-                  isOpen={isOpen}
-                  variant="transparent"
-                  size="sm"
-                  disabled={hideDropdownButton}
-                  aria-label={t('Select issue content')}
-                  aria-description={TabName[currentTab]}
-                  analyticsEventName="Issue Details: Issue Content Dropdown Opened"
-                  analyticsEventKey="issue_details.issue_content_dropdown_opened"
-                >
-                  {TabName[currentTab] ?? TabName[Tab.DETAILS]}
-                </NavigationDropdownButton>
-              )
-            }
-          />
-          <LargeInThisIssueText aria-hidden>{t('in this issue')}</LargeInThisIssueText>
-        </Flex>
-      )}
+              textValue: TabName[Tab.DETAILS],
+              to: {
+                ...location,
+                pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
+                hash: undefined,
+              },
+            },
+            {
+              key: Tab.REPLAYS,
+              label: (
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.REPLAYS}>
+                  {TabName[Tab.REPLAYS]}{' '}
+                  {replaysCount > 50 ? (
+                    <CustomItemCount>50+</CustomItemCount>
+                  ) : (
+                    <ItemCount value={replaysCount} />
+                  )}
+                </DropdownCountWrapper>
+              ),
+              textValue: TabName[Tab.REPLAYS],
+              to: {
+                ...location,
+                pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
+                hash: undefined,
+              },
+              hidden: !issueTypeConfig.pages.replays.enabled,
+            },
+            {
+              key: Tab.ATTACHMENTS,
+              label: (
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.ATTACHMENTS}>
+                  {TabName[Tab.ATTACHMENTS]}
+                  <CustomItemCount>
+                    {hasManyAttachments ? '50+' : attachments.attachments.length}
+                  </CustomItemCount>
+                </DropdownCountWrapper>
+              ),
+              textValue: TabName[Tab.ATTACHMENTS],
+              to: {
+                ...location,
+                pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
+                hash: undefined,
+              },
+              hidden: !issueTypeConfig.pages.attachments.enabled,
+            },
+            {
+              key: Tab.USER_FEEDBACK,
+              label: (
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.USER_FEEDBACK}>
+                  {TabName[Tab.USER_FEEDBACK]} <ItemCount value={group.userReportCount} />
+                </DropdownCountWrapper>
+              ),
+              textValue: TabName[Tab.USER_FEEDBACK],
+              to: {
+                ...location,
+                pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
+                hash: undefined,
+              },
+              hidden: !issueTypeConfig.pages.userFeedback.enabled,
+            },
+          ]}
+          offset={[-2, 1]}
+          trigger={(triggerProps, isOpen) =>
+            hideDropdownButton ? (
+              <NavigationLabel>
+                {TabName[currentTab] ?? TabName[Tab.DETAILS]}
+              </NavigationLabel>
+            ) : (
+              <NavigationDropdownButton
+                {...triggerProps}
+                isOpen={isOpen}
+                variant="transparent"
+                size="sm"
+                disabled={hideDropdownButton}
+                aria-label={t('Select issue content')}
+                aria-description={TabName[currentTab]}
+                analyticsEventName="Issue Details: Issue Content Dropdown Opened"
+                analyticsEventKey="issue_details.issue_content_dropdown_opened"
+              >
+                {TabName[currentTab] ?? TabName[Tab.DETAILS]}
+              </NavigationDropdownButton>
+            )
+          }
+        />
+        <LargeInThisIssueText aria-hidden>{t('in this issue')}</LargeInThisIssueText>
+      </Flex>
       <TourElement<IssueDetailsTour>
         tourContext={IssueDetailsTourContext}
         id={IssueDetailsTour.NAVIGATION}
@@ -292,9 +264,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               {currentTab === Tab.AUTOFIX && autofixPanel && (
                 <SeerPanelActions
                   autofixState={autofixPanel.runState}
-                  enableBashTools={autofixPanel.enableBashTools}
+                  enableBashMode={autofixPanel.enableBashMode}
                   onCopyMarkdown={autofixPanel.handleCopyMarkdown}
-                  onEnableBashToolsChange={autofixPanel.setEnableBashTools}
+                  onEnableBashModeChange={autofixPanel.setEnableBashMode}
                   onOpenSeerAgent={autofixPanel.handleOpenSeerAgent}
                   onReset={autofixPanel.handleRestart}
                 />
@@ -466,13 +438,6 @@ const NavigationWrapper = styled('div')`
   }
 `;
 
-const TabLabel = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  font-variant-numeric: tabular-nums;
-`;
-
 const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
   display: flex;
   align-items: center;
@@ -483,6 +448,10 @@ const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
     p.isCurrentTab ? p.theme.font.weight.sans.medium : p.theme.font.weight.sans.regular};
 `;
 
-const MutedCount = styled('div')`
+const ItemCount = styled(Count)`
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const CustomItemCount = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
 `;

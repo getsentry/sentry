@@ -54,6 +54,16 @@ describe('DroppedDataTooltip', () => {
     expect(screen.getByText('Jan 12, 2024 3:00 PM - 3:05 PM UTC')).toBeInTheDocument();
   });
 
+  it('shows <0.01% for a drop ratio at or below 0.01%', () => {
+    renderTooltip(
+      [AnnotationFixture({start: START, end: END, eventCount: 1})],
+      [AnnotationFixture({start: START, end: END, eventCount: 9_999})]
+    );
+
+    expect(screen.getByText('<0.01%')).toBeInTheDocument();
+    expect(screen.queryByText('0%')).not.toBeInTheDocument();
+  });
+
   it('reads a drop with no accepted volume as the whole bucket', () => {
     renderTooltip([AnnotationFixture({start: START, end: END, eventCount: 10})]);
 

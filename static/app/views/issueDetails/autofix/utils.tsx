@@ -1,10 +1,13 @@
 import type {LocationDescriptorObject} from 'history';
+import omit from 'lodash/omit';
 
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 const AUTOFIX_PAGE_FEATURE = 'autofix-page';
+
+const SEER_QUERY_PARAMS = ['seerDrawer', 'seerDrawerAction'];
 
 export function hasAutofixPage(organization: Organization) {
   return organization.features.includes(AUTOFIX_PAGE_FEATURE);
@@ -57,6 +60,8 @@ export function makeSeerLocation({
 }: SeerLocationOptions): LocationDescriptorObject {
   return {
     pathname: makeSeerPathname(organization, groupId),
-    query: {...query, ...makeSeerQuery(organization, action)},
+    // The seer params are derived here, so a caller forwarding the current
+    // location cannot drag a stale copy of them along.
+    query: {...omit(query, SEER_QUERY_PARAMS), ...makeSeerQuery(organization, action)},
   };
 }

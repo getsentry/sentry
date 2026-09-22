@@ -4,6 +4,7 @@ import {InfoText} from '@sentry/scraps/info';
 
 import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -43,34 +44,46 @@ export function ExploreSavedQueryNavigationItems({queries}: Props) {
     <SecondaryNavigation.ReorderableList
       items={items}
       onDragEnd={newItems => {
-        reorderStarredSavedQueries(newItems.map(({query}) => query));
+        reorderStarredSavedQueries(
+          newItems.map(({query}) => ({
+            queryId: Number(query.id),
+            queryType: query.queryType,
+          }))
+        );
       }}
     >
-      {({query}) => (
-        <SecondaryNavigation.ReorderableLink
-          to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
-          analyticsItemName="explore_starred_item"
-          isActive={id === query.id.toString()}
-          icon={
-            <SecondaryNavigation.ProjectIcon
-              projectPlatforms={projects
-                .filter(p => (query.projects ?? []).map(String).includes(p.id))
-                .map(p => p.platform)
-                .filter(defined)}
-              allProjects={query.projects?.length === 1 && query.projects[0] === -1}
-            />
-          }
-        >
-          <InfoText
-            title={query.name}
-            position="top"
-            mode="overflowOnly"
-            variant="inherit"
+      {({query}) => {
+        const to = getSavedQueryTraceItemUrl({savedQuery: query, organization});
+        const isActive =
+          id === query.id.toString() &&
+          location.pathname === normalizeUrl(to).split('?')[0];
+
+        return (
+          <SecondaryNavigation.ReorderableLink
+            to={to}
+            analyticsItemName="explore_starred_item"
+            isActive={isActive}
+            icon={
+              <SecondaryNavigation.ProjectIcon
+                projectPlatforms={projects
+                  .filter(p => (query.projects ?? []).map(String).includes(p.id))
+                  .map(p => p.platform)
+                  .filter(defined)}
+                allProjects={query.projects?.length === 1 && query.projects[0] === -1}
+              />
+            }
           >
-            {query.name}
-          </InfoText>
-        </SecondaryNavigation.ReorderableLink>
-      )}
+            <InfoText
+              title={query.name}
+              position="top"
+              mode="overflowOnly"
+              variant="inherit"
+            >
+              {query.name}
+            </InfoText>
+          </SecondaryNavigation.ReorderableLink>
+        );
+      }}
     </SecondaryNavigation.ReorderableList>
   );
 }

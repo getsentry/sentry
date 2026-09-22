@@ -69,7 +69,7 @@ class TestTriggerAutofixFeature(TestCase):
         assert client_kwargs["organization"] == self.group.organization
         assert client_kwargs["project"] == self.group.project
         assert client_kwargs["group"] == self.group
-        assert client_kwargs["enable_bash_tools"] is False
+        assert client_kwargs["enable_bash_mode"] is False
 
         # A rerun uses the existing mirror rather than creating another one.
         run_kwargs = client.continue_feature_run.call_args.kwargs
@@ -239,10 +239,10 @@ class TestTriggerAutofixFeature(TestCase):
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     user=user,
-                    enable_bash_tools=True,
+                    enable_bash_mode=True,
                 ),
             )
 
         client_kwargs = mock_client_cls.call_args.kwargs
         assert client_kwargs["user"] == user
-        assert client_kwargs["enable_bash_tools"] is True
+        assert client_kwargs["enable_bash_mode"] is True
