@@ -1,12 +1,15 @@
 import {useEffect, useMemo, useRef, type ComponentType, type ReactNode} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useIsFetching, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
-import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
+import {
+  getRepoPullRequestLink,
+  hasCreatedPullRequests,
+} from 'sentry/components/events/autofix/pullRequests';
 import {
   collectPatches,
   explorerAutofixApiOptions,
@@ -233,9 +236,14 @@ function useRefetchRunStateWhenAgentSettles(groupId: string, isBusy: boolean) {
 }
 
 function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
+  const organization = useOrganization();
   const autofix = useExplorerAutofix({id, shortId});
   const {runState, isLoading, isPolling} = autofix;
   const {isBusy, sendMessage} = useAutofixChat();
+  const isRefetching =
+    useIsFetching({
+      queryKey: explorerAutofixApiOptions(organization.slug, id).queryKey,
+    }) > 0;
 
   const sections = useMemo(() => getOrderedAutofixSections(runState), [runState]);
   const section = useMemo(() => findStepSection(sections, step), [sections, step]);
@@ -264,13 +272,17 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const nextStep = NEXT_STEP[step];
   const pendingNextStep =
     nextStep && !findStepSection(sections, nextStep) ? nextStep : undefined;
-  const canCreatePR = step === 'code_changes' && !sections.some(isPullRequestsSection);
+  // A failed create also lands in `repo_pr_states`; that one should stay retryable.
+  const canCreatePR =
+    step === 'code_changes' && !hasCreatedPullRequests(runState?.repo_pr_states);
 
   /**
-   * `isBusy` covers the gap the run state cannot: a step the agent has just
-   * started leaves `isPolling` false until a poll brings the news back.
+   * The run state lags the agent, so it cannot gate these alone. `isBusy`
+   * covers the agent working on a step that `isPolling` has not seen yet, and
+   * `isRefetching` covers the round trip after it settles, while the cached
+   * state still offers the step it just started.
    */
-  const canAct = !!sendMessage && !isPolling && !isBusy;
+  const canAct = !!sendMessage && !isPolling && !isBusy && !isRefetching;
 
   return (
     <AutofixBlock id={id} shortId={shortId} step={step}>
