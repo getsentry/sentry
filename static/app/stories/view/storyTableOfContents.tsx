@@ -32,7 +32,8 @@ function getContentEntries(main: HTMLElement): Entry[] {
 
   const idCounts = new Map<string, number>();
   for (const entry of titles) {
-    const baseId = entry.getAttribute('data-story-heading-base-id')!;
+    const baseId =
+      toAlphaNumeric(entry.getAttribute('data-story-heading-base-id') ?? '') || entry.id;
     idCounts.set(baseId, (idCounts.get(baseId) ?? 0) + 1);
   }
 
@@ -46,7 +47,8 @@ function getContentEntries(main: HTMLElement): Entry[] {
     }
 
     const parentId = parents.at(-1)?.id;
-    const originalId = entry.getAttribute('data-story-heading-base-id')!;
+    const originalId =
+      toAlphaNumeric(entry.getAttribute('data-story-heading-base-id') ?? '') || entry.id;
     const scopedId =
       idCounts.get(originalId)! > 1 && parentId
         ? `${parentId}-${originalId}`
