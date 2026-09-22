@@ -397,8 +397,9 @@ function QueryResult({
                     components={{Table: FlushTable}}
                   />
                 ) : isBlockGenerating(block) ? (
-                  // The toolbar above already shows the title.
-                  <InvestigationCellPlaceholder showTitle={false} />
+                  // The result's own header lands here, not the cell title the
+                  // toolbar above already shows.
+                  <InvestigationCellPlaceholder />
                 ) : (
                   <CellProgress state={progressState} />
                 )}
