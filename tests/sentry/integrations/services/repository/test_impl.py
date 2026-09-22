@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import dispatch_to_local_service
@@ -12,7 +12,7 @@ from sentry.testutils.silo import all_silo_test, cell_silo_test
 @all_silo_test
 class ScheduleGitlabProjectWebhooksTest(TestCase):
     @patch("sentry.integrations.services.repository.impl.update_all_project_webhooks.delay")
-    def test_force_is_forwarded(self, delay) -> None:
+    def test_force_is_forwarded(self, delay: MagicMock) -> None:
         repository_service.schedule_update_gitlab_project_webhooks(
             organization_id=self.organization.id, integration_id=123, force=True
         )
@@ -21,7 +21,7 @@ class ScheduleGitlabProjectWebhooksTest(TestCase):
         )
 
     @patch("sentry.integrations.services.repository.impl.update_all_project_webhooks.delay")
-    def test_older_callers_default_to_debounce(self, delay) -> None:
+    def test_older_callers_default_to_debounce(self, delay: MagicMock) -> None:
         repository_service.schedule_update_gitlab_project_webhooks(
             organization_id=self.organization.id, integration_id=123
         )
@@ -30,7 +30,7 @@ class ScheduleGitlabProjectWebhooksTest(TestCase):
         )
 
     @patch("sentry.integrations.services.repository.impl.update_all_project_webhooks.delay")
-    def test_force_survives_serialization(self, delay) -> None:
+    def test_force_survives_serialization(self, delay: MagicMock) -> None:
         dispatch_to_local_service(
             "repository",
             "schedule_update_gitlab_project_webhooks",
