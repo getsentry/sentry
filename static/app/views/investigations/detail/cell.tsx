@@ -35,6 +35,7 @@ import {
   useStopInvestigationExecutionMutation,
   useUpdateInvestigationBlockPromptMutation,
 } from 'sentry/views/investigations/api';
+import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
 import type {
   InvestigationBlock,
   InvestigationBlockKind,
@@ -67,7 +68,14 @@ export function InvestigationCell({
     ? (block.currentExecution?.id ?? null)
     : null;
   const autoOpenedExecutionId = useRef(activeExecutionId);
-  const [panelOpen, setPanelOpen] = useState(Boolean(activeExecutionId));
+  // A cell Seer is writing for the first time arrives as a title over a
+  // skeleton; unfolding the trace panel on top of that is noise nobody asked
+  // for. A run started from this page still opens the panel — that goes through
+  // `openPanel`, and the effect below covers an execution that begins after
+  // mount — as does a rerun of a cell that already has something to show.
+  const [panelOpen, setPanelOpen] = useState(
+    Boolean(activeExecutionId) && hasRenderableContent(block)
+  );
   const [traceExecutionId, setTraceExecutionId] = useState<string | null>(
     activeExecutionId
   );
@@ -255,6 +263,8 @@ function CellResult({
       <CellExecutionAlert block={block} />
       {markdown ? (
         <SeerMarkdown raw={markdown} />
+      ) : isBlockGenerating(block) ? (
+        <InvestigationCellPlaceholder title={block.title} />
       ) : (
         <CellProgress state={progressState} />
       )}
@@ -388,6 +398,10 @@ function QueryResult({
                     raw={output.tableMarkdown}
                     components={{Table: FlushTable}}
                   />
+                ) : isBlockGenerating(block) ? (
+                  // The toolbar above already carries the title, so only the
+                  // body is a skeleton here.
+                  <InvestigationCellPlaceholder />
                 ) : (
                   <CellProgress state={progressState} />
                 )}
@@ -482,6 +496,13 @@ function getCellProgressState(
 }
 
 export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
+  // Seer titles a cell before it writes anything into it. A titled cell that is
+  // actively running is worth showing as soon as it exists — the title says what
+  // is coming, and the body renders as a skeleton until the output lands. A cell
+  // that is only queued stays hidden: it may never produce anything.
+  if (isBlockRunning(block) && block.title.trim()) {
+    return true;
+  }
   if (block.kind === 'text') {
     return Boolean((getTextOutput(block.output) ?? block.content).trim());
   }
@@ -1091,6 +1112,33 @@ function getExecutionTitle(status: InvestigationExecutionStatus | undefined) {
     return t('Seer run cancelled');
   }
   return t('Analysis complete');
+}
+
+/**
+ * Whether Seer is still writing this block's output.
+ *
+ * `outputStatus` is the block's own view of that — the serializer reports the
+ * current execution's status until it completes, and `available` afterwards —
+ * so it is what the detail poll exposes for a cell that is mid-flight. The
+ * execution status is consulted too because a query block's `outputStatus`
+ * tracks the execution that produced the *result*, which can already be
+ * settled while the block itself is being rerun.
+ */
+function isBlockGenerating(block: InvestigationBlock) {
+  return (
+    isExecutionActive(block.outputStatus) ||
+    isExecutionActive(block.currentExecution?.status)
+  );
+}
+
+/** Whether the block already carries something to render in place of a skeleton. */
+function hasRenderableContent(block: InvestigationBlock) {
+  return Boolean(block.output) || Boolean(block.content.trim());
+}
+
+/** The narrower reading of the above: Seer is writing this block right now. */
+function isBlockRunning(block: InvestigationBlock) {
+  return block.outputStatus === 'running' || block.currentExecution?.status === 'running';
 }
 
 function isExecutionActive(status: InvestigationExecutionStatus | undefined) {

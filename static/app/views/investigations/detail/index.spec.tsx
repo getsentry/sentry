@@ -287,6 +287,127 @@ describe('Investigation detail', () => {
     expect(screen.queryByText('Thinking…')).not.toBeInTheDocument();
   });
 
+  it('renders a running cell as its title above a placeholder', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.blocks[0] = {
+      ...investigation.blocks[0]!,
+      content: '',
+      outputStatus: 'running',
+      currentExecution: {
+        id: 'execution-1',
+        status: 'running',
+        startedAt: '2026-08-18T20:00:00Z',
+        completedAt: null,
+        error: null,
+      },
+    };
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-1/executions/execution-1/`,
+      body: {
+        id: 'execution-1',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+
+    renderView();
+
+    const cell = await screen.findByTestId('investigation-cell-block-1');
+    expect(within(cell).getByRole('heading', {name: 'Summary'})).toBeInTheDocument();
+    expect(
+      within(cell).getByTestId('investigation-cell-placeholder')
+    ).toBeInTheDocument();
+    // The title is real, so only the body is a skeleton.
+    expect(
+      within(cell).queryByTestId('investigation-cell-placeholder-title')
+    ).not.toBeInTheDocument();
+    expect(
+      within(cell).queryByText('Seer is working on this cell…')
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders a placeholder title and body while the report is still being written', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        blocks: [],
+        orchestration: {
+          phase: 'reporting',
+          status: 'processing',
+          heartbeatAt: '2026-08-27T11:06:30Z',
+          notebookRevision: 5,
+        },
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+
+    renderView();
+
+    expect(
+      await screen.findByTestId('investigation-cell-placeholder-title')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('investigation-cell-placeholder')).toBeInTheDocument();
+  });
+
+  it('keeps the report placeholder while every existing block has settled', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.blocks = investigation.blocks.map(block => ({
+      ...block,
+      outputStatus: 'available' as const,
+    }));
+    investigation.orchestration = {
+      phase: 'reporting',
+      status: 'processing',
+      heartbeatAt: '2026-08-27T11:06:30Z',
+      notebookRevision: 5,
+    };
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+
+    renderView();
+
+    expect(
+      await screen.findByTestId('investigation-cell-placeholder-title')
+    ).toBeInTheDocument();
+  });
+
+  it('does not render a report placeholder outside the reporting phase', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.blocks = investigation.blocks.map(block => ({
+      ...block,
+      outputStatus: 'available' as const,
+    }));
+    investigation.orchestration = {
+      phase: 'investigating',
+      status: 'processing',
+      heartbeatAt: '2026-08-27T11:06:30Z',
+      notebookRevision: 5,
+    };
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'investigating'}),
+    });
+
+    renderView();
+
+    expect(await screen.findByText('Investigate database latency')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('investigation-cell-placeholder-title')
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the streamed investigation title preview', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
@@ -424,7 +545,7 @@ describe('Investigation detail', () => {
     );
   });
 
-  it('reveals cells as results arrive without showing pending placeholders', async () => {
+  it('reveals cells as results arrive, skeletoning only the running one', async () => {
     const investigation = InvestigationDetailFixture();
     investigation.blocks[0] = {
       ...investigation.blocks[0]!,
@@ -445,10 +566,25 @@ describe('Investigation detail', () => {
       dependencies: ['block-1'],
     };
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-1/executions/execution-1/`,
+      body: {
+        id: 'execution-1',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
     const {queryClient} = renderView();
 
     await screen.findByText('Investigate database latency');
-    expect(screen.queryByLabelText('Cell actions for Summary')).not.toBeInTheDocument();
+    // The running cell shows its title over a skeleton; the cell waiting behind
+    // it is not shown at all.
+    expect(screen.getByLabelText('Cell actions for Summary')).toBeInTheDocument();
+    expect(screen.getByTestId('investigation-cell-placeholder')).toBeInTheDocument();
     expect(
       screen.queryByLabelText('Cell actions for Latency query')
     ).not.toBeInTheDocument();
@@ -515,7 +651,7 @@ describe('Investigation detail', () => {
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2), {timeout: 3000});
   });
 
-  it.each(['notRun', 'pending', 'running', 'failed', 'cancelled', 'completed'] as const)(
+  it.each(['notRun', 'pending', 'failed', 'cancelled', 'completed'] as const)(
     'hides query cells with no usable output when %s',
     async status => {
       const investigation = InvestigationDetailFixture();
@@ -537,6 +673,26 @@ describe('Investigation detail', () => {
       expect(screen.queryByText('This cell has no output yet.')).not.toBeInTheDocument();
     }
   );
+
+  it('shows a running query cell as its title above a placeholder', async () => {
+    const investigation = InvestigationDetailFixture();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[1]!,
+        outputStatus: 'running',
+        currentExecution: null,
+        output: null,
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(
+      await screen.findByLabelText('Cell actions for Latency query')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('investigation-cell-placeholder')).toBeInTheDocument();
+  });
 
   it('omits completed empty results from the report', async () => {
     const investigation = investigationWithQueryResult();

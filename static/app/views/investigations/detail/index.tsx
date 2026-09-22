@@ -42,6 +42,7 @@ import {
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
+import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
   InvestigationHypotheses,
@@ -445,6 +446,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                       investigation={investigation}
                     />
                   ))}
+                  {isAwaitingReportCell(investigation) ? (
+                    <InvestigationCellPlaceholder />
+                  ) : null}
                 </Stack>
               </Stack>
               <Container height="160px" flexShrink={0} aria-hidden />
@@ -454,6 +458,24 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       </Stack>
     </SentryDocumentTitle>
   );
+}
+
+/**
+ * Whether Seer is about to write a notebook cell that does not exist yet.
+ *
+ * The run reaches `reporting` once every hypothesis has been judged, and the
+ * report itself arrives as blocks on a later poll — so between those two there
+ * is a stretch where the run is plainly still working and the notebook has
+ * nothing new to show. A cell that is mid-flight renders its own skeleton
+ * (`InvestigationCell`), so this only fires while every block that exists has
+ * already settled — which includes the case where there are none at all.
+ */
+function isAwaitingReportCell(investigation: InvestigationDetail) {
+  const {orchestration} = investigation;
+  if (orchestration?.status !== 'processing' || orchestration.phase !== 'reporting') {
+    return false;
+  }
+  return (investigation.blocks ?? []).every(block => block.outputStatus === 'available');
 }
 
 function isTitleGenerationActive(status: string | null | undefined) {
