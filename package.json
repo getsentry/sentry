@@ -25,7 +25,7 @@
     "fix": "pnpm run fix:format && pnpm run fix:oxlint",
     "fix:oxlint": "oxlint --fix",
     "fix:format": "oxfmt",
-    "dev": "pnpm install --frozen-lockfile && sentry devserver",
+    "dev": "pnpm install --frozen-lockfile && .venv/bin/sentry devserver",
     "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_UI_HOT_RELOAD=1 node scripts/dev-ui-server.ts",
     "dev-ui-production": "NODE_ENV=production SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 SENTRY_UI_HOT_RELOAD=1 rspack --mode production serve",
     "dev-ui-admin": "SENTRY_ADMIN_UI_DEV=1 pnpm run dev-ui",
