@@ -20,6 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
@@ -110,6 +111,8 @@ function LogsHeader() {
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
+
+  useVisitQuery(pageId);
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;

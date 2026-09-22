@@ -32,6 +32,7 @@ import {
   ExploreContentSection,
 } from 'sentry/views/explore/components/styles';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -61,6 +62,8 @@ function ReplaysHeader() {
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
+
+  useVisitQuery(pageId);
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
