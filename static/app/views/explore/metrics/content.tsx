@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -90,12 +90,7 @@ function MetricsHeader() {
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
 
-  const visitQuery = useVisitQuery();
-  useEffect(() => {
-    if (defined(pageId)) {
-      visitQuery(pageId);
-    }
-  }, [pageId, visitQuery]);
+  useVisitQuery(pageId);
 
   const documentTitle = hasSavedQueryTitle ? (
     <SentryDocumentTitle
