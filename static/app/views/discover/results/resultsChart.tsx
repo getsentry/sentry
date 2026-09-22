@@ -40,112 +40,114 @@ type ResultsChartProps = {
   customMeasurements?: CustomMeasurementCollection | undefined;
 };
 
-const ResultsChart = memo(function ResultsChart({
-  api,
-  eventView,
-  location,
-  organization,
-  confirmedQuery,
-  yAxisValue,
-  customMeasurements,
-}: ResultsChartProps) {
-  const globalSelection = eventView.getPageFilters();
-  const start = globalSelection.datetime.start
-    ? getUtcToLocalDateObject(globalSelection.datetime.start)
-    : null;
+const ResultsChart = memo(
+  function ResultsChart({
+    api,
+    eventView,
+    location,
+    organization,
+    confirmedQuery,
+    yAxisValue,
+    customMeasurements,
+  }: ResultsChartProps) {
+    const globalSelection = eventView.getPageFilters();
+    const start = globalSelection.datetime.start
+      ? getUtcToLocalDateObject(globalSelection.datetime.start)
+      : null;
 
-  const end = globalSelection.datetime.end
-    ? getUtcToLocalDateObject(globalSelection.datetime.end)
-    : null;
+    const end = globalSelection.datetime.end
+      ? getUtcToLocalDateObject(globalSelection.datetime.end)
+      : null;
 
-  const {utc} = normalizeDateTimeParams(location.query);
-  const apiPayload = eventView.getEventsAPIPayload(location);
-  const display = eventView.getDisplayMode();
-  const isTopEvents =
-    display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
-  const isPeriod = display === DisplayModes.DEFAULT || display === DisplayModes.TOP5;
-  const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
-  const isPrevious = display === DisplayModes.PREVIOUS;
-  const referrer = `api.discover.${display}-chart`;
-  const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
-  const aggregateParam = getAggregateArg(yAxisValue[0]!) || '';
-  const customPerformanceMetricFieldType = isCustomMeasurement(aggregateParam)
-    ? customMeasurements
-      ? customMeasurements[aggregateParam]?.fieldType
-      : null
-    : null;
-  const chartComponent =
-    display === DisplayModes.BAR
-      ? BarChart
-      : display === DisplayModes.PREVIOUS
-        ? AreaChart
-        : customPerformanceMetricFieldType === 'size' && isTopEvents
+    const {utc} = normalizeDateTimeParams(location.query);
+    const apiPayload = eventView.getEventsAPIPayload(location);
+    const display = eventView.getDisplayMode();
+    const isTopEvents =
+      display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
+    const isPeriod = display === DisplayModes.DEFAULT || display === DisplayModes.TOP5;
+    const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
+    const isPrevious = display === DisplayModes.PREVIOUS;
+    const referrer = `api.discover.${display}-chart`;
+    const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
+    const aggregateParam = getAggregateArg(yAxisValue[0]!) || '';
+    const customPerformanceMetricFieldType = isCustomMeasurement(aggregateParam)
+      ? customMeasurements
+        ? customMeasurements[aggregateParam]?.fieldType
+        : null
+      : null;
+    const chartComponent =
+      display === DisplayModes.BAR
+        ? BarChart
+        : display === DisplayModes.PREVIOUS
           ? AreaChart
-          : undefined;
-  const interval =
-    display === DisplayModes.BAR
-      ? getInterval(
-          {
-            start,
-            end,
-            period: globalSelection.datetime.period,
-            utc: utc === 'true',
-          },
-          'low'
-        )
-      : eventView.interval;
+          : customPerformanceMetricFieldType === 'size' && isTopEvents
+            ? AreaChart
+            : undefined;
+    const interval =
+      display === DisplayModes.BAR
+        ? getInterval(
+            {
+              start,
+              end,
+              period: globalSelection.datetime.period,
+              utc: utc === 'true',
+            },
+            'low'
+          )
+        : eventView.interval;
 
-  const seriesLabels = yAxisValue.map(stripEquationPrefix);
-  const disableableSeries = [
-    ...seriesLabels,
-    ...seriesLabels.map(getPreviousSeriesName),
-  ];
+    const seriesLabels = yAxisValue.map(stripEquationPrefix);
+    const disableableSeries = [
+      ...seriesLabels,
+      ...seriesLabels.map(getPreviousSeriesName),
+    ];
 
-  return (
-    <Fragment>
-      {getDynamicText({
-        value: (
-          <EventsChart
-            api={api}
-            location={location}
-            query={apiPayload.query}
-            dataset={apiPayload.dataset}
-            organization={organization}
-            showLegend
-            yAxis={yAxisValue}
-            projects={globalSelection.projects}
-            environments={globalSelection.environments}
-            start={start}
-            end={end}
-            period={globalSelection.datetime.period}
-            disablePrevious={!isPrevious}
-            disableReleases={!isPeriod}
-            field={isTopEvents ? apiPayload.field : undefined}
-            interval={interval}
-            showDaily={isDaily}
-            topEvents={isTopEvents ? topEvents : undefined}
-            orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
-            utc={utc === 'true'}
-            confirmedQuery={confirmedQuery}
-            chartComponent={chartComponent}
-            referrer={referrer}
-            fromDiscover
-            disableableSeries={disableableSeries}
-          />
-        ),
-        fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-      })}
-    </Fragment>
-  );
-},
-function areEqual(prev: ResultsChartProps, next: ResultsChartProps) {
-  const {eventView, ...restPrev} = prev;
-  const {eventView: nextEventView, ...restNext} = next;
-  if (!eventView.isEqualTo(nextEventView)) {
-    return false;
+    return (
+      <Fragment>
+        {getDynamicText({
+          value: (
+            <EventsChart
+              api={api}
+              location={location}
+              query={apiPayload.query}
+              dataset={apiPayload.dataset}
+              organization={organization}
+              showLegend
+              yAxis={yAxisValue}
+              projects={globalSelection.projects}
+              environments={globalSelection.environments}
+              start={start}
+              end={end}
+              period={globalSelection.datetime.period}
+              disablePrevious={!isPrevious}
+              disableReleases={!isPeriod}
+              field={isTopEvents ? apiPayload.field : undefined}
+              interval={interval}
+              showDaily={isDaily}
+              topEvents={isTopEvents ? topEvents : undefined}
+              orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
+              utc={utc === 'true'}
+              confirmedQuery={confirmedQuery}
+              chartComponent={chartComponent}
+              referrer={referrer}
+              fromDiscover
+              disableableSeries={disableableSeries}
+            />
+          ),
+          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+        })}
+      </Fragment>
+    );
+  },
+  function areEqual(prev: ResultsChartProps, next: ResultsChartProps) {
+    const {eventView, ...restPrev} = prev;
+    const {eventView: nextEventView, ...restNext} = next;
+    if (!eventView.isEqualTo(nextEventView)) {
+      return false;
+    }
+    return isEqual(restPrev, restNext);
   }
-  return isEqual(restPrev, restNext);
-});
+);
 
 type ContainerProps = {
   confirmedQuery: boolean;
@@ -162,101 +164,101 @@ type ContainerProps = {
   yAxis: string[];
 };
 
-const ResultsChartContainer = memo(function ResultsChartContainer({
-  eventView,
-  location,
-  total,
-  onAxisChange,
-  onDisplayChange,
-  onIntervalChange,
-  onTopEventsChange,
-  organization,
-  confirmedQuery,
-  yAxis,
-}: ContainerProps) {
-  const api = useApi();
-  const customMeasurementsContext = useContext(CustomMeasurementsContext);
+export const ResultsChartContainer = memo(
+  function ResultsChartContainer({
+    eventView,
+    location,
+    total,
+    onAxisChange,
+    onDisplayChange,
+    onIntervalChange,
+    onTopEventsChange,
+    organization,
+    confirmedQuery,
+    yAxis,
+  }: ContainerProps) {
+    const api = useApi();
+    const customMeasurementsContext = useContext(CustomMeasurementsContext);
 
-  const yAxisOptions = useMemo(
-    () => eventView.getYAxisOptions(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [eventView]
-  );
+    const yAxisOptions = useMemo(
+      () => eventView.getYAxisOptions(),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [eventView]
+    );
 
-  const hasQueryFeature = organization.features.includes('discover-query');
-  const displayOptions = eventView
-    .getDisplayOptions()
-    .filter(opt => {
-      // top5 modes are only available with larger packages in saas.
-      // We remove instead of disable here as showing tooltips in dropdown
-      // menus is clunky.
-      if (TOP_EVENT_MODES.includes(opt.value) && !hasQueryFeature) {
-        return false;
-      }
-      return true;
-    })
-    .map(opt => {
-      // Can only use default display or total daily with multi y axis
-      if (TOP_EVENT_MODES.includes(opt.value)) {
-        opt.label = DisplayModes.TOP5 === opt.value ? 'Top Period' : 'Top Daily';
-      }
-      if (
-        yAxis.length > 1 &&
-        !MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(opt.value as DisplayModes)
-      ) {
-        return {
-          ...opt,
-          disabled: true,
-          tooltip: t(
-            'Change the Y-Axis dropdown to display only 1 function to use this view.'
-          ),
-        };
-      }
-      return opt;
-    });
+    const hasQueryFeature = organization.features.includes('discover-query');
+    const displayOptions = eventView
+      .getDisplayOptions()
+      .filter(opt => {
+        // top5 modes are only available with larger packages in saas.
+        // We remove instead of disable here as showing tooltips in dropdown
+        // menus is clunky.
+        if (TOP_EVENT_MODES.includes(opt.value) && !hasQueryFeature) {
+          return false;
+        }
+        return true;
+      })
+      .map(opt => {
+        // Can only use default display or total daily with multi y axis
+        if (TOP_EVENT_MODES.includes(opt.value)) {
+          opt.label = DisplayModes.TOP5 === opt.value ? 'Top Period' : 'Top Daily';
+        }
+        if (
+          yAxis.length > 1 &&
+          !MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(opt.value as DisplayModes)
+        ) {
+          return {
+            ...opt,
+            disabled: true,
+            tooltip: t(
+              'Change the Y-Axis dropdown to display only 1 function to use this view.'
+            ),
+          };
+        }
+        return opt;
+      });
 
-  return (
-    <StyledPanel>
-      {(yAxis.length > 0 && (
-        <ResultsChart
-          api={api}
-          eventView={eventView}
-          location={location}
-          organization={organization}
-          confirmedQuery={confirmedQuery}
+    return (
+      <StyledPanel>
+        {(yAxis.length > 0 && (
+          <ResultsChart
+            api={api}
+            eventView={eventView}
+            location={location}
+            organization={organization}
+            confirmedQuery={confirmedQuery}
+            yAxisValue={yAxis}
+            customMeasurements={customMeasurementsContext?.customMeasurements}
+          />
+        )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
+        <ChartFooter
+          total={total}
           yAxisValue={yAxis}
-          customMeasurements={customMeasurementsContext?.customMeasurements}
+          yAxisOptions={yAxisOptions}
+          eventView={eventView}
+          onAxisChange={onAxisChange}
+          displayOptions={displayOptions}
+          displayMode={eventView.getDisplayMode()}
+          onDisplayChange={onDisplayChange}
+          onTopEventsChange={onTopEventsChange}
+          onIntervalChange={onIntervalChange}
+          topEvents={eventView.topEvents ?? TOP_N.toString()}
         />
-      )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
-      <ChartFooter
-        total={total}
-        yAxisValue={yAxis}
-        yAxisOptions={yAxisOptions}
-        eventView={eventView}
-        onAxisChange={onAxisChange}
-        displayOptions={displayOptions}
-        displayMode={eventView.getDisplayMode()}
-        onDisplayChange={onDisplayChange}
-        onTopEventsChange={onTopEventsChange}
-        onIntervalChange={onIntervalChange}
-        topEvents={eventView.topEvents ?? TOP_N.toString()}
-      />
-    </StyledPanel>
-  );
-},
-function areContainerEqual(prev: ContainerProps, next: ContainerProps) {
-  const {eventView, ...restPrev} = prev;
-  const {eventView: nextEventView, ...restNext} = next;
-  if (
-    !eventView.isEqualTo(nextEventView) ||
-    prev.confirmedQuery !== next.confirmedQuery
-  ) {
-    return false;
+      </StyledPanel>
+    );
+  },
+  function areContainerEqual(prev: ContainerProps, next: ContainerProps) {
+    const {eventView, ...restPrev} = prev;
+    const {eventView: nextEventView, ...restNext} = next;
+    if (
+      !eventView.isEqualTo(nextEventView) ||
+      prev.confirmedQuery !== next.confirmedQuery
+    ) {
+      return false;
+    }
+    return isEqual(restPrev, restNext);
   }
-  return isEqual(restPrev, restNext);
-});
-
-export default ResultsChartContainer;
+);
 
 const StyledPanel = styled(Panel)`
   @container (min-width: ${p => p.theme.container['4xl']}) {
