@@ -65,7 +65,7 @@ export function Button({
         aria-disabled={disabled}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={useAriaDisabled ? undefined : handleClick}
-        onKeyDown={useAriaDisabled ? preventKeyboardSubmit : undefined}
+        {...(useAriaDisabled && {onKeyDown: preventKeyboardSubmit})}
         role="button"
       >
         <Flex

@@ -393,9 +393,11 @@ describe('AutomationDetail', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Disable'})).toBeEnabled()
     );
-    expect(screen.getByRole('button', {name: 'Edit'})).not.toHaveAttribute(
-      'aria-disabled',
-      'true'
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Edit'})).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      )
     );
   });
 
