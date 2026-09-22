@@ -169,6 +169,24 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
       ).toEqual(['Duplicate']);
     });
 
+    it('reverts the star when the request fails', async () => {
+      MockApiClient.addMockResponse({
+        url: `${SAVED_QUERY_URL}starred/`,
+        method: 'POST',
+        statusCode: 500,
+      });
+
+      renderBreadcrumbs('traces');
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Star'}));
+
+      // The optimistic flip is rolled back rather than stranding the UI as
+      // starred. `starQuery` is a promise, so this only holds if the rejection
+      // is actually handled.
+      expect(await screen.findByRole('button', {name: 'Star'})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Unstar'})).not.toBeInTheDocument();
+    });
+
     it('stars the query and flips the label', async () => {
       const starMock = MockApiClient.addMockResponse({
         url: `${SAVED_QUERY_URL}starred/`,

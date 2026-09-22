@@ -6,7 +6,10 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  useGetSavedQuery,
+  useInvalidateSavedQuery,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 
 interface UseStarSavedQueryResult {
@@ -26,6 +29,7 @@ export function useStarSavedQuery({
   const organization = useOrganization();
   const {starQuery} = useStarQuery();
   const {data, isLoading, isFetched} = useGetSavedQuery(savedQueryId);
+  const invalidateSavedQuery = useInvalidateSavedQuery(savedQueryId);
   const [isStarred, setIsStarred] = useState(data?.starred);
 
   useEffect(() => {
@@ -41,32 +45,39 @@ export function useStarSavedQuery({
         if (!id) {
           return;
         }
-        try {
-          if (analytics === 'trace_explorer') {
-            trackAnalytics('trace_explorer.star_query', {
-              save_type: starred ? 'star_query' : 'unstar_query',
-              ui_source: 'explorer',
-              organization,
-            });
-          } else if (analytics === 'logs') {
-            trackAnalytics('logs.star_query', {
-              save_type: starred ? 'star_query' : 'unstar_query',
-              ui_source: 'explorer',
-              organization,
-            });
-          }
-          starQuery(parseInt(id, 10), starred);
-          setIsStarred(starred);
-        } catch (error) {
-          Sentry.captureException(error);
-          addErrorMessage(t('Failed to star query'));
-          setIsStarred(!starred);
+        if (analytics === 'trace_explorer') {
+          trackAnalytics('trace_explorer.star_query', {
+            save_type: starred ? 'star_query' : 'unstar_query',
+            ui_source: 'explorer',
+            organization,
+          });
+        } else if (analytics === 'logs') {
+          trackAnalytics('logs.star_query', {
+            save_type: starred ? 'star_query' : 'unstar_query',
+            ui_source: 'explorer',
+            organization,
+          });
         }
+
+        setIsStarred(starred);
+        starQuery(parseInt(id, 10), starred)
+          .then(() => {
+            // `useStarQuery` invalidates the saved query *list* but not the
+            // individual query, so `savedQuery.starred` would stay stale.
+            // Duplicate posts that value, and the create endpoint honours it,
+            // so a copy would inherit the pre-toggle star state.
+            invalidateSavedQuery();
+          })
+          .catch(error => {
+            Sentry.captureException(error);
+            addErrorMessage(t('Failed to star query'));
+            setIsStarred(!starred);
+          });
       },
       1000,
       {leading: true}
     );
-  }, [starQuery, organization, analytics]);
+  }, [starQuery, organization, analytics, invalidateSavedQuery]);
 
   return {
     isLoading,
