@@ -76,33 +76,42 @@ export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Prop
               features={ALERT_RULE_INTEGRATION_FEATURES}
             >
               {({disabled, disabledReason}) => (
-                <Tooltip title={disabledReason} disabled={!disabled} skipWrapper>
-                  <Flex as="label" align="start" gap="md">
-                    <Checkbox
-                      checked={actions.includes(MultipleCheckboxOptions.INTEGRATION)}
-                      disabled={disabled}
-                      onChange={e => {
-                        setActions(
-                          e.target.checked
-                            ? [...actions, MultipleCheckboxOptions.INTEGRATION]
-                            : actions.filter(
-                                a => a !== MultipleCheckboxOptions.INTEGRATION
-                              )
-                        );
-                        if (analyticsFlow === 'project-creation') {
-                          trackAnalytics('project_creation.notify_integration_toggled', {
-                            organization,
-                            enabled: e.target.checked,
-                            variant: 'scm',
-                          });
-                        }
-                      }}
-                    />
-                    <Text bold={false} ellipsis variant={disabled ? 'muted' : undefined}>
-                      {t('Integration (Slack, Discord, MS Teams, etc.)')}
-                    </Text>
-                  </Flex>
-                </Tooltip>
+                <Flex>
+                  <Tooltip title={disabledReason} disabled={!disabled} skipWrapper>
+                    <Flex as="label" align="start" gap="md">
+                      <Checkbox
+                        checked={actions.includes(MultipleCheckboxOptions.INTEGRATION)}
+                        disabled={disabled}
+                        onChange={e => {
+                          setActions(
+                            e.target.checked
+                              ? [...actions, MultipleCheckboxOptions.INTEGRATION]
+                              : actions.filter(
+                                  a => a !== MultipleCheckboxOptions.INTEGRATION
+                                )
+                          );
+                          if (analyticsFlow === 'project-creation') {
+                            trackAnalytics(
+                              'project_creation.notify_integration_toggled',
+                              {
+                                organization,
+                                enabled: e.target.checked,
+                                variant: 'scm',
+                              }
+                            );
+                          }
+                        }}
+                      />
+                      <Text
+                        bold={false}
+                        ellipsis
+                        variant={disabled ? 'muted' : undefined}
+                      >
+                        {t('Integration (Slack, Discord, MS Teams, etc.)')}
+                      </Text>
+                    </Flex>
+                  </Tooltip>
+                </Flex>
               )}
             </IntegrationFeatures>
           )}
