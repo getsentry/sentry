@@ -293,37 +293,6 @@ class TestPublishActionsFromContextBulk(TestCase):
         with pytest.raises(ValueError, match="cannot publish more than 5000 actions at once"):
             publish_actions_from_context_bulk([action] * 5_001)
 
-    def test_reserve_object_identifiers_for_bulk_create(self) -> None:
-        with self.assertNumQueries(1):
-            identifiers = GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(3)
-
-        assert len(identifiers) == 3
-        assert len(set(identifiers)) == 3
-
-    def test_reserve_object_identifiers_for_bulk_create_empty(self) -> None:
-        with self.assertNumQueries(0):
-            assert GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(0) == []
-
-    def test_reserve_object_identifiers_for_bulk_create_rejects_negative_count(self) -> None:
-        with (
-            self.assertNumQueries(0),
-            pytest.raises(
-                ValueError,
-                match="bulk identifier reservation count must be between 0 and 10,000",
-            ),
-        ):
-            GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(-1)
-
-    def test_reserve_object_identifiers_for_bulk_create_rejects_above_maximum(self) -> None:
-        with (
-            self.assertNumQueries(0),
-            pytest.raises(
-                ValueError,
-                match="bulk identifier reservation count must be between 0 and 10,000",
-            ),
-        ):
-            GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(10_001)
-
     def test_bulk_inserts_outboxes(self) -> None:
         from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
 
@@ -333,7 +302,7 @@ class TestPublishActionsFromContextBulk(TestCase):
             self.feature("projects:issue-action-log-write-to-db"),
             action_context_scope(source="web"),
             outbox_context(flush=False),
-            patch("sentry.hybridcloud.models.outbox.metrics.incr") as metrics_incr,
+            patch("sentry.issues.models.groupactionlogoutbox.metrics.incr") as metrics_incr,
             CaptureQueriesContext(connections[using]) as queries,
         ):
             publish_actions_from_context_bulk(
@@ -344,15 +313,12 @@ class TestPublishActionsFromContextBulk(TestCase):
             )
 
         sql = [query["sql"] for query in queries.captured_queries]
-        sequence_queries = [
-            query for query in sql if "nextval" in query and "generate_series" in query
-        ]
         insert_queries = [
             query
             for query in sql
             if f'INSERT INTO "{table}"' in query and '"force_async_derived"' in query
         ]
-        assert len(sequence_queries) == 1
+        assert not any("nextval" in query for query in sql)
         assert len(insert_queries) == 1
 
         outboxes = list(
@@ -361,7 +327,8 @@ class TestPublishActionsFromContextBulk(TestCase):
             ).order_by("id")
         )
         assert len(outboxes) == 2
-        assert len({outbox.object_identifier for outbox in outboxes}) == 2
+        identifiers = [outbox.object_identifier for outbox in outboxes]
+        assert identifiers == list(range(identifiers[0], identifiers[0] + len(identifiers)))
         metrics_incr.assert_any_call(
             "outbox.saved",
             2,
@@ -380,7 +347,9 @@ class TestPublishActionsFromContextBulk(TestCase):
         with self.feature("projects:issue-action-log-write-to-db"):
             with (
                 action_context_scope(source="web"),
-                patch("sentry.hybridcloud.models.outbox.transaction.on_commit") as on_commit,
+                patch(
+                    "sentry.issues.models.groupactionlogoutbox.transaction.on_commit"
+                ) as on_commit,
             ):
                 publish_actions_from_context_bulk(
                     [
@@ -400,7 +369,9 @@ class TestPublishActionsFromContextBulk(TestCase):
         with self.feature("projects:issue-action-log-write-to-db"):
             with (
                 action_context_scope(source="web"),
-                patch("sentry.hybridcloud.models.outbox.transaction.on_commit") as on_commit,
+                patch(
+                    "sentry.issues.models.groupactionlogoutbox.transaction.on_commit"
+                ) as on_commit,
             ):
                 publish_actions_from_context_bulk(
                     [
@@ -421,7 +392,9 @@ class TestPublishActionsFromContextBulk(TestCase):
             with (
                 action_context_scope(source="web"),
                 outbox_context(flush=False),
-                patch("sentry.hybridcloud.models.outbox.transaction.on_commit") as on_commit,
+                patch(
+                    "sentry.issues.models.groupactionlogoutbox.transaction.on_commit"
+                ) as on_commit,
             ):
                 publish_actions_from_context_bulk(
                     [

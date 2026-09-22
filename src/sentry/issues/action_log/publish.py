@@ -64,6 +64,15 @@ def _get_outbox_identifier() -> int:
     return secrets.randbelow(2**63 - 1) + 1
 
 
+def _get_bulk_outbox_identifiers(count: int) -> list[int]:
+    if count <= 0:
+        return []
+    start = _get_outbox_identifier()
+    if start > 2**63 - count:
+        start -= count - 1
+    return [start + offset for offset in range(count)]
+
+
 @contextmanager
 def action_context_scope(source: str, actor: GroupActionActor = SYSTEM_ACTOR) -> Generator[None]:
     """
@@ -311,9 +320,7 @@ def publish_actions_from_context_bulk(
 
     using = router.db_for_write(GroupActionLogOutbox)
     with outbox_context(transaction.atomic(using=using)):
-        object_identifiers = GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(
-            len(payloads)
-        )
+        object_identifiers = _get_bulk_outbox_identifiers(len(payloads))
 
         outboxes = [
             GroupActionLogOutbox(
