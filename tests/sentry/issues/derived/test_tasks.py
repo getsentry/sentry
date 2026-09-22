@@ -1486,6 +1486,17 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
             self.HASH, chunk_size=2, max_chunks=0
         ) == GroupIdRangeResult(ranges=[], drained=False)
 
+    def test_density_probes_share_one_query_budget(self) -> None:
+        with (
+            patch(
+                "sentry.issues.derived.tasks_util.time.monotonic",
+                # Query deadline, metrics timer start, budget check, metrics timer end.
+                side_effect=[0.0, 0.0, 41.0, 41.0],
+            ),
+            pytest.raises(OperationalError, match="query budget exceeded"),
+        ):
+            group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5)
+
     def test_samples_local_density_for_approximate_ranges(self) -> None:
         groups = self.create_unprocessed_groups(81)
         all_group_ids = sorted(group.id for group in groups)
@@ -1497,7 +1508,9 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
             )
 
         with (
+            patch("sentry.issues.derived.tasks_util._MAX_EXACT_RANGE_ROWS", 0),
             patch("sentry.issues.derived.tasks_util._RANGE_DENSITY_SAMPLE_SIZE", 2),
+            patch("sentry.issues.derived.tasks_util._RANGES_PER_DENSITY_SAMPLE", 2),
             patch("sentry.issues.derived.tasks_util._MAX_RANGE_DENSITY_SAMPLES", 2),
         ):
             result = group_id_ranges_for_hash(self.HASH, chunk_size=4, max_chunks=4)
@@ -1509,14 +1522,20 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
             for group_id in matching_group_ids
         )
 
-    def test_exact_tail_does_not_waste_remaining_slots(self) -> None:
+    def test_low_volume_request_uses_exact_boundaries(self) -> None:
         group_ids = self._seed(5, self.HASH)
 
-        with patch("sentry.issues.derived.tasks_util._RANGE_DENSITY_SAMPLE_SIZE", 2):
+        with (
+            patch("sentry.issues.derived.tasks_util._MAX_EXACT_RANGE_ROWS", 10),
+            patch("sentry.issues.derived.tasks_util._RANGE_DENSITY_SAMPLE_SIZE", 2),
+        ):
             result = group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5)
 
-        assert result.ranges[-1][1] == group_ids[-1] + 1
-        assert len(result.ranges) == 3
+        assert result.ranges == [
+            (group_ids[0], group_ids[2]),
+            (group_ids[2], group_ids[4]),
+            (group_ids[4], group_ids[4] + 1),
+        ]
 
     def test_lower_bound(self) -> None:
         group_ids = self._seed(3, self.HASH)

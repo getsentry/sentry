@@ -965,11 +965,11 @@ def regenerate_stale_derived_data_batch(
     if range_overflow:
         group_ids = group_ids[:batch_size]
 
-    # How close the scheduler's density estimate landed to reality. Censored at
-    # batch_size, so read it together with the ``range_overflow`` reschedule
-    # counter: a distribution well under batch_size means ranges are too wide and
-    # slots are being wasted, while frequent overflow means they are too narrow.
-    # These two are what the density sampling constants should be tuned from.
+    # How close the scheduler's density estimate landed to reality. The worker
+    # records at most batch_size rows here and reports denser ranges separately as
+    # ``range_overflow`` reschedules. Counts well below batch_size mean ranges are
+    # too wide and slots are being wasted; frequent overflow means they are too
+    # narrow. Use both signals to tune the density sampling constants.
     metrics.distribution(
         "issues.derived.heal_range_rows_found",
         len(group_ids),

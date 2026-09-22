@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from math import ceil
@@ -9,6 +10,7 @@ from typing import Protocol
 
 from django.db import connections, router
 from django.db.models import Max, Min
+from django.db.utils import OperationalError
 
 from sentry.issues.derived.check import CheckFailure, CheckId, CheckInvalidated, CheckResult
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -20,15 +22,10 @@ logger = logging.getLogger(__name__)
 
 _MAX_CHECK_GROUPS = 10_000
 _GROUP_ID_RANGE_QUERY_TIMEOUT = timedelta(seconds=40)
-# Rows read per density probe, and the number of probes per call. Their product
-# bounds the scan; the ratio of scheduled groups to rows read is also exactly how
-# far each probe is extrapolated, so these trade query cost against estimate error.
-# Sample size fights random gap variance (error falls as 1/sqrt(size), so there is
-# little gained past ~100); probe count fights systematic density drift across the
-# range, which it shortens linearly. Tune from
-# ``issues.derived.heal_range_rows_found`` rather than from first principles.
+_MAX_EXACT_RANGE_ROWS = 10_000
 _RANGE_DENSITY_SAMPLE_SIZE = 100
-_MAX_RANGE_DENSITY_SAMPLES = 40
+_RANGES_PER_DENSITY_SAMPLE = 5
+_MAX_RANGE_DENSITY_SAMPLES = 200
 
 
 @dataclass(frozen=True)
@@ -126,15 +123,15 @@ def group_id_ranges_for_hash(
     """Estimate ranges covering GroupDerivedData rows with a pipeline_hash.
 
     Returns at most max_chunks of ascending disjoint [start, end) ranges, each
-    targeting chunk_size group IDs. Density is sampled at a bounded number of
-    points so the query cost stays flat as the scheduling budget grows, which
-    makes the per-region throughput knob independent of how long this runs.
-    Ranges are therefore approximate: an over-dense one is split by the worker,
-    and an under-dense one costs only a scheduling slot. ``drained`` is true
-    only when a valid query found no rows at or above ``group_id_lower_bound``.
+    targeting chunk_size group IDs. Small requests use exact boundaries. Larger
+    requests sample local density once per five ranges, so estimate quality stays
+    stable as a region increases its scheduling budget. An over-dense range is
+    split by the worker, and an under-dense one costs only a scheduling slot.
+    ``drained`` is true only when a valid query found no rows at or above
+    ``group_id_lower_bound``.
 
-    Raises ``OperationalError`` if all density probes together exceed the server-side
-    statement timeout. Callers must not interpret that as a drained hash.
+    Raises ``OperationalError`` if all density probes together exceed the query
+    budget. Callers must not interpret that as a drained hash.
     """
     if chunk_size <= 0 or max_chunks <= 0:
         return GroupIdRangeResult(ranges=[], drained=False)
@@ -149,21 +146,46 @@ def group_id_ranges_for_hash(
     """
 
     using = router.db_for_read(GroupDerivedData)
-    ranges: list[tuple[int, int]] = []
-    next_group_id = group_id_lower_bound
-    sample_limit = _RANGE_DENSITY_SAMPLE_SIZE + 1
-    sample_count = min(max_chunks, _MAX_RANGE_DENSITY_SAMPLES)
+    query_deadline = time.monotonic() + _GROUP_ID_RANGE_QUERY_TIMEOUT.total_seconds()
 
-    with (
-        metrics.timer("issues.derived.group_id_range_query"),
-        statement_timeout(using, _GROUP_ID_RANGE_QUERY_TIMEOUT),
-        connections[using].cursor() as db_cursor,
-    ):
-        while len(ranges) < max_chunks:
+    with metrics.timer("issues.derived.group_id_range_query"):
+
+        def fetch_group_ids(start: int, limit: int) -> list[int]:
+            remaining_seconds = query_deadline - time.monotonic()
+            if remaining_seconds <= 0.001:
+                raise OperationalError("group ID range query budget exceeded")
+
             params: list[str | int] = [] if pipeline_hash is None else [pipeline_hash]
-            params += [next_group_id, sample_limit]
-            db_cursor.execute(sql, params)
-            sampled_group_ids = [row[0] for row in db_cursor.fetchall()]
+            params += [start, limit]
+            with (
+                statement_timeout(using, timedelta(seconds=remaining_seconds)),
+                connections[using].cursor() as db_cursor,
+            ):
+                db_cursor.execute(sql, params)
+                return [row[0] for row in db_cursor.fetchall()]
+
+        requested_rows = chunk_size * max_chunks
+        if requested_rows <= _MAX_EXACT_RANGE_ROWS:
+            group_ids = fetch_group_ids(group_id_lower_bound, requested_rows + 1)
+            if not group_ids:
+                return GroupIdRangeResult(ranges=[], drained=True)
+
+            starts = group_ids[:requested_rows:chunk_size]
+            if len(group_ids) > requested_rows:
+                ends = starts[1:] + [group_ids[requested_rows]]
+            else:
+                ends = starts[1:] + [group_ids[-1] + 1]
+            return GroupIdRangeResult(ranges=list(zip(starts, ends)), drained=False)
+
+        ranges: list[tuple[int, int]] = []
+        next_group_id = group_id_lower_bound
+        sample_limit = _RANGE_DENSITY_SAMPLE_SIZE + 1
+        sample_count = min(
+            ceil(max_chunks / _RANGES_PER_DENSITY_SAMPLE),
+            _MAX_RANGE_DENSITY_SAMPLES,
+        )
+        while len(ranges) < max_chunks:
+            sampled_group_ids = fetch_group_ids(next_group_id, sample_limit)
 
             if not sampled_group_ids:
                 return GroupIdRangeResult(ranges=ranges, drained=not ranges)
