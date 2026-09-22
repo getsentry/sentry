@@ -72,6 +72,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    */
   plottables: Plottable[];
   /**
+   * Annotations for the volume that was accepted.
+   */
+  acceptedData?: Annotation[];
+
+  /**
    * Sets the range of the Y axis.
    *
    * - `auto`: The Y axis starts at 0, and ends at the maximum value of the data.
@@ -116,6 +121,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Array of `Release` objects. If provided, they are plotted on line and area visualizations as vertical lines
    */
   releases?: Release[];
+
+  /**
+   * Returns extra HTML to append to the tooltip's series block.
+   */
+  renderTooltipSeriesDetails?: (seriesNames: string[], timestamp: number) => string;
 
   /**
    * When false, hide the dropped-data band and collapse the reserved space.
@@ -375,6 +385,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
         );
       },
+      renderSeriesDetails: props.renderTooltipSeriesDetails,
       truncate: false,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
@@ -433,9 +444,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const {droppedDataSeries, droppedDataBandHeight, droppedDataYAxis} = useDroppedDataBand(
     {
-      annotations: props.droppedData,
+      chartRef,
+      acceptedAnnotations: props.acceptedData,
+      droppedAnnotations: props.droppedData,
       bandOffset: releaseBandHeight,
       showDroppedData: props.showDroppedData,
+      utc,
       yAxisIndex: yAxes.length,
     }
   );

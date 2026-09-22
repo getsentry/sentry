@@ -244,7 +244,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Referrer identifying where the issue fix was triggered from.",
     )
-    enable_bash_tools = serializers.BooleanField(
+    enable_bash_mode = serializers.BooleanField(
         required=False,
         default=False,
         help_text="Override bash mode tools.",
@@ -594,7 +594,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
                         user=request.user,
-                        enable_bash_tools=data.get("enable_bash_tools", False),
+                        enable_bash_mode=data.get("enable_bash_mode", False),
                         actor_user_id=(
                             request.user.id if step == AutofixStep.CODE_CHANGES.value else None
                         ),

@@ -4,9 +4,10 @@ from typing import Any
 from unittest import mock
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.cursor_origin.handlers import HANDLERS
+from sentry.integrations.cursor_origin.webhook import HANDLERS
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
@@ -56,7 +57,16 @@ class InstallationEventHandlerTest(TestCase):
             )
 
     def _handle(self, event_type: str, payload: dict[str, Any] | None = None) -> None:
-        HANDLERS[event_type]()(payload if payload is not None else _installation(), DELIVERY_ID)
+        context = integration_service.organization_contexts(
+            provider="cursor_origin", external_id=INSTALLATION_ID
+        )
+        assert context.integration is not None
+        HANDLERS[event_type]()(
+            payload if payload is not None else _installation(),
+            DELIVERY_ID,
+            context.integration,
+            context.organization_integrations,
+        )
 
     def _integration(self) -> Integration:
         return Integration.objects.get(id=self.integration.id)
@@ -160,17 +170,6 @@ class InstallationEventHandlerTest(TestCase):
 
         assert not mock_sync.called
 
-    def test_an_installation_sentry_does_not_have_is_ignored(self) -> None:
-        """A half-finished install, or one already removed from this side."""
-        self._handle("installation.deleted", _installation(id="i_01someone_else"))
-
-        assert self._integration().status == ObjectStatus.ACTIVE
-
-    def test_a_payload_with_no_installation_is_ignored(self) -> None:
-        self._handle("installation.deleted", {})
-
-        assert self._integration().status == ObjectStatus.ACTIVE
-
     def test_another_organizations_repositories_are_left_alone(self) -> None:
         """Repositories are disabled per organization on the shared installation."""
         other_org = self.create_organization()
@@ -191,3 +190,22 @@ class InstallationEventHandlerTest(TestCase):
 
         with assume_test_silo_mode_of(Repository):
             assert Repository.objects.get(id=other_repo.id).status == ObjectStatus.ACTIVE
+
+    def test_an_update_does_not_overwrite_a_token_refreshed_since(self) -> None:
+        """The endpoint resolves the integration once, and a refresh can land after it."""
+        context = integration_service.organization_contexts(
+            provider="cursor_origin", external_id=INSTALLATION_ID
+        )
+        assert context.integration is not None
+        stale = context.integration
+
+        integration_service.update_integration(
+            integration_id=self.integration.id,
+            metadata={**stale.metadata, "access_token": "oit_refreshed"},
+        )
+
+        HANDLERS["installation.updated"]()(
+            _installation(), DELIVERY_ID, stale, context.organization_integrations
+        )
+
+        assert self._integration().metadata["access_token"] == "oit_refreshed"
