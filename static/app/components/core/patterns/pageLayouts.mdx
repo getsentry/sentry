@@ -1,0 +1,76 @@
+---
+title: Page layouts
+layout: document
+description: Compose page-level content with consistent widths, gutters, and landmarks.
+status: in-progress
+---
+
+import {Container, Stack} from '@sentry/scraps/layout';
+import {SidebarPage, SingleColumnPage} from '@sentry/scraps/pageframe';
+import {Heading, Text} from '@sentry/scraps/text';
+import * as Storybook from 'sentry/stories';
+
+Page layouts own the primary landmarks and horizontal structure of a route. Use one
+page layout per rendered page. Do not wrap these patterns in another `main` element.
+
+## Single-column pages
+
+`SingleColumnPage` renders `main` and supports the shared content widths:
+
+| Width    | Use for                                                       |
+| -------- | ------------------------------------------------------------- |
+| `narrow` | Reading and focused workflows, capped at `960px`              |
+| `wide`   | Data-heavy custom pages, capped at `1440px`                   |
+| `full`   | Tables and canvases that should fill the available page frame |
+
+<Storybook.Demo resizable>
+  <SingleColumnPage width="narrow" padding="xl">
+    <Stack gap="sm">
+      <Heading as="h2">Focused content</Heading>
+      <Text>This page grows responsively and stops at the narrow content width.</Text>
+    </Stack>
+  </SingleColumnPage>
+</Storybook.Demo>
+
+```tsx
+import {SingleColumnPage} from '@sentry/scraps/pageframe';
+
+<SingleColumnPage width="narrow">...</SingleColumnPage>;
+<SingleColumnPage width="wide">...</SingleColumnPage>;
+<SingleColumnPage width="full">...</SingleColumnPage>;
+```
+
+## Pages with a sidebar
+
+`SidebarPage` owns the responsive grid. Its primary region renders `main`; its
+secondary region renders `aside`. The regions stack in narrow containers and use the
+established flexible-content plus `325px` sidebar columns in wide containers.
+
+<Storybook.Demo resizable>
+  <SidebarPage>
+    <SidebarPage.Main>
+      <Container padding="xl" background="secondary" radius="md">
+        Main content
+      </Container>
+    </SidebarPage.Main>
+    <SidebarPage.Aside>
+      <Container padding="xl" background="secondary" radius="md">
+        Supporting content
+      </Container>
+    </SidebarPage.Aside>
+  </SidebarPage>
+</Storybook.Demo>
+
+```tsx
+import {SidebarPage} from '@sentry/scraps/pageframe';
+
+<SidebarPage>
+  <SidebarPage.Main>...</SidebarPage.Main>
+  <SidebarPage.Aside>...</SidebarPage.Aside>
+</SidebarPage>;
+```
+
+Keep headers and navigation outside the pattern when they are siblings of the page's
+main content. Custom page shells such as onboarding or brand pages may keep their own
+layout when their structure is not one of these shared patterns, but they must still
+provide exactly one `main` landmark.

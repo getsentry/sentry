@@ -115,18 +115,15 @@ interface MainProps extends Omit<ContainerProps<'section'>, 'width'> {
    * Set the width of the main content.
    * - 'twothirds': The main content will span the left two-thirds of the Body. Use this for layouts with a side column.
    * - 'full': The main content will span the width of the container. Use when the layout does not have a side column.
-   * - 'full-constrained': The main content will span the width of the container and wrapped in a 1440px wide container.
    * Defaults to 'twothirds'.
    */
-  width?: 'twothirds' | 'full' | 'full-constrained';
+  width?: 'twothirds' | 'full';
 }
 
 /**
  * Containers for left column of the 66/33 layout.
  */
-export function Main({children, width = 'twothirds', ...props}: MainProps) {
-  // We need the extra DOM element when the width is constrained because Main is a part of a grid layout.
-  // If we apply the max width directly the right end of the page background will be missing
+export function Main({width = 'twothirds', ...props}: MainProps) {
   return (
     <Container
       column={{
@@ -136,13 +133,7 @@ export function Main({children, width = 'twothirds', ...props}: MainProps) {
       as="section"
       width="100%"
       {...props}
-    >
-      {width === 'full-constrained' ? (
-        <Container maxWidth="1440px">{children}</Container>
-      ) : (
-        children
-      )}
-    </Container>
+    />
   );
 }
 

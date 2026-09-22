@@ -15,12 +15,14 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = {
   organization: Organization;
+  as?: 'main';
   children?: React.ReactNode;
   requireProjectMembership?: boolean;
   superuserNeedsToBeProjectMember?: boolean;
 };
 
 export function NoProjectMessage({
+  as,
   children,
   organization,
   requireProjectMembership,
@@ -73,7 +75,7 @@ export function NoProjectMessage({
     </LinkButton>
   );
 
-  return (
+  const emptyState = (
     <EmptyState
       flex="1"
       justify="center"
@@ -99,6 +101,14 @@ export function NoProjectMessage({
         </Fragment>
       }
     />
+  );
+
+  return as ? (
+    <Container as={as} display="flex" flexGrow={1}>
+      {emptyState}
+    </Container>
+  ) : (
+    emptyState
   );
 }
 

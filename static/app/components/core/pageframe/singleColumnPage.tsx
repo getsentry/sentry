@@ -2,32 +2,37 @@ import {useTheme} from '@emotion/react';
 
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
 
-export interface ContentProps extends Omit<
+export interface SingleColumnPageProps extends Omit<
   ContainerProps<'main'>,
-  'as' | 'containerType' | 'margin' | 'marginLeft' | 'marginRight' | 'maxWidth'
+  'as' | 'containerType' | 'margin' | 'marginLeft' | 'marginRight' | 'maxWidth' | 'width'
 > {
-  variant: 'center' | 'full';
+  width: 'narrow' | 'wide' | 'full';
 }
 
-export function Content({variant, ...props}: ContentProps) {
+export function SingleColumnPage({width, ...props}: SingleColumnPageProps) {
   const theme = useTheme();
+  const isConstrained = width !== 'full';
 
   return (
     <Container
       as="main"
       containerType="inline-size"
-      margin={variant === 'center' ? '0 auto' : undefined}
+      flexGrow={1}
+      background="primary"
+      margin={isConstrained ? '0 auto' : undefined}
       padding={{zero: '0 md', xl: '0'}}
       width="100%"
       maxWidth={
-        variant === 'center'
+        width === 'narrow'
           ? {
               zero: '100%',
               xl: theme.size['2xl'],
               '2xl': theme.size['3xl'],
               '3xl': theme.size['4xl'],
             }
-          : undefined
+          : width === 'wide'
+            ? theme.size['7xl']
+            : undefined
       }
       {...props}
     />

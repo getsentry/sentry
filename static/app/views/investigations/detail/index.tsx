@@ -9,6 +9,7 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {SingleColumnPage} from '@sentry/scraps/pageframe';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -67,24 +68,24 @@ const STATUS_TAG_VARIANT = {
 
 function FeatureDisabledPage() {
   return (
-    <Stack flex={1} padding="2xl 3xl">
+    <SingleColumnPage width="narrow" padding="2xl 3xl">
       <FeatureDisabled
         features="organizations:investigations"
         featureName={t('Investigations')}
       />
-    </Stack>
+    </SingleColumnPage>
   );
 }
 
 function ClosedMembershipPage() {
   return (
-    <Stack flex={1} padding="2xl 3xl">
+    <SingleColumnPage width="narrow" padding="2xl 3xl">
       <Alert.Container>
         <Alert variant="warning">
           {t('Investigations are only available to organizations with open membership.')}
         </Alert>
       </Alert.Container>
-    </Stack>
+    </SingleColumnPage>
   );
 }
 
@@ -118,17 +119,21 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
   });
 
   if (isPending && !investigation) {
-    return <LoadingIndicator />;
+    return (
+      <SingleColumnPage width="narrow" padding="2xl">
+        <LoadingIndicator />
+      </SingleColumnPage>
+    );
   }
   if (isError && !investigation) {
     return (
-      <Stack flex={1} padding="2xl 3xl">
+      <SingleColumnPage width="narrow" padding="2xl 3xl">
         <RouteError error={error} />
-      </Stack>
+      </SingleColumnPage>
     );
   }
   if (!investigation) {
-    return null;
+    return <SingleColumnPage width="narrow" />;
   }
 
   return <InvestigationPageContent investigation={investigation} />;
@@ -294,7 +299,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
-      <Stack flex={1}>
+      <SingleColumnPage width="narrow" padding="0">
         <Layout.Title>
           <HeaderBreadcrumbs
             align="center"
@@ -356,7 +361,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
           </HeaderBreadcrumbs>
         </Layout.Title>
         <Container as="header" width="100%" padding="xl">
-          <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
+          <Stack gap="xs" width="100%">
             <Grid
               columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
               align="center"
@@ -409,57 +414,57 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             </Flex>
           </Stack>
         </Container>
-        <Layout.Body>
-          <Layout.Main width="full">
-            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto">
-              {/*
-               * Only an agentic investigation has hypotheses, and `orchestration`
-               * being present is the only thing that says one is: it is null for
-               * manual and template investigations, whose orchestration endpoint
-               * 404s.
-               */}
-              {investigation.orchestration ? (
-                <Stack width="100%" minWidth={0} paddingBottom="xl">
-                  <InvestigationHypotheses
-                    investigationId={investigation.id}
-                    phase={investigation.orchestration.phase}
-                  />
-                </Stack>
-              ) : null}
-
-              <NotebookSummaryCard
-                summary={investigation.summary}
-                summaryDescription={investigation.summaryDescription}
+        <Stack
+          width="100%"
+          minWidth={0}
+          padding={{'screen:sm': 'lg', 'screen:md': 'lg xl'}}
+        >
+          {/*
+           * Only an agentic investigation has hypotheses, and `orchestration`
+           * being present is the only thing that says one is: it is null for
+           * manual and template investigations, whose orchestration endpoint
+           * 404s.
+           */}
+          {investigation.orchestration ? (
+            <Stack width="100%" minWidth={0} paddingBottom="xl">
+              <InvestigationHypotheses
+                investigationId={investigation.id}
+                phase={investigation.orchestration.phase}
               />
-
-              <Stack width="100%" minWidth={0}>
-                {visibleSummaryBlock ? (
-                  <InvestigationCell
-                    block={visibleSummaryBlock}
-                    canRun={investigation.status === 'active'}
-                    investigation={investigation}
-                  />
-                ) : null}
-
-                <Stack gap="xl">
-                  {visibleNotebookCells.map(block => (
-                    <InvestigationCell
-                      key={block.id}
-                      block={block}
-                      canRun={investigation.status === 'active'}
-                      investigation={investigation}
-                    />
-                  ))}
-                  {isAwaitingReportCell(investigation) ? (
-                    <InvestigationCellPlaceholder />
-                  ) : null}
-                </Stack>
-              </Stack>
-              <Container height="160px" flexShrink={0} aria-hidden />
             </Stack>
-          </Layout.Main>
-        </Layout.Body>
-      </Stack>
+          ) : null}
+
+          <NotebookSummaryCard
+            summary={investigation.summary}
+            summaryDescription={investigation.summaryDescription}
+          />
+
+          <Stack width="100%" minWidth={0}>
+            {visibleSummaryBlock ? (
+              <InvestigationCell
+                block={visibleSummaryBlock}
+                canRun={investigation.status === 'active'}
+                investigation={investigation}
+              />
+            ) : null}
+
+            <Stack gap="xl">
+              {visibleNotebookCells.map(block => (
+                <InvestigationCell
+                  key={block.id}
+                  block={block}
+                  canRun={investigation.status === 'active'}
+                  investigation={investigation}
+                />
+              ))}
+              {isAwaitingReportCell(investigation) ? (
+                <InvestigationCellPlaceholder />
+              ) : null}
+            </Stack>
+          </Stack>
+          <Container height="160px" flexShrink={0} aria-hidden />
+        </Stack>
+      </SingleColumnPage>
     </SentryDocumentTitle>
   );
 }

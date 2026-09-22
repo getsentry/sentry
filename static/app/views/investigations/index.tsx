@@ -9,6 +9,7 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {SingleColumnPage} from '@sentry/scraps/pageframe';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
@@ -78,24 +79,24 @@ function getInvestigationPath(organizationSlug: string, investigationId: string)
 
 function FeatureDisabledPage() {
   return (
-    <Stack flex={1} padding="2xl 3xl">
+    <SingleColumnPage width="full" padding="2xl 3xl">
       <FeatureDisabled
         features="organizations:investigations"
         featureName={t('Investigations')}
       />
-    </Stack>
+    </SingleColumnPage>
   );
 }
 
 function ClosedMembershipPage() {
   return (
-    <Stack flex={1} padding="2xl 3xl">
+    <SingleColumnPage width="full" padding="2xl 3xl">
       <Alert.Container>
         <Alert variant="warning">
           {t('Investigations are only available to organizations with open membership.')}
         </Alert>
       </Alert.Container>
-    </Stack>
+    </SingleColumnPage>
   );
 }
 
@@ -256,117 +257,118 @@ export function InvestigationsPage() {
     <SentryDocumentTitle title={t('Investigations')} orgSlug={organization.slug}>
       <ErrorBoundary>
         {isError ? (
-          <Stack flex={1} padding="2xl 3xl">
+          <SingleColumnPage width="full" padding="2xl 3xl">
             <RouteError error={error} />
-          </Stack>
+          </SingleColumnPage>
         ) : (
           <Stack flex={1}>
             <Layout.Title>{t('Investigations')}</Layout.Title>
-            <Layout.Body>
-              <Layout.Main width="full">
-                <Grid
-                  columns={{zero: 'auto', xl: 'auto max-content max-content'}}
-                  gap="md"
-                  marginBottom="xl"
+            <SingleColumnPage
+              width="full"
+              padding={{'screen:sm': 'lg', 'screen:md': 'lg xl'}}
+            >
+              <Grid
+                columns={{zero: 'auto', xl: 'auto max-content max-content'}}
+                gap="md"
+                marginBottom="xl"
+              >
+                <SearchBar
+                  query={query ?? ''}
+                  placeholder={t('Search Investigations')}
+                  onSearch={handleSearch}
+                />
+                <CompactSelect
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button {...triggerProps} prefix={t('Sort By')} />
+                  )}
+                  value="recentActivity"
+                  options={[{label: t('Recent Activity'), value: 'recentActivity'}]}
+                  onChange={() => null}
+                  position="bottom-end"
+                  data-test-id="investigations-sort"
+                />
+                <Button
+                  variant="primary"
+                  icon={<IconAdd />}
+                  onClick={() => createMutation.mutate()}
+                  busy={createMutation.isPending}
                 >
-                  <SearchBar
-                    query={query ?? ''}
-                    placeholder={t('Search Investigations')}
-                    onSearch={handleSearch}
-                  />
-                  <CompactSelect
-                    trigger={triggerProps => (
-                      <OverlayTrigger.Button {...triggerProps} prefix={t('Sort By')} />
-                    )}
-                    value="recentActivity"
-                    options={[{label: t('Recent Activity'), value: 'recentActivity'}]}
-                    onChange={() => null}
-                    position="bottom-end"
-                    data-test-id="investigations-sort"
-                  />
-                  <Button
-                    variant="primary"
-                    icon={<IconAdd />}
-                    onClick={() => createMutation.mutate()}
-                    busy={createMutation.isPending}
-                  >
-                    {t('Launch investigation')}
-                  </Button>
-                </Grid>
-                <TableWrapper>
-                  <GridEditable
-                    data={investigations}
-                    columnOrder={COLUMNS}
-                    grid={{
-                      renderHeadCell: column => column.name,
-                      renderBodyCell,
-                      renderPrependColumns: (isHeader, investigation) => {
-                        if (isHeader) {
-                          return [
-                            <IconStar
-                              key="favorite-header"
-                              variant="warning"
-                              isSolid
-                              aria-label={t('Favorite')}
-                            />,
-                          ];
-                        }
-                        if (!investigation) {
-                          return [];
-                        }
+                  {t('Launch investigation')}
+                </Button>
+              </Grid>
+              <TableWrapper>
+                <GridEditable
+                  data={investigations}
+                  columnOrder={COLUMNS}
+                  grid={{
+                    renderHeadCell: column => column.name,
+                    renderBodyCell,
+                    renderPrependColumns: (isHeader, investigation) => {
+                      if (isHeader) {
                         return [
-                          <Button
-                            key={investigation.id}
-                            size="zero"
-                            variant="transparent"
-                            aria-label={
-                              investigation.isFavorited
-                                ? t('Unfavorite %s', investigation.title)
-                                : t('Favorite %s', investigation.title)
-                            }
-                            icon={
-                              <IconStar
-                                size="sm"
-                                variant={investigation.isFavorited ? 'warning' : 'muted'}
-                                isSolid={investigation.isFavorited}
-                              />
-                            }
-                            onClick={() =>
-                              favoriteMutation.mutate({
-                                investigation,
-                                shouldFavorite: !investigation.isFavorited,
-                              })
-                            }
+                          <IconStar
+                            key="favorite-header"
+                            variant="warning"
+                            isSolid
+                            aria-label={t('Favorite')}
                           />,
                         ];
-                      },
-                      prependColumnWidths: ['max-content'],
-                    }}
-                    isLoading={isPending}
-                    resizable={false}
-                    emptyMessage={
-                      <EmptyStateWarning>
-                        <Text as="p">
-                          {t('Sorry, no investigations match your filters.')}
-                        </Text>
-                      </EmptyStateWarning>
-                    }
-                  />
-                </TableWrapper>
-                <Container marginBottom="2xl">
-                  <Pagination
-                    pageLinks={data?.headers.Link}
-                    onCursor={(nextCursor, _path, _nextQuery, direction) => {
-                      const offset = Number(nextCursor?.split?.(':')?.[1] ?? 0);
-                      setQueryParams({
-                        cursor:
-                          direction === -1 && offset <= 0 ? null : (nextCursor ?? null),
-                      });
-                    }}
-                  />
-                </Container>
-              </Layout.Main>
-            </Layout.Body>
+                      }
+                      if (!investigation) {
+                        return [];
+                      }
+                      return [
+                        <Button
+                          key={investigation.id}
+                          size="zero"
+                          variant="transparent"
+                          aria-label={
+                            investigation.isFavorited
+                              ? t('Unfavorite %s', investigation.title)
+                              : t('Favorite %s', investigation.title)
+                          }
+                          icon={
+                            <IconStar
+                              size="sm"
+                              variant={investigation.isFavorited ? 'warning' : 'muted'}
+                              isSolid={investigation.isFavorited}
+                            />
+                          }
+                          onClick={() =>
+                            favoriteMutation.mutate({
+                              investigation,
+                              shouldFavorite: !investigation.isFavorited,
+                            })
+                          }
+                        />,
+                      ];
+                    },
+                    prependColumnWidths: ['max-content'],
+                  }}
+                  isLoading={isPending}
+                  resizable={false}
+                  emptyMessage={
+                    <EmptyStateWarning>
+                      <Text as="p">
+                        {t('Sorry, no investigations match your filters.')}
+                      </Text>
+                    </EmptyStateWarning>
+                  }
+                />
+              </TableWrapper>
+              <Container marginBottom="2xl">
+                <Pagination
+                  pageLinks={data?.headers.Link}
+                  onCursor={(nextCursor, _path, _nextQuery, direction) => {
+                    const offset = Number(nextCursor?.split?.(':')?.[1] ?? 0);
+                    setQueryParams({
+                      cursor:
+                        direction === -1 && offset <= 0 ? null : (nextCursor ?? null),
+                    });
+                  }}
+                />
+              </Container>
+            </SingleColumnPage>
           </Stack>
         )}
       </ErrorBoundary>

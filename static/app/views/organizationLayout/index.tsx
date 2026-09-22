@@ -1,5 +1,5 @@
 import {useRef} from 'react';
-import {Outlet, ScrollRestoration} from 'react-router-dom';
+import {Outlet, ScrollRestoration, useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
@@ -88,6 +88,10 @@ function AppDrawers() {
 }
 
 function AppLayout({organization}: LayoutProps) {
+  const routeOwnsPageLayout = useMatches().some(
+    match =>
+      (match.handle as {ownsPageLayout?: boolean} | undefined)?.ownsPageLayout === true
+  );
   useSeerExplorerDocumentTitle();
   const pageBannerRef = useRef<HTMLDivElement>(null);
   const {height: pageBannerHeight} = useDimensions({
@@ -130,9 +134,13 @@ function AppLayout({organization}: LayoutProps) {
               <OrganizationDetailsBody>
                 <TopBar.Slot.Provider>
                   <TopBar />
-                  <Layout.Page>
+                  {routeOwnsPageLayout ? (
                     <Outlet />
-                  </Layout.Page>
+                  ) : (
+                    <Layout.Page>
+                      <Outlet />
+                    </Layout.Page>
+                  )}
                 </TopBar.Slot.Provider>
               </OrganizationDetailsBody>
             </ContentStack>
