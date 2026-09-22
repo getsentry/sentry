@@ -150,6 +150,10 @@ def get_repair_cursor_key(key_prefix: str) -> str:
     return f"{key_prefix}uptime:configs:repair-cursor"
 
 
+def clear_repair_cursor(store: ConfigStore) -> None:
+    redis.redis_clusters.get(store.cluster).delete(get_repair_cursor_key(store.key_prefix))
+
+
 def find_missing_sentinels(store: ConfigStore) -> list[int]:
     cluster = redis.redis_clusters.get(store.cluster)
     pipe = cluster.pipeline()

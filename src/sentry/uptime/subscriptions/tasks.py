@@ -19,6 +19,7 @@ from sentry.uptime.config_drift import (
     SUBSCRIPTION_ID_PREFIX_BUCKETS,
     SWEEP_RUN_INTERVAL,
     ConfigStore,
+    clear_repair_cursor,
     find_missing_configs,
     find_missing_configs_for_store,
     find_missing_sentinels,
@@ -402,6 +403,13 @@ def check_config_sentinels(**kwargs):
             tags={"cluster": store.cluster},
             sample_rate=1.0,
         )
+        if not missing:
+            # No pass runs while every sentinel is present, so a cursor here was left by an
+            # overlapping run or an old worker and must not carry over into the next loss.
+            try:
+                clear_repair_cursor(store)
+            except Exception:
+                logger.exception("uptime.config_drift.repair_cursor_clear_failed")
         if missing and not options.get("uptime.config-drift.sentinel-repair-disabled"):
             logger.warning(
                 "uptime.config_drift.sentinel_missing",

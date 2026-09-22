@@ -14,7 +14,7 @@ from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.uptime.config_drift import get_sentinel_key
+from sentry.uptime.config_drift import get_repair_cursor_key, get_sentinel_key
 from sentry.uptime.config_producer import (
     get_config_key,
     get_partition_from_subscription_id,
@@ -456,3 +456,19 @@ class CheckConfigSentinelsTest(ConfigPusherTestMixin):
         with mock.patch.object(repair_config_store, "delay") as repair:
             check_config_sentinels()
         assert not repair.called
+
+    @override_options({"uptime.config-drift.sentinel-repair-disabled": False})
+    def test_leftover_cursor_does_not_skip_the_next_loss(self) -> None:
+        with self.tasks():
+            check_config_sentinels()
+        # Left by an overlapping run after the sentinels came back, past every id.
+        redis.redis_clusters.get("default").set(get_repair_cursor_key("b"), "f" * 32, ex=60)
+
+        # Its first check sees every sentinel present, which is where the cursor is cleared.
+        [subscription], _ = self._seed_lost_on_b()
+        with self.tasks():
+            check_config_sentinels()
+
+        self.assert_redis_config(
+            "b1", subscription, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
+        )
