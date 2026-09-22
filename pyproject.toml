@@ -68,6 +68,7 @@ dependencies = [
   "petname>=2.6",
   "phonenumberslite>=8.12.55",
   "pillow>=12.3.0",
+  "pypdf>=6.19.0",
   "proto-plus>=1.25.0",
   "protobuf>=5.29.6",
   "psutil>=5.9.7",

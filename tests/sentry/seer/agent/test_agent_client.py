@@ -37,6 +37,23 @@ class TestSeerAgentClient(TestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
 
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    def test_start_run_attachment_keys(self, post, access):
+        post.return_value = self._mock_run_response()
+        client = SeerAgentClient(self.organization, self.user)
+        client.start_run("", attachment_keys=["image-key"])
+        assert post.call_args.args[0]["attachment_keys"] == ["image-key"]
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    def test_continue_run_attachment_keys(self, post, access):
+        post.return_value = self._mock_run_response(456)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=456)
+        client = SeerAgentClient(self.organization, self.user)
+        client.continue_run(456, "Read this", attachment_keys=["document-key"])
+        assert post.call_args.args[0]["attachment_keys"] == ["document-key"]
+
     def _mock_run_response(self, run_id: int = 123) -> MagicMock:
         mock_response = MagicMock()
         mock_response.json.return_value = {"run_id": run_id}
