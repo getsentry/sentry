@@ -2,7 +2,6 @@ import type {ComponentType} from 'react';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -13,6 +12,7 @@ import {MetricMonitor} from 'sentry/components/seer/markdown/embeds/components/m
 import {MobileBuildMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/mobileBuild';
 import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/uptime';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
+import {SeerEmbedTag} from 'sentry/components/seer/markdown/embeds/components/seerEmbedTag';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {
   IconClock,
@@ -130,8 +130,8 @@ export default function MonitorBlock({id, name}: EmbedOutput<'monitor'>) {
       badge={
         detector ? (
           <Flex gap="xs">
-            <Tag variant="muted">{getDetectorTypeLabel(detector.type)}</Tag>
-            {detector.enabled ? null : <Tag variant="muted">{t('Disabled')}</Tag>}
+            <SeerEmbedTag>{getDetectorTypeLabel(detector.type)}</SeerEmbedTag>
+            {detector.enabled ? null : <SeerEmbedTag>{t('Disabled')}</SeerEmbedTag>}
           </Flex>
         ) : null
       }

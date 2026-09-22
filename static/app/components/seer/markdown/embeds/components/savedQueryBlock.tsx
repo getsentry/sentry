@@ -4,6 +4,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
+import {SeerEmbedTag} from 'sentry/components/seer/markdown/embeds/components/seerEmbedTag';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -45,7 +46,7 @@ export default function SavedQueryBlock({data}: {data: SavedQueryData}) {
     <QueryEmbedCard
       badge={
         // Trust the dataset the API reports over the one the tag claimed.
-        <Tag variant="muted">{getSavedQueryDatasetLabel(savedQuery.dataset)}</Tag>
+        <SeerEmbedTag>{getSavedQueryDatasetLabel(savedQuery.dataset)}</SeerEmbedTag>
       }
       href={getSavedQueryTraceItemUrl({savedQuery, organization})}
       icon={IconStar}

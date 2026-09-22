@@ -1,5 +1,3 @@
-import {Tag} from '@sentry/scraps/badge';
-
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {
   QueryEmbedChart,
@@ -15,6 +13,7 @@ import {
   eventRowKey,
   QueryEmbedTable,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
+import {SeerEmbedTag} from 'sentry/components/seer/markdown/embeds/components/seerEmbedTag';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
@@ -74,9 +73,9 @@ export default function SpansQueryBlock({data}: {data: SpansQueryData}) {
   return (
     <QueryEmbedCard
       badge={
-        <Tag variant="muted">
+        <SeerEmbedTag>
           {data.mode === 'aggregate' ? t('Aggregate') : t('Spans')}
-        </Tag>
+        </SeerEmbedTag>
       }
       href={getSpansQueryHref(data, organization)}
       icon={IconSpan}
