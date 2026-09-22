@@ -111,6 +111,30 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         self.create_detector_group(detector=detector, group=group)
         return group, open_period
 
+    def test_closed_membership_organizations_cannot_check_or_launch_candidates(self) -> None:
+        group, open_period = self.create_metric_open_period()
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+        }
+
+        candidate = self.client.post(
+            self.candidates_url,
+            {"templateKey": "breached_metric", "templateVersion": 1, "sources": [source]},
+            format="json",
+        )
+        assert candidate.status_code == 404
+
+        launched = self.client.post(
+            self.collection_url,
+            {"templateKey": "breached_metric", "templateVersion": 1, "source": source},
+            format="json",
+        )
+        assert launched.status_code == 404
+        assert not Investigation.objects.filter(organization=self.organization).exists()
+
     @mock.patch(
         "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
     )
@@ -123,8 +147,6 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         )
         member = self.create_user()
         self.create_member(organization=self.organization, user=member, role="member", teams=[])
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
         self.login_as(member)
         source = {
             "type": "metric_open_period",

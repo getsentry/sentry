@@ -27,17 +27,35 @@ class OrganizationInvestigationBaseTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def test_closed_membership_organizations_are_supported(self) -> None:
-        self.login_as(self.user)
+    def test_closed_membership_organizations_cannot_list_or_create_investigations(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
-        url = reverse(
-            "sentry-api-0-organization-investigations",
-            kwargs={"organization_id_or_slug": self.organization.slug},
-        )
         with self.feature(FEATURE):
-            assert self.client.get(url).status_code == 200
+            assert self.client.get(self.collection_url).status_code == 404
+            response = self.client.post(
+                self.collection_url, data={"title": "Unavailable"}, format="json"
+            )
+
+        assert response.status_code == 404
+        assert not Investigation.objects.filter(organization=self.organization).exists()
+
+    def test_closed_membership_organizations_cannot_view_investigations(self) -> None:
+        investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Existing investigation"
+        )
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        url = reverse(
+            "sentry-api-0-organization-investigation-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        with self.feature(FEATURE):
+            assert self.client.get(url).status_code == 404
 
     def test_feature_is_required(self) -> None:
         self.login_as(self.user)

@@ -28,7 +28,10 @@ FEATURE = "organizations:investigations"
 
 
 def feature_enabled(request: Request, organization: Organization) -> bool:
-    return features.has(FEATURE, organization, actor=request.user)
+    return (
+        features.has(FEATURE, organization, actor=request.user)
+        and request.access.has_open_membership
+    )
 
 
 def service_error(error: Exception) -> Response | None:
@@ -68,7 +71,8 @@ def require_authenticated_user(request: Request) -> int:
 
 class InvestigationPermission(OrganizationPermission):
     """
-    Organization members can read and manage investigations across all projects.
+    Members of open-membership organizations can read and manage investigations
+    across all projects.
     Mutations require ``org:read`` rather than the default ``org:write``.
     """
 
