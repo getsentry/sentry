@@ -52,12 +52,16 @@ function GroupAutofixContent({group}: {group: Group}) {
   const {
     billing,
     hasFreeAutofixAccess,
+    isError: isSeerSetupError,
     isPending: isSeerSetupPending,
   } = useOrganizationSeerSetup();
 
   // Same condition the Seer project settings use to decide an org has to buy in
-  // before Autofix will run for it.
+  // before Autofix will run for it. A failed setup check leaves both flags
+  // false, which reads the same as a genuine "no quota" answer, so only a
+  // successful response is allowed to withhold the start card.
   const needsSeerSubscription =
+    !isSeerSetupError &&
     !hasFreeAutofixAccess &&
     !billing.hasAutofixQuota &&
     organization.features.includes('seer-billing');
@@ -74,12 +78,17 @@ function GroupAutofixContent({group}: {group: Group}) {
 
   // Without a subscription, starting a run would only fail, so offer the
   // upgrade instead of the start card. The CTA itself comes from getsentry;
-  // open source registers no override and renders nothing here.
-  if (needsSeerSubscription) {
+  // open source registers no override and renders nothing here. It stands in
+  // for the start card alone, so an org that loses its quota keeps the results
+  // of a run it already has.
+  if (needsSeerSubscription && !autofix.isLoading && !autofix.runState) {
     return (
-      <div data-test-id="autofix-upgrade-cta">
-        <AiSetupDataConsent groupId={group.id} />
-      </div>
+      <Stack gap="lg">
+        <AutofixWarnings warnings={warnings} groupId={group.id} />
+        <div data-test-id="autofix-upgrade-cta">
+          <AiSetupDataConsent groupId={group.id} />
+        </div>
+      </Stack>
     );
   }
 
