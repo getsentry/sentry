@@ -154,14 +154,22 @@ export function Context({
 
                 return (
                   <Fragment key={i}>
-                    <ContextLineWrapper isActive={isActive} data-test-id="context-line">
+                    <ContextLineWrapper
+                      isActive={isActive}
+                      aria-current={isActive ? 'location' : undefined}
+                      data-test-id="context-line"
+                    >
                       <ContextLineNumber
                         lineNumber={contextLine[0]}
                         isActive={isActive}
                       />
                       <ContextLineCode>
                         {line.map((token, key) => (
-                          <span key={key} className={token.className}>
+                          // Syntax colors can lose contrast on the vibrant active row.
+                          <span
+                            key={key}
+                            className={isActive ? undefined : token.className}
+                          >
                             {token.children}
                           </span>
                         ))}
@@ -240,7 +248,10 @@ const ContextLineWrapper = styled('div')<{isActive: boolean}>`
   grid-template-columns: 58px 1fr;
   gap: ${p => p.theme.space.md};
   background: ${p =>
-    p.isActive ? 'var(--prism-highlight-background)' : p.theme.tokens.background.primary};
+    p.isActive
+      ? p.theme.tokens.background.warning.vibrant
+      : p.theme.tokens.background.primary};
+  color: ${p => (p.isActive ? p.theme.tokens.content.onVibrant.dark : 'inherit')};
   padding-right: ${p => p.theme.space.xl};
 `;
 
