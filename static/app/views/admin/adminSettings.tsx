@@ -1,14 +1,14 @@
 import {mutationOptions, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {AutoSaveForm} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {BooleanField} from 'sentry/components/forms/fields/booleanField';
 import {RadioField} from 'sentry/components/forms/fields/radioField';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -162,29 +162,26 @@ export default function AdminSettings() {
   }
 
   return (
-    <div>
-      <h3>{t('Settings')}</h3>
+    <Stack gap="xl">
+      <Heading as="h3" size="lg">
+        {t('Settings')}
+      </Heading>
 
-      <Panel>
-        <PanelHeader>{t('General')}</PanelHeader>
+      <FieldGroup title={t('General')}>
         {fields['system.url-prefix']}
         {fields['system.admin-email']}
         {fields['system.support-email']}
         {fields['system.security-email']}
-      </Panel>
+      </FieldGroup>
 
-      <Panel>
-        <PanelHeader>{t('Security & Abuse')}</PanelHeader>
+      <FieldGroup title={t('Security & Abuse')}>
         {fields['auth.allow-registration']}
         {fields['auth.ip-rate-limit']}
         {fields['auth.user-rate-limit']}
         {fields['api.rate-limit.org-create']}
-      </Panel>
+      </FieldGroup>
 
-      <Panel>
-        <PanelHeader>{t('Beacon')}</PanelHeader>
-        {fields['beacon.anonymous']}
-      </Panel>
-    </div>
+      <FieldGroup title={t('Beacon')}>{fields['beacon.anonymous']}</FieldGroup>
+    </Stack>
   );
 }
