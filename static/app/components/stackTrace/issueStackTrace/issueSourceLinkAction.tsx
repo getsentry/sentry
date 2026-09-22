@@ -58,14 +58,8 @@ export function IssueSourceLinkAction({isHovering = false}: IssueSourceLinkActio
       justify="end"
       width={{zero: 'auto', xl: hasContent ? 'max-content' : '0'}}
       flex={{zero: '0 1 auto', xl: hasContent ? '0 0 max-content' : '0 0 0'}}
-      height={{
-        zero: 'auto',
-        xl: hasContent ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0',
-      }}
-      minHeight={{
-        zero: '0',
-        xl: hasContent ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0',
-      }}
+      height={hasContent ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0'}
+      minHeight={hasContent ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0'}
       overflow={{zero: 'visible', xl: 'hidden'}}
       whiteSpace="nowrap"
       pointerEvents="none"

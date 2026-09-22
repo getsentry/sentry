@@ -441,8 +441,8 @@ export function NativeFrame({
               xl: '7',
             }}
             gap="sm"
-            height="32px"
             justify="end"
+            minHeight="28px"
           >
             {showStacktraceLink && (
               <ErrorBoundary>
@@ -545,7 +545,6 @@ function RowHeader({
         '2xl': 'auto 150px 120px minmax(120px, 4fr) repeat(3, auto) 24px',
       }}
       gap={{zero: 'xs sm', xl: '0 sm'}}
-      minHeight="40px"
       padding={{zero: 'md', xl: 'sm lg'}}
       position="relative"
       rows={{
