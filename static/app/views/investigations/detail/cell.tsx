@@ -262,7 +262,11 @@ function CellResult({
       {markdown ? (
         <SeerMarkdown raw={markdown} />
       ) : isBlockGenerating(block) ? (
-        <InvestigationCellPlaceholder title={block.title} />
+        // The text this stands in for ends with the space below its last
+        // paragraph, so the placeholder has to carry that space itself.
+        <Container paddingBottom="xl">
+          <InvestigationCellPlaceholder title={block.title} />
+        </Container>
       ) : (
         <CellProgress state={progressState} />
       )}
