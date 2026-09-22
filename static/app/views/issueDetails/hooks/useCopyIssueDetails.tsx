@@ -3,6 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
+import {MarkedLexer} from '@sentry/scraps/markdown';
 import {toast} from '@sentry/scraps/toast';
 
 import {
@@ -29,7 +30,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat, getUserTimezone} from 'sentry/utils/dates';
-import {MarkedLexer} from 'sentry/utils/marked/marked';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSpanEvidenceToMarkdown} from 'sentry/views/issueDetails/hooks/spanEvidenceMarkdown';
