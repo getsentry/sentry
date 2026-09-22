@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -9,6 +10,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ExploreSurface} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
@@ -108,6 +110,16 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
           .getAllByRole('link')
           .map(link => link.textContent)
       ).toEqual(['Traces', 'Compare Queries']);
+    });
+
+    it('shows the project badge for the saved query projects', async () => {
+      ProjectsStore.loadInitialData([ProjectFixture({id: '1', platform: 'javascript'})]);
+
+      renderBreadcrumbs('traces');
+
+      // The badge is decorative and aria-hidden, so it has no role. The platform
+      // icon's alt text is the only stable hook.
+      expect(await screen.findByAltText('javascript')).toBeInTheDocument();
     });
 
     it('shows the url title until the saved query resolves', async () => {

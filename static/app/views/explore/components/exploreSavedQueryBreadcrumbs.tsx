@@ -1,5 +1,6 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 
+import {ProjectsBadge} from '@sentry/scraps/badge';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -11,13 +12,16 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconCopy, IconDelete, IconEllipsis, IconInput, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   CONVERSATIONS_SIDEBAR_LABEL,
   EXPLORE_AGENTS_SUB_PATH,
@@ -291,6 +295,17 @@ function SavedQueryTitle({
     savedQueryId,
     analytics: config.analytics,
   });
+  const {projects} = useProjects();
+
+  // Mirrors the starred saved query entries in the secondary nav, so the same
+  // query is recognisable in both places.
+  const projectPlatforms = useMemo(() => {
+    const ids = savedQuery.projects.map(String);
+    return projects
+      .filter(project => ids.includes(project.id))
+      .map(project => project.platform)
+      .filter(defined);
+  }, [projects, savedQuery.projects]);
 
   const starLabel = isStarred ? t('Unstar') : t('Star');
 
@@ -299,6 +314,14 @@ function SavedQueryTitle({
       item={{
         type: 'page-title',
         label: savedQuery.name,
+        leadingGraphic: (
+          <ProjectsBadge
+            projectPlatforms={projectPlatforms}
+            allProjects={
+              savedQuery.projects.length === 1 && savedQuery.projects[0] === -1
+            }
+          />
+        ),
         trailingActions: [
           {
             type: 'menu',
@@ -367,7 +390,11 @@ export function ExploreSavedQueryBreadcrumbs({
           />
         ) : (
           <BreadcrumbList.Title
-            item={{type: 'page-title', label: title ?? t('Saved Query')}}
+            item={{
+              type: 'page-title',
+              label: title ?? t('Saved Query'),
+              leadingGraphic: <Placeholder width="16px" height="16px" />,
+            }}
           />
         )}
       </TopBar.Slot>
