@@ -129,7 +129,9 @@ class EventManagerTestMixin:
 
 @django_db_all
 @pytest.mark.parametrize("promotion_fails", [False, True])
-def test_generic_event_promotes_pending_attachments(default_project, promotion_fails) -> None:
+def test_generic_event_promotes_pending_attachments(
+    default_project: Project, promotion_fails: bool
+) -> None:
     manager = EventManager(make_event(type="generic"))
     manager.normalize()
 
