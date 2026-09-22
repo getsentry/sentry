@@ -6,8 +6,7 @@ from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import APITestCase
 
 
-@override_settings(SENTRY_SELF_HOSTED=False)
-@override_settings(SEER_AUTOFIX_URL="https://seer.example.com")
+@override_settings(SEER_AUTOFIX_URL="https://seer.example.com", SENTRY_SELF_HOSTED=False)
 class SearchAgentStateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-search-agent-state"
 
@@ -16,7 +15,6 @@ class SearchAgentStateEndpointTest(APITestCase):
         self.login_as(self.user)
         self.features = {
             "organizations:gen-ai-search-agent-translate": True,
-            "organizations:gen-ai-features": True,
         }
 
     @patch("sentry.seer.endpoints.search_agent_state.make_search_agent_state_request")

@@ -1,14 +1,15 @@
 from unittest.mock import ANY, MagicMock, patch
 
+from django.test import override_settings
+
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()

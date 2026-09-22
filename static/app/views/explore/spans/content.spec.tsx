@@ -26,15 +26,11 @@ function TopBarWrapper({children}: {children: ReactNode}) {
 }
 
 describe('ExploreContent', () => {
-  const {organization, project} = initializeOrg({
-    organization: {
-      features: ['gen-ai-features'],
-    },
-  });
+  const {organization, project} = initializeOrg();
   const {organization: highRangeOrganization, project: highRangeProject} = initializeOrg({
     organization: {
       slug: 'high-range-org',
-      features: ['gen-ai-features', 'visibility-explore-range-high'],
+      features: ['visibility-explore-range-high'],
     },
   });
 
@@ -213,7 +209,7 @@ describe('ExploreContent', () => {
 
     const highRangeOrganizationWithoutFeature = {
       ...highRangeOrganization,
-      features: ['gen-ai-features'],
+      features: [],
     };
 
     const {rerender} = render(
@@ -291,7 +287,7 @@ describe('ExploreContent', () => {
 
     const highRangeOrganizationWithOverride = {
       ...highRangeOrganization,
-      features: ['gen-ai-features'],
+      features: [],
     };
     OrganizationStore.onUpdate(highRangeOrganizationWithOverride, {replace: true});
 

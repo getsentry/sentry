@@ -41,7 +41,7 @@ from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
-from sentry.seer.seer_setup import has_seer_access
+from sentry.seer.seer_setup import has_seer_access, is_seer_available
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     SummarizeIssueRequest,
@@ -585,8 +585,8 @@ def get_issue_summary(
     """
     if user is None:
         user = AnonymousUser()
-    if not features.has("organizations:gen-ai-features", group.organization, actor=user):
-        return {"detail": "Feature flag not enabled"}, 400
+    if not is_seer_available():
+        return {"detail": "Seer is not available on this installation."}, 400
 
     if group.organization.get_option("sentry:hide_ai_features"):
         return {"detail": "AI features are disabled for this organization."}, 403

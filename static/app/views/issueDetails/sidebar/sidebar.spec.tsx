@@ -25,7 +25,7 @@ describe('IssueDetailsSidebar', () => {
   const activityContent = 'test-note';
   const issueTrackingKey = 'issue-key';
 
-  const organization = OrganizationFixture({features: ['gen-ai-features']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const group = GroupFixture({
     activity: [

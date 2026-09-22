@@ -42,7 +42,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
 describe('SeerExplorerContent', () => {
   const organization = OrganizationFixture({
     openMembership: true,
-    features: ['seer-explorer', 'gen-ai-features'],
+    features: ['seer-explorer'],
     hideAiFeatures: false,
   });
 
@@ -84,7 +84,7 @@ describe('SeerExplorerContent', () => {
     it('renders thinking traces when code mode tools is enabled', async () => {
       const codeModeOrganization = OrganizationFixture({
         openMembership: true,
-        features: ['seer-explorer', 'gen-ai-features', 'seer-explorer-code-mode-tools'],
+        features: ['seer-explorer', 'seer-explorer-code-mode-tools'],
         hideAiFeatures: false,
       });
 
@@ -972,11 +972,7 @@ describe('SeerExplorerContent', () => {
     const orgWithFlag = OrganizationFixture({
       openMembership: true,
       hideAiFeatures: false,
-      features: [
-        'seer-explorer',
-        'gen-ai-features',
-        'seer-explorer-context-engine-fe-override-ui-flag',
-      ],
+      features: ['seer-explorer', 'seer-explorer-context-engine-fe-override-ui-flag'],
     });
 
     it('does not show the debug menu without any debug feature flag', async () => {
@@ -1163,7 +1159,7 @@ describe('SeerExplorerContent', () => {
     it('hides the reinstall nudge when the user cannot manage integrations', async () => {
       const memberOrg = OrganizationFixture({
         openMembership: true,
-        features: ['seer-explorer', 'gen-ai-features'],
+        features: ['seer-explorer'],
         hideAiFeatures: false,
         access: ['org:read', 'project:read', 'team:read', 'alerts:read'],
       });

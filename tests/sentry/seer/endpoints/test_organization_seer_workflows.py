@@ -420,15 +420,14 @@ class OrganizationSeerWorkflowsTest(APITestCase):
     def create_agent_workflow(
         self, strategy: SeerWorkflowStrategy, feature_id: str
     ) -> SeerWorkflowRun:
-        with self.feature("organizations:gen-ai-features"):
-            return create_workflow_run(
-                SeerAgentClient(self.organization, self.user),
-                strategy=strategy,
-                feature_id=feature_id,
-                title="Test workflow",
-                payload={},
-                extras={"project_ids": [], "results": []},
-            )
+        return create_workflow_run(
+            SeerAgentClient(self.organization, self.user),
+            strategy=strategy,
+            feature_id=feature_id,
+            title="Test workflow",
+            payload={},
+            extras={"project_ids": [], "results": []},
+        )
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -514,11 +513,9 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             self.get_error_response(
                 self.organization.slug, strategy="duplicate_monitors", status_code=404
             )
-            with self.feature(
-                {
-                    "organizations:seer-workflows-monitor-cleanup": True,
-                    "organizations:gen-ai-features": False,
-                }
+            with (
+                override_settings(SENTRY_SELF_HOSTED=True),
+                self.feature("organizations:seer-workflows-monitor-cleanup"),
             ):
                 response = self.get_error_response(
                     self.organization.slug, strategy="duplicate_monitors", status_code=403
@@ -527,9 +524,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             limit.assert_not_called()
 
             limit.return_value = True
-            with self.feature(
-                ["organizations:seer-workflows-monitor-cleanup", "organizations:gen-ai-features"]
-            ):
+            with self.feature("organizations:seer-workflows-monitor-cleanup"):
                 self.get_error_response(
                     self.organization.slug, strategy="duplicate_monitors", status_code=429
                 )
@@ -553,9 +548,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert agent_run.extras["error"] == "The triggering user no longer exists."
 
     def trigger(self):
-        with self.feature(
-            ["organizations:seer-workflows-monitor-cleanup", "organizations:gen-ai-features"]
-        ):
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
             response = self.get_success_response(
                 self.organization.slug, strategy="duplicate_monitors", status_code=202
             )

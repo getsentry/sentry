@@ -33,37 +33,29 @@ class TestHasSeerAgentAccessWithDetail(TestCase):
         self.org.flags.allow_joinleave = True
         self.org.save()
 
-    def test_gen_ai_features_disabled(self) -> None:
+    @override_settings(SENTRY_SELF_HOSTED=True)
+    def test_denied_on_self_hosted(self) -> None:
         result = has_seer_agent_access_with_detail(self.org, self.user)
-        assert result == (False, "Feature flag not enabled")
+        assert result == (False, "Seer is not available on this installation.")
 
     def test_hide_ai_features_option_set(self) -> None:
         self.org.update_option("sentry:hide_ai_features", True)
-        with self.feature("organizations:gen-ai-features"):
-            result = has_seer_agent_access_with_detail(self.org, self.user)
+        result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (False, "AI features are disabled for this organization.")
 
     def test_no_explorer_flag_enabled(self) -> None:
-        with self.feature("organizations:gen-ai-features"):
-            result = has_seer_agent_access_with_detail(self.org, self.user)
+        result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (False, "Feature flag not enabled")
 
     def test_seer_explorer_flag_enabled(self) -> None:
-        with self.feature(
-            {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
-        ):
+        with self.feature({"organizations:seer-explorer": True}):
             result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (True, None)
 
     def test_allow_joinleave_disabled(self) -> None:
         self.org.flags.allow_joinleave = False
         self.org.save()
-        with self.feature(
-            {
-                "organizations:gen-ai-features": True,
-                "organizations:seer-explorer": True,
-            }
-        ):
+        with self.feature({"organizations:seer-explorer": True}):
             result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (
             False,

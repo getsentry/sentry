@@ -34,7 +34,7 @@ jest.mock('sentry/utils/useMedia');
 
 describe('InboxPage', () => {
   const organization = OrganizationFixture({
-    features: ['issue-inbox', 'gen-ai-features', 'seat-based-seer-enabled'],
+    features: ['issue-inbox', 'seat-based-seer-enabled'],
   });
   const seerOrganization = organization;
   const project = ProjectFixture({

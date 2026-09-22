@@ -42,7 +42,6 @@ from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -1000,7 +999,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @with_feature({"organizations:gen-ai-features": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_autofix_button_shown_when_all_conditions_met(self, mock_quota: MagicMock) -> None:
         group = self.create_group(project=self.project)
         blocks = SlackIssuesMessageBuilder(group).build()
@@ -1008,7 +1007,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @with_feature({"organizations:gen-ai-features": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_autofix_button_hidden_on_unfurl(self, mock_quota: MagicMock) -> None:
         group = self.create_group(project=self.project)
         blocks = SlackIssuesMessageBuilder(group, is_unfurl=True).build()
@@ -1016,7 +1015,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @with_feature({"organizations:gen-ai-features": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_autofix_button_hidden_when_no_other_actions(self, mock_quota: MagicMock) -> None:
         group = self.create_group(project=self.project)
         blocks = SlackIssuesMessageBuilder(group, issue_details=True).build()

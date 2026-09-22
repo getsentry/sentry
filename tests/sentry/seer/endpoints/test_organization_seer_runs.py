@@ -13,7 +13,7 @@ from sentry.testutils.helpers.features import with_feature
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:seer-explorer")
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationSeerRunsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-runs"
 

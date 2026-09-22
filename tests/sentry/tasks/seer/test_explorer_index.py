@@ -57,7 +57,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org1.slug, org2.slug],
                 "organizations:seer-explorer-index": [org1.slug, org2.slug],
             }
         ):
@@ -95,7 +94,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
             }
         ):
@@ -121,7 +119,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
             }
         ):
@@ -140,7 +137,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
             }
         ):
@@ -163,7 +159,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
             }
         ):
@@ -194,7 +189,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
             }
         ):
@@ -224,12 +218,7 @@ class TestGetSeerAgentEnabledProjects(TestCase):
             feature="seer_autofix_setup_acknowledged",
         )
 
-        with self.feature(
-            {
-                "organizations:gen-ai-features": [org.slug],
-            }
-        ):
-            result = list(get_seer_explorer_enabled_projects())
+        result = list(get_seer_explorer_enabled_projects())
 
         assert len(result) == 0
         assert project.id not in [p[0] for p in result]
@@ -251,7 +240,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-added": [org.slug],
             }
         ):
@@ -278,7 +266,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seat-based-seer-enabled": [org.slug],
             }
         ):
@@ -289,6 +276,7 @@ class TestGetSeerAgentEnabledProjects(TestCase):
             assert project.id in project_ids
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 class TestScheduleExplorerIndex(TestCase):
     def test_skips_when_killswitch_enabled(self) -> None:
@@ -316,7 +304,6 @@ class TestScheduleExplorerIndex(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
             }
         ):

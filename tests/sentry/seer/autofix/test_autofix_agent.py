@@ -1822,7 +1822,7 @@ class TestTriggerPushChanges(TestCase):
         super().setUp()
         self.group = self.create_group(project=self.project)
 
-    def _push(self, mock_post, features="organizations:gen-ai-features", **kwargs):
+    def _push(self, mock_post, features=None, **kwargs):
         """Push with a minimal run state and return the payload sent to Seer."""
         mock_post.return_value = MagicMock(status=200)
         state = SeerRunState(
@@ -1834,7 +1834,7 @@ class TestTriggerPushChanges(TestCase):
             metadata={"group_id": self.group.id},
         )
 
-        with self.feature(features):
+        with self.feature(features or {}):
             trigger_push_changes(
                 group=self.group,
                 run_id=123,
@@ -1878,7 +1878,6 @@ class TestTriggerPushChanges(TestCase):
         payload = self._push(
             mock_post,
             features={
-                "organizations:gen-ai-features": True,
                 "organizations:autofix-pr-iteration-review-request": True,
             },
         )

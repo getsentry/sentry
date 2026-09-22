@@ -43,7 +43,7 @@ describe('EventsSearchBar', () => {
 
   it('hides Ask Seer for errors widgets', async () => {
     organization = OrganizationFixture({
-      features: ['gen-ai-features', 'gen-ai-search-agent-translate'],
+      features: ['gen-ai-search-agent-translate'],
     });
 
     render(

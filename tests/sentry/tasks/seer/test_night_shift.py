@@ -224,7 +224,6 @@ class TestScheduleNightShift(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
@@ -254,7 +253,6 @@ class TestScheduleNightShift(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
@@ -278,7 +276,6 @@ class TestScheduleNightShift(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
@@ -305,7 +302,6 @@ class TestScheduleNightShift(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     # seat-based-seer-enabled intentionally omitted
                 }
             ),
@@ -327,7 +323,6 @@ class TestScheduleNightShift(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     # seat-based-seer-enabled intentionally omitted
                 }
             ),
@@ -346,7 +341,6 @@ class TestScheduleNightShift(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
@@ -364,7 +358,6 @@ class TestScheduleNightShift(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
@@ -383,7 +376,6 @@ class TestScheduleNightShift(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
@@ -685,9 +677,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         org = self.create_organization()
         self.create_project(organization=org)
 
-        with (
-            patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
-        ):
+        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
             run_night_shift_for_org(org.id)
             info_events = [call.args[0] for call in mock_logger.info.call_args_list]
             assert "night_shift.no_eligible_projects" in info_events
@@ -733,8 +723,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
 
         mark_skipped(skipped_group.id)
         try:
-            with self.feature("organizations:gen-ai-features"):
-                run_night_shift_for_org(org.id)
+            run_night_shift_for_org(org.id)
         finally:
             redis_clusters.get("default").delete(skip_cache_key(skipped_group.id))
 
@@ -891,7 +880,6 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 
         with (
             self.options({"seer.night_shift.shard_size": 2}),
-            self.feature("organizations:gen-ai-features"),
             patch(
                 "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
                 return_value=scored,
@@ -916,7 +904,6 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 
         with (
             self.options({"seer.night_shift.shard_size": 10}),
-            self.feature("organizations:gen-ai-features"),
             patch(
                 "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
                 return_value=scored,
@@ -938,7 +925,6 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 
         with (
             self.options({"seer.night_shift.shard_size": 0}),
-            self.feature("organizations:gen-ai-features"),
             patch(
                 "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
                 return_value=scored,
@@ -959,10 +945,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             project, "fixable", seer_fixability_score=0.9, times_seen=5, priority=75
         )
 
-        with (
-            self.feature("organizations:gen-ai-features"),
-            patch("sentry.seer.night_shift.delivery.trigger_autofix_agent") as mock_autofix,
-        ):
+        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent") as mock_autofix:
             run_night_shift_for_org(org.id)
 
         # Autofix is fired by Seer's pushed-back verdicts, not in-process.
@@ -1000,8 +983,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         )
         self._store_event_and_update_group(project, "fixable", seer_fixability_score=0.9)
 
-        with self.feature("organizations:gen-ai-features"):
-            run_night_shift_for_org(org.id)
+        run_night_shift_for_org(org.id)
 
         _, body = _dispatched_feature_body(org)
         assert body["payload"]["candidates"][0]["automation_tuning"] == "high"
@@ -1013,7 +995,6 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         self._store_event_and_update_group(project, "fixable", seer_fixability_score=0.9)
 
         with (
-            self.feature("organizations:gen-ai-features"),
             patch(
                 "sentry.tasks.seer.night_shift.cron.is_seer_seat_based_tier_enabled",
                 return_value=True,
@@ -1039,8 +1020,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             always, "always-fixable", seer_fixability_score=0.9
         )
 
-        with self.feature("organizations:gen-ai-features"):
-            run_night_shift_for_org(org.id)
+        run_night_shift_for_org(org.id)
 
         _, body = _dispatched_feature_body(org)
         tuning_by_group_id = {
@@ -1063,7 +1043,6 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         )
 
         with (
-            self.feature("organizations:gen-ai-features"),
             self.options(
                 {
                     "seer.night_shift.org_tweaks": {
@@ -1099,10 +1078,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             for i in range(3)
         ]
 
-        with (
-            self.options({"seer.night_shift.shard_size": 2}),
-            self.feature("organizations:gen-ai-features"),
-        ):
+        with self.options({"seer.night_shift.shard_size": 2}):
             run_night_shift_for_org(org.id)
 
         run = SeerWorkflowRun.objects.get(organization=org)
@@ -1149,7 +1125,6 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 
         with (
             self.options({"seer.night_shift.shard_size": 1}),
-            self.feature("organizations:gen-ai-features"),
             patch(
                 "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
                 return_value=scored,
@@ -1203,6 +1178,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 
     def test_no_seer_access_keeps_shard_plan_for_resume(self) -> None:
         org = self.create_organization()
+        org.update_option("sentry:hide_ai_features", True)
         project = self.create_project(organization=org)
         self._make_eligible(project)
         self._store_event_and_update_group(
@@ -1234,7 +1210,6 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         )
 
         with (
-            self.feature("organizations:gen-ai-features"),
             patch(
                 "sentry.seer.agent.client.SeerAgentClient.start_feature_run",
                 side_effect=RuntimeError("boom"),
@@ -1256,8 +1231,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             project, "fixable", seer_fixability_score=0.9, times_seen=5
         )
 
-        with self.feature("organizations:gen-ai-features"):
-            run_night_shift_for_org(org.id)
+        run_night_shift_for_org(org.id)
 
         seer_run = SeerRun.objects.get(organization=org, type=SeerRunType.FEATURE_RUN)
         assert seer_run.mirror_status == SeerRunMirrorStatus.PENDING

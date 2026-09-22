@@ -22,7 +22,7 @@ describe('useActiveReplayTab', () => {
         const {result} = renderHookWithProviders(useActiveReplayTab, {
           initialProps: {},
           organization: OrganizationFixture({
-            features: ['gen-ai-features', 'replay-ai-summaries'],
+            features: ['replay-ai-summaries'],
           }),
         });
 
@@ -35,7 +35,7 @@ describe('useActiveReplayTab', () => {
         const {result} = renderHookWithProviders(useActiveReplayTab, {
           initialProps: {},
           organization: OrganizationFixture({
-            features: ['gen-ai-features', 'replay-ai-summaries'],
+            features: ['replay-ai-summaries'],
           }),
         });
 
@@ -49,7 +49,7 @@ describe('useActiveReplayTab', () => {
             location: {pathname: '/mock-pathname/', query: {query: 'click.tag:button'}},
           },
           organization: OrganizationFixture({
-            features: ['gen-ai-features', 'replay-ai-summaries'],
+            features: ['replay-ai-summaries'],
           }),
         });
         expect(result.current.getActiveTab()).toBe(TabKey.AI);
@@ -67,11 +67,7 @@ describe('useActiveReplayTab', () => {
         const {result} = renderHookWithProviders(useActiveReplayTab, {
           initialProps: {isVideoReplay: true},
           organization: OrganizationFixture({
-            features: [
-              'gen-ai-features',
-              'replay-ai-summaries',
-              'replay-ai-summaries-mobile',
-            ],
+            features: ['replay-ai-summaries', 'replay-ai-summaries-mobile'],
           }),
         });
 
@@ -82,7 +78,7 @@ describe('useActiveReplayTab', () => {
         const {result} = renderHookWithProviders(useActiveReplayTab, {
           initialProps: {isVideoReplay: true},
           organization: OrganizationFixture({
-            features: ['gen-ai-features', 'replay-ai-summaries'],
+            features: ['replay-ai-summaries'],
           }),
         });
 

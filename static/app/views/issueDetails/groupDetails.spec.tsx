@@ -148,6 +148,14 @@ describe('groupDetails', () => {
       body: project,
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/autofix/`,
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/seer/onboarding-check/`,
+      body: {isSeerConfigured: false},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({}),
     });
@@ -236,7 +244,6 @@ describe('groupDetails', () => {
       const organization = {
         ...defaultInit.organization,
         hideAiFeatures: false,
-        features: ['gen-ai-features'],
       };
       const query = {
         project: group.project.id,

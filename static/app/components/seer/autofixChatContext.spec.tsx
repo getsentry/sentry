@@ -48,7 +48,7 @@ describe('AutofixChatProvider', () => {
   const organization = OrganizationFixture({
     openMembership: true,
     hideAiFeatures: false,
-    features: ['seer-explorer', 'gen-ai-features'],
+    features: ['seer-explorer'],
   });
 
   const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;

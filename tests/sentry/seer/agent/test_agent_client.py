@@ -1629,7 +1629,7 @@ class TestStartFeatureRun(TestCase):
         assert run.seer_run_state_id is None
 
     def test_access_gate_blocks_dispatch(self) -> None:
-        # No gen-ai-features -> client construction raises before any run is created.
+        # No Seer access -> client construction raises before any run is created.
         with pytest.raises(SeerPermissionError):
             SeerAgentClient(self.organization, self.user)
         assert not SeerRun.objects.filter(organization=self.organization).exists()

@@ -8,33 +8,19 @@ describe('areAiFeaturesAllowed', () => {
     ConfigStore.set('isSelfHosted', false);
   });
 
-  it('allows when flagged, not hidden, and not self-hosted', () => {
-    const organization = OrganizationFixture({
-      features: ['gen-ai-features'],
-      hideAiFeatures: false,
-    });
+  it('allows when not hidden and not self-hosted', () => {
+    const organization = OrganizationFixture({hideAiFeatures: false});
     expect(areAiFeaturesAllowed(organization)).toBe(true);
   });
 
-  it('denies without the flag', () => {
-    const organization = OrganizationFixture({features: [], hideAiFeatures: false});
-    expect(areAiFeaturesAllowed(organization)).toBe(false);
-  });
-
   it('denies when the org hides AI features', () => {
-    const organization = OrganizationFixture({
-      features: ['gen-ai-features'],
-      hideAiFeatures: true,
-    });
+    const organization = OrganizationFixture({hideAiFeatures: true});
     expect(areAiFeaturesAllowed(organization)).toBe(false);
   });
 
   it('denies on self-hosted', () => {
     ConfigStore.set('isSelfHosted', true);
-    const organization = OrganizationFixture({
-      features: ['gen-ai-features'],
-      hideAiFeatures: false,
-    });
+    const organization = OrganizationFixture({hideAiFeatures: false});
     expect(areAiFeaturesAllowed(organization)).toBe(false);
   });
 });

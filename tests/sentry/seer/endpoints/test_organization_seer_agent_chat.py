@@ -22,7 +22,6 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 @with_feature("organizations:seer-explorer")
 @override_settings(SENTRY_SELF_HOSTED=False)
-@with_feature("organizations:gen-ai-features")
 class OrganizationSeerAgentChatEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -550,14 +549,10 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 403
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_get_denied_without_seer_access(self) -> None:
         """GET should be denied when the org has neither seer-explorer nor base Seer access."""
-        with self.feature(
-            {
-                "organizations:seer-explorer": False,
-                "organizations:gen-ai-features": False,
-            }
-        ):
+        with self.feature({"organizations:seer-explorer": False}):
             response = self.client.get(self.url)
 
         assert response.status_code == 403
@@ -674,7 +669,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
 @with_feature("organizations:seer-explorer")
 @override_settings(SENTRY_SELF_HOSTED=False)
-@with_feature("organizations:gen-ai-features")
 class OrganizationSeerAgentChatContextEngineTest(APITestCase):
     """End-to-end tests verifying is_context_engine_enabled reaches make_agent_chat_request."""
 

@@ -35,7 +35,7 @@ const DRAWER_LABEL = 'Seer Explorer Drawer';
 
 const enabledOrg = OrganizationFixture({
   openMembership: true,
-  features: ['seer-explorer', 'gen-ai-features'],
+  features: ['seer-explorer'],
   hideAiFeatures: false,
 });
 
