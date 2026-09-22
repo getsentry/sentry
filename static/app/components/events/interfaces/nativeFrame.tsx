@@ -1,5 +1,6 @@
 import type {MouseEvent} from 'react';
 import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -95,6 +96,7 @@ export function NativeFrame({
   emptySourceNotation,
   isHoverPreviewed = false,
 }: Props) {
+  const theme = useTheme();
   const components = useSentryAppComponentsStore<SentryAppSchemaStacktraceLink>({
     componentType: 'stacktrace-link',
   });
@@ -335,7 +337,11 @@ export function NativeFrame({
               ellipsis
               maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               position="auto-start"
-              style={{maxWidth: '100%', paddingRight: '2px', width: 'fit-content'}}
+              style={{
+                maxWidth: '100%',
+                paddingRight: theme.space['2xs'],
+                width: 'fit-content',
+              }}
               variant="inherit"
             >
               {frame.package
