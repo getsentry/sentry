@@ -11,4 +11,3 @@ export {
   KeyValueTableSubject,
   KeyValueTableValueSection,
 } from './keyValueTableDataRow';
-export {KeyValueTable, KeyValueTableRow} from './keyValueTable';

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -11,7 +12,6 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {t, tct} from 'sentry/locale';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
@@ -74,16 +74,16 @@ function ProjectSecurityHeaders() {
               }
             )}
           </TextBlock>
-          <KeyValueTable margin>
-            <KeyValueTableRow
-              keyName="sentry_environment"
-              value={t('The environment name (e.g. production).')}
-            />
-            <KeyValueTableRow
-              keyName="sentry_release"
-              value={t('The version of the application.')}
-            />
-          </KeyValueTable>
+          <DescriptionList>
+            <DescriptionList.Term>sentry_environment</DescriptionList.Term>
+            <DescriptionList.Details>
+              {t('The environment name (e.g. production).')}
+            </DescriptionList.Details>
+            <DescriptionList.Term>sentry_release</DescriptionList.Term>
+            <DescriptionList.Details>
+              {t('The version of the application.')}
+            </DescriptionList.Details>
+          </DescriptionList>
         </PanelBody>
       </Panel>
 

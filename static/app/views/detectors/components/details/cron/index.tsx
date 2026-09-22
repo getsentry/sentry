@@ -5,8 +5,9 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -14,7 +15,6 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
-import {KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
@@ -266,52 +266,49 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
             </DetailSection>
             <DetectorDetailsDescription description={detector.description} />
             <DetectorExtraDetails>
-              <KeyValueTableRow
-                keyName={t('Monitor slug')}
-                value={
-                  <Flex gap="xs" align="center">
+              <DescriptionList.Term>{t('Monitor slug')}</DescriptionList.Term>
+              <DescriptionList.Details>
+                <Flex gap="xs" align="center">
+                  {/* `ellipsis` widens the text to 100%, which would shove the button to the far edge */}
+                  <Container minWidth="0">
                     <Text ellipsis>{dataSource.queryObj.slug}</Text>
-                    <CopyToClipboardButton
-                      text={dataSource.queryObj.slug}
-                      aria-label={t('Copy monitor slug to clipboard')}
-                      size="zero"
-                      variant="transparent"
-                    />
-                  </Flex>
-                }
-              />
-              <KeyValueTableRow
-                keyName={t('Next check-in')}
-                value={
-                  dataSource.queryObj.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
-                    moment(monitorEnv.nextCheckIn).isAfter(moment()) ? (
-                      <TimeSince
-                        unitStyle="regular"
-                        liveUpdateInterval="second"
-                        date={monitorEnv.nextCheckIn}
-                      />
-                    ) : (
-                      t('Expected Now')
-                    )
-                  ) : (
-                    '-'
-                  )
-                }
-              />
-              <KeyValueTableRow
-                keyName={t('Last check-in')}
-                value={
-                  monitorEnv?.lastCheckIn ? (
+                  </Container>
+                  <CopyToClipboardButton
+                    text={dataSource.queryObj.slug}
+                    aria-label={t('Copy monitor slug to clipboard')}
+                    size="zero"
+                    variant="transparent"
+                  />
+                </Flex>
+              </DescriptionList.Details>
+              <DescriptionList.Term>{t('Next check-in')}</DescriptionList.Term>
+              <DescriptionList.Details>
+                {dataSource.queryObj.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
+                  moment(monitorEnv.nextCheckIn).isAfter(moment()) ? (
                     <TimeSince
                       unitStyle="regular"
                       liveUpdateInterval="second"
-                      date={monitorEnv.lastCheckIn}
+                      date={monitorEnv.nextCheckIn}
                     />
                   ) : (
-                    '-'
+                    t('Expected Now')
                   )
-                }
-              />
+                ) : (
+                  '-'
+                )}
+              </DescriptionList.Details>
+              <DescriptionList.Term>{t('Last check-in')}</DescriptionList.Term>
+              <DescriptionList.Details>
+                {monitorEnv?.lastCheckIn ? (
+                  <TimeSince
+                    unitStyle="regular"
+                    liveUpdateInterval="second"
+                    date={monitorEnv.lastCheckIn}
+                  />
+                ) : (
+                  '-'
+                )}
+              </DescriptionList.Details>
               <DetectorExtraDetails.DateCreated detector={detector} />
               <DetectorExtraDetails.CreatedBy detector={detector} />
               <DetectorExtraDetails.LastModified detector={detector} />

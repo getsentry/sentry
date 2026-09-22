@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {CodeBlock} from '@sentry/scraps/code';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Placeholder} from 'sentry/components/placeholder';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {t, tn} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -77,46 +77,40 @@ export function UptimeDetailsSidebar({
         </div>
       </Grid>
       <SectionHeading>{t('Configuration')}</SectionHeading>
-      <KeyValueTable margin>
-        <KeyValueTableRow
-          keyName={t('Check Interval')}
-          value={t('Every %s', getDuration(uptimeSub.intervalSeconds))}
-        />
-        <KeyValueTableRow
-          keyName={t('Timeout')}
-          value={t('After %s', getDuration(uptimeSub.timeoutMs / 1000, 2))}
-        />
-        <KeyValueTableRow
-          keyName={t('Failure tolerance')}
-          value={tn(
+      <DescriptionList>
+        <DescriptionList.Term>{t('Check Interval')}</DescriptionList.Term>
+        <DescriptionList.Details>
+          {t('Every %s', getDuration(uptimeSub.intervalSeconds))}
+        </DescriptionList.Details>
+        <DescriptionList.Term>{t('Timeout')}</DescriptionList.Term>
+        <DescriptionList.Details>
+          {t('After %s', getDuration(uptimeSub.timeoutMs / 1000, 2))}
+        </DescriptionList.Details>
+        <DescriptionList.Term>{t('Failure tolerance')}</DescriptionList.Term>
+        <DescriptionList.Details>
+          {tn(
             '%s failure check',
             '%s failure checks',
             uptimeDetector.config.downtimeThreshold
           )}
-        />
-        <KeyValueTableRow
-          keyName={t('Recovery tolerance')}
-          value={tn(
-            '%s up check',
-            '%s up checks',
-            uptimeDetector.config.recoveryThreshold
+        </DescriptionList.Details>
+        <DescriptionList.Term>{t('Recovery tolerance')}</DescriptionList.Term>
+        <DescriptionList.Details>
+          {tn('%s up check', '%s up checks', uptimeDetector.config.recoveryThreshold)}
+        </DescriptionList.Details>
+        <DescriptionList.Term>{t('Environment')}</DescriptionList.Term>
+        <DescriptionList.Details>
+          {uptimeDetector.config.environment}
+        </DescriptionList.Details>
+        <DescriptionList.Term>{t('Owner')}</DescriptionList.Term>
+        <DescriptionList.Details>
+          {uptimeDetector.owner ? (
+            <ActorAvatar actor={uptimeDetector.owner} />
+          ) : (
+            t('Unassigned')
           )}
-        />
-        <KeyValueTableRow
-          keyName={t('Environment')}
-          value={uptimeDetector.config.environment}
-        />
-        <KeyValueTableRow
-          keyName={t('Owner')}
-          value={
-            uptimeDetector.owner ? (
-              <ActorAvatar actor={uptimeDetector.owner} />
-            ) : (
-              t('Unassigned')
-            )
-          }
-        />
-      </KeyValueTable>
+        </DescriptionList.Details>
+      </DescriptionList>
     </Fragment>
   );
 }

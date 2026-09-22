@@ -2,12 +2,12 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, Stack} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ReplayTagsTableRow} from 'sentry/components/replays/replayTagsTableRow';
-import {KeyValueTable} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -75,18 +75,20 @@ export function TagPanel() {
     <Stack wrap="nowrap" minHeight="0">
       <TagFilters tags={tags} {...filterProps} />
       <TabItemContainer>
-        <Container as="section" flex="1 1 auto" overflow="auto">
+        <Container as="section" flex="1 1 auto" overflow="auto" padding="sm md">
           {filteredTags.length ? (
-            <KeyValueTable>
-              {filteredTags.map(([key, values]) => (
-                <ReplayTagsTableRow
-                  key={key}
-                  name={key}
-                  values={values}
-                  generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
-                />
-              ))}
-            </KeyValueTable>
+            <Container containerType="inline-size">
+              <DescriptionList>
+                {filteredTags.map(([key, values]) => (
+                  <ReplayTagsTableRow
+                    key={key}
+                    name={key}
+                    values={values}
+                    generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
+                  />
+                ))}
+              </DescriptionList>
+            </Container>
           ) : (
             <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
           )}

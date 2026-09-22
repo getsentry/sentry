@@ -1,12 +1,12 @@
 import {useCallback, useState} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/code';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {Placeholder} from 'sentry/components/placeholder';
-import {KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tn} from 'sentry/locale';
@@ -145,14 +145,14 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
           <DetectorDetailsAssignee owner={detector.owner} />
           <DetectorDetailsDescription description={detector.description} />
           <DetectorExtraDetails>
-            <KeyValueTableRow
-              keyName={t('Interval')}
-              value={t('Every %s', getDuration(dataSource.queryObj.intervalSeconds))}
-            />
-            <KeyValueTableRow
-              keyName={t('Timeout')}
-              value={t('After %s', getDuration(dataSource.queryObj.timeoutMs / 1000, 2))}
-            />
+            <DescriptionList.Term>{t('Interval')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              {t('Every %s', getDuration(dataSource.queryObj.intervalSeconds))}
+            </DescriptionList.Details>
+            <DescriptionList.Term>{t('Timeout')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              {t('After %s', getDuration(dataSource.queryObj.timeoutMs / 1000, 2))}
+            </DescriptionList.Details>
             <DetectorExtraDetails.Environment detector={detector} />
             <DetectorExtraDetails.DateCreated detector={detector} />
             <DetectorExtraDetails.CreatedBy detector={detector} />
