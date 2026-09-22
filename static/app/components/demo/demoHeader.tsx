@@ -58,17 +58,17 @@ export function DemoHeader() {
           href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
           external
         >
-          <Text>{t('Request demo')}</Text>
+          {t('Request demo')}
         </LinkButton>
       </Container>
-      <SignOutButton
+      <Button
         onClick={() => {
           logout(api);
         }}
       >
         {t('Exit Sandbox')}
-      </SignOutButton>
-      <FreeTrialButton
+      </Button>
+      <Button
         variant="primary"
         onClick={() => {
           const url = urlAttachQueryParams(
@@ -87,9 +87,13 @@ export function DemoHeader() {
           logout(api);
         }}
       >
-        <FreeTrialTextLong>{t('Start free trial')}</FreeTrialTextLong>
-        <FreeTrialTextShort>{t('Start trial')}</FreeTrialTextShort>
-      </FreeTrialButton>
+        <Text as="span" variant="inherit" display={{zero: 'none', xl: 'inline'}}>
+          {t('Start free trial')}
+        </Text>
+        <Text as="span" variant="inherit" display={{zero: 'inline', xl: 'none'}}>
+          {t('Start trial')}
+        </Text>
+      </Button>
     </Wrapper>
   );
 }
@@ -109,25 +113,3 @@ const StyledLogoSentry = styled(LogoSentry)`
   height: 30px;
   fill: ${p => p.theme.tokens.graphics.neutral.vibrant};
 `;
-
-const FreeTrialTextShort = styled('span')`
-  display: none;
-`;
-
-const FreeTrialTextLong = styled('span')``;
-
-const FreeTrialButton = styled(Button)`
-  .short-text {
-    display: none;
-  }
-  @container (max-width: ${p => p.theme.container.xl}) {
-    ${FreeTrialTextLong} {
-      display: none;
-    }
-    ${FreeTrialTextShort} {
-      display: inline;
-    }
-  }
-`;
-
-const SignOutButton = styled(Button)``;
