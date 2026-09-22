@@ -74,7 +74,7 @@ export function RootAllocationCard({
                 icon={<IconAdd />}
                 onClick={createRootAllocation}
                 disabled={rootAllocation}
-                style={{width: '100%'}}
+                style={{flexGrow: 1}}
               >
                 {t('Create Organization-Level Allocation')}
               </Button>
