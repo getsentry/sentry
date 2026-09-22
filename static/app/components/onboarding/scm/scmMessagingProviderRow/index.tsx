@@ -1,8 +1,8 @@
 import {useCallback, useEffect, useRef} from 'react';
 import type {ReactNode} from 'react';
+import {motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Tag} from '@sentry/scraps/badge';
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -17,8 +17,6 @@ import type {
   ScmMessagingSetup,
 } from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
-import {IconCheckmark} from 'sentry/icons/iconCheckmark';
-import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {
   IntegrationWithConfig,
@@ -27,8 +25,10 @@ import type {
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ONBOARDING_ENTER} from 'sentry/views/onboarding/animations';
 
 import {RowActions} from './action';
+import {ProviderLogo} from './logo';
 import {openMsTeamsConnectionModal} from './msTeamsConnection';
 import {RowSubtitle} from './subtitle';
 import type {RowVisualState} from './types';
@@ -310,10 +310,15 @@ export function ScmMessagingProviderRow({
   }, [visualState]);
 
   return (
-    <Container border={visualState === 'removing' ? 'danger' : 'primary'} radius="lg">
+    <MotionContainer
+      background="primary"
+      border={visualState === 'removing' ? 'danger' : 'primary'}
+      radius="xl"
+      {...ONBOARDING_ENTER}
+    >
       <Stack>
         {visualState === 'install-error' && (
-          <Stack padding="md" gap="md" align="start">
+          <Stack padding="lg xl" gap="md" align="start">
             <Alert
               variant="danger"
               role="alert"
@@ -329,8 +334,8 @@ export function ScmMessagingProviderRow({
         )}
 
         {visualState !== 'install-error' && (
-          <Flex padding="lg" gap="md" align="center" justify="between">
-            <Flex gap="md" align="center" style={{flex: 1, minWidth: 0}}>
+          <Flex padding="lg xl" gap="xl" align="center" justify="between">
+            <Flex gap="xl" align="center" style={{flex: 1, minWidth: 0}}>
               <Container
                 flexShrink={0}
                 paddingTop="2xs"
@@ -342,11 +347,11 @@ export function ScmMessagingProviderRow({
                   visualState === 'removing' ? resolvedProvider.provider.name : undefined
                 }
               >
-                <PluginIcon pluginId={resolvedProvider.providerKey} size={28} />
+                <ProviderLogo providerKey={resolvedProvider.providerKey} />
               </Container>
               <Stack gap="sm">
-                <Flex gap="xs" align="center">
-                  <Text bold size="md">
+                <Flex gap="md" align="center">
+                  <Text bold size="lg">
                     {visualState === 'removing'
                       ? t('Remove this destination?')
                       : resolvedProvider.provider.name}
@@ -361,15 +366,6 @@ export function ScmMessagingProviderRow({
                         variant="muted"
                       />
                     )}
-                  {resolvedProvider.status === 'connected' &&
-                    visualState !== 'removing' &&
-                    (isConfigured ? (
-                      <Tag variant="success" icon={<IconCheckmark />}>
-                        {t('Connected')}
-                      </Tag>
-                    ) : (
-                      <Tag variant="info">{t('Authorized')}</Tag>
-                    ))}
                 </Flex>
                 <RowSubtitle
                   visualState={visualState}
@@ -379,7 +375,7 @@ export function ScmMessagingProviderRow({
               </Stack>
             </Flex>
 
-            <Flex gap="sm" align="center" style={{flexShrink: 0}}>
+            <Flex gap="md" align="center" style={{flexShrink: 0}}>
               <RowActions
                 focusRef={focusRef}
                 visualState={visualState}
@@ -417,6 +413,8 @@ export function ScmMessagingProviderRow({
             </Container>
           )}
       </Stack>
-    </Container>
+    </MotionContainer>
   );
 }
+
+const MotionContainer = motion.create(Container);

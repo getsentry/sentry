@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Select, type SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -178,7 +178,7 @@ export function ScmMessagingChannelPicker({
   return (
     <form onSubmit={handleSave}>
       <Stack gap="lg" padding="xl">
-        <Grid columns={hasMultipleWorkspaces ? '1fr 1fr' : '1fr'} gap="md">
+        <Stack gap="xl">
           {hasMultipleWorkspaces && (
             <Stack gap="xs">
               <Text as="label" htmlFor={workspaceId} bold size="sm">
@@ -221,7 +221,7 @@ export function ScmMessagingChannelPicker({
               )}
             </ChannelField>
           </Stack>
-        </Grid>
+        </Stack>
         {isChannelsError && (
           <Alert variant="warning" role="alert">
             {t('Failed to load channels. You can still type a channel name.')}
@@ -234,7 +234,7 @@ export function ScmMessagingChannelPicker({
         padding="lg"
         background="secondary"
         borderTop="primary"
-        style={{borderRadius: `0 0 ${theme.radius.lg} ${theme.radius.lg}`}}
+        style={{borderRadius: `0 0 ${theme.radius.xl} ${theme.radius.xl}`}}
       >
         {onCancel && (
           <Button size="sm" variant="link" disabled={isContinuing} onClick={onCancel}>
