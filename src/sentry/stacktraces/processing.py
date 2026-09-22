@@ -178,9 +178,7 @@ def normalize_stacktraces_for_grouping(
     # the trimming produces a different function than the function we have
     # otherwise stored in `function` to not make the payload larger
     # unnecessarily.
-    with traces.start_span(
-        name="iterate_frames", attributes=({"sentry.op": op} if op is not None else {})
-    ):
+    with traces.start_span(name="iterate_frames", attributes={"sentry.op": op}):
         stripped_querystring = False
         for frames in stacktrace_frames:
             for frame in frames:
@@ -269,7 +267,7 @@ def normalize_stacktraces_for_grouping(
     if grouping_config is not None:
         with traces.start_span(
             name="apply_modifications_to_frame",
-            attributes=({"sentry.op": op} if op is not None else {}),
+            attributes={"sentry.op": op},
         ):
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used

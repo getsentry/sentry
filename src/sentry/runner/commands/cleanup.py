@@ -132,10 +132,13 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 sentry_sdk.get_current_scope().get_active_propagation_context()
             )
             prev_sampling_context = active_propagation_context.custom_sampling_context
-            Scope.set_custom_sampling_context({"sample_rate": 1.0})
+            Scope.set_custom_sampling_context(
+                {"sample_rate": 0.5 * settings.SENTRY_BACKEND_APM_SAMPLING}
+            )
             try:
                 span = traces.start_span(
-                    name="backpressure.monitoring",
+                    name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
+                    attributes={"sentry.op": "cleanup"},
                     parent_span=None,
                 )
             finally:
