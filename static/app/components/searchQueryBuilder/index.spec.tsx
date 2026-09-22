@@ -4241,6 +4241,64 @@ describe('SearchQueryBuilder', () => {
         );
       });
 
+      it('tracks a manual value submission as valid when it is accepted', async () => {
+        const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            searchSource="ourlogs"
+            initialQuery="timesSeen:>100"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: timesSeen'})
+        );
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('7{Enter}');
+
+        const calls = trackAnalyticsSpy.mock.calls.filter(
+          ([event]) => event === 'search.value_manual_submitted'
+        );
+
+        expect(calls).toEqual([
+          [
+            'search.value_manual_submitted',
+            expect.objectContaining({filter_value: '7', invalid: false}),
+          ],
+        ]);
+      });
+
+      it('tracks a manual value submission as invalid when it is rejected', async () => {
+        const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            searchSource="ourlogs"
+            initialQuery="timesSeen:>100"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: timesSeen'})
+        );
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('a{Enter}');
+
+        const calls = trackAnalyticsSpy.mock.calls.filter(
+          ([event]) => event === 'search.value_manual_submitted'
+        );
+
+        expect(calls).toEqual([
+          [
+            'search.value_manual_submitted',
+            expect.objectContaining({filter_value: 'a', invalid: true}),
+          ],
+        ]);
+      });
+
       it('sorts value suggestions by fuzzy match relevance', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
