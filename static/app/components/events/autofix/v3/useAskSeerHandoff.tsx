@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
 import {useIsSeerCodeMode} from 'sentry/components/events/autofix/v3/useIsSeerCodeMode';
-import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
+import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
 
 /**
  * With code mode on, Seer Agent can drive the run itself, so the next-step
@@ -9,20 +9,24 @@ import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer
  * instead. The prompt is submitted for the reader, since the point of the
  * buttons is that they do not have to phrase it.
  *
- * `appendToOpenRun` keeps an agent session the reader already has going: the
- * question is about the analysis on screen, so starting a fresh session would
- * throw away the context that makes it answerable.
+ * Posting through the chat context rather than opening the Explorer drawer
+ * keeps the question on whichever surface is already showing — sidebar, drawer
+ * or popped out — instead of stacking a second one beside it. Sending without
+ * `newChat` adds to the run already open, so the question keeps the context on
+ * screen that makes it answerable.
+ *
+ * `isCodeMode` is false when no chat is reachable, so callers keep the ordinary
+ * Autofix buttons rather than offering a hand-off that goes nowhere.
  */
 export function useAskSeerHandoff() {
-  const {openSeerExplorerDrawer} = useSeerExplorerDrawer();
-
-  const isCodeMode = useIsSeerCodeMode();
+  const {sendMessage} = useAutofixChat();
+  const isCodeMode = useIsSeerCodeMode() && Boolean(sendMessage);
 
   const askSeer = useCallback(
     (prompt: string) => {
-      openSeerExplorerDrawer({initialQuery: prompt, appendToOpenRun: true});
+      sendMessage?.(prompt);
     },
-    [openSeerExplorerDrawer]
+    [sendMessage]
   );
 
   return {askSeer, isCodeMode};

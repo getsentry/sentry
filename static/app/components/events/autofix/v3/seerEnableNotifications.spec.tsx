@@ -49,8 +49,17 @@ describe('SeerEnableNotifications', () => {
 
   it('stays quiet in code mode, where the agent owns the run', () => {
     render(<SeerEnableNotifications status="processing" />, {
+      // Code mode needs the Explorer's own prerequisites alongside its flag,
+      // since a run can only move to chat when chat is reachable.
       organization: OrganizationFixture({
-        features: ['autofix-browser-notifications', 'seer-explorer-code-mode-tools'],
+        features: [
+          'autofix-browser-notifications',
+          'seer-explorer-code-mode-tools',
+          'seer-explorer',
+          'gen-ai-features',
+        ],
+        openMembership: true,
+        hideAiFeatures: false,
       }),
     });
 

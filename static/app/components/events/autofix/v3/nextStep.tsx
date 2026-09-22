@@ -32,6 +32,7 @@ import {
   useAskSeerHandoff,
 } from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
+import {useIsSeerCodeMode} from 'sentry/components/events/autofix/v3/useIsSeerCodeMode';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
@@ -305,10 +306,15 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 
 function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
+  const isCodeMode = useIsSeerCodeMode();
 
+  // In code mode "yes" asks the agent rather than opening a pull request, so
+  // repository write access is beside the point. Leaving the gate on would hide
+  // the whole row while it resolves, then offer a permissions CTA in place of
+  // the question.
   const {permissionsTarget, isPending, checkTargetWriteAccess} = useAutofixCreatePrGate({
     group,
-    enabled: defined(artifact),
+    enabled: defined(artifact) && !isCodeMode,
   });
 
   if (!defined(artifact)) {
