@@ -192,19 +192,23 @@ describe('Chart embed', () => {
   });
 
   it('collapses the plot behind the chart title', async () => {
-    renderChart({
-      title: 'Error volume',
-      subtitle: 'Last three hours',
-      series: [
-        {
-          label: 'Errors',
-          data: [
-            {x: '2026-07-30T12:00:00Z', y: 12},
-            {x: '2026-07-30T13:00:00Z', y: 18},
+    render(
+      <ExampleChartEmbed
+        body={{
+          title: 'Error volume',
+          subtitle: 'Last three hours',
+          series: [
+            {
+              label: 'Errors',
+              data: [
+                {x: '2026-07-30T12:00:00Z', y: 12},
+                {x: '2026-07-30T13:00:00Z', y: 18},
+              ],
+            },
           ],
-        },
-      ],
-    });
+        }}
+      />
+    );
 
     // A chart has no page of its own to link to, so the header carries the
     // toggle alone.
