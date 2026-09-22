@@ -297,13 +297,9 @@ describe('errors query embed', () => {
       body: {data: []},
     });
 
-    render(
-      <ExampleErrorsQueryEmbed // No `mode`={} so this also pins the schema default. `errorsQuery` shipped
-        // before the mode existed={} and samples is what it used to do.
-        data={{query: 'is:unresolved'}}
-        level="inline"
-      />
-    );
+    // No `mode`, so this also pins the schema default. `errorsQuery` shipped
+    // before the mode existed, and samples is what it used to do.
+    render(<ExampleErrorsQueryEmbed data={{query: 'is:unresolved'}} level="inline" />);
 
     expect(screen.getByRole('link', {name: 'Error search'})).toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
