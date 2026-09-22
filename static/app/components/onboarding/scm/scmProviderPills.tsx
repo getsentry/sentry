@@ -1,11 +1,17 @@
+import {motion} from 'framer-motion';
+
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  ONBOARDING_ENTER,
+  ONBOARDING_STAGGER_CHILDREN,
+} from 'sentry/views/onboarding/animations';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
@@ -23,17 +29,17 @@ interface ScmProviderPillsProps {
   analyticsFlow: ScmAnalyticsFlow;
   onInstall: (data: Integration) => void;
   providers: IntegrationProvider[];
+  // Horizontal alignment of the pill row. Left by default; hosts that center
+  // their layout (the onboarding connect step) pass `center`.
+  justify?: FlexProps['justify'];
 }
 
-export function ScmProviderPills(props: ScmProviderPillsProps) {
+export function ScmProviderPills({justify = 'start', ...props}: ScmProviderPillsProps) {
   return (
-    // Declares its own query container: the pills compact and wrap against
-    // this wrapper's width when it is tight. The wrapper is capped well below
-    // the page-level container scale, so page-relative keys would never fire
-    // here. The row is a separate component because it reads this container in
-    // JS, and an element can't query itself.
-    <Flex justify="start" containerType="inline-size">
-      <ScmProviderPillRow {...props} />
+    // Declares its own query container: pills that do not fit this wrapper's
+    // width wrap to the next line instead of overflowing it.
+    <Flex justify={justify} containerType="inline-size">
+      <ScmProviderPillRow justify={justify} {...props} />
     </Flex>
   );
 }
@@ -42,76 +48,78 @@ function ScmProviderPillRow({
   analyticsFlow,
   providers,
   onInstall,
+  justify,
 }: ScmProviderPillsProps) {
   const organization = useOrganization();
   const {startFlow} = useAddIntegration();
   const {primaryProviders, moreProviders} = partitionScmProviders(providers);
   const view = INSTALL_VIEW[analyticsFlow];
-
-  // When the row is tight the pills compact: the xs button size with matching
-  // icons and a tighter gap. Pills that still do not fit wrap to the next line
-  // instead of overflowing the container.
-  const isCompact = useResponsivePropValue({zero: true, sm: false});
-  const buttonSize = isCompact ? 'xs' : 'md';
-  const iconSize = isCompact ? 'xs' : 'sm';
+  const buttonSize = 'md';
+  const iconSize = 'sm';
 
   return (
-    <Flex wrap="wrap" gap={{zero: 'sm', sm: 'md'}}>
+    <MotionFlex wrap="wrap" justify={justify} gap="md" {...ONBOARDING_STAGGER_CHILDREN}>
       {primaryProviders.map(provider => (
-        <IntegrationContext
-          key={provider.key}
-          value={{
-            provider,
-            type: 'first_party',
-            installStatus: 'Not Installed',
-            analyticsParams: {
-              view,
-              variant: 'scm',
-              already_installed: false,
-            },
-            suppressSuccessMessage: true,
-          }}
-        >
-          <IntegrationButton
-            userHasAccess
-            onAddIntegration={onInstall}
-            onExternalClick={() => {}}
-            buttonProps={{
-              size: buttonSize,
-              icon: getIntegrationIcon(provider.key, iconSize),
-              buttonText: provider.name,
-              // AddIntegrationButton names every instance "Add integration";
-              // name each pill by its provider instead.
-              'aria-label': t('Add %s', provider.name),
+        <MotionContainer key={provider.key} {...ONBOARDING_ENTER}>
+          <IntegrationContext
+            value={{
+              provider,
+              type: 'first_party',
+              installStatus: 'Not Installed',
+              analyticsParams: {
+                view,
+                variant: 'scm',
+                already_installed: false,
+              },
+              suppressSuccessMessage: true,
             }}
-          />
-        </IntegrationContext>
+          >
+            <IntegrationButton
+              userHasAccess
+              onAddIntegration={onInstall}
+              onExternalClick={() => {}}
+              buttonProps={{
+                size: buttonSize,
+                icon: getIntegrationIcon(provider.key, iconSize),
+                buttonText: provider.name,
+                // AddIntegrationButton names every instance "Add integration";
+                // name each pill by its provider instead.
+                'aria-label': t('Add %s', provider.name),
+              }}
+            />
+          </IntegrationContext>
+        </MotionContainer>
       ))}
       {moreProviders.length > 0 && (
-        <DropdownMenu
-          triggerLabel={t('More')}
-          triggerProps={{'aria-label': t('More providers')}}
-          position="bottom-end"
-          size={buttonSize}
-          items={moreProviders.map(provider => ({
-            key: provider.key,
-            label: provider.name,
-            leadingItems: getIntegrationIcon(provider.key, iconSize),
-            onAction: () =>
-              startFlow({
-                provider,
-                organization,
-                onInstall,
-                analyticsParams: {
-                  view,
-                  variant: 'scm',
-                  already_installed: false,
-                },
-                suppressSuccessMessage: true,
-              }),
-          }))}
-        />
+        <MotionContainer {...ONBOARDING_ENTER}>
+          <DropdownMenu
+            triggerLabel={t('More')}
+            triggerProps={{'aria-label': t('More providers')}}
+            position="bottom-end"
+            size={buttonSize}
+            items={moreProviders.map(provider => ({
+              key: provider.key,
+              label: provider.name,
+              leadingItems: getIntegrationIcon(provider.key, iconSize),
+              onAction: () =>
+                startFlow({
+                  provider,
+                  organization,
+                  onInstall,
+                  analyticsParams: {
+                    view,
+                    variant: 'scm',
+                    already_installed: false,
+                  },
+                  suppressSuccessMessage: true,
+                }),
+            }))}
+          />
+        </MotionContainer>
       )}
-    </Flex>
+    </MotionFlex>
   );
 }
+
+const MotionFlex = motion.create(Flex);
+const MotionContainer = motion.create(Container);
