@@ -823,10 +823,6 @@ const lightThemeDefinition = {
     baseLightTheme.tokens.content.onVibrant
   ),
 
-  stacktrace: {
-    activeLineBackground: `color-mix(in srgb, ${ccl.purple} 20%, transparent)`,
-  },
-
   colors: lightColors,
 };
 
@@ -867,10 +863,6 @@ export const darkTheme: SentryTheme = {
     (({lime: _lime, ...rest}) => rest)(color.categorical.dark),
     baseDarkTheme.tokens.content.onVibrant
   ),
-
-  stacktrace: {
-    activeLineBackground: `color-mix(in srgb, ${ccd.purple} 20%, transparent)`,
-  },
 
   colors: darkColors,
 };

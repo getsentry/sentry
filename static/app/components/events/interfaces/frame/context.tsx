@@ -249,7 +249,7 @@ const ContextLineWrapper = styled('div')<{isActive: boolean}>`
   gap: ${p => p.theme.space.md};
   background: ${p =>
     p.isActive
-      ? p.theme.stacktrace.activeLineBackground
+      ? p.theme.tokens.background.transparent.accent.muted
       : p.theme.tokens.background.primary};
   color: ${p => (p.isActive ? p.theme.tokens.content.primary : 'inherit')};
   padding-right: ${p => p.theme.space.xl};
