@@ -513,6 +513,22 @@ describe('regex filters', () => {
       modifyFilterValue(query, getRegexFilterToken(query), 'a.*b', TermOperator.MATCHES)
     ).toBe('message://a.*b//');
   });
+
+  it('escapes an inner slash pair when the value update switches to matches regex', () => {
+    const query = 'message:foo';
+
+    expect(
+      modifyFilterValue(query, getRegexFilterToken(query), 'a// b', TermOperator.MATCHES)
+    ).toBe('message://a\\/\\/ b//');
+  });
+
+  it('wraps the value in slashes when an array membership filter switches to matches regex', () => {
+    const query = 'csv_headers[*]:foo';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.MATCHES)
+    ).toBe('csv_headers[*]://foo//');
+  });
 });
 
 describe('syntax-bearing filter keys', () => {

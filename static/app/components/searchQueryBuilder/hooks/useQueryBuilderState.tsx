@@ -26,10 +26,12 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {
+  escapeRegexDelimiters,
   getKeyName,
   isRegexOperator,
   quoteFilterKey,
   stringifyToken,
+  unescapeRegexDelimiters,
 } from 'sentry/components/searchSyntax/utils';
 import {defined} from 'sentry/utils/defined';
 
@@ -381,8 +383,7 @@ export function modifyFilterOperatorQuery(
     !isRegexOperator(internalOp) &&
     newToken.value.type === Token.VALUE_TEXT
   ) {
-    // Undo the escaping stringifyToken applies to an inner `//`.
-    const value = newToken.value.value.replaceAll(/\\\/\\\/(?=[\t\n )])/g, '//');
+    const value = unescapeRegexDelimiters(newToken.value.value);
     const quoted = !value.endsWith('\\');
     newToken.value = {
       ...newToken.value,
@@ -713,7 +714,7 @@ export function modifyFilterValue(
   const keyStr = stringifyToken(token.key);
   const replacement =
     internalOp === TermOperator.MATCHES
-      ? `${prefix}${keyStr}://${newValue}//`
+      ? `${prefix}${keyStr}://${escapeRegexDelimiters(newValue)}//`
       : `${prefix}${keyStr}:${internalOp}${newValue}`;
   return replaceQueryToken(query, token, replacement);
 }

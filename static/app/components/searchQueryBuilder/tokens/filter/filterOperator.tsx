@@ -36,7 +36,7 @@ import {
   type Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {type FieldDefinition} from 'sentry/utils/fields';
@@ -223,11 +223,24 @@ export function getOperatorInfo({
     // membership and `!` negation reads as "does not include".
     const includesLabel = 'includes';
     const doesNotIncludeLabel = 'does not include';
-    const isNegated = operator === TermOperator.NOT_EQUAL;
+    const membershipLabel =
+      operator === TermOperator.NOT_EQUAL ? doesNotIncludeLabel : includesLabel;
+
+    const regexOps = getValidOpsForFilter({
+      filterToken,
+      fieldDefinition,
+      allowRegexOperators,
+    })
+      .filter(op => isRegexOperator(op))
+      .filter(op => !disallowNegation || !isNegationOperator(op));
 
     return {
       operator,
-      label: <OpLabel>{isNegated ? doesNotIncludeLabel : includesLabel}</OpLabel>,
+      label: (
+        <OpLabel>
+          {isRegexOperator(operator) ? OP_LABELS[operator] : membershipLabel}
+        </OpLabel>
+      ),
       options: [
         {
           value: TermOperator.DEFAULT,
@@ -243,6 +256,15 @@ export function getOperatorInfo({
                 textValue: doesNotIncludeLabel,
               },
             ]),
+        ...regexOps.map((op): SelectOption<TermOperator> => {
+          const optionOpLabel = OP_LABELS[op] ?? op;
+
+          return {
+            value: op,
+            label: <OpLabel>{optionOpLabel}</OpLabel>,
+            textValue: optionOpLabel,
+          };
+        }),
       ],
     };
   }

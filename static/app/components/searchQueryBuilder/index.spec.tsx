@@ -8397,6 +8397,74 @@ describe('SearchQueryBuilder', () => {
       });
     });
 
+    it('offers the regex operators for an array membership filter', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="csv_headers[*]:foo"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: 'Edit operator for filter: csv_headers[*]',
+        })
+      );
+      expect(screen.getByRole('option', {name: 'includes'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: 'matches regex'}));
+
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit operator for filter: csv_headers[*]'})
+        ).getByText('matches regex')
+      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          'csv_headers[*]://foo//',
+          expect.anything()
+        );
+      });
+    });
+
+    it('labels an existing array membership regex filter as matches regex', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="csv_headers[*]://^a.*b//"
+        />
+      );
+
+      expect(
+        within(
+          await screen.findByRole('button', {
+            name: 'Edit operator for filter: csv_headers[*]',
+          })
+        ).getByText('matches regex')
+      ).toBeInTheDocument();
+    });
+
+    it('labels a negated array membership regex filter as does not match regex', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="!csv_headers[*]://^a.*b//"
+        />
+      );
+
+      expect(
+        within(
+          await screen.findByRole('button', {
+            name: 'Edit operator for filter: csv_headers[*]',
+          })
+        ).getByText('does not match regex')
+      ).toBeInTheDocument();
+    });
+
     it('negates the filter when does not match regex is selected', async () => {
       const mockOnChange = jest.fn();
       render(

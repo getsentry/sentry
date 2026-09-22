@@ -325,16 +325,26 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
     const unwrapped = token.value.quoted
       ? token.value.value.replaceAll('\\"', '"')
       : token.value.value;
-    // A pattern ends at the first `//` followed by a space or `)`, so an inner
-    // one has to be escaped to stay part of the pattern.
-    const pattern = unwrapped.replaceAll(/\/\/(?=[\t\n )])/g, '\\/\\/');
-    return `${stringifiedToken}//${pattern}//`;
+    return `${stringifiedToken}//${escapeRegexDelimiters(unwrapped)}//`;
   }
 
   stringifiedToken += token.operator;
   stringifiedToken += stringifyToken(token.value);
 
   return stringifiedToken;
+}
+
+/**
+ * A pattern ends at the first `//` followed by a space or `)`, so an inner one
+ * has to be escaped to stay part of the pattern. RE2 reads `\/` as a literal
+ * `/`, so the escaped pattern matches the same values.
+ */
+export function escapeRegexDelimiters(pattern: string): string {
+  return pattern.replaceAll(/\/\/(?=[\t\n )])/g, '\\/\\/');
+}
+
+export function unescapeRegexDelimiters(pattern: string): string {
+  return pattern.replaceAll(/\\\/\\\/(?=[\t\n )])/g, '//');
 }
 
 export function isWildcardOperator(value: unknown): value is WildcardOperator {
