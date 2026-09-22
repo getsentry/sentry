@@ -3,7 +3,6 @@ import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
@@ -12,13 +11,10 @@ import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {
   TraceError as TraceErrorType,
-  TraceFullDetailed,
   TracePerformanceIssue as TracePerformanceIssueType,
-  TraceSplitResults,
 } from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
-import {isTraceSplitResult} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {
   isEAPError,
   isEAPSpan,
@@ -42,7 +38,6 @@ import {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
 import {RootNode} from './traceTreeNode/rootNode';
 import {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
 import {TraceNode} from './traceTreeNode/traceNode';
-import {TransactionNode} from './traceTreeNode/transactionNode';
 import {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import {traceChronologicalSort} from './traceTreeNode/utils';
 import {makeExampleTrace} from './makeExampleTrace';
@@ -203,19 +198,7 @@ export declare namespace TraceTree {
     description?: string;
   };
 
-  // Raw node values
-  interface Span extends RawSpanType {
-    measurements?: Record<string, Measurement>;
-  }
-
-  interface Transaction extends TraceFullDetailed {
-    profiler_id: string;
-    sdk_name: string;
-  }
-
   type EAPTrace = Array<EAPSpan | EAPError | UptimeCheck>;
-
-  type Trace = TraceSplitResults<Transaction> | EAPTrace;
 
   type TraceError = TraceErrorType;
   type TraceErrorIssue = TraceError | EAPError;
@@ -238,11 +221,9 @@ export declare namespace TraceTree {
 
   // All possible node value types
   type NodeValue =
-    | Trace
-    | Transaction
+    | EAPTrace
     | TraceError
     | EAPError
-    | Span
     | EAPSpan
     | UptimeCheck
     | UptimeCheckTiming
@@ -344,7 +325,7 @@ function fetchTrace(
     query: string;
     traceId: string;
   }
-): Promise<TraceSplitResults<TraceTree.Transaction> | TraceTree.EAPTrace> {
+): Promise<TraceTree.EAPTrace> {
   return api.requestPromise(
     `/organizations/${params.orgSlug}/trace/${params.traceId}/?${params.query}`
   );
@@ -411,7 +392,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   }
 
   static FromTrace(
-    trace: TraceTree.Trace,
+    trace: TraceTree.EAPTrace,
     options: {
       meta: TraceMetaQueryResults['data'] | null;
       organization: Organization;
@@ -437,12 +418,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     function visit(
       parent: BaseNode,
-      value:
-        | TraceTree.Transaction
-        | TraceTree.TraceError
-        | TraceTree.EAPSpan
-        | TraceTree.EAPError
-        | TraceTree.UptimeCheck
+      value: TraceTree.EAPSpan | TraceTree.EAPError | TraceTree.UptimeCheck
     ) {
       const nodeId = 'event_id' in value ? value.event_id : undefined;
       if (nodeId && visitedIds.has(nodeId)) {
@@ -478,22 +454,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
           organization: options.organization,
           replayTraceSlug: options.replayTraceSlug,
         });
-      } else if (isTraceError(value) || isEAPError(value)) {
+      } else {
         node = new ErrorNode(parent, value, {
           organization: options.organization,
           replayTraceSlug: options.replayTraceSlug,
         });
-      } else {
-        node = new TransactionNode(parent, value, {
-          organization: options.organization,
-          replayTraceSlug: options.replayTraceSlug,
-          meta: options.meta,
-        });
-
-        // We only want to add transactions as profiled events.
-        if (node.hasProfiles) {
-          tree.profiled_events.add(node);
-        }
       }
 
       if (node.canFetchChildren || !node.expanded) {
@@ -507,7 +472,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
     }
 
-    traceQueueIterator(trace, traceNode, visit);
+    const sortedTrace = trace.toSorted((a, b) => a.start_timestamp - b.start_timestamp);
+    for (const item of sortedTrace) {
+      visit(traceNode, item);
+    }
 
     // At this point, the tree is built, we need  iterate over it again to collect all of the
     // measurements, web vitals, errors and perf issues as well as calculate the min and max space
@@ -1498,69 +1466,6 @@ function printTraceTreeNode(node: BaseNode, offset: number): string {
   // +1 because we may be printing from the root which is -1 indexed
   const padding = '  '.repeat(TraceTree.depth(node) + offset);
   return padding + node.printNode();
-}
-
-// Double queue iterator to merge transactions and errors into a single list ordered by timestamp
-// without having to reallocate the potentially large list of transactions and errors.
-function traceQueueIterator(
-  trace: TraceTree.Trace,
-  root: BaseNode,
-  visitor: (
-    parent: BaseNode,
-    value:
-      | TraceTree.Transaction
-      | TraceTree.TraceError
-      | TraceTree.EAPSpan
-      | TraceTree.EAPError
-      | TraceTree.UptimeCheck
-  ) => void
-) {
-  if (!isTraceSplitResult(trace)) {
-    // Eap spans are not sorted by default
-    const spans = trace.toSorted((a, b) => a.start_timestamp - b.start_timestamp);
-    for (const span of spans) {
-      visitor(root, span);
-    }
-    return;
-  }
-
-  let tIdx = 0;
-  let oIdx = 0;
-
-  const tLen = trace.transactions.length;
-  const oLen = trace.orphan_errors.length;
-
-  const transactions = trace.transactions.toSorted(
-    (a, b) => a.start_timestamp - b.start_timestamp
-  );
-  const orphan_errors = trace.orphan_errors.toSorted(
-    (a, b) => (a?.timestamp ?? 0) - (b?.timestamp ?? 0)
-  );
-  // Items in each queue are sorted by timestamp, so we just take
-  // from the queue with the earliest timestamp which means the final list will be ordered.
-  while (tIdx < tLen || oIdx < oLen) {
-    const transaction = transactions[tIdx];
-    const orphan = orphan_errors[oIdx];
-
-    if (transaction && orphan) {
-      if (
-        typeof orphan.timestamp === 'number' &&
-        transaction.start_timestamp <= orphan.timestamp
-      ) {
-        visitor(root, transaction);
-        tIdx++;
-      } else {
-        visitor(root, orphan);
-        oIdx++;
-      }
-    } else if (transaction) {
-      visitor(root, transaction);
-      tIdx++;
-    } else if (orphan) {
-      visitor(root, orphan);
-      oIdx++;
-    }
-  }
 }
 
 const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation', 'ui.load'];

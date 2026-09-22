@@ -1,6 +1,5 @@
 import {uuid4} from '@sentry/core';
 
-import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
@@ -25,36 +24,6 @@ export function makeEAPTrace(overrides: Partial<TraceTree.EAPTrace>): TraceTree.
       ],
     }),
   ]) as TraceTree.EAPTrace;
-}
-
-export function makeTransaction(
-  overrides: Partial<TraceTree.Transaction> = {}
-): TraceTree.Transaction {
-  return {
-    children: [],
-    sdk_name: '',
-    start_timestamp: 0,
-    timestamp: 1,
-    transaction: 'transaction',
-    'transaction.op': 'transaction.op',
-    'transaction.status': '',
-    performance_issues: [],
-    errors: [],
-    ...overrides,
-  } as TraceTree.Transaction;
-}
-
-export function makeSpan(overrides: Partial<TraceTree.Span> = {}): TraceTree.Span {
-  return {
-    span_id: overrides.span_id ?? uuid4(),
-    op: 'span.op',
-    description: 'span.description',
-    start_timestamp: 0,
-    timestamp: 10,
-    data: {},
-    trace_id: '',
-    ...overrides,
-  };
 }
 
 export function makeEAPSpan(
@@ -129,30 +98,6 @@ export function makeTraceError(
     data: {},
     ...overrides,
   } as TraceTree.TraceError;
-}
-
-export function makeTracePerformanceIssue(
-  overrides: Partial<TraceTree.TracePerformanceIssue> = {}
-): TraceTree.TracePerformanceIssue {
-  return {
-    culprit: 'code',
-    end: new Date().toISOString(),
-    span: [],
-    start: new Date().toISOString(),
-    suspect_spans: ['sus span'],
-    type: 0,
-    issue_short_id: 'issue short id',
-    ...overrides,
-  } as TraceTree.TracePerformanceIssue;
-}
-
-export function makeEventTransaction(overrides: Partial<Event> = {}): EventTransaction {
-  return {
-    contexts: {},
-    tags: [],
-    entries: [{type: EntryType.SPANS, data: []}],
-    ...overrides,
-  } as EventTransaction;
 }
 
 export function makeParentAutogroup(

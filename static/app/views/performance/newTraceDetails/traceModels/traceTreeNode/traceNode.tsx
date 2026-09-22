@@ -1,4 +1,3 @@
-import {isTraceSplitResult} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceRootRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceRootNode';
@@ -7,21 +6,21 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import type {RootNode} from './rootNode';
 
-export class TraceNode extends BaseNode<TraceTree.Trace> {
+export class TraceNode extends BaseNode<TraceTree.EAPTrace> {
   id: string;
   type: TraceTree.NodeType;
 
   // We want to enforce the parent to only be a RootNode or null
   constructor(
     parent: RootNode | null,
-    value: TraceTree.Trace,
+    value: TraceTree.EAPTrace,
     extra: TraceTreeNodeExtra
   ) {
     super(parent, value, extra);
     this.canShowDetails = false;
     this.id = 'root';
     this.type = 'trace';
-    this.isEAPEvent = !isTraceSplitResult(this.value);
+    this.isEAPEvent = true;
     this.parent?.children.push(this);
   }
 
@@ -38,7 +37,7 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
   }
 
   printNode(): string {
-    return isTraceSplitResult(this.value) ? 'trace root' : 'eap trace root';
+    return 'eap trace root';
   }
 
   matchById(_id: string): boolean {

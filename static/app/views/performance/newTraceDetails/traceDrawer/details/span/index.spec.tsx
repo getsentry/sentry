@@ -24,73 +24,80 @@ describe('SpanNodeDetails', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders EAP span details with title, ID, op, and description', async () => {
-    const organization = OrganizationFixture();
-    const project = ProjectFixture({id: '1', slug: 'project_slug'});
+  it.each([
+    {isTransaction: false, nodeType: 'span'},
+    {isTransaction: true, nodeType: 'transaction'},
+  ])(
+    'renders EAP $nodeType details with ID, op, and description',
+    async ({isTransaction}) => {
+      const organization = OrganizationFixture();
+      const project = ProjectFixture({id: '1', slug: 'project_slug'});
 
-    act(() => ProjectsStore.loadInitialData([project]));
+      act(() => ProjectsStore.loadInitialData([project]));
 
-    const spanValue = makeEAPSpan({
-      event_id: 'test-span-id',
-      op: 'db.query',
-      description: 'SELECT * FROM users',
-      project_id: 1,
-      project_slug: 'project_slug',
-    });
+      const spanValue = makeEAPSpan({
+        event_id: 'test-span-id',
+        op: 'db.query',
+        description: 'SELECT * FROM users',
+        is_transaction: isTransaction,
+        project_id: 1,
+        project_slug: 'project_slug',
+      });
 
-    const extra = createMockExtra({organization});
-    const node = new EapSpanNode(null, spanValue, extra);
+      const extra = createMockExtra({organization});
+      const node = new EapSpanNode(null, spanValue, extra);
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/trace-items/${spanValue.event_id}/`,
-      method: 'GET',
-      body: {
-        itemId: spanValue.event_id,
-        timestamp: new Date().toISOString(),
-        attributes: [],
-        meta: {},
-      },
-    });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${spanValue.event_id}/`,
+        method: 'GET',
+        body: {
+          itemId: spanValue.event_id,
+          timestamp: new Date().toISOString(),
+          attributes: [],
+          meta: {},
+        },
+      });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      body: {data: []},
-    });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {data: []},
+      });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/logs/`,
-      method: 'GET',
-      body: {data: []},
-    });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/logs/`,
+        method: 'GET',
+        body: {data: []},
+      });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/dashboards/`,
-      method: 'GET',
-      body: [],
-    });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/dashboards/`,
+        method: 'GET',
+        body: [],
+      });
 
-    render(
-      <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-        <EAPSpanNodeDetails
-          node={node}
-          organization={organization}
-          onTabScrollToNode={jest.fn()}
-          onParentClick={jest.fn()}
-          manager={null}
-          replay={null}
-          traceId="test-trace-id"
-          tree={null as any}
-        />
-      </TraceStateProvider>
-    );
+      render(
+        <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+          <EAPSpanNodeDetails
+            node={node}
+            organization={organization}
+            onTabScrollToNode={jest.fn()}
+            onParentClick={jest.fn()}
+            manager={null}
+            replay={null}
+            traceId="test-trace-id"
+            tree={null as any}
+          />
+        </TraceStateProvider>
+      );
 
-    expect(await screen.findByText('Span')).toBeInTheDocument();
+      expect(await screen.findByText('Span')).toBeInTheDocument();
 
-    expect(screen.getByText(/ID: test-span-id/)).toBeInTheDocument();
+      expect(screen.getByText(/ID: test-span-id/)).toBeInTheDocument();
 
-    expect(screen.getByText('db.query')).toBeInTheDocument();
+      expect(screen.getByText('db.query')).toBeInTheDocument();
 
-    expect(screen.getByText(/SELECT \* FROM users/)).toBeInTheDocument();
-  });
+      expect(screen.getByText(/SELECT \* FROM users/)).toBeInTheDocument();
+    }
+  );
 });

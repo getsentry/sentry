@@ -7,8 +7,6 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
-import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
-import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 const TOOL_OUTPUT_ATTRIBUTE = 'gen_ai.tool.call.result';
 const PROMPT_OUTPUT_PREFIX = 'mcp.prompt.result.';
@@ -18,7 +16,7 @@ export function MCPOutputSection({
   attributes,
   event,
 }: {
-  node: EapSpanNode | SpanNode | TransactionNode;
+  node: EapSpanNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {

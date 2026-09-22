@@ -1,5 +1,4 @@
 import type {EventTag, Level, Measurement} from 'sentry/types/event';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 /**
  * `EventLite` represents the type of a simplified event from
@@ -69,7 +68,7 @@ type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
  * additional information by setting `detailed=1`.
  */
 export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
-  children: TraceTree.Transaction[];
+  children: TraceFullDetailed[];
   sdk_name: string;
   start_timestamp: number;
   timestamp: number;
@@ -79,11 +78,6 @@ export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   profile_id?: string;
   tags?: EventTag[];
   transaction?: string;
-};
-
-export type TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLite> = {
-  orphan_errors: TraceError[];
-  transactions: U[];
 };
 
 export type EAPTraceMeta = {

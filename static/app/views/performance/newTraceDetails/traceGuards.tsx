@@ -5,7 +5,6 @@ import type {EapSpanNode} from './traceModels/traceTreeNode/eapSpanNode';
 import type {NoInstrumentationNode} from './traceModels/traceTreeNode/noInstrumentationNode';
 import type {ParentAutogroupNode} from './traceModels/traceTreeNode/parentAutogroupNode';
 import type {SiblingAutogroupNode} from './traceModels/traceTreeNode/siblingAutogroupNode';
-import type {TransactionNode} from './traceModels/traceTreeNode/transactionNode';
 
 export function isMissingInstrumentationNode(
   node: BaseNode
@@ -23,10 +22,6 @@ export function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpa
 
 export function isEAPSpanNode(node: BaseNode): node is EapSpanNode {
   return isEAPSpan(node.value);
-}
-
-export function isTransactionNode(node: BaseNode): node is TransactionNode {
-  return !!(node.value && 'transaction.op' in node.value);
 }
 
 export function isUptimeCheck(
