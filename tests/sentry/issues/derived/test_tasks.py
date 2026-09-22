@@ -461,6 +461,12 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             "heal_stale_derived_data.checks_scheduled",
             "heal_stale_derived_data.complete",
         ]
+        range_selection_logs = [
+            log_call
+            for log_call in mock_logger.info.call_args_list
+            if log_call.args[0] == "heal_stale_derived_data.range_selection_complete"
+        ]
+        assert all(log_call.kwargs["extra"]["elapsed"] >= 0 for log_call in range_selection_logs)
 
     def test_missing_state_discovers_and_reports_metric(self) -> None:
         with (
@@ -595,6 +601,48 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         assert saved_state.discovered_at is None
         mock_logger.exception.assert_called_once_with(
             "heal_stale_derived_data.stale_hash_discovery_failed"
+        )
+
+    def test_range_selection_timeout_is_reported_and_other_hashes_continue(self) -> None:
+        stale_hash = self._pick_stale_hash()
+        state = HealSchedulerState(
+            head_hash=PIPELINE.pipeline_hash,
+            stale={stale_hash: 10},
+            discovered_at=datetime.now(timezone.utc),
+        )
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-max-tasks": 1,
+                    "issues.derived.check-task-count": 0,
+                }
+            ),
+            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=[
+                    OperationalError,
+                    GroupIdRangeResult(ranges=[(10, 20)], drained=False),
+                ],
+            ),
+            patch.object(regenerate_stale_derived_data_batch, "delay") as delay,
+            patch("sentry.issues.derived.tasks.metrics.incr") as mock_incr,
+            patch("sentry.issues.derived.tasks.logger") as mock_logger,
+        ):
+            heal_stale_derived_data()
+
+        delay.assert_called_once()
+        failure_log = mock_logger.exception.call_args
+        assert failure_log.args == ("heal_stale_derived_data.range_selection_failed",)
+        assert failure_log.kwargs["extra"]["hash_kind"] == "null"
+        assert failure_log.kwargs["extra"]["elapsed"] >= 0
+        assert (
+            call(
+                "issues.derived.heal_range_selection_failed",
+                sample_rate=1.0,
+                tags={"hash_kind": "null"},
+            )
+            in mock_incr.call_args_list
         )
 
     def test_discovered_hashes_are_saved_before_range_selection(self) -> None:
@@ -1347,6 +1395,12 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
             ranges=[], drained=True
         )
 
+    def test_query_has_statement_timeout(self) -> None:
+        with patch("sentry.issues.derived.tasks_util.statement_timeout") as timeout:
+            group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5)
+
+        assert timeout.call_args.args[1] == timedelta(seconds=50)
+
     def test_short_tail_is_one_range(self) -> None:
         null_ids = self._seed(3, None)
         hash_ids = self._seed(3, self.HASH)
@@ -1634,6 +1688,12 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
 
     def test_returns_empty_when_table_empty(self) -> None:
         assert _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5) == []
+
+    def test_query_has_statement_timeout(self) -> None:
+        with patch("sentry.issues.derived.tasks.statement_timeout") as timeout:
+            _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5)
+
+        assert timeout.call_args.args[1] == timedelta(seconds=15)
 
     def test_excludes_null_pipeline_hash(self) -> None:
         current = PIPELINE.pipeline_hash

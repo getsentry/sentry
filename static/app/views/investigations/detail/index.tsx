@@ -418,7 +418,10 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                */}
               {investigation.orchestration ? (
                 <Stack width="100%" minWidth={0} paddingBottom="xl">
-                  <InvestigationHypotheses investigationId={investigation.id} />
+                  <InvestigationHypotheses
+                    investigationId={investigation.id}
+                    phase={investigation.orchestration.phase}
+                  />
                 </Stack>
               ) : null}
 

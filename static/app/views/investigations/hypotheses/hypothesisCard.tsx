@@ -6,11 +6,15 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {HypothesisEvidencePlaceholder} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
 import {
   getHypothesisCardBorder,
   HypothesisStatus,
 } from 'sentry/views/investigations/hypotheses/hypothesisStatus';
 import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
+
+/** States where missing checks mean "not yet"; anything else finished without them. */
+const PENDING_EVIDENCE_STATUSES = new Set<string>(['pending', 'investigating']);
 
 type HypothesisCardProps = {
   hypothesis: InvestigationHypothesis;
@@ -123,6 +127,13 @@ export function HypothesisCard({
             </EvidenceStep>
           ))}
         </EvidenceList>
+      ) : null}
+
+      {/* Holds the space for checks that are still on their way. */}
+      {steps.length === 0 && PENDING_EVIDENCE_STATUSES.has(hypothesis.effectiveStatus) ? (
+        <Stack paddingTop="md">
+          <HypothesisEvidencePlaceholder />
+        </Stack>
       ) : null}
     </Card>
   );
