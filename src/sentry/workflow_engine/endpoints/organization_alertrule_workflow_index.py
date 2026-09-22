@@ -80,16 +80,16 @@ class OrganizationAlertRuleWorkflowIndexEndpoint(OrganizationEndpoint):
             alert_rule_id for _, alert_rule_id in candidate_ids if alert_rule_id is not None
         ]
         accessible_rules = Rule.objects.filter(id__in=candidate_rule_ids, project__in=projects)
+        accessible_rule_ids = accessible_rules.values_list("id", flat=True).union(
+            accessible_detectors.filter(rule_id__in=candidate_rule_ids).values_list(
+                "rule_id", flat=True
+            )
+        )
         # Authorize the rule being mapped, not any project connected to its workflow:
         # deduplicated workflows can contain mappings from several projects.
         # Legacy rules also cover migrations without an AlertRuleDetector (e.g. cron).
         queryset = queryset.filter(
-            Q(rule_id__in=accessible_rules.values("id"))
-            | Q(
-                rule_id__in=accessible_detectors.filter(rule_id__in=candidate_rule_ids).values(
-                    "rule_id"
-                )
-            )
+            Q(rule_id__in=accessible_rule_ids)
             | Q(
                 alert_rule_id__in=accessible_detectors.filter(
                     alert_rule_id__in=candidate_alert_rule_ids
