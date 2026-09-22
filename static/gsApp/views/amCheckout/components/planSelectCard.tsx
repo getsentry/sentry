@@ -52,7 +52,6 @@ export function PlanSelectCard({
 
   return (
     <CheckoutOption
-      dataTestId={`plan-option-${plan.id}`}
       ariaLabel={planName}
       isSelected={isSelected}
       onClick={onPlanSelect}

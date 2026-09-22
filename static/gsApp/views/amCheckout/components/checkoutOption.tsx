@@ -8,7 +8,6 @@ import {Separator} from '@sentry/scraps/separator';
 export function CheckoutOption({
   isSelected,
   onClick,
-  dataTestId,
   ariaLabel,
   ariaRole,
   topDecoration,
@@ -21,7 +20,6 @@ export function CheckoutOption({
   isSelected: boolean;
   onClick: () => void;
   optionHeader: React.ReactNode;
-  dataTestId?: string;
   optionDescription?: React.ReactNode;
   topDecoration?: React.ReactNode;
   withDivider?: boolean;
@@ -33,7 +31,6 @@ export function CheckoutOption({
       aria-checked={isSelected}
       isSelected={isSelected}
       onClick={onClick}
-      data-test-id={dataTestId}
       aria-label={ariaLabel}
       onKeyDown={event => {
         if (event.code === 'Space') {
@@ -53,8 +50,7 @@ export function CheckoutOption({
             ) : (
               <Checkbox
                 tabIndex={-1} // let parent handle the focus
-                aria-label={ariaLabel}
-                aria-checked={isSelected}
+                aria-hidden
                 checked={isSelected}
                 readOnly
               />

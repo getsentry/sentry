@@ -116,7 +116,6 @@ export function ProductSelect({
             <Stack gap="xl" key={apiName}>
               <CheckoutOption
                 ariaLabel={ariaLabel}
-                dataTestId={`product-option-${apiName}`}
                 onClick={toggleProductOption}
                 isSelected={!!isSelected}
                 ariaRole="checkbox"
@@ -227,7 +226,6 @@ export function ProductSelect({
               )}
               <CheckoutOption
                 ariaLabel={ariaLabel}
-                dataTestId={`product-option-${apiName}`}
                 onClick={toggleProductOption}
                 isSelected={!!isSelected}
                 ariaRole="checkbox"
