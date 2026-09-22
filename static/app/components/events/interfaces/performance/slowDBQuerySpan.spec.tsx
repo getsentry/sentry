@@ -502,6 +502,73 @@ describe('Slow-query evidence from the spans dataset', () => {
       }
     );
 
+    it('copies the recorded query after a successful lookup without SQL', async () => {
+      const response = spanResponse();
+      response.attributes = response.attributes.filter(
+        attribute => attribute.name !== 'span.description'
+      );
+      const request = MockApiClient.addMockResponse({url: detailsUrl, body: response});
+      renderWithCopy(
+        occurrenceEvent({
+          entries: recordedSpanEntries(),
+          formatted: {
+            format: 'markdown',
+            content:
+              '## Title\nServer title\n## Span Evidence\nOld evidence\n## Contexts\nServer context',
+          },
+        })
+      );
+      const writeText = jest.spyOn(navigator.clipboard, 'writeText');
+
+      await screen.findByText(/50%/);
+      await copyFromMenu();
+      const markdown = writeText.mock.calls.at(-1)![0];
+      expect(markdown).toContain('recorded_books');
+      expect(markdown).toContain('50% of txn');
+      expect(markdown).not.toContain('/app/books.py');
+      expect(markdown).not.toContain('Old evidence');
+      expect(markdown).toContain('## Title\nServer title');
+      expect(markdown).toContain('## Contexts\nServer context');
+
+      await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
+      expect(writeText).toHaveBeenCalledTimes(2);
+      expect(writeText).toHaveBeenLastCalledWith(markdown);
+      expect(request).toHaveBeenCalledTimes(1);
+    });
+
+    it.each(['missing', 'removed'])(
+      'copies unavailable evidence when dataset SQL is %s and fallback cannot be used',
+      async reason => {
+        const request = MockApiClient.addMockResponse({
+          url: detailsUrl,
+          body: {
+            ...spanResponse(),
+            attributes: [{name: 'span.description', type: 'str', value: ''}],
+            meta:
+              reason === 'removed'
+                ? {'span.description': {meta: {value: {'': {rem: [['!config', 'x']]}}}}}
+                : {},
+          },
+        });
+        renderWithCopy(
+          occurrenceEvent({entries: reason === 'removed' ? recordedSpanEntries() : []})
+        );
+        const writeText = jest.spyOn(navigator.clipboard, 'writeText');
+
+        await screen.findByText('Span evidence is unavailable.');
+        await copyFromMenu();
+        const markdown = writeText.mock.calls.at(-1)![0];
+        expect(markdown).toContain('Span evidence is unavailable.');
+        expect(markdown).not.toContain('recorded_books');
+        expect(markdown).not.toContain('**Duration:**');
+
+        await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
+        expect(writeText).toHaveBeenCalledTimes(2);
+        expect(writeText).toHaveBeenLastCalledWith(markdown);
+        expect(request).toHaveBeenCalledTimes(1);
+      }
+    );
+
     it('copies an unavailable state when neither source has evidence', async () => {
       MockApiClient.addMockResponse({
         url: detailsUrl,
