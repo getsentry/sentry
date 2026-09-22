@@ -457,10 +457,10 @@ class StatefulDetectorHandler(
             and new_priority != DetectorPriorityLevel.OK
         )
 
-        if not is_leaving_ok_state:
-            return state_data.activation_id
+        if is_leaving_ok_state:
+            return uuid4()
 
-        return uuid4()
+        return state_data.activation_id
 
     # TODO: The stateful detector handler overrides the default evaluation logic of DetectorHandler.evaluate, yet shares
     # much of the same logic. Refactor this method to use super().evaluate() supplemented with the state manager logic.
