@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {DrawerBody, DrawerHeader, useDrawerContentContext} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
@@ -15,12 +16,12 @@ export function DroppedDataPanelContent() {
     <Fragment>
       <DrawerHeader hideCloseButton>
         <Flex align="center" gap="xl">
-          <Flex align="center" gap="sm" onClick={onClose} style={{cursor: 'pointer'}}>
+          <CloseButton onClick={onClose}>
             <IconClose size="xs" />
             <Text size="md" variant="muted">
               {t('Close')}
             </Text>
-          </Flex>
+          </CloseButton>
           <Divider />
           <Text size="md" variant="muted">
             {t('Dropped Data')}
@@ -31,3 +32,14 @@ export function DroppedDataPanelContent() {
     </Fragment>
   );
 }
+
+const CloseButton = styled('button')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+`;
