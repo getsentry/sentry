@@ -15,10 +15,15 @@ import {
 import type {DO_NOT_USE_ButtonProps as ButtonProps, ButtonSize} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
-function preventKeyboardSubmit(e: React.KeyboardEvent) {
+function preventKeyboardSubmit(
+  e: React.KeyboardEvent,
+  consumer?: React.KeyboardEventHandler
+) {
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault();
+    e.stopPropagation();
   }
+  consumer?.(e);
 }
 
 export type {ButtonProps};
@@ -65,7 +70,10 @@ export function Button({
         {...(disabled !== undefined && {'aria-disabled': disabled})}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
-        {...(useAriaDisabled && {onKeyDown: preventKeyboardSubmit})}
+        {...(useAriaDisabled && {
+          onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) =>
+            preventKeyboardSubmit(e, props.onKeyDown),
+        })}
         role="button"
       >
         <Flex
