@@ -126,16 +126,14 @@ def _retrigger_deferred_iteration(
 
 @scm_event_stream.listen_for(event_type="check_suite")
 def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
-    traces.new_trace()
-    with (
-        sentry_sdk.isolation_scope(),
-        traces.start_span(
+    with sentry_sdk.isolation_scope():
+        traces.new_trace()
+        with traces.start_span(
             name="pr_iteration.check_suite_listener",
             attributes={"sentry.op": "function"},
             parent_span=None,
-        ),
-    ):
-        return _handle_check_suite_event(check_suite_event)
+        ):
+            return _handle_check_suite_event(check_suite_event)
 
 
 def _handle_check_suite_event(check_suite_event: CheckSuiteEvent):

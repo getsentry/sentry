@@ -21,7 +21,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
@@ -61,7 +60,12 @@ import {
   type RovingTabIndexUserActions,
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
-import type {TraceReducerState} from './traceState';
+import {
+  TracePinnedAttributeCell,
+  TracePinnedAttributeHeader,
+  TraceAttributeDivider,
+  usePinnedAttribute,
+} from './tracePinnedAttribute';
 
 const traceIssueIconBackgroundStyles = css`
   &.info {
@@ -126,11 +130,6 @@ interface TraceProps {
     event: React.MouseEvent<HTMLElement>,
     index: number
   ) => void;
-  onTraceSearch: (
-    query: string,
-    node: BaseNode,
-    behavior: 'track result' | 'persist'
-  ) => void;
   previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>;
   rerender: () => void;
   scheduler: TraceScheduler;
@@ -145,7 +144,6 @@ export function Trace({
   onScrollToNode,
   manager,
   previouslyFocusedNodeRef,
-  onTraceSearch,
   rerender,
   scheduler,
   forceRerender,
@@ -153,7 +151,7 @@ export function Trace({
   isLoading,
 }: TraceProps) {
   const theme = useTheme();
-  const api = useApi();
+  const pin = usePinnedAttribute();
   const {projects} = useProjects();
   const organization = useOrganization();
   const traceState = useTraceState();
@@ -162,15 +160,6 @@ export function Trace({
 
   const rerenderRef = useRef(rerender);
   rerenderRef.current = rerender;
-
-  const treePromiseStatusRef = useRef<Map<
-    BaseNode,
-    'loading' | 'error' | 'success'
-  > | null>(null);
-
-  if (!treePromiseStatusRef.current) {
-    treePromiseStatusRef.current = new Map();
-  }
 
   const treeRef = useRef(trace);
   treeRef.current = trace;
@@ -233,11 +222,6 @@ export function Trace({
     manager.draw();
   }, [manager, physicalWidth, timeCompressionOptions]);
 
-  const traceStatePreferencesRef = useRef<
-    Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
-  >(traceState.preferences);
-  traceStatePreferencesRef.current = traceState.preferences;
-
   useLayoutEffect(() => {
     const onTraceViewChange: TraceEvents['set trace view'] = () => {
       manager.recomputeTimelineIntervals();
@@ -286,35 +270,6 @@ export function Trace({
     };
   }, [manager, scheduler]);
 
-  const onNodeZoomIn = useCallback(
-    (event: React.MouseEvent | React.KeyboardEvent, node: BaseNode, value: boolean) => {
-      event.stopPropagation();
-      rerenderRef.current();
-
-      treeRef.current
-        .fetchNodeSubTree(value, node, {
-          api,
-          organization,
-          preferences: traceStatePreferencesRef.current,
-        })
-        .then(() => {
-          rerenderRef.current();
-
-          // If a query exists, we want to reapply the search after zooming in
-          // so that new nodes are also highlighted if they match a query
-          if (traceStateRef.current.search.query) {
-            onTraceSearch(traceStateRef.current.search.query, node, 'persist');
-          }
-
-          treePromiseStatusRef.current!.set(node, 'success');
-        })
-        .catch(_e => {
-          treePromiseStatusRef.current!.set(node, 'error');
-        });
-    },
-    [api, organization, onTraceSearch]
-  );
-
   const onNodeExpand = useCallback(
     (event: React.MouseEvent | React.KeyboardEvent, node: BaseNode, value: boolean) => {
       event.stopPropagation();
@@ -348,20 +303,14 @@ export function Trace({
       }
 
       if (event.key === 'ArrowLeft') {
-        if (node.hasFetchedChildren) {
-          onNodeZoomIn(event, node, false);
-        } else if (node.expanded) {
+        if (node.expanded) {
           onNodeExpand(event, node, false);
         }
       } else if (event.key === 'ArrowRight') {
-        if (node.canFetchChildren) {
-          onNodeZoomIn(event, node, true);
-        } else {
-          onNodeExpand(event, node, true);
-        }
+        onNodeExpand(event, node, true);
       }
     },
-    [manager, onNodeExpand, onNodeZoomIn, traceDispatch]
+    [manager, onNodeExpand, traceDispatch]
   );
 
   const projectLookup = useMemo(() => {
@@ -407,7 +356,7 @@ export function Trace({
           manager={manager}
           theme={theme}
           onExpand={onNodeExpand}
-          onZoomIn={onNodeZoomIn}
+          onZoomIn={onNodeExpand}
           onRowClick={onRowClick}
           onRowKeyDown={onRowKeyDown}
           tree={trace}
@@ -419,7 +368,6 @@ export function Trace({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       onNodeExpand,
-      onNodeZoomIn,
       manager,
       previouslyFocusedNodeRef,
       onRowKeyDown,
@@ -455,140 +403,152 @@ export function Trace({
   });
 
   return (
-    <TraceStylingWrapper
-      ref={manager.registerContainerRef}
-      className={`
+    <TraceViewport>
+      <TraceStylingWrapper
+        ref={manager.registerContainerRef}
+        className={`
+        ${pin?.attribute ? 'WithPinnedAttribute' : ''}
         ${trace.root.space[1] === 0 ? 'Empty' : ''}
         ${trace.indicators.length > 0 ? 'WithIndicators' : ''}
         ${trace.type !== 'trace' || isLoading ? 'Loading' : ''}
         ${ConfigStore.get('theme')}`}
-    >
-      <div
-        className="TraceScrollbarContainer"
-        ref={manager.registerHorizontalScrollBarContainerRef}
       >
-        <div className="TraceScrollbarScroller" />
-      </div>
-      <div className="TraceDivider" ref={manager.registerDividerRef} />
-      <div
-        className="TraceIndicatorsContainer"
-        ref={manager.registerIndicatorContainerRef}
-      >
-        <div className="TraceIndicatorContainerMiddleLine" />
-        {trace.indicators.length > 0
-          ? trace.indicators.map((indicator, i) => {
-              const status =
-                indicator.score === undefined
-                  ? 'None'
-                  : STATUS_TEXT[scoreToStatus(indicator.score)];
-              const vital = indicator.type as WebVitals;
+        <div
+          className="TraceScrollbarContainer"
+          ref={manager.registerHorizontalScrollBarContainerRef}
+        >
+          <div className="TraceScrollbarScroller" />
+        </div>
+        {pin?.attribute ? (
+          <Fragment>
+            <TracePinnedAttributeHeader />
+            <TraceAttributeDivider edge="left" manager={manager} />
+            <TraceAttributeDivider edge="right" manager={manager} />
+          </Fragment>
+        ) : (
+          <div className="TraceDivider" ref={manager.registerDividerRef} />
+        )}
+        <div
+          className="TraceIndicatorsContainer"
+          ref={manager.registerIndicatorContainerRef}
+        >
+          <div className="TraceIndicatorContainerMiddleLine" />
+          {trace.indicators.length > 0
+            ? trace.indicators.map((indicator, i) => {
+                const status =
+                  indicator.score === undefined
+                    ? 'None'
+                    : STATUS_TEXT[scoreToStatus(indicator.score)];
+                const vital = indicator.type as WebVitals;
 
-              const defaultFormatter = (value: number) =>
-                getFormattedDuration(value / 1000);
-              const formatter =
-                WEB_VITALS_METERS_CONFIG[vital]?.formatter ?? defaultFormatter;
+                const defaultFormatter = (value: number) =>
+                  getFormattedDuration(value / 1000);
+                const formatter =
+                  WEB_VITALS_METERS_CONFIG[vital]?.formatter ?? defaultFormatter;
 
-              return (
-                <Fragment key={i}>
-                  <div
-                    key={i}
-                    ref={r => manager.registerIndicatorLabelRef(r, i, indicator)}
-                    className={`TraceIndicatorLabelContainer ${status} ${colorMode}`}
-                    onClick={
-                      onScrollToNode
-                        ? event => {
-                            trackAnalytics('trace.trace_layout.zoom_to_fill', {
-                              organization,
-                            });
-                            event.stopPropagation();
-                            void onScrollToNode(indicator.node);
-                            manager.onZoomToVital(indicator.start, indicator.type);
-                          }
-                        : undefined
-                    }
-                  >
-                    <Tooltip
-                      title={
-                        <div>
-                          {VITAL_DETAILS[`measurements.${vital}`]?.name}
-                          <br />
-                          {formatter(indicator.measurement.value)}
-                          {status !== 'None' && ` - ${status}`}
-                        </div>
+                return (
+                  <Fragment key={i}>
+                    <div
+                      key={i}
+                      ref={r => manager.registerIndicatorLabelRef(r, i, indicator)}
+                      className={`TraceIndicatorLabelContainer ${status} ${colorMode}`}
+                      onClick={
+                        onScrollToNode
+                          ? event => {
+                              trackAnalytics('trace.trace_layout.zoom_to_fill', {
+                                organization,
+                              });
+                              event.stopPropagation();
+                              void onScrollToNode(indicator.node);
+                              manager.onZoomToVital(indicator.start, indicator.type);
+                            }
+                          : undefined
                       }
                     >
-                      <div className="TraceIndicatorLabel">{indicator.label}</div>
-                    </Tooltip>
-                  </div>
-                  <div
-                    ref={r => manager.registerIndicatorRef(r, i, indicator)}
-                    className={`TraceIndicator ${indicator.poor ? 'Errored' : ''}`}
-                  >
-                    <div className={`TraceIndicatorLine ${status}`} />
-                  </div>
-                </Fragment>
-              );
-            })
-          : null}
+                      <Tooltip
+                        title={
+                          <div>
+                            {VITAL_DETAILS[`measurements.${vital}`]?.name}
+                            <br />
+                            {formatter(indicator.measurement.value)}
+                            {status !== 'None' && ` - ${status}`}
+                          </div>
+                        }
+                      >
+                        <div className="TraceIndicatorLabel">{indicator.label}</div>
+                      </Tooltip>
+                    </div>
+                    <div
+                      ref={r => manager.registerIndicatorRef(r, i, indicator)}
+                      className={`TraceIndicator ${indicator.poor ? 'Errored' : ''}`}
+                    >
+                      <div className={`TraceIndicatorLine ${status}`} />
+                    </div>
+                  </Fragment>
+                );
+              })
+            : null}
 
-        {manager.interval_bars.map((_, i) => {
-          const indicatorTimestamp = manager.intervals[i] ?? 0;
+          {manager.interval_bars.map((_, i) => {
+            const indicatorTimestamp = manager.intervals[i] ?? 0;
 
-          if (trace.type !== 'trace' || isLoading) {
-            return null;
-          }
+            if (trace.type !== 'trace' || isLoading) {
+              return null;
+            }
 
-          return (
-            <div
-              key={i}
-              ref={r => manager.registerTimelineIndicatorRef(r, i)}
-              className="TraceIndicator Timeline"
-            >
-              <div className="TraceIndicatorLabelContainer">
-                {indicatorTimestamp > 0
-                  ? formatTraceDuration(manager.view.trace_view.x + indicatorTimestamp)
-                  : '0s'}
+            return (
+              <div
+                key={i}
+                ref={r => manager.registerTimelineIndicatorRef(r, i)}
+                className="TraceIndicator Timeline"
+              >
+                <div className="TraceIndicatorLabelContainer">
+                  {indicatorTimestamp > 0
+                    ? formatTraceDuration(manager.view.trace_view.x + indicatorTimestamp)
+                    : '0s'}
+                </div>
+                <div className="TraceIndicatorLine" />
               </div>
-              <div className="TraceIndicatorLine" />
-            </div>
-          );
-        })}
-        {trace.type === 'trace' &&
-          !isLoading &&
-          timeCompression.gaps.map((gap, i) => (
-            <CollapsedGapMarker
-              key={`${gap.start}-${gap.end}`}
-              gap={gap}
-              index={i}
-              manager={manager}
-              scrollContainer={scrollContainer}
+            );
+          })}
+          {trace.type === 'trace' &&
+            !isLoading &&
+            timeCompression.gaps.map((gap, i) => (
+              <CollapsedGapMarker
+                key={`${gap.start}-${gap.end}`}
+                gap={gap}
+                index={i}
+                manager={manager}
+                scrollContainer={scrollContainer}
+              />
+            ))}
+          {traceNode && traceStartTimestamp ? (
+            <VerticalTimestampIndicators
+              viewmanager={manager}
+              traceStartTimestamp={traceStartTimestamp}
             />
-          ))}
-        {traceNode && traceStartTimestamp ? (
-          <VerticalTimestampIndicators
-            viewmanager={manager}
-            traceStartTimestamp={traceStartTimestamp}
-          />
-        ) : null}
-      </div>
-      <div
-        ref={setScrollContainer}
-        data-test-id="trace-virtualized-list-scroll-container"
-        id="trace-waterfall"
-      >
-        <div data-test-id="trace-virtualized-list">{virtualizedList.rendered}</div>
-        <div className="TraceRow Hidden">
-          <div
-            className="TraceLeftColumn"
-            ref={r => manager.registerGhostRowRef('list', r)}
-          />
-          <div
-            className="TraceRightColumn"
-            ref={r => manager.registerGhostRowRef('span_list', r)}
-          />
+          ) : null}
         </div>
-      </div>
-    </TraceStylingWrapper>
+        <div
+          ref={setScrollContainer}
+          data-test-id="trace-virtualized-list-scroll-container"
+          id="trace-waterfall"
+        >
+          <div data-test-id="trace-virtualized-list">{virtualizedList.rendered}</div>
+          <div className="TraceRow Hidden">
+            <div
+              className="TraceLeftColumn"
+              ref={r => manager.registerGhostRowRef('list', r)}
+            />
+            {pin?.attribute && <div className="TracePinnedAttributeCell" />}
+            <div
+              className="TraceRightColumn"
+              ref={r => manager.registerGhostRowRef('span_list', r)}
+            />
+          </div>
+        </div>
+      </TraceStylingWrapper>
+    </TraceViewport>
   );
 }
 
@@ -679,14 +639,6 @@ function RenderTraceRow(props: {
     },
     [node, onExpandProp]
   );
-
-  const onZoomInProp = props.onZoomIn;
-  const onZoomIn = useCallback(
-    (e: React.MouseEvent) => {
-      onZoomInProp(e, node, !node.hasFetchedChildren);
-    },
-    [node, onZoomInProp]
-  );
   const onExpandDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
   }, []);
@@ -705,8 +657,9 @@ function RenderTraceRow(props: {
   };
 
   const rowProps: TraceRowProps<BaseNode> = {
+    pinnedAttributeCell: <TracePinnedAttributeCell node={node} />,
     onExpand,
-    onZoomIn,
+    onZoomIn: onExpand,
     onRowClick,
     onRowKeyDown,
     previouslyFocusedNodeRef: props.previouslyFocusedNodeRef,
@@ -863,6 +816,15 @@ function VerticalTimestampIndicators({
  * emotion's css parsing logic as it is very slow and will cause
  * the scrolling to flicker.
  */
+const TraceViewport = styled('div')`
+  position: absolute;
+  grid-area: trace;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+`;
+
 const TraceStylingWrapper = styled('div')`
   margin: auto;
   overscroll-behavior: none;
@@ -875,6 +837,53 @@ const TraceStylingWrapper = styled('div')`
   height: 100%;
   grid-area: trace;
   padding-top: 38px;
+
+  &.WithPinnedAttribute {
+    min-width: calc(320px + var(--trace-scrollbar-width, 0px));
+
+    .TracePinnedAttributeCell {
+      width: var(--pinned-attribute-width);
+      flex-shrink: 0;
+    }
+
+    .TraceLeftColumn,
+    .TraceRow.Collapsed .TraceLeftColumn {
+      width: var(--pinned-list-width);
+      flex-shrink: 0;
+    }
+
+    .TraceRightColumn {
+      flex-shrink: 0;
+    }
+
+    .TracePinnedAttributeHeader {
+      position: absolute;
+      top: 0;
+      left: var(--pinned-list-width);
+      width: var(--pinned-attribute-width);
+      height: 38px;
+      z-index: 11;
+      background: ${p => p.theme.tokens.background.primary};
+    }
+
+    .TraceAttributeDivider {
+      width: 6px;
+      transform: translateX(-3px);
+      touch-action: none;
+      user-select: none;
+      z-index: 12;
+
+      &.left {
+        left: var(--pinned-list-width);
+      }
+      &.right {
+        left: calc(var(--pinned-list-width) + var(--pinned-attribute-width));
+      }
+      &:focus-visible {
+        outline: 2px solid ${p => p.theme.tokens.focus.default};
+      }
+    }
+  }
 
   &.WithIndicators {
     &:before {

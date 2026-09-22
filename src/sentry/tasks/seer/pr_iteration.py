@@ -1258,22 +1258,21 @@ def trigger_pr_iteration_from_comment(
     four the flow is followed by, and it is joined to the others by the ids in
     ``pr_iteration.tracing`` rather than by the trace it was queued from.
     """
-    traces.new_trace()
-    with (
-        sentry_sdk.isolation_scope(),
-        traces.start_span(
+
+    with sentry_sdk.isolation_scope():
+        traces.new_trace()
+        with traces.start_span(
             name="pr_iteration.trigger_from_comment",
             attributes={"sentry.op": "function"},
             parent_span=None,
-        ),
-    ):
-        _trigger_pr_iteration_from_comment(
-            organization_id=organization_id,
-            repo_id=repo_id,
-            integration_id=integration_id,
-            pr_number=pr_number,
-            feedback=feedback,
-        )
+        ):
+            _trigger_pr_iteration_from_comment(
+                organization_id=organization_id,
+                repo_id=repo_id,
+                integration_id=integration_id,
+                pr_number=pr_number,
+                feedback=feedback,
+            )
 
 
 def _trigger_pr_iteration_from_comment(
@@ -1635,26 +1634,25 @@ def trigger_pr_iteration_from_review(
     four the flow is followed by, and it is joined to the others by the ids in
     ``pr_iteration.tracing`` rather than by the trace it was queued from.
     """
-    traces.new_trace()
-    with (
-        sentry_sdk.isolation_scope(),
-        traces.start_span(
+
+    with sentry_sdk.isolation_scope():
+        traces.new_trace()
+        with traces.start_span(
             name="pr_iteration.trigger_from_review",
             attributes={"sentry.op": "function"},
             parent_span=None,
-        ),
-    ):
-        _trigger_pr_iteration_from_review(
-            organization_id=organization_id,
-            repo_id=repo_id,
-            integration_id=integration_id,
-            pr_number=pr_number,
-            review_id=review_id,
-            author_username=author_username,
-            author_external_id=author_external_id,
-            author_is_bot=author_is_bot,
-            delivery_authenticated=delivery_authenticated,
-        )
+        ):
+            _trigger_pr_iteration_from_review(
+                organization_id=organization_id,
+                repo_id=repo_id,
+                integration_id=integration_id,
+                pr_number=pr_number,
+                review_id=review_id,
+                author_username=author_username,
+                author_external_id=author_external_id,
+                author_is_bot=author_is_bot,
+                delivery_authenticated=delivery_authenticated,
+            )
 
 
 def _trigger_pr_iteration_from_review(

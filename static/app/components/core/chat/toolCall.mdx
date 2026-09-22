@@ -110,13 +110,14 @@ value, or on failure the error itself. Like `input`, it is a slot.
 />
 ```
 
-## Overflow
+## Clipped output
 
 `input` and `output` cap at a max height once their content grows past a few
 lines — a large JSON body should not push every later message off screen. A
 short value is unaffected: the cap (and its `Show More` affordance) only
 appears once content actually exceeds it, so it never adds an empty gap under
-a one-line result.
+a one-line result. The clipped example below shows the gradient overlay and
+centered `Show More` button over a long tool call result.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md" padding="lg">

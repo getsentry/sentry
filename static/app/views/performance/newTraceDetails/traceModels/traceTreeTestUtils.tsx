@@ -1,26 +1,11 @@
 import {uuid4} from '@sentry/core';
 
 import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
-import type {TraceSplitResults} from 'sentry/views/performance/newTraceDetails/traceApi/types';
-import {
-  isEAPSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
-import type {TransactionNode} from './traceTreeNode/transactionNode';
 import type {TraceTree} from './traceTree';
-
-export function makeTrace(
-  overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
-): TraceSplitResults<TraceTree.Transaction> {
-  return {
-    transactions: [],
-    orphan_errors: [],
-    ...overrides,
-  };
-}
 
 export function makeEAPTrace(overrides: Partial<TraceTree.EAPTrace>): TraceTree.EAPTrace {
   return (overrides ?? [
@@ -194,14 +179,6 @@ export function makeSiblingAutogroup(
   } as TraceTree.SiblingAutogroup;
 }
 
-export function assertTransactionNode(
-  node: BaseNode | null
-): asserts node is TransactionNode {
-  if (!node || !isTransactionNode(node)) {
-    throw new Error('node is not a transaction');
-  }
-}
-
 export function assertEAPSpanNode(node: BaseNode | null): asserts node is EapSpanNode {
   if (!node || !isEAPSpanNode(node)) {
     throw new Error('node is not a eap span');
@@ -256,20 +233,4 @@ export function makeUptimeCheckTiming(
     duration: 0.05,
     ...overrides,
   };
-}
-
-export function mockSpansResponse(
-  spans: TraceTree.Span[],
-  project_slug: string,
-  event_id: string
-): jest.Mock {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore MockApiClient is not defined in the global scope
-  return MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/${project_slug}:${event_id}/?averageColumn=span.self_time&averageColumn=span.duration`,
-    method: 'GET',
-    body: makeEventTransaction({
-      entries: [{type: EntryType.SPANS, data: spans}],
-    }),
-  });
 }

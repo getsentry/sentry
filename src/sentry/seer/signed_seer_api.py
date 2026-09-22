@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from dataclasses import replace
 from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
 
@@ -131,13 +132,9 @@ def _resolve_viewer_context(
         },
     )
 
-    return ViewerContext(
-        organization_id=org_id,
-        project_id=None if has_mismatch else (vc.project_id if vc else None),
-        user_id=user_id,
-        actor_type=vc.actor_type,
-        token=None if has_mismatch else vc.token,
-    )
+    if has_mismatch:
+        return replace(vc, organization_id=org_id, user_id=user_id, project_id=None, token=None)
+    return replace(vc, organization_id=org_id, user_id=user_id)
 
 
 @traces.trace

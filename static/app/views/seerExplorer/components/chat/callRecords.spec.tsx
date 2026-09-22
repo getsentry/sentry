@@ -4,6 +4,7 @@ import {
   callRecordDetail,
   callRecordLabel,
   callRecordStatus,
+  fallbackCallLabel,
 } from 'sentry/views/seerExplorer/callRecords';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {Block, CallRecord} from 'sentry/views/seerExplorer/types';
@@ -481,6 +482,46 @@ describe('callRecordLabel', () => {
   });
 });
 
+describe('fallbackCallLabel', () => {
+  it('names Sentry for a first-party call', () => {
+    expect(
+      fallbackCallLabel({id: 1, kind: 'api', method: 'GET', path: '/api/0/x/'})
+    ).toBe('Sentry API request');
+    expect(fallbackCallLabel({id: 1, kind: 'lib', name: 'code_search'})).toBe(
+      'Sentry operation'
+    );
+  });
+
+  // Seer's titles come from a lock keyed by Sentry route, so provider calls reliably reach the
+  // fallback. Claiming they were Sentry requests is the one thing it must not do.
+  it('names the provider that served the call', () => {
+    expect(
+      fallbackCallLabel({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/v2/logs/events',
+        provider: 'datadog',
+      })
+    ).toBe('Datadog API request');
+    expect(
+      fallbackCallLabel({id: 1, kind: 'lib', name: 'gcp.api.list_logs', provider: 'gcp'})
+    ).toBe('GCP operation');
+  });
+
+  it('names a provider it has never seen', () => {
+    expect(
+      fallbackCallLabel({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/x/',
+        provider: 'newrelic',
+      })
+    ).toBe('newrelic API request');
+  });
+});
+
 describe('callRecordDetail', () => {
   it('shows the path actually requested, not the template', () => {
     const detail = callRecordDetail(
@@ -513,6 +554,24 @@ describe('callRecordDetail', () => {
     );
 
     expect(detail?.body).toContain('"status": "resolved"');
+  });
+
+  it('hides a provider request body', () => {
+    // A provider POSTs because its query will not fit in a URL, so the body is pages of envelope
+    // around one query — unlike a Sentry write, where the body IS the change being made.
+    const detail = callRecordDetail(
+      apiRecord({
+        method: 'POST',
+        path: '/api/v2/query/timeseries',
+        resolved_path: '/api/v2/query/timeseries',
+        path_params: undefined,
+        provider: 'datadog',
+        body: '{\n  "data": {\n    "type": "timeseries_request"\n  }\n}',
+      })
+    );
+
+    expect(detail?.request).toBe('POST /api/v2/query/timeseries');
+    expect(detail?.body).toBeNull();
   });
 
   it('marks a truncated body', () => {

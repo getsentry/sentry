@@ -1,58 +1,145 @@
+import {defined} from 'sentry/utils/defined';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
-export const SEVERITY_OPACITIES = [0.3, 0.5, 0.7, 1] as const;
-export const MAX_SEVERITY = SEVERITY_OPACITIES.length;
+const CONFIGURED_CLIENT_DISCARD_REASONS = new Set(['before_send', 'sample_rate']);
 
-/**
- * A group of annotations that share the same time bucket
- */
-export interface AnnotationBucket {
-  droppedTotal: number;
-  end: number;
-  severity: number;
-  start: number;
+function isConfiguredDrop({outcome, reason}: Annotation): boolean {
+  if (outcome === 'filtered') {
+    return true;
+  }
+
+  return outcome === 'client_discard' && CONFIGURED_CLIENT_DISCARD_REASONS.has(reason);
 }
 
-// TODO: the way we paint + calculate severity will change once
-// https://github.com/getsentry/sentry/pull/124298 is merged, hence leaving
-// mildly untested.
-function severityForCount(count: number, maxCount: number): number {
-  if (count <= 0 || maxCount <= 0) {
+/**
+ * Severity opacity is a gradient from 0.15 to 1,
+ * clamping full opacity at 0.5.
+ */
+const MIN_OPACITY = 0.15;
+const FULL_AT_RATIO = 0.5;
+
+export function opacityForRatio(ratio: number): number {
+  if (ratio <= 0) {
     return 0;
   }
 
-  return Math.min(
-    MAX_SEVERITY,
-    Math.max(1, Math.ceil((count / maxCount) * MAX_SEVERITY))
-  );
+  return Math.min(1, MIN_OPACITY + (1 - MIN_OPACITY) * (ratio / FULL_AT_RATIO));
+}
+
+interface AnnotationVolume {
+  eventCount: number;
+  byteSize?: number;
+}
+
+export interface OutcomeVolume extends AnnotationVolume {
+  outcome: string;
 }
 
 /**
- * Group annotations by their `(start, end)` time bucket, summing `droppedCount`
- * into each bucket's `droppedTotal`, then assign every bucket a window-relative
- * `severity`.
+ * A group of annotations that share the same time bucket.
  */
-export function groupIntoBuckets(annotations: Annotation[]): AnnotationBucket[] {
-  const byBucket = new Map<string, AnnotationBucket>();
-  for (const annotation of annotations) {
+export interface AnnotationBucket {
+  accepted: AnnotationVolume;
+  annotations: Annotation[];
+  byOutcome: OutcomeVolume[];
+  dropped: AnnotationVolume;
+  end: number;
+  ratio: number;
+  start: number;
+}
+
+interface VolumeDraft {
+  byteSize: number | undefined;
+  eventCount: number;
+}
+
+interface BucketDraft {
+  accepted: VolumeDraft;
+  annotations: Annotation[];
+  byOutcome: Map<string, OutcomeVolume & VolumeDraft>;
+  dropped: VolumeDraft;
+  end: number;
+  start: number;
+}
+
+function emptyVolume(): VolumeDraft {
+  return {eventCount: 0, byteSize: undefined};
+}
+
+function addAnnotation(volume: VolumeDraft, annotation: Annotation): void {
+  volume.eventCount += annotation.eventCount;
+
+  if (defined(annotation.byteSize)) {
+    volume.byteSize = (volume.byteSize ?? 0) + annotation.byteSize;
+  }
+}
+
+/**
+ * Group dropped annotations by their `(start, end)` time bucket, joining the
+ * accepted volume for the same bucket so every total has a denominator.
+ */
+export function groupIntoBuckets(
+  droppedAnnotations: Annotation[],
+  acceptedAnnotations: Annotation[] = []
+): AnnotationBucket[] {
+  const drafts = new Map<string, BucketDraft>();
+
+  for (const annotation of droppedAnnotations) {
+    if (isConfiguredDrop(annotation)) {
+      continue;
+    }
+
     const key = `${annotation.start}-${annotation.end}`;
-    const existing = byBucket.get(key);
-    if (existing) {
-      existing.droppedTotal += annotation.droppedCount;
-    } else {
-      byBucket.set(key, {
+    let draft = drafts.get(key);
+
+    if (!draft) {
+      draft = {
         start: annotation.start,
         end: annotation.end,
-        droppedTotal: annotation.droppedCount,
-        severity: 0,
-      });
+        annotations: [],
+        byOutcome: new Map(),
+        dropped: emptyVolume(),
+        accepted: emptyVolume(),
+      };
+      drafts.set(key, draft);
     }
+
+    draft.annotations.push(annotation);
+    addAnnotation(draft.dropped, annotation);
+
+    let outcomeVolume = draft.byOutcome.get(annotation.outcome);
+    if (!outcomeVolume) {
+      outcomeVolume = {
+        outcome: annotation.outcome,
+        ...emptyVolume(),
+      };
+      draft.byOutcome.set(annotation.outcome, outcomeVolume);
+    }
+    addAnnotation(outcomeVolume, annotation);
   }
 
-  const buckets = Array.from(byBucket.values());
-  const maxCount = Math.max(0, ...buckets.map(bucket => bucket.droppedTotal));
-  for (const bucket of buckets) {
-    bucket.severity = severityForCount(bucket.droppedTotal, maxCount);
+  const acceptedByStart = new Map<number, VolumeDraft>();
+  for (const annotation of acceptedAnnotations) {
+    const accepted = acceptedByStart.get(annotation.start) ?? emptyVolume();
+    addAnnotation(accepted, annotation);
+    acceptedByStart.set(annotation.start, accepted);
   }
-  return buckets;
+
+  return Array.from(drafts.values()).map(draft => {
+    const accepted = acceptedByStart.get(draft.start) ?? emptyVolume();
+    const total = draft.dropped.eventCount + accepted.eventCount;
+    const ratio = total > 0 ? draft.dropped.eventCount / total : 0;
+
+    return {
+      start: draft.start,
+      end: draft.end,
+      annotations: draft.annotations,
+      byOutcome: Array.from(draft.byOutcome.values()).sort(
+        (a, b) => b.eventCount - a.eventCount
+      ),
+      dropped: draft.dropped,
+      accepted,
+      ratio,
+    };
+  });
 }

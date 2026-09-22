@@ -61,9 +61,6 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         """
         Get context required to show a login page. Registration is handled elsewhere.
         """
-        if request.user.is_authenticated:
-            return self.respond_authenticated(request)
-
         user_pending_2fa = get_pending_2fa_user(request)
         if user_pending_2fa is not None:
             interfaces = Authenticator.objects.all_interfaces_for_user(user_pending_2fa)
@@ -74,6 +71,9 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
             payload["pendingMfa"] = pending_mfa
             # Preserve the pending MFA and redirect state that initiate_login clears below.
             return self.respond_with_login_context(request, payload)
+
+        if request.user.is_authenticated:
+            return self.respond_authenticated(request)
 
         next_uri = self.get_next_uri(request)
 
@@ -100,7 +100,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         return response
 
     def respond_authenticated(self, request: Request):
-        next_uri = self.get_next_uri(request)
+        next_uri = self.get_next_uri(request, consume=False)
 
         if not is_valid_redirect(next_uri, allowed_hosts=(request.get_host(),)):
             next_uri = get_org_redirect_url(
@@ -109,9 +109,11 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
 
         return Response({"nextUri": next_uri})
 
-    def get_next_uri(self, request: HttpRequest) -> str:
-        next_uri_fallback = request.session.pop("_next", None)
-        return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
+    def get_next_uri(self, request: HttpRequest, *, consume: bool = True) -> str:
+        next_uri_fallback = (
+            request.session.pop("_next", None) if consume else request.session.get("_next")
+        )
+        return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback) or ""
 
     def prepare_login_context(self, request: Request, *args, **kwargs) -> AuthConfigResponse:
         can_register = bool(has_user_registration() or request.session.get("can_register"))

@@ -172,8 +172,14 @@ function Chart({
   const organization = useOrganization();
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const droppedData = organization.features.includes('explore-data-fidelity-annotations')
-    ? timeseriesResult.meta?.annotations
+  const hasAnnotations = organization.features.includes(
+    'explore-data-fidelity-annotations'
+  );
+  const droppedData = hasAnnotations
+    ? timeseriesResult.meta?.droppedAnnotations
+    : undefined;
+  const acceptedData = hasAnnotations
+    ? timeseriesResult.meta?.acceptedAnnotations
     : undefined;
   const hasDroppedData = defined(droppedData) && droppedData.length > 0;
   const [showDroppedData, setShowDroppedData] = useState(true);
@@ -366,6 +372,7 @@ function Chart({
             <ChartVisualization
               chartInfo={chartInfo}
               chartRef={chartRef}
+              acceptedData={acceptedData}
               droppedData={droppedData}
               showDroppedData={showDroppedData}
               chartXRangeSelection={{

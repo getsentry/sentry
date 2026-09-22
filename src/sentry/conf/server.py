@@ -1013,6 +1013,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.lightweight_rca_cluster",
     "sentry.tasks.seer.investigation",
     "sentry.tasks.seer.night_shift.cron",
+    "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
     # Used for tests
     "sentry.taskworker.tasks.examples",
@@ -1134,6 +1135,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "uptime:sentry.uptime.tasks.broken_monitor_checker",
         "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
+    "uptime-config-drift-dispatcher": {
+        "task": "uptime:sentry.uptime.tasks.config_drift_dispatcher",
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
+    },
     "poll_tempest": {
         "task": "tempest:sentry.tempest.tasks.poll_tempest",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
@@ -1180,6 +1185,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "seer:sentry.tasks.seer.night_shift.schedule_night_shift",
         # Run every 12 hours, at 10:00 and 22:00 UTC
         "schedule": crontab("0", "10,22", "*", "*", "*"),
+    },
+    "seer-autofix-issue-data-judging": {
+        "task": "seer:sentry.tasks.seer.autofix_issue_data.schedule_judging",
+        # Twice daily at 08:00 and 20:00 PST (16:00 and 04:00 UTC)
+        "schedule": crontab("0", "4,16", "*", "*", "*"),
     },
     "pr-metrics-reap-stuck-judge-verdicts": {
         "task": "seer.code_review:sentry.pr_metrics.tasks.reap_stuck_judge_verdicts",
@@ -1890,6 +1900,9 @@ SENTRY_SCOPES = {
     "event:admin",
     "alerts:read",
     "alerts:write",
+    "dashboard:read",
+    "dashboard:write",
+    "dashboard:delete",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
@@ -1904,6 +1917,7 @@ SENTRY_READONLY_SCOPES = {
     "project:read",
     "event:read",
     "alerts:read",
+    "dashboard:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -1929,6 +1943,9 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "event:admin": {"event:read", "event:write", "event:admin"},
     "alerts:read": {"alerts:read"},
     "alerts:write": {"alerts:read", "alerts:write"},
+    "dashboard:read": {"dashboard:read"},
+    "dashboard:write": {"dashboard:read", "dashboard:write"},
+    "dashboard:delete": {"dashboard:read", "dashboard:write", "dashboard:delete"},
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -1989,6 +2006,11 @@ SENTRY_SCOPE_SETS = (
         ("alerts:write", "Read and write alerts"),
         ("alerts:read", "Read alerts"),
     ),
+    (
+        ("dashboard:delete", "Read, write, and delete access to dashboards."),
+        ("dashboard:write", "Read and write access to dashboards."),
+        ("dashboard:read", "Read access to dashboards."),
+    ),
     (("openid", "Confirms authentication status and provides basic information."),),
     (
         (
@@ -2024,6 +2046,9 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "team:read",
             "alerts:read",
             "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
         },
     },
     {
@@ -2056,6 +2081,9 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
         },
         "is_retired": True,
     },
@@ -2083,6 +2111,9 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
         },
         "is_global": True,
     },
@@ -2117,6 +2148,9 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:admin",
             "alerts:read",
             "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
         },
         "is_global": True,
     },

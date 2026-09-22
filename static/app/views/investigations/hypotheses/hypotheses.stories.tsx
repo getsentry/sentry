@@ -43,17 +43,17 @@ export default Storybook.story('Investigations — Hypotheses', story => {
     <Fragment>
       <p>
         A card renders <code>effectiveStatus</code>, which already folds the agent verdict
-        and any user disposition into the run status. Confidence only appears once the
-        agent has settled on a verdict.
+        and any user disposition into the run status. Its verdict tag appears beside the
+        hypothesis number, without a confidence percentage.
       </p>
       <p>
-        The border carries the verdict three ways. A solid accent edge marks the
+        The border carries the verdict three ways. A thicker solid accent edge marks the
         explanation that stands — supported by the evidence, or accepted by a person. A
         dashed edge marks a card that was checked and is not the answer: ruled out,
         inconclusive, failed and cancelled all read the same way to someone scanning the
-        row, so the status line carries that distinction rather than the border. A
-        hypothesis still being investigated keeps an ordinary solid edge, because dashing
-        it would announce a verdict the agent has not reached.
+        row, so the tag carries that distinction rather than the border. A hypothesis
+        still being investigated keeps an ordinary solid edge, because dashing it would
+        announce a verdict the agent has not reached.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <HypothesisList hypotheses={InvestigationHypothesesFixture()} />
@@ -63,17 +63,18 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         through several states worth naming: formed, having its checks planned, running
         them, and done checking but not yet judged. Those are read off the verification
         steps, since that is the only place the distinction exists. Only the running state
-        is coloured, and it is the only one drawn as a spinning ring rather than a dot —
-        the rest are staging posts, not outcomes. All four keep a solid border: dashing
-        one would announce a verdict the agent has not reached. The heading over the steps
-        moves with them, from "Evidence to check" to "Evidence checked".
+        has a purple tag; the other three use muted tags. All four keep a solid border:
+        dashing one would announce a verdict the agent has not reached. Verification steps
+        show only their titles in a connected timeline. The current step has a filled dark
+        circle and primary text; other steps have hollow circles and muted text.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <HypothesisList hypotheses={inFlightHypotheses()} />
       </Storybook.Demo>
       <p>
         A failure is the one in-flight state that gets a colour, because it is the only
-        one that has stopped. The hypothesis says why, and so does each check that broke.
+        one that has stopped. The hypothesis says why; its timeline keeps the check
+        titles.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <HypothesisList
@@ -206,23 +207,30 @@ function inFlightHypotheses() {
       id: 'checking',
       order: 2,
       statement: 'A noisy neighbour saturated the shared pool',
-      rationale: 'One check is running; the rest are queued behind it.',
+      rationale: 'Two checks have completed and the next check is running.',
       status: 'running',
       effectiveStatus: 'investigating',
       confidence: null,
       agentVerdict: null,
       verificationSteps: [
         InvestigationVerificationStepFixture({
-          id: 'checking-step',
+          id: 'checking-completed',
           title: 'Compare pool saturation across tenants',
-          status: 'running',
-          result: null,
+          status: 'completed',
+          result: 'Saturation increased across all tenants.',
         }),
         InvestigationVerificationStepFixture({
-          id: 'checking-queued',
+          id: 'checking-completed-connection',
           order: 1,
           title: 'Inspect connection wait time',
-          status: 'queued',
+          status: 'completed',
+          result: 'Connection wait time increased.',
+        }),
+        InvestigationVerificationStepFixture({
+          id: 'checking-step',
+          order: 2,
+          title: 'Checking Redis latency and connection usage',
+          status: 'running',
           result: null,
         }),
       ],
