@@ -382,9 +382,12 @@ function Chart({
                 if (!hasDroppedData) {
                   return;
                 }
-                openDrawer(() => <DroppedDataPanelContent droppedData={droppedData} />, {
-                  ariaLabel: t('Dropped Data'),
-                });
+                openDrawer(
+                  () => <DroppedDataPanelContent droppedDataAnnotations={droppedData} />,
+                  {
+                    ariaLabel: t('Dropped Data'),
+                  }
+                );
               }}
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,

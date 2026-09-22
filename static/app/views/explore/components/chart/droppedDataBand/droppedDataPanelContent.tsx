@@ -9,10 +9,12 @@ import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries'
 import {DroppedDataChart} from './droppedDataChart';
 
 interface DroppedDataPanelContentProps {
-  droppedData: Annotation[];
+  droppedDataAnnotations: Annotation[];
 }
 
-export function DroppedDataPanelContent({droppedData}: DroppedDataPanelContentProps) {
+export function DroppedDataPanelContent({
+  droppedDataAnnotations,
+}: DroppedDataPanelContentProps) {
   return (
     <Fragment>
       <DrawerHeader>
@@ -21,7 +23,7 @@ export function DroppedDataPanelContent({droppedData}: DroppedDataPanelContentPr
         </Text>
       </DrawerHeader>
       <DrawerBody>
-        <DroppedDataChart annotations={droppedData} />
+        <DroppedDataChart annotations={droppedDataAnnotations} />
       </DrawerBody>
     </Fragment>
   );
