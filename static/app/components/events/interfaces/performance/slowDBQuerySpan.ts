@@ -1,5 +1,6 @@
 import {
   getSpanCategory,
+  getSpanInfoFromTransactionEvent,
   getSpanSentryGroupValue,
 } from 'sentry/components/events/interfaces/performance/utils';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
@@ -47,6 +48,29 @@ export function slowDBQuerySpanFromTraceItem(
     category: getAttributeValue(attributes, 'span.category', 'string'),
     durationMs: durationMs !== undefined && durationMs >= 0 ? durationMs : undefined,
   };
+}
+
+/** Prefer usable dataset SQL, retaining a complete recorded snapshot on lookup gaps. */
+export function resolveSlowDBQuerySpan(
+  event: Parameters<typeof getSpanInfoFromTransactionEvent>[0],
+  data?: TraceItemDetailsResponse
+): SlowDBQuerySpan | undefined {
+  if (data) {
+    const span = slowDBQuerySpanFromTraceItem(data);
+    if (span.description?.trim()) {
+      return span;
+    }
+
+    // A removed query is not missing data: do not restore it from an older snapshot.
+    if (data.meta?.['span.description']?.meta?.value?.['']?.rem?.length) {
+      return undefined;
+    }
+  }
+
+  const recorded = slowDBQuerySpanFromEvent(
+    getSpanInfoFromTransactionEvent(event)?.offendingSpans[0]
+  );
+  return recorded?.description?.trim() ? recorded : undefined;
 }
 
 export function slowDBQuerySpanFromEvent(

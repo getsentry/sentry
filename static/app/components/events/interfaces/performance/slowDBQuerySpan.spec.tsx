@@ -48,7 +48,9 @@ function occurrenceEvent(overrides: Partial<EventTransaction> = {}) {
   });
 }
 
-function recordedSpanEntries(): EventTransaction['entries'] {
+function recordedSpanEntries(
+  description = 'SELECT id FROM recorded_books'
+): EventTransaction['entries'] {
   return [
     {
       type: EntryType.SPANS,
@@ -57,7 +59,7 @@ function recordedSpanEntries(): EventTransaction['entries'] {
           span_id: spanId,
           trace_id: traceId,
           op: 'db',
-          description: 'SELECT id FROM recorded_books',
+          description,
           start_timestamp: startTimestamp,
           timestamp: startTimestamp + 0.5,
         },
@@ -158,6 +160,86 @@ describe('Slow-query evidence from the spans dataset', () => {
     );
     expect(evidence).toHaveTextContent('SELECT id FROM books');
     expect(evidence).not.toHaveTextContent('recorded_books');
+  });
+
+  it.each([undefined, '', '   '])(
+    'retains recorded SQL and duration when the dataset query is %p',
+    async description => {
+      const response = spanResponse();
+      response.attributes = response.attributes.filter(
+        attribute => attribute.name !== 'span.description'
+      );
+      if (description !== undefined) {
+        response.attributes.push({
+          name: 'span.description',
+          type: 'str',
+          value: description,
+        });
+      }
+      MockApiClient.addMockResponse({url: detailsUrl, body: response});
+      renderEvidence(occurrenceEvent({entries: recordedSpanEntries()}));
+
+      expect(
+        await screen.findByTestId('span-evidence-key-value-list.slow-db-query')
+      ).toHaveTextContent('SELECT id FROM recorded_books');
+      expect(screen.getByText(/50%/)).toBeInTheDocument();
+      expect(screen.queryByText(/\/app\/books.py/)).not.toBeInTheDocument();
+    }
+  );
+
+  it.each([false, true])(
+    'shows unavailable when neither source has SQL, with a recorded span=%s',
+    async hasRecordedSpan => {
+      MockApiClient.addMockResponse({
+        url: detailsUrl,
+        body: {...spanResponse(), attributes: []},
+      });
+      renderEvidence(
+        occurrenceEvent({entries: hasRecordedSpan ? recordedSpanEntries('   ') : []})
+      );
+
+      expect(
+        await screen.findByText('Span evidence is unavailable.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('cell', {name: 'Duration Impact'})
+      ).not.toBeInTheDocument();
+    }
+  );
+
+  it('does not restore SQL removed from the dataset', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsUrl,
+      body: {
+        ...spanResponse(),
+        attributes: [{name: 'span.description', type: 'str', value: ''}],
+        meta: {'span.description': {meta: {value: {'': {rem: [['!config', 'x']]}}}}},
+      },
+    });
+    renderEvidence(occurrenceEvent({entries: recordedSpanEntries()}));
+
+    expect(await screen.findByText('Span evidence is unavailable.')).toBeInTheDocument();
+    expect(screen.queryByText(/recorded_books/)).not.toBeInTheDocument();
+  });
+
+  it('retains dataset SQL when optional span attributes are missing', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsUrl,
+      body: {
+        ...spanResponse(),
+        attributes: [
+          {name: 'span.description', type: 'str', value: 'SELECT id FROM books'},
+        ],
+      },
+    });
+    renderEvidence(occurrenceEvent({entries: recordedSpanEntries()}));
+
+    const evidence = await screen.findByTestId(
+      'span-evidence-key-value-list.slow-db-query'
+    );
+    expect(evidence).toHaveTextContent('SELECT id FROM books');
+    expect(evidence).not.toHaveTextContent('recorded_books');
+    expect(screen.queryByRole('cell', {name: 'Duration Impact'})).not.toBeInTheDocument();
   });
 
   it('uses the full occurrence time range for long segments', async () => {

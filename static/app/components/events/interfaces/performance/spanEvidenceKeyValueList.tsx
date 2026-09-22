@@ -17,7 +17,7 @@ import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {
   slowDBQuerySpanFromEvent,
-  slowDBQuerySpanFromTraceItem,
+  resolveSlowDBQuerySpan,
   type SlowDBQuerySpan,
 } from 'sentry/components/events/interfaces/performance/slowDBQuerySpan';
 import {
@@ -578,11 +578,8 @@ function SlowDBQueryEvidenceFromDataset(props: SlowDBQueryEvidenceProps) {
     return <LoadingIndicator>{t('Loading span evidence…')}</LoadingIndicator>;
   }
 
-  // Keep the recorded evidence available for older or unindexed spans. The
-  // successful dataset path never reads the event's embedded span entries.
-  const span = spanQuery.data
-    ? slowDBQuerySpanFromTraceItem(spanQuery.data)
-    : slowDBQuerySpanFromEvent(getSpanInfoFromTransactionEvent(event)?.offendingSpans[0]);
+  // Usable dataset evidence never needs the event's embedded span entries.
+  const span = resolveSlowDBQuerySpan(event, spanQuery.data);
 
   return <SlowDBQueryEvidence {...props} span={span} />;
 }
