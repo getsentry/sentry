@@ -1,6 +1,5 @@
-import {Fragment, useId} from 'react';
+import {useId} from 'react';
 import styled from '@emotion/styled';
-import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -55,7 +54,6 @@ export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Prop
   const {IntegrationFeatures} = getIntegrationFeatureGate();
 
   const labelId = useId();
-  const disabledReasonId = useId();
 
   if (!querySuccess) {
     return null;
@@ -78,55 +76,33 @@ export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Prop
               features={ALERT_RULE_INTEGRATION_FEATURES}
             >
               {({disabled, disabledReason}) => (
-                <Fragment>
-                  <Tooltip title={disabledReason} disabled={!disabled} skipWrapper>
-                    <Flex as="label" align="start" gap="md">
-                      {/* aria-disabled rather than disabled keeps the checkbox
-                      focusable, so focus inside the label opens the tooltip. The
-                      tooltip describes the label, so the checkbox gets the reason
-                      from the hidden copy instead. */}
-                      <Checkbox
-                        checked={actions.includes(MultipleCheckboxOptions.INTEGRATION)}
-                        aria-disabled={disabled || undefined}
-                        aria-describedby={disabled ? disabledReasonId : undefined}
-                        onChange={e => {
-                          if (disabled) {
-                            return;
-                          }
-                          setActions(
-                            e.target.checked
-                              ? [...actions, MultipleCheckboxOptions.INTEGRATION]
-                              : actions.filter(
-                                  a => a !== MultipleCheckboxOptions.INTEGRATION
-                                )
-                          );
-                          if (analyticsFlow === 'project-creation') {
-                            trackAnalytics(
-                              'project_creation.notify_integration_toggled',
-                              {
-                                organization,
-                                enabled: e.target.checked,
-                                variant: 'scm',
-                              }
-                            );
-                          }
-                        }}
-                      />
-                      <Text
-                        bold={false}
-                        ellipsis
-                        variant={disabled ? 'muted' : undefined}
-                      >
-                        {t('Integration (Slack, Discord, MS Teams, etc.)')}
-                      </Text>
-                    </Flex>
-                  </Tooltip>
-                  {disabled && (
-                    <VisuallyHidden id={disabledReasonId}>
-                      {disabledReason}
-                    </VisuallyHidden>
-                  )}
-                </Fragment>
+                <Tooltip title={disabledReason} disabled={!disabled} skipWrapper>
+                  <Flex as="label" align="start" gap="md">
+                    <Checkbox
+                      checked={actions.includes(MultipleCheckboxOptions.INTEGRATION)}
+                      disabled={disabled}
+                      onChange={e => {
+                        setActions(
+                          e.target.checked
+                            ? [...actions, MultipleCheckboxOptions.INTEGRATION]
+                            : actions.filter(
+                                a => a !== MultipleCheckboxOptions.INTEGRATION
+                              )
+                        );
+                        if (analyticsFlow === 'project-creation') {
+                          trackAnalytics('project_creation.notify_integration_toggled', {
+                            organization,
+                            enabled: e.target.checked,
+                            variant: 'scm',
+                          });
+                        }
+                      }}
+                    />
+                    <Text bold={false} ellipsis variant={disabled ? 'muted' : undefined}>
+                      {t('Integration (Slack, Discord, MS Teams, etc.)')}
+                    </Text>
+                  </Flex>
+                </Tooltip>
               )}
             </IntegrationFeatures>
           )}

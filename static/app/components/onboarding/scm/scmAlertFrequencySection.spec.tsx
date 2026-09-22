@@ -6,7 +6,6 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
-  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
@@ -118,8 +117,7 @@ describe('ScmAlertFrequencySection', () => {
     );
   });
 
-  it('disables the Integration checkbox with a reason when the plan lacks alert-rule integrations', async () => {
-    const setActions = jest.fn();
+  it('disables the Integration checkbox when the plan lacks alert-rule integrations', async () => {
     jest.spyOn(integrationUtil, 'getIntegrationFeatureGate').mockReturnValue({
       IntegrationFeatures: p =>
         p.children({
@@ -130,26 +128,14 @@ describe('ScmAlertFrequencySection', () => {
         }),
       FeatureList: () => null,
     });
-    renderSection({
-      analyticsFlow: 'onboarding',
-      notificationProps: {...notificationProps, setActions},
-    });
+    renderSection({analyticsFlow: 'onboarding'});
 
     const checkbox = screen.getByRole('checkbox', {
       name: 'Integration (Slack, Discord, MS Teams, etc.)',
     });
-    expect(checkbox).toHaveAttribute('aria-disabled', 'true');
-    expect(checkbox).toHaveAccessibleDescription('Requires Team Plan or above');
-
-    await userEvent.click(checkbox);
-    expect(setActions).not.toHaveBeenCalled();
-
-    // Focus inside the row opens the reason tooltip on the whole row.
-    const row = checkbox.closest('label')!;
-    expect(checkbox).toHaveFocus();
-    await waitFor(() =>
-      expect(row).toHaveAccessibleDescription('Requires Team Plan or above')
-    );
+    expect(checkbox).toBeDisabled();
+    await userEvent.hover(checkbox.closest('label')!);
+    expect(await screen.findByText('Requires Team Plan or above')).toBeInTheDocument();
   });
 
   it('tracks integration toggles in project creation', async () => {
