@@ -222,9 +222,9 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         />
         <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
           <Text bold size="sm" uppercase variant="muted">
-            {({className}) => (
+            {textProps => (
               <Grid
-                className={className}
+                {...textProps}
                 columns={{
                   zero: '0.6fr 1.5fr 0.6fr',
                   sm: '0.6fr 2fr 0.6fr',

@@ -323,9 +323,9 @@ export class Candidates extends Component<Props, State> {
           wrap={{xl: 'wrap'}}
         >
           <Text bold variant="muted">
-            {({className}) => (
+            {textProps => (
               <Grid
-                className={className}
+                {...textProps}
                 align="center"
                 columns="repeat(2, max-content)"
                 flex={1}

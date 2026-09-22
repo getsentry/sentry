@@ -308,8 +308,8 @@ export function DebugImageDetails({
       </Header>
       <Body>
         <Text size="md">
-          {({className}) => (
-            <Grid className={className} gap="2xl">
+          {textProps => (
+            <Grid {...textProps} gap="2xl">
               <GeneralInfo image={image} />
               {hasReprocessWarning && (
                 <ReprocessAlert
