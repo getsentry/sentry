@@ -17,7 +17,7 @@ from sentry.sentry_metrics.indexer.postgres.models import StringIndexer
 from sentry.testutils.cases import TestCase
 
 
-def mixed_payload():
+def mixed_payload() -> bytes:
     return b"""
         {
             "mapping_meta": {
@@ -40,22 +40,22 @@ def mixed_payload():
         """
 
 
-def empty_payload():
+def empty_payload() -> bytes:
     return b"""
         {
         }
         """
 
 
-def bad_payload():
+def bad_payload() -> bytes:
     return b"not JSON"
 
 
-def headerless_kafka_payload(payload_bytes):
+def headerless_kafka_payload(payload_bytes: bytes) -> KafkaPayload:
     return KafkaPayload(key=b"fake-key", value=payload_bytes, headers=[])
 
 
-def kafka_message(kafka_payload):
+def kafka_message(kafka_payload: KafkaPayload) -> Message[KafkaPayload]:
     return Message(
         BrokerValue(
             payload=kafka_payload,
@@ -86,7 +86,7 @@ def test_retrieve_db_read_keys_meta_field_bad_json() -> None:
 
 class TestLastSeenUpdaterEndToEnd(TestCase):
     @staticmethod
-    def processing_factory():
+    def processing_factory() -> LastSeenUpdaterStrategyFactory:
         return LastSeenUpdaterStrategyFactory(
             ingest_profile="release-health",
             indexer_db="postgres",
@@ -159,24 +159,28 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
 
 class TestFilterMethod:
     @pytest.fixture
-    def message_filter(self):
+    def message_filter(self) -> LastSeenUpdaterMessageFilter:
         return LastSeenUpdaterMessageFilter(DummyMetricsBackend())
 
-    def empty_message_with_headers(self, headers: list[tuple[str, bytes]]):
+    def empty_message_with_headers(self, headers: list[tuple[str, bytes]]) -> Message[KafkaPayload]:
         payload = KafkaPayload(headers=headers, key=Mock(), value=Mock())
         return Message(
             BrokerValue(payload=payload, partition=Mock(), offset=0, timestamp=timezone.now())
         )
 
-    def test_message_filter_no_header(self, message_filter) -> None:
+    def test_message_filter_no_header(self, message_filter: LastSeenUpdaterMessageFilter) -> None:
         message = self.empty_message_with_headers([])
         assert not message_filter.should_drop(message)
 
-    def test_message_filter_header_contains_d(self, message_filter) -> None:
+    def test_message_filter_header_contains_d(
+        self, message_filter: LastSeenUpdaterMessageFilter
+    ) -> None:
         message = self.empty_message_with_headers([("mapping_sources", b"hcd")])
         assert not message_filter.should_drop(message)
 
-    def test_message_filter_header_contains_no_d(self, message_filter) -> None:
+    def test_message_filter_header_contains_no_d(
+        self, message_filter: LastSeenUpdaterMessageFilter
+    ) -> None:
         message = self.empty_message_with_headers([("mapping_sources", b"fhc")])
         assert message_filter.should_drop(message)
 

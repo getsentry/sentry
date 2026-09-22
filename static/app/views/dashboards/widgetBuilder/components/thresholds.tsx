@@ -83,6 +83,7 @@ export function ThresholdsSection({
           }
 
           if (newThresholds) {
+            newThresholds.max_values ??= {};
             if (value) {
               newThresholds.max_values[maxKey] = Number(value);
             } else {
@@ -92,7 +93,7 @@ export function ThresholdsSection({
 
           // Check if the value cleared all of the max values
           if (
-            newThresholds &&
+            newThresholds?.max_values &&
             Object.values(newThresholds.max_values).every(
               nextMaxValue => !defined(nextMaxValue)
             )

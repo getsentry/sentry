@@ -1,9 +1,5 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {render} from 'sentry-test/reactTestingLibrary';
-
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   LOGS_FIELDS_KEY,
   usePersistedLogsPageParams,
@@ -12,34 +8,17 @@ import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 
 import {usePersistentLogsPageParameters} from './usePersistentLogsPageParameters';
 
-jest.mock('sentry/utils/useLocation', () => ({
-  ...jest.requireActual('sentry/utils/useLocation'),
-  useLocation: jest.fn(),
-}));
-
-jest.mock('sentry/utils/useNavigate', () => ({
-  ...jest.requireActual('sentry/utils/useNavigate'),
-  useNavigate: jest.fn(),
-}));
-
 jest.mock('sentry/views/explore/contexts/logs/logsPageParams', () => ({
   ...jest.requireActual('sentry/views/explore/contexts/logs/logsPageParams'),
   usePersistedLogsPageParams: jest.fn(),
 }));
 
 describe('usePersistentLogsPageParameters', () => {
-  const navigateMock = jest.fn();
-
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.mocked(useNavigate).mockReturnValue(navigateMock);
   });
 
   it('navigates with persisted fields and sortBys if missing in URL', () => {
-    jest
-      .mocked(useLocation)
-      .mockReturnValue(LocationFixture({pathname: '/logs/', query: {}}));
-
     jest.mocked(usePersistedLogsPageParams).mockReturnValue([
       {
         fields: ['message', 'sentry.message.parameters.0'],
@@ -48,35 +27,18 @@ describe('usePersistentLogsPageParameters', () => {
       jest.fn(),
     ]);
 
-    function Main() {
-      usePersistentLogsPageParameters();
-      return <div>main</div>;
-    }
+    const {router} = renderHookWithProviders(usePersistentLogsPageParameters, {
+      initialRouterConfig: {location: {pathname: '/logs/', query: {}}},
+    });
 
-    render(<Main />);
-
-    expect(navigateMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          [LOGS_FIELDS_KEY]: ['message', 'sentry.message.parameters.0'],
-          [LOGS_SORT_BYS_KEY]: ['sentry.message.parameters.0'],
-        }),
-      }),
-      {replace: true}
-    );
+    expect(router.location.pathname).toBe('/logs/');
+    expect(router.location.query).toEqual({
+      [LOGS_FIELDS_KEY]: ['message', 'sentry.message.parameters.0'],
+      [LOGS_SORT_BYS_KEY]: 'sentry.message.parameters.0',
+    });
   });
 
   it('does not navigate if fields and sortBys are already set', () => {
-    jest.mocked(useLocation).mockReturnValue(
-      LocationFixture({
-        pathname: '/logs/',
-        query: {
-          [LOGS_FIELDS_KEY]: ['level', 'timestamp'],
-          [LOGS_SORT_BYS_KEY]: ['timestamp'],
-        },
-      })
-    );
-
     jest.mocked(usePersistedLogsPageParams).mockReturnValue([
       {
         fields: ['timestamp', 'message'],
@@ -85,21 +47,25 @@ describe('usePersistentLogsPageParameters', () => {
       jest.fn(),
     ]);
 
-    function Main() {
-      usePersistentLogsPageParameters();
-      return <div>main</div>;
-    }
+    const {router} = renderHookWithProviders(usePersistentLogsPageParameters, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/logs/',
+          query: {
+            [LOGS_FIELDS_KEY]: ['level', 'timestamp'],
+            [LOGS_SORT_BYS_KEY]: ['timestamp'],
+          },
+        },
+      },
+    });
 
-    render(<Main />);
-
-    expect(navigateMock).not.toHaveBeenCalled();
+    expect(router.location.query).toEqual({
+      [LOGS_FIELDS_KEY]: ['level', 'timestamp'],
+      [LOGS_SORT_BYS_KEY]: 'timestamp',
+    });
   });
 
   it('uses replace to navigate only on the first render', () => {
-    jest
-      .mocked(useLocation)
-      .mockReturnValue(LocationFixture({pathname: '/logs/', query: {}}));
-
     jest.mocked(usePersistedLogsPageParams).mockReturnValue([
       {
         fields: ['message'],
@@ -108,15 +74,15 @@ describe('usePersistentLogsPageParameters', () => {
       jest.fn(),
     ]);
 
-    function Main() {
-      usePersistentLogsPageParameters();
-      return <div>main</div>;
-    }
+    const {router, unmount} = renderHookWithProviders(usePersistentLogsPageParameters, {
+      initialRouterConfig: {location: {pathname: '/logs/', query: {}}},
+    });
+    expect(router.location.query[LOGS_FIELDS_KEY]).toBe('message');
 
-    const {rerender} = render(<Main />);
-    expect(navigateMock).toHaveBeenCalledWith(expect.anything(), {replace: true});
+    router.navigate(-1);
+    expect(router.location.query[LOGS_FIELDS_KEY]).toBe('message');
 
-    // Change the fields and sort by props to retrigger navigation
+    // Change the persisted fields and sort by values to retrigger navigation
     jest.mocked(usePersistedLogsPageParams).mockReturnValue([
       {
         fields: ['test'],
@@ -125,7 +91,11 @@ describe('usePersistentLogsPageParameters', () => {
       jest.fn(),
     ]);
 
-    rerender(<Main />);
-    expect(navigateMock).toHaveBeenCalledWith(expect.anything(), {replace: false});
+    router.navigate('/logs/', {replace: true});
+    expect(router.location.query[LOGS_FIELDS_KEY]).toBe('test');
+
+    unmount();
+    router.navigate(-1);
+    expect(router.location.query).toEqual({});
   });
 });

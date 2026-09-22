@@ -343,7 +343,6 @@ def reset_snuba(call_snuba):
         "/tests/groupedmessage/drop",
         "/tests/transactions/drop",
         "/tests/metrics/drop",
-        "/tests/generic_metrics/drop",
         "/tests/search_issues/drop",
         "/tests/group_attributes/drop",
     ]

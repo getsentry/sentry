@@ -132,6 +132,7 @@ class AgentPrStateRequest(TypedDict):
 
 
 class AgentRunOptions(TypedDict):
+    enable_assisted_query_code_mode: NotRequired[bool]
     enable_frontend_code_search: NotRequired[bool | None]
     is_context_engine_enabled: NotRequired[bool]
     enable_bash_mode: NotRequired[bool]
@@ -353,17 +354,25 @@ def get_agent_state_from_pr_id(
     body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
     response = make_agent_state_pr_request(body)
 
+    if response.status == 404:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "no_run_for_org"})
+        return None
+
     if response.status >= 400:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "error"})
         raise SeerApiError("Seer request failed", response.status)
 
     result = response.json()
     if not result:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "empty_response"})
         return None
 
     session = result.get("session")
     if session is None:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "no_run_for_pr"})
         return None
 
+    metrics.incr("seer.agent.state_from_pr", tags={"outcome": "found"})
     return SeerRunState(**session)
 
 

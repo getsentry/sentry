@@ -19,7 +19,11 @@ describe('AssertionFailureTree', () => {
     const assertion: UptimeAssertion = {
       root: makeAndOp({
         children: [
-          makeStatusCodeOp({operator: {cmp: UptimeComparisonType.EQUALS}, value: 500}),
+          {
+            ...makeStatusCodeOp(),
+            operator: {cmp: UptimeComparisonType.EQUALS},
+            value: 500,
+          },
         ],
       }),
     };
@@ -41,19 +45,22 @@ describe('AssertionFailureTree', () => {
     const assertion: UptimeAssertion = {
       root: makeAndOp({
         children: [
-          makeOrOp({
+          {
+            ...makeOrOp(),
             children: [
-              makeJsonPathOp({
+              {
+                ...makeJsonPathOp(),
                 value: '$.status',
                 operator: {cmp: UptimeComparisonType.EQUALS},
                 operand: {jsonpath_op: 'literal', value: 'ok'},
-              }),
-              makeHeaderCheckOp({
+              },
+              {
+                ...makeHeaderCheckOp(),
                 key_operand: {header_op: 'literal', value: 'content-type'},
                 value_operand: {header_op: 'literal', value: 'application/json'},
-              }),
+              },
             ],
-          }),
+          },
         ],
       }),
     };

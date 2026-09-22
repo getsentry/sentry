@@ -280,6 +280,7 @@ function useUpdateOverlayPositionOnContentChange({
     return () => {
       resizeObserverRef.current?.disconnect();
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
@@ -322,6 +323,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   }
 
   if (customMenu) {
+    // oxlint-disable-next-line react/refs
     return customMenu({
       popoverRef,
       listBoxRef,
@@ -598,7 +600,9 @@ export function SearchQueryBuilderCombobox<
   });
 
   const descriptionPopper = usePopper(
+    // oxlint-disable-next-line react/refs
     inputRef.current,
+    // oxlint-disable-next-line react/refs
     descriptionRef.current,
     DESCRIPTION_POPPER_OPTIONS
   );
@@ -637,6 +641,7 @@ export function SearchQueryBuilderCombobox<
     }
 
     return () => {};
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputRef, popoverRef, isOpen, customMenu, keepVisibleRef]);
 
   const autosizeInput = useAutosizeInput({value: inputValue});

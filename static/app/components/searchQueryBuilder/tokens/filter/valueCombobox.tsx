@@ -646,7 +646,8 @@ function ValueComboboxCustomMenu(
       {...props}
       portalTarget={
         canSelectMultipleValues
-          ? (props.portalTarget ?? wrapperRef.current)
+          ? // oxlint-disable-next-line react/refs
+            (props.portalTarget ?? wrapperRef.current)
           : props.portalTarget
       }
       wrapperRef={wrapperRef}
@@ -823,6 +824,7 @@ export function SearchQueryBuilderValueCombobox({
 
   const ctrlKeyPressed = useKeyPress(
     isMac() ? 'Meta' : 'Control',
+    // oxlint-disable-next-line react/refs
     topLevelWrapperRef.current
   );
   const selectedValueMap = useMemo(
@@ -876,6 +878,7 @@ export function SearchQueryBuilderValueCombobox({
     if (pendingCaret.pos === 0) {
       input.scrollLeft = 0;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputValue, scrollInputIntoView]);
 
   // While typing, surface the typed text as a custom option so results rank by

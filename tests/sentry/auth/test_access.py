@@ -12,7 +12,6 @@ from sentry.auth.scope_declaration import (
     bind_endpoint_scope_declaration,
     update_permission_scope_declaration,
 )
-from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import SUPERUSER_READONLY_SCOPES, SUPERUSER_SCOPES
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
@@ -27,7 +26,6 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, no_silo_test
 from sentry.users.models.user import User
-from sentry.users.models.userrole import UserRole
 
 
 def silo_from_user(
@@ -1075,17 +1073,3 @@ class SystemAccessTest(TestCase):
         assert not result.has_team_membership(team)
         assert result.has_scope("project:read")
         assert result.has_team_access(team)
-
-
-@no_silo_test
-class GetPermissionsForUserTest(TestCase):
-    def test_combines_roles_and_perms(self) -> None:
-        user = self.user
-
-        self.add_user_permission(user, "test.permission")
-        role = UserRole.objects.create(name="test.role", permissions=["test.permission-role"])
-        role.users.add(user)
-
-        assert sorted(access_service.get_permissions_for_user(user.id)) == sorted(
-            ["test.permission", "test.permission-role"]
-        )

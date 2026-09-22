@@ -2,11 +2,10 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {markdownToPlainText} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
-import {Count} from 'sentry/components/count';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
 import {
@@ -14,9 +13,9 @@ import {
   type QueryEmbedColumn,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
 import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
+import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -24,12 +23,16 @@ import type {
   Conversation,
   ConversationUser,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
-import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 
 import {getConversationHref} from './conversation/conversationLink';
 import {
+  CONVERSATION_METRIC_FIELDS,
+  type ConversationMetrics,
+} from './conversation/conversationMetrics';
+import {
   combineAgentQuery,
-  ConversationsQueryLink,
+  getConversationsQueryHref,
+  getConversationsQueryTitle,
   type ConversationsQueryData,
 } from './conversationsQueryLink';
 
@@ -128,50 +131,38 @@ function ConversationCell({row}: {row: ConversationApiRow}) {
   );
 }
 
+/**
+ * A list row already carries every metric, so the shared fields just read it.
+ */
+function toConversationMetrics(row: ConversationApiRow): ConversationMetrics {
+  return {
+    generationDuration: row.generationDuration,
+    messages: row.llmCalls,
+    errors: row.errors,
+    cost: row.totalCost,
+  };
+}
+
 const COLUMNS: Array<QueryEmbedColumn<ConversationApiRow>> = [
   {
     key: 'conversation',
     label: t('Conversation'),
     render: row => <ConversationCell row={row} />,
   },
-  {
-    key: 'duration',
-    label: t('Duration'),
-    // The generation duration, not the wall-clock span of the conversation:
-    // a conversation can sit idle for hours between two messages.
-    render: row => (
-      <Text ellipsis tabular>
-        <PerformanceDuration milliseconds={row.generationDuration} abbreviation />
-      </Text>
-    ),
-  },
-  {
-    key: 'messages',
-    label: t('Messages'),
-    render: row => (
-      <Text ellipsis tabular>
-        <Count value={row.llmCalls} />
-      </Text>
-    ),
-  },
-  {
-    key: 'errors',
-    label: t('Errors'),
-    render: row => (
-      <Text ellipsis tabular variant={row.errors > 0 ? 'danger' : undefined}>
-        <Count value={row.errors} />
-      </Text>
-    ),
-  },
-  {
-    key: 'cost',
-    label: t('Cost'),
-    render: row => (
-      <Text ellipsis tabular>
-        <LLMCosts cost={row.totalCost} />
-      </Text>
-    ),
-  },
+  // The same fields, in the same order, that the single `conversation` embed
+  // reports -- see `conversationMetrics`.
+  ...CONVERSATION_METRIC_FIELDS.map(field => ({
+    key: field.key,
+    label: field.label,
+    render: (row: ConversationApiRow) => {
+      const metrics = toConversationMetrics(row);
+      return (
+        <Text ellipsis tabular variant={field.variant?.(metrics)}>
+          {field.render(metrics)}
+        </Text>
+      );
+    },
+  })),
 ];
 
 export default function ConversationsQueryBlock({data}: {data: ConversationsQueryData}) {
@@ -204,9 +195,12 @@ export default function ConversationsQueryBlock({data}: {data: ConversationsQuer
 
   return (
     <QueryEmbedCard
-      link={<ConversationsQueryLink data={data} />}
+      href={getConversationsQueryHref(data, organization)}
+      icon={IconChat}
+      linkLabel={t('View Conversations')}
       query={data.query}
       testId="seer-conversations-query-embed"
+      title={getConversationsQueryTitle(data)}
     >
       <QueryEmbedTable
         columns={COLUMNS}

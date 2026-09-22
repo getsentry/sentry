@@ -15,13 +15,16 @@ import {
   eventRowKey,
   QueryEmbedTable,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
+import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {SpansQueryLink} from './spansQueryLink';
+import {getSpansQueryTitle} from './spansQueryLink';
 import {
   buildSpansChartQuery,
   buildSpansEventView,
+  getSpansQueryHref,
   hasNoGroupBy,
   resolveChartYAxes,
   type SpansQueryData,
@@ -55,6 +58,7 @@ function SpansQueryChart({
 }
 
 export default function SpansQueryBlock({data}: {data: SpansQueryData}) {
+  const organization = useOrganization();
   const eventView = buildSpansEventView(data);
   const fields = eventView.getFields();
   // An aggregate with no grouping columns collapses to a single row per
@@ -74,14 +78,17 @@ export default function SpansQueryBlock({data}: {data: SpansQueryData}) {
           {data.mode === 'aggregate' ? t('Aggregate') : t('Spans')}
         </Tag>
       }
-      link={<SpansQueryLink data={data} />}
+      href={getSpansQueryHref(data, organization)}
+      icon={IconSpan}
+      linkLabel={t('View Spans')}
       query={data.query}
       testId={`seer-spans-query-${data.mode}-embed`}
+      title={getSpansQueryTitle(data)}
     >
       <SpansQueryChart data={data} eventView={eventView} hasTable={!isChartOnly} />
       {isChartOnly ? null : (
         <QueryEmbedTable
-          columns={eventColumns(fields)}
+          columns={eventColumns(fields, tableQuery.data?.meta)}
           emptyMessage={t('No matching spans')}
           errorMessage={t('Unable to load spans')}
           isError={tableQuery.isError}

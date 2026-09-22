@@ -26,6 +26,31 @@ import type {
 import {ProcessingErrorItem} from './processingErrorItem';
 import {ProcessingErrorTitle} from './processingErrorTitle';
 
+function CheckinTooltip({checkin}: {checkin: CheckInPayload}) {
+  return (
+    <StyledHovercard
+      skipWrapper
+      showUnderline
+      position="bottom"
+      header={tct('Check-in on [datetime]', {datetime: <DateTime date={checkin.ts} />})}
+      body={
+        // Prevent clicks inside the hovercard from closing the expandable alert
+        <div onClick={e => e.stopPropagation()}>
+          <StyledStructuredEventData
+            data={checkin.payload}
+            maxDefaultDepth={3}
+            withAnnotatedText
+            forceDefaultExpand
+            initialExpandedPaths={['$']}
+          />
+        </div>
+      }
+    >
+      {t('check-in')}
+    </StyledHovercard>
+  );
+}
+
 export function MonitorProcessingErrors({
   checkinErrors,
   children,
@@ -50,29 +75,6 @@ export function MonitorProcessingErrors({
       projectId,
       groupBy(projectErrors, ({error}) => error.type),
     ])
-  );
-
-  const renderCheckinTooltip = (checkin: CheckInPayload) => (
-    <StyledHovercard
-      skipWrapper
-      showUnderline
-      position="bottom"
-      header={tct('Check-in on [datetime]', {datetime: <DateTime date={checkin.ts} />})}
-      body={
-        // Prevent clicks inside the hovercard from closing the expandable alert
-        <div onClick={e => e.stopPropagation()}>
-          <StyledStructuredEventData
-            data={checkin.payload}
-            maxDefaultDepth={3}
-            withAnnotatedText
-            forceDefaultExpand
-            initialExpandedPaths={['$']}
-          />
-        </div>
-      }
-    >
-      {t('check-in')}
-    </StyledHovercard>
   );
 
   const showingMultipleProjects = Object.keys(errorsByProjectByType).length > 1;
@@ -125,7 +127,7 @@ export function MonitorProcessingErrors({
                   <ListItem key={errorIndex}>
                     <ProcessingErrorItem
                       error={error}
-                      checkinTooltip={renderCheckinTooltip(checkin)}
+                      checkinTooltip={<CheckinTooltip checkin={checkin} />}
                     />
                   </ListItem>
                 ))}

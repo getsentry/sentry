@@ -233,6 +233,7 @@ export function Provider({
     []
   );
 
+  // oxlint-disable-next-line react/refs
   const isFinished = getCurrentPlayerTime() === finishedAtMS;
   const setReplayFinished = useCallback(() => {
     setFinishedAtMS(getCurrentPlayerTime());
@@ -569,6 +570,7 @@ export function Provider({
         instance.destroy();
       }
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [rootEl, isVideoReplay, initVideoRoot, videoEvents, replay]);
 
   // For non-video (e.g. rrweb) replays, initialize the player

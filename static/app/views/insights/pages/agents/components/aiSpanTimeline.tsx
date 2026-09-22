@@ -178,10 +178,10 @@ const TimelineRow = memo(function TimelineRowImpl({
 
   return (
     <Flex align="center">
-      {({className}) => (
+      {flexProps => (
         <RowContainer
           type="button"
-          className={className}
+          {...flexProps}
           data-selected={isSelected}
           indent={indent}
           onClick={() => onSelectNode(node)}

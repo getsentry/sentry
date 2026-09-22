@@ -55,7 +55,9 @@ describe('spans query embed', () => {
     expect(screen.getByText('GET /api/5')).toBeInTheDocument();
     expect(screen.queryByText('GET /api/6')).not.toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Slow HTTP spans'})).toHaveAttribute(
+    // The block's name is the collapse toggle; the link out is a separate target.
+    expect(screen.getByRole('button', {name: 'Slow HTTP spans'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Spans'})).toHaveAttribute(
       'href',
       expect.stringContaining('/explore/traces/')
     );
@@ -137,7 +139,8 @@ describe('spans query embed', () => {
     });
 
     expect(await screen.findByText('http.server')).toBeInTheDocument();
-    expect(screen.getByText('1,234')).toBeInTheDocument();
+    // A duration aggregate reads as a duration, not as a bare millisecond count.
+    expect(screen.getByText('1.23s')).toBeInTheDocument();
     expect(screen.getByText('Aggregate')).toBeInTheDocument();
     // A group-by column is present, so the table is still worth rendering —
     // now beneath the chart.
@@ -183,7 +186,7 @@ describe('spans query embed', () => {
       },
     });
 
-    const link = await screen.findByRole('link', {name: 'p95 by span op'});
+    const link = await screen.findByRole('link', {name: 'View Spans'});
     const {searchParams} = new URL(
       link.getAttribute('href')!,
       'https://sentry.io' // the href is relative; the base is only to parse it
@@ -254,7 +257,7 @@ describe('spans query embed', () => {
       },
     });
 
-    const link = await screen.findByRole('link', {name: 'p95 by span op'});
+    const link = await screen.findByRole('link', {name: 'View Spans'});
     const {searchParams} = new URL(link.getAttribute('href')!, 'https://sentry.io');
 
     // Explore would reject it anyway, so leave it off rather than ship a param
@@ -407,6 +410,64 @@ describe('spans query embed', () => {
 
     const [, options] = statsRequest.mock.calls.at(-1)!;
     expect(options.query).not.toHaveProperty('topEvents');
+  });
+
+  it('formats sample cells with the type and unit the API reported', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            id: '1',
+            'span.description': 'GET /api/checkout',
+            'span.duration': 90,
+            'span.self_time': 2.5,
+            'http.response_content_length': 2048,
+            failure_rate: 0.125,
+          },
+        ],
+        meta: {
+          fields: {
+            'span.description': 'string',
+            'span.duration': 'duration',
+            'span.self_time': 'duration',
+            'http.response_content_length': 'size',
+            failure_rate: 'percentage',
+          },
+          units: {
+            'span.duration': 'millisecond',
+            'span.self_time': 'second',
+            'http.response_content_length': 'byte',
+          },
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: SERIES},
+    });
+
+    renderEmbed({
+      data: {
+        query: '',
+        mode: 'samples',
+        fields: [
+          'span.description',
+          'span.duration',
+          'span.self_time',
+          'http.response_content_length',
+          'failure_rate',
+        ],
+        statsPeriod: '24h',
+      },
+    });
+
+    expect(await screen.findByText('GET /api/checkout')).toBeInTheDocument();
+    expect(screen.getByText('90.00ms')).toBeInTheDocument();
+    // The unit is the API's, not an assumed millisecond.
+    expect(screen.getByText('2.50s')).toBeInTheDocument();
+    expect(screen.getByText('2.05 kB')).toBeInTheDocument();
+    expect(screen.getByText('12.5%')).toBeInTheDocument();
   });
 
   it('does not fetch data for an inline embed', () => {

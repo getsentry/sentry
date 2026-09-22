@@ -1,7 +1,8 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -143,6 +144,73 @@ describe('AggregatesTable', () => {
   afterEach(() => {
     ProjectsStore.reset();
   });
+
+  it.each(['slug', 'id'] as const)(
+    'preserves project icons after sorting projects represented by %s',
+    async projectField => {
+      const projects = [
+        ProjectFixture({id: '1', slug: 'frontend', platform: 'javascript-react'}),
+        ProjectFixture({id: '2', slug: 'backend', platform: 'python-django'}),
+      ];
+      ProjectsStore.loadInitialData(projects);
+      const data = projects.map((item, index) => ({
+        project: projectField === 'slug' ? item.slug : Number(item.id),
+        'count()': 10 - index,
+      }));
+      const tableResult = createAggregatesTableResult({
+        eventView: EventView.fromLocation(
+          LocationFixture({query: {field: ['project', 'count()']}})
+        ),
+        result: {
+          data,
+          meta: {
+            fields: {project: 'string', 'count()': 'integer'},
+            units: {},
+          },
+        },
+      });
+
+      const {rerender, router} = render(
+        <AggregatesTableWithParamsProvider aggregatesTableResult={tableResult} />,
+        {
+          organization,
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              ...initialRouterConfig.location,
+              query: {...initialRouterConfig.location.query, groupBy: 'project'},
+            },
+          },
+        }
+      );
+
+      function expectProjectIcons(expectedProjects = projects) {
+        const badges = screen.getAllByRole('link', {name: 'View Project Details'});
+        for (const [index, item] of expectedProjects.entries()) {
+          const badge = badges[index]!;
+          expect(within(badge).getByText(item.slug)).toBeInTheDocument();
+          expect(
+            within(badge).getByTestId(`platform-icon-${item.platform}`)
+          ).toBeInTheDocument();
+        }
+      }
+
+      expectProjectIcons();
+      await userEvent.click(screen.getByRole('button', {name: 'count()'}));
+      expect(router.location.query.aggregateSort).toBe('count()');
+
+      rerender(
+        <AggregatesTableWithParamsProvider
+          aggregatesTableResult={{
+            ...tableResult,
+            result: {...tableResult.result, data: data.toReversed()},
+          }}
+        />
+      );
+
+      expectProjectIcons(projects.toReversed());
+    }
+  );
 
   it('opens a view samples dropdown from the samples icon', async () => {
     render(

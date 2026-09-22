@@ -5,9 +5,9 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {TraceTreeNodeExtra} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
-import {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
-import {makeSpan} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import {makeEAPSpan} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
@@ -34,23 +34,23 @@ describe('MissingInstrumentationNodeDetails', () => {
     const extra = createMockExtra({organization});
 
     // Create previous and next span nodes
-    const previousSpanValue = makeSpan({
-      span_id: 'previous-span-id',
+    const previousSpanValue = makeEAPSpan({
+      event_id: 'previous-span-id',
       op: 'db.query',
       description: 'SELECT * FROM users',
       start_timestamp: 1000,
-      timestamp: 1001,
+      end_timestamp: 1001,
     });
-    const previousNode = new SpanNode(null, previousSpanValue, extra);
+    const previousNode = new EapSpanNode(null, previousSpanValue, extra);
 
-    const nextSpanValue = makeSpan({
-      span_id: 'next-span-id',
+    const nextSpanValue = makeEAPSpan({
+      event_id: 'next-span-id',
       op: 'http.client',
       description: 'GET /api/data',
       start_timestamp: 1002,
-      timestamp: 1003,
+      end_timestamp: 1003,
     });
-    const nextNode = new SpanNode(null, nextSpanValue, extra);
+    const nextNode = new EapSpanNode(null, nextSpanValue, extra);
 
     // Create the missing instrumentation span value
     const missingInstrumentationValue = {

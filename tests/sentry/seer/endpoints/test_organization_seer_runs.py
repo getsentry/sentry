@@ -11,7 +11,6 @@ from sentry.testutils.helpers.features import with_feature
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
-@with_feature("organizations:gen-ai-consent-flow-removal")
 class OrganizationSeerRunsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-runs"
 

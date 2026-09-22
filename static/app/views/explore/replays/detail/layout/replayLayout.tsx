@@ -64,6 +64,7 @@ function ReplayLayoutBody({
 
   const video = (
     <VideoSection ref={fullscreenRef}>
+      {/* oxlint-disable-next-line react/refs */}
       <TooltipContext value={{container: fullscreenRef.current}}>
         <ErrorBoundary mini>
           <ReplayView

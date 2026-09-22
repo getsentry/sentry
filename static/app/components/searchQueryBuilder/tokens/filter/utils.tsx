@@ -123,16 +123,13 @@ interface EscapeTagValueOptions {
   allowArrayValue?: boolean;
 }
 
-export function escapeTagValue(
-  value: string,
-  options: EscapeTagValueOptions = {}
-): string {
+export function escapeTagValue(value: string): string {
   if (!value) {
     return '';
   }
 
   // Wrap in quotes if there is a space or parens
-  const shouldEscape = shouldEscapeTagValue(value, options);
+  const shouldEscape = shouldEscapeTagValue(value);
   return shouldEscape ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 

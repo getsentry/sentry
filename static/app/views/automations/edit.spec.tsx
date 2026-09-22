@@ -4,6 +4,7 @@ import {
   DataConditionFixture,
 } from 'sentry-fixture/automations';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ActionHandlerFixture} from 'sentry-fixture/workflowEngine';
 
 import {
   render,
@@ -12,24 +13,35 @@ import {
   userEvent,
   waitFor,
   within,
+  type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
+import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useParams} from 'sentry/utils/useParams';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 import AutomationEdit from 'sentry/views/automations/edit';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 
-jest.mock('sentry/utils/useParams');
 jest.mock('sentry/utils/analytics');
 
 describe('EditAutomation', () => {
   const automation = AutomationFixture();
   const organization = OrganizationFixture();
+  const initialRouterConfig = {
+    routes: [
+      '/organizations/:orgId/monitors/alerts/:automationId/',
+      '/organizations/:orgId/monitors/alerts/:automationId/edit/',
+    ],
+    location: {
+      pathname: `/organizations/${organization.slug}/monitors/alerts/${automation.id}/edit/`,
+    },
+  } satisfies RouterConfig;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -82,10 +94,6 @@ describe('EditAutomation', () => {
       method: 'GET',
       body: [],
     });
-
-    jest.mocked(useParams).mockReturnValue({
-      automationId: automation.id,
-    });
   });
 
   it('displays `any` for ANY in the filter logic dropdown', async () => {
@@ -102,6 +110,7 @@ describe('EditAutomation', () => {
 
     render(<AutomationEdit />, {
       organization,
+      initialRouterConfig,
     });
 
     // Wait for the form to load
@@ -119,6 +128,7 @@ describe('EditAutomation', () => {
 
     const {router} = render(<AutomationEdit />, {
       organization,
+      initialRouterConfig,
     });
     renderGlobalModal();
 
@@ -153,6 +163,7 @@ describe('EditAutomation', () => {
 
     render(<AutomationEdit />, {
       organization,
+      initialRouterConfig,
     });
 
     // Wait for the component to load and display automation actions
@@ -184,6 +195,7 @@ describe('EditAutomation', () => {
 
     const {router} = render(<AutomationEdit />, {
       organization,
+      initialRouterConfig,
     });
 
     // Update an existing filter value field
@@ -231,6 +243,41 @@ describe('EditAutomation', () => {
     );
   });
 
+  describe('breadcrumbs', () => {
+    it('renders the parent crumb in the trail and the alert name as the page title', async () => {
+      render(<AutomationEdit />, {organization, initialRouterConfig});
+
+      const alertsCrumb = await screen.findByRole('link', {name: 'Alerts'});
+      expect(alertsCrumb).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/monitors/alerts/`
+      );
+
+      expect(
+        screen.getByRole('heading', {name: automation.name, level: 1})
+      ).toBeInTheDocument();
+
+      const trail = alertsCrumb.closest('ol')!;
+      expect(within(trail).queryByText(automation.name)).not.toBeInTheDocument();
+    });
+
+    it('edits the alert name from the page title', async () => {
+      render(<AutomationEdit />, {organization, initialRouterConfig});
+
+      await userEvent.click(await screen.findByText(automation.name));
+
+      const input = screen.getByRole('textbox', {name: 'Alert Name'});
+      expect(input).toHaveValue(automation.name);
+
+      await userEvent.clear(input);
+      await userEvent.type(input, 'Renamed alert{enter}');
+
+      expect(
+        screen.getByRole('heading', {name: 'Renamed alert', level: 1})
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('initial trigger conditions', () => {
     const everyEventLabel = dataConditionNodesMap.get(
       DataConditionType.EVERY_EVENT
@@ -257,7 +304,7 @@ describe('EditAutomation', () => {
         body: automation,
       });
 
-      render(<AutomationEdit />, {organization});
+      render(<AutomationEdit />, {organization, initialRouterConfig});
 
       await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
@@ -338,6 +385,101 @@ describe('EditAutomation', () => {
       expect(screen.getByText(firstSeenEventText)).toBeInTheDocument();
 
       expect(screen.queryByText(everyEventLabel)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Seer page context', () => {
+    /**
+     * Renders the edit page under a component that captures `getLLMContext`,
+     * which is how Seer reads it. Returns a getter for the `alert-builder`
+     * node.
+     */
+    function renderAndReadNode() {
+      let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
+      function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+        ({getLLMContext} = useLLMContext());
+        return <AutomationEdit />;
+      }
+
+      render(<Component />, {organization, initialRouterConfig});
+
+      return () => getLLMContext!().nodes.find(node => node.nodeType === 'alert-builder');
+    }
+
+    it('reports an action added but not saved, with its target channel', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/available-actions/`,
+        method: 'GET',
+        body: [
+          ActionHandlerFixture({
+            type: ActionType.SLACK,
+            handlerGroup: ActionGroup.NOTIFICATION,
+            integrations: [{id: 'slack-1', name: 'My Slack Workspace'}],
+          }),
+        ],
+      });
+
+      const readNode = renderAndReadNode();
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Add action'}),
+        'Slack'
+      );
+      // The saved alert already has a Slack action, so its Target box is on
+      // screen too — the one just added is last.
+      const targets = screen.getAllByRole('textbox', {name: 'Target'});
+      await userEvent.click(targets.at(-1)!);
+      await userEvent.paste('#alerts-prod');
+
+      // Deliberately no save: the point is that Seer sees the alert as it is on
+      // screen, before it is submitted.
+      await waitFor(() => {
+        const data = readNode()?.data as Record<string, unknown> | undefined;
+        expect(data).toBeDefined();
+        expect(data!.mode).toBe('editing');
+        expect(data!.actionFilters).toEqual([
+          expect.objectContaining({
+            actions: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'slack',
+                targetDisplay: '#alerts-prod',
+              }),
+            ]),
+          }),
+        ]);
+      });
+    });
+
+    it('reports triggers from the builder, not the saved alert', async () => {
+      // The builder seeds an every_event trigger when the saved alert has no
+      // trigger conditions, so the two disagree before the user touches
+      // anything — which is exactly what the node has to report.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
+        method: 'GET',
+        body: {
+          ...automation,
+          triggers: {
+            id: '1',
+            logicType: DataConditionGroupLogicType.ANY,
+            conditions: [],
+          },
+        },
+      });
+
+      const readNode = renderAndReadNode();
+
+      await waitFor(() => {
+        const node = readNode();
+        expect(node).toBeDefined();
+        // Outranks the page nodes rendered beside it.
+        expect(node!.priority).toBe(1);
+        expect((node!.data as Record<string, unknown>).triggers).toEqual({
+          logicType: DataConditionGroupLogicType.ANY,
+          conditions: [{type: DataConditionType.EVERY_EVENT, comparison: true}],
+        });
+      });
     });
   });
 });
