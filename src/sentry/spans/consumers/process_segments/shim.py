@@ -7,11 +7,9 @@ and thus cannot (yet) be refactored to use the new span schema.
 import uuid
 from typing import Any
 
-import sentry_sdk
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.issue_detection.types import SentryTags as PerformanceIssuesSentryTags
 from sentry.spans.consumers.process_segments.types import (
     CompatibleSpan,
     attribute_value,
@@ -29,6 +27,15 @@ TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_PLATFORM: "platform",
 }
 
+SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.SENTRY_NORMALIZED_DESCRIPTION: "description",
+    ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT: "environment",
+    ATTRIBUTE_NAMES.SENTRY_PLATFORM: "platform",
+    ATTRIBUTE_NAMES.SENTRY_RELEASE: "release",
+    ATTRIBUTE_NAMES.SENTRY_SDK_NAME: "sdk.name",
+    "sentry.system": "system",
+}
+
 
 def make_compatible(span: SpanEvent) -> CompatibleSpan:
     # Creates attributes for EAP spans that are required by logic shared with the
@@ -38,9 +45,11 @@ def make_compatible(span: SpanEvent) -> CompatibleSpan:
     # compared to raw spans on the EAP topic. This function adds the missing
     # attributes to the spans to make them compatible with the event pipeline
     # logic.
+    sentry_tags = _extract_attribute_values(span, SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME)
+
     ret: CompatibleSpan = {
         **span,
-        "sentry_tags": _sentry_tags(span.get("attributes") or {}),
+        "sentry_tags": {key: str(value) for key, value in sentry_tags.items()},
         "op": get_span_op(span),
         "exclusive_time": attribute_value(span, "sentry.exclusive_time_ms"),
     }
@@ -64,27 +73,6 @@ def _extract_attribute_values(
             values_by_field_name[field_name] = value
 
     return values_by_field_name
-
-
-def _sentry_tags(attributes: dict[str, Any]) -> dict[str, str]:
-    """Backfill sentry tags used in performance issue detection.
-
-    Once performance issue detection is only called from process_segments,
-    (not from event_manager), the performance issues code can be refactored to access
-    span attributes instead of sentry_tags.
-    """
-    sentry_tags = {}
-    for tag_key in PerformanceIssuesSentryTags.__mutable_keys__:
-        attribute_key = (
-            "sentry.normalized_description" if tag_key == "description" else f"sentry.{tag_key}"
-        )
-        if attribute_key in attributes:
-            try:
-                sentry_tags[tag_key] = str((attributes[attribute_key] or {}).get("value"))
-            except Exception:
-                sentry_sdk.capture_exception()
-
-    return sentry_tags
 
 
 def build_shim_event_data(
