@@ -3,13 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseMetaFixture} from 'sentry-fixture/releaseMeta';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -187,11 +181,7 @@ describe('OrganizationLayout', () => {
       },
     });
 
-    const drawer = await screen.findByRole('complementary', {
-      name: 'Releases drawer',
-    });
-    await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
-    await waitForElementToBeRemoved(drawer);
+    await userEvent.click(await screen.findByRole('button', {name: 'Close Drawer'}));
 
     await waitFor(() => {
       expect(router.location.query).toEqual({
@@ -199,6 +189,9 @@ describe('OrganizationLayout', () => {
         query: 'is:unresolved',
       });
     });
+    expect(
+      screen.queryByRole('complementary', {name: 'Releases drawer'})
+    ).not.toBeInTheDocument();
   });
 
   describe('new navigation layout', () => {
