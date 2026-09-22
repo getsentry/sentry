@@ -75,7 +75,10 @@ describe('PrIterationFeedbackForm', () => {
 
     // The ticket asks for the form to stay visible, just greyed out.
     expect(screen.getByRole('textbox')).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Submit'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Submit'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
 
     await userEvent.hover(screen.getByRole('button', {name: 'Submit'}));
     expect(

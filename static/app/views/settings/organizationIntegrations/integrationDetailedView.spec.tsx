@@ -298,7 +298,10 @@ describe('IntegrationDetailedView', () => {
 
       // The reinstall button (which auto-opens the install modal) must never
       // render for members without access; a disabled Update button shows instead.
-      expect(await screen.findByRole('button', {name: 'Update'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Update'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
       expect(screen.queryByTestId('integration-upgrade-button')).not.toBeInTheDocument();
     });
   });

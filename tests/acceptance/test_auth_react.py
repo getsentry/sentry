@@ -295,7 +295,7 @@ class ReactAuthTest(AcceptanceTestCase):
             xpath="//*[contains(normalize-space(.), 'Members sign in with email and password')]"
         )
         sso_button = self.browser.element(xpath="//button[normalize-space(.)='SSO']")
-        assert not sso_button.is_enabled()
+        assert sso_button.get_attribute("aria-disabled") == "true"
 
         # Password authentication remains available for the selected organization.
         self.submit_visible_credentials(user.email, PASSWORD)

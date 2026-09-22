@@ -301,7 +301,10 @@ describe('OrganizationAuthTokensIndex', () => {
 
       expect(await screen.findByText('My Token 1')).toBeInTheDocument();
 
-      expect(screen.getByLabelText('Revoke My Token 1')).toBeDisabled();
+      expect(screen.getByLabelText('Revoke My Token 1')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 });

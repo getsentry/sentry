@@ -599,7 +599,10 @@ describe('DetectorsList', () => {
       await userEvent.click(firstRowCheckbox);
 
       // Verify that delete button is disabled
-      expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Delete'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('shows option to select all query results when page is selected', async () => {
@@ -695,9 +698,18 @@ describe('DetectorsList', () => {
       const enabledCheckbox = within(enabledRow!).getByRole('checkbox');
       await userEvent.click(enabledCheckbox);
 
-      expect(screen.getByRole('button', {name: 'Enable'})).toBeDisabled();
-      expect(screen.getByRole('button', {name: 'Disable'})).toBeDisabled();
-      expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Enable'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('button', {name: 'Disable'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('button', {name: 'Delete'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 });

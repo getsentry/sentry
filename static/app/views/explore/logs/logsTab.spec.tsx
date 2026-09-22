@@ -657,6 +657,6 @@ describe('LogsTabContent', () => {
       additionalWrapper: ProviderWrapper,
     });
     const refreshButton = await screen.findByRole('button', {name: 'Refresh'});
-    expect(refreshButton).toBeDisabled();
+    expect(refreshButton).toHaveAttribute('aria-disabled', 'true');
   });
 });

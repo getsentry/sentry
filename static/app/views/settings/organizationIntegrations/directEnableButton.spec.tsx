@@ -53,6 +53,9 @@ describe('DirectEnableButton', () => {
       organization,
     });
 
-    expect(screen.getByRole('button', {name: 'Enable Integration'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Enable Integration'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

@@ -186,7 +186,7 @@ describe('OrganizationFeatureFlagsIndex', () => {
       expect(await secretsTable.findByText('launchdarkly')).toBeInTheDocument();
       expect(
         secretsTable.getByLabelText('Remove secret for launchdarkly provider')
-      ).toBeDisabled();
+      ).toHaveAttribute('aria-disabled', 'true');
     });
   });
 });
