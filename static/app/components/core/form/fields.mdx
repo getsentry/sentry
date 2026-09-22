@@ -9,7 +9,7 @@ resources:
 
 import {Container} from '@sentry/scraps/layout';
 
-import {BaseFieldDemo} from './__stories__/formDemos';
+import {BaseFieldDemo, InputFieldDemo} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
 
@@ -27,16 +27,24 @@ All field components are accessed via the `field` render prop inside `form.AppFi
 
 ## Input
 
-Text input for single-line string values.
+Text input for single-line string values. Use `leadingItems` for content such as
+currency symbols that appears before the editable value.
+
+<Storybook.Demo>
+  <Container width="80%">
+    <InputFieldDemo />
+  </Container>
+</Storybook.Demo>
 
 ```jsx
-<form.AppField name="firstName">
+<form.AppField name="amount">
   {field => (
-    <field.Layout.Row label={t('First Name')} required>
+    <field.Layout.Row label={t('Amount')}>
       <field.Input
+        leadingItems="$"
         value={field.state.value}
         onChange={field.handleChange}
-        placeholder={t('Enter your name')}
+        inputMode="numeric"
       />
     </field.Layout.Row>
   )}

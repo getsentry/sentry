@@ -201,6 +201,31 @@ export function ConditionalDemo() {
 
 // fields.mdx demos
 
+export function InputFieldDemo() {
+  const {t} = useTranslation();
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {amount: ''},
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="amount">
+        {field => (
+          <field.Layout.Row label={t('Amount')}>
+            <field.Input
+              leadingItems="$"
+              value={field.state.value}
+              onChange={field.handleChange}
+              inputMode="numeric"
+            />
+          </field.Layout.Row>
+        )}
+      </form.AppField>
+    </form.AppForm>
+  );
+}
+
 export function BaseFieldDemo() {
   const {t} = useTranslation();
   const form = useScrapsForm({
