@@ -38,20 +38,14 @@ export function useIncompleteBucketTooltipDetails(
   const theme = useTheme();
   const organization = useOrganization();
   const hasFeature = organization.features.includes('measured-ingestion-delay-ui');
-  const {completeThrough, estimatedIngestionDelaySeconds} =
-    chartInfo.timeseriesResult.meta ?? {};
+  const {completeThrough} = chartInfo.timeseriesResult.meta ?? {};
 
   return useMemo<SeriesDetailsRenderer | undefined>(() => {
     if (!hasFeature || !defined(completeThrough)) {
       return;
     }
 
-    const delayLine = defined(estimatedIngestionDelaySeconds)
-      ? t(
-          'Event ingestion for this bucket is incomplete and currently takes ~%s.',
-          getDuration(estimatedIngestionDelaySeconds)
-        )
-      : t('Event ingestion for this bucket is incomplete.');
+    const delayLine = t('Event ingestion is incomplete.');
 
     const notes = new Map<number, string>();
     for (const {meta, values} of chartInfo.series) {
@@ -69,11 +63,5 @@ export function useIncompleteBucketTooltipDetails(
     }
 
     return notes.size > 0 ? (_, timestamp) => notes.get(timestamp) ?? '' : undefined;
-  }, [
-    chartInfo.series,
-    completeThrough,
-    estimatedIngestionDelaySeconds,
-    hasFeature,
-    theme,
-  ]);
+  }, [chartInfo.series, completeThrough, hasFeature, theme]);
 }

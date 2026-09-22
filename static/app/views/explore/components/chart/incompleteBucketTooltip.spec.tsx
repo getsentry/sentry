@@ -60,7 +60,7 @@ describe('useIncompleteBucketTooltipDetails', () => {
 
     expect(result.current).toBeDefined();
     expect(result.current!(['count(span.duration)'], INCOMPLETE_TIMESTAMP)).toContain(
-      'Event ingestion for this bucket is incomplete and currently takes ~1 minute.'
+      'Event ingestion is incomplete.'
     );
     expect(result.current!(['count(span.duration)'], INCOMPLETE_TIMESTAMP)).toContain(
       'Check again in ~1 hour.'
