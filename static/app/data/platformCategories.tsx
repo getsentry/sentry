@@ -317,6 +317,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'cocoa-objc',
   'cocoa-swift',
   'dart',
+  'deno',
   'dotnet',
   'dotnet-aspnet',
   'dotnet-aspnetcore',
@@ -417,6 +418,7 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'apple-ios',
   'apple-macos',
   'bun',
+  'deno',
   'dotnet',
   'dotnet-aspnet',
   'dotnet-aspnetcore',
@@ -882,4 +884,5 @@ export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
   'bun',
+  'deno',
 ]);
