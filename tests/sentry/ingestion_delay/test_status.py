@@ -3,7 +3,7 @@ from unittest import mock
 
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
-from sentry.ingestion_delay.query import MEASUREMENT_LOOKBACK, IngestionDelayMeasurement
+from sentry.ingestion_delay.query import IngestionDelayMeasurement, get_measurement_lookback
 from sentry.ingestion_delay.status import (
     STALL_GRACE,
     STALL_MARGIN,
@@ -53,7 +53,7 @@ class GetIngestionDelayStatusTest(TestCase):
         status = self._status(delay_seconds=60.0, ingested_seconds_ago=30)
 
         assert status.status == Status.HEALTHY
-        assert status.delay_seconds == 60.0
+        assert status.delay_seconds == 60.0 + STALL_MARGIN.total_seconds()
         assert status.complete_through == self.now - timedelta(seconds=60) - STALL_MARGIN
         assert not self.mock_accepted.called
 
@@ -63,7 +63,7 @@ class GetIngestionDelayStatusTest(TestCase):
         )  # stall margin is 60 seconds, so 119 < 60 + 60
 
         assert status.status == Status.HEALTHY
-        assert status.delay_seconds == 60.0
+        assert status.delay_seconds == 60.0 + STALL_MARGIN.total_seconds()
         assert status.complete_through == self.now - timedelta(seconds=60) - STALL_MARGIN
         assert not self.mock_accepted.called
 
@@ -71,7 +71,7 @@ class GetIngestionDelayStatusTest(TestCase):
         status = self._status(delay_seconds=60.0, ingested_seconds_ago=3600, accepted=True)
 
         assert status.status == Status.STALLED
-        assert status.delay_seconds == 60.0
+        assert status.delay_seconds == 60.0 + STALL_MARGIN.total_seconds()
         assert status.complete_through == self.now - timedelta(seconds=3600)
         assert self.mock_accepted.call_args.kwargs["start"] == self.now - timedelta(seconds=3600)
         assert (
@@ -83,7 +83,7 @@ class GetIngestionDelayStatusTest(TestCase):
         status = self._status(delay_seconds=60.0, ingested_seconds_ago=3600, accepted=False)
 
         assert status.status == Status.IDLE
-        assert status.delay_seconds == 60.0
+        assert status.delay_seconds == 60.0 + STALL_MARGIN.total_seconds()
         assert status.complete_through == self.now - timedelta(seconds=60) - STALL_MARGIN
         assert self.mock_accepted.call_args.kwargs["start"] == self.now - timedelta(seconds=3600)
         assert (
@@ -96,7 +96,7 @@ class GetIngestionDelayStatusTest(TestCase):
 
         assert status.status == Status.UNKNOWN
         assert status.complete_through is None
-        assert status.delay_seconds == 60.0
+        assert status.delay_seconds == 60.0 + STALL_MARGIN.total_seconds()
         assert self.mock_accepted.call_args.kwargs["start"] == self.now - timedelta(seconds=3600)
         assert (
             self.mock_accepted.call_args.kwargs["end"]
@@ -109,7 +109,7 @@ class GetIngestionDelayStatusTest(TestCase):
         assert status.status == Status.STALLED
         assert status.delay_seconds is None
         assert status.complete_through is None
-        assert self.mock_accepted.call_args.kwargs["start"] == self.now - MEASUREMENT_LOOKBACK
+        assert self.mock_accepted.call_args.kwargs["start"] == self.now - get_measurement_lookback()
         assert self.mock_accepted.call_args.kwargs["end"] == self.now - STALL_GRACE
 
     def test_no_rows_without_accepted_data_is_idle(self) -> None:
@@ -118,7 +118,7 @@ class GetIngestionDelayStatusTest(TestCase):
         assert status.status == Status.IDLE
         assert status.delay_seconds is None
         assert status.complete_through is None
-        assert self.mock_accepted.call_args.kwargs["start"] == self.now - MEASUREMENT_LOOKBACK
+        assert self.mock_accepted.call_args.kwargs["start"] == self.now - get_measurement_lookback()
         assert self.mock_accepted.call_args.kwargs["end"] == self.now - STALL_GRACE
 
     def test_failed_measurement_is_unknown(self) -> None:

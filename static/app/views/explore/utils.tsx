@@ -15,7 +15,7 @@ import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
+import {encodeSort, EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   isEquation,
@@ -36,12 +36,15 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
+  SavedQuery,
   RawGroupBy,
   RawVisualize,
-  SavedQuery,
+  AllSavedQuery,
+  DiscoverSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   getSavedQueryTraceItemDataset,
+  isExploreSavedQuery,
   isRawVisualize,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {
@@ -509,7 +512,8 @@ export function confirmDeleteSavedQuery({
   savedQuery,
 }: {
   handleDelete: () => void;
-  savedQuery: SavedQuery;
+  // Only the name is shown, so this works for either kind of saved query.
+  savedQuery: Pick<AllSavedQuery, 'name'>;
 }) {
   openConfirmModal({
     message: t('Are you sure you want to delete the query "%s"?', savedQuery.name),
@@ -708,8 +712,12 @@ export function getSavedQueryTraceItemUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: SavedQuery;
+  savedQuery: AllSavedQuery;
 }) {
+  if (!isExploreSavedQuery(savedQuery)) {
+    return getDiscoverSavedQueryUrl({savedQuery, organization});
+  }
+
   if (savedQuery.dataset === 'ai_conversations') {
     return getConversationsUrlFromSavedQueryUrl({savedQuery, organization});
   }
@@ -934,4 +942,17 @@ function computeAvgSampleRate(series: TimeSeries[]): number | undefined {
   }
 
   return count > 0 ? total / count : undefined;
+}
+
+function getDiscoverSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: DiscoverSavedQuery;
+}) {
+  const {pathname, query} =
+    EventView.fromSavedQuery(savedQuery).getResultsViewShortUrlTarget(organization);
+  const search = qs.stringify(query);
+  return search ? `${pathname}?${search}` : pathname;
 }

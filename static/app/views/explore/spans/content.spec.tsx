@@ -17,8 +17,12 @@ import {ExploreContent} from './content';
 function TopBarWrapper({children}: {children: ReactNode}) {
   return (
     <TopBar.Slot.Provider>
+      <TopBar.Slot.Outlet name="breadcrumbs">
+        {props => <div {...props} data-test-id="topbar-breadcrumbs-slot" />}
+      </TopBar.Slot.Outlet>
+      {/* Mirror the real TopBar, which renders the title slot as an <h1>. */}
       <TopBar.Slot.Outlet name="title">
-        {props => <div {...props} data-test-id="topbar-title-slot" />}
+        {props => <h1 {...props} data-test-id="topbar-title-slot" />}
       </TopBar.Slot.Outlet>
       {children}
     </TopBar.Slot.Provider>

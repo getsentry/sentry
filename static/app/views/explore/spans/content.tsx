@@ -28,7 +28,7 @@ import {
   type MaxPickableDaysOptions,
 } from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
+import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {
   MAX_DAYS_FOR_CROSS_EVENTS,
   MAX_PERIOD_FOR_CROSS_EVENTS,
@@ -39,7 +39,6 @@ import {
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
-import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
 import {SpansCommandPaletteActions} from 'sentry/views/explore/spans/spansCommandPaletteActions';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
@@ -50,8 +49,6 @@ import {
   useExploreSpansTourModal,
   type ExploreSpansTour,
 } from 'sentry/views/explore/spans/tour';
-import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -228,36 +225,23 @@ function SpansTabHeader() {
     />
   ) : null;
 
-  const titleContent = (
-    <PageHeadingQuestionTooltip
-      docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
-      title={t(
-        'Find problematic spans/traces or compute real-time metrics via aggregation.'
-      )}
-      linkLabel={t('Read the Docs')}
-    />
-  );
-
-  const hasBreadcrumb = Boolean(title && defined(id));
-
   return (
     <Fragment>
       {documentTitle}
-      <TopBar.Slot name="title">
-        {hasBreadcrumb ? (
-          <ExploreBreadcrumb
-            traceItemDataset={TraceItemDataset.SPANS}
-            savedQueryName={savedQuery?.name}
+      {defined(id) && title ? (
+        <ExploreSavedQueryBreadcrumbs surface="traces" savedQueryId={id} title={title} />
+      ) : (
+        <TopBar.Slot name="title">
+          {title || t('Traces')}
+          <PageHeadingQuestionTooltip
+            docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
+            title={t(
+              'Find problematic spans/traces or compute real-time metrics via aggregation.'
+            )}
+            linkLabel={t('Read the Docs')}
           />
-        ) : (
-          title || t('Traces')
-        )}
-        {titleContent}
-      </TopBar.Slot>
-      <TopBar.Slot name="actions">
-        <StarSavedQueryButton />
-        {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-      </TopBar.Slot>
+        </TopBar.Slot>
+      )}
       <TopBar.Slot name="feedback">
         <FeedbackButton
           aria-label={t('Give Feedback')}

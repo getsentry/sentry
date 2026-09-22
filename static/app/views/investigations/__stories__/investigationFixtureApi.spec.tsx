@@ -189,7 +189,7 @@ describe('InvestigationFixtureApi', () => {
       ).toBeInTheDocument();
       expect(screen.getByText('Supported')).toBeInTheDocument();
       expect(
-        screen.getByText('The delay begins before the document reaches the browser.')
+        screen.getByText('Compare FCP with server response time')
       ).toBeInTheDocument();
     });
 
@@ -252,7 +252,8 @@ describe('InvestigationFixtureApi', () => {
       );
 
       expect(await screen.findByText('Verifying…')).toBeInTheDocument();
-      expect(screen.getAllByText('Awaiting evidence').length).toBeGreaterThan(0);
+      expect(screen.getByText('Inspect session and middleware spans')).toBeVisible();
+      expect(screen.queryByRole('listitem', {current: 'step'})).not.toBeInTheDocument();
     });
   });
 });

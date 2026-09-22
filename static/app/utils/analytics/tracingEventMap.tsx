@@ -190,7 +190,7 @@ export type TracingEventParameters = {
   'trace_explorer.save_query_modal': {
     action: 'open' | 'submit';
     save_type: 'save_new_query' | 'rename_query';
-    ui_source: 'toolbar' | 'table';
+    ui_source: 'toolbar' | 'table' | 'explorer';
   };
   'trace_explorer.search_failure': {
     error: string;
