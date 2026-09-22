@@ -453,7 +453,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert len(response.data) == 1
         assert not any([query["name"] == "Homepage Test Query" for query in response.data])
 
-    def test_get_hides_transaction_queries_with_deprecation_flag(self) -> None:
+    def test_get_hides_transaction_queries(self) -> None:
         transaction_query = DiscoverSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,
@@ -466,7 +466,6 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
         with (
             self.feature(self.feature_name),
-            self.feature("organizations:deprecate-discover"),
         ):
             response = self.client.get(self.url)
 
@@ -474,24 +473,6 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         ids = [row["id"] for row in response.data]
         assert str(transaction_query.id) not in ids
         assert all(row["queryDataset"] != "transaction-like" for row in response.data)
-
-    def test_get_shows_transaction_queries_without_deprecation_flag(self) -> None:
-        transaction_query = DiscoverSavedQuery.objects.create(
-            organization=self.org,
-            created_by_id=self.user.id,
-            name="Transaction query",
-            query={"fields": ["test"], "conditions": [], "limit": 10},
-            version=1,
-            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
-        )
-        transaction_query.set_projects(self.project_ids)
-
-        with self.feature(self.feature_name):
-            response = self.client.get(self.url)
-
-        assert response.status_code == 200, response.content
-        ids = [row["id"] for row in response.data]
-        assert str(transaction_query.id) in ids
 
     def test_get_hides_queries_when_no_project_access(self) -> None:
         # Disable Open Membership so project-level access actually applies.

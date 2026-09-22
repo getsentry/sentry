@@ -99,6 +99,7 @@ export function ConversationSpanDetail({
 
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({top: 0});
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [scrollResetKey]);
 
   // Full attributes (tool inputs/results, the complete attribute list) aren't

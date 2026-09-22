@@ -15,8 +15,8 @@ ReasoningEffort = Literal["low", "medium", "high"]
 # Defaults shared by the Tweaks model and SeerNightShiftRunOptions. Keep the
 # frontend constants in `static/gsApp/views/seerAutomation/components/projectDetails/nightShift.tsx`
 # in sync with these.
-DEFAULT_INTELLIGENCE_LEVEL: IntelligenceLevel = "high"
-DEFAULT_REASONING_EFFORT: ReasoningEffort = "high"
+DEFAULT_INTELLIGENCE_LEVEL: IntelligenceLevel = "medium"
+DEFAULT_REASONING_EFFORT: ReasoningEffort = "medium"
 DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS = ""
 
 

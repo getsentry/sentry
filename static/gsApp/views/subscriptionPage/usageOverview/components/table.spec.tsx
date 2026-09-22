@@ -611,4 +611,48 @@ describe('UsageOverviewTable', () => {
     // All disabled rows must appear after all enabled rows
     expect(lastEnabledIndex).toBeLessThan(firstDisabledIndex);
   });
+
+  it('renders a line item keyed by uid rather than a data category', async () => {
+    const seerUsageUid = '0604d551-984d-408e-9bcd-4d490cf7dfc5';
+    const sub = SubscriptionFixture({organization, plan: 'am3_business'});
+    (sub.categories as Record<string, any>)[seerUsageUid] = {
+      category: seerUsageUid,
+      reserved: 0,
+      prepaid: 0,
+      free: 0,
+      usage: 0,
+      onDemandBudget: 0,
+      onDemandQuantity: 0,
+      onDemandSpendUsed: 0,
+      customPrice: null,
+      paygCpe: null,
+      softCapType: null,
+      usageExceeded: false,
+      order: 1000,
+      isDisabled: false,
+    };
+    sub.planDetails.categoryDisplayNames = {
+      ...sub.planDetails.categoryDisplayNames,
+      [seerUsageUid]: {plural: 'seer usage', singular: 'seer usage'},
+    };
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    const row = screen.getByTestId(`product-row-${seerUsageUid}`);
+    expect(within(row).getByText('Seer Usage')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`product-row-disabled-${seerUsageUid}`)
+    ).not.toBeInTheDocument();
+  });
 });

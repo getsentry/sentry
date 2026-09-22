@@ -9,10 +9,6 @@ import {sampleStackedCategoricalData} from 'sentry/views/dashboards/widgets/cate
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
 
 describe('BarChartWidgetVisualization', () => {
-  beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation();
-  });
-
   afterEach(() => {
     jest.resetAllMocks();
   });

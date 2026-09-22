@@ -1,6 +1,7 @@
 import {screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {renderEmbed} from './resourceEmbedTestUtils';
+import {renderEmbed, renderEmbedMarkdown} from './resourceEmbedTestUtils';
+import {TraceWaterfall} from './traceWaterfall';
 
 describe('traceWaterfall embed', () => {
   const traceId = 'a1b2c3d4e5f678901234567890abcdef';
@@ -132,5 +133,17 @@ describe('traceWaterfall embed', () => {
     expect(
       await screen.findByPlaceholderText('Search in trace', {}, {timeout: 10_000})
     ).toHaveValue('');
+  });
+});
+
+describe('traceWaterfall embed at the markdown level', () => {
+  it('falls back to the trace link, since a span tree has no text form', () => {
+    const markdown = renderEmbedMarkdown(TraceWaterfall, 'traceWaterfall', {
+      traceId: 'a1b2c3d4e5f678901234567890abcdef',
+      timestamp: '2026-08-25T16:37:12Z',
+    });
+
+    expect(markdown).toContain('[Trace a1b2c3d4]');
+    expect(markdown).toContain('/traces/trace/a1b2c3d4e5f678901234567890abcdef/');
   });
 });

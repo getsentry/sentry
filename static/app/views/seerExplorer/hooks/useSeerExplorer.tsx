@@ -83,9 +83,19 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/issues/:groupId/attachments/',
   '/issues/:groupId/distributions/',
   '/issues/:groupId/distributions/:tagKey/',
+  '/monitors/',
+  '/monitors/:detectorId/',
+  '/monitors/:detectorId/edit/',
+  '/monitors/alerts/',
+  '/monitors/alerts/:automationId/',
+  '/monitors/alerts/:automationId/edit/',
+  '/monitors/crons/',
+  '/monitors/errors/',
+  '/monitors/metrics/',
+  '/monitors/mobile-builds/',
+  '/monitors/my-monitors/',
+  '/monitors/uptime/',
 ]);
-/** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();
 
 function supportsStructuredContext(
   referrer: string,
@@ -94,11 +104,6 @@ function supportsStructuredContext(
   if (STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
     return (
       organization?.features.includes('seer-explorer-structured-context-rollout') === true
-    );
-  }
-  if (NEW_STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
-    return (
-      organization?.features.includes('context-engine-structured-page-context') === true
     );
   }
   return false;
@@ -644,7 +649,7 @@ export const useSeerExplorer = () => {
     if (!session) {
       return null;
     }
-    return {...session, blocks: normalizeBlocks(session.blocks)};
+    return {...session, blocks: normalizeBlocks(session.blocks ?? [])};
   }, [apiData?.session]);
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.

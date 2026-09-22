@@ -80,10 +80,14 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     projectIds
   );
 
+  // oxlint-disable-next-line react/hooks -- queryWithoutPageFilters is a constant per call site, so the branch never flips.
   const queryFn = options.queryWithoutPageFilters
-    ? useWrappedDiscoverQueryWithoutPageFilters
-    : useWrappedDiscoverQuery;
+    ? // oxlint-disable-next-line react/hooks -- queryWithoutPageFilters is a constant per call site, so the branch never flips.
+      useWrappedDiscoverQueryWithoutPageFilters
+    : // oxlint-disable-next-line react/hooks -- queryWithoutPageFilters is a constant per call site, so the branch never flips.
+      useWrappedDiscoverQuery;
 
+  // oxlint-disable-next-line react/hooks -- queryWithoutPageFilters is a constant per call site, so the branch never flips.
   const result = queryFn({
     eventView,
     initialData: [],

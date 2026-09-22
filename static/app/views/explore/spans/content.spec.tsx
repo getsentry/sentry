@@ -17,8 +17,12 @@ import {ExploreContent} from './content';
 function TopBarWrapper({children}: {children: ReactNode}) {
   return (
     <TopBar.Slot.Provider>
+      <TopBar.Slot.Outlet name="breadcrumbs">
+        {props => <div {...props} data-test-id="topbar-breadcrumbs-slot" />}
+      </TopBar.Slot.Outlet>
+      {/* Mirror the real TopBar, which renders the title slot as an <h1>. */}
       <TopBar.Slot.Outlet name="title">
-        {props => <div {...props} data-test-id="topbar-title-slot" />}
+        {props => <h1 {...props} data-test-id="topbar-title-slot" />}
       </TopBar.Slot.Outlet>
       {children}
     </TopBar.Slot.Provider>
@@ -46,6 +50,42 @@ describe('ExploreContent', () => {
     projectBody: typeof project;
   }) {
     const organizationSlug = organizationBody.slug;
+    MockApiClient.addMockResponse({
+      url: `/projects/${organizationSlug}/${projectBody.slug}/`,
+      body: projectBody,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organizationSlug}/${projectBody.slug}/keys/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organizationSlug}/sdks/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organizationSlug}/stats_v2/`,
+      body: {groups: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organizationSlug}/trace-items/attributes/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organizationSlug}/events/validate/`,
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: null, fields: [], valid: true},
+        valid: true,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organizationSlug}/seer/setup-check/`,
+      body: {},
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/`,
@@ -115,9 +155,6 @@ describe('ExploreContent', () => {
   }
 
   beforeEach(() => {
-    // Suppress console errors from CompactSelect async updates
-    jest.spyOn(console, 'error').mockImplementation();
-
     FeatureFlagOverrides.singleton().clear();
     PageFiltersStore.init();
     OrganizationStore.onUpdate(organization, {replace: true});
@@ -140,8 +177,10 @@ describe('ExploreContent', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     FeatureFlagOverrides.singleton().clear();
-    OrganizationStore.reset();
-    ProjectsStore.reset();
+    act(() => {
+      OrganizationStore.reset();
+      ProjectsStore.reset();
+    });
     jest.clearAllMocks();
   });
 

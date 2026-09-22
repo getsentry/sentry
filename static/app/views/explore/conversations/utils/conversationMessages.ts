@@ -85,7 +85,9 @@ interface ConversationTurn {
 export function extractMessagesFromNodes(
   nodes: AITraceSpanNode[]
 ): ConversationMessage[] {
-  const {generationSpans, toolSpans, embeddingSpans} = partitionSpansByType(nodes);
+  const enrichedNodes = enrichAnthropicAgentMessages(nodes);
+  const {generationSpans, toolSpans, embeddingSpans} =
+    partitionSpansByType(enrichedNodes);
   const turns = buildConversationTurns(generationSpans, toolSpans);
   const mergedTurns = mergeEmptyTurns(turns);
   const messages = [
@@ -94,6 +96,178 @@ export function extractMessagesFromNodes(
   ];
   messages.sort((a, b) => a.timestamp - b.timestamp);
   return messages;
+}
+
+const ANTHROPIC_OTEL_ORIGIN = 'auto.otlp.spans';
+const ANTHROPIC_SPAN_NAME_PREFIX = 'anthropic.';
+
+function getSpanName(node: AITraceSpanNode): string | undefined {
+  return 'name' in node.value && typeof node.value.name === 'string'
+    ? node.value.name
+    : undefined;
+}
+
+// OTLP ingest origin plus an `anthropic.` span name only co-occur for OTel spans
+// from Anthropic, which is the one source that records messages on the agent
+// span instead of its generation spans (see enrichAnthropicAgentMessages).
+function getIsAnthropicOtelNode(node: AITraceSpanNode): boolean {
+  return (
+    getStringAttr(node, SpanFields.SENTRY_ORIGIN) === ANTHROPIC_OTEL_ORIGIN &&
+    (getSpanName(node)?.startsWith(ANTHROPIC_SPAN_NAME_PREFIX) ?? false)
+  );
+}
+
+function nodeHasOwnMessages(node: AITraceSpanNode): boolean {
+  return Boolean(
+    getStringAttr(node, SpanFields.GEN_AI_INPUT_MESSAGES) ||
+    getStringAttr(node, SpanFields.GEN_AI_REQUEST_MESSAGES) ||
+    getStringAttr(node, SpanFields.GEN_AI_OUTPUT_MESSAGES) ||
+    getStringAttr(node, SpanFields.GEN_AI_RESPONSE_TEXT)
+  );
+}
+
+function cloneNodeWithAttrs(
+  node: AITraceSpanNode,
+  overrides: Record<string, string>
+): AITraceSpanNode {
+  return {
+    ...node,
+    attributes: {...node.attributes, ...overrides},
+  } as AITraceSpanNode;
+}
+
+// The agent output interleaves assistant messages with `tool` result messages;
+// only the assistant ones map to a generation span. Returns null for anything
+// that isn't the expected array shape.
+function parseAssistantSteps(rawOutput: string): string[] | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawOutput);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(parsed)) {
+    return null;
+  }
+  return parsed
+    .filter(
+      (message): message is {role?: string} =>
+        typeof message === 'object' &&
+        message !== null &&
+        (message as {role?: string}).role === 'assistant'
+    )
+    .map(message => JSON.stringify([message]));
+}
+
+// Groups each agent's generation (ai_client) children under the agent's span id,
+// sorted by start time so an agent's assistant output maps onto them in order.
+function groupGenerationChildrenByAgent(
+  nodes: AITraceSpanNode[]
+): Map<string, AITraceSpanNode[]> {
+  const childrenByAgentId = new Map<string, AITraceSpanNode[]>();
+  for (const node of nodes) {
+    const parentId = node.value?.parent_span_id;
+    if (!parentId || !getIsAiGenerationSpan(getGenAiOpType(node))) {
+      continue;
+    }
+    const siblings = childrenByAgentId.get(parentId);
+    if (siblings) {
+      siblings.push(node);
+    } else {
+      childrenByAgentId.set(parentId, [node]);
+    }
+  }
+  for (const siblings of childrenByAgentId.values()) {
+    siblings.sort((a, b) => getNodeStartTimestamp(a) - getNodeStartTimestamp(b));
+  }
+  return childrenByAgentId;
+}
+
+// Distributes one agent's input/output across its generation children. With one
+// assistant message per generation they map 1:1, and the user input anchors the
+// first child. Otherwise there is no safe per-step mapping, so fall back to the
+// question on the first child and the whole output on the last.
+function buildAgentChildOverrides(
+  children: AITraceSpanNode[],
+  rawInput: string | undefined,
+  rawOutput: string
+): Map<string, Record<string, string>> {
+  const overrides = new Map<string, Record<string, string>>();
+  const assistantSteps = parseAssistantSteps(rawOutput);
+
+  if (assistantSteps && assistantSteps.length === children.length) {
+    children.forEach((child, index) => {
+      overrides.set(child.id, {
+        [SpanFields.GEN_AI_OUTPUT_MESSAGES]: assistantSteps[index]!,
+        ...(index === 0 && rawInput
+          ? {[SpanFields.GEN_AI_INPUT_MESSAGES]: rawInput}
+          : {}),
+      });
+    });
+    return overrides;
+  }
+
+  if (rawInput) {
+    overrides.set(children[0]!.id, {[SpanFields.GEN_AI_INPUT_MESSAGES]: rawInput});
+  }
+  const lastChild = children.at(-1)!;
+  overrides.set(lastChild.id, {
+    ...overrides.get(lastChild.id),
+    [SpanFields.GEN_AI_OUTPUT_MESSAGES]: rawOutput,
+  });
+  return overrides;
+}
+
+/**
+ * Anthropic's OTel SDK records a turn's messages on the `invoke_agent` span and
+ * leaves its `ai_client` children empty. Backfilling each child from the agent
+ * span lets the unchanged turn-building pipeline render these conversations like
+ * any fully instrumented agent, so inference stays the default source elsewhere.
+ */
+export function enrichAnthropicAgentMessages(
+  nodes: AITraceSpanNode[]
+): AITraceSpanNode[] {
+  const childrenByAgentId = groupGenerationChildrenByAgent(nodes);
+  const overridesById = new Map<string, Record<string, string>>();
+
+  for (const node of nodes) {
+    if (getGenAiOpType(node) !== 'agent' || !getIsAnthropicOtelNode(node)) {
+      continue;
+    }
+
+    const rawOutput = getStringAttr(node, SpanFields.GEN_AI_OUTPUT_MESSAGES);
+    if (!rawOutput || rawOutput === FILTERED) {
+      continue;
+    }
+
+    const children = childrenByAgentId.get(node.id) ?? [];
+    // Keep inference the default: only reconstruct when every generation child
+    // is missing its own messages.
+    if (children.length === 0 || children.some(nodeHasOwnMessages)) {
+      continue;
+    }
+
+    const rawInput =
+      getStringAttr(node, SpanFields.GEN_AI_INPUT_MESSAGES) ||
+      getStringAttr(node, SpanFields.GEN_AI_REQUEST_MESSAGES);
+
+    for (const [childId, overrides] of buildAgentChildOverrides(
+      children,
+      rawInput,
+      rawOutput
+    )) {
+      overridesById.set(childId, overrides);
+    }
+  }
+
+  if (overridesById.size === 0) {
+    return nodes;
+  }
+
+  return nodes.map(node => {
+    const overrides = overridesById.get(node.id);
+    return overrides ? cloneNodeWithAttrs(node, overrides) : node;
+  });
 }
 
 export function partitionSpansByType(nodes: AITraceSpanNode[]): {

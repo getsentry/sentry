@@ -278,6 +278,7 @@ function FlamegraphZoomView({
     flamegraphView,
     scheduler,
     flamegraph,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     flamegraphTheme,
     textRenderer,
     gridRenderer,
@@ -403,6 +404,7 @@ function FlamegraphZoomView({
       scheduler.off('zoom at frame', onZoomIntoFrame);
       scheduler.off('highlight frame', onHighlightFrame);
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [flamegraphCanvas, canvasPoolManager, dispatch, scheduler, flamegraphView]);
 
   const previousKeyPress = useRef<{at: number; key: string | null}>({
@@ -500,6 +502,7 @@ function FlamegraphZoomView({
     nextState,
     previousState,
     flamegraphView,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     scheduler,
     flamegraphCanvasRef,
     flamegraph.inverted,
@@ -675,6 +678,7 @@ function FlamegraphZoomView({
     return () => {
       document.removeEventListener('click', onClickOutside);
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [canvasContainerRef, contextMenuState, canvasPoolManager]);
 
   const handleContextMenuOpen = useCallback(

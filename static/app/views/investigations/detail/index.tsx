@@ -4,6 +4,8 @@ import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -14,7 +16,6 @@ import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -30,6 +31,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
+  investigationOrchestrationQueryOptions,
   investigationTitleGenerationQueryOptions,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
@@ -40,16 +42,26 @@ import {
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
+import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
+import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {InvestigationDetail} from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
+
+const STATUS_TAG_VARIANT = {
+  running: 'info',
+  awaitingInput: 'warning',
+  failed: 'danger',
+  complete: 'success',
+  cancelled: 'muted',
+} as const;
 
 function FeatureDisabledPage() {
   return (
@@ -145,6 +157,14 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+  const {data: orchestration} = useQuery({
+    ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
+    enabled: Boolean(investigation.orchestration),
+  });
+  const runStatus =
+    investigation.orchestration && orchestration
+      ? getSeerStatusBlock(orchestration)
+      : null;
 
   useEffect(() => {
     const status = titleGenerationQuery.data?.status;
@@ -263,11 +283,11 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const summaryBlock = investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
   const visibleSummaryBlock =
-    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock, blocks)
+    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock)
       ? summaryBlock
       : undefined;
   const visibleNotebookCells = notebookCells.filter(block =>
-    shouldDisplayInvestigationBlock(block, blocks)
+    shouldDisplayInvestigationBlock(block)
   );
 
   return (
@@ -333,16 +353,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             />
           </HeaderBreadcrumbs>
         </Layout.Title>
-        <InvestigationHeader as="header" width="100%" padding="xl">
-          <Grid
-            columns="minmax(0, 1fr) auto"
-            align="start"
-            gap="lg"
-            width="100%"
-            maxWidth="885px"
-            margin="0 auto"
-          >
-            <Stack gap="xs" minWidth={0}>
+        <Container as="header" width="100%" padding="xl">
+          <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
+            <Grid
+              columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
+              align="center"
+              gap="md"
+            >
               <NotebookTitleInput
                 aria-label={t('Investigation title')}
                 value={displayedTitle}
@@ -351,6 +368,18 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 maxLength={200}
                 aria-busy={renameMutation.isPending}
               />
+              {runStatus ? (
+                <Flex align="center" gap="md" wrap="nowrap">
+                  <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
+                    {runStatus.statusLabel}
+                  </Tag>
+                  {orchestration ? (
+                    <InvestigationRunTimer orchestration={orchestration} />
+                  ) : null}
+                </Flex>
+              ) : null}
+            </Grid>
+            <Flex align="center" justify="between" gap="md" wrap="wrap">
               <Flex align="center" gap="sm" wrap="wrap">
                 <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
                 <MetaDivider />
@@ -358,8 +387,6 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   {t('Last update: %s', formatNotebookDate(investigation.dateUpdated))}
                 </Text>
               </Flex>
-            </Stack>
-            <Flex align="center" gap="sm">
               <FeedbackButton
                 feedbackOptions={{
                   formTitle: t('Give feedback on this investigation'),
@@ -378,16 +405,11 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 {t('Give feedback')}
               </FeedbackButton>
             </Flex>
-          </Grid>
-        </InvestigationHeader>
+          </Stack>
+        </Container>
         <Layout.Body>
           <Layout.Main width="full">
-            <InvestigationCanvas>
-              <NotebookSummaryCard
-                summary={investigation.summary}
-                summaryDescription={investigation.summaryDescription}
-              />
-
+            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto">
               {/*
                * Only an agentic investigation has hypotheses, and `orchestration`
                * being present is the only thing that says one is: it is null for
@@ -395,12 +417,17 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                * 404s.
                */}
               {investigation.orchestration ? (
-                <Stack width="min(100%, 884px)" margin="0 auto" paddingBottom="xl">
+                <Stack width="100%" minWidth={0} paddingBottom="xl">
                   <InvestigationHypotheses investigationId={investigation.id} />
                 </Stack>
               ) : null}
 
-              <Stack width="min(100%, 884px)" margin="0 auto">
+              <NotebookSummaryCard
+                summary={investigation.summary}
+                summaryDescription={investigation.summaryDescription}
+              />
+
+              <Stack width="100%" minWidth={0}>
                 {visibleSummaryBlock ? (
                   <InvestigationCell
                     block={visibleSummaryBlock}
@@ -420,7 +447,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   ))}
                 </Stack>
               </Stack>
-            </InvestigationCanvas>
+              <Container height="160px" flexShrink={0} aria-hidden />
+            </Stack>
           </Layout.Main>
         </Layout.Body>
       </Stack>
@@ -452,28 +480,9 @@ function formatNotebookDate(date: string) {
   return new Date(date).toISOString().slice(0, 10).replaceAll('-', '.');
 }
 
-const InvestigationCanvas = styled(Stack)`
-  width: min(100%, calc(884px + ${p => p.theme.space['2xl']}));
-  margin: 0 auto;
-`;
-
-const InvestigationHeader = styled(Container)`
-  position: relative;
-
-  &::after {
-    /* The specified divider is intentionally as subtle as the secondary surface. */
-    content: '';
-    position: absolute;
-    inset: auto 0 0;
-    height: 1px;
-    background: ${p => p.theme.tokens.background.secondary};
-  }
-`;
-
 const NotebookSummaryCard = styled(InvestigationSummaryCard)`
   width: 100%;
   margin-bottom: ${p => p.theme.space.xl};
-  padding-inline: ${p => p.theme.space.xl};
 `;
 
 const HeaderBreadcrumbs = styled(Flex)`
@@ -512,6 +521,8 @@ const HeaderInvestigationTitle = styled('span')`
 
 const NotebookTitleInput = styled(Input)`
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   height: auto;
   margin: 0;
   padding: 0;

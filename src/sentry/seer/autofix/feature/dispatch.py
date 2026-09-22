@@ -22,6 +22,7 @@ from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     AutofixFeaturePayload,
     RCAStepArgs,
+    SolutionStepArgs,
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
@@ -37,14 +38,14 @@ logger = logging.getLogger(__name__)
 class AutofixFeatureArgs:
     step: AutofixStep
     referrer: AutofixReferrer
-    step_args: RCAStepArgs
+    step_args: RCAStepArgs | SolutionStepArgs
     existing_run_id: int | None = None
     insert_index: int | None = None
     user_context: str | None = None
     stopping_point: AutofixStoppingPoint | None = None
     allow_free_cohort: bool = False
     user: User | RpcUser | AnonymousUser | None = None
-    enable_bash_tools: bool = False
+    enable_bash_mode: bool = False
     flush: bool = True
 
 
@@ -95,7 +96,7 @@ def trigger_autofix_feature(
         project=group.project,
         group=group,
         user=args.user,
-        enable_bash_tools=args.enable_bash_tools,
+        enable_bash_mode=args.enable_bash_mode,
     )
 
     extras: dict[str, Any] = {
@@ -154,12 +155,15 @@ def trigger_autofix_feature(
         )
 
     metrics.incr(
-        "autofix_feature.trigger", tags={"referrer": args.referrer.value, "step": args.step.value}
+        "autofix_feature.trigger",
+        tags={"referrer": args.referrer.value, "step": args.step.value},
+        sample_rate=1,
     )
 
     logger.info(
         "autofix_feature.dispatch.started",
         extra={
+            "step": args.step.value,
             "group_id": group.id,
             "organization_id": group.organization.id,
             "run_id": run.seer_run_state_id,
@@ -168,7 +172,7 @@ def trigger_autofix_feature(
             "flush": args.flush,
             "allow_free_cohort": args.allow_free_cohort,
             "user_context": args.user_context,
-            "enable_bash_tools": args.enable_bash_tools,
+            "enable_bash_mode": args.enable_bash_mode,
         },
     )
 

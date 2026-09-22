@@ -8,6 +8,7 @@ describe('ExploreSavedQueryNavigationItems', () => {
   const queries = [
     {
       id: 1,
+      queryType: 'explore',
       name: 'My Saved Query',
       query: [
         {
@@ -23,6 +24,7 @@ describe('ExploreSavedQueryNavigationItems', () => {
     },
     {
       id: 2,
+      queryType: 'explore',
       name: 'Another Saved Query',
       query: [
         {
