@@ -246,7 +246,9 @@ export function ToolCall({
           <ToolCallIndicator status={status} aria-label={getStatusLabel(status, t)} />
         </Flex>
         <Flex flex={1} minWidth={0} align="center" justify="between" gap="md">
-          <Text size="sm" variant="secondary" monospace>
+          {/* A long unbreakable token (a monospace query, a URL) would otherwise pin the title's
+              min-content width and push the trailing chip out of the row. */}
+          <Text size="sm" variant="secondary" monospace wordBreak="break-word">
             {title}
           </Text>
           {hasTrailing ? (
