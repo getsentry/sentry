@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+from django.test import override_settings
+
 from sentry import features
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.utils.hostname import InstanceHostnameError
@@ -11,6 +13,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestCodeReviewPreflightService(TestCase):
     def setUp(self) -> None:
         super().setUp()

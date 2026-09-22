@@ -11,6 +11,7 @@ from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.seer.models import SeerApiError
+from sentry.seer.seer_setup import is_seer_available
 from sentry.seer.signed_seer_api import (
     AgentIndexProject,
     AgentIndexRequest,
@@ -48,6 +49,9 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
     Yields:
         Tuple of (project_id, organization_id)
     """
+    if not is_seer_available():
+        return
+
     projects = Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization")
     current_hour = django_timezone.now().hour
 

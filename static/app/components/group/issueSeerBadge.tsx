@@ -10,6 +10,7 @@ import {
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -25,9 +26,7 @@ export function IssueSeerBadge({group}: IssueSeerBadgeProps) {
   const autofixRunExists = getAutofixRunExists(group);
   const seerFixable = isIssueQuickFixable(group);
   const showSeer =
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures &&
-    (autofixRunExists || seerFixable);
+    areAiFeaturesAllowed(organization) && (autofixRunExists || seerFixable);
 
   let seerTitle = null;
   if (autofixRunExists && seerFixable) {

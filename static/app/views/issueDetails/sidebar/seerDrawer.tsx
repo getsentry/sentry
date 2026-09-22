@@ -7,6 +7,7 @@ import {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -22,10 +23,7 @@ export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Proj
   const organization = useOrganization();
 
   const openSeerDrawer = useCallback(() => {
-    if (
-      !organization.features.includes('gen-ai-features') ||
-      organization.hideAiFeatures
-    ) {
+    if (!areAiFeaturesAllowed(organization)) {
       return;
     }
 

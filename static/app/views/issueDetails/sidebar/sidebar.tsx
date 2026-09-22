@@ -14,6 +14,7 @@ import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
@@ -60,8 +61,7 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
   // Check if Seer (AI features) will be shown - must match SeerSection's logic
   // SeerSection shows "Seer" title when the issue type supports it AND AI features are allowed
   const hasSeerFeatures =
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures &&
+    areAiFeaturesAllowed(organization) &&
     (issueTypeConfig.issueSummary.enabled || issueTypeConfig.autofix);
   const showSeerSection = hasSeerFeatures || issueTypeConfig.resources;
 
