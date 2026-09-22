@@ -19,6 +19,7 @@ export type LogsAnalyticsEventParameters = {
     page_source: LogsAnalyticsPageSource;
     toggleState: 'enabled' | 'disabled';
   };
+  'logs.delete_query': Record<string, unknown>;
   'logs.explorer.continue_searching_clicked': {
     bytes_scanned: number;
     organization: Organization;
@@ -79,6 +80,10 @@ export type LogsAnalyticsEventParameters = {
     save_type: 'save_new_query' | 'rename_query';
     ui_source: 'toolbar' | 'table' | 'explorer';
   };
+  'logs.star_query': {
+    save_type: 'star_query' | 'unstar_query';
+    ui_source: 'table' | 'explorer';
+  };
   'logs.table.row_copied_as_json': {
     log_id: string;
     organization: Organization;
@@ -131,6 +136,8 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
     'Logs Tracing Onboarding Platform Docs Viewed',
   'logs.save_as': 'Logs Save As',
   'logs.save_query_modal': 'Logs Save Query Modal',
+  'logs.star_query': 'Logs Star Query',
+  'logs.delete_query': 'Logs Delete Query',
   'logs.onboarding_platform_docs_viewed':
     'Logs Explore Empty State (Onboarding) - Platform Docs Viewed',
   'logs.table.row_copied_as_json': 'Logs Row Copied as JSON',
