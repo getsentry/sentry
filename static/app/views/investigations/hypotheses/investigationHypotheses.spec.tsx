@@ -174,8 +174,6 @@ describe('InvestigationHypotheses', () => {
         url: orchestrationUrl,
         body: InvestigationOrchestrationFixture({phase}),
       });
-      // The detail view knows the phase from the investigation summary, and
-      // passing it is what keeps a finished run from opening on a skeleton.
       renderHypotheses({phase});
       await screen.findAllByTestId('investigation-hypothesis');
 
@@ -440,8 +438,6 @@ describe('InvestigationHypotheses', () => {
 
     renderHypotheses();
 
-    // The panel is up before the first read resolves, so the area a run is
-    // about to fill is on the page from the first paint.
     expect(
       screen.getByTestId('investigation-hypotheses-placeholder')
     ).toBeInTheDocument();
@@ -466,8 +462,6 @@ describe('InvestigationHypotheses', () => {
       expect(
         await screen.findByTestId('investigation-hypotheses-placeholder')
       ).toBeInTheDocument();
-      // Nothing is known to count yet, and "0 plausible causes" would read as a
-      // verdict rather than a wait.
       expect(screen.queryByText(/plausible cause/)).not.toBeInTheDocument();
     }
   );
@@ -478,8 +472,6 @@ describe('InvestigationHypotheses', () => {
       body: InvestigationOrchestrationFixture({phase: 'completed', hypotheses: []}),
     });
 
-    // A skeleton that appears and then collapses into a finished panel is the
-    // jump this is meant to remove, not a smaller version of it.
     renderHypotheses({phase: 'completed'});
 
     expect(

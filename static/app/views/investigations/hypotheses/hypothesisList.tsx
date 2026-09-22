@@ -13,15 +13,7 @@ import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
  */
 const MIN_CARD_WIDTH = '260px';
 
-/**
- * How many cards to hold the space for while the run works toward its first
- * hypothesis.
- *
- * Three is what a run produces: the agent proposes a small handful of
- * explanations, and the row is laid out around that. Reserving fewer would
- * still jump when the real cards land; reserving more would promise a row that
- * never arrives.
- */
+/** A run proposes about three explanations, so reserve a row of three. */
 const PLACEHOLDER_CARD_COUNT = 3;
 
 /** The grid props shared by the real row and its placeholder. */
@@ -46,15 +38,9 @@ type HypothesisListProps = {
 };
 
 /**
- * The hypothesis row before there are any hypotheses.
- *
- * There is a real dead window at the start of a run: intake, broad scan and
- * planning all happen before the agent has written a single hypothesis, and
- * that is a good share of a run's opening stretch. Rendering nothing there
- * leaves a blank area under a status block that says work is happening, and
- * then drops the whole row in at once. This puts the shape of what is coming on
- * the page instead, in the row's own grid — so it reflows into the same number
- * of columns the real cards will use, and their arrival does not move anything.
+ * The hypothesis row before the agent has written any hypotheses. Uses the
+ * row's own grid, so the real cards land in the same columns without moving
+ * anything.
  */
 export function HypothesisListPlaceholder({
   cards = PLACEHOLDER_CARD_COUNT,

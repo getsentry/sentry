@@ -44,25 +44,10 @@ const POLL_INTERVAL_MS = 2000;
  */
 const COMMAND_SETTLE_MS = 30_000;
 
-/**
- * Phases a run passes through before it has written its first hypothesis.
- *
- * All of them are real work — reading the problem, scanning broadly, deciding
- * what to test — and together they cover a good share of a run's opening
- * stretch. An empty `hypotheses` in one of them means "not yet", so the panel
- * holds the row's space. An empty one anywhere else means the run produced
- * none, and drawing cards for that would promise something not coming.
- */
+/** Phases that run before the first hypothesis exists, where an empty list means "not yet". */
 const PRE_HYPOTHESIS_PHASES = new Set<string>(['intake', 'broad_scan', 'planning']);
 
-/**
- * Phases where whatever hypotheses the run has are the ones it will end with.
- *
- * Used to decide whether the panel is worth putting up before the first read
- * lands: a run that is already writing its report is not about to produce
- * cards, and a skeleton that appears and then collapses into a finished panel
- * is the jump this is meant to remove, not a smaller version of it.
- */
+/** Phases past producing hypotheses, where an empty list means the run made none. */
 const SETTLED_PHASES = new Set<string>([
   'reporting',
   'metadata',
@@ -115,12 +100,10 @@ type InvestigationHypothesesProps = {
    */
   enabled?: boolean;
   /**
-   * The run's phase from the investigation summary, when the caller has one.
-   *
-   * Only used for the first paint, before the projection arrives: it is what
-   * lets a finished run open straight into a collapsed panel instead of a
-   * skeleton that collapses a moment later. The projection supersedes it the
-   * instant it lands, so a caller without one can leave it out.
+   * The run's phase from the investigation summary. Only used before the
+   * projection arrives, so a finished run opens collapsed instead of showing a
+   * placeholder that collapses a moment later. Optional: the projection
+   * replaces it as soon as it lands.
    */
   phase?: InvestigationOrchestrationPhase;
 };
@@ -170,8 +153,6 @@ export function InvestigationHypotheses({
     {onSuccess: () => setCommandSentAt(Date.now())}
   );
 
-  // The summary's phase stands in until the projection lands, so a run that is
-  // already done opens collapsed rather than expanding and then closing.
   const phase = projection?.phase ?? summaryPhase;
   const verificationComplete =
     projection?.status === 'completed' ||
@@ -185,15 +166,9 @@ export function InvestigationHypotheses({
     setPanelState({verificationComplete, expanded: !verificationComplete});
   }
 
-  // The status block is the run talking, so it appears as soon as there is a
-  // run — before the first hypothesis exists, which is exactly when a viewer
-  // most needs to be told that something is happening.
-  //
-  // Until the first read lands there is nothing for it to say, so the panel
-  // goes up holding the row's space and nothing else: the area a run is about
-  // to fill is on the page from the first paint rather than appearing under the
-  // summary a second later. A disabled or 404ing run renders nothing at all —
-  // there is no run behind it to wait for.
+  // Nothing is known yet, so the panel goes up empty rather than appearing a
+  // moment later. A run with no hypotheses left to produce is skipped: its
+  // panel would open on placeholders and then collapse.
   if (!projection) {
     const worthHoldingSpaceFor = enabled && isPending && !SETTLED_PHASES.has(phase ?? '');
 
@@ -278,8 +253,6 @@ export function InvestigationHypotheses({
   }
 
   const hasHypotheses = projection.hypotheses.length > 0;
-  // The status block already says what Seer is doing, so the placeholders only
-  // have to hold the space the cards will take.
   const awaitingFirstHypothesis =
     !hasHypotheses && PRE_HYPOTHESIS_PHASES.has(projection.phase);
 
@@ -290,9 +263,8 @@ export function InvestigationHypotheses({
         <HypothesesPanel
           expanded={panelState.expanded}
           onExpandedChange={expanded => setPanelState({verificationComplete, expanded})}
-          // Before the first hypothesis there is nothing to count, and "0
-          // plausible causes" reads as a verdict rather than a wait. The status
-          // block above is already saying what Seer is doing.
+          // No count before the first hypothesis: "0 plausible causes" reads
+          // as a result rather than a wait.
           meta={
             hasHypotheses ? (
               <Fragment>
@@ -323,10 +295,8 @@ export function InvestigationHypotheses({
 }
 
 /**
- * The collapsible box the hypothesis row lives in.
- *
- * Shared by the row and its placeholder so the panel does not change size or
- * shape when the first hypothesis lands — only what is inside it does.
+ * Shared by the row and its placeholder so the panel keeps its shape when the
+ * first hypothesis lands — only its contents change.
  */
 function HypothesesPanel({
   children,

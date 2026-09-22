@@ -26,7 +26,6 @@ describe('HypothesisCard', () => {
   );
 
   it('draws no evidence rows for a hypothesis that settled without checks', () => {
-    // Nothing is on its way here: the card is telling the truth about itself.
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({

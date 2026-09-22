@@ -13,11 +13,7 @@ import {
 } from 'sentry/views/investigations/hypotheses/hypothesisStatus';
 import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
 
-/**
- * Hypothesis states where the absence of checks means "not yet" rather than
- * "none were run". Everything else has settled, and a settled hypothesis with
- * no evidence is telling the truth about itself.
- */
+/** States where missing checks mean "not yet"; anything else finished without them. */
 const PENDING_EVIDENCE_STATUSES = new Set<string>(['pending', 'investigating']);
 
 type HypothesisCardProps = {
@@ -133,13 +129,7 @@ export function HypothesisCard({
         </EvidenceList>
       ) : null}
 
-      {/*
-       * A hypothesis the agent has stated but has not planned checks for yet.
-       * The steps are coming, so the card holds their space rather than sizing
-       * to the statement alone and then growing under whoever is reading it. A
-       * hypothesis that settled without any checks is a different thing and
-       * gets no rows — there is nothing still on its way.
-       */}
+      {/* Holds the space for checks that are still on their way. */}
       {steps.length === 0 && PENDING_EVIDENCE_STATUSES.has(hypothesis.effectiveStatus) ? (
         <Stack paddingTop="md">
           <HypothesisEvidencePlaceholder />
