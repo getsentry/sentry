@@ -6,6 +6,7 @@ import {Flex, Container} from '@sentry/scraps/layout';
 
 export interface TimelineItemProps {
   title: React.ReactNode;
+  'aria-current'?: React.AriaAttributes['aria-current'];
   /**
    * Renders the row as another element — an `li`, when the timeline is a list.
    * The row itself has to be the list item: `:first-child` and `:last-child`
@@ -13,7 +14,6 @@ export interface TimelineItemProps {
    * and a wrapping `li` would make every row match both.
    */
   as?: React.ElementType;
-  'aria-current'?: React.AriaAttributes['aria-current'];
   children?: React.ReactNode;
   className?: string;
   colorConfig?: {
