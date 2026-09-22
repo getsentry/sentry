@@ -1,7 +1,7 @@
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {InfoText, InfoTip} from '@sentry/scraps/info';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -64,7 +64,7 @@ const SCM_INFO_SECTIONS: Array<{
     ],
   },
   {
-    title: t('We will never (without your permission):'),
+    title: t('We will never:'),
     tooltip: t(
       "If a feature needs more access to your code, we'll always ask you first. No surprises."
     ),
@@ -108,7 +108,7 @@ export function ScmConnect({
 
         {/* The note belongs to the control above it, so the two sit together
               rather than a step's worth of space apart. */}
-        <MotionStack gap="md" width="100%" {...ONBOARDING_ENTER}>
+        <MotionStack gap="xl" width="100%" {...ONBOARDING_ENTER}>
           <ScmIntegrationConnect
             analyticsFlow="onboarding"
             onClearDerivedState={onClearDerivedState}
@@ -135,7 +135,7 @@ export function ScmConnect({
 
         <MotionGrid
           {...ONBOARDING_ENTER}
-          columns="1fr"
+          columns={{zero: '1fr', md: '1fr 1fr'}}
           gap="2xl"
           width="100%"
           background="secondary"
@@ -146,12 +146,23 @@ export function ScmConnect({
           {SCM_INFO_SECTIONS.map(section => (
             <Stack key={section.title} gap="lg">
               <Flex align="center" gap="sm">
-                <Text size="md" density="compressed" variant="primary">
-                  {section.title}
-                </Text>
-                {section.tooltip && <InfoTip title={section.tooltip} size="sm" />}
+                {section.tooltip ? (
+                  <InfoText
+                    title={section.tooltip}
+                    position="right"
+                    variant="primary"
+                    size="md"
+                    density="compressed"
+                  >
+                    {section.title}
+                  </InfoText>
+                ) : (
+                  <Text size="md" density="compressed" variant="primary">
+                    {section.title}
+                  </Text>
+                )}
               </Flex>
-              <Flex wrap="wrap" gap="md 2xl">
+              <Stack gap="md">
                 {section.items.map(item => (
                   <Grid key={item.label} columns="max-content 1fr" gap="md">
                     <Flex paddingTop="2xs">{section.icon}</Flex>
@@ -159,6 +170,7 @@ export function ScmConnect({
                       {item.tooltip ? (
                         <InfoText
                           title={item.tooltip}
+                          position="right"
                           variant="primary"
                           size="md"
                           density="comfortable"
@@ -173,7 +185,7 @@ export function ScmConnect({
                     </Flex>
                   </Grid>
                 ))}
-              </Flex>
+              </Stack>
             </Stack>
           ))}
         </MotionGrid>
