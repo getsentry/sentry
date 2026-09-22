@@ -1439,6 +1439,17 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         update.assert_not_called()
 
     @responses.activate
+    def test_install_webhook_update_disabled(self) -> None:
+        with (
+            self.options({"gitlab.webhook-update-on-install.enabled": False}),
+            patch("sentry.integrations.gitlab.tasks.update_all_project_webhooks.delay") as schedule,
+        ):
+            resp = self._run_pipeline()
+
+        assert resp.data["status"] == "complete"
+        schedule.assert_not_called()
+
+    @responses.activate
     def test_reinstall_updates_retained_webhooks_with_current_version(self) -> None:
         self._run_pipeline()
         integration = Integration.objects.get(provider="gitlab")

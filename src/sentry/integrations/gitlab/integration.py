@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import BooleanField, CharField, URLField
 
-from sentry import features
+from sentry import features, options
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
 from sentry.identity.oauth2 import OAuth2ApiStep
@@ -659,6 +659,9 @@ class GitlabIntegrationProvider(IntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
+        if not options.get("gitlab.webhook-update-on-install.enabled"):
+            return
+
         # Retained repositories may still have stale tokens even at the current webhook version.
         repository_service.schedule_update_gitlab_project_webhooks(
             organization_id=organization.id,
