@@ -81,7 +81,7 @@ Override these hooks to adjust the default evaluation:
 | `get_occurrence_id`     | UUID5 of the detector ID, group key, and event ID                              |
 
 Override `evaluate` itself when the detector needs a different flow. See
- [`PreprodSizeAnalysisDetectorHandler`](../../preprod/size_analysis/grouptype.py) for how to achieve this
+[`PreprodSizeAnalysisDetectorHandler`](../../preprod/size_analysis/grouptype.py) for how to achieve this
 
 ### `StatefulDetectorHandler`
 
@@ -603,21 +603,21 @@ cause a producer to run.
 
 ## Test Matrix
 
-| Area             | Required cases                                                               |
-| ---------------- | ---------------------------------------------------------------------------- |
-| Value extraction | Normal packet, malformed or missing product data                             |
-| Dedupe           | Stateful: new, duplicate, and out-of-order packets                           |
-| Conditions       | Each configured priority and no-match/OK result                              |
-| Thresholds       | Stateful: below threshold, transition at threshold, counter reset, recovery  |
-| Grouping         | Independent state and fingerprints for at least two group keys               |
-| Occurrence       | Title, type, priority, evidence, event data, fingerprint                     |
-| Resolution       | Stateful: same issue identity as trigger and correct status change           |
-| Registry         | Group type, detector settings, source, and conditions resolve after startup  |
-| API              | Create, update, invalid config, invalid condition, delete, audit, rollback   |
-| Data source      | Correct mapping, disabled detector exclusion, cache invalidation             |
-| Producer         | Correct packet/source identity and exception behavior                        |
-| Integration      | Issue Platform payload produced from representative product input            |
-| Lifecycle        | Deleted detector/source and queued-work races                                |
+| Area             | Required cases                                                              |
+| ---------------- | --------------------------------------------------------------------------- |
+| Value extraction | Normal packet, malformed or missing product data                            |
+| Dedupe           | Stateful: new, duplicate, and out-of-order packets                          |
+| Conditions       | Each configured priority and no-match/OK result                             |
+| Thresholds       | Stateful: below threshold, transition at threshold, counter reset, recovery |
+| Grouping         | Independent state and fingerprints for at least two group keys              |
+| Occurrence       | Title, type, priority, evidence, event data, fingerprint                    |
+| Resolution       | Stateful: same issue identity as trigger and correct status change          |
+| Registry         | Group type, detector settings, source, and conditions resolve after startup |
+| API              | Create, update, invalid config, invalid condition, delete, audit, rollback  |
+| Data source      | Correct mapping, disabled detector exclusion, cache invalidation            |
+| Producer         | Correct packet/source identity and exception behavior                       |
+| Integration      | Issue Platform payload produced from representative product input           |
+| Lifecycle        | Deleted detector/source and queued-work races                               |
 
 Use existing factory methods rather than direct model creation in tests. The most useful
 shared references are:
