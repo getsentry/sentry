@@ -1,6 +1,5 @@
 import type {MouseEvent} from 'react';
 import {useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -96,7 +95,6 @@ export function NativeFrame({
   emptySourceNotation,
   isHoverPreviewed = false,
 }: Props) {
-  const theme = useTheme();
   const components = useSentryAppComponentsStore<SentryAppSchemaStacktraceLink>({
     componentType: 'stacktrace-link',
   });
@@ -320,7 +318,7 @@ export function NativeFrame({
               </Tooltip>
             ) : null}
           </Container>
-          <Container minWidth="0">
+          <Container maxWidth="100%" minWidth="0" width="fit-content">
             {!fullStackTrace && !expanded && leadsToApp && (
               <PackageNote>
                 {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
@@ -337,18 +335,15 @@ export function NativeFrame({
               ellipsis
               maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               position="auto-start"
-              style={{
-                maxWidth: '100%',
-                paddingRight: theme.space['2xs'],
-                width: 'fit-content',
-              }}
               variant="inherit"
             >
-              {frame.package
-                ? trimPackage(frame.package)
-                : isDartAsyncSuspensionFrame
-                  ? t('Dart async')
-                  : `<${t('unknown')}>`}
+              <Container as="span" paddingRight="2xs">
+                {frame.package
+                  ? trimPackage(frame.package)
+                  : isDartAsyncSuspensionFrame
+                    ? t('Dart async')
+                    : `<${t('unknown')}>`}
+              </Container>
             </InfoText>
           </Container>
           <Flex column={{zero: '2', xl: '3'}} minWidth="0" row={{zero: '2', xl: '1'}}>
