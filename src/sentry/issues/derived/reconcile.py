@@ -60,7 +60,7 @@ def reconcile_group_status(group_id: int) -> None:
     )
     try:
         with lock.acquire():
-            group = Group.objects.filter(id=group_id).select_related("project").first()
+            group = Group.objects.select_related("project").get_or_none(id=group_id)
             if group is None:
                 _record_result("group_not_found")
                 return
@@ -72,7 +72,7 @@ def reconcile_group_status(group_id: int) -> None:
                 _record_result("not_gated")
                 return
 
-            derived = GroupDerivedData.objects.filter(group_id=group_id).first()
+            derived = GroupDerivedData.objects.get_or_none(group_id=group_id)
             if derived is None:
                 _record_result("no_derived_data")
                 return
@@ -94,8 +94,8 @@ def reconcile_group_status(group_id: int) -> None:
                 _record_result("pending_outbox")
                 return
 
-            group = Group.objects.filter(id=group_id).select_related("project").first()
-            derived = GroupDerivedData.objects.filter(group_id=group_id).first()
+            group = Group.objects.select_related("project").get_or_none(id=group_id)
+            derived = GroupDerivedData.objects.get_or_none(group_id=group_id)
             if (
                 group is None
                 or derived is None
@@ -115,8 +115,8 @@ def reconcile_group_status(group_id: int) -> None:
                 _record_result("pending_outbox")
                 return
 
-            current_group_status = (
-                Group.objects.filter(id=group_id).values_list("status", flat=True).first()
+            current_group_status = Group.objects.values_list("status", flat=True).get_or_none(
+                id=group_id
             )
             if current_group_status != observed_group_status:
                 _record_result("changed_during_check")
