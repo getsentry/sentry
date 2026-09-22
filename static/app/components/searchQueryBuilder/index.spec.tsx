@@ -314,6 +314,143 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  it('keeps key and value suggestions in the same panel as the input', async () => {
+    render(
+      <SearchQueryBuilder
+        {...defaultProps}
+        menuPresentation="panel"
+        portalTarget={document.body}
+      />
+    );
+
+    const panel = screen.getByTestId('search-query-builder-panel');
+    await userEvent.click(getLastInput());
+    expect(panel).toContainElement(await screen.findByRole('listbox'));
+    expect(panel).toContainElement(getLastInput());
+
+    await userEvent.type(getLastInput(), 'browser');
+    expect(panel).toContainElement(
+      await screen.findByRole('option', {name: 'browser.name'})
+    );
+
+    await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
+    expect(panel).toContainElement(await screen.findByRole('option', {name: 'Chrome'}));
+    expect(within(panel).getByRole('listbox')).toHaveStyle({maxWidth: '100%'});
+    await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
+
+    expect(within(panel).getByRole('listbox')).toBeInTheDocument();
+
+    await userEvent.click(getLastInput());
+    expect(within(panel).getByRole('listbox')).toBeInTheDocument();
+
+    await userEvent.click(document.body);
+    expect(within(panel).queryByRole('listbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'browser.name:Chrome'})).toBeInTheDocument();
+  });
+
+  it.each(['padding', 'gap'])(
+    'preserves value editing when clicking panel %s',
+    async target => {
+      const onChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          menuPresentation="panel"
+          initialQuery="browser.name:Chrome"
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'Fire');
+      const option = await screen.findByRole('option', {name: 'Firefox'});
+      onChange.mockClear();
+
+      const panel = screen.getByTestId('search-query-builder-panel');
+      const chrome =
+        target === 'gap' ? panel.querySelector('[data-query-builder-menu]')! : panel;
+      await userEvent.click(chrome);
+
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('Fire');
+      expect(option).toBeInTheDocument();
+      expect(onChange).not.toHaveBeenCalled();
+
+      await userEvent.click(option);
+      await userEvent.click(document.body);
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {name: 'browser.name:[Chrome,Firefox]'})
+      ).toBeInTheDocument();
+    }
+  );
+
+  it('closes the previous value editor when focusing another filter in panel mode', async () => {
+    render(
+      <SearchQueryBuilder
+        {...defaultProps}
+        menuPresentation="panel"
+        initialQuery="browser.name:Chrome assigned:me"
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+    );
+    expect(
+      await screen.findByRole('combobox', {name: 'Edit filter value'})
+    ).toBeInTheDocument();
+
+    // Other tokens are aria-hidden while the value combobox is open.
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Edit value for filter: assigned', hidden: true})
+    );
+
+    expect(screen.getAllByRole('combobox', {name: 'Edit filter value'})).toHaveLength(1);
+    expect(
+      screen.getByRole('button', {
+        name: 'Edit value for filter: browser.name',
+        hidden: true,
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the date picker below the input in panel mode', async () => {
+    const onChange = jest.fn();
+    render(
+      <SearchQueryBuilder
+        {...defaultProps}
+        menuPresentation="panel"
+        initialQuery="age:-24h"
+        onChange={onChange}
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Edit value for filter: age'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'Absolute date'}));
+
+    const datePicker = await screen.findByTestId('specific-date-picker');
+    expect(screen.getByTestId('search-query-builder-panel')).toContainElement(datePicker);
+    expect(screen.getByTestId('search-query-builder')).not.toContainElement(datePicker);
+
+    await userEvent.type(await screen.findByTestId('date-picker'), '2017-10-17');
+    const panel = screen.getByTestId('search-query-builder-panel');
+    await userEvent.click(panel);
+    expect(datePicker).toBeInTheDocument();
+    await userEvent.click(panel.querySelector('[data-query-builder-menu]')!);
+    expect(datePicker).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith('age:>2017-10-17', expect.anything());
+    });
+  });
+
   it('syncs external initial query changes while disabled', async () => {
     function ExternalProviderSearchQueryBuilder({
       disabled,
