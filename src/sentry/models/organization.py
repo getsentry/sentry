@@ -40,7 +40,7 @@ from sentry.organizations.absolute_url import (
     has_customer_domain,
     organization_absolute_url,
 )
-from sentry.roles.manager import Role
+from sentry.roles.manager import OrganizationRole, Role
 from sentry.users.services.user import RpcUser, RpcUserProfile
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
@@ -524,14 +524,31 @@ class Organization(ReplicatedCellModel):
             fragment=fragment,
         )
 
+    def get_role_scopes(self, role: Role) -> frozenset[str]:
+        """
+        Return the scopes a role grants in this organization, before any
+        organization options are applied.
+        """
+        from sentry import features
+
+        if isinstance(role, OrganizationRole) and features.has(
+            "organizations:granular-permission-scopes", self
+        ):
+            try:
+                return roles.granular_manager.get(role.id).scopes
+            except KeyError:
+                pass
+        return role.scopes
+
     def get_scopes(self, role: Role) -> frozenset[str]:
         """
         Note that scopes for team-roles are filtered through this method too.
         """
-        if bool(NON_MEMBER_SCOPES & role.scopes):
-            return role.scopes
+        role_scopes = self.get_role_scopes(role)
+        if bool(NON_MEMBER_SCOPES & role_scopes):
+            return role_scopes
 
-        scopes = set(role.scopes)
+        scopes = set(role_scopes)
         if not self.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT):
             scopes.discard("event:admin")
         if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):
