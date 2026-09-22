@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import call, patch
 
 from django.utils import timezone
@@ -524,8 +525,17 @@ class GroupSerializerDerivedDataTest(TestCase):
         assert "derivedData" not in result
 
     def test_malformed_derived_data_does_not_fail_bulk_serialization(self) -> None:
+        self._assert_corrupt_derived_data_is_omitted(progress="invalid")
+
+    def test_malformed_blob_does_not_fail_bulk_serialization(self) -> None:
+        self._assert_corrupt_derived_data_is_omitted(data=[])
+
+    def test_invalid_boolean_does_not_leak_into_bulk_serialization(self) -> None:
+        self._assert_corrupt_derived_data_is_omitted(data={"has_open_fix_pr": "false"})
+
+    def _assert_corrupt_derived_data_is_omitted(self, **values: Any) -> None:
         malformed_group = self.create_group()
-        self.create_group_derived_data(group=malformed_group, progress="invalid")
+        self.create_group_derived_data(group=malformed_group, **values)
         valid_group = self.create_group(project=malformed_group.project)
         self.create_group_derived_data(
             group=valid_group,
