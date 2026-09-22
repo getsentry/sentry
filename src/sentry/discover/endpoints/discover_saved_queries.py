@@ -273,7 +273,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         model.set_projects(data["project_ids"])
 
         try:
-            if "starred" in request.data and request.data["starred"]:
+            if request.user.is_authenticated and request.data.get("starred"):
                 DiscoverSavedQueryStarred.objects.insert_starred_query(
                     organization, request.user.id, model, starred=True
                 )
