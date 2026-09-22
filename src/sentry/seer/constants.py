@@ -7,9 +7,11 @@ SeerSCMProvider = Literal[
     "integrations:github",
     "integrations:github_enterprise",
     "integrations:gitlab",
+    "integrations:perforce",
     "github",
     "github_enterprise",
     "gitlab",
+    "perforce",
 ]
 
 # GitHub providers (bare and `integrations:`-prefixed); mirrors frontend `isGitHubProvider`.
@@ -25,4 +27,9 @@ SEER_SUPPORTED_SCM_PROVIDERS = [*SEER_GITHUB_SCM_PROVIDERS]
 SEER_GITLAB_SCM_PROVIDERS = [
     "integrations:gitlab",
     IntegrationProviderSlug.GITLAB.value,
+]
+
+SEER_PERFORCE_SCM_PROVIDERS = [
+    "integrations:perforce",
+    IntegrationProviderSlug.PERFORCE.value,
 ]
