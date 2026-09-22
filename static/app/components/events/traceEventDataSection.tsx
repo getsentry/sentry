@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid, Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -423,7 +423,7 @@ export function TraceEventDataSection({
   );
 
   const actions = !stackTraceNotFound && (
-    <Grid flow="column" align="center" gap="md">
+    <Flex align="center" gap="md" justify="end" maxWidth="100%" minWidth={0} wrap="wrap">
       {!displayOptions.includes('raw-stack-trace') && (
         <SegmentedControl
           size="xs"
@@ -502,7 +502,7 @@ export function TraceEventDataSection({
           markdown: undefined,
         })}
       />
-    </Grid>
+    </Flex>
   );
 
   if (isNestedSection) {

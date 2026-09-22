@@ -133,7 +133,11 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
           children
         )}
       </StretchedButton>
-      {trailingItems ? <Flex flexShrink={0}>{trailingItems}</Flex> : null}
+      {trailingItems ? (
+        <Flex flexShrink={1} minWidth={0}>
+          {trailingItems}
+        </Flex>
+      ) : null}
     </TitleRow>
   );
 }
