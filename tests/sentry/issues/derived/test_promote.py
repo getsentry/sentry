@@ -749,3 +749,20 @@ class PromoteToLiveTest(TestCase):
         ]
         assert len(failed_calls) == 1
         assert failed_calls[0].kwargs["extra"]["group_id"] == group.id
+
+    def test_batch_continues_after_failed_replay_without_promoting_it(self) -> None:
+        bad_group = self.create_group()
+        good_group = self.create_group()
+        bad = self.create_group_derived_data(bad_group, data={"status": "closed"})
+        self.create_group_action_log_entry(
+            bad_group, type=GroupActionType.RECONCILE_STATUS, data={"status": "invalid"}
+        )
+        self.create_group_action_log_entry(good_group)
+        before = GroupDerivedData.objects.filter(id=bad.id).values().get()
+        result = build_and_promote_batch(
+            [bad_group.id, good_group.id], timeout=timedelta(minutes=1), log_key="test.batch"
+        )
+        assert result.processed == {PromotionResult.PROMOTED: 1}
+        assert result.resume_from_group_id is None
+        assert GroupDerivedData.objects.filter(id=bad.id).values().get() == before
+        assert GroupDerivedData.objects.get(group_id=good_group.id).view_count == 1
