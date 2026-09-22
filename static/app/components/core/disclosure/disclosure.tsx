@@ -117,6 +117,7 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
     >
       {leadingItems ? <Flex flexShrink={0}>{leadingItems}</Flex> : null}
       <StretchedButton
+        hasTrailingItems={Boolean(trailingItems)}
         icon={leadingItems ? undefined : chevron}
         disabled={isDisabled}
         size={context.size}
@@ -155,8 +156,11 @@ const TitleRow = styled(Flex)`
   }
 `;
 
-const StretchedButton = styled(Button)`
+const StretchedButton = styled(Button, {
+  shouldForwardProp: prop => prop !== 'hasTrailingItems',
+})<{hasTrailingItems: boolean}>`
   flex-grow: 1;
+  flex-shrink: ${p => (p.hasTrailingItems ? 0 : 1)};
   min-width: 0;
   justify-content: flex-start;
   padding-left: ${p => p.theme.space.xs};

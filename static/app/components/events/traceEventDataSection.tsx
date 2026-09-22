@@ -423,7 +423,15 @@ export function TraceEventDataSection({
   );
 
   const actions = !stackTraceNotFound && (
-    <Flex align="center" gap="md" justify="end" maxWidth="100%" minWidth={0} wrap="wrap">
+    <Flex
+      align="center"
+      gap="md"
+      justify="end"
+      width="100%"
+      maxWidth="100%"
+      minWidth={0}
+      wrap="wrap"
+    >
       {!displayOptions.includes('raw-stack-trace') && (
         <SegmentedControl
           size="xs"
@@ -456,52 +464,54 @@ export function TraceEventDataSection({
           {t('Download')}
         </LinkButton>
       )}
-      <CompactSelect
-        trigger={triggerProps => (
-          <OverlayTrigger.Button
-            {...triggerProps}
-            icon={<IconSort />}
-            size="xs"
-            tooltipProps={{title: sortByTooltip}}
-          />
-        )}
-        disabled={!!sortByTooltip}
-        position="bottom-end"
-        onChange={selectedOption => {
-          handleSortByChange(selectedOption.value);
-        }}
-        value={isNewestFramesFirst ? 'recent-first' : 'recent-last'}
-        options={Object.entries(sortByOptions).map(([value, label]) => ({
-          label,
-          value: value as keyof typeof sortByOptions,
-        }))}
-      />
-      <CompactSelect
-        trigger={triggerProps => (
-          <OverlayTrigger.IconButton
-            {...triggerProps}
-            size="xs"
-            icon={<IconEllipsis />}
-            aria-label={t('Display as')}
-          >
-            {t('Display as')}
-          </OverlayTrigger.IconButton>
-        )}
-        multiple
-        position="bottom-end"
-        value={displayValues}
-        onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
-        options={[{label: t('Display'), options: optionsToShow}]}
-      />
+      <Flex align="center" gap="md" justify="end" maxWidth="100%" wrap="wrap">
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              icon={<IconSort />}
+              size="xs"
+              tooltipProps={{title: sortByTooltip}}
+            />
+          )}
+          disabled={!!sortByTooltip}
+          position="bottom-end"
+          onChange={selectedOption => {
+            handleSortByChange(selectedOption.value);
+          }}
+          value={isNewestFramesFirst ? 'recent-first' : 'recent-last'}
+          options={Object.entries(sortByOptions).map(([value, label]) => ({
+            label,
+            value: value as keyof typeof sortByOptions,
+          }))}
+        />
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              size="xs"
+              icon={<IconEllipsis />}
+              aria-label={t('Display as')}
+            >
+              {t('Display as')}
+            </OverlayTrigger.IconButton>
+          )}
+          multiple
+          position="bottom-end"
+          value={displayValues}
+          onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
+          options={[{label: t('Display'), options: optionsToShow}]}
+        />
 
-      <CopyAsDropdown
-        size="xs"
-        items={CopyAsDropdown.makeDefaultCopyAsOptions({
-          text: handleCopyRawStacktrace,
-          json: undefined,
-          markdown: undefined,
-        })}
-      />
+        <CopyAsDropdown
+          size="xs"
+          items={CopyAsDropdown.makeDefaultCopyAsOptions({
+            text: handleCopyRawStacktrace,
+            json: undefined,
+            markdown: undefined,
+          })}
+        />
+      </Flex>
     </Flex>
   );
 
