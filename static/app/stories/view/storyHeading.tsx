@@ -22,15 +22,15 @@ export function StoryHeading(props: HeadingProps) {
   const {copy} = useCopyToClipboard();
 
   return (
-    <Flex gap="md" align="center">
-      <Heading {...props} id={id} />
+    <Flex data-story-heading gap="md" align="center">
+      <Heading {...props} data-story-heading-base-id={id} id={id} />
       <StyledLinkButton
         variant="transparent"
         size="xs"
         href={`#${id}`}
         icon={<IconLink />}
-        onClick={() =>
-          copy(`${window.location.toString().replace(/#.*$/, '')}#${id}`, {
+        onClick={event =>
+          copy(event.currentTarget.href, {
             successMessage: (
               <Fragment>
                 Copied link to{' '}

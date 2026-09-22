@@ -52,6 +52,7 @@ export function Demo({resizable, standalone, ...props}: DemoProps) {
   if (!resizable) {
     return (
       <Container
+        data-storybook-demo
         containerType="inline-size"
         marginTop={standalone ? undefined : 'md'}
         style={standalone ? undefined : {marginBottom: '-1lh'}}
@@ -92,6 +93,7 @@ export function Demo({resizable, standalone, ...props}: DemoProps) {
       {revealProps => (
         <DemoChrome
           {...revealProps}
+          data-storybook-demo
           ref={fullscreenRef}
           marginTop={isFullscreen ? '0' : 'md'}
           position="relative"

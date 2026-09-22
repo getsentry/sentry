@@ -17,15 +17,52 @@ function toAlphaNumeric(str: string): string {
 
 function getContentEntries(main: HTMLElement): Entry[] {
   const titles = Array.from(main.querySelectorAll('h2, h3, h4, h5, h6')).filter(
-    title => title.closest('[data-test-id="storybook-demo"]') === null
+    title => title.closest('[data-storybook-demo]') === null
   );
   const entries: Entry[] = [];
 
-  for (const entry of Array.from(titles ?? [])) {
-    // Ensure each title has an id we can link to
+  for (const entry of titles) {
     if (!entry.id) {
       entry.id = toAlphaNumeric(entry.textContent ?? '');
     }
+    if (!entry.hasAttribute('data-story-heading-base-id')) {
+      entry.setAttribute('data-story-heading-base-id', entry.id);
+    }
+  }
+
+  const idCounts = new Map<string, number>();
+  for (const entry of titles) {
+    const baseId = entry.getAttribute('data-story-heading-base-id')!;
+    idCounts.set(baseId, (idCounts.get(baseId) ?? 0) + 1);
+  }
+
+  const usedIds = new Map<string, number>();
+  const parents: Array<{id: string; level: number}> = [];
+
+  for (const entry of titles) {
+    const level = Number(entry.tagName.slice(1));
+    while (parents.at(-1) && parents.at(-1)!.level >= level) {
+      parents.pop();
+    }
+
+    const parentId = parents.at(-1)?.id;
+    const originalId = entry.getAttribute('data-story-heading-base-id')!;
+    const scopedId =
+      idCounts.get(originalId)! > 1 && parentId
+        ? `${parentId}-${originalId}`
+        : originalId;
+    const count = (usedIds.get(scopedId) ?? 0) + 1;
+    entry.id = count === 1 ? scopedId : `${scopedId}-${count}`;
+    usedIds.set(scopedId, count);
+    parents.push({id: entry.id, level});
+
+    const headingLink = entry.parentElement?.hasAttribute('data-story-heading')
+      ? entry.nextElementSibling
+      : null;
+    if (headingLink instanceof HTMLAnchorElement) {
+      headingLink.href = `#${entry.id}`;
+    }
+
     entries.push({
       title: entry.textContent ?? '',
       ref: entry as HTMLElement,
@@ -226,7 +263,7 @@ function StoryContentsList({
   const LinkComponent = isChild ? StyledChildLink : StyledLink;
 
   return (
-    <Stack as="li" aria-role="listitem">
+    <Stack as="li">
       <LinkComponent
         href={`#${entry.entry.ref.id}`}
         isActive={entry.entry.ref.id === activeId}
