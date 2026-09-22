@@ -45,10 +45,18 @@ const disabledReasons: Record<string, string> = {
 
 function AdminOptionField({name, option}: {name: string; option: FieldDef}) {
   const definition = {...getOption(name), ...option.field};
-  const initialValue =
+  const rawInitialValue =
     option.value === undefined || option.value === ''
       ? (definition.defaultValue?.() ?? '')
       : option.value;
+  const kind =
+    definition.component === BooleanField
+      ? 'boolean'
+      : definition.component === RadioField
+        ? 'radio'
+        : 'text';
+  const initialValue =
+    kind === 'boolean' ? Boolean(rawInitialValue) : String(rawInitialValue);
   const disabled = definition.disabled
     ? (disabledReasons[definition.disabledReason ?? ''] ?? true)
     : false;
@@ -61,83 +69,67 @@ function AdminOptionField({name, option}: {name: string; option: FieldDef}) {
       }),
   });
 
-  if (definition.component === BooleanField) {
-    return (
-      <AutoSaveForm
-        name={name}
-        schema={z.object({[name]: z.boolean()})}
-        initialValue={Boolean(initialValue)}
-        mutationOptions={saveOption}
-      >
-        {field => (
+  return (
+    <AutoSaveForm
+      name={name}
+      schema={z.object({[name]: z.union([z.boolean(), z.string()])})}
+      initialValue={initialValue}
+      mutationOptions={saveOption}
+    >
+      {field => {
+        if (kind === 'boolean') {
+          return (
+            <field.Layout.Row
+              label={definition.label}
+              hintText={definition.help}
+              required={definition.required}
+            >
+              <field.Switch
+                checked={field.state.value === true}
+                onChange={field.handleChange}
+                disabled={disabled}
+              />
+            </field.Layout.Row>
+          );
+        }
+
+        if (kind === 'radio') {
+          return (
+            <field.Layout.Stack
+              label={definition.label}
+              hintText={definition.help}
+              required={definition.required}
+            >
+              <field.Radio.Group
+                value={typeof field.state.value === 'string' ? field.state.value : ''}
+                onChange={field.handleChange}
+                disabled={disabled}
+              >
+                {definition.choices?.map(([value, label]) => (
+                  <field.Radio.Item key={value} value={value}>
+                    {label}
+                  </field.Radio.Item>
+                ))}
+              </field.Radio.Group>
+            </field.Layout.Stack>
+          );
+        }
+
+        return (
           <field.Layout.Row
             label={definition.label}
             hintText={definition.help}
             required={definition.required}
           >
-            <field.Switch
-              checked={field.state.value}
+            <field.Input
+              value={typeof field.state.value === 'string' ? field.state.value : ''}
               onChange={field.handleChange}
               disabled={disabled}
+              placeholder={definition.placeholder}
             />
           </field.Layout.Row>
-        )}
-      </AutoSaveForm>
-    );
-  }
-
-  if (definition.component === RadioField) {
-    return (
-      <AutoSaveForm
-        name={name}
-        schema={z.object({[name]: z.string()})}
-        initialValue={String(initialValue)}
-        mutationOptions={saveOption}
-      >
-        {field => (
-          <field.Layout.Stack
-            label={definition.label}
-            hintText={definition.help}
-            required={definition.required}
-          >
-            <field.Radio.Group
-              value={field.state.value}
-              onChange={field.handleChange}
-              disabled={disabled}
-            >
-              {definition.choices?.map(([value, label]) => (
-                <field.Radio.Item key={value} value={value}>
-                  {label}
-                </field.Radio.Item>
-              ))}
-            </field.Radio.Group>
-          </field.Layout.Stack>
-        )}
-      </AutoSaveForm>
-    );
-  }
-
-  return (
-    <AutoSaveForm
-      name={name}
-      schema={z.object({[name]: z.string()})}
-      initialValue={String(initialValue)}
-      mutationOptions={saveOption}
-    >
-      {field => (
-        <field.Layout.Row
-          label={definition.label}
-          hintText={definition.help}
-          required={definition.required}
-        >
-          <field.Input
-            value={field.state.value}
-            onChange={field.handleChange}
-            disabled={disabled}
-            placeholder={definition.placeholder}
-          />
-        </field.Layout.Row>
-      )}
+        );
+      }}
     </AutoSaveForm>
   );
 }
