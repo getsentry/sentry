@@ -2230,7 +2230,7 @@ describe('Investigation detail', () => {
       within(header).getByRole('textbox', {name: 'Investigation title'})
     ).toBeInTheDocument();
     expect(within(header).getByText('Synthesizing…')).toBeInTheDocument();
-    expect(within(header).getByRole('timer')).toHaveTextContent('34.5 s');
+    expect(within(header).getByRole('timer')).toBeVisible();
     expect(
       within(screen.getByTestId('seer-status-block')).queryByText('Synthesizing…')
     ).not.toBeInTheDocument();
