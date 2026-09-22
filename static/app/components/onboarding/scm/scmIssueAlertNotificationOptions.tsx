@@ -1,10 +1,11 @@
-import {useId} from 'react';
+import {Fragment, useId} from 'react';
 import styled from '@emotion/styled';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {DisabledTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   MessagingIntegrationAnalyticsView,
@@ -54,6 +55,7 @@ export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Prop
   const {IntegrationFeatures} = getIntegrationFeatureGate();
 
   const labelId = useId();
+  const disabledReasonId = useId();
 
   if (!querySuccess) {
     return null;
@@ -76,17 +78,13 @@ export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Prop
               features={ALERT_RULE_INTEGRATION_FEATURES}
             >
               {({disabled, disabledReason}) => (
-                <Flex as="label" align="start" gap="md">
-                  {/* aria-disabled rather than disabled so the checkbox stays
-                  focusable and the plan tooltip opens on keyboard focus. */}
-                  <Tooltip title={disabledReason} disabled={!disabled} skipWrapper>
+                <Flex align="center" gap="sm">
+                  <Flex as="label" align="start" gap="md" minWidth="0">
                     <Checkbox
                       checked={actions.includes(MultipleCheckboxOptions.INTEGRATION)}
-                      aria-disabled={disabled || undefined}
+                      disabled={disabled}
+                      aria-describedby={disabled ? disabledReasonId : undefined}
                       onChange={e => {
-                        if (disabled) {
-                          return;
-                        }
                         setActions(
                           e.target.checked
                             ? [...actions, MultipleCheckboxOptions.INTEGRATION]
@@ -103,10 +101,21 @@ export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Prop
                         }
                       }}
                     />
-                  </Tooltip>
-                  <Text bold={false} ellipsis>
-                    {t('Integration (Slack, Discord, MS Teams, etc.)')}
-                  </Text>
+                    <Text bold={false} ellipsis>
+                      {t('Integration (Slack, Discord, MS Teams, etc.)')}
+                    </Text>
+                  </Flex>
+                  {/* Same pattern as a scraps form field disabled with a reason:
+                  the lock icon is a tab stop for keyboard and pointer users, and
+                  the hidden copy describes the checkbox for screen readers. */}
+                  {disabled && (
+                    <Fragment>
+                      <DisabledTip title={disabledReason} size="sm" />
+                      <VisuallyHidden id={disabledReasonId}>
+                        {disabledReason}
+                      </VisuallyHidden>
+                    </Fragment>
+                  )}
                 </Flex>
               )}
             </IntegrationFeatures>
