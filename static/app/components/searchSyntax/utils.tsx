@@ -322,9 +322,12 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
   stringifiedToken += ':';
 
   if (token.operator === TermOperator.MATCHES && token.value.type === Token.VALUE_TEXT) {
-    const pattern = token.value.quoted
+    const unwrapped = token.value.quoted
       ? token.value.value.replaceAll('\\"', '"')
       : token.value.value;
+    // A pattern ends at the first `//` followed by a space or `)`, so an inner
+    // one has to be escaped to stay part of the pattern.
+    const pattern = unwrapped.replaceAll(/\/\/(?=[\t\n )])/g, '\\/\\/');
     return `${stringifiedToken}//${pattern}//`;
   }
 

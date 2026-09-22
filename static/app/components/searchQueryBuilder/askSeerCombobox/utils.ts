@@ -259,17 +259,32 @@ function formatWildcardToken(token: string, isNegated: boolean): string | null {
   return null;
 }
 
+/**
+ * Quotes a pattern that {@link tokenize} would otherwise read back as more than
+ * one word, so the humanized form stays invertible. Patterns are unquoted in
+ * query syntax, so {@link unquoteRegexPattern} undoes this on the way back.
+ */
+function quoteRegexPattern(pattern: string): string {
+  return /\s/.test(pattern) || pattern.endsWith(',') ? `"${pattern}"` : pattern;
+}
+
+function unquoteRegexPattern(pattern: string): string {
+  return pattern.length > 1 && pattern.startsWith('"') && pattern.endsWith('"')
+    ? pattern.slice(1, -1)
+    : pattern;
+}
+
 function formatRegexToken(token: string, isNegated: boolean): string | null {
   const match = token.match(/^(\(*)(!?)([^:]+):\/\/(.*)\/\/(\)*)$/s);
   if (!match) {
     return null;
   }
 
-  const [, openParens, negation, key, pattern, closeParens] = match;
+  const [, openParens, negation, key, pattern = '', closeParens] = match;
   const description =
     OP_LABELS[isNegated || negation ? TermOperator.DOES_NOT_MATCH : TermOperator.MATCHES];
 
-  return `${openParens}${key} ${description} ${pattern}${closeParens}`;
+  return `${openParens}${key} ${description} ${quoteRegexPattern(pattern)}${closeParens}`;
 }
 
 function formatToken(token: string): string {
@@ -427,8 +442,11 @@ const FILTER_PHRASES: ReadonlyArray<{
     phrase: 'does not end with',
     esq: (k, v) => `!${k}:${WildcardOperators.ENDS_WITH}${v}`,
   },
-  {phrase: 'does not match regex', esq: (k, v) => `!${k}://${v}//`},
-  {phrase: 'matches regex', esq: (k, v) => `${k}://${v}//`},
+  {
+    phrase: 'does not match regex',
+    esq: (k, v) => `!${k}://${unquoteRegexPattern(v)}//`,
+  },
+  {phrase: 'matches regex', esq: (k, v) => `${k}://${unquoteRegexPattern(v)}//`},
   {phrase: 'contains', esq: (k, v) => `${k}:${WildcardOperators.CONTAINS}${v}`},
   {phrase: 'starts with', esq: (k, v) => `${k}:${WildcardOperators.STARTS_WITH}${v}`},
   {phrase: 'ends with', esq: (k, v) => `${k}:${WildcardOperators.ENDS_WITH}${v}`},

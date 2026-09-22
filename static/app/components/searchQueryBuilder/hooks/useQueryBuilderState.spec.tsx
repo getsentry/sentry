@@ -446,6 +446,14 @@ describe('regex filters', () => {
     ).toBe('message://say "hi"//');
   });
 
+  it('escapes an inner slash pair when switching to matches regex', () => {
+    const query = 'message:"a// b"';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.MATCHES)
+    ).toBe('message://a\\/\\/ b//');
+  });
+
   it('quotes a character class pattern when switching away from matches regex', () => {
     const query = 'message://[0-9]//';
 

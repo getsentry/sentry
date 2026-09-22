@@ -284,20 +284,24 @@ describe('formatQueryToNaturalLanguage', () => {
       expected: 'path does not end with .js ',
     },
     {
+      query: 'message://^GET// level:error',
+      expected: 'message matches regex ^GET, level is error ',
+    },
+    {
       query: 'message://^GET /api// level:error',
-      expected: 'message matches regex ^GET /api, level is error ',
+      expected: 'message matches regex "^GET /api", level is error ',
     },
     {
       query: '(message://^GET /api//) OR level:error',
-      expected: '(message matches regex ^GET /api) OR level is error ',
+      expected: '(message matches regex "^GET /api") OR level is error ',
     },
     {
       query: '(!message://^GET /api//) OR level:error',
-      expected: '(message does not match regex ^GET /api) OR level is error ',
+      expected: '(message does not match regex "^GET /api") OR level is error ',
     },
     {
       query: '!message://^GET /api//',
-      expected: 'message does not match regex ^GET /api ',
+      expected: 'message does not match regex "^GET /api" ',
     },
   ])('formats $query as $expected', ({query, expected}) => {
     expect(formatQueryToNaturalLanguage(query)).toBe(expected);
@@ -374,6 +378,9 @@ describe('parseNaturalLanguageToQuery', () => {
     `browser.name:${WildcardOperators.STARTS_WITH}Chr`,
     `browser.name:${WildcardOperators.ENDS_WITH}ome`,
     `!browser.name:${WildcardOperators.CONTAINS}chrome`,
+    'release://^v1//',
+    'release://^v1 rc//',
+    '!release://^v1 rc//',
     'event.type:error error.type:ApiError',
     'event.type:error error.type:ApiError OR browser:chrome AND code',
   ])('"%s" survives format -> parse', esq => {
