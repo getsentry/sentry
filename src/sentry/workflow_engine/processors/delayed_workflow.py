@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Any
@@ -608,8 +608,8 @@ class DelayedWorkflowEvaluationResult:
     def evaluated_workflow_ids(self) -> set[WorkflowId]:
         return set(self.workflow_ids)
 
-    def evaluation_artifacts(self) -> list[dict[str, object]]:
-        return [asdict(artifact) for artifact in self.artifacts]
+    def evaluation_artifacts(self) -> tuple[WorkflowEvaluationArtifact, ...]:
+        return tuple(self.artifacts)
 
     def iter_per_workflow_log_dicts(self) -> Iterator[dict[str, Any]]:
         """Yield one log-ready dict per workflow, keeping each entry bounded in size."""

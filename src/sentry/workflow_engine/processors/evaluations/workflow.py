@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Protocol, TypedDict
 
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.types import (
@@ -160,11 +160,17 @@ class WorkflowEvaluation(
             ],
             group_id=event_data.group.id,
             outcome=self.outcome,
-            project_id=event_data.event.project_id,
+            project_id=event_data.event.project.id,
             trigger_evaluation=self.data.get("trigger_group_eval").to_artifact(),
             triggered_action_ids=triggered_action_ids,
             workflow_id=self.workflow_id,
         )
+
+
+class WorkflowEvaluationBatch(Protocol):
+    def evaluated_workflow_ids(self) -> set[WorkflowId]: ...
+
+    def evaluation_artifacts(self) -> tuple[WorkflowEvaluationArtifact, ...]: ...
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -187,21 +193,5 @@ class ProcessWorkflowsResult:
     def evaluated_workflow_ids(self) -> set[WorkflowId]:
         return set(self.evaluations)
 
-    def to_artifact(self) -> dict[str, object]:
-        return {
-            "detector_id": self.detector_id,
-            "detector_type": self.detector_type,
-            "error": None,
-            "evaluation_phase": EvaluationPhase.INITIAL,
-            "evaluation_type": EvaluationType.WORKFLOW,
-            "event_id": self.event_id,
-            "group_id": self.group_id,
-            "outcome": self.outcome,
-            "project_id": self.project_id,
-        }
-
-    def evaluation_artifacts(self) -> list[dict[str, object]]:
-        if not self.evaluations:
-            return [self.to_artifact()]
-
-        return [asdict(evaluation.to_artifact()) for evaluation in self.evaluations.values()]
+    def evaluation_artifacts(self) -> tuple[WorkflowEvaluationArtifact, ...]:
+        return tuple(evaluation.to_artifact() for evaluation in self.evaluations.values())

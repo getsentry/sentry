@@ -25,7 +25,7 @@ class DataConditionEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     condition_id: int
     condition_type: str
     input_type: str
-    input: bool | int | float | str | None
+    input: object
     result: DataConditionResult
 
 
