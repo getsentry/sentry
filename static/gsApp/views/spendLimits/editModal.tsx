@@ -235,10 +235,17 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                             columns={{zero: '1fr', lg: 'repeat(2, minmax(0, 1fr))'}}
                             gap="lg"
                           >
-                            <modeField.Radio.Item value={OnDemandBudgetMode.PER_CATEGORY}>
+                            {/* TODO(getsentry): Remove these legacy labels after updating the acceptance test selectors. */}
+                            <modeField.Radio.Item
+                              value={OnDemandBudgetMode.PER_CATEGORY}
+                              aria-label="Per-category spending limit mode"
+                            >
                               {t('Set a spending limit for each product')}
                             </modeField.Radio.Item>
-                            <modeField.Radio.Item value={OnDemandBudgetMode.SHARED}>
+                            <modeField.Radio.Item
+                              value={OnDemandBudgetMode.SHARED}
+                              aria-label="Shared spending limit mode"
+                            >
                               {t('Set a spending limit shared across all products')}
                             </modeField.Radio.Item>
                           </Grid>

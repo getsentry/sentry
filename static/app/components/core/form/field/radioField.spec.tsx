@@ -37,7 +37,9 @@ function TestForm({
           >
             <field.Layout.Row label={label} hintText={hintText} required={required}>
               <field.Radio.Item value="low">Low</field.Radio.Item>
-              <field.Radio.Item value="medium">Medium</field.Radio.Item>
+              <field.Radio.Item value="medium" aria-label="Medium priority">
+                Medium
+              </field.Radio.Item>
               <field.Radio.Item value="high" description="Urgent issues">
                 High
               </field.Radio.Item>
@@ -93,6 +95,7 @@ describe('RadioField', () => {
     expect(screen.getByText('Priority')).toBeInTheDocument();
     expect(screen.getByRole('radiogroup')).toBeInTheDocument();
     expect(screen.getAllByRole('radio')).toHaveLength(3);
+    expect(screen.getByRole('radio', {name: 'Medium priority'})).toBeInTheDocument();
   });
 
   it('displays selected value', () => {
