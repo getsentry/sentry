@@ -16,10 +16,10 @@ import {escape} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getFormat, getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
@@ -102,7 +102,7 @@ type ReleaseSeriesState = {
 type UseReleaseSeriesProps = Omit<ReleaseSeriesProps, 'children'>;
 
 /**
- * Hook that fetches releases and builds ECharts series data for release markers.
+ * @deprecated use useReleaseBubbles instead
  */
 export function useReleaseSeries({
   start,
@@ -126,8 +126,7 @@ export function useReleaseSeries({
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Keep utc in a ref so tooltip formatters always read the latest value
-  // without needing to be re-created (same pattern as original class used this.props.utc)
+  // Tooltip formatters live inside echarts and are not re-created when utc changes
   const utcRef = useRef(utc);
   useEffect(() => {
     utcRef.current = utc;
@@ -138,11 +137,8 @@ export function useReleaseSeries({
     releaseSeries: [],
   });
 
-  // Serialize non-primitive deps to stable strings so useEffect deps use
-  // value-equality instead of referential equality. The original class used
-  // lodash isEqual for these comparisons; callers like Discover rebuild Date
-  // objects and arrays on every render, so reference equality would re-fetch
-  // even when nothing logically changed.
+  // Callers like Discover rebuild Date objects and arrays on every render, so
+  // effect deps compare serialized values to avoid re-fetching unchanged data.
   const startKey = start ? getUtcDateString(start) : '';
   const endKey = end ? getUtcDateString(end) : '';
   const projectsKey = [...projects].join(',');
@@ -180,31 +176,23 @@ export function useReleaseSeries({
     const releaseSeries: Series[] = [];
 
     function makeOneSeries(items: ReleaseMetaBasic[], lineStyle = {}): Series {
-      const org = organizationRef.current;
-      const loc = locationRef.current;
-      const nav = navigateRef.current;
-      const currentTheme = themeRef.current;
-      const currentPreserveQueryParams = preserveQueryParamsRef.current;
-      const currentQueryExtra = queryExtraRef.current;
-      const currentTooltip = tooltipRef.current;
-      const currentEnvironments = environmentsRef.current;
-      const currentStart = startRef.current;
-      const currentEnd = endRef.current;
-      const currentPeriod = periodRef.current;
+      const releaseColor = themeRef.current.tokens.dataviz.semantic.release;
 
-      const extraQuery: Query = {...currentQueryExtra};
-      extraQuery.project = loc.query.project;
-      if (currentPreserveQueryParams) {
-        extraQuery.environment = [...currentEnvironments];
-        extraQuery.start = currentStart ? getUtcDateString(currentStart) : undefined;
-        extraQuery.end = currentEnd ? getUtcDateString(currentEnd) : undefined;
-        extraQuery.statsPeriod = currentPeriod || undefined;
+      const extraQuery: Query = {...queryExtraRef.current};
+      extraQuery.project = locationRef.current.query.project;
+      if (preserveQueryParamsRef.current) {
+        extraQuery.environment = [...environmentsRef.current];
+        extraQuery.start = startRef.current
+          ? getUtcDateString(startRef.current)
+          : undefined;
+        extraQuery.end = endRef.current ? getUtcDateString(endRef.current) : undefined;
+        extraQuery.statsPeriod = periodRef.current || undefined;
       }
 
       const markLine = createMarkLine({
         animation: false,
         lineStyle: {
-          color: currentTheme.tokens.dataviz.semantic.release,
+          color: releaseColor,
           opacity: 0.3,
           type: 'solid',
           ...lineStyle,
@@ -218,9 +206,9 @@ export function useReleaseSeries({
           value: formatVersion(release.version, true),
 
           onClick: () => {
-            nav({
+            navigateRef.current({
               pathname: makeReleasesPathname({
-                organization: org,
+                organization: organizationRef.current,
                 path: `/${encodeURIComponent(release.version)}/`,
               }),
               query: extraQuery,
@@ -231,15 +219,13 @@ export function useReleaseSeries({
             formatter: () => formatVersion(release.version, true),
           },
         })),
-        tooltip: currentTooltip || {
+        tooltip: tooltipRef.current || {
           trigger: 'item',
           formatter: ({data}: any) => {
             // Should only happen when navigating pages
             if (!data) {
               return '';
             }
-            // Read utc from ref so formatter always gets the latest value
-            // even though this closure is long-lived inside echarts
             const time = getFormattedDate(
               data.value,
               getFormat({timeZone: true, year: true}),
@@ -266,7 +252,7 @@ export function useReleaseSeries({
       return {
         id: 'release-lines',
         seriesName: 'Releases',
-        color: currentTheme.tokens.dataviz.semantic.release,
+        color: releaseColor,
         data: [],
         markLine,
       };
@@ -295,7 +281,6 @@ export function useReleaseSeries({
   }
 
   useEffect(() => {
-    // If releases are passed directly via props, skip fetching
     if (propReleases) {
       setState({
         releases: propReleases,
@@ -357,7 +342,7 @@ export function useReleaseSeries({
       cancelled = true;
       api.clear();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- serialized keys stand in for start/end/projects/environments
   }, [
     startKey,
     endKey,
@@ -371,8 +356,6 @@ export function useReleaseSeries({
   ]);
 
   // Rebuild series when emphasizeReleases changes without re-fetching.
-  // We use the serialized key (not the array reference) so this effect only
-  // fires when the actual contents change, not on every render.
   useEffect(() => {
     setState(prev => {
       if (prev.releases === null) {
@@ -383,7 +366,7 @@ export function useReleaseSeries({
         releaseSeries: buildReleaseSeries(prev.releases),
       };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- serialized key stands in for emphasizeReleases
   }, [emphasizeReleasesKey]);
 
   if (!enabled) {
@@ -394,12 +377,8 @@ export function useReleaseSeries({
 }
 
 /**
- * Render-prop component backed by useReleaseSeries. Prefer the hook directly
- * in new functional components.
- *
  * @deprecated use useReleaseSeries hook instead
  */
 export function ReleaseSeries({children, ...props}: ReleaseSeriesProps) {
-  const state = useReleaseSeries(props);
-  return <React.Fragment>{children(state)}</React.Fragment>;
+  return children(useReleaseSeries(props));
 }

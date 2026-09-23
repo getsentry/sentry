@@ -1,13 +1,10 @@
 import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ReleaseSeriesProps} from 'sentry/components/charts/releaseSeries';
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-
-const theme = ThemeFixture();
+import {ReleaseSeries} from 'sentry/components/charts/releaseSeries';
 
 describe('ReleaseSeries', () => {
   const renderFunc = jest.fn(() => null);
@@ -31,9 +28,7 @@ describe('ReleaseSeries', () => {
     });
   });
 
-  const baseSeriesProps: Omit<ReleaseSeriesProps, 'location' | 'navigate'> = {
-    api: new MockApiClient(),
-    organization: OrganizationFixture(),
+  const baseSeriesProps: ReleaseSeriesProps = {
     period: '14d',
     start: null,
     end: null,
@@ -42,12 +37,11 @@ describe('ReleaseSeries', () => {
     query: '',
     environments: [],
     children: renderFunc,
-    theme,
   };
 
   it('does not fetch releases if releases is truthy', () => {
     render(
-      <ReleaseSeries {...baseSeriesProps} organization={organization} releases={[]}>
+      <ReleaseSeries {...baseSeriesProps} releases={[]}>
         {renderFunc}
       </ReleaseSeries>
     );
@@ -57,7 +51,7 @@ describe('ReleaseSeries', () => {
 
   it('does not fetch releases if not enabled', () => {
     render(
-      <ReleaseSeries {...baseSeriesProps} organization={organization} enabled={false}>
+      <ReleaseSeries {...baseSeriesProps} enabled={false}>
         {renderFunc}
       </ReleaseSeries>
     );
@@ -67,7 +61,7 @@ describe('ReleaseSeries', () => {
 
   it('fetches releases if becomes enabled', async () => {
     const {rerender} = render(
-      <ReleaseSeries {...baseSeriesProps} organization={organization} enabled={false}>
+      <ReleaseSeries {...baseSeriesProps} enabled={false}>
         {renderFunc}
       </ReleaseSeries>
     );
@@ -75,7 +69,7 @@ describe('ReleaseSeries', () => {
     expect(releasesMock).not.toHaveBeenCalled();
 
     rerender(
-      <ReleaseSeries {...baseSeriesProps} organization={organization} enabled>
+      <ReleaseSeries {...baseSeriesProps} enabled>
         {renderFunc}
       </ReleaseSeries>
     );
@@ -85,7 +79,7 @@ describe('ReleaseSeries', () => {
     expect(releasesMock).toHaveBeenCalledTimes(1);
 
     rerender(
-      <ReleaseSeries {...baseSeriesProps} organization={organization} enabled={false}>
+      <ReleaseSeries {...baseSeriesProps} enabled={false}>
         {renderFunc}
       </ReleaseSeries>
     );
