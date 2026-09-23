@@ -35,6 +35,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -396,6 +397,14 @@ def poll_claude_agent(
                 status=new_status,
                 result=result,
             )
+            _record_claude_handoff_outcome(
+                session_id=agent_id,
+                organization_id=org_id,
+                status=new_status,
+                result=result,
+                run_id=run_id,
+                group_id=group_id,
+            )
 
             if new_status == CodingAgentStatus.COMPLETED and result is not None and result.pr_url:
                 try:
@@ -437,6 +446,50 @@ def poll_claude_agent(
             sync_coding_agent_status(
                 agent_id=agent_id, organization_id=org_id, status=CodingAgentStatus.RUNNING
             )
+
+
+def _record_claude_handoff_outcome(
+    *,
+    session_id: str,
+    organization_id: int,
+    status: CodingAgentStatus,
+    result: CodingAgentResult | None,
+    run_id: int | None,
+    group_id: int | None,
+) -> None:
+    result_type = "none"
+    if result is not None and result.pr_number is not None and result.pr_url:
+        result_type = "pull_request"
+    elif result is not None and result.branch_name is not None and result.pr_url:
+        result_type = "branch"
+
+    attributes: dict[str, str | int] = {
+        "anthropic.session.id": session_id,
+        "seer.coding_agent.provider": CodingAgentProviderType.CLAUDE_CODE_AGENT.value,
+        "seer.coding_agent.status": status.value,
+        "seer.coding_agent.result_type": result_type,
+        "organization_id": organization_id,
+    }
+    if run_id is not None:
+        attributes["run_id"] = run_id
+    if group_id is not None:
+        attributes["group_id"] = group_id
+    if result is not None:
+        attributes["seer.repository.provider"] = result.repo_provider
+        attributes["seer.repository.full_name"] = result.repo_full_name
+        if result.pr_number is not None and result.pr_url:
+            attributes["seer.pr.url"] = result.pr_url
+            attributes["seer.pr.number"] = result.pr_number
+        elif result.branch_name is not None and result.pr_url:
+            attributes["seer.branch.url"] = result.pr_url
+            attributes["seer.branch.name"] = result.branch_name
+
+    with start_span(
+        op="seer.coding_agent_handoff",
+        name="Claude coding agent handoff outcome",
+    ) as span:
+        for key, value in attributes.items():
+            set_span_data(span, key, value)
 
 
 def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None) -> Any | None:
