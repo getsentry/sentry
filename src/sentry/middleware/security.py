@@ -60,10 +60,7 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
             global _warned_about_report_only_csp
             if not _warned_about_report_only_csp:
                 _warned_about_report_only_csp = True
-                logger.warning(
-                    "trusted_types.disabled_by_report_only_csp",
-                    extra={"header": TRUSTED_TYPES_HEADER},
-                )
+                logger.warning("trusted_types.disabled_by_report_only_csp")
             return
 
         if TRUSTED_TYPES_HEADER in response:
