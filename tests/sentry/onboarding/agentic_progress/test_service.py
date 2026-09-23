@@ -45,8 +45,8 @@ def service(
     # The service must also work when `default` is a Redis cluster, which does not
     # support WATCH/MULTI. Use a different cluster name so that the cached `default`
     # client stays a single host for other tests.
+    service = OnboardingProgressService()
     with use_redis_cluster("agentic-onboarding"):
-        service = OnboardingProgressService()
         service.redis = redis.redis_clusters.get_binary("agentic-onboarding")
         service.redis.flushall()
         try:
