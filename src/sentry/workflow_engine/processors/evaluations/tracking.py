@@ -1,32 +1,22 @@
-# import logging
-# import eap
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
-from sentry import features
-from sentry.models.organization import Organization
-from sentry.workflow_engine.processors.delayed_workflow import DelayedWorkflowEvaluationResult
-from sentry.workflow_engine.processors.evaluations import (
-    ProcessDetectorsResult,
-    ProcessWorkflowsResult,
-)
 from sentry.workflow_engine.processors.evaluations.eap import emit_evaluations_to_eap
 from sentry.workflow_engine.processors.evaluations.logging import (
-    emit_detector_evaluation_logs,
-    emit_workflow_evaluation_logs,
+    WorkflowEngineResult,
+    emit_evaluation_logs,
 )
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 
 def emit_evaluations(
-    org: Organization,
-    result: ProcessWorkflowsResult | DelayedWorkflowEvaluationResult | ProcessDetectorsResult,
-):
-    is_detector_result = isinstance(result, ProcessDetectorsResult)
-    artifacts = result.artifacts
+    result: WorkflowEngineResult,
+    organization: Organization,
+) -> None:
+    artifacts = result.evaluation_artifacts()
 
-    if is_detector_result:
-        emit_detector_evaluation_logs(artifacts)
-    else:
-        emit_workflow_evaluation_logs(artifacts)
-
-    if features.has("organization:workflow-engine-evaluation-artifacts-eap"):
-        emit_evaluations_to_eap(artifacts)
+    emit_evaluation_logs(organization, result)
+    emit_evaluations_to_eap(artifacts, organization)

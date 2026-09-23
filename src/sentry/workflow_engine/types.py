@@ -18,10 +18,6 @@ from typing import (
 from django.db.models import Q
 
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.processors.evaluations import (
-    DetectorEvaluationArtifact,
-    WorkflowEvaluationArtifact,
-)
 
 if TYPE_CHECKING:
     from sentry.deletions.base import ModelRelation
@@ -53,7 +49,6 @@ DataConditionGroupId: TypeAlias = int
 DetectorId: TypeAlias = int
 GroupId: TypeAlias = int
 WorkflowId: TypeAlias = int
-WorkflowEngineArtifacts = list[WorkflowEvaluationArtifact] | list[DetectorEvaluationArtifact]
 
 
 class AlertRuleNotDualWritten(Exception):

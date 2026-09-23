@@ -24,7 +24,7 @@ from sentry.workflow_engine.defaults.detectors import (
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
-from sentry.workflow_engine.processors.evaluations.logging import emit_detector_evaluation_logs
+from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluations
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
@@ -303,8 +303,17 @@ def _get_detector_organization_id(detector: Detector) -> int | None:
 
 @trace
 def process_detectors[T](
-    data_packet: DataPacket[T], detectors: list[Detector]
+    data_packet: DataPacket[T],
+    detectors: list[Detector],
 ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
+    """
+    This is a core method in workflow_engine. It evaluates the detectors
+    associated with each data packet, using the each individual detector_handler.
+
+    Once the evaluation is complete, each is stored in EAP for 7d (21d for metric detectors).
+
+    Finally, the triggered detectors create issues via the Issue Platform.
+    """
     results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]] = []
 
     for detector in detectors:
@@ -323,19 +332,22 @@ def process_detectors[T](
         ):
             detector_results = handler._evaluate(data_packet)
 
-        emit_detector_evaluation_logs(
-            logger,
-            organization_id=_get_detector_organization_id(detector),
-            result=ProcessDetectorsResult(
-                detector_id=detector.id,
-                detector_type=detector.type,
-                project_id=detector.project_id,
-                evaluations=detector_results,
-            ),
-        )
+        if detector.project_id is not None:
+            # Note; this does not support org level detectors for evaluations, this is
+            # currently not an issue because there's only the issue_stream detector with that configuration.
+            emit_evaluations(
+                organization=detector.linked_project.organization,
+                result=ProcessDetectorsResult(
+                    detector_id=detector.id,
+                    detector_type=detector.type,
+                    project_id=detector.project_id,
+                    evaluations=detector_results,
+                ),
+            )
 
         for result in detector_results.values():
             if result.result is not None:
+                # TODO - make this a structured log, don't just change the label
                 metric_label = (
                     "triggered" if isinstance(result.result, IssueOccurrence) else "resolved"
                 )

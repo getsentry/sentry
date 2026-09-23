@@ -149,7 +149,7 @@ class WorkflowEvaluation(
         return WorkflowEvaluationArtifact(
             triggered=triggered,
             error=error,
-            deferred=deferred,
+            delayed=deferred,
             detector_id=self.detector_id,
             detector_type=self.detector_type,
             evaluation_phase=EvaluationPhase.INITIAL,
