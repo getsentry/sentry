@@ -136,7 +136,7 @@ describe('EventList', () => {
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: [persistantQuery, locationQuery.query.query].join(' '),
+          query: `${persistantQuery} (${locationQuery.query.query})`,
         }),
       }),
     ];
@@ -145,4 +145,33 @@ describe('EventList', () => {
     });
     expect(mockEventListMeta).toHaveBeenCalledWith(...expectedArgs);
   });
+
+  it.each(['tag_a:1 OR tag_b:2', 'tag_b:2 OR tag_a:1'])(
+    'keeps every branch of %s scoped to the issue',
+    async query => {
+      render(<EventList group={group} />, {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {query},
+          },
+        },
+      });
+
+      const expectedArgs = [
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: `${persistantQuery} (${query})`,
+          }),
+        }),
+      ];
+
+      await waitFor(() => {
+        expect(mockEventList).toHaveBeenCalledWith(...expectedArgs);
+        expect(mockEventListMeta).toHaveBeenCalledWith(...expectedArgs);
+      });
+    }
+  );
 });
