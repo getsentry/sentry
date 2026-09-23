@@ -551,7 +551,8 @@ CSP_OBJECT_SRC = [
     "'none'",
 ]
 CSP_WORKER_SRC = [
-    "'none'",
+    "'self'",  # service worker
+    "blob:",  # session replay workers
 ]
 CSP_BASE_URI = [
     "'none'",
