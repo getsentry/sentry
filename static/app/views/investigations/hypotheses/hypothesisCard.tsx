@@ -152,7 +152,7 @@ export function HypothesisCard({
                       {showAllSteps
                         ? t('Show less')
                         : isTerminal
-                          ? tn('Show all %s step', 'Show all %s steps', steps.length)
+                          ? tn('Show %s step', 'Show all %s steps', steps.length)
                           : tn(
                               'Show %s more step',
                               'Show %s more steps',
