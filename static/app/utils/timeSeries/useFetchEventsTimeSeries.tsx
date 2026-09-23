@@ -213,16 +213,8 @@ export interface Annotation {
   byteSize?: number;
 }
 
-/**
- * Ingestion status for the data behind a response. Absent when it was never asked for: the
- * metadata wasn't requested, the dataset isn't an EAP one, or the lookup failed. A `status`
- * of `unknown` means it was asked and could not be answered.
- */
 export interface IngestionMeta {
   status: 'healthy' | 'stalled' | 'idle' | 'unknown';
-  /**
-   * Epoch milliseconds, matching the other timestamps in `meta`.
-   */
   completeThrough?: number;
   delaySeconds?: number;
 }
