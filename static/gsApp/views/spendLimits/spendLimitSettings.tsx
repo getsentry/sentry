@@ -61,7 +61,6 @@ export interface SpendLimitSettingsProps {
   footer?: React.ReactNode;
   renderBudgetModeSettings?: (props: BudgetModeSettingsProps) => React.ReactNode;
   renderSpendLimitInput?: (props: SpendLimitInputProps) => React.ReactNode;
-  usesFormFieldLayout?: boolean;
 }
 
 interface InnerSpendLimitSettingsProps extends Omit<
@@ -93,7 +92,6 @@ function InnerSpendLimitSettings({
   addOns,
   organization,
   renderSpendLimitInput,
-  usesFormFieldLayout,
 }: InnerSpendLimitSettingsProps) {
   const includedAddOns = Object.entries(addOns)
     .filter(([apiName, addOn]) => {
@@ -122,6 +120,9 @@ function InnerSpendLimitSettings({
   }
 
   const renderInput = renderSpendLimitInput ?? (props => <SpendLimitInput {...props} />);
+  const hasCustomSharedSpendLimitSection =
+    renderSpendLimitInput !== undefined &&
+    onDemandBudgets.budgetMode === OnDemandBudgetMode.SHARED;
   let inputs: React.ReactNode;
 
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
@@ -290,7 +291,7 @@ function InnerSpendLimitSettings({
             onUpdate: handleUpdate,
             reserved: null,
           })}
-          {!usesFormFieldLayout && (
+          {!hasCustomSharedSpendLimitSection && (
             <Container width={{zero: '100%', xl: LARGE_INPUT_WIDTH}}>
               <Text variant="muted" size="sm">
                 {t(
@@ -312,8 +313,7 @@ function InnerSpendLimitSettings({
 
   return (
     <Stack gap="lg">
-      {(!usesFormFieldLayout ||
-        onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) && (
+      {!hasCustomSharedSpendLimitSection && (
         <Container padding="xl xl 0">
           <Heading as="h2" size="lg">
             {tct('Monthly spending [limitTerm]', {
@@ -343,7 +343,6 @@ export function SpendLimitSettings({
   subscription,
   renderBudgetModeSettings,
   renderSpendLimitInput,
-  usesFormFieldLayout,
 }: SpendLimitSettingsProps) {
   const budgetModeSettingsProps = {activePlan, onDemandBudgets, onUpdate};
   return (
@@ -380,7 +379,6 @@ export function SpendLimitSettings({
             addOns={addOns}
             organization={organization}
             renderSpendLimitInput={renderSpendLimitInput}
-            usesFormFieldLayout={usesFormFieldLayout}
           />
           {footer}
         </Stack>

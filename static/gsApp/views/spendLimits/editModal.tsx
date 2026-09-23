@@ -205,7 +205,6 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                   onUpdate={({onDemandBudgets: nextBudget}) =>
                     handleBudgetUpdate(nextBudget)
                   }
-                  usesFormFieldLayout
                   renderBudgetModeSettings={() =>
                     subscription.planDetails.hasOnDemandModes ? (
                       <modeField.Layout.Stack label={t('Spending limit type')}>
