@@ -4,6 +4,8 @@ from rest_framework.exceptions import NotFound
 
 from sentry.api.validators.project_codeowners import build_codeowners_associations
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.types import ExternalProviders
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.projectcodeowners import ProjectCodeOwners
@@ -430,7 +432,7 @@ class CodeOwnersTest(TestCase):
         )
         # CODEOWNERS uses lowercase, ExternalActor stored with mixed case
         raw = "docs/* @shashankjarmale\n"
-        associations, _ = build_codeowners_associations(raw, self.project)
+        associations, _ = build_codeowners_associations(raw, self.project, self.code_mapping)
         assert "@shashankjarmale" in associations
         assert associations["@shashankjarmale"] == self.user.email
 
@@ -442,6 +444,60 @@ class CodeOwnersTest(TestCase):
         )
         self.create_external_team(integration=self.integration)
         raw = "docs/* @ShashankJarmale @getsentry/ecosystem\napi/* @ShashankJarmale\nsrc/* @ShashankJarmale\n"
-        associations, _ = build_codeowners_associations(raw, self.project)
+        associations, _ = build_codeowners_associations(raw, self.project, self.code_mapping)
         assert associations["@ShashankJarmale"] == self.user.email
         assert associations["@getsentry/ecosystem"] == f"#{self.team.slug}"
+
+    def _code_mapping_for(self, provider: str) -> RepositoryProjectPathConfig:
+        _, org_integration = self.create_provider_integration_for(
+            self.organization, self.user, provider=provider, name=provider, external_id=provider
+        )
+        repo = self.create_repo(project=self.project, name=f"{provider}-repo")
+        return self.create_code_mapping(
+            project=self.project, repo=repo, organization_integration=org_integration
+        )
+
+    def test_build_associations_matches_the_code_mapping_provider(self) -> None:
+        gitlab_user = self.create_user("gitlab@example.com")
+        self.create_member(user=gitlab_user, organization=self.organization, teams=[self.team])
+        self.create_external_user(
+            user=self.user, external_name="@alice", integration=self.integration
+        )
+        self.create_external_user(
+            user=gitlab_user,
+            external_name="@alice",
+            integration=self.integration,
+            provider=ExternalProviders.GITLAB.value,
+        )
+        raw = "docs/* @alice\n"
+
+        associations, _ = build_codeowners_associations(raw, self.project, self.code_mapping)
+        assert associations["@alice"] == self.user.email
+
+        gitlab_mapping = self._code_mapping_for("gitlab")
+        associations, _ = build_codeowners_associations(raw, self.project, gitlab_mapping)
+        assert associations["@alice"] == gitlab_user.email
+
+    def test_build_associations_ignores_other_provider_mappings(self) -> None:
+        self.create_external_user(
+            user=self.user,
+            external_name="@alice",
+            integration=self.integration,
+            provider=ExternalProviders.GITLAB.value,
+        )
+        associations, errors = build_codeowners_associations(
+            "docs/* @alice\n", self.project, self.code_mapping
+        )
+        assert associations == {}
+        assert errors["missing_external_users"] == ["@alice"]
+
+    def test_build_associations_provider_without_mappings_resolves_emails(self) -> None:
+        user = self.create_user("alice@example.com")
+        self.create_member(user=user, organization=self.organization, teams=[self.team])
+        self.create_external_user(user=user, external_name="@alice", integration=self.integration)
+        bitbucket_mapping = self._code_mapping_for("bitbucket")
+        associations, errors = build_codeowners_associations(
+            "docs/* @alice alice@example.com\n", self.project, bitbucket_mapping
+        )
+        assert associations == {"alice@example.com": "alice@example.com"}
+        assert errors["missing_external_users"] == ["@alice"]
