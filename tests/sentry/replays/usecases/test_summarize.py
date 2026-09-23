@@ -353,11 +353,13 @@ def test_as_log_message_long_console_message() -> None:
     assert get_timestamp_unit(which(event)) == "ms"
 
 
-@pytest.mark.parametrize("op", ["resource.fetch", "resource.xhr"])
-@pytest.mark.parametrize("metadata", [{}, {"data": None}, {"data": "[Filtered]"}, {"data": []}])
+@pytest.mark.parametrize("op, label", [("resource.fetch", "Fetch"), ("resource.xhr", "XHR")])
+@pytest.mark.parametrize(
+    "metadata", [{}, {"data": {}}, {"data": None}, {"data": "[Filtered]"}, {"data": []}]
+)
 @patch("sentry.replays.usecases.summarize.logger.exception")
 def test_as_log_message_network_without_metadata(
-    mock_exception: Mock, op: str, metadata: dict[str, Any]
+    mock_exception: Mock, op: str, label: str, metadata: dict[str, Any]
 ) -> None:
     event = {
         "type": 5,
@@ -374,7 +376,9 @@ def test_as_log_message_network_without_metadata(
         },
     }
 
-    assert as_log_message(event) is None
+    assert as_log_message(event) == (
+        f'{label} request "example.com/api/items" failed with no response at 1756401153805.0'
+    )
     mock_exception.assert_not_called()
 
 

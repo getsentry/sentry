@@ -373,9 +373,8 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
             case EventType.RESOURCE_FETCH:
                 payload = event["data"]["payload"]
                 data = payload.get("data")
-                # Missing network metadata does not establish that a request failed.
                 if not isinstance(data, dict):
-                    return None
+                    data = {}
                 method = data.get("method")
                 status_code = data.get("statusCode")
                 description = payload["description"]
@@ -403,7 +402,7 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                 payload = event["data"]["payload"]
                 data = payload.get("data")
                 if not isinstance(data, dict):
-                    return None
+                    data = {}
                 method = data.get("method")
                 status_code = data.get("statusCode")
                 description = payload["description"]
