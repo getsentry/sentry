@@ -3,7 +3,6 @@ from unittest.mock import ANY, Mock, patch
 import pytest
 
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
-from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
@@ -33,6 +32,7 @@ from sentry.seer.entrypoints.slack.messaging import (
     update_existing_message,
 )
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
 
