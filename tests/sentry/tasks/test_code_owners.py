@@ -501,3 +501,21 @@ class CodeOwnersTest(TestCase):
         )
         assert associations == {"alice@example.com": "alice@example.com"}
         assert errors["missing_external_users"] == ["@alice"]
+
+    def test_build_associations_cursor_origin(self) -> None:
+        self.create_external_user(
+            user=self.user,
+            external_name="@alice",
+            integration=self.integration,
+            provider=ExternalProviders.CURSOR_ORIGIN.value,
+        )
+        self.create_external_team(
+            external_name="@acme/eng",
+            integration=self.integration,
+            provider=ExternalProviders.CURSOR_ORIGIN.value,
+        )
+        origin_mapping = self._code_mapping_for("cursor_origin")
+        associations, _ = build_codeowners_associations(
+            "docs/* @Alice @acme/eng\n", self.project, origin_mapping
+        )
+        assert associations == {"@Alice": self.user.email, "@acme/eng": f"#{self.team.slug}"}
