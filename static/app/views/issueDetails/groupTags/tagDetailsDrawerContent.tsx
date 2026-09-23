@@ -405,12 +405,19 @@ const Row = styled(Body)`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
 
   .invisible {
-    visibility: hidden;
+    /* Keep the trigger focusable when closing the menu restores focus. */
+    opacity: 0;
   }
   &:hover,
-  &:active {
+  &:active,
+  &:focus-within {
     .invisible {
-      visibility: visible;
+      opacity: 1;
+    }
+  }
+  @media (hover: none) {
+    .invisible {
+      opacity: 1;
     }
   }
 `;
