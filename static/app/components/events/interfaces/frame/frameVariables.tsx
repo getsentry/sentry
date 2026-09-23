@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import type {StructedEventDataConfig} from 'sentry/components/structuredEventData';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
@@ -107,17 +106,5 @@ export function FrameVariables({data, meta, platform}: Props) {
       }));
   }, [data, meta, platform]);
 
-  return <FrameVariablesTable data={transformedData} />;
+  return <KeyValueTableDataList data={transformedData} />;
 }
-
-const FrameVariablesTable = styled(KeyValueTableDataList)`
-  td {
-    border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-
-  td.key {
-    width: 145px;
-    max-width: 145px;
-    padding-left: 20px;
-  }
-`;
