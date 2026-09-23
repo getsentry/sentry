@@ -115,10 +115,16 @@ export function FrameVariables({data, meta, platform}: Props) {
               {key}
             </Text>
           </Container>
-          <Container minWidth="0" role="cell">
+          <Container
+            minWidth="0"
+            padding="md lg"
+            radius="sm"
+            background="secondary"
+            role="cell"
+          >
             <Text monospace size="sm" wordBreak="break-word" wrap="pre-wrap">
               {textProps => (
-                <Container overflow="visible" padding="md lg">
+                <Container overflow="visible">
                   {layoutProps => (
                     <StructuredEventData
                       {...textProps}
