@@ -40,7 +40,7 @@ from sentry.organizations.absolute_url import (
     has_customer_domain,
     organization_absolute_url,
 )
-from sentry.roles.manager import OrganizationRole, Role
+from sentry.roles.manager import OrganizationRole, Role, RoleLevel
 from sentry.users.services.user import RpcUser, RpcUserProfile
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
@@ -524,16 +524,25 @@ class Organization(ReplicatedCellModel):
             fragment=fragment,
         )
 
+    def _has_granular_scopes(self) -> bool:
+        from sentry import features
+
+        return features.has("organizations:granular-permission-scopes", self)
+
+    def get_roles(self) -> RoleLevel[OrganizationRole]:
+        """
+        Return the organization roles that apply to this organization, which
+        grant granular scopes once the feature flag is enabled.
+        """
+        manager = roles.granular_manager if self._has_granular_scopes() else roles.default_manager
+        return manager.organization_roles
+
     def get_role_scopes(self, role: Role) -> frozenset[str]:
         """
         Return the scopes a role grants in this organization, before any
         organization options are applied.
         """
-        from sentry import features
-
-        if isinstance(role, OrganizationRole) and features.has(
-            "organizations:granular-permission-scopes", self
-        ):
+        if isinstance(role, OrganizationRole) and self._has_granular_scopes():
             try:
                 return roles.granular_manager.get(role.id).scopes
             except KeyError:
