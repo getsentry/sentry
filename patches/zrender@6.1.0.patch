@@ -1,3 +1,16 @@
+Subject: use textContent instead of innerHTML to clear elements
+
+Assigning to innerHTML is a Trusted Types injection sink, rejected even when
+the value is an empty string. textContent = '' clears children identically and
+is not a sink, so charts keep working under require-trusted-types-for 'script'.
+
+Submitted upstream as https://github.com/ecomfe/zrender/pull/1167. Drop this
+patch once that lands and we pick up a release containing it.
+
+Note the upstream PR edits src/*.ts, which cannot replace this patch: the
+published package resolves its `module` entry through index.js to lib/*.js, so
+the compiled output is what the bundler sees and what has to be patched here.
+---
 diff --git a/lib/canvas/Painter.js b/lib/canvas/Painter.js
 index 78dc6c8d46eca79366f5190a7c191410f8133816..3c79bc4e8abc8917458a0297159c5a0a307b01c8 100644
 --- a/lib/canvas/Painter.js
