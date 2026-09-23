@@ -53,12 +53,9 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
         if getattr(settings, "CSP_REPORT_ONLY", False):
             return
 
-        if TRUSTED_TYPES_HEADER in response:
-            return
-
         directives = ["require-trusted-types-for 'script'"]
 
-        policies = getattr(settings, "TRUSTED_TYPES_POLICIES", None) or []
+        policies = getattr(settings, "TRUSTED_TYPES_POLICIES", [])
         if policies:
             directives.append("trusted-types " + " ".join(policies))
 

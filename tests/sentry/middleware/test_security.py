@@ -155,15 +155,6 @@ class SecurityHeadersMiddlewareTest(TestCase):
 
         assert "Content-Security-Policy-Report-Only" not in processed_response
 
-    @override_settings(TRUSTED_TYPES_ENABLED=True, CSP_REPORT_ONLY=False)
-    def test_trusted_types_header_does_not_overwrite_existing(self) -> None:
-        request = self.factory.get("/")
-        response = Response()
-        response["Content-Security-Policy-Report-Only"] = "default-src 'none'"
-        processed_response = self.middleware.process_response(request, response)
-
-        assert processed_response["Content-Security-Policy-Report-Only"] == "default-src 'none'"
-
     @override_settings(
         TRUSTED_TYPES_ENABLED=True,
         CSP_REPORT_ONLY=False,
