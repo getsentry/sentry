@@ -38,6 +38,8 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
+export const DEFAULT_FILTER_KEY_MENU_WIDTH = 460;
+
 interface SearchQueryBuilderStateContextData {
   clearSearchQuery: (options?: {reopenDropdown?: boolean}) => void;
   committedQuery: string;
@@ -84,7 +86,10 @@ interface SearchQueryBuilderLayoutContextData {
   currentInputValueRef: React.RefObject<string>;
   disableFullWidthFilterKeyMenu: boolean;
   filterKeyMenuWidth: number;
+  menuPresentation: 'floating' | 'panel';
+  panelRef: React.RefObject<HTMLDivElement | null>;
   portalTarget: HTMLElement | null | undefined;
+  setMenuContainer: (element: HTMLDivElement | null) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -181,7 +186,8 @@ export function SearchQueryBuilderProvider({
   initialQuery,
   fieldDefinitionGetter = defaultFieldDefinitionGetter,
   filterKeys,
-  filterKeyMenuWidth = 460,
+  filterKeyMenuWidth = DEFAULT_FILTER_KEY_MENU_WIDTH,
+  menuPresentation = 'floating',
   filterKeySections,
   getSuggestedFilterKey,
   getTagKeys,
@@ -203,7 +209,9 @@ export function SearchQueryBuilderProvider({
   asyncFilterKeyRegistryQueryKey,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
+  const [menuContainer, setMenuContainer] = useState<HTMLDivElement | null>(null);
 
   const [autoSubmitFromCurrentQuery, setAutoSubmitFromCurrentQuery] = useState(false);
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
@@ -373,7 +381,9 @@ export function SearchQueryBuilderProvider({
     setReopenDropdownOnQueryClear(false);
   }, []);
 
-  const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
+  const {width: searchBarWidth} = useDimensions({
+    elementRef: wrapperRef,
+  });
   const size =
     searchBarWidth && searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
 
@@ -456,9 +466,13 @@ export function SearchQueryBuilderProvider({
     return {
       actionBarRef,
       currentInputValueRef,
-      disableFullWidthFilterKeyMenu,
+      disableFullWidthFilterKeyMenu:
+        menuPresentation === 'panel' || disableFullWidthFilterKeyMenu,
       filterKeyMenuWidth,
-      portalTarget,
+      menuPresentation,
+      panelRef,
+      portalTarget: menuPresentation === 'panel' ? menuContainer : portalTarget,
+      setMenuContainer,
       size,
       wrapperRef,
     };
@@ -467,6 +481,9 @@ export function SearchQueryBuilderProvider({
     currentInputValueRef,
     disableFullWidthFilterKeyMenu,
     filterKeyMenuWidth,
+    menuPresentation,
+    menuContainer,
+    panelRef,
     portalTarget,
     size,
     wrapperRef,

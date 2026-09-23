@@ -186,7 +186,7 @@ export type InvestigationCandidate =
 /** A known set of string values that still accepts one Seer added later. */
 type InvestigationOrchestrationOpenString<T extends string> = T | (string & {});
 
-type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenString<
+export type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenString<
   | 'intake'
   | 'broad_scan'
   | 'planning'

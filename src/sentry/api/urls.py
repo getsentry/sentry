@@ -700,6 +700,7 @@ from sentry.users.api.endpoints.user_authenticator_enroll import UserAuthenticat
 from sentry.users.api.endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
 from sentry.users.api.endpoints.user_avatar import UserAvatarEndpoint
 from sentry.users.api.endpoints.user_details import UserDetailsEndpoint
+from sentry.users.api.endpoints.user_display_preferences import UserDisplayPreferencesEndpoint
 from sentry.users.api.endpoints.user_emails import UserEmailsEndpoint
 from sentry.users.api.endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
 from sentry.users.api.endpoints.user_identity import UserIdentityEndpoint
@@ -1277,6 +1278,11 @@ USER_URLS = [
         r"^(?P<user_id>[^/]+)/authenticators/(?P<auth_id>[^/]+)/$",
         UserAuthenticatorDetailsEndpoint.as_view(),
         name="sentry-api-0-user-authenticator-details",
+    ),
+    re_path(
+        r"^(?P<user_id>[^/]+)/display-preferences/$",
+        UserDisplayPreferencesEndpoint.as_view(),
+        name="sentry-api-0-user-display-preferences",
     ),
     re_path(
         r"^(?P<user_id>[^/]+)/emails/$",

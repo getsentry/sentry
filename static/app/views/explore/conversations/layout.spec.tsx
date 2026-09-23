@@ -34,9 +34,26 @@ function renderLayout(
   );
 }
 
+const savedQueryBody = {
+  id: 1,
+  name: 'My saved query',
+  dataset: 'ai_conversations',
+  projects: [1],
+  starred: false,
+  query: [{visualize: [], groupby: []}],
+};
+
 describe('ConversationsLayout', () => {
   beforeEach(() => {
     PageFiltersStore.init();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/abc/`,
+      body: savedQueryBody,
+    });
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
   });
 
   it('renders the landing title on the list page', async () => {
@@ -52,7 +69,7 @@ describe('ConversationsLayout', () => {
     expect(within(topBar).getByLabelText('new')).toBeInTheDocument();
   });
 
-  it('renders saved query breadcrumbs on the list page', async () => {
+  it('splits a saved query across the breadcrumb and title slots', async () => {
     renderLayout(
       {
         pathname: `/organizations/${organization.slug}/explore/agents/`,
@@ -62,13 +79,25 @@ describe('ConversationsLayout', () => {
     );
 
     const topBar = screen.getByRole('banner');
+    const trail = await within(topBar).findByRole('list');
+
     expect(
-      await within(topBar).findByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
+      within(trail).getByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
     ).toBeInTheDocument();
-    expect(within(topBar).getByText('My saved query')).toBeInTheDocument();
+    // The parent crumb is a link, never a second heading.
+    expect(
+      within(topBar).queryByRole('heading', {name: CONVERSATIONS_SIDEBAR_LABEL})
+    ).not.toBeInTheDocument();
+
+    // The saved query title is the page heading, owned by the TopBar title slot,
+    // and must not also appear in the trail.
+    expect(
+      within(topBar).getByRole('heading', {name: /My saved query/, level: 1})
+    ).toBeInTheDocument();
+    expect(within(trail).queryByText('My saved query')).not.toBeInTheDocument();
   });
 
-  it('renders saved query breadcrumbs with BreadcrumbList', async () => {
+  it('offers the saved query actions beside the title', async () => {
     renderLayout(
       {
         pathname: `/organizations/${organization.slug}/explore/agents/`,
@@ -79,12 +108,9 @@ describe('ConversationsLayout', () => {
 
     const topBar = screen.getByRole('banner');
     expect(
-      await within(topBar).findByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
+      await within(topBar).findByRole('button', {name: 'More saved query options'})
     ).toBeInTheDocument();
-    // The saved query title is the page heading, owned by the TopBar title slot.
-    expect(
-      within(topBar).getByRole('heading', {name: /My saved query/})
-    ).toBeInTheDocument();
+    expect(within(topBar).getByRole('button', {name: 'Star'})).toBeInTheDocument();
   });
 
   it('defers the title to the detail page on a conversation detail route', () => {
