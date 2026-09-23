@@ -68,7 +68,11 @@ function ConnectedRepositoryRow({repo}: {repo: ConnectedRepo}) {
         <Flex align="center" gap="md">
           {getIntegrationIcon(repo.provider?.key, 'sm')}
           <Text>{repo.repoName}</Text>
-          <Tag variant="info">{tn('%s mapping', '%s mappings', repo.mappingCount)}</Tag>
+          <Tag variant="info">
+            <Text as="span" tabular>
+              {tn('%s mapping', '%s mappings', repo.mappingCount)}
+            </Text>
+          </Tag>
         </Flex>
         <DropdownMenu
           items={OVERFLOW_ITEMS}
