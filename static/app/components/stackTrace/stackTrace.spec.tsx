@@ -613,6 +613,41 @@ describe('Core StackTrace', () => {
     jest.useRealTimers();
   });
 
+  it.each(['matching', 'missing'] as const)(
+    'shows the complete filename when the absolute path is %s',
+    async absolutePath => {
+      jest.useFakeTimers();
+      const {event, stacktrace} = makeStackTraceData();
+      const filename = `/source/${'long directory with spaces/'.repeat(10)}runner.py`;
+
+      render(
+        <TestStackTraceProvider
+          event={event}
+          stacktrace={{
+            ...stacktrace,
+            frames: [
+              {
+                ...stacktrace.frames[0]!,
+                filename,
+                absPath: absolutePath === 'matching' ? filename : null,
+              },
+            ],
+          }}
+        >
+          <StackTraceFrames frameContextComponent={FrameContent} />
+        </TestStackTraceProvider>
+      );
+
+      await userEvent.hover(screen.getByText(filename), {delay: null});
+      act(() => jest.advanceTimersByTime(2000));
+
+      expect(
+        await screen.findByText(filename, {selector: '[data-tooltip] span'})
+      ).toBeVisible();
+      jest.useRealTimers();
+    }
+  );
+
   it('shows copy path and code mapping setup actions on hover for collapsed frames', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const organization = OrganizationFixture();
