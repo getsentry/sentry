@@ -2789,7 +2789,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.20.23"
+version = "0.20.26"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka" },
@@ -2806,7 +2806,7 @@ dependencies = [
     { name = "zstandard" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.23-py3-none-any.whl", hash = "sha256:ed54228e1529fc84f92df98e246bc7f9495589643d066d3398c76f8d036f06b4" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.26-py3-none-any.whl", hash = "sha256:4b4c90a913db35e466115b8f6099dbf47d6111725315f960addfcc444a2b21f1" },
 ]
 
 [[package]]
