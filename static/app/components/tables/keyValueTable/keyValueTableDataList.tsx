@@ -148,7 +148,7 @@ function ValueWithActionButton({children}: {children: React.ReactNode}) {
     <Grid
       align="center"
       background="secondary"
-      columns="1fr max-content"
+      columns={{zero: '1fr', xl: '1fr max-content'}}
       gap="md"
       margin="2xs 0"
       radius="md"
