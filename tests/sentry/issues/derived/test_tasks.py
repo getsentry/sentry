@@ -412,7 +412,6 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             heal_stale_derived_data()
 
         mock_delay.assert_called_once_with(
-            stale_pipeline_hashes=[stale],
             target_hash=stale,
             group_id_start=group_ids[0],
             group_id_end=group_ids[0] + 1,
@@ -1065,9 +1064,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
 
         mock_delay.assert_called_once()
         kwargs = mock_delay.call_args.kwargs
-        # A None target means the NULL hash; old workers receive an empty list.
         assert kwargs["target_hash"] is None
-        assert kwargs["stale_pipeline_hashes"] == []
         assert kwargs["group_id_start"] == groups[0].id
         assert kwargs["group_id_end"] == groups[0].id + 1
 
@@ -1125,7 +1122,6 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             heal_stale_derived_data()
 
         mock_regenerate.assert_called_once_with(
-            stale_pipeline_hashes=[stale],
             target_hash=stale,
             group_id_start=group_ids[0],
             group_id_end=group_ids[0] + 1,
@@ -1713,7 +1709,6 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
         )
         assert GroupDerivedData.objects.get(group_id=group_ids[2]).pipeline_hash == stale
         mock_delay.assert_called_once_with(
-            stale_pipeline_hashes=[stale],
             target_hash=stale,
             group_id_start=group_ids[1] + 1,
             group_id_end=group_ids[-1] + 1,
@@ -1736,7 +1731,6 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
             patch("sentry.issues.derived.tasks.metrics.distribution") as distribution,
         ):
             regenerate_stale_derived_data_batch(
-                stale_pipeline_hashes=[stale],
                 target_hash=stale,
                 group_id_start=group_ids[0],
                 group_id_end=group_ids[-1] + 1,
