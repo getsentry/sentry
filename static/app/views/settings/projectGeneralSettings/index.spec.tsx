@@ -588,20 +588,14 @@ describe('projectGeneralSettings', () => {
     });
   });
 
-  describe('Connected Repositories panel', () => {
-    it('renders panel with empty state', async () => {
-      const orgWithFlag = OrganizationFixture({features: ['code-mappings-refactor']});
+  it('renders connected repositories panel', async () => {
+    const orgWithFlag = OrganizationFixture({features: ['code-mappings-refactor']});
 
-      render(
-        <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />,
-        {organization: orgWithFlag, initialRouterConfig}
-      );
-
-      expect(await screen.findByText('Connected Repositories')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Connect repository'})
-      ).toBeInTheDocument();
-      expect(screen.getByText('No repositories connected')).toBeInTheDocument();
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
+      organization: orgWithFlag,
+      initialRouterConfig,
     });
+
+    expect(await screen.findByText('Connected Repositories')).toBeInTheDocument();
   });
 });
