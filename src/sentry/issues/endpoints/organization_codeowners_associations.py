@@ -43,6 +43,8 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
             )
         result = {}
         for pco in project_code_owners:
-            associations, errors = build_codeowners_associations(pco.raw, pco.project)
+            associations, errors = build_codeowners_associations(
+                pco.raw, pco.project, pco.repository_project_path_config
+            )
             result[pco.project.slug] = {"associations": associations, "errors": errors}
         return self.respond(result, status=status.HTTP_200_OK)

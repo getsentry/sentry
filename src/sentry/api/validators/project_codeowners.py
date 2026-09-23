@@ -8,13 +8,24 @@ from django.db.models.functions import Lower
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.providers import get_provider_enum
 from sentry.issues.ownership.grammar import parse_code_owners
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.users.services.user.service import user_service
+
+CODEOWNERS_PROVIDERS = frozenset(
+    {
+        ExternalProviders.GITHUB,
+        ExternalProviders.GITHUB_ENTERPRISE,
+        ExternalProviders.GITLAB,
+    }
+)
 
 
 class CodeOwnersErrors(TypedDict):
@@ -32,12 +43,21 @@ def find_missing_associations(
     return list(set(parsed_items).difference(associated_items))
 
 
+def get_codeowners_provider(code_mapping: RepositoryProjectPathConfig) -> ExternalProviders | None:
+    integration = integration_service.get_integration(integration_id=code_mapping.integration_id)
+    if integration is None:
+        return None
+    provider = get_provider_enum(integration.provider)
+    return provider if provider in CODEOWNERS_PROVIDERS else None
+
+
 def build_codeowners_associations(
-    codeowners: str, project: Project
+    codeowners: str, project: Project, code_mapping: RepositoryProjectPathConfig
 ) -> tuple[dict[str, str], CodeOwnersErrors]:
     """
     Build a dict of {external_name: sentry_name} associations for a raw codeowners file.
     Returns only the actors that exist and have access to the project.
+    Handles only match mappings from the provider of the code mapping's integration.
     """
     # Get list of team/user names from CODEOWNERS file
     team_names, usernames, emails = parse_code_owners(codeowners)
@@ -50,16 +70,13 @@ def build_codeowners_associations(
     # GitHub team and user names are case-insensitive.
     # Deduplicate and lowercase names, then use a single IN query to filter.
     unique_lower_names = {name.lower() for name in usernames + team_names}
-    if unique_lower_names:
+    provider = get_codeowners_provider(code_mapping)
+    if unique_lower_names and provider is not None:
         external_actors = list(
             ExternalActor.objects.annotate(external_name_lower=Lower("external_name")).filter(
                 external_name_lower__in=unique_lower_names,
                 organization_id=project.organization_id,
-                provider__in=[
-                    ExternalProviders.GITHUB.value,
-                    ExternalProviders.GITHUB_ENTERPRISE.value,
-                    ExternalProviders.GITLAB.value,
-                ],
+                provider=provider.value,
             )
         )
     else:
