@@ -9,6 +9,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
@@ -244,10 +245,16 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 to={contentLocation(tab.key)}
                 textValue={tab.name}
               >
-                <TabLabel>
+                <Flex as="span" align="center" gap="xs">
                   {tab.name}
-                  {tab.count === null ? null : <Badge variant="muted">{tab.count}</Badge>}
-                </TabLabel>
+                  {tab.count === null ? null : (
+                    <Badge variant="muted">
+                      <Text tabular variant="inherit">
+                        {tab.count}
+                      </Text>
+                    </Badge>
+                  )}
+                </Flex>
               </TabList.Item>
             ))}
           </TabList>
@@ -481,13 +488,6 @@ const NavigationWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.xs}) {
     gap: ${p => p.theme.space.xs};
   }
-`;
-
-const TabLabel = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  font-variant-numeric: tabular-nums;
 `;
 
 const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
