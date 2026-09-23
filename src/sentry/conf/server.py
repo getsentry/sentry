@@ -593,26 +593,20 @@ COOP_ENABLED = False
 COOP_REPORT_ONLY = True
 COOP_REPORT_TO: str | None = None
 
-# Trusted Types (https://developer.mozilla.org/en-US/docs/Web/API/Trusted_Types_API)
-# is delivered on its own Content-Security-Policy-Report-Only header, separate
-# from the CSP_* settings, so that turning it on cannot alter the CSP we enforce.
-#
-# Requires CSP_REPORT_ONLY = False. When the CSP itself is report-only, django-csp
-# owns the report-only header name and this middleware cannot claim it; see
-# SecurityHeadersMiddleware.add_trusted_types_header.
+# Trusted Types ships on its own Content-Security-Policy-Report-Only header so
+# that enabling it cannot alter the CSP we enforce. Requires CSP_REPORT_ONLY =
+# False, since django-csp owns that header name when the CSP is report-only.
 TRUSTED_TYPES_ENABLED = False
 
-# Policy names the browser will accept `createPolicy()` calls for. Anything not
-# listed here fails to register, so keep it in sync with the policies the
-# frontend actually installs.
+# Policy names the browser accepts `createPolicy()` for. Keep in sync with the
+# policies the frontend installs; an unlisted name fails to register.
 TRUSTED_TYPES_POLICIES = [
     "dompurify",
     "sentry-script-url",
     "sentry-bundler",
 ]
 
-# Where violation reports are sent. With no report URI the browser still reports
-# to the devtools console, which is enough for local work.
+# Violation reports go here. Without one the browser still reports to the console.
 TRUSTED_TYPES_REPORT_URI: str | None = None
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
