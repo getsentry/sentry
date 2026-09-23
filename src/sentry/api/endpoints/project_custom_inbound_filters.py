@@ -19,9 +19,9 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, R
 from sentry.apidocs.parameters import GlobalParams
 from sentry.ingest.inbound_filters import get_supported_condition_types
 from sentry.models.custominboundfilter import (
+    ConditionType,
     CustomInboundFilter,
-    CustomInboundFilterConditionType,
-    CustomInboundFilterDataType,
+    DataType,
 )
 from sentry.models.project import Project
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -31,9 +31,9 @@ MAX_FILTERS_PER_PROJECT = 50
 
 
 # Ingestion feature an organization needs before a filter can target a data type.
-_REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, str] = {
-    CustomInboundFilterDataType.LOG: "organizations:ourlogs-ingestion",
-    CustomInboundFilterDataType.METRIC: "organizations:tracemetrics-ingestion",
+_REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[DataType, str] = {
+    DataType.LOG: "organizations:ourlogs-ingestion",
+    DataType.METRIC: "organizations:tracemetrics-ingestion",
 }
 
 
@@ -44,7 +44,7 @@ class CustomInboundFilterCondition(TypedDict):
 
 class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboundFilterCondition]):
     type = serializers.ChoiceField(
-        choices=[condition_type.value for condition_type in CustomInboundFilterConditionType]
+        choices=[condition_type.value for condition_type in ConditionType]
     )
     value = serializers.ListField(
         child=serializers.CharField(allow_blank=False, trim_whitespace=True),
@@ -60,7 +60,7 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
     active = serializers.BooleanField(required=False)
     dataType = serializers.ChoiceField(
         source="data_type",
-        choices=[data_type.value for data_type in CustomInboundFilterDataType],
+        choices=[data_type.value for data_type in DataType],
         help_text=(
             "The data the filter matches against. `all` is the catch-all: it filters every "
             "data type Sentry ingests, including ones added later, and accepts only the "
@@ -92,9 +92,7 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         organization = self.context["project"].organization
         request = self.context["request"]
 
-        required_feature = _REQUIRED_FEATURE_BY_DATA_TYPE.get(
-            CustomInboundFilterDataType(data_type)
-        )
+        required_feature = _REQUIRED_FEATURE_BY_DATA_TYPE.get(DataType(data_type))
         if required_feature and not features.has(
             required_feature, organization, actor=request.user
         ):
@@ -120,7 +118,7 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         if conditions is None:
             return attrs
 
-        data_type = CustomInboundFilterDataType(raw_data_type)
+        data_type = DataType(raw_data_type)
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
         if unsupported:
