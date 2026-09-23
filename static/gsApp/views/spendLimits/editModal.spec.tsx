@@ -241,4 +241,80 @@ describe('SpendLimitsEditModal', () => {
     expect(input).toHaveAttribute('aria-invalid', 'true');
     expect(closeModal).not.toHaveBeenCalled();
   });
+
+  it('associates nested server errors with per-category inputs', async () => {
+    const organization = OrganizationFixture({features: ['ondemand-budgets']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      onDemandMaxSpend: 0,
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {budgets: {errors: ['Enter a lower errors spending limit.']}},
+    });
+
+    render(
+      <SpendLimitsEditModal
+        Header={() => <div />}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('radio', {name: 'Per-category spending limit mode'})
+    );
+    const input = screen.getByRole('spinbutton', {
+      name: 'Custom errors spending limit (in dollars)',
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(
+      await screen.findByText('Enter a lower errors spending limit.')
+    ).toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('shows a generic error when a server error cannot be mapped to an input', async () => {
+    const organization = OrganizationFixture({features: ['ondemand-budgets']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      onDemandMaxSpend: 0,
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {budgets: ['The spending limits are invalid.']},
+    });
+
+    render(
+      <SpendLimitsEditModal
+        Header={() => <div />}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('radio', {name: 'Per-category spending limit mode'})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to save your on-demand budget'
+    );
+  });
 });

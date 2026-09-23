@@ -3,7 +3,12 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormOptions,
+  setFieldErrors,
+  useScrapsForm,
+  type FieldErrors,
+} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
@@ -15,7 +20,6 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
@@ -107,6 +111,48 @@ const spendLimitFormSchema = z.object({
   sharedMaxBudget: nonNegativeBudgetSchema,
 });
 
+function getErrorMessage(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    return value;
+  }
+  return Array.isArray(value) && typeof value[0] === 'string' ? value[0] : undefined;
+}
+
+function getSpendLimitFieldErrors(
+  error: RequestError,
+  values: SpendLimitFormValues
+): FieldErrors<SpendLimitFormValues> {
+  const fieldErrors: FieldErrors<SpendLimitFormValues> = {};
+  const response = error.responseJSON;
+  const sharedBudgetError = getErrorMessage(response?.sharedMaxBudget);
+  if (sharedBudgetError) {
+    fieldErrors.sharedMaxBudget = {message: sharedBudgetError};
+  }
+
+  const nestedBudgetErrors = response?.budgets;
+  if (
+    nestedBudgetErrors &&
+    typeof nestedBudgetErrors === 'object' &&
+    !Array.isArray(nestedBudgetErrors)
+  ) {
+    for (const [category, value] of Object.entries(nestedBudgetErrors)) {
+      const message = getErrorMessage(value);
+      if (category in values.budgets && message) {
+        fieldErrors[`budgets.${category}` as `budgets.${DataCategory}`] = {message};
+      }
+    }
+  }
+
+  for (const category of Object.keys(values.budgets) as DataCategory[]) {
+    const message = getErrorMessage(response?.[category]);
+    if (message) {
+      fieldErrors[`budgets.${category}`] = {message};
+    }
+  }
+
+  return fieldErrors;
+}
+
 function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: Props) {
   const [currentOnDemandBudget] = useState(() =>
     parseOnDemandBudgetsFromSubscription(subscription)
@@ -138,7 +184,7 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
       } catch (error) {
         if (
           error instanceof RequestError &&
-          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values))
+          setFieldErrors(formApi, getSpendLimitFieldErrors(error, formApi.state.values))
         ) {
           return;
         }
