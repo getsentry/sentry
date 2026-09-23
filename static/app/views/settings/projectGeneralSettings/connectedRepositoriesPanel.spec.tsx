@@ -104,11 +104,11 @@ describe('ConnectedRepositoriesPanel', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'More Actions'}));
 
-    expect(screen.getByRole('menuitem', {name: 'Edit'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Edit'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
-    expect(screen.getByRole('menuitem', {name: 'Disconnect'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Disconnect'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
