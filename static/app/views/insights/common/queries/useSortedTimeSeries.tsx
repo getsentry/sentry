@@ -217,6 +217,14 @@ export function transformToSeriesMap(
         }
 
         const seriesData = groupData[axis]!;
+
+        if (!Array.isArray(seriesData?.data)) {
+          // Some API response shapes include non-axis keys (besides 'order') whose
+          // values lack a `.data` array. Skip them to avoid crashing in
+          // convertEventsStatsToTimeSeriesData.
+          return;
+        }
+
         const [, timeSeries] = convertEventsStatsToTimeSeriesData(
           axis,
           seriesData,
