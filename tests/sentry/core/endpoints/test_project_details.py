@@ -20,6 +20,7 @@ from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.environment import EnvironmentProject
 from sentry.models.options.organization_option import OrganizationOption
@@ -34,6 +35,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
@@ -1433,6 +1435,48 @@ class ProjectUpdateTest(APITestCase):
         )
         assert "Secondary grouping expiry cannot be manually set" in response.text
 
+    @with_feature(
+        {
+            "projects:custom-inbound-filters": True,
+            "organizations:ourlogs-ingestion": True,
+        }
+    )
+    def test_legacy_filter_lists_go_through_rows_after_the_switch(self) -> None:
+        with override_options({"relay.inbound-filters.custom-filter-rows-only": True}):
+            self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                options={
+                    "filters:releases": "1.*\n# 2.*",
+                    "filters:blacklisted_ips": "10.0.0.0/8",
+                    "filters:log_messages": "*DEBUG*",
+                },
+            )
+            resp = self.client.get(
+                reverse(
+                    "sentry-api-0-project-details",
+                    kwargs={
+                        "organization_id_or_slug": self.org_slug,
+                        "project_id_or_slug": self.proj_slug,
+                    },
+                )
+            )
+
+        assert self.project.get_option("sentry:releases") is None
+        assert self.project.get_option("sentry:blacklisted_ips") is None
+        assert sorted(
+            (f.name, f.active, f.conditions)
+            for f in CustomInboundFilter.objects.filter(project_id=self.project.id)
+        ) == [
+            ("IP Addresses", True, [{"type": "ip_address", "value": ["10.0.0.0/8"]}]),
+            ("Log Messages", True, [{"type": "log_message", "value": ["*DEBUG*"]}]),
+            ("Releases", True, [{"type": "release", "value": ["1.*"]}]),
+            ("Releases (disabled)", False, [{"type": "release", "value": ["2.*"]}]),
+        ]
+        assert resp.data["options"]["filters:releases"] == "1.*\n# 2.*"
+        assert resp.data["options"]["filters:blacklisted_ips"] == "10.0.0.0/8"
+        assert resp.data["options"]["filters:log_messages"] == "*DEBUG*"
+
 
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
@@ -1516,6 +1560,26 @@ class CopyProjectSettingsTest(APITestCase):
         )
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
+
+    def test_copies_custom_inbound_filters(self) -> None:
+        self.create_project_custom_inbound_filter(
+            self.other_project,
+            name="Releases",
+            data_type="all",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+        )
+        project = self.create_project()
+        self.create_project_custom_inbound_filter(project, name="Replaced")
+
+        self.get_success_response(
+            project.organization.slug, project.slug, copy_from_project=self.other_project.id
+        )
+
+        assert [
+            (f.name, f.conditions)
+            for f in CustomInboundFilter.objects.filter(project_id=project.id)
+        ] == [("Releases", [{"type": "release", "value": ["1.*"]}])]
+        assert CustomInboundFilter.objects.filter(project_id=self.other_project.id).count() == 1
 
     def test_additional_params_in_payload(self) -> None:
         # Right now these are overwritten with the copied project's settings

@@ -49,6 +49,7 @@ from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
+from sentry.ingest.legacy_filter_lists import LegacyFilterList, set_legacy_list
 from sentry.issues.highlights import HighlightContextField
 from sentry.lang.native.sources import (
     InvalidSourcesError,
@@ -1193,8 +1194,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     clean_newline_inputs(options["sentry:csp_ignored_sources"]),
                 )
             if "sentry:blacklisted_ips" in options:
-                project.update_option(
-                    "sentry:blacklisted_ips",
+                set_legacy_list(
+                    project,
+                    LegacyFilterList.BLACKLISTED_IPS,
                     clean_newline_inputs(options["sentry:blacklisted_ips"]),
                 )
             if "feedback:branding" in options:
@@ -1237,22 +1239,25 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "1" if bool(options["filters:chunk-load-error"]) else "0",
                 )
             if "filters:blacklisted_ips" in options:
-                project.update_option(
-                    "sentry:blacklisted_ips",
+                set_legacy_list(
+                    project,
+                    LegacyFilterList.BLACKLISTED_IPS,
                     clean_newline_inputs(options["filters:blacklisted_ips"]),
                 )
             if f"filters:{FilterTypes.RELEASES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
-                    project.update_option(
-                        f"sentry:{FilterTypes.RELEASES}",
+                    set_legacy_list(
+                        project,
+                        LegacyFilterList.RELEASES,
                         clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
                     )
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
             if f"filters:{FilterTypes.ERROR_MESSAGES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
-                    project.update_option(
-                        f"sentry:{FilterTypes.ERROR_MESSAGES}",
+                    set_legacy_list(
+                        project,
+                        LegacyFilterList.ERROR_MESSAGES,
                         clean_newline_inputs(
                             options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
                             case_insensitive=False,
@@ -1266,8 +1271,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ) and features.has(
                     "organizations:ourlogs-ingestion", project.organization, actor=request.user
                 ):
-                    project.update_option(
-                        f"sentry:{FilterTypes.LOG_MESSAGES}",
+                    set_legacy_list(
+                        project,
+                        LegacyFilterList.LOG_MESSAGES,
                         clean_newline_inputs(
                             options[f"filters:{FilterTypes.LOG_MESSAGES}"],
                             case_insensitive=False,
@@ -1281,8 +1287,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ) and features.has(
                     "organizations:tracemetrics-ingestion", project.organization, actor=request.user
                 ):
-                    project.update_option(
-                        f"sentry:{FilterTypes.TRACE_METRIC_NAMES}",
+                    set_legacy_list(
+                        project,
+                        LegacyFilterList.TRACE_METRIC_NAMES,
                         clean_newline_inputs(
                             options[f"filters:{FilterTypes.TRACE_METRIC_NAMES}"],
                             case_insensitive=False,

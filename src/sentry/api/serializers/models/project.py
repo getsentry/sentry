@@ -28,6 +28,7 @@ from sentry.dynamic_sampling.utils import (
 )
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
+from sentry.ingest.legacy_filter_lists import LegacyFilterList, get_legacy_lists
 from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
@@ -1060,6 +1061,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         else:
             orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
 
+        legacy_lists = get_legacy_lists(item_list, options_by_project)
+
         # Only fetch the latest release version key for each project to cut down on response size
         latest_release_versions = _get_project_to_release_version_mapping(item_list)
 
@@ -1069,6 +1072,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     "latest_release": latest_release_versions.get(item.id),
                     "org": orgs[str(item.organization_id)],
                     "options": options_by_project[item.id],
+                    "legacy_filter_lists": legacy_lists[item.id],
                     "processing_issues": 0,
                     "highlight_preset": get_highlight_preset_for_project(item),
                 }
@@ -1203,6 +1207,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
     def format_options(self, attrs: Mapping[str, Any]) -> dict[str, Any]:
         options = attrs["options"]
+        legacy_lists = attrs["legacy_filter_lists"]
 
         return {
             "sentry:csp_ignored_sources_defaults": bool(
@@ -1211,24 +1216,22 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:csp_ignored_sources": "\n".join(
                 options.get("sentry:csp_ignored_sources", []) or []
             ),
-            "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
+            "filters:blacklisted_ips": "\n".join(legacy_lists[LegacyFilterList.BLACKLISTED_IPS]),
             # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
             # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
             # why the value true is determined by either "1" or True.
             "filters:react-hydration-errors": options.get("filters:react-hydration-errors", "1")
             in ("1", True),
             "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
-            f"filters:{FilterTypes.RELEASES}": "\n".join(
-                options.get(f"sentry:{FilterTypes.RELEASES}", [])
-            ),
+            f"filters:{FilterTypes.RELEASES}": "\n".join(legacy_lists[LegacyFilterList.RELEASES]),
             f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
-                options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
+                legacy_lists[LegacyFilterList.ERROR_MESSAGES]
             ),
             f"filters:{FilterTypes.LOG_MESSAGES}": "\n".join(
-                options.get(f"sentry:{FilterTypes.LOG_MESSAGES}", [])
+                legacy_lists[LegacyFilterList.LOG_MESSAGES]
             ),
             f"filters:{FilterTypes.TRACE_METRIC_NAMES}": "\n".join(
-                options.get(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}", [])
+                legacy_lists[LegacyFilterList.TRACE_METRIC_NAMES]
             ),
             "feedback:branding": options.get("feedback:branding", "1") == "1",
             "sentry:feedback_user_report_notifications": bool(

@@ -885,11 +885,12 @@ class Project(Model):
         - Alerts Settings and Rules
         - EnvironmentProjects
         - ProjectOwnership Rules and settings
-        - Project Inbound Data Filters
+        - Project Inbound Data Filters, including custom inbound filters
 
         Returns True if the settings have successfully been copied over
         Returns False otherwise
         """
+        from sentry.models.custominboundfilter import CustomInboundFilter
         from sentry.models.environment import EnvironmentProject
         from sentry.models.options.project_option import ProjectOption
         from sentry.models.projectownership import ProjectOwnership
@@ -897,7 +898,11 @@ class Project(Model):
         from sentry.models.rule import Rule
 
         # XXX: this type sucks but it helps the type checker understand
-        model_list: tuple[type[EnvironmentProject | ProjectOwnership | ProjectTeam | Rule], ...] = (
+        model_list: tuple[
+            type[CustomInboundFilter | EnvironmentProject | ProjectOwnership | ProjectTeam | Rule],
+            ...,
+        ] = (
+            CustomInboundFilter,
             EnvironmentProject,
             ProjectOwnership,
             ProjectTeam,

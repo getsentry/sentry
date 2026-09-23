@@ -288,6 +288,12 @@ def test_project_config_serves_custom_filter_rows_only(
         data_type="all",
         conditions=[{"type": "release", "value": ["1.2.3"]}],
     )
+    ip_row = factories.create_project_custom_inbound_filter(
+        default_project,
+        name="IP Addresses",
+        data_type="all",
+        conditions=[{"type": "ip_address", "value": ["112.69.248.0/24"]}],
+    )
 
     with (
         override_options({"relay.inbound-filters.custom-filter-rows-only": True}),
@@ -308,14 +314,18 @@ def test_project_config_serves_custom_filter_rows_only(
 
     assert filter_settings.get("releases") is None
     assert filter_settings.get("errorMessages") is None
-    # The IP list is not part of the migration and keeps going out as before.
-    assert filter_settings["clientIps"] == {"blacklistedIps": ["112.69.248.54"]}
+    assert filter_settings.get("clientIps") is None
 
     generic_ids = [f["id"] for f in get_path(filter_settings, "generic", "filters") or []]
     if has_custom_filters:
-        assert generic_ids == [f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{row.id}"]
+        assert generic_ids == [
+            f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{row.id}",
+            f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{ip_row.id}",
+        ]
     else:
-        assert generic_ids == []
+        # The legacy IP list works on every plan, so its row goes out without the
+        # plan feature.
+        assert generic_ids == [f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{ip_row.id}"]
 
 
 @django_db_all

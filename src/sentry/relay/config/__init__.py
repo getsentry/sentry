@@ -16,6 +16,7 @@ from sentry.constants import (
 )
 from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
+from sentry.ingest import legacy_filter_lists
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
     FilterTypes,
@@ -138,7 +139,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
             filter_settings[filter_id] = settings
 
     organization = project.organization
-    rows_only = options.get("relay.inbound-filters.custom-filter-rows-only")
+    rows_only = legacy_filter_lists.rows_only()
     filter_features = InboundFilterFeatures(
         custom_inbound_filters=features.has("projects:custom-inbound-filters", project),
         logs=features.has("organizations:ourlogs-ingestion", organization),
@@ -158,7 +159,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
             filter_settings["errorMessages"] = {"patterns": error_messages}
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
-    if blacklisted_ips:
+    if blacklisted_ips and filter_features.legacy_lists:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
 
     csp_disallowed_sources: list[str] = []

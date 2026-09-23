@@ -681,11 +681,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Serves the custom inbound filter rows to Relay for every project with the custom
-# inbound filters plan feature, and omits the legacy release, error message, log message
-# and metric name lists from the project config. Turn on once the backfill of those
-# lists into rows has run in the region. Off serves the legacy lists, and the rows only
-# to organizations with the inbound-filters-v2 flag.
+# Moves the legacy release, error message, log message, metric name and IP lists into
+# custom inbound filter rows. On, Relay receives the rows (for every project with the
+# custom inbound filters plan feature, and the IP row for every project) and no legacy
+# lists, and the project details API reads and writes the filters:* keys through the
+# rows. Turn on right after the backfill of the lists into rows has run in the region:
+# edits to the lists in between are not copied. Off serves the legacy lists, and the rows
+# only to organizations with the inbound-filters-v2 flag.
 register(
     "relay.inbound-filters.custom-filter-rows-only",
     type=Bool,

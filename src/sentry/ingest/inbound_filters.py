@@ -5,6 +5,7 @@ from typing import Any, cast
 from django.conf import settings
 from rest_framework import serializers
 
+from sentry.ingest.legacy_filter_lists import LegacyFilterList, row_name
 from sentry.models.custominboundfilter import (
     ConditionType,
     CustomInboundFilter,
@@ -459,6 +460,7 @@ class InboundFilterFeatures:
 
     ``custom_inbound_filters`` gates the other three, and additionally gates the
     legacy ``releases`` and ``errorMessages`` filter settings built by the caller.
+    Without it, only the row of the legacy IP list is served once the lists are rows.
 
     ``legacy_lists`` says whether the newline lists in the project options are still
     served at all. Once they have been copied into custom inbound filter rows, the
@@ -492,6 +494,11 @@ def get_generic_filters(
             generic_filters += _trace_metric_names_generic_filters(project)
         if filter_features.custom_inbound_filters_v2:
             generic_filters += get_custom_inbound_filter_generic_filters(project)
+    elif not filter_features.legacy_lists:
+        # The legacy IP list works on every plan, so its row must too.
+        generic_filters += get_custom_inbound_filter_generic_filters(
+            project, names=[row_name(LegacyFilterList.BLACKLISTED_IPS)]
+        )
 
     for generic_filter_id, generic_filter_fn in ACTIVE_GENERIC_FILTERS:
         # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
@@ -675,11 +682,14 @@ def _custom_filter_condition(
     return {"op": "and", "inner": rule_conditions}
 
 
-def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
+def get_custom_inbound_filter_generic_filters(
+    project: Project, names: Sequence[str] | None = None
+) -> list[GenericFilter]:
     generic_filters: list[GenericFilter] = []
-    custom_filters = CustomInboundFilter.objects.filter(
-        project_id=project.id, active=True
-    ).order_by("id")
+    custom_filters = CustomInboundFilter.objects.filter(project_id=project.id, active=True)
+    if names is not None:
+        custom_filters = custom_filters.filter(name__in=names)
+    custom_filters = custom_filters.order_by("id")
     for custom_filter in custom_filters:
         condition = _custom_filter_condition(custom_filter.conditions, custom_filter.data_type)
         if condition is not None:
