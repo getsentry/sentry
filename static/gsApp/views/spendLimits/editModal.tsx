@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -208,65 +208,68 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
     },
   });
 
-  function renderInput(props: SpendLimitInputProps) {
-    if (props.category === null) {
+  const SpendLimitInputComponent = useCallback(
+    (props: SpendLimitInputProps) => {
+      if (props.category === null) {
+        return (
+          <form.AppField name="sharedMaxBudget">
+            {field => (
+              <Stack gap="lg" paddingTop="xl">
+                <Heading as="h2" size="lg">
+                  {t('Monthly spending limit')}
+                </Heading>
+                <Container width="100%">
+                  <field.Number
+                    aria-label={t('Custom shared spending limit (in dollars)')}
+                    leadingItems="$"
+                    min={0}
+                    step={1}
+                    placeholder="300"
+                    value={field.state.value / 100}
+                    onChange={value =>
+                      field.handleChange(Math.max(Math.trunc(value ?? 0), 0) * 100)
+                    }
+                  />
+                </Container>
+                <field.Meta.HintText>
+                  {t(
+                    'Charges are applied at the end of your usage cycle, and your limit can be adjusted at anytime.'
+                  )}
+                </field.Meta.HintText>
+              </Stack>
+            )}
+          </form.AppField>
+        );
+      }
+
+      const category = props.category;
+      const displayName = getPlanCategoryName({
+        plan: subscription.planDetails,
+        category,
+        capitalize: false,
+      });
       return (
-        <form.AppField name="sharedMaxBudget">
+        <form.AppField name={`budgets.${category}`}>
           {field => (
-            <Stack gap="lg" paddingTop="xl">
-              <Heading as="h2" size="lg">
-                {t('Monthly spending limit')}
-              </Heading>
-              <Container width="100%">
-                <field.Number
-                  aria-label={t('Custom shared spending limit (in dollars)')}
-                  leadingItems="$"
-                  min={0}
-                  step={1}
-                  placeholder="300"
-                  value={field.state.value / 100}
-                  onChange={value =>
-                    field.handleChange(Math.max(Math.trunc(value ?? 0), 0) * 100)
-                  }
-                />
-              </Container>
-              <field.Meta.HintText>
-                {t(
-                  'Charges are applied at the end of your usage cycle, and your limit can be adjusted at anytime.'
-                )}
-              </field.Meta.HintText>
-            </Stack>
+            <Container width="100%">
+              <field.Number
+                aria-label={t('Custom %s spending limit (in dollars)', displayName)}
+                leadingItems="$"
+                min={0}
+                step={1}
+                placeholder="300"
+                value={(field.state.value ?? 0) / 100}
+                onChange={value =>
+                  field.handleChange(Math.max(Math.trunc(value ?? 0), 0) * 100)
+                }
+              />
+            </Container>
           )}
         </form.AppField>
       );
-    }
-
-    const category = props.category;
-    const displayName = getPlanCategoryName({
-      plan: subscription.planDetails,
-      category,
-      capitalize: false,
-    });
-    return (
-      <form.AppField name={`budgets.${category}`}>
-        {field => (
-          <Container width="100%">
-            <field.Number
-              aria-label={t('Custom %s spending limit (in dollars)', displayName)}
-              leadingItems="$"
-              min={0}
-              step={1}
-              placeholder="300"
-              value={(field.state.value ?? 0) / 100}
-              onChange={value =>
-                field.handleChange(Math.max(Math.trunc(value ?? 0), 0) * 100)
-              }
-            />
-          </Container>
-        )}
-      </form.AppField>
-    );
-  }
+    },
+    [form, subscription.planDetails]
+  );
 
   const addOnDataCategories = Object.values(
     subscription.planDetails.addOnCategories
@@ -341,7 +344,7 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                       </modeField.Layout.Stack>
                     ) : null
                   }
-                  renderInput={renderInput}
+                  SpendLimitInputComponent={SpendLimitInputComponent}
                 />
               );
             }}

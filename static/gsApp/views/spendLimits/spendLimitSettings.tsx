@@ -49,10 +49,6 @@ import {
 
 const LARGE_INPUT_WIDTH = '300px';
 
-function defaultRenderInput(props: SpendLimitInputProps) {
-  return <SpendLimitInput {...props} />;
-}
-
 export interface SpendLimitSettingsProps {
   activePlan: Plan;
   addOns: Partial<Record<AddOnCategory, {enabled: boolean}>>;
@@ -66,8 +62,8 @@ export interface SpendLimitSettingsProps {
 }
 
 interface SpendLimitSettingsLayoutProps extends SpendLimitSettingsProps {
+  SpendLimitInputComponent?: React.ComponentType<SpendLimitInputProps>;
   renderBudgetModeSettings?: (props: BudgetModeSettingsProps) => React.ReactNode;
-  renderInput?: (props: SpendLimitInputProps) => React.ReactNode;
 }
 
 interface InnerSpendLimitSettingsProps extends Omit<
@@ -98,7 +94,7 @@ function InnerSpendLimitSettings({
   currentReserved,
   addOns,
   organization,
-  renderInput = defaultRenderInput,
+  SpendLimitInputComponent = SpendLimitInput,
 }: InnerSpendLimitSettingsProps) {
   const includedAddOns = Object.entries(addOns)
     .filter(([apiName, addOn]) => {
@@ -127,7 +123,7 @@ function InnerSpendLimitSettings({
   }
 
   const hasCustomSharedSpendLimitSection =
-    renderInput !== defaultRenderInput &&
+    SpendLimitInputComponent !== SpendLimitInput &&
     onDemandBudgets.budgetMode === OnDemandBudgetMode.SHARED;
   let inputs: React.ReactNode;
 
@@ -224,14 +220,14 @@ function InnerSpendLimitSettings({
                   </Text>
                 </Stack>
                 {hasPerCategory ? (
-                  renderInput({
-                    activePlan,
-                    budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-                    category,
-                    currentSpendingLimit: currentBudget,
-                    onUpdate: handleUpdate,
-                    reserved,
-                  })
+                  <SpendLimitInputComponent
+                    activePlan={activePlan}
+                    budgetMode={OnDemandBudgetMode.PER_CATEGORY}
+                    category={category}
+                    currentSpendingLimit={currentBudget}
+                    onUpdate={handleUpdate}
+                    reserved={reserved}
+                  />
                 ) : (
                   <PerCategoryWarning productName={productName} />
                 )}
@@ -295,14 +291,14 @@ function InnerSpendLimitSettings({
     inputs = (
       <Fragment>
         <Stack gap="lg" padding="0 xl sm">
-          {renderInput({
-            activePlan,
-            budgetMode: OnDemandBudgetMode.SHARED,
-            category: null,
-            currentSpendingLimit: onDemandBudgets.sharedMaxBudget ?? 0,
-            onUpdate: handleUpdate,
-            reserved: null,
-          })}
+          <SpendLimitInputComponent
+            activePlan={activePlan}
+            budgetMode={OnDemandBudgetMode.SHARED}
+            category={null}
+            currentSpendingLimit={onDemandBudgets.sharedMaxBudget ?? 0}
+            onUpdate={handleUpdate}
+            reserved={null}
+          />
           {!hasCustomSharedSpendLimitSection && (
             <Container width={{zero: '100%', xl: LARGE_INPUT_WIDTH}}>
               <Text variant="muted" size="sm">
@@ -354,7 +350,7 @@ function SpendLimitSettingsLayout({
   organization,
   subscription,
   renderBudgetModeSettings,
-  renderInput,
+  SpendLimitInputComponent,
 }: SpendLimitSettingsLayoutProps) {
   const budgetModeSettingsProps = {activePlan, onDemandBudgets, onUpdate};
   return (
@@ -390,7 +386,7 @@ function SpendLimitSettingsLayout({
             currentReserved={currentReserved}
             addOns={addOns}
             organization={organization}
-            renderInput={renderInput}
+            SpendLimitInputComponent={SpendLimitInputComponent}
           />
           {footer}
         </Stack>
