@@ -359,7 +359,10 @@ def get_agent_state_from_pr_id(
         return None
 
     if response.status >= 400:
-        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "error"})
+        metrics.incr(
+            "seer.agent.state_from_pr",
+            tags={"outcome": "error", "status_code": response.status},
+        )
         raise SeerApiError("Seer request failed", response.status)
 
     result = response.json()
