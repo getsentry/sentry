@@ -25,6 +25,7 @@ from sentry.killswitches import (
     killswitch_matches_context,
     value_matches,
 )
+from sentry.options.rollout import in_random_rollout
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.signals import event_processed, issue_unignored
@@ -551,6 +552,7 @@ def post_process_group(
     occurrence_id: str | None = None,
     *,
     project_id: int,
+    event_id: str | None = None,
     eventstream_type: str | None = None,
     **kwargs: Any,
 ) -> None:
@@ -565,24 +567,56 @@ def post_process_group(
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
         from sentry.services import eventstore
+        from sentry.services.eventstore.models import Event
         from sentry.services.eventstore.processing import event_processing_store
 
         if occurrence_id is None:
-            # We use the data being present/missing in the processing store
-            # to ensure that we don't duplicate work should the forwarding consumers
-            # need to rewind history.
             assert cache_key is not None
-            data = event_processing_store.get(cache_key)
-            if not data:
-                logger.info(
-                    "post_process.skipped",
-                    extra={"cache_key": cache_key, "reason": "missing_cache"},
+            if in_random_rollout("post_process.read-from-nodestore-sample-rate") and event_id:
+                stored_event = Event(project_id=project_id, event_id=event_id)
+                if not stored_event.data:
+                    logger.info(
+                        "post_process.skipped",
+                        extra={"cache_key": cache_key, "reason": "missing_nodestore"},
+                    )
+                    return
+
+                # TODO: Find a better way to handle this. Post process forwarder
+                # might replay previously handled events. Before, once the
+                # payload was deleted from Redis, the task knew it can skip this
+                # event. Nodestore still has these events, however. We now need
+                # a mechanism to ensure that we do not process events multiple
+                # times.
+                # The lock is not a sufficient solution for this.
+                lock = locks.get(
+                    f"ppg:{project_id}:{event_id}-once",
+                    duration=600,
+                    name="post_process_event_once",
                 )
-                return
-            with metrics.timer("tasks.post_process.delete_event_cache"):
-                event_processing_store.delete_by_key(cache_key)
+                try:
+                    lock.acquire()
+                except UnableToAcquireLock:
+                    return
+                if not options.get("post_process.delete-processing-store-in-save-event"):
+                    with metrics.timer("tasks.post_process.delete_event_cache"):
+                        event_processing_store.delete_by_key(cache_key)
+                event = stored_event
+                event.group_id = group_id
+            else:
+                # A missing processing-store payload suppresses duplicate work
+                # when forwarding consumers rewind history.
+                data = event_processing_store.get(cache_key)
+                if not data:
+                    logger.info(
+                        "post_process.skipped",
+                        extra={"cache_key": cache_key, "reason": "missing_cache"},
+                    )
+                    return
+                if not options.get("post_process.delete-processing-store-in-save-event"):
+                    with metrics.timer("tasks.post_process.delete_event_cache"):
+                        event_processing_store.delete_by_key(cache_key)
+                event = process_event(data, group_id)
             occurrence = None
-            event = process_event(data, group_id)
         else:
             # Note: We attempt to acquire the lock here, but we don't release it and instead just
             # rely on the ttl. The goal here is to make sure we only ever run post process group

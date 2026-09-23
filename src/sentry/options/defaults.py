@@ -1641,6 +1641,20 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "post_process.read-from-nodestore-sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Enable only after the Nodestore read sample rate is 1.0 and queued post-process
+# tasks without event_id have drained.
+register(
+    "post_process.delete-processing-store-in-save-event",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "api.organization.disable-last-deploys",
     type=Sequence,
     default=[],
