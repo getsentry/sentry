@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 import sortBy from 'lodash/sortBy';
 
 import {Container, Grid} from '@sentry/scraps/layout';
@@ -116,12 +116,18 @@ export function FrameVariables({data, meta, platform}: Props) {
               {key}
             </Text>
           </Container>
-          <ValueCell
+          <Container
             minWidth="0"
             padding="md lg"
             radius="sm"
             background="secondary"
             role="cell"
+            css={css`
+              > pre {
+                background: transparent;
+                border-radius: 0;
+              }
+            `}
           >
             <Text monospace size="sm" wordBreak="break-word" wrap="pre-wrap">
               {textProps => (
@@ -140,16 +146,9 @@ export function FrameVariables({data, meta, platform}: Props) {
                 </Container>
               )}
             </Text>
-          </ValueCell>
+          </Container>
         </Grid>
       ))}
     </Grid>
   );
 }
-
-const ValueCell = styled(Container)`
-  > pre {
-    background: transparent;
-    border-radius: 0;
-  }
-`;
