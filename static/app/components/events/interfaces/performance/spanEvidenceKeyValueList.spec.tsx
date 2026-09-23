@@ -14,14 +14,10 @@ import {IssueType} from 'sentry/types/group';
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
 import {extractQueryParameters, extractSpanURLString} from './spanMetrics';
 
-function getValueCell(name: string | RegExp) {
-  const labelCell = screen.getByRole('cell', {name});
-  const row = labelCell.closest('[role="row"]');
-
-  if (!(row instanceof HTMLElement)) {
-    throw new Error(`Could not find the row for ${name.toString()}`);
-  }
-
+function getValueCell(label: string) {
+  const row = screen.getByRole('row', {
+    name: accessibleName => accessibleName.startsWith(label),
+  });
   return within(row).getAllByRole('cell')[1]!;
 }
 
