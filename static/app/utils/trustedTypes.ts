@@ -1,16 +1,26 @@
+import dompurify from 'dompurify';
+
 declare global {
   interface Window {
     trustedTypes?: {
       createPolicy: (
         name: string,
-        rules: {createScriptURL?: (input: string) => string}
+        rules: {
+          createHTML?: (input: string) => string;
+          createScriptURL?: (input: string) => string;
+        }
       ) => TrustedTypePolicy;
     };
   }
 
   interface TrustedTypePolicy {
+    createHTML: (input: string) => TrustedHTML;
     createScriptURL: (input: string) => TrustedScriptURL;
     name: string;
+  }
+
+  interface TrustedHTML {
+    toString(): string;
   }
 
   interface TrustedScriptURL {
@@ -35,6 +45,16 @@ export function installTrustedTypesPolicies(): void {
 
   if (sentryScriptUrlPolicy) {
     return;
+  }
+
+  try {
+    // DOMPurify creates its `dompurify` policy lazily on first use. Force it
+    // here so a name missing from the CSP allowlist surfaces at boot rather
+    // than the first time something renders markdown.
+    dompurify.sanitize('', {RETURN_TRUSTED_TYPE: true});
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Trusted Types: failed to warm the dompurify policy', err);
   }
 
   try {

@@ -1,9 +1,16 @@
-type Rules = {createScriptURL?: (input: string) => string};
+type Rules = {
+  createHTML?: (input: string) => string;
+  createScriptURL?: (input: string) => string;
+};
 
+// DOMPurify registers its own `dompurify` policy through this same object, so
+// the fake has to provide createHTML as well as createScriptURL.
 function fakeTrustedTypes() {
   return {
     createPolicy: jest.fn((name: string, rules: Rules) => ({
       name,
+      createHTML: (input: string) =>
+        (rules.createHTML?.(input) ?? input) as unknown as TrustedHTML,
       createScriptURL: (input: string) =>
         rules.createScriptURL?.(input) as unknown as TrustedScriptURL,
     })),
@@ -52,7 +59,10 @@ describe('trustedTypes', () => {
     installTrustedTypesPolicies();
     installTrustedTypesPolicies();
 
-    expect(trustedTypes.createPolicy).toHaveBeenCalledTimes(1);
+    const ourCalls = trustedTypes.createPolicy.mock.calls.filter(
+      ([name]) => name === 'sentry-script-url'
+    );
+    expect(ourCalls).toHaveLength(1);
   });
 
   it('accepts a same-origin script url', async () => {
@@ -71,6 +81,23 @@ describe('trustedTypes', () => {
     installTrustedTypesPolicies();
 
     expect(() => trustedScriptUrl('https://evil.example.com/x.js')).toThrow(TypeError);
+  });
+
+  it('warms the dompurify policy so a rejected name surfaces at boot', async () => {
+    window.trustedTypes = fakeTrustedTypes();
+
+    // Reset before importing either, so the module under test resolves the same
+    // dompurify instance the spy is attached to.
+    jest.resetModules();
+    const dompurify = (await import('dompurify')).default;
+    const sanitize = jest.spyOn(dompurify, 'sanitize');
+    const {installTrustedTypesPolicies} = await import('sentry/utils/trustedTypes');
+
+    installTrustedTypesPolicies();
+
+    expect(sanitize).toHaveBeenCalledWith('', {RETURN_TRUSTED_TYPE: true});
+
+    sanitize.mockRestore();
   });
 
   it('falls back to the raw url when the CSP allowlist rejects the policy', async () => {
