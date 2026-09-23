@@ -214,34 +214,36 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                     handleBudgetUpdate(nextBudget)
                   }
                   usesFormFieldLayout
-                  renderBudgetModeSettings={() => (
-                    <modeField.Layout.Stack label={t('Spending limit type')}>
-                      <modeField.Radio.Group
-                        value={modeField.state.value}
-                        onChange={budgetMode =>
-                          handleBudgetUpdate(
-                            convertOnDemandBudget(
-                              onDemandBudgets,
-                              budgetMode as OnDemandBudgetMode
+                  renderBudgetModeSettings={() =>
+                    subscription.planDetails.hasOnDemandModes ? (
+                      <modeField.Layout.Stack label={t('Spending limit type')}>
+                        <modeField.Radio.Group
+                          value={modeField.state.value}
+                          onChange={budgetMode =>
+                            handleBudgetUpdate(
+                              convertOnDemandBudget(
+                                onDemandBudgets,
+                                budgetMode as OnDemandBudgetMode
+                              )
                             )
-                          )
-                        }
-                      >
-                        {/* TODO: Replace with a card-style RadioField primitive when available. */}
-                        <Grid
-                          columns={{zero: '1fr', lg: 'repeat(2, minmax(0, 1fr))'}}
-                          gap="lg"
+                          }
                         >
-                          <modeField.Radio.Item value={OnDemandBudgetMode.PER_CATEGORY}>
-                            {t('Set a spending limit for each product')}
-                          </modeField.Radio.Item>
-                          <modeField.Radio.Item value={OnDemandBudgetMode.SHARED}>
-                            {t('Set a spending limit shared across all products')}
-                          </modeField.Radio.Item>
-                        </Grid>
-                      </modeField.Radio.Group>
-                    </modeField.Layout.Stack>
-                  )}
+                          {/* TODO: Replace with a card-style RadioField primitive when available. */}
+                          <Grid
+                            columns={{zero: '1fr', lg: 'repeat(2, minmax(0, 1fr))'}}
+                            gap="lg"
+                          >
+                            <modeField.Radio.Item value={OnDemandBudgetMode.PER_CATEGORY}>
+                              {t('Set a spending limit for each product')}
+                            </modeField.Radio.Item>
+                            <modeField.Radio.Item value={OnDemandBudgetMode.SHARED}>
+                              {t('Set a spending limit shared across all products')}
+                            </modeField.Radio.Item>
+                          </Grid>
+                        </modeField.Radio.Group>
+                      </modeField.Layout.Stack>
+                    ) : null
+                  }
                   renderSpendLimitInput={props => {
                     if (props.category === null) {
                       return (

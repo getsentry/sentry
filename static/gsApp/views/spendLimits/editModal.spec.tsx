@@ -173,6 +173,34 @@ describe('SpendLimitsEditModal', () => {
     );
   });
 
+  it('does not allow selecting a budget mode when the plan does not support modes', () => {
+    const organization = OrganizationFixture({features: ['ondemand-budgets']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      onDemandMaxSpend: 0,
+    });
+
+    render(
+      <SpendLimitsEditModal
+        Header={() => <div />}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('spinbutton', {
+        name: 'Custom shared spending limit (in dollars)',
+      })
+    ).toBeInTheDocument();
+  });
+
   it('shows field errors returned when saving the spending limit', async () => {
     const organization = OrganizationFixture({features: ['ondemand-budgets']});
     const subscription = SubscriptionFixture({
