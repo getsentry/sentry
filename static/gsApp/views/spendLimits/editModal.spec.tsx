@@ -201,7 +201,7 @@ describe('SpendLimitsEditModal', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows field errors returned when saving the spending limit', async () => {
+  it('associates server field errors with the spending limit input', async () => {
     const organization = OrganizationFixture({features: ['ondemand-budgets']});
     const subscription = SubscriptionFixture({
       organization,
@@ -235,10 +235,10 @@ describe('SpendLimitsEditModal', () => {
     await userEvent.type(input, '123');
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'sharedMaxBudget: Ensure this value is less than or equal to 500.'
-    );
-    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(
+      await screen.findByText('Ensure this value is less than or equal to 500.')
+    ).toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-invalid', 'true');
     expect(closeModal).not.toHaveBeenCalled();
   });
 });

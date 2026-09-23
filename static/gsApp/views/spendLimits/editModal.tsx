@@ -3,7 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
@@ -15,6 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
@@ -106,22 +107,6 @@ const spendLimitFormSchema = z.object({
   sharedMaxBudget: nonNegativeBudgetSchema,
 });
 
-function getRequestErrorMessage(error: Error, plan: Plan) {
-  if (error instanceof RequestError && error.responseJSON) {
-    const message = Object.entries(error.responseJSON)
-      .map(
-        ([field, messages]) =>
-          `${field}: ${Array.isArray(messages) ? messages.join(' ') : String(messages)}`
-      )
-      .join(' ');
-    if (message) {
-      return message;
-    }
-  }
-
-  return getBudgetSaveError(plan);
-}
-
 function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: Props) {
   const [currentOnDemandBudget] = useState(() =>
     parseOnDemandBudgetsFromSubscription(subscription)
@@ -136,16 +121,13 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
         method: 'POST',
         data: onDemandBudgets,
       }),
-    onError: error => {
-      addErrorMessage(getRequestErrorMessage(error, subscription.planDetails));
-    },
   });
 
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: getFormValues(currentOnDemandBudget),
     validators: {onDynamic: spendLimitFormSchema},
-    onSubmit: async ({value}) => {
+    onSubmit: async ({value, formApi}) => {
       const newOnDemandBudget = normalizeOnDemandBudget(getOnDemandBudgets(value));
       if (exceedsInvoicedBudgetLimit(subscription, newOnDemandBudget)) {
         addErrorMessage(getBudgetExceededInvoicedLimitError(subscription.planDetails));
@@ -153,7 +135,14 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
       }
       try {
         await mutation.mutateAsync(newOnDemandBudget);
-      } catch {
+      } catch (error) {
+        if (
+          error instanceof RequestError &&
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values))
+        ) {
+          return;
+        }
+        addErrorMessage(getBudgetSaveError(subscription.planDetails));
         return;
       }
 
