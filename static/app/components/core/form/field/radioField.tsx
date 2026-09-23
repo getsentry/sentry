@@ -80,16 +80,10 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
 interface RadioItemProps {
   children: React.ReactNode;
   value: string;
-  'aria-label'?: string;
   description?: React.ReactNode;
 }
 
-function RadioItem({
-  children,
-  value,
-  description,
-  'aria-label': ariaLabel,
-}: RadioItemProps) {
+function RadioItem({children, value, description}: RadioItemProps) {
   const {selectedValue, onChange, ...fieldProps} = useRadioContext();
   const descriptionId = useId();
 
@@ -97,7 +91,6 @@ function RadioItem({
     <Flex as="label" gap="sm" align="start" margin="0">
       <Radio
         {...fieldProps}
-        aria-label={ariaLabel}
         aria-describedby={description ? descriptionId : undefined}
         value={value}
         checked={selectedValue === value}
