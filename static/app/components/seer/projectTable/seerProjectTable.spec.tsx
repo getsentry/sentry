@@ -195,7 +195,7 @@ describe('SeerProjectTable', () => {
       method: 'PUT',
     });
 
-    renderTable();
+    render(<ExampleSeerProjectTable />, {organization});
 
     expect(await screen.findByText('Auto-Iterate on PRs')).toBeInTheDocument();
     const toggle = await screen.findByRole('checkbox', {
