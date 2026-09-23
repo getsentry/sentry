@@ -337,13 +337,13 @@ describe('Markdown', () => {
           raw="<script>alert(1)</script>"
           components={{
             Html: ({html}) => {
-              expectTypeOf(html).toEqualTypeOf<TrustedHTML>();
               receivedHtml = html;
               return <span data-test-id="custom-html" />;
             },
           }}
         />
       );
+      expectTypeOf(receivedHtml).toEqualTypeOf<TrustedHTML | undefined>();
       expect(receivedHtml).not.toContain('<script');
     });
 
