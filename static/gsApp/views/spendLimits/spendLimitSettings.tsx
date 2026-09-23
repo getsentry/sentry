@@ -148,7 +148,8 @@ function InnerSpendLimitSettings({
             const currentBudget = onDemandBudgets.budgets[category] ?? 0;
             const hasPerCategory = categoryInfo?.hasPerCategory;
             const productName = categoryInfo?.productName ?? pluralName;
-            const hasConstantPpe = activePlan.planCategories[category]?.length === 1;
+            const hasConstantPricePerUnit =
+              activePlan.planCategories[category]?.length === 1;
             const isLastInList =
               index === baseCategories.length - 1 && includedAddOns.length === 0;
             const showPerformanceUnits =
@@ -198,8 +199,8 @@ function InnerSpendLimitSettings({
                     {hasPerCategory && (
                       <Fragment>
                         ・
-                        {`${hasConstantPpe ? '' : '*'}${formatPaygPricePerUnit({
-                          paygPpe: payAsYouGoPricePerUnit,
+                        {`${hasConstantPricePerUnit ? '' : '*'}${formatPaygPricePerUnit({
+                          payAsYouGoPricePerUnit,
                         })}`}
                         /{singularName}
                       </Fragment>

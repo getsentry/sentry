@@ -75,8 +75,12 @@ export function SharedSpendLimitPriceTable({
           category === DataCategory.TRANSACTIONS;
         const categoryInfo = getCategoryInfoFromPlural(category);
         const reserved = currentReserved[category] ?? 0;
-        const paygPpe = getPaygPricePerUnit({activePlan, category, reserved});
-        const hasConstantPpe = activePlan.planCategories[category]?.length === 1;
+        const payAsYouGoPricePerUnit = getPaygPricePerUnit({
+          activePlan,
+          category,
+          reserved,
+        });
+        const hasConstantPricePerUnit = activePlan.planCategories[category]?.length === 1;
         const pluralName = getPlanCategoryName({plan: activePlan, category});
         const singularName =
           categoryInfo?.shortenedUnitName ??
@@ -122,8 +126,8 @@ export function SharedSpendLimitPriceTable({
             </Flex>
             <Container justifySelf={{zero: 'start', md: 'end'}}>
               <Text>
-                {hasConstantPpe ? '' : '*'}
-                {formatPaygPricePerUnit({paygPpe})}
+                {hasConstantPricePerUnit ? '' : '*'}
+                {formatPaygPricePerUnit({payAsYouGoPricePerUnit})}
               </Text>
               <Text variant="muted">/{singularName}</Text>
             </Container>
@@ -173,7 +177,7 @@ export function SharedSpendLimitPriceTable({
             </Flex>
             <Container justifySelf={{zero: 'start', md: 'end'}}>
               {addOnInfo.dataCategories.map((category, index) => {
-                const paygPpe = getPaygPricePerUnit({
+                const payAsYouGoPricePerUnit = getPaygPricePerUnit({
                   activePlan,
                   category,
                   reserved: reservedBudgetCategory ? RESERVED_BUDGET_QUOTA : 0,
@@ -188,7 +192,7 @@ export function SharedSpendLimitPriceTable({
                   });
                 return (
                   <Fragment key={category}>
-                    <Text>{formatPaygPricePerUnit({paygPpe})}</Text>
+                    <Text>{formatPaygPricePerUnit({payAsYouGoPricePerUnit})}</Text>
                     <Text variant="muted">/{singularName}</Text>
                     {index < addOnInfo.dataCategories.length - 1 && <Text>, </Text>}
                   </Fragment>
