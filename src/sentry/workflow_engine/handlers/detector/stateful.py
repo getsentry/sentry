@@ -1,9 +1,10 @@
 import abc
 import dataclasses
 import logging
+import time
 from datetime import timedelta
 from typing import Any, ClassVar, override
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from django.conf import settings
 from django.db.models import Q
@@ -43,6 +44,10 @@ def get_redis_client() -> RetryingRedisCluster:
     return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
+def _get_unix_epoch_time_in_ms() -> int:
+    return time.time_ns() // 1_000_000
+
+
 DetectorCounter = str | DetectorPriorityLevel
 DetectorCounters = dict[DetectorCounter, int | None]
 
@@ -67,14 +72,14 @@ class DetectorStateData:
     # If a counter value is `None` it means to unset the value
     counter_updates: DetectorCounters
 
-    activation_id: UUID | None = None
+    activation_id: int | None = None
 
 
 @dataclasses.dataclass(frozen=True)
 class DetectorStateUpdate:
     is_triggered: bool
     priority: DetectorPriorityLevel
-    activation_id: UUID | None
+    activation_id: int | None
 
 
 # TODO - we might want to extract this into another file to reduce noise in this file.
@@ -116,7 +121,7 @@ class DetectorStateManager:
         group_key: DetectorGroupKey,
         is_triggered: bool,
         priority: DetectorPriorityLevel,
-        activation_id: UUID | None = None,
+        activation_id: int | None = None,
     ) -> None:
         self.state_updates[group_key] = DetectorStateUpdate(
             is_triggered=is_triggered, priority=priority, activation_id=activation_id
@@ -713,7 +718,7 @@ class StatefulDetectorHandler(
         state_data: DetectorStateData,
         new_priority: DetectorPriorityLevel,
         should_rotate_activation_id: bool,
-    ) -> UUID | None:
+    ) -> int | None:
         if not should_rotate_activation_id:
             return state_data.activation_id
 
@@ -723,7 +728,7 @@ class StatefulDetectorHandler(
         )
 
         if is_leaving_ok_state:
-            return uuid4()
+            return _get_unix_epoch_time_in_ms()
 
         return state_data.activation_id
 
