@@ -9,6 +9,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {stubIframeScrollTo} from 'sentry-test/iframeScrollTo';
 import {render as baseRender, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import type {ResponseMeta} from 'sentry/types/api';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -301,6 +302,20 @@ describe('ReplayClipPreview', () => {
       'href',
       mockButtonHref
     );
+  });
+
+  it('Keeps the full replay button in a wrapping header instead of overlaying metadata', () => {
+    render(<ReplayClipPreview {...defaultProps} />);
+
+    const button = screen.getByRole('button', {name: 'See Full Replay'});
+    const buttonRules = getEmotionRules(button)
+      .filter(rule => button.matches(rule.split('{')[0]!.trim()))
+      .join(' ');
+    expect(buttonRules).toContain('position: relative');
+    expect(buttonRules).not.toContain('position: absolute');
+    const headerRules = getEmotionRules(button.parentElement!).join(' ');
+    expect(headerRules).toContain('flex-wrap: wrap');
+    expect(headerRules).toContain('gap: 8px');
   });
 
   it('Display URL and breadcrumbs in fullscreen mode', async () => {

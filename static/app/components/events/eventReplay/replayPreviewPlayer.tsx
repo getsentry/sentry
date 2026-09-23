@@ -100,7 +100,14 @@ export function ReplayPreviewPlayer({
           )}
         </StyledAlert>
       )}
-      <Flex justify="between" align="center" marginBottom="md" position="relative">
+      <Flex
+        justify="between"
+        align="center"
+        gap="md"
+        wrap="wrap"
+        marginBottom="md"
+        position="relative"
+      >
         <ReplaySessionColumn.Component
           to={{
             pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
@@ -111,7 +118,7 @@ export function ReplayPreviewPlayer({
           columnIndex={0}
           showDropdownFilters={false}
         />
-        <ContainedLinkButton
+        <LinkButton
           size="sm"
           to={{
             pathname: makeReplaysPathname({
@@ -129,7 +136,7 @@ export function ReplayPreviewPlayer({
           {...fullReplayButtonProps}
         >
           {t('See Full Replay')}
-        </ContainedLinkButton>
+        </LinkButton>
       </Flex>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
         {/* oxlint-disable-next-line react/refs */}
@@ -241,10 +248,4 @@ const ContextContainer = styled('div')`
 
 const StyledAlert = styled(Alert)`
   margin: ${p => p.theme.space.md} 0;
-`;
-
-const ContainedLinkButton = styled(LinkButton)`
-  position: absolute;
-  right: 0;
-  top: 3px;
 `;
