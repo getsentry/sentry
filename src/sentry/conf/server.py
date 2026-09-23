@@ -551,7 +551,8 @@ CSP_OBJECT_SRC = [
     "'none'",
 ]
 CSP_WORKER_SRC = [
-    "'none'",
+    "'self'",  # service worker
+    "blob:",  # session replay workers
 ]
 CSP_BASE_URI = [
     "'none'",
@@ -592,6 +593,10 @@ CSP_REPORT_ONLY = True
 COOP_ENABLED = False
 COOP_REPORT_ONLY = True
 COOP_REPORT_TO: str | None = None
+
+TRUSTED_TYPES_ENABLED = False
+TRUSTED_TYPES_POLICIES: list[str] = []
+TRUSTED_TYPES_REPORT_URI: str | None = None
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"

@@ -10,20 +10,20 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
   getSavedQueryKey,
-  type AllSavedQuery,
+  type CombinedSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useReorderStarredSavedQueries} from 'sentry/views/explore/hooks/useReorderStarredSavedQueries';
 import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
 type Props = {
-  queries: AllSavedQuery[];
+  queries: CombinedSavedQuery[];
 };
 
 // ReorderableList keys by `item.id`, and ids are only unique within a table.
 type ReorderableItem = {
   id: string;
-  query: AllSavedQuery;
+  query: CombinedSavedQuery;
 };
 
 export function ExploreSavedQueryNavigationItems({queries}: Props) {

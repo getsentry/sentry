@@ -378,11 +378,17 @@ function Chart({
               acceptedData={acceptedData}
               droppedData={droppedData}
               showDroppedData={showDroppedData}
-              onDroppedDataClick={() =>
-                openDrawer(() => <DroppedDataPanelContent />, {
-                  ariaLabel: t('Dropped Data'),
-                })
-              }
+              onDroppedDataClick={() => {
+                if (!hasDroppedData) {
+                  return;
+                }
+                openDrawer(
+                  () => <DroppedDataPanelContent droppedDataAnnotations={droppedData} />,
+                  {
+                    ariaLabel: t('Dropped Data'),
+                  }
+                );
+              }}
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,
                 onSelectionEnd: () => {

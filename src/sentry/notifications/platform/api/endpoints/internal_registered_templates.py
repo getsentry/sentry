@@ -104,7 +104,7 @@ def serialize_slack_preview[T: NotificationData](
 ) -> dict[str, Any]:
     data = template.example_data
     rendered_template = template.render_example()
-    renderer = SlackNotificationProvider.get_renderer(data=data, category=template.category)
+    renderer = SlackNotificationProvider.get_renderer(data=data)
     message = renderer.render(data=data, rendered_template=rendered_template)
 
     serialized_blocks = []

@@ -424,7 +424,7 @@ describe('EditConnectedMonitors', () => {
       name: /Read-only Monitor/,
     });
     const connectButton = within(readOnlyRow).getByRole('button', {name: 'Connect'});
-    expect(connectButton).toBeDisabled();
+    expect(connectButton).toHaveAttribute('aria-disabled', 'true');
     await userEvent.hover(connectButton);
     expect(
       await screen.findByText(

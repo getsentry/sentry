@@ -4,8 +4,17 @@ import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
-export function DroppedDataPanelContent() {
+import {DroppedDataChart} from './droppedDataChart';
+
+interface DroppedDataPanelContentProps {
+  droppedDataAnnotations: Annotation[];
+}
+
+export function DroppedDataPanelContent({
+  droppedDataAnnotations,
+}: DroppedDataPanelContentProps) {
   return (
     <Fragment>
       <DrawerHeader>
@@ -13,7 +22,9 @@ export function DroppedDataPanelContent() {
           {t('Dropped Data')}
         </Text>
       </DrawerHeader>
-      <DrawerBody />
+      <DrawerBody>
+        <DroppedDataChart annotations={droppedDataAnnotations} />
+      </DrawerBody>
     </Fragment>
   );
 }
