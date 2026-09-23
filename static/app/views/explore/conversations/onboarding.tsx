@@ -155,18 +155,21 @@ function ConversationStepRenderer({
   stepIndex,
   isLastStep,
   onDismiss,
+  trailingItems,
 }: {
   isLastStep: boolean;
   onDismiss: () => void;
   project: Project;
   step: OnboardingStep;
   stepIndex: number;
+  trailingItems?: React.ReactNode;
 }) {
   const theme = useTheme();
   return (
     <GuidedSteps.Step
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
+      trailingItems={trailingItems}
     >
       <StepIndexProvider index={stepIndex}>
         <ContentBlocksRenderer spacing={theme.space.md} contentBlocks={step.content} />
@@ -743,8 +746,8 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   return (
     <ConversationOnboardingPanel project={project} dsn={dsn.public} onDismiss={onDismiss}>
       <Stack gap="xl">
-        <Flex gap="lg" align="center" justify="between" wrap="wrap">
-          {!projectAgentIntegration && (
+        {!projectAgentIntegration && (
+          <Flex gap="lg" align="center" justify="between" wrap="wrap">
             <Flex gap="sm" align="center" wrap="wrap">
               <Text>{t('Set up')}</Text>
               <PlatformOptionDropdown
@@ -765,14 +768,9 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
                 }
               />
             </Flex>
-          )}
-          <OnboardingCopyMarkdownButton
-            borderless
-            steps={steps}
-            source="conversations_onboarding"
-          />
-        </Flex>
-        <Separator orientation="horizontal" />
+          </Flex>
+        )}
+        {!projectAgentIntegration && <Separator orientation="horizontal" />}
         {introduction && <Prose>{introduction}</Prose>}
         <GuidedSteps
           key={selectedIntegration}
@@ -795,6 +793,15 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
               stepIndex={index}
               isLastStep={index === steps.length - 1}
               onDismiss={onDismiss}
+              trailingItems={
+                index === 0 ? (
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="conversations_onboarding"
+                  />
+                ) : undefined
+              }
             />
           ))}
         </GuidedSteps>

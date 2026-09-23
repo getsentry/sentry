@@ -3,7 +3,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
@@ -191,6 +191,19 @@ describe('ConversationOnboarding', () => {
       (await screen.findAllByText(textWithMarkupMatcher(/npm install @sentry\/node/)))
         .length
     ).toBeGreaterThan(0);
+  });
+
+  it('renders Copy instructions in the Install step', async () => {
+    const {organization} = setupProject('node-eve');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+    expect(
+      within(screen.getByTestId('guided-step-1')).getByRole('button', {
+        name: 'Copy instructions',
+      })
+    ).toBeInTheDocument();
   });
 
   it.each([

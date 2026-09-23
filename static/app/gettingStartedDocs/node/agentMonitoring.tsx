@@ -546,8 +546,9 @@ SENTRY_TRACES_SAMPLE_RATE=1`,
             type: 'code',
             tabs: [
               {
-                label: 'index.ts',
+                label: 'app.ts',
                 language: 'typescript',
+                filename: 'app.ts',
                 code: 'import "./sentry.ts";',
               },
             ],
