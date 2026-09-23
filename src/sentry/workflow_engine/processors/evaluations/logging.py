@@ -10,7 +10,6 @@ from sentry.workflow_engine.processors.evaluations import (
     ProcessDetectorsResult,
     ProcessWorkflowsResult,
 )
-from sentry.workflow_engine.processors.evaluations.eap import emit_evaluation_to_eap
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -80,8 +79,6 @@ def emit_detector_evaluation_logs(
             log_prefix=log_prefix,
         )
 
-    emit_evaluation_to_eap(artifacts)
-
 
 def emit_workflow_evaluation_logs(
     logger: Logger,
@@ -104,5 +101,3 @@ def emit_workflow_evaluation_logs(
             artifacts=artifacts,
             log_prefix=log_prefix,
         )
-
-    emit_evaluation_to_eap(artifacts)
