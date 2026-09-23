@@ -50,6 +50,30 @@ def should_log(
     return _is_sampled()
 
 
+def redact_pii_from_artifact(artifact: dict[str, object]) -> dict[str, object]:
+    redacted_artifact: dict[str, object] = {}
+
+    for key, value in artifact.items():
+        if key == "input":
+            redacted_artifact[key] = value if isinstance(value, (bool, int, float, str)) else None
+        else:
+            redacted_artifact[key] = _redact_log_value(value)
+
+    return redacted_artifact
+
+
+def _redact_log_value(value: object) -> object:
+    """
+    Recursively check to see if there are any `input` fields that should be redacted.
+    """
+    if isinstance(value, dict):
+        return redact_pii_from_artifact(value)
+    if isinstance(value, list):
+        return [_redact_log_value(item) for item in value]
+
+    return value
+
+
 def emit_evaluation_logs(
     organization: Organization,
     result: WorkflowEngineResult,
@@ -68,8 +92,9 @@ def emit_evaluation_logs(
 
     for artifact in artifacts:
         artifact["organization_id"] = organization.id
+        redacted_artifact = redact_pii_from_artifact(artifact)
 
         if direct_to_sentry:
-            sdk_logger.info(log_prefix, attributes=artifact)
+            sdk_logger.info(log_prefix, attributes=redacted_artifact)
         else:
-            logger.info(log_prefix, extra=artifact)
+            logger.info(log_prefix, extra=redacted_artifact)
