@@ -45,6 +45,7 @@ import {
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 interface IssueEventNavigationProps {
   event: Event | undefined;
@@ -93,13 +94,16 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   });
 
   // `autofix-page` rolls out with Seer, so the orgs that hide AI keep the
-  // dropdown rather than getting the tab list ahead of everyone else. The same
-  // conditions decide whether Autofix is one of the tabs, because the tab and
-  // the page behind it arrive together.
+  // dropdown rather than getting the tab list ahead of everyone else.
   const showContentTabs =
     hasAutofixPage(organization) &&
     organization.features.includes('gen-ai-features') &&
     !organization.hideAiFeatures;
+
+  // Autofix does not run on some issue types or on sample events, so those
+  // issues get the tab list without an Autofix tab.
+  const isSampleEvent = useIsSampleEvent();
+  const showAutofixTab = showContentTabs && issueTypeConfig.autofix && !isSampleEvent;
 
   // Only consulted on the dropdown path, which tabs replace outright.
   const hideDropdownButton =
@@ -150,7 +154,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       name: TabName[Tab.AUTOFIX]!,
       // Autofix has no count to show; it is a single ongoing analysis.
       count: null,
-      hidden: !showContentTabs,
+      hidden: !showAutofixTab,
     },
     {
       key: Tab.REPLAYS,

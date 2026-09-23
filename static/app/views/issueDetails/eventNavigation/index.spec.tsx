@@ -4,8 +4,15 @@ import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
+import {IssueCategory, IssueType} from 'sentry/types/group';
 import {AutofixPanelProvider} from 'sentry/views/issueDetails/autofix/context';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
@@ -166,10 +173,10 @@ describe('EventNavigation', () => {
       hideAiFeatures: false,
     });
 
-    function renderNav(org: typeof organization) {
+    function renderNav(org: typeof organization, navGroup = group) {
       render(
-        <GroupDataContextProvider group={group} project={group.project}>
-          <IssueEventNavigation {...defaultProps} />
+        <GroupDataContextProvider group={navGroup} project={navGroup.project}>
+          <IssueEventNavigation {...defaultProps} group={navGroup} />
         </GroupDataContextProvider>,
         {initialRouterConfig, organization: org}
       );
@@ -205,36 +212,6 @@ describe('EventNavigation', () => {
       );
     });
 
-    it('lifts the seer toolbar into the navigation row on the autofix tab', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/`,
-        body: {autofix: null},
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/setup/`,
-        body: {integration: {ok: true, reason: null}},
-      });
-
-      render(
-        <GroupDataContextProvider group={group} project={group.project}>
-          <AutofixPanelProvider group={group} project={group.project}>
-            <IssueEventNavigation {...defaultProps} />
-          </AutofixPanelProvider>
-        </GroupDataContextProvider>,
-        {
-          initialRouterConfig: routerConfigForTab(Tab.AUTOFIX),
-          organization: seerOrganization,
-        }
-      );
-
-      expect(
-        await screen.findByRole('button', {name: 'Start a new analysis from scratch'})
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Copy analysis as Markdown'})
-      ).toBeInTheDocument();
-    });
-
     it('falls back to the dropdown without the autofix-page feature', () => {
       renderNav(organization);
 
@@ -256,6 +233,33 @@ describe('EventNavigation', () => {
       expect(
         screen.getByRole('button', {name: 'Select issue content'})
       ).toBeInTheDocument();
+    });
+
+    it('omits the autofix tab for issue types autofix does not support', () => {
+      const cronGroup = GroupFixture({
+        id: group.id,
+        issueCategory: IssueCategory.CRON,
+        issueType: IssueType.MONITOR_CHECK_IN_FAILURE,
+      });
+      renderNav(seerOrganization, cronGroup);
+
+      expect(screen.getByRole('tab', {name: /Events/})).toBeInTheDocument();
+      expect(screen.queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
+    });
+
+    it('omits the autofix tab on sample events', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
+        body: [
+          {key: 'sample_event', name: 'Sample Event', totalValues: 1, topValues: []},
+        ],
+      });
+      renderNav(seerOrganization);
+
+      await waitFor(() =>
+        expect(screen.queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument()
+      );
+      expect(screen.getByRole('tab', {name: /Events/})).toBeInTheDocument();
     });
   });
 
