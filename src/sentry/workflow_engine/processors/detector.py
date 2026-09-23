@@ -11,6 +11,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
@@ -335,8 +336,12 @@ def process_detectors[T](
         if detector.project_id is not None:
             # Note; this does not support org level detectors for evaluations, this is
             # currently not an issue because there's only the issue_stream detector with that configuration.
+            organization = Organization.objects.get_from_cache(
+                id=detector.linked_project.organization_id,
+            )
+
             emit_evaluations(
-                organization=detector.linked_project.organization,
+                organization=organization,
                 result=ProcessDetectorsResult(
                     detector_id=detector.id,
                     detector_type=detector.type,
