@@ -90,8 +90,10 @@ function getOnDemandBudgets(values: SpendLimitFormValues): OnDemandBudgets {
     : {budgetMode: values.budgetMode, sharedMaxBudget: values.sharedMaxBudget};
 }
 
+const budgetModeSchema = z.enum(OnDemandBudgetMode);
+
 const spendLimitFormSchema = z.object({
-  budgetMode: z.enum(OnDemandBudgetMode),
+  budgetMode: budgetModeSchema,
   budgets: z.custom<Partial<Record<DataCategory, number>>>(
     budgets =>
       !!budgets &&
@@ -219,14 +221,14 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                       <modeField.Layout.Stack label={t('Spending limit type')}>
                         <modeField.Radio.Group
                           value={modeField.state.value}
-                          onChange={budgetMode =>
-                            handleBudgetUpdate(
-                              convertOnDemandBudget(
-                                onDemandBudgets,
-                                budgetMode as OnDemandBudgetMode
-                              )
-                            )
-                          }
+                          onChange={budgetMode => {
+                            const result = budgetModeSchema.safeParse(budgetMode);
+                            if (result.success) {
+                              handleBudgetUpdate(
+                                convertOnDemandBudget(onDemandBudgets, result.data)
+                              );
+                            }
+                          }}
                         >
                           {/* TODO: Replace with a card-style RadioField primitive when available. */}
                           <Grid
