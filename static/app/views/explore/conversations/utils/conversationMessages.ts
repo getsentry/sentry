@@ -20,6 +20,12 @@ import {SpanFields} from 'sentry/views/insights/types';
 const FILTERED = '[Filtered]';
 
 /**
+ * Placeholder for message content the SDK didn't record, used when a
+ * conversation's inference spans captured no inputs or outputs at all.
+ */
+export const NOT_REPORTED = '<not reported>';
+
+/**
  * Content that is empty or only whitespace has nothing to render, so we treat
  * it as absent (`null`). This is the single guard that keeps blank message
  * bubbles — a small empty "cylinder" in the transcript — out of every consumer
@@ -76,7 +82,9 @@ interface ConversationTurn {
  * Extracts conversation messages from trace spans:
  * 1. Partition spans into generation, tool, and embeddings spans
  * 2. Build conversation turns (user input + assistant output pairs)
- * 3. Merge turns that have no assistant response, carrying tool calls forward
+ * 3. Merge turns that have no assistant response, carrying tool calls forward.
+ *    When no turn captured any content, fill placeholder turns instead so the
+ *    conversation's structure still renders.
  * 4. Convert turns to deduplicated, sorted messages
  * 5. Insert embeddings spans as their own standalone messages, positioned by
  *    timestamp — unlike tool calls, embeddings don't need a nearby generation
@@ -89,9 +97,11 @@ export function extractMessagesFromNodes(
   const {generationSpans, toolSpans, embeddingSpans} =
     partitionSpansByType(enrichedNodes);
   const turns = buildConversationTurns(generationSpans, toolSpans);
-  const mergedTurns = mergeEmptyTurns(turns);
+  const displayTurns = turns.some(hasTurnContent)
+    ? mergeEmptyTurns(turns)
+    : fillNotReportedTurns(turns, enrichedNodes);
   const messages = [
-    ...turnsToMessages(mergedTurns),
+    ...turnsToMessages(displayTurns),
     ...embeddingSpansToMessages(embeddingSpans),
   ];
   messages.sort((a, b) => a.timestamp - b.timestamp);
@@ -436,6 +446,81 @@ export function mergeEmptyTurns(turns: ConversationTurn[]): ConversationTurn[] {
   return result;
 }
 
+function hasTurnContent(turn: ConversationTurn): boolean {
+  return Boolean(turn.userContent || turn.assistantContent || turn.reasoning);
+}
+
+// Walks up to the nearest `invoke_agent` span, so a sub-agent's generations
+// form their own run, like the exchange its captured messages would show.
+function getNearestAgentId(
+  node: AITraceSpanNode,
+  nodesById: Map<string, AITraceSpanNode>
+): string | null {
+  let parentId = node.value?.parent_span_id;
+  while (parentId) {
+    const parent = nodesById.get(parentId);
+    if (!parent) {
+      return null;
+    }
+    if (getGenAiOpType(parent) === 'agent') {
+      return parent.id;
+    }
+    parentId = parent.value?.parent_span_id;
+  }
+  return null;
+}
+
+/**
+ * Fills turns with `NOT_REPORTED` placeholders for a conversation whose spans
+ * captured no message content. The generations of one agent span form one
+ * exchange: a user placeholder on its first generation, an assistant
+ * placeholder on its last, and tool calls in between. A sub-agent's
+ * generations form their own exchange nested inside the calling agent's.
+ * Generations without an agent span form a single exchange. Placeholders are
+ * only shown where the token usage shows the content existed.
+ *
+ * This approximates the transcript's shape. Without content there's no way to
+ * tell which generations produced assistant text or where new user messages
+ * arrived, so a captured transcript can place bubbles differently, e.g. with
+ * assistant output between tool calls or several exchanges within one run.
+ */
+export function fillNotReportedTurns(
+  turns: ConversationTurn[],
+  nodes: AITraceSpanNode[]
+): ConversationTurn[] {
+  const nodesById = new Map(nodes.map(node => [node.id, node]));
+  const agentIds = turns.map(turn => getNearestAgentId(turn.generation, nodesById));
+  const firstIndexByAgent = new Map<string | null, number>();
+  const lastIndexByAgent = new Map<string | null, number>();
+  agentIds.forEach((agentId, index) => {
+    if (!firstIndexByAgent.has(agentId)) {
+      firstIndexByAgent.set(agentId, index);
+    }
+    lastIndexByAgent.set(agentId, index);
+  });
+
+  return turns.map((turn, index) => {
+    const agentId = agentIds[index] ?? null;
+    const isRunStart = firstIndexByAgent.get(agentId) === index;
+    const isRunEnd = lastIndexByAgent.get(agentId) === index;
+    const inputTokens = getNumberAttr(
+      turn.generation,
+      SpanFields.GEN_AI_USAGE_INPUT_TOKENS
+    );
+    const reasoningTokens = getNumberAttr(
+      turn.generation,
+      SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS
+    );
+
+    return {
+      ...turn,
+      userContent: isRunStart && inputTokens && inputTokens > 0 ? NOT_REPORTED : null,
+      assistantContent: isRunEnd ? NOT_REPORTED : null,
+      reasoning: reasoningTokens && reasoningTokens > 0 ? NOT_REPORTED : null,
+    };
+  });
+}
+
 export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[] {
   const messages: ConversationMessage[] = [];
   const seenUserContent = new Set<string>();
@@ -456,6 +541,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       turn.userContent &&
       (turn.userContent === FILTERED ||
         turn.userContent === EMPTY_TEXT_CONTENT ||
+        turn.userContent === NOT_REPORTED ||
         !hasHistory ||
         userCountGrew ||
         !seenUserContent.has(turn.userContent))
@@ -475,6 +561,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       turn.assistantContent &&
       (turn.assistantContent === FILTERED ||
         turn.assistantContent === EMPTY_TEXT_CONTENT ||
+        turn.assistantContent === NOT_REPORTED ||
         !seenAssistantContent.has(turn.assistantContent));
     const hasToolCalls = turn.toolCalls.length > 0;
 
