@@ -8,10 +8,21 @@ const CardButton = styled('button')`
   text-align: left;
   cursor: pointer;
 
-  &:disabled {
+  &[aria-disabled='true'] {
     cursor: not-allowed;
   }
 `;
+
+interface ScmCardButtonProps extends Omit<
+  React.ComponentProps<typeof CardButton>,
+  'disabled'
+> {
+  /**
+   * Rendered as aria-disabled rather than disabled, so the card stays
+   * focusable and a tooltip that says why it is disabled opens on focus.
+   */
+  disabled?: boolean;
+}
 
 /**
  * A button with all default browser styling removed.
@@ -24,7 +35,16 @@ const CardButton = styled('button')`
  */
 export function ScmCardButton({
   type = 'button',
+  disabled,
+  onClick,
   ...props
-}: React.ComponentProps<typeof CardButton>) {
-  return <CardButton type={type} {...props} />;
+}: ScmCardButtonProps) {
+  return (
+    <CardButton
+      type={type}
+      aria-disabled={disabled || undefined}
+      onClick={disabled ? undefined : onClick}
+      {...props}
+    />
+  );
 }

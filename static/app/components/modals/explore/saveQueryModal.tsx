@@ -26,7 +26,7 @@ export type SaveQueryModalProps = {
   saveQuery: (variables: {name: string; starred?: boolean}) => Promise<{id: string}>;
   traceItemDataset: TraceItemDataset;
   name?: string;
-  source?: 'toolbar' | 'table' | 'conversations';
+  source?: 'toolbar' | 'table' | 'conversations' | 'explorer';
 };
 
 type Props = ModalRenderProps & SaveQueryModalProps;

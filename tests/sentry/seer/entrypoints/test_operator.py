@@ -212,6 +212,7 @@ class SeerOperatorTest(TestCase):
         assert mock_push_changes.call_args.kwargs["author"] == {
             "name": self.user.get_display_name(),
             "email": "583231+octocat@users.noreply.github.com",
+            "scm_login": "octocat",
         }
 
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
@@ -728,9 +729,14 @@ class SeerOperatorTest(TestCase):
             event_type=SentryAppEventType.SEER_PR_CREATED,
             event_payload=event_payload,
             organization_id=self.organization.id,
+            activity_attribution={
+                "referrer": AutofixReferrer.WEB,
+                "actor_user_id": self.user.id,
+            },
         )
 
         activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_PR_CREATED.value)
+        assert activity.user_id == self.user.id
         assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
         assert (
             activity.data["pull_requests"][0]["pull_request"]["pr_url"]

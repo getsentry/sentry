@@ -450,6 +450,7 @@ export function CartDiff({
       currentValues: currentReserved,
       newValues: newReserved,
     });
+    // oxlint-disable-next-line react/memo-dependencies
   }, [activePlan, formData.reserved, subscription.categories]);
 
   const getSharedOnDemandChanges = useCallback((): SharedOnDemandChange[] => {
@@ -515,6 +516,7 @@ export function CartDiff({
       newValues: parsedNewOnDemandBudget,
       shouldIncludeZero: currentBudgetMode === newBudgetMode,
     });
+    // oxlint-disable-next-line react/memo-dependencies
   }, [currentOnDemandBudget, newOnDemandBudget, currentBudgetMode, newBudgetMode]);
 
   const planChanges = useMemo(() => getPlanChanges(), [getPlanChanges]);

@@ -244,7 +244,7 @@ export function useMetricSamplesTable({
   );
 
   return useProgressiveQuery<typeof useMetricSamplesTableImpl>({
-    queryHookImplementation: useMetricSamplesTableImpl,
+    queryHookImplementation: useMetricSamplesTableImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {
       enabled: !disabled,
       limit,

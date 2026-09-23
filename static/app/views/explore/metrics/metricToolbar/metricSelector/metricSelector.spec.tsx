@@ -5,6 +5,7 @@ import {
 } from 'sentry-fixture/tracemetrics';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -31,9 +32,6 @@ describe('MetricSelector', () => {
     initializeTraceMetricsTest();
 
   beforeEach(() => {
-    // Suppress react-popper async flushSync/act warnings (known library compat issue)
-    jest.spyOn(console, 'error').mockImplementation();
-
     setupPageFilters();
     const {baseFixtures} = createTraceMetricFixtures(organization, project, new Date());
 
@@ -105,7 +103,10 @@ describe('MetricSelector', () => {
           <MetricSelector traceMetric={{name: '', type: ''}} onChange={jest.fn()} />,
           {organization}
         );
-        expect(screen.getByRole('button', {name: 'None'})).toBeDisabled();
+        expect(screen.getByRole('button', {name: 'None'})).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
       });
 
       it('does not disable trigger button while loading when a metric is already selected', () => {
@@ -163,7 +164,7 @@ describe('MetricSelector', () => {
         organization,
       });
       const trigger = screen.getByRole('button', {name: 'bar'});
-      trigger.focus();
+      act(() => trigger.focus());
 
       await userEvent.keyboard('{ArrowDown}');
 

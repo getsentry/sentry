@@ -872,7 +872,7 @@ describe('MetricsTabContent', () => {
     // Metric A should be disabled because it is referenced by the equation
     expect(
       within(toolbars[0]!).getByRole('button', {name: 'Delete Metric'})
-    ).toBeDisabled();
+    ).toHaveAttribute('aria-disabled', 'true');
 
     // Metric B should be enabled because it is not referenced by the equation
     expect(

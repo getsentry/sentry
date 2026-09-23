@@ -395,6 +395,33 @@ def release_rule_condition(values: list[str]) -> dict:
             },
             id="catch_all_release_range",
         ),
+        pytest.param(
+            "error",
+            [{"type": "ip_address", "value": ["10.0.0.0/8", "203.0.113.7"]}],
+            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8", "203.0.113.7"]},
+            id="ip_address_reads_the_envelope_client_ip",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
+            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+            id="catch_all_ip_address_needs_no_per_data_type_field",
+        ),
+        pytest.param(
+            "log",
+            [
+                {"type": "log_message", "value": ["*DEBUG*"]},
+                {"type": "ip_address", "value": ["10.0.0.0/8"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "log.body", "value": ["*DEBUG*"]},
+                    {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+                ],
+            },
+            id="ip_address_combines_with_item_conditions",
+        ),
     ],
 )
 def test_custom_inbound_filter_condition_translation(

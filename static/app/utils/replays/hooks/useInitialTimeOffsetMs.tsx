@@ -191,6 +191,7 @@ export function useInitialTimeOffsetMs({
       .then(definedOrDefault(queryTimeMs))
       .then(definedOrDefault(ZERO_OFFSET))
       .then(setTimestamp);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [offsetTimeMs, eventTimeMs, queryTimeMs, projectSlug]);
 
   return timestamp;

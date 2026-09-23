@@ -252,6 +252,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
+    "auth.v2.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
@@ -687,6 +693,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Desired chunk size for TUS uploads.
+register(
+    "relay.upload-chunk.size",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Disable install-triggered GitLab webhook repairs without affecting settings updates.
+register(
+    "gitlab.webhook-update-on-install.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -787,6 +809,12 @@ register("github-console-sdk-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PR
 # Cursor Origin Integration
 register("cursor-origin-app.id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("cursor-origin-app.private-key", default="", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "cursor-origin-app.fetch-commits.max-compare-commits",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Github Enterprise Integration
 register(
@@ -1077,6 +1105,15 @@ register(
     "store.ingest-events-raw-task.inline-save-event-transaction",
     type=Bool,
     default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Whether or not to query postgres for pending attachments in `save_transaction_events`.
+#
+# Change this value to `False` in case `save_event_transaction` becomes slow.
+register(
+    "store.transactions.check-pending-attachments",
+    type=Bool,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1415,10 +1452,10 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "issues.action_log.dedicated_outbox_rollout_rate",
-    type=Float,
-    default=1.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+    "issues.action_log.use_db_sequence_for_outbox_identifier",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "issues.backfill_group_action_log.killswitch",
@@ -2376,19 +2413,10 @@ register(
 )
 
 # Dynamic Sampling system-wide options
-# Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
-register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Number of large transactions to retrieve from Snuba for transaction re-balancing.
 register(
     "dynamic-sampling.prioritise_transactions.num_explicit_large_transactions",
     30,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Nothing reads this option any more. It stays registered until the options automator
-# has unset it, since the automator can only unset a registered option.
-register(
-    "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Lower bound on the per-transaction sample rate produced by transaction rebalancing. When a project
@@ -2434,14 +2462,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Nothing reads this option any more. It stays registered until the options automator
-# has unset it, since the automator can only unset a registered option.
-register(
-    "dynamic-sampling.legacy.killswitch",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Share of organizations the per-org dynamic sampling pipeline runs for, keyed on
 # organization id. 1.0 runs it for every org and is the default, so that the pipeline
 # works without any option set; 0.0 stops it for every org. Intermediate values select a
@@ -2452,24 +2472,6 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Nothing reads this option any more. It stays registered until the options automator
-# has unset it, since the automator can only unset a registered option.
-register(
-    "dynamic-sampling.per_org.serving-rollout-rate",
-    type=Float,
-    default=1.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Nothing reads this option any more. It stays registered until the options automator
-# has unset it, since the automator can only unset a registered option.
-register(
-    "dynamic-sampling.per_org.serving-org-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Sample rate for metrics emitted by the per-org dynamic sampling pipeline
@@ -2483,15 +2485,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Nothing reads this option any more. It stays registered until the options automator
-# has unset it, since the automator can only unset a registered option.
-register(
-    "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Per-project sample rate overrides for custom dynamic sampling. Maps a stringified
 # project id to a fixed sample rate (0.0-1.0) that hard-replaces the rate the custom
 # dynamic sampling path would otherwise compute for that project. Example:
@@ -2500,14 +2493,6 @@ register(
     "dynamic-sampling.sample-rate-override-per-project",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Nothing reads this option any more. It stays registered until the options automator
-# has unset it, since the automator can only unset a registered option.
-register(
-    "dynamic-sampling.prioritise_transactions.rebalance_intensity",
-    default=0.8,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # === Hybrid cloud subsystem options ===
@@ -2807,6 +2792,24 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for the monitor clock tick hold.
+#
+# The hold stalls the monitor clock tick while the partition clock set is short
+# of the partition list learned from the clock pulse. This is a protection
+# against losing the clock data in Redis, so that partitions arriving after
+# data loss are not automatically treated as "the minimum", and incorrectly
+# bump the clock to beyond the actual minimum partition timestamp.
+#
+# Enable this if you want to un-stall the monitors clock. Be aware
+# that doing so could result in an incorrect fast-forwarded monitor
+# clock time, since the clock will no longer wait to assess the actual minimum
+# time from the full partition set.
+register(
+    "crons.clock_tick.disable_hold_on_missing_partitions",
+    default=True,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -3690,6 +3693,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Whether the data source by detector and source id cache is enabled
+# When disabled, detector handlers query directly instead of using the cache
+register(
+    "workflow_engine.data_source_by_detector_and_source_id_cache.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
 # table.
@@ -3715,6 +3727,30 @@ register(
     "uptime.create-issues",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Kill switch for the scheduled Redis/Postgres uptime config drift sweep.
+register(
+    "uptime.config-drift.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Hours one full drift sweep is spread across, i.e. how stale drift may be before it is seen.
+register(
+    "uptime.config-drift.cycle-hours",
+    type=Int,
+    default=24,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Whether the drift sweep republishes the configs it finds missing, rather than only counting them.
+register(
+    "uptime.config-drift.repair",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4160,15 +4196,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# SCM
-
-register(
-    "sentry.scm.stream.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
 # human feedback resets the streak. See ``automated_iteration_cap_reached``.
 register(
@@ -4416,5 +4443,21 @@ register(
     "preprod.snapshots.objectstore.snapshots-usecase.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# How far back the ingestion delay measurement window reaches, in minutes.
+register(
+    "ingestion-delay.measurement-lookback-minutes",
+    type=Int,
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# How long an ingestion delay measurement is cached, in seconds. 0 disables the cache.
+register(
+    "ingestion-delay.measurement-cache-seconds",
+    type=Int,
+    default=30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

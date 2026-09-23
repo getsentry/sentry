@@ -145,10 +145,6 @@ export function WidgetPreview({
       }
       widgetLegendState={widgetLegendState}
       onDataFetched={onDataFetched}
-      // TODO: This requires the current widget ID and a helper to update the
-      // dashboard state to be added
-      onWidgetSplitDecision={() => {}}
-      // onWidgetSplitDecision={onWidgetSplitDecision}
       tableItemLimit={widget.limit ?? undefined}
       showConfidenceWarning={
         widget.widgetType === WidgetType.SPANS ||

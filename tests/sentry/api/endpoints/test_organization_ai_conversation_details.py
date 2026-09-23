@@ -640,6 +640,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             cost=0.0025,
             user_id="user-123",
             user_email="test@example.com",
+            origin="auto.otlp.spans",
         )
 
         query = {
@@ -671,6 +672,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.cost.total_tokens"] == 0.0025
         assert span["user.id"] == "user-123"
         assert span["user.email"] == "test@example.com"
+        assert span["origin"] == "auto.otlp.spans"
 
     def test_pagination(self) -> None:
         now = before_now(days=5).replace(microsecond=0)

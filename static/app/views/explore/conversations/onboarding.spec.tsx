@@ -6,6 +6,8 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -62,13 +64,19 @@ describe('ConversationOnboarding', () => {
 
   it('copies the full prompt and lets users expand its preview', async () => {
     const {organization, project} = setupProject('node');
+    const tracking = jest.fn();
     const prompt = getAgentSetupPrompt({
       organizationSlug: organization.slug,
       project,
       dsn: ProjectKeysFixture()[0].dsn.public,
     });
 
-    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {
+      organization,
+      additionalWrapper: ({children}) => (
+        <TrackingContextProvider value={tracking}>{children}</TrackingContextProvider>
+      ),
+    });
 
     expect(
       await screen.findByRole('tab', {name: 'For your agent', selected: true})
@@ -77,10 +85,12 @@ describe('ConversationOnboarding', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prompt);
-    expect(trackAnalytics).toHaveBeenCalledWith('conversations.onboarding.interaction', {
-      organization,
-      action: 'copy_agent_prompt',
-    });
+    expect(tracking).toHaveBeenCalledWith(
+      expect.objectContaining({
+        analyticsEventKey: 'conversations.onboarding.interaction',
+        analyticsParams: expect.objectContaining({action: 'copy_agent_prompt'}),
+      })
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Show More'}));
     await userEvent.click(screen.getByRole('button', {name: 'Show Less'}));
@@ -122,24 +132,27 @@ describe('ConversationOnboarding', () => {
     );
   });
 
-  it('uses the same agent setup for unsupported platforms', async () => {
-    const {organization, project} = setupProject('other');
-    const prompt = getAgentSetupPrompt({
-      organizationSlug: organization.slug,
-      project,
-      dsn: ProjectKeysFixture()[0].dsn.public,
-    });
+  it.each(['other', 'javascript'] as const)(
+    'uses the same agent setup for unsupported platform %s',
+    async platform => {
+      const {organization, project} = setupProject(platform);
+      const prompt = getAgentSetupPrompt({
+        organizationSlug: organization.slug,
+        project,
+        dsn: ProjectKeysFixture()[0].dsn.public,
+      });
 
-    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+      render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Copy prompt'}));
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prompt);
-    expect(screen.getByText(prompt, {collapseWhitespace: false})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'For you'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
-  });
+      await userEvent.click(await screen.findByRole('button', {name: 'Copy prompt'}));
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prompt);
+      expect(screen.getByText(prompt, {collapseWhitespace: false})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'For you'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    }
+  );
 
   it.each([
     {platform: 'node', linkName: 'documentation'},
@@ -178,6 +191,66 @@ describe('ConversationOnboarding', () => {
       (await screen.findAllByText(textWithMarkupMatcher(/npm install @sentry\/node/)))
         .length
     ).toBeGreaterThan(0);
+  });
+
+  it('shows manual instrumentation guidance for a browser project without a DSN', async () => {
+    const {organization, project} = setupProject('javascript');
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      body: [],
+    });
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {integration: 'openai', deploymentTarget: 'cloudflare'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByRole('tab', {name: 'For you', selected: true})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /Auto instrumentation isn't available for Browser JavaScript,/
+        )
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /manually instrument/i})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
+    );
+    expect(
+      screen.getByRole('button', {name: 'Copy Prompt for AI Agent'})
+    ).toBeInTheDocument();
+  });
+
+  it('prefers a supported project over a selected browser project', async () => {
+    const {organization, project} = setupProject('javascript-nextjs');
+    const browserProject = ProjectFixture({
+      id: '100',
+      slug: 'browser-project',
+      platform: 'javascript',
+    });
+    ProjectsStore.loadInitialData([browserProject, project]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(browserProject.id), Number(project.id)]}),
+      false
+    );
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(`Set up the Sentry SDK for ${project.slug}`)
+      )
+    ).toBeInTheDocument();
   });
 
   it('pins Cloudflare projects to the Cloudflare runtime with no Node toggle', async () => {
@@ -311,7 +384,7 @@ describe('ConversationOnboarding', () => {
     expect(screen.getByText('Identify Users (optional)')).toBeInTheDocument();
   });
 
-  it('tracks AI prompt copy for conversations onboarding', async () => {
+  it('does not track setup instructions as an AI prompt copy', async () => {
     const {organization} = setupProject('node');
 
     render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
@@ -320,14 +393,8 @@ describe('ConversationOnboarding', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Copy instructions'}));
 
     expect(trackAnalytics).not.toHaveBeenCalledWith(
-      'conversations.onboarding.interaction',
-      expect.objectContaining({action: 'copy_agent_prompt'})
+      'onboarding.ai_prompt_copied',
+      expect.anything()
     );
-    expect(trackAnalytics).toHaveBeenCalledWith('onboarding.ai_prompt_copied', {
-      organization,
-      platform: 'node',
-      product: 'conversations',
-      source: 'prompt',
-    });
   });
 });

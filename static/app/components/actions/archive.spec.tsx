@@ -62,7 +62,10 @@ describe('ArchiveActions', () => {
 
   it('disables button and dropdown', async () => {
     render(<ArchiveActions onUpdate={onUpdate} disabled />);
-    expect(screen.getByRole('button', {name: 'Archive'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Archive'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(screen.getByRole('button', {name: 'Archive options'})).toBeDisabled();
     await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
     expect(onUpdate).not.toHaveBeenCalled();

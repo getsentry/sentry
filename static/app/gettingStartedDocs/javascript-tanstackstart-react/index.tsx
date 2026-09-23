@@ -1,8 +1,8 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/javascript/agentMonitoring';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
 import {mcp} from './mcp';
 import {onboarding} from './onboarding';
@@ -18,8 +18,7 @@ export const docs: Docs = {
   }),
   agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/tanstackstart-react',
-    clientConfigFileName: 'src/instrument.client.ts',
-    serverConfigFileName: 'app/ssr.tsx',
+    configFileName: 'app/ssr.tsx',
   }),
   logsOnboarding: logsFullStack({
     docsPlatform: 'tanstackstart-react',

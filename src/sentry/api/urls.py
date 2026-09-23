@@ -139,7 +139,6 @@ from sentry.core.endpoints.team_unresolved_issue_age import TeamUnresolvedIssueA
 from sentry.dashboards.endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
     OrganizationDashboardFavoriteEndpoint,
-    OrganizationDashboardHiddenEndpoint,
     OrganizationDashboardVisitEndpoint,
 )
 from sentry.dashboards.endpoints.organization_dashboard_generate import (
@@ -701,6 +700,7 @@ from sentry.users.api.endpoints.user_authenticator_enroll import UserAuthenticat
 from sentry.users.api.endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
 from sentry.users.api.endpoints.user_avatar import UserAvatarEndpoint
 from sentry.users.api.endpoints.user_details import UserDetailsEndpoint
+from sentry.users.api.endpoints.user_display_preferences import UserDisplayPreferencesEndpoint
 from sentry.users.api.endpoints.user_emails import UserEmailsEndpoint
 from sentry.users.api.endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
 from sentry.users.api.endpoints.user_identity import UserIdentityEndpoint
@@ -716,10 +716,6 @@ from sentry.users.api.endpoints.user_permission_details import UserPermissionDet
 from sentry.users.api.endpoints.user_permissions import UserPermissionsEndpoint
 from sentry.users.api.endpoints.user_permissions_config import UserPermissionsConfigEndpoint
 from sentry.users.api.endpoints.user_regions import UserRegionsEndpoint
-from sentry.users.api.endpoints.user_role_details import UserUserRoleDetailsEndpoint
-from sentry.users.api.endpoints.user_roles import UserUserRolesEndpoint
-from sentry.users.api.endpoints.userroles_details import UserRoleDetailsEndpoint
-from sentry.users.api.endpoints.userroles_index import UserRolesEndpoint
 from sentry.workflow_engine.endpoints import urls as workflow_urls
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
@@ -739,6 +735,7 @@ from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_organization_config import AuthOrganizationConfigEndpoint
+from .endpoints.auth_organization_demo_login import AuthDemoLoginEndpoint
 from .endpoints.auth_recovery import AuthRecoveryConfirmEndpoint, AuthRecoveryEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
@@ -1106,6 +1103,11 @@ AUTH_URLS = [
         name="sentry-api-0-auth-login",
     ),
     re_path(
+        r"^organizations/(?P<organization_id_or_slug>[^/]+)/demo/$",
+        AuthDemoLoginEndpoint.as_view(),
+        name="sentry-api-0-auth-demo-login",
+    ),
+    re_path(
         r"^organizations/(?P<organization_id_or_slug>[^/]+)/config/$",
         AuthOrganizationConfigEndpoint.as_view(),
         name="sentry-api-0-auth-organization-config",
@@ -1278,6 +1280,11 @@ USER_URLS = [
         name="sentry-api-0-user-authenticator-details",
     ),
     re_path(
+        r"^(?P<user_id>[^/]+)/display-preferences/$",
+        UserDisplayPreferencesEndpoint.as_view(),
+        name="sentry-api-0-user-display-preferences",
+    ),
+    re_path(
         r"^(?P<user_id>[^/]+)/emails/$",
         UserEmailsEndpoint.as_view(),
         name="sentry-api-0-user-emails",
@@ -1353,16 +1360,6 @@ USER_URLS = [
         name="sentry-api-0-user-permission-details",
     ),
     re_path(
-        r"^(?P<user_id>[^/]+)/roles/$",
-        UserUserRolesEndpoint.as_view(),
-        name="sentry-api-0-user-userroles",
-    ),
-    re_path(
-        r"^(?P<user_id>[^/]+)/roles/(?P<role_name>[^/]+)/$",
-        UserUserRoleDetailsEndpoint.as_view(),
-        name="sentry-api-0-user-userrole-details",
-    ),
-    re_path(
         r"^(?P<user_id>[^/]+)/subscriptions/$",
         UserSubscriptionsEndpoint.as_view(),
         name="sentry-api-0-user-subscriptions",
@@ -1381,19 +1378,6 @@ USER_URLS = [
         r"^(?P<user_id>[^/]+)/user-identities/(?P<category>[\w-]+)/(?P<identity_id>[^/]+)/$",
         UserIdentityConfigDetailsEndpoint.as_view(),
         name="sentry-api-0-user-identity-config-details",
-    ),
-]
-
-USER_ROLE_URLS = [
-    re_path(
-        r"^$",
-        UserRolesEndpoint.as_view(),
-        name="sentry-api-0-userroles",
-    ),
-    re_path(
-        r"^(?P<role_name>[^/]+)/$",
-        UserRoleDetailsEndpoint.as_view(),
-        name="sentry-api-0-userroles-details",
     ),
 ]
 
@@ -1675,11 +1659,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/favorite/$",
         OrganizationDashboardFavoriteEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-favorite",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/hidden/$",
-        OrganizationDashboardHiddenEndpoint.as_view(),
-        name="sentry-api-0-organization-dashboard-hidden",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/revisions/$",
@@ -3893,11 +3872,6 @@ urlpatterns = [
     re_path(
         r"^users/",
         include(USER_URLS),
-    ),
-    # UserRoles
-    re_path(
-        r"^userroles/",
-        include(USER_ROLE_URLS),
     ),
     # Sentry Apps
     re_path(

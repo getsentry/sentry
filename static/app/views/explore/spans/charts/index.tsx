@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -25,6 +26,7 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {DroppedDataPanelContent} from 'sentry/views/explore/components/chart/droppedDataBand/droppedDataPanelContent';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
@@ -172,11 +174,18 @@ function Chart({
   const organization = useOrganization();
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const droppedData = organization.features.includes('explore-data-fidelity-annotations')
-    ? timeseriesResult.meta?.annotations
+  const hasAnnotations = organization.features.includes(
+    'explore-data-fidelity-annotations'
+  );
+  const droppedData = hasAnnotations
+    ? timeseriesResult.meta?.droppedAnnotations
+    : undefined;
+  const acceptedData = hasAnnotations
+    ? timeseriesResult.meta?.acceptedAnnotations
     : undefined;
   const hasDroppedData = defined(droppedData) && droppedData.length > 0;
   const [showDroppedData, setShowDroppedData] = useState(true);
+  const {openDrawer} = useDrawer();
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
@@ -366,8 +375,20 @@ function Chart({
             <ChartVisualization
               chartInfo={chartInfo}
               chartRef={chartRef}
+              acceptedData={acceptedData}
               droppedData={droppedData}
               showDroppedData={showDroppedData}
+              onDroppedDataClick={() => {
+                if (!hasDroppedData) {
+                  return;
+                }
+                openDrawer(
+                  () => <DroppedDataPanelContent droppedDataAnnotations={droppedData} />,
+                  {
+                    ariaLabel: t('Dropped Data'),
+                  }
+                );
+              }}
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,
                 onSelectionEnd: () => {

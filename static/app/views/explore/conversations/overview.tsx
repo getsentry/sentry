@@ -44,6 +44,7 @@ import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {
@@ -91,11 +92,12 @@ function ConversationsOverviewPage() {
     isLoading: isOnboardingLoading,
     refetch: refetchOnboarding,
   } = useShowConversationOnboarding();
+  const conversationsResult = useConversations();
   const {
     data: conversations,
     isFetching: isConversationsFetching,
     error: conversationsError,
-  } = useConversations();
+  } = conversationsResult;
   const showMissingMessagesAlert =
     !isConversationsFetching &&
     !conversationsError &&
@@ -124,6 +126,10 @@ function ConversationsOverviewPage() {
     SPANS_CURSOR_URL_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
+
+  const [pageId] = useQueryState('id', parseAsString.withOptions({history: 'replace'}));
+  useVisitQuery(pageId ?? undefined);
+
   const {unsetCursor} = useTableCursor();
 
   const handleTabChange = useCallback(
@@ -239,11 +245,10 @@ function ConversationsOverviewPage() {
     content = (
       <Fragment>
         {hasAgenticSpans && <AgentsCharts />}
-        {isConversationsTab && showMissingMessagesAlert && (
-          <ConversationMissingMessagesAlert />
-        )}
+        {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
         <AgentsTable
           activeTab={activeTab}
+          conversations={conversationsResult}
           hasAgenticSpans={hasAgenticSpans}
           hasConversations={hasConversations}
           onConversationOnboardingDismiss={refetchOnboarding}
@@ -258,7 +263,7 @@ function ConversationsOverviewPage() {
       <Fragment>
         {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
         <ConversationsChart />
-        <ConversationsTable />
+        <ConversationsTable conversations={conversationsResult} />
       </Fragment>
     );
   }

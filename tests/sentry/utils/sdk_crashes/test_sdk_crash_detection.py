@@ -18,6 +18,7 @@ from sentry.testutils.issue_detection.store_transaction import store_transaction
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import (
+    SDKCrashReporter,
     get_hybrid_sdk,
     sdk_crash_detection,
 )
@@ -25,6 +26,7 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     SDKCrashDetectionConfig,
     build_sdk_crash_detection_configs,
 )
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, viewer_context_scope
 
 
 @override_options(
@@ -94,6 +96,42 @@ def test_get_hybrid_sdk_rejects_ambiguous_versions(packages: object) -> None:
 
 def test_get_hybrid_sdk_exits_early_without_configured_packages() -> None:
     assert get_hybrid_sdk("sentry.cocoa.flutter", object(), {}) is None
+
+
+class SDKCrashReporterTest(TestCase):
+    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.EventManager")
+    def test_report_uses_destination_project_viewer_context(
+        self, mock_event_manager: MagicMock
+    ) -> None:
+        source_project = self.create_project()
+        destination_project = self.create_project()
+        source_context = ViewerContext(
+            organization_id=source_project.organization_id,
+            project_id=source_project.id,
+            actor_type=ActorType.SYSTEM,
+        )
+        destination_context = ViewerContext(
+            organization_id=destination_project.organization_id,
+            project_id=destination_project.id,
+            actor_type=ActorType.SYSTEM,
+        )
+        reported_event = MagicMock(spec=Event)
+
+        def save_event(*, project):
+            assert get_viewer_context() == destination_context
+            assert project == destination_project
+            return reported_event
+
+        mock_event_manager.return_value.save.side_effect = save_event
+
+        with viewer_context_scope(source_context):
+            result = SDKCrashReporter().report({}, destination_project.id)
+            assert get_viewer_context() == source_context
+
+        assert result is reported_event
+        assert get_viewer_context() is None
+        mock_event_manager.assert_called_once_with({})
+        mock_event_manager.return_value.normalize.assert_called_once_with()
 
 
 @django_db_all

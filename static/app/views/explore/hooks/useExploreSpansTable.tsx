@@ -121,7 +121,7 @@ export function useExploreSpansTable({
   );
 
   const spansTableResult = useProgressiveQuery<typeof useExploreSpansTableImp>({
-    queryHookImplementation: useExploreSpansTableImp,
+    queryHookImplementation: useExploreSpansTableImp, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {
       cursor: visibleSamples ? '' : undefined,
       enabled,

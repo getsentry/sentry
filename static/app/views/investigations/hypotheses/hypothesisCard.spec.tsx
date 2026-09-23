@@ -7,6 +7,39 @@ import {
 import {HypothesisCard} from 'sentry/views/investigations/hypotheses/hypothesisCard';
 
 describe('HypothesisCard', () => {
+  it.each(['pending', 'investigating'] as const)(
+    'holds space for the checks of a hypothesis that is still %s',
+    effectiveStatus => {
+      render(
+        <HypothesisCard
+          hypothesis={InvestigationHypothesisFixture({
+            effectiveStatus,
+            verificationSteps: [],
+          })}
+        />
+      );
+
+      expect(
+        screen.getByTestId('investigation-hypothesis-evidence-pending')
+      ).toBeInTheDocument();
+    }
+  );
+
+  it('draws no evidence rows for a hypothesis that settled without checks', () => {
+    render(
+      <HypothesisCard
+        hypothesis={InvestigationHypothesisFixture({
+          effectiveStatus: 'refuted',
+          verificationSteps: [],
+        })}
+      />
+    );
+
+    expect(
+      screen.queryByTestId('investigation-hypothesis-evidence-pending')
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the statement, rationale, and one-based ordinal', () => {
     render(
       <HypothesisCard
@@ -28,7 +61,7 @@ describe('HypothesisCard', () => {
     expect(screen.getByText('Hypothesis 2')).toBeInTheDocument();
   });
 
-  it('shows confidence once the agent has reached a verdict', () => {
+  it('shows the verdict as a tag without confidence', () => {
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({
@@ -38,10 +71,11 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByText('Supported · 86% Confidence')).toBeInTheDocument();
+    expect(screen.getByTestId('hypothesis-status')).toHaveTextContent('Supported');
+    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
   });
 
-  it('falls back to the verdict confidence when the hypothesis omits it', () => {
+  it('omits confidence stored on the agent verdict', () => {
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({
@@ -59,7 +93,8 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByText('Inconclusive · 34% Confidence')).toBeInTheDocument();
+    expect(screen.getByTestId('hypothesis-status')).toHaveTextContent('Inconclusive');
+    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
   });
 
   it('omits confidence while the hypothesis is still in flight', () => {
@@ -114,13 +149,12 @@ describe('HypothesisCard', () => {
       />
     );
 
-    // Scoped, because "Evidence checked" is also the heading over the steps.
     expect(
       within(screen.getByTestId('hypothesis-status')).getByText(label)
     ).toBeInTheDocument();
   });
 
-  it('lists verification steps in order with their results', () => {
+  it('lists only verification titles in order without an evidence heading', () => {
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({
@@ -142,90 +176,94 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByText('Evidence checked')).toBeInTheDocument();
+    expect(screen.queryByText('Evidence checked')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ran first.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ran second.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /check/})).not.toBeInTheDocument();
     // The only list inside a card is the evidence list; the card itself is an
     // `li` belonging to the surrounding hypothesis row.
     const steps = within(screen.getByRole('list')).getAllByRole('listitem');
-    expect(steps[0]).toHaveTextContent('First check');
-    expect(steps[1]).toHaveTextContent('Second check');
+    expect(steps[0]).toHaveTextContent(/^First check$/);
+    expect(steps[1]).toHaveTextContent(/^Second check$/);
   });
 
-  // The summary is the toggle's children rather than a label sitting beside a
-  // chevron-only button, so the whole row opens the step.
-  it('makes the whole row of a step that has run the toggle', async () => {
-    render(
-      <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          verificationSteps: [
-            InvestigationVerificationStepFixture({
-              title: 'Compare FCP with server response time',
-              result: 'The delay begins before the document reaches the browser.',
-              objective: 'Establish where the delay starts.',
-            }),
-          ],
-        })}
-      />
-    );
-
-    const toggle = screen.getByRole('button', {
-      name: /Compare FCP with server response time/,
+  it('moves the current timeline marker as verification progresses', () => {
+    const first = InvestigationVerificationStepFixture({
+      id: 'first',
+      title: 'Compare authentication route latency',
+      status: 'running',
+      result: null,
     });
-    expect(toggle).toHaveTextContent(
-      'The delay begins before the document reaches the browser.'
-    );
-    expect(screen.getByText('Establish where the delay starts.')).not.toBeVisible();
+    const second = InvestigationVerificationStepFixture({
+      id: 'second',
+      order: 1,
+      title: 'Inspect middleware and session spans',
+      status: 'queued',
+      result: null,
+    });
+    const hypothesis = InvestigationHypothesisFixture({
+      effectiveStatus: 'investigating',
+      status: 'running',
+      verificationSteps: [first, second],
+    });
+    const {rerender} = render(<HypothesisCard hypothesis={hypothesis} />);
+    const steps = within(screen.getByRole('list', {name: 'Verification steps'}));
 
-    // Clicking the result line — the far side of the row from the chevron —
-    // still toggles, because it is inside the button.
-    await userEvent.click(
-      screen.getByText('The delay begins before the document reaches the browser.')
+    expect(steps.getByRole('listitem', {current: 'step'})).toHaveTextContent(first.title);
+    expect(screen.queryByText('Awaiting evidence')).not.toBeInTheDocument();
+
+    rerender(
+      <HypothesisCard
+        hypothesis={{
+          ...hypothesis,
+          verificationSteps: [
+            {...first, status: 'completed', result: 'Latency compared.'},
+            {...second, status: 'running'},
+          ],
+        }}
+      />
     );
 
-    expect(screen.getByText('Establish where the delay starts.')).toBeVisible();
+    expect(steps.getAllByRole('listitem', {current: 'step'})).toHaveLength(1);
+    expect(steps.getByRole('listitem', {current: 'step'})).toHaveTextContent(
+      second.title
+    );
+    expect(screen.queryByText('Latency compared.')).not.toBeInTheDocument();
   });
 
-  it('leaves a step with nothing to unpack unopenable', () => {
+  it.each([
+    'not_started',
+    'queued',
+    'blocked',
+    'reauth_required',
+    'stalled',
+    'completed',
+    'failed',
+    'cancelled',
+    'future_status',
+  ])('does not mark a %s step as currently running', status => {
+    render(
+      <HypothesisCard
+        hypothesis={InvestigationHypothesisFixture({
+          verificationSteps: [InvestigationVerificationStepFixture({status})],
+        })}
+      />
+    );
+
+    expect(screen.queryByRole('listitem', {current: 'step'})).not.toBeInTheDocument();
+  });
+
+  it('keeps failed steps title-only', () => {
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({
           verificationSteps: [
             InvestigationVerificationStepFixture({
-              title: 'Compare FCP with server response time',
-              status: 'running',
-              result: null,
-            }),
-          ],
-        })}
-      />
-    );
-
-    expect(
-      screen.queryByRole('button', {name: /Compare FCP with server response time/})
-    ).not.toBeInTheDocument();
-  });
-
-  it('describes a step that has not produced a result yet', () => {
-    render(
-      <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          verificationSteps: [
-            InvestigationVerificationStepFixture({status: 'running', result: null}),
-          ],
-        })}
-      />
-    );
-
-    expect(screen.getByText('Awaiting evidence')).toBeInTheDocument();
-  });
-
-  it("prefers a failed step's error message over the generic failure label", () => {
-    render(
-      <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          verificationSteps: [
-            InvestigationVerificationStepFixture({
+              title: 'Compare error rates',
               status: 'failed',
               result: null,
+              objective: 'Check the incident window.',
+              method: 'Compare error counts.',
               error: {
                 code: 'timeout',
                 message: 'The query timed out.',
@@ -237,8 +275,10 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByText('The query timed out.')).toBeInTheDocument();
-    expect(screen.queryByText('This check failed.')).not.toBeInTheDocument();
+    expect(screen.getByText('Compare error rates')).toBeInTheDocument();
+    expect(screen.queryByText('The query timed out.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Check the incident window.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Compare error counts.')).not.toBeInTheDocument();
   });
 
   it('surfaces a hypothesis-level error', () => {
@@ -286,14 +326,14 @@ describe('HypothesisCard', () => {
     );
   });
 
-  it('hides the evidence section when there are no steps', () => {
+  it('hides the timeline when there are no steps', () => {
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({verificationSteps: []})}
       />
     );
 
-    expect(screen.queryByText('Evidence checked')).not.toBeInTheDocument();
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 
   it('renders no overflow menu without actions', () => {

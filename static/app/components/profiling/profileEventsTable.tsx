@@ -37,7 +37,7 @@ import {
   useDomainViewFilters,
   type DomainView,
 } from 'sentry/views/insights/pages/useFilters';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 
 interface ProfileEventsTableProps<F extends FieldType> {

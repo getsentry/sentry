@@ -49,6 +49,7 @@ function ProjectCardList({projects}: {projects: Project[]}) {
   // This forceCheck call is necessary to recalculate when filtering projects
   useEffect(() => {
     forceCheck();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [projects]);
 
   return (
