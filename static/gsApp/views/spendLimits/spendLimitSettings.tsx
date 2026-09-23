@@ -32,10 +32,7 @@ import {
 import {PerformanceHovercard} from 'getsentry/views/amCheckout/components/volumeSliders';
 import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/productSelect';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
-import {
-  BudgetModeSettings,
-  type BudgetModeSettingsProps,
-} from 'getsentry/views/spendLimits/budgetModeSettings';
+import {BudgetModeSettings} from 'getsentry/views/spendLimits/budgetModeSettings';
 import {
   formatPaygPricePerUnit,
   getPaygPricePerUnit,
@@ -44,7 +41,6 @@ import {SharedSpendLimitPriceTable} from 'getsentry/views/spendLimits/sharedSpen
 import {
   SpendLimitInput,
   type PartialSpendLimitUpdate,
-  type SpendLimitInputProps,
 } from 'getsentry/views/spendLimits/spendLimitInput';
 
 const LARGE_INPUT_WIDTH = '300px';
@@ -59,8 +55,6 @@ export interface SpendLimitSettingsProps {
   organization: Organization;
   subscription: Subscription;
   footer?: React.ReactNode;
-  renderBudgetModeSettings?: (props: BudgetModeSettingsProps) => React.ReactNode;
-  renderInput?: (props: SpendLimitInputProps) => React.ReactNode;
 }
 
 interface InnerSpendLimitSettingsProps extends Omit<
@@ -91,7 +85,6 @@ function InnerSpendLimitSettings({
   currentReserved,
   addOns,
   organization,
-  renderInput,
 }: InnerSpendLimitSettingsProps) {
   const includedAddOns = Object.entries(addOns)
     .filter(([apiName, addOn]) => {
@@ -119,8 +112,6 @@ function InnerSpendLimitSettings({
     onUpdate({onDemandBudgets: {...onDemandBudgets, ...newData}});
   }
 
-  const hasCustomSharedSpendLimitSection =
-    renderInput !== undefined && onDemandBudgets.budgetMode === OnDemandBudgetMode.SHARED;
   let inputs: React.ReactNode;
 
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
@@ -216,25 +207,14 @@ function InnerSpendLimitSettings({
                   </Text>
                 </Stack>
                 {hasPerCategory ? (
-                  renderInput ? (
-                    renderInput({
-                      activePlan,
-                      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-                      category,
-                      currentSpendingLimit: currentBudget,
-                      onUpdate: handleUpdate,
-                      reserved,
-                    })
-                  ) : (
-                    <SpendLimitInput
-                      activePlan={activePlan}
-                      budgetMode={OnDemandBudgetMode.PER_CATEGORY}
-                      category={category}
-                      currentSpendingLimit={currentBudget}
-                      onUpdate={handleUpdate}
-                      reserved={reserved}
-                    />
-                  )
+                  <SpendLimitInput
+                    activePlan={activePlan}
+                    budgetMode={OnDemandBudgetMode.PER_CATEGORY}
+                    category={category}
+                    currentSpendingLimit={currentBudget}
+                    onUpdate={handleUpdate}
+                    reserved={reserved}
+                  />
                 ) : (
                   <PerCategoryWarning productName={productName} />
                 )}
@@ -298,34 +278,21 @@ function InnerSpendLimitSettings({
     inputs = (
       <Fragment>
         <Stack gap="lg" padding="0 xl sm">
-          {renderInput ? (
-            renderInput({
-              activePlan,
-              budgetMode: OnDemandBudgetMode.SHARED,
-              category: null,
-              currentSpendingLimit: onDemandBudgets.sharedMaxBudget ?? 0,
-              onUpdate: handleUpdate,
-              reserved: null,
-            })
-          ) : (
-            <SpendLimitInput
-              activePlan={activePlan}
-              budgetMode={OnDemandBudgetMode.SHARED}
-              category={null}
-              currentSpendingLimit={onDemandBudgets.sharedMaxBudget ?? 0}
-              onUpdate={handleUpdate}
-              reserved={null}
-            />
-          )}
-          {!hasCustomSharedSpendLimitSection && (
-            <Container width={{zero: '100%', xl: LARGE_INPUT_WIDTH}}>
-              <Text variant="muted" size="sm">
-                {t(
-                  'Charges are applied at the end of your usage cycle, and your limit can be adjusted at anytime.'
-                )}
-              </Text>
-            </Container>
-          )}
+          <SpendLimitInput
+            activePlan={activePlan}
+            budgetMode={OnDemandBudgetMode.SHARED}
+            category={null}
+            currentSpendingLimit={onDemandBudgets.sharedMaxBudget ?? 0}
+            onUpdate={handleUpdate}
+            reserved={null}
+          />
+          <Container width={{zero: '100%', xl: LARGE_INPUT_WIDTH}}>
+            <Text variant="muted" size="sm">
+              {t(
+                'Charges are applied at the end of your usage cycle, and your limit can be adjusted at anytime.'
+              )}
+            </Text>
+          </Container>
         </Stack>
         <SharedSpendLimitPriceTable
           activePlan={activePlan}
@@ -339,19 +306,17 @@ function InnerSpendLimitSettings({
 
   return (
     <Stack gap="lg">
-      {!hasCustomSharedSpendLimitSection && (
-        <Container padding="xl xl 0">
-          <Heading as="h2" size="lg">
-            {tct('Monthly spending [limitTerm]', {
-              budgetMode: onDemandBudgets.budgetMode.replace('_', '-'),
-              limitTerm:
-                onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY
-                  ? 'limits'
-                  : 'limit',
-            })}
-          </Heading>
-        </Container>
-      )}
+      <Container padding="xl xl 0">
+        <Heading as="h2" size="lg">
+          {tct('Monthly spending [limitTerm]', {
+            budgetMode: onDemandBudgets.budgetMode.replace('_', '-'),
+            limitTerm:
+              onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+                ? 'limits'
+                : 'limit',
+          })}
+        </Heading>
+      </Container>
       {inputs}
     </Stack>
   );
@@ -367,10 +332,7 @@ export function SpendLimitSettings({
   footer,
   organization,
   subscription,
-  renderBudgetModeSettings,
-  renderInput,
 }: SpendLimitSettingsProps) {
-  const budgetModeSettingsProps = {activePlan, onDemandBudgets, onUpdate};
   return (
     <Stack gap="sm">
       {header}
@@ -391,11 +353,11 @@ export function SpendLimitSettings({
             }
           )}
         </Text>
-        {renderBudgetModeSettings ? (
-          renderBudgetModeSettings(budgetModeSettingsProps)
-        ) : (
-          <BudgetModeSettings {...budgetModeSettingsProps} />
-        )}
+        <BudgetModeSettings
+          activePlan={activePlan}
+          onDemandBudgets={onDemandBudgets}
+          onUpdate={onUpdate}
+        />
         <Stack gap="xl" border="primary" radius="md" overflow="hidden">
           <InnerSpendLimitSettings
             activePlan={activePlan}
@@ -404,7 +366,6 @@ export function SpendLimitSettings({
             currentReserved={currentReserved}
             addOns={addOns}
             organization={organization}
-            renderInput={renderInput}
           />
           {footer}
         </Stack>

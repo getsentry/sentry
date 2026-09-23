@@ -80,6 +80,7 @@ export function BillingCycleSelectCard({
 
   return (
     <CheckoutOption
+      dataTestId={`billing-cycle-option-${plan.billingInterval}`}
       isSelected={isSelected}
       onClick={onCycleSelect}
       ariaLabel={t('%s billing cycle', intervalName)}

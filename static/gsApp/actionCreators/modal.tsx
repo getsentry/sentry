@@ -84,7 +84,7 @@ export async function openOnDemandBudgetEditModal(
 
 const onDemandBudgetEditModalCss = (theme: Theme) => css`
   @media (min-width: ${theme.breakpoints.md}) {
-    width: 800px;
+    width: 1000px;
   }
 `;
 
