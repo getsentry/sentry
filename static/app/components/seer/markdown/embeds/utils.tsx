@@ -37,7 +37,11 @@ function reportInvalidEmbed(name: string, issues: readonly z.core.$ZodIssue[]) {
   Sentry.withScope(scope => {
     scope.setLevel('warning');
     scope.setTag('seer_embed.name', name);
-    scope.setExtra('issues', issues);
+    // Flatten `path` so the default normalize depth doesn't reduce it to "[Array]".
+    scope.setExtra(
+      'issues',
+      issues.map(({code, message, path}) => ({code, message, path: path.join('.')}))
+    );
     scope.setFingerprint(['seer-embed-invalid-props', name]);
     Sentry.captureException(new Error(`[SeerEmbed] ${name}: invalid props`));
   });
