@@ -1,9 +1,12 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
+import sortBy from 'lodash/sortBy';
+
+import {Container, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import type {StructedEventDataConfig} from 'sentry/components/structuredEventData';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
-import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
-import type {KeyValueListData} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 
 type Props = {
@@ -84,34 +87,65 @@ const getStructuredDataConfig = ({
 };
 
 export function FrameVariables({data, meta, platform}: Props) {
-  const transformedData = useMemo<KeyValueListData>(() => {
-    const config = getStructuredDataConfig({platform});
-    if (!data) {
-      return [];
-    }
+  const keys = useMemo(
+    () => (data ? sortBy(Object.keys(data).reverse(), key => key.toLowerCase()) : []),
+    [data]
+  );
 
-    return Object.keys(data)
-      .reverse()
-      .map<KeyValueListData[number]>(key => ({
-        key,
-        subject: key,
-        value: (
-          <StructuredEventData
-            config={config}
-            data={data[key]}
-            meta={meta?.[key]}
-            withAnnotatedText
-          />
-        ),
-      }));
-  }, [data, meta, platform]);
+  if (!data || keys.length === 0) {
+    return null;
+  }
+
+  const config = getStructuredDataConfig({platform});
 
   return (
-    <KeyValueTableDataList
-      data={transformedData}
-      keyPadding="md 0 md xl"
-      rowDivider
-      rowPadding="md xl"
-    />
+    <Grid columns="175px minmax(0, 1fr)" gap="md" role="table" width="100%">
+      {keys.map(key => (
+        <Grid
+          key={key}
+          align="start"
+          borderTop="primary"
+          column="1 / -1"
+          columns="subgrid"
+          gap="md lg"
+          padding="md xl"
+          role="row"
+        >
+          <Container padding="md 0 md xl" role="cell">
+            <Text as="div" bold density="comfortable" wordBreak="break-word">
+              {key}
+            </Text>
+          </Container>
+          <Container minWidth="0" role="cell">
+            <StyledStructuredEventData
+              config={config}
+              data={data[key]}
+              meta={meta?.[key]}
+              withAnnotatedText
+            />
+          </Container>
+        </Grid>
+      ))}
+    </Grid>
   );
 }
+
+const StyledStructuredEventData = styled(StructuredEventData)`
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  margin: 2px 0;
+  word-break: break-word;
+  padding: 8px 10px;
+  font-size: 12px;
+  overflow: visible;
+
+  .val-string:first-child {
+    padding-left: 0;
+  }
+
+  > pre {
+    display: inline-block;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+`;

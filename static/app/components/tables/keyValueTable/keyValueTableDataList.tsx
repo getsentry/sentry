@@ -13,22 +13,16 @@ interface KeyValueTableDataListProps {
   className?: string;
   data?: KeyValueListData;
   isContextData?: boolean;
-  keyPadding?: React.ComponentProps<typeof Container>['padding'];
   margin?: boolean;
   raw?: boolean;
-  rowDivider?: boolean;
-  rowPadding?: React.ComponentProps<typeof Grid>['padding'];
   shouldSort?: boolean;
 }
 
 export function KeyValueTableDataList({
   data,
   isContextData = false,
-  keyPadding,
   shouldSort = true,
   raw = false,
-  rowDivider = false,
-  rowPadding,
   margin = false,
   className,
   ...props
@@ -54,10 +48,7 @@ export function KeyValueTableDataList({
           key={`${item.key}-${index}`}
           item={item}
           isContextData={isContextData}
-          keyPadding={keyPadding}
           raw={raw}
-          rowDivider={rowDivider}
-          rowPadding={rowPadding}
         />
       ))}
     </Grid>
@@ -67,17 +58,11 @@ export function KeyValueTableDataList({
 function Row({
   item,
   isContextData,
-  keyPadding,
   raw,
-  rowDivider,
-  rowPadding,
 }: {
   isContextData: boolean;
   item: KeyValueListDataItem;
-  keyPadding: React.ComponentProps<typeof Container>['padding'];
   raw: boolean;
-  rowDivider: boolean;
-  rowPadding: React.ComponentProps<typeof Grid>['padding'];
 }) {
   const {
     subject,
@@ -107,16 +92,8 @@ function Row({
     );
 
   return (
-    <Grid
-      align="start"
-      borderTop={rowDivider ? 'primary' : undefined}
-      column="1 / -1"
-      columns="subgrid"
-      gap="md lg"
-      padding={rowPadding}
-      role="row"
-    >
-      <Container padding={keyPadding} role="cell">
+    <Grid align="start" column="1 / -1" columns="subgrid" gap="md lg" role="row">
+      <Container role="cell">
         <Text as="div" bold density="comfortable" wordBreak="break-word">
           {subjectNode ?? subject}
         </Text>
