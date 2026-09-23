@@ -385,8 +385,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 sentry_sdk.capture_exception(e)
 
         if query:
-            # Like short IDs, a standalone event ID takes precedence over filters.
-            # Multiple distinct IDs are ambiguous, so leave them to normal search.
+            # Ignore search filters for direct hits, but don't choose between event IDs.
             event_ids = {
                 event_id for token in query.split() if (event_id := normalize_event_id(token))
             }

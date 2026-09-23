@@ -727,7 +727,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
-    def test_lookup_by_dashed_event_id_with_filter(self) -> None:
+    def test_lookup_by_event_id_formats_with_filter(self) -> None:
         event_id = uuid4()
         event = self.store_event(
             data={"event_id": event_id.hex, "timestamp": self.min_ago.isoformat()},
@@ -741,14 +741,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id.hex
 
-    def test_lookup_by_repeated_event_id_with_filter(self) -> None:
-        event_id = uuid4()
-        event = self.store_event(
-            data={"event_id": event_id.hex, "timestamp": self.min_ago.isoformat()},
-            project_id=self.project.id,
-        )
-
-        self.login_as(user=self.user)
         response = self.get_success_response(query=f"is:unresolved {event_id.hex} {event_id}")
         assert response["X-Sentry-Direct-Hit"] == "1"
         assert len(response.data) == 1
@@ -760,11 +752,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"event_id": "c" * 32, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
-        self.store_event(
-            data={"event_id": "d" * 32, "timestamp": self.min_ago.isoformat()},
-            project_id=self.project.id,
-        )
-
         self.login_as(user=self.user)
         response = self.get_success_response(query=f"is:unresolved {'c' * 32} {'d' * 32}")
         assert response.get("X-Sentry-Direct-Hit") != "1"
@@ -777,14 +764,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.login_as(user=self.user)
         response = self.get_success_response(query=f"is:unresolved transaction:{'c' * 32}")
-        assert response.get("X-Sentry-Direct-Hit") != "1"
-        assert len(response.data) == 0
-
-    def test_lookup_by_unknown_event_id_with_filter(self) -> None:
-        self.create_group()
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(query=f"is:unresolved {'c' * 32}")
         assert response.get("X-Sentry-Direct-Hit") != "1"
         assert len(response.data) == 0
 
@@ -817,6 +796,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.login_as(user=self.user)
         response = self.get_success_response(query="c" * 32)
+        assert len(response.data) == 0
+
+        response = self.get_success_response(query=f"is:unresolved {'c' * 32}")
+        assert response.get("X-Sentry-Direct-Hit") != "1"
         assert len(response.data) == 0
 
     def test_lookup_by_short_id(self) -> None:
