@@ -1,5 +1,5 @@
 import dompurify from 'dompurify';
-import type {MarkedToken, Token, Tokens} from 'marked'; // eslint-disable-line no-restricted-imports
+import type {MarkedExtension, MarkedToken, Token, Tokens} from 'marked'; // eslint-disable-line no-restricted-imports
 import {Lexer as MarkedLexer, Marked, marked} from 'marked'; // eslint-disable-line no-restricted-imports
 import {markedHighlight} from 'marked-highlight';
 import Prism from 'prismjs';
@@ -126,7 +126,7 @@ export function isInternalHref(href: string): boolean {
 /**
  * Implementation of marked. Renderer which additionally sanitizes URLs.
  */
-class SafeRenderer extends marked.Renderer {
+class SafeRenderer extends marked.Renderer<TrustedHTML, MarkedOutput> {
   link(tokens: Tokens.Link) {
     // For a bad link, just return the plain text href
     if (!isSafeHref(tokens.href)) {
@@ -187,30 +187,32 @@ const ALLOWED_TAGS = [
 
 const ALLOWED_ATTR = ['href', 'title', 'alt', 'class', 'align'];
 
-export function sanitizeHtml(html: string) {
-  // DOMPurify returns a TrustedHTML under Trusted Types and a plain string
-  // otherwise. Every caller either assigns it to innerHTML, which takes both,
-  // or lets the DOM stringify it, so the pipeline stays typed as string.
-  return dompurify.sanitize(html, {
+// Renderers may return TrustedHTML, which marked's parser concatenates into
+// one string before the postprocess hook turns it back into TrustedHTML.
+type MarkedOutput = TrustedHTML | string;
+
+export function sanitizeHtml(html: MarkedOutput): TrustedHTML {
+  // DOMPurify stringifies a TrustedHTML input itself; its types only admit
+  // strings and nodes. Without Trusted Types it returns a plain string, which
+  // every sink accepts in that case.
+  return dompurify.sanitize(html as string, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
     RETURN_TRUSTED_TYPE: true,
-  }) as unknown as string;
+  });
 }
 
-function postprocess(html: string) {
-  return sanitizeHtml(html);
-}
-
-const noHighlightingMarked = new Marked({
+const noHighlightingMarked = new Marked<TrustedHTML, MarkedOutput>({
   async: false,
   renderer: new SafeRenderer(),
   hooks: {
-    postprocess,
+    postprocess: sanitizeHtml,
   },
 });
 
-const highlightingMarked = new Marked(
+const highlightingMarked = new Marked<TrustedHTML, MarkedOutput>(
+  // marked-highlight is typed for marked's string defaults; its code renderer
+  // returns strings, which MarkedOutput already covers.
   markedHighlight({
     async: true,
     highlight: async (code, lang, _info): Promise<string> => {
@@ -249,12 +251,12 @@ const highlightingMarked = new Marked(
         });
       });
     },
-  })
+  }) as unknown as MarkedExtension<TrustedHTML, MarkedOutput>
 ).use({
   async: true,
   renderer: new SafeRenderer(),
   hooks: {
-    postprocess,
+    postprocess: sanitizeHtml,
   },
 });
 
@@ -262,7 +264,10 @@ const highlightingMarked = new Marked(
  * Renders markdown and sanitizes the output.
  * Applies syntax highlighting. See `useMarked` for use in react.
  */
-export const asyncSanitizedMarked = (src: string, inline?: boolean): Promise<string> => {
+export const asyncSanitizedMarked = (
+  src: string,
+  inline?: boolean
+): Promise<TrustedHTML> => {
   return inline
     ? highlightingMarked.parse(src, {async: true, renderer: new NoParagraphRenderer()})
     : highlightingMarked.parse(src, {async: true});
@@ -272,7 +277,7 @@ export const asyncSanitizedMarked = (src: string, inline?: boolean): Promise<str
  * Renders markdown and sanitizes the output.
  * WARNING: Does not apply any syntax highlighting.
  */
-export const sanitizedMarked = (src: string): string => {
+export const sanitizedMarked = (src: string): TrustedHTML => {
   return noHighlightingMarked.parse(src, {async: false});
 };
 
@@ -291,7 +296,7 @@ export function markdownToPlainText(src: string): string {
  * Renders a single line of markdown not wrapped in a paragraph tag.
  * WARNING: Does not apply any syntax highlighting.
  */
-export const singleLineRenderer = (text: string): string => {
+export const singleLineRenderer = (text: string): TrustedHTML => {
   // https://marked.js.org/using_advanced#inline
   return noHighlightingMarked.parse(text, {
     async: false,
