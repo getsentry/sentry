@@ -1,10 +1,11 @@
 import unittest.mock as mock
+from datetime import timedelta
 from typing import Any
-from uuid import UUID
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.types import (
     DataConditionResult,
@@ -646,7 +647,7 @@ class TestStatefulDetectorActivationId(TestCase):
 
     def activation_id(
         self, handler: MockDetectorStateHandler, group_key: DetectorGroupKey = None
-    ) -> UUID | None:
+    ) -> int | None:
         return handler.state_manager.get_state_data([group_key])[group_key].activation_id
 
     def test_detector_without_a_project__resolves_its_organization(self) -> None:
@@ -683,22 +684,34 @@ class TestStatefulDetectorActivationId(TestCase):
     def test_leaving_ok__mints_an_id(self) -> None:
         handler = RotatingDetectorStateHandler(detector=self.detector)
 
-        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+        activated_at = before_now(days=1).replace(microsecond=0)
+
+        with (
+            self.feature("organizations:workflow-engine-rotate-activation-id"),
+            freeze_time(activated_at),
+        ):
             handler.evaluate(self.packet(1, Level.HIGH))
 
-        assert self.activation_id(handler) is not None
+        assert self.activation_id(handler) == int(activated_at.timestamp() * 1000)
 
     def test_escalation_and_resolution__keep_the_id(self) -> None:
         handler = RotatingDetectorStateHandler(detector=self.detector)
 
-        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+        with (
+            self.feature("organizations:workflow-engine-rotate-activation-id"),
+            freeze_time() as frozen_time,
+        ):
             handler.evaluate(self.packet(1, Level.MEDIUM))
 
             activated = self.activation_id(handler)
 
+            frozen_time.shift(timedelta(seconds=1))
+
             handler.evaluate(self.packet(2, Level.HIGH))
 
             assert self.activation_id(handler) == activated
+
+            frozen_time.shift(timedelta(seconds=1))
 
             handler.evaluate(self.packet(3, Level.OK))
 
@@ -710,7 +723,10 @@ class TestStatefulDetectorActivationId(TestCase):
         """
         handler = RotatingDetectorStateHandler(detector=self.detector)
 
-        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+        with (
+            self.feature("organizations:workflow-engine-rotate-activation-id"),
+            freeze_time() as frozen_time,
+        ):
             handler.evaluate(self.grouped_packet(1, {"group_a": Level.HIGH, "group_b": Level.HIGH}))
 
             first_a = self.activation_id(handler, "group_a")
@@ -718,12 +734,15 @@ class TestStatefulDetectorActivationId(TestCase):
 
             assert first_a is not None
             assert first_b is not None
-            assert first_a != first_b
+
+            frozen_time.shift(timedelta(seconds=1))
 
             handler.evaluate(self.grouped_packet(2, {"group_a": Level.OK}))
 
             assert self.activation_id(handler, "group_a") == first_a
             assert self.activation_id(handler, "group_b") == first_b
+
+            frozen_time.shift(timedelta(seconds=1))
 
             handler.evaluate(self.grouped_packet(3, {"group_a": Level.HIGH}))
 
@@ -736,10 +755,15 @@ class TestStatefulDetectorActivationId(TestCase):
     def test_refiring__mints_a_new_id(self) -> None:
         handler = RotatingDetectorStateHandler(detector=self.detector)
 
-        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+        with (
+            self.feature("organizations:workflow-engine-rotate-activation-id"),
+            freeze_time() as frozen_time,
+        ):
             handler.evaluate(self.packet(1, Level.HIGH))
 
             first_activation = self.activation_id(handler)
+
+            frozen_time.shift(timedelta(seconds=1))
 
             handler.evaluate(self.packet(2, Level.OK))
             handler.evaluate(self.packet(3, Level.HIGH))
