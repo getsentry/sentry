@@ -30,7 +30,11 @@ describe('TermsAndConditions', () => {
 
   it('renders redesign changes', async () => {
     render(<TermsAndConditions {...routerProps} subscription={subscription} />);
-    expect(await screen.findByText('Terms of Service')).toBeInTheDocument();
+    // The fully loaded page is expensive to mount on a cold worker, which can
+    // exceed the default 1s findBy timeout on slow CI runners.
+    expect(
+      await screen.findByText('Terms of Service', undefined, {timeout: 5_000})
+    ).toBeInTheDocument();
 
     // Expect no text at top of 'Terms & Conditions' section
     expect(
