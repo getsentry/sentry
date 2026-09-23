@@ -3,7 +3,10 @@ import type {
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {reactNodeToText} from 'sentry/components/onboarding/utils/stepsToMarkdown';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
+import {
+  agentMonitoring,
+  getMinRequiredVersion,
+} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
 function makeParams(platformOptions: Record<string, string> = {}): DocsParams {
   return {
@@ -56,6 +59,17 @@ function collectText(steps: OnboardingStep[]): string {
 
 describe('node agentMonitoring onboarding', () => {
   const config = agentMonitoring();
+
+  it.each([
+    ['11.0.0', 'eve'],
+    ['11.0.0', 'mastra'],
+    ['10.69.0', 'cloudflare_agents'],
+    ['10.67.0', 'openai'],
+  ])('requires SDK version %s for %s', (expectedVersion, integration) => {
+    expect(getMinRequiredVersion(makeParams({integration}), '10.67.0')).toBe(
+      expectedVersion
+    );
+  });
 
   describe('Node deployment target', () => {
     it('initializes the SDK with Sentry.init', () => {

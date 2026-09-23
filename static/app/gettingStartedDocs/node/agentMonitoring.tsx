@@ -33,6 +33,11 @@ export const MIN_REQUIRED_VERSION = '10.67.0';
 // this version; earlier SDKs expose `instrumentDurableObjectWithSentry` instead.
 // @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/agents-sdk/
 const CLOUDFLARE_AGENTS_MIN_VERSION = '10.69.0';
+const INTEGRATION_MIN_VERSIONS: Partial<Record<AgentIntegration, string>> = {
+  [AgentIntegration.CLOUDFLARE_AGENTS]: CLOUDFLARE_AGENTS_MIN_VERSION,
+  [AgentIntegration.EVE]: '11.0.0',
+  [AgentIntegration.MASTRA]: '11.0.0',
+};
 
 const CLOUDFLARE_AGENT_TRACING_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/';
@@ -59,13 +64,11 @@ export function getDeploymentTarget(params: DocsParams): DeploymentTarget {
 }
 
 /**
- * The minimum SDK version required for the selected integration. Most SDKs share
- * MIN_REQUIRED_VERSION, but the Cloudflare Agents SDK needs a newer release.
+ * The minimum SDK version required for the selected integration. Integrations
+ * without a specific requirement use the caller's platform default.
  */
 export function getMinRequiredVersion(params: DocsParams, fallback: string): string {
-  return getAgentIntegration(params) === AgentIntegration.CLOUDFLARE_AGENTS
-    ? CLOUDFLARE_AGENTS_MIN_VERSION
-    : fallback;
+  return INTEGRATION_MIN_VERSIONS[getAgentIntegration(params)] ?? fallback;
 }
 
 /**
