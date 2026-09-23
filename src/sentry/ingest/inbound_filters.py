@@ -545,7 +545,7 @@ def _custom_error_type_condition(values: list[str]) -> RuleCondition:
 # Builds the Relay condition that matches one filter condition's glob values.
 _ConditionMatcher = Callable[[list[str]], RuleCondition]
 
-# Where each condition type's data lives on one kind of ingested item.
+# The matcher for each condition type a data type supports.
 _ConditionMatchers = Mapping[ConditionType, _ConditionMatcher]
 
 
@@ -556,28 +556,31 @@ def _field_matcher(name: str) -> _ConditionMatcher:
     return match
 
 
-# Replays, sessions, profiles and transactions are not selectable data types: Relay
-# reads their release under `event.release`, so they cannot be told apart from errors.
-_MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[DataType, _ConditionMatchers] = {
-    DataType.ERROR: {
-        ConditionType.ERROR_TYPE: _custom_error_type_condition,
-        ConditionType.ERROR_MESSAGE: _custom_error_message_condition,
-        ConditionType.RELEASE: _field_matcher("event.release"),
+_CONDITION_MATCHERS: Mapping[
+    ConditionType,
+    _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
+] = {
+    ConditionType.ERROR_TYPE: {
+        DataType.ERROR: _custom_error_type_condition,
     },
-    DataType.LOG: {
-        ConditionType.LOG_MESSAGE: _field_matcher("log.body"),
-        ConditionType.RELEASE: _field_matcher("log.attributes.sentry.release.value"),
+    ConditionType.ERROR_MESSAGE: {
+        DataType.ERROR: _custom_error_message_condition,
     },
-    DataType.METRIC: {
-        ConditionType.METRIC_NAME: _field_matcher("trace_metric.name"),
-        ConditionType.RELEASE: _field_matcher("trace_metric.attributes.sentry.release.value"),
+    ConditionType.LOG_MESSAGE: {
+        DataType.LOG: _field_matcher("log.body"),
     },
-    # Matches standalone spans only. A span sent inside a transaction is dropped with
-    # the transaction, which the error matcher reads.
-    DataType.SPAN: {
-        ConditionType.RELEASE: _field_matcher("span.attributes.sentry.release.value"),
+    ConditionType.METRIC_NAME: {
+        DataType.METRIC: _field_matcher("trace_metric.name"),
+    },
+    ConditionType.RELEASE: {
+        DataType.ERROR: _field_matcher("event.release"),
+        DataType.LOG: _field_matcher("log.attributes.sentry.release.value"),
+        DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.release.value"),
+        DataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
     },
 }
+
+_SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
 
 
 def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
@@ -589,22 +592,24 @@ def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionM
     return match
 
 
-def _build_all_data_types_matchers() -> _ConditionMatchers:
-    per_data_type = list(_MATCHERS_BY_SINGLE_DATA_TYPE.values())
-    shared_condition_types = set.intersection(*(set(matchers.keys()) for matchers in per_data_type))
-
-    return {
-        condition_type: _any_condition_matcher(
-            [matchers[condition_type] for matchers in per_data_type]
-        )
-        for condition_type in ConditionType
-        if condition_type in shared_condition_types
-    }
+def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMatcher | None:
+    spec = _CONDITION_MATCHERS[condition_type]
+    if callable(spec):
+        return spec
+    if data_type is not DataType.ALL:
+        return spec.get(data_type)
+    if set(spec) != _SINGLE_DATA_TYPES:
+        return None
+    return _any_condition_matcher(list(spec.values()))
 
 
 _MATCHERS_BY_DATA_TYPE: Mapping[DataType, _ConditionMatchers] = {
-    DataType.ALL: _build_all_data_types_matchers(),
-    **_MATCHERS_BY_SINGLE_DATA_TYPE,
+    data_type: {
+        condition_type: matcher
+        for condition_type in ConditionType
+        if (matcher := _matcher(condition_type, data_type)) is not None
+    }
+    for data_type in DataType
 }
 
 
