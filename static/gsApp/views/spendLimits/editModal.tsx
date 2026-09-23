@@ -25,7 +25,6 @@ import {
 } from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
-import {BudgetModeSettings} from 'getsentry/views/spendLimits/budgetModeSettings';
 import {SpendLimitSettings} from 'getsentry/views/spendLimits/spendLimitSettings';
 
 import {
@@ -217,29 +216,30 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                   usesFormFieldLayout
                   renderBudgetModeSettings={() => (
                     <modeField.Layout.Stack label={t('Spending limit type')}>
-                      <modeField.Base<HTMLDivElement>>
-                        {(baseProps, {indicator}) => (
-                          <Grid
-                            columns="minmax(0, 1fr) auto"
-                            gap="sm"
-                            align="center"
-                            flexGrow={1}
-                            minWidth="0"
-                          >
-                            <Container {...baseProps} role="radiogroup" width="100%">
-                              <BudgetModeSettings
-                                activePlan={subscription.planDetails}
-                                onDemandBudgets={onDemandBudgets}
-                                onUpdate={({onDemandBudgets: nextBudget}) => {
-                                  modeField.handleChange(nextBudget.budgetMode);
-                                  handleBudgetUpdate(nextBudget);
-                                }}
-                              />
-                            </Container>
-                            {indicator}
-                          </Grid>
-                        )}
-                      </modeField.Base>
+                      <modeField.Radio.Group
+                        value={modeField.state.value}
+                        onChange={budgetMode =>
+                          handleBudgetUpdate(
+                            convertOnDemandBudget(
+                              onDemandBudgets,
+                              budgetMode as OnDemandBudgetMode
+                            )
+                          )
+                        }
+                      >
+                        {/* TODO: Replace with a card-style RadioField primitive when available. */}
+                        <Grid
+                          columns={{zero: '1fr', lg: 'repeat(2, minmax(0, 1fr))'}}
+                          gap="lg"
+                        >
+                          <modeField.Radio.Item value={OnDemandBudgetMode.PER_CATEGORY}>
+                            {t('Set a spending limit for each product')}
+                          </modeField.Radio.Item>
+                          <modeField.Radio.Item value={OnDemandBudgetMode.SHARED}>
+                            {t('Set a spending limit shared across all products')}
+                          </modeField.Radio.Item>
+                        </Grid>
+                      </modeField.Radio.Group>
                     </modeField.Layout.Stack>
                   )}
                   renderSpendLimitInput={props => {

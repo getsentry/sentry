@@ -93,7 +93,7 @@ describe('SpendLimitsEditModal', () => {
     );
 
     await userEvent.click(
-      screen.getByRole('radio', {name: 'Per-category spending limit mode'})
+      screen.getByRole('radio', {name: 'Set a spending limit for each product'})
     );
     const errorsInput = screen.getByRole('spinbutton', {
       name: 'Custom errors spending limit (in dollars)',
@@ -150,10 +150,12 @@ describe('SpendLimitsEditModal', () => {
     await userEvent.clear(input);
     await userEvent.type(input, '123');
     await userEvent.click(
-      screen.getByRole('radio', {name: 'Per-category spending limit mode'})
+      screen.getByRole('radio', {name: 'Set a spending limit for each product'})
     );
     await userEvent.click(
-      screen.getByRole('radio', {name: 'Shared spending limit mode'})
+      screen.getByRole('radio', {
+        name: 'Set a spending limit shared across all products',
+      })
     );
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
