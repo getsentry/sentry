@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property
-from unittest import TestCase, mock
+from unittest import TestCase
 
 from django.test import RequestFactory, override_settings
 from rest_framework.response import Response
@@ -154,24 +154,6 @@ class SecurityHeadersMiddlewareTest(TestCase):
         processed_response = self.middleware.process_response(request, response)
 
         assert "Content-Security-Policy-Report-Only" not in processed_response
-
-    @override_settings(TRUSTED_TYPES_ENABLED=True, CSP_REPORT_ONLY=True)
-    def test_trusted_types_warns_once_when_skipped(self) -> None:
-        """
-        Standing down is correct but invisible, so someone who enables the setting and
-        sees nothing gets a log line pointing at why. Once per process, not per request.
-        """
-        from sentry.middleware import security
-
-        security._warned_about_report_only_csp = False
-
-        request = self.factory.get("/")
-        with mock.patch.object(security.logger, "warning") as mock_warning:
-            self.middleware.process_response(request, Response())
-            self.middleware.process_response(request, Response())
-
-        assert mock_warning.call_count == 1
-        assert mock_warning.call_args[0][0] == "trusted_types.disabled_by_report_only_csp"
 
     @override_settings(TRUSTED_TYPES_ENABLED=True, CSP_REPORT_ONLY=False)
     def test_trusted_types_header_does_not_overwrite_existing(self) -> None:

@@ -1,5 +1,3 @@
-import logging
-
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
@@ -7,11 +5,7 @@ from rest_framework.response import Response
 
 from sentry.utils import json
 
-logger = logging.getLogger(__name__)
-
 TRUSTED_TYPES_HEADER = "Content-Security-Policy-Report-Only"
-
-_warned_about_report_only_csp = False
 
 
 class SecurityHeadersMiddleware(MiddlewareMixin):
@@ -57,10 +51,6 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
             return
 
         if getattr(settings, "CSP_REPORT_ONLY", False):
-            global _warned_about_report_only_csp
-            if not _warned_about_report_only_csp:
-                _warned_about_report_only_csp = True
-                logger.warning("trusted_types.disabled_by_report_only_csp")
             return
 
         if TRUSTED_TYPES_HEADER in response:
