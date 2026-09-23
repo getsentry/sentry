@@ -11,7 +11,12 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ConversationsOverviewPage from './overview';
 
 const organization = OrganizationFixture({
-  features: ['dashboards-edit', 'gen-ai-agents-overview', 'gen-ai-conversations'],
+  features: [
+    'dashboards-edit',
+    'gen-ai-agents-overview',
+    'gen-ai-conversations',
+    'visibility-explore-view',
+  ],
 });
 
 const organizationWithoutAgentsOverview = OrganizationFixture({
@@ -207,6 +212,18 @@ describe('ConversationsOverviewPage', () => {
     expect(
       screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Open in Explore'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Duplicate Widget'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Edit Widget'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Delete Widget'})
+    ).not.toBeInTheDocument();
   });
 
   it('keeps the missing messages alert visible across tabs', async () => {
