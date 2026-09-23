@@ -7,6 +7,11 @@ export interface ControlTooltipProps extends Omit<
   title?: TooltipProps['title'];
 }
 
+export function preventDisabledInteraction(event: React.SyntheticEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+}
+
 type DisabledTooltipOptions<Element extends HTMLElement> = {
   disabled: boolean | undefined;
   onKeyDown: React.KeyboardEventHandler<Element> | undefined;
@@ -30,8 +35,7 @@ export function getDisabledTooltipProps<Element extends HTMLElement>({
     ...(usesAriaDisabled && {
       onKeyDown: (event: React.KeyboardEvent<Element>) => {
         if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          event.stopPropagation();
+          preventDisabledInteraction(event);
         }
         onKeyDown?.(event);
       },

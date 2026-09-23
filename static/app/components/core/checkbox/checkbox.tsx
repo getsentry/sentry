@@ -6,6 +6,7 @@ import {mergeRefs} from '@react-aria/utils';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {
   getDisabledTooltipProps,
+  preventDisabledInteraction,
   Tooltip,
   type ControlTooltipProps,
 } from '@sentry/scraps/tooltip';
@@ -130,7 +131,7 @@ export function Checkbox({
       size={size}
       disabled={disabled}
       readOnly={props.readOnly}
-      onClickCapture={usesAriaDisabled ? preventDisabledClick : undefined}
+      onClickCapture={usesAriaDisabled ? preventDisabledInteraction : undefined}
       {...wrapperProps}
     >
       <Tooltip
@@ -146,7 +147,7 @@ export function Checkbox({
           {...props}
           {...disabledTooltipProps}
           {...(usesAriaDisabled && {
-            onChange: preventDisabledChange,
+            onChange: preventDisabledInteraction,
           })}
         />
       </Tooltip>
@@ -169,16 +170,6 @@ export function Checkbox({
       )}
     </CheckboxWrapper>
   );
-}
-
-function preventDisabledClick(event: React.MouseEvent) {
-  event.preventDefault();
-  event.stopPropagation();
-}
-
-function preventDisabledChange(event: React.ChangeEvent<HTMLInputElement>) {
-  event.preventDefault();
-  event.stopPropagation();
 }
 
 const CheckboxWrapper = styled('div', {
