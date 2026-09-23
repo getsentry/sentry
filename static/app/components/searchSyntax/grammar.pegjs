@@ -236,17 +236,14 @@ regex_filter
     }
 
 regex_value
-  = "//" pattern:regex_pattern "//" &regex_value_end {
+  = "//" pattern:regex_pattern "//" &end_value {
       return {pattern, literal: tc.tokenValueText(text(), false)};
     }
 
 regex_pattern
-  = (!("//" regex_value_end) [^\n])* {
+  = (!("//" end_value) [^\n])* {
       return tc.tokenValueText(text(), false);
     }
-
-regex_value_end
-  = [\t\n )] / !.
 
 // in filter key:[val1, val2]
 text_in_filter
