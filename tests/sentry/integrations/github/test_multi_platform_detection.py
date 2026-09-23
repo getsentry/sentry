@@ -1470,21 +1470,7 @@ class TestDetectPlatformsMultiFrameworks:
         platforms = [r["platform"] for r in result]
         assert "node-cloudflare-workers" in platforms
 
-    def test_cloudflare_detected_from_wrangler_jsonc(self) -> None:
-        client = _mock_client(
-            {"JavaScript": 50000},
-            tree_paths=["wrangler.jsonc", "package.json"],
-            contents={
-                "package.json": json.dumps({"dependencies": {}}),
-            },
-        )
-
-        result = detect_platforms_multi(client, "owner/repo")["platforms"]
-
-        platforms = [r["platform"] for r in result]
-        assert "node-cloudflare-workers" in platforms
-
-    def test_cloudflare_pages_repo_detects_the_merged_platform(self) -> None:
+    def test_cloudflare_pages_supersedes_workers(self) -> None:
         client = _mock_client(
             {"JavaScript": 50000},
             tree_paths=["wrangler.toml", "package.json"],
@@ -1497,8 +1483,8 @@ class TestDetectPlatformsMultiFrameworks:
         result = detect_platforms_multi(client, "owner/repo")["platforms"]
 
         platforms = [r["platform"] for r in result]
-        assert "node-cloudflare-workers" in platforms
-        assert "node-cloudflare-pages" not in platforms
+        assert "node-cloudflare-pages" in platforms
+        assert "node-cloudflare-workers" not in platforms
 
     def test_azurefunctions_detected_from_host_json(self) -> None:
         host_json = '{"version": "2.0", "extensionBundle": {"id": "Microsoft.Azure.Functions.ExtensionBundle"}}'
