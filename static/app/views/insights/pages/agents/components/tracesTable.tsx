@@ -1,6 +1,7 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -35,7 +36,6 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
-import {decodeList} from 'sentry/utils/queryString';
 import {isOverflown} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -449,12 +449,18 @@ function AgentTags({
   const [showAll, setShowAll] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const [{agent: urlAgents}, setPageFilterQueryStates] = useQueryStates(
+    {
+      [FilterUrlParams.AGENT]: parseAsArrayOf(parseAsString),
+      [TableUrlParams.CURSOR]: parseAsString,
+    },
+    {history: 'replace'}
+  );
   const parsedGlobalFilters =
     filterMode === 'dashboard-global'
       ? (getDashboardFiltersFromURL(location)?.globalFilter ?? [])
       : [];
-  const pageAgentFilterValues =
-    filterMode === 'page-agent' ? decodeList(location.query[FilterUrlParams.AGENT]) : [];
+  const pageAgentFilterValues = filterMode === 'page-agent' ? (urlAgents ?? []) : [];
 
   const [showToggle, setShowToggle] = useState(false);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -512,14 +518,10 @@ function AgentTags({
       : [...agentFilterValues, agent];
 
     if (filterMode === 'page-agent') {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          [FilterUrlParams.AGENT]:
-            newAgentFilterValues.length > 0 ? newAgentFilterValues : null,
-          [TableUrlParams.CURSOR]: null,
-        },
+      setPageFilterQueryStates({
+        [FilterUrlParams.AGENT]:
+          newAgentFilterValues.length > 0 ? newAgentFilterValues : null,
+        [TableUrlParams.CURSOR]: null,
       });
       return;
     }
