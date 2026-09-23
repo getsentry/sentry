@@ -364,6 +364,9 @@ class Segment:
     def in_rollout(self, context: EvaluationContext, feature_name: str | None = None) -> bool:
         """
         `feature_name`, when given, buckets by feature as well as by identity.
+        It is an argument rather than an identity field because one context
+        serves every feature in a batch, and older features must keep the
+        identity-only bucket.
         """
         # Rollout = 0 allows segments to match and disable a feature
         # even if other segments would match

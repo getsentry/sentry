@@ -74,9 +74,10 @@ class EvaluationContext:
         """
         The id a percentage rollout buckets this context on.
 
-        Without a feature name this is ``id``. With one, the name is hashed
-        together with the identity so each feature has its own rollout
-        population; see ``FEATURE_BUCKETING_EPOCH`` for which features use it.
+        Without a feature name this is ``id``. With one, the name is hashed as
+        one more identity entry in front of the identity fields, so each
+        feature has its own rollout population; see ``FEATURE_BUCKETING_EPOCH``
+        for which features use it.
         """
         if feature_name is None:
             return self.__id
