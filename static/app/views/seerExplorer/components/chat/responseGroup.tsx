@@ -150,12 +150,30 @@ interface ResponseGroupProps {
 }
 
 /**
+ * Every poll rebuilds the transcript's arrays, so `group` is a fresh array even when none of its
+ * blocks changed. Compare it element-wise so a settled response skips re-rendering (and re-parsing
+ * its markdown) while a later one streams.
+ */
+function areResponseGroupPropsEqual(prev: ResponseGroupProps, next: ResponseGroupProps) {
+  for (const key of Object.keys(next) as Array<keyof ResponseGroupProps>) {
+    if (key !== 'group' && prev[key] !== next[key]) {
+      return false;
+    }
+  }
+  return (
+    Object.keys(prev).length === Object.keys(next).length &&
+    prev.group.length === next.group.length &&
+    prev.group.every((block, i) => block === next.group[i])
+  );
+}
+
+/**
  * Renders one assistant response as a single top-level `ThinkingBlock` — reasoning, intermediate
  * narration, and every tool call interleaved in run order inside it — followed by the final answer
  * as a sibling. Replaces the previous one-row-per-block rendering that produced a wall of separate
  * "Thinking" and tool-call rows for a single turn.
  */
-function ResponseGroupImpl({
+export const ResponseGroup = memo(function ResponseGroup({
   group,
   blockIndex,
   latestTodos,
@@ -270,27 +288,7 @@ function ResponseGroupImpl({
       </motion.div>
     </Container>
   );
-}
-
-/**
- * Every poll rebuilds the transcript's arrays, so `group` is a fresh array even when none of its
- * blocks changed. Compare it element-wise so a settled response skips re-rendering (and re-parsing
- * its markdown) while a later one streams.
- */
-function areResponseGroupPropsEqual(prev: ResponseGroupProps, next: ResponseGroupProps) {
-  for (const key of Object.keys(next) as Array<keyof ResponseGroupProps>) {
-    if (key !== 'group' && prev[key] !== next[key]) {
-      return false;
-    }
-  }
-  return (
-    Object.keys(prev).length === Object.keys(next).length &&
-    prev.group.length === next.group.length &&
-    prev.group.every((block, i) => block === next.group[i])
-  );
-}
-
-export const ResponseGroup = memo(ResponseGroupImpl, areResponseGroupPropsEqual);
+}, areResponseGroupPropsEqual);
 
 // The response's raw reasoning. When it sits between tool calls it is set apart with extra vertical
 // space (`data-spaced`); leading or trailing reasoning gets none so it stays tight against the
