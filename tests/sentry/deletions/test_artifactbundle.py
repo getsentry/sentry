@@ -1,3 +1,6 @@
+from uuid import uuid4
+
+from sentry import deletions
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -44,3 +47,31 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
         assert not DebugIdArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
         assert not ProjectArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
         assert not File.objects.filter(id=artifact_bundle.file.id).exists()
+
+    def test_many_children_across_bundles(self) -> None:
+        org = self.create_organization()
+        bundles = [self.create_artifact_bundle(org=org) for _ in range(2)]
+        other_bundle = self.create_artifact_bundle(org=org)
+        DebugIdArtifactBundle.objects.bulk_create(
+            DebugIdArtifactBundle(
+                organization_id=org.id,
+                debug_id=uuid4(),
+                source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+                artifact_bundle=bundle,
+            )
+            for bundle in [*bundles, *bundles, other_bundle]
+            for _ in range(75)
+        )
+
+        task = deletions.get(
+            model=ArtifactBundle,
+            query={"id__in": [b.id for b in bundles]},
+            transaction_id=uuid4().hex,
+        )
+        while task.chunk(apply_filter=True):
+            pass
+
+        assert not ArtifactBundle.objects.filter(id__in=[b.id for b in bundles]).exists()
+        assert not DebugIdArtifactBundle.objects.filter(artifact_bundle__in=bundles).exists()
+        assert ArtifactBundle.objects.filter(id=other_bundle.id).exists()
+        assert DebugIdArtifactBundle.objects.filter(artifact_bundle=other_bundle).count() == 75
