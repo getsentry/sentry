@@ -12,13 +12,13 @@ from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.conf import settings
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.options.rollout import in_random_rollout
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.flag import record_feature_flag
-from sentry.utils.tracing import set_span_data, start_span
 from sentry.utils.types import Dict
 
 from .base import Feature, FeatureHandlerStrategy
@@ -147,14 +147,14 @@ class RegisteredFeatureManager:
                 if not unresolved_projects:
                     break
 
-                with start_span(
-                    op="feature.has_for_batch.handler",
+                with traces.start_span(
                     name=f"{type(handler).__name__} ({feature_name})",
+                    attributes={"sentry.op": "feature.has_for_batch.handler"},
                 ) as span:
                     batch_size = len(unresolved_projects)
-                    set_span_data(span, "Batch Size", batch_size)
-                    set_span_data(span, "Feature Name", feature_name)
-                    set_span_data(span, "Handler Type", type(handler).__name__)
+                    span.set_attribute("Batch Size", batch_size)
+                    span.set_attribute("Feature Name", feature_name)
+                    span.set_attribute("Handler Type", type(handler).__name__)
 
                     batch = FeatureCheckBatch(
                         self, feature_name, organization, unresolved_projects, actor
@@ -164,7 +164,7 @@ class RegisteredFeatureManager:
                         if value is not None:
                             unresolved_projects.remove(project)
                             decisions[project] = value
-                    set_span_data(span, "Flags Found", batch_size - len(unresolved_projects))
+                    span.set_attribute("Flags Found", batch_size - len(unresolved_projects))
         except Exception as e:
             if in_random_rollout("features.error.capture_rate"):
                 sentry_sdk.capture_exception(e)
