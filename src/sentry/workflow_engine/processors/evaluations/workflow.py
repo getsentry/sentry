@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -168,13 +169,18 @@ class WorkflowEvaluation(
 
 
 class WorkflowEvaluationBatch(Protocol):
+    @property
+    def evaluation_phase(self) -> EvaluationPhase: ...
+
+    @abstractmethod
     def evaluated_workflow_ids(self) -> set[WorkflowId]: ...
 
+    @abstractmethod
     def evaluation_artifacts(self) -> tuple[WorkflowEvaluationArtifact, ...]: ...
 
 
 @dataclass(frozen=True, kw_only=True)
-class ProcessWorkflowsResult:
+class ProcessWorkflowsResult(WorkflowEvaluationBatch):
     detector_id: int | None = None
     detector_type: str | None = None
     evaluations: dict[WorkflowId, WorkflowEvaluation]
@@ -189,6 +195,10 @@ class ProcessWorkflowsResult:
             and bool(evaluation.result)
             for evaluation in self.evaluations.values()
         )
+
+    @property
+    def evaluation_phase(self) -> EvaluationPhase:
+        return EvaluationPhase.INITIAL
 
     def evaluated_workflow_ids(self) -> set[WorkflowId]:
         return set(self.evaluations)

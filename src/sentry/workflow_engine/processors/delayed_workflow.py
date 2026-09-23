@@ -55,7 +55,10 @@ from sentry.workflow_engine.processors.evaluations import (
     WorkflowEvaluationOutcome,
 )
 from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluations
-from sentry.workflow_engine.processors.evaluations.workflow import WorkflowEvaluationArtifact
+from sentry.workflow_engine.processors.evaluations.workflow import (
+    WorkflowEvaluationArtifact,
+    WorkflowEvaluationBatch,
+)
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (
@@ -586,7 +589,7 @@ class _ConditionEvaluationStats:
 
 
 @dataclass(frozen=True)
-class DelayedWorkflowEvaluationResult:
+class DelayedWorkflowEvaluationResult(WorkflowEvaluationBatch):
     artifacts: list[WorkflowEvaluationArtifact]
     groups_to_fire: dict[GroupId, set[DataConditionGroup]]
     stats: _ConditionEvaluationStats
@@ -604,6 +607,10 @@ class DelayedWorkflowEvaluationResult:
     # workflow_id -> group_id -> [dcg_ids that failed]
     # Condition-level detail is omitted; all conditions not in if_dcg_passed are assumed failed.
     if_dcg_failed: dict[WorkflowId, dict[GroupId, list[DataConditionGroupId]]]
+
+    @property
+    def evaluation_phase(self) -> EvaluationPhase:
+        return EvaluationPhase.DELAYED
 
     def evaluated_workflow_ids(self) -> set[WorkflowId]:
         return set(self.workflow_ids)

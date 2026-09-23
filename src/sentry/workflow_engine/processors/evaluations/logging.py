@@ -8,9 +8,12 @@ from typing import TYPE_CHECKING, cast
 
 from sentry import features, options
 from sentry.utils.sdk import sdk_logger
-from sentry.workflow_engine.processors.evaluations.base import EvaluationPhase, EvaluationType
+from sentry.workflow_engine.processors.evaluations.base import EvaluationType
 from sentry.workflow_engine.processors.evaluations.detector import ProcessDetectorsResult
-from sentry.workflow_engine.processors.evaluations.workflow import ProcessWorkflowsResult
+from sentry.workflow_engine.processors.evaluations.workflow import (
+    ProcessWorkflowsResult,
+    WorkflowEvaluationOutcome,
+)
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -83,20 +86,23 @@ def _serialize_empty_result(result: WorkflowEngineResult) -> dict[str, object] |
             "error": result.evaluation_error.msg if result.evaluation_error else None,
         }
 
+    summary: dict[str, object] = {
+        "error": None,
+        "evaluation_phase": result.evaluation_phase,
+        "evaluation_type": EvaluationType.WORKFLOW,
+        "outcome": WorkflowEvaluationOutcome.NO_WORKFLOWS,
+    }
     if isinstance(result, ProcessWorkflowsResult):
-        return {
-            "detector_id": result.detector_id,
-            "detector_type": result.detector_type,
-            "error": None,
-            "evaluation_phase": EvaluationPhase.INITIAL,
-            "evaluation_type": EvaluationType.WORKFLOW,
-            "event_id": result.event_id,
-            "group_id": result.group_id,
-            "outcome": result.outcome,
-            "project_id": result.project_id,
-        }
+        summary.update(
+            detector_id=result.detector_id,
+            detector_type=result.detector_type,
+            event_id=result.event_id,
+            group_id=result.group_id,
+            outcome=result.outcome,
+            project_id=result.project_id,
+        )
 
-    return None
+    return summary
 
 
 def _serialize_evaluation_artifacts(

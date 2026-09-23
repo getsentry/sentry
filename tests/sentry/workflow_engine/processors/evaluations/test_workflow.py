@@ -14,6 +14,7 @@ from sentry.workflow_engine.processors.evaluations import (
     ProcessWorkflowsResult,
     WorkflowEvaluation,
     WorkflowEvaluationArtifact,
+    WorkflowEvaluationBatch,
     WorkflowEvaluationOutcome,
 )
 from sentry.workflow_engine.processors.evaluations.logging import (
@@ -24,6 +25,18 @@ from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluati
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
 LOGGING_MODULE = "sentry.workflow_engine.processors.evaluations.logging"
+
+
+class EmptyDelayedWorkflowEvaluationBatch(WorkflowEvaluationBatch):
+    @property
+    def evaluation_phase(self) -> EvaluationPhase:
+        return EvaluationPhase.DELAYED
+
+    def evaluated_workflow_ids(self) -> set[int]:
+        return set()
+
+    def evaluation_artifacts(self) -> tuple[WorkflowEvaluationArtifact, ...]:
+        return ()
 
 
 class TestWorkflowEvaluationArtifact(TestCase):
@@ -355,6 +368,27 @@ class TestWorkflowEvaluationArtifact(TestCase):
             10,
             11,
         ]
+
+    def test_emitter_logs_empty_delayed_batch_outcome(self) -> None:
+        with (
+            Feature({"organizations:workflow-engine-log-evaluations": True}),
+            mock.patch(f"{LOGGING_MODULE}.logger") as mock_logger,
+        ):
+            emit_evaluations(
+                organization=self.organization,
+                result=EmptyDelayedWorkflowEvaluationBatch(),
+            )
+
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_workflows.evaluation",
+            extra={
+                "evaluation_type": EvaluationType.WORKFLOW,
+                "evaluation_phase": EvaluationPhase.DELAYED,
+                "outcome": WorkflowEvaluationOutcome.NO_WORKFLOWS,
+                "error": None,
+                "organization_id": self.organization.id,
+            },
+        )
 
     def test_emitter_logs_empty_batch_outcome(self) -> None:
         result = self._build_batch_result(
