@@ -195,7 +195,7 @@ export function sanitizeHtml(html: string) {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
     RETURN_TRUSTED_TYPE: true,
-  }) as unknown as string;
+  });
 }
 
 function postprocess(html: string) {

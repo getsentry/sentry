@@ -1,32 +1,32 @@
 import dompurify from 'dompurify';
 
-declare global {
-  interface Window {
-    trustedTypes?: {
-      createPolicy: (
-        name: string,
-        rules: {
-          createHTML?: (input: string) => string;
-          createScriptURL?: (input: string) => string;
-        }
-      ) => TrustedTypePolicy;
-    };
-  }
+// declare global {
+//   interface Window {
+//     trustedTypes?: {
+//       createPolicy: (
+//         name: string,
+//         rules: {
+//           createHTML?: (input: string) => TrustedHTML;
+//           createScriptURL?: (input: string) => TrustedScriptURL;
+//         }
+//       ) => TrustedTypePolicy;
+//     };
+//   }
 
-  interface TrustedTypePolicy {
-    createHTML: (input: string) => TrustedHTML;
-    createScriptURL: (input: string) => TrustedScriptURL;
-    name: string;
-  }
+//   interface TrustedTypePolicy {
+//     createHTML: (input: string) => TrustedHTML;
+//     createScriptURL: (input: string) => TrustedScriptURL;
+//     name: string;
+//   }
 
-  interface TrustedHTML {
-    toString(): string;
-  }
+//   interface TrustedHTML {
+//     toString(): string;
+//   }
 
-  interface TrustedScriptURL {
-    toString(): string;
-  }
-}
+//   interface TrustedScriptURL {
+//     toString(): string;
+//   }
+// }
 
 let sentryScriptUrlPolicy: TrustedTypePolicy | null = null;
 
@@ -82,6 +82,6 @@ export function installTrustedTypesPolicies(): void {
  * but it is typed as a string: the DOM declares these sinks as strings, so a
  * caller could not hand the real type to one without asserting at every site.
  */
-export function trustedScriptUrl(url: string): string {
-  return (sentryScriptUrlPolicy?.createScriptURL(url) ?? url) as unknown as string;
+export function trustedScriptUrl(url: string): TrustedScriptURL {
+  return sentryScriptUrlPolicy?.createScriptURL(url) ?? url;
 }
