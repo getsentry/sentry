@@ -2,19 +2,19 @@ import {AnnotationFixture} from 'sentry-fixture/annotation';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   BAND_HEIGHT,
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
-} from 'sentry/views/explore/components/chart/droppedDataBand/useDroppedDataBand';
+} from 'sentry/components/droppedData/useDroppedDataBand';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 
 const chartRef: React.RefObject<ReactEchartsRef | null> = {current: null};
 
 describe('useDroppedDataBand', () => {
   it('returns an empty band when there are no annotations', () => {
     const {result} = renderHookWithProviders(() =>
-      useDroppedDataBand({chartRef, droppedAnnotations: []})
+      useDroppedDataBand({chartRef, droppedData: {dropped: []}})
     );
 
     expect(result.current.droppedDataSeries).toBeNull();
@@ -26,7 +26,7 @@ describe('useDroppedDataBand', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
-        droppedAnnotations: [AnnotationFixture({eventCount: 10})],
+        droppedData: {dropped: [AnnotationFixture({eventCount: 10})]},
       })
     );
 
@@ -36,12 +36,11 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataBandHeight).toBe(BAND_HEIGHT);
   });
 
-  it('collapses the band when showDroppedData is false', () => {
+  it('collapses the band when visible is false', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
-        droppedAnnotations: [AnnotationFixture({eventCount: 10})],
-        showDroppedData: false,
+        droppedData: {dropped: [AnnotationFixture({eventCount: 10})], visible: false},
       })
     );
 
@@ -54,13 +53,15 @@ describe('useDroppedDataBand', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
-        droppedAnnotations: [
-          AnnotationFixture({
-            outcome: 'client_discard',
-            reason: 'before_send',
-            eventCount: 10,
-          }),
-        ],
+        droppedData: {
+          dropped: [
+            AnnotationFixture({
+              outcome: 'client_discard',
+              reason: 'before_send',
+              eventCount: 10,
+            }),
+          ],
+        },
       })
     );
 
@@ -71,8 +72,10 @@ describe('useDroppedDataBand', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
-        droppedAnnotations: [AnnotationFixture({start: 0, eventCount: 1})],
-        acceptedAnnotations: [AnnotationFixture({start: 0, eventCount: 99})],
+        droppedData: {
+          dropped: [AnnotationFixture({start: 0, eventCount: 1})],
+          accepted: [AnnotationFixture({start: 0, eventCount: 99})],
+        },
       })
     );
 
@@ -84,8 +87,10 @@ describe('useDroppedDataBand', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
-        droppedAnnotations: [],
-        acceptedAnnotations: [AnnotationFixture({eventCount: 8000})],
+        droppedData: {
+          dropped: [],
+          accepted: [AnnotationFixture({eventCount: 8000})],
+        },
       })
     );
 
@@ -96,11 +101,13 @@ describe('useDroppedDataBand', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
-        droppedAnnotations: [
-          AnnotationFixture({start: 0, end: 60_000, eventCount: 10}),
-          AnnotationFixture({start: 0, end: 60_000, eventCount: 5, reason: 'quota'}),
-          AnnotationFixture({start: 60_000, end: 120_000, eventCount: 20}),
-        ],
+        droppedData: {
+          dropped: [
+            AnnotationFixture({start: 0, end: 60_000, eventCount: 10}),
+            AnnotationFixture({start: 0, end: 60_000, eventCount: 5, reason: 'quota'}),
+            AnnotationFixture({start: 60_000, end: 120_000, eventCount: 20}),
+          ],
+        },
       })
     );
 

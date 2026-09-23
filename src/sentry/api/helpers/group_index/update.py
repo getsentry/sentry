@@ -662,7 +662,6 @@ def process_group_resolution(
             group=group,
             new_status=GroupStatus.RESOLVED,
             resolution_time=now,
-            resolution_activity=activity,
         )
         if group.issue_type == MetricIssue:
             update_incident_based_on_open_period_status_change(group, GroupStatus.RESOLVED)

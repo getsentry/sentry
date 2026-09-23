@@ -1,13 +1,15 @@
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Timeline} from 'sentry/components/timeline';
-import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconChevron, IconEllipsis} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import {HypothesisEvidencePlaceholder} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
 import {
   getHypothesisCardBorder,
@@ -17,6 +19,9 @@ import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
 
 /** States where missing checks mean "not yet"; anything else finished without them. */
 const PENDING_EVIDENCE_STATUSES = new Set<string>(['pending', 'investigating']);
+
+/** While verifying, past this many checks only one shows until the rest are asked for. */
+const MAX_UNCOLLAPSED_STEPS = 2;
 
 type HypothesisCardProps = {
   hypothesis: InvestigationHypothesis;
@@ -52,6 +57,30 @@ export function HypothesisCard({
   const steps = [...(hypothesis.verificationSteps ?? [])].sort(
     (a, b) => a.order - b.order
   );
+  // Once a verdict lands the checks are supporting detail, so they fold away
+  // entirely; while verifying, one check stays out to show where the agent is.
+  const isTerminal = !PENDING_EVIDENCE_STATUSES.has(hypothesis.effectiveStatus);
+  // Remembers which phase the steps were opened in, so a card that reaches its
+  // verdict while expanded starts collapsed again.
+  const [expandedWhileTerminal, setExpandedWhileTerminal] = useState<boolean | null>(
+    null
+  );
+  const showAllSteps = expandedWhileTerminal === isTerminal;
+  const isCollapsible = isTerminal || steps.length > MAX_UNCOLLAPSED_STEPS;
+  const currentStep =
+    steps.find(step => step.status === 'running') ?? steps[steps.length - 1];
+  const visibleSteps =
+    !isCollapsible || showAllSteps
+      ? steps
+      : isTerminal || !currentStep
+        ? []
+        : [currentStep];
+  const hiddenStepCount = steps.length - visibleSteps.length;
+  const dotColorConfig = {
+    icon: theme.tokens.graphics.neutral.moderate,
+    iconBorder: 'transparent',
+    title: theme.tokens.content.primary,
+  };
 
   return (
     <Card
@@ -105,7 +134,42 @@ export function HypothesisCard({
 
       {steps.length > 0 ? (
         <EvidenceList as="ol" aria-label={t('Verification steps')}>
-          {steps.map(step => {
+          {isCollapsible ? (
+            <Timeline.Item
+              as="li"
+              icon={<Timeline.Dot />}
+              colorConfig={dotColorConfig}
+              title={
+                <Button
+                  variant="link"
+                  aria-expanded={showAllSteps}
+                  onClick={() =>
+                    setExpandedWhileTerminal(showAllSteps ? null : isTerminal)
+                  }
+                >
+                  <Flex as="span" align="center" gap="xs">
+                    <StepTitle size="sm" variant="muted" bold={false}>
+                      {showAllSteps
+                        ? t('Show less')
+                        : isTerminal
+                          ? tn('Show %s step', 'Show all %s steps', steps.length)
+                          : tn(
+                              'Show %s more step',
+                              'Show %s more steps',
+                              hiddenStepCount
+                            )}
+                    </StepTitle>
+                    <IconChevron
+                      size="xs"
+                      variant="muted"
+                      direction={showAllSteps ? 'up' : 'right'}
+                    />
+                  </Flex>
+                </Button>
+              }
+            />
+          ) : null}
+          {visibleSteps.map(step => {
             const isRunning = step.status === 'running';
             return (
               <Timeline.Item
@@ -114,13 +178,12 @@ export function HypothesisCard({
                 aria-current={isRunning ? 'step' : undefined}
                 icon={<Timeline.Dot />}
                 colorConfig={{
+                  ...dotColorConfig,
                   // The step the agent is on is picked out; the rest are
                   // markers on the way there.
                   icon: isRunning
                     ? theme.tokens.graphics.neutral.vibrant
                     : theme.tokens.graphics.neutral.moderate,
-                  iconBorder: 'transparent',
-                  title: theme.tokens.content.primary,
                 }}
                 title={
                   // A check reads as a line of evidence rather than a heading,
