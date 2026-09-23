@@ -6,8 +6,11 @@ import pytest
 import responses
 
 from fixtures.bitbucket import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE, REPO
+from sentry.constants import ObjectStatus
 from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider
+from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationRepositoryTestCase, TestCase
@@ -79,6 +82,52 @@ class BitbucketRepositoryProviderTest(TestCase):
                 "timestamp": datetime.datetime(2017, 5, 16, 23, 21, 40, tzinfo=timezone.utc),
             }
         ]
+
+    @responses.activate
+    def test_on_create_repository_discards_hook_when_repository_disabled(self) -> None:
+        def create(request):
+            Repository.objects.filter(id=self.repo.id).update(status=ObjectStatus.DISABLED)
+            return 201, {}, '{"uuid": "hook-uuid"}'
+
+        responses.add_callback(
+            responses.POST,
+            "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/hooks",
+            callback=create,
+        )
+        responses.add(
+            responses.DELETE,
+            "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/hooks/hook-uuid",
+            status=204,
+        )
+
+        self.provider.on_create_repository(
+            serialize_repository(self.repo), serialize_rpc_organization(self.organization)
+        )
+
+        assert [call.request.method for call in responses.calls] == ["POST", "DELETE"]
+        self.repo.refresh_from_db()
+        assert self.repo.status == ObjectStatus.DISABLED
+        assert "webhook_id" not in self.repo.config
+
+    @responses.activate
+    def test_on_create_repository_preserves_concurrent_changes(self) -> None:
+        def create(request):
+            Repository.objects.filter(id=self.repo.id).update(name="renamed")
+            return 201, {}, '{"uuid": "hook-uuid"}'
+
+        responses.add_callback(
+            responses.POST,
+            "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/hooks",
+            callback=create,
+        )
+
+        self.provider.on_create_repository(
+            serialize_repository(self.repo), serialize_rpc_organization(self.organization)
+        )
+
+        self.repo.refresh_from_db()
+        assert self.repo.name == "renamed"
+        assert self.repo.config == {"name": "sentryuser/newsdiffs", "webhook_id": "hook-uuid"}
 
     @responses.activate
     def test_build_repository_config(self) -> None:

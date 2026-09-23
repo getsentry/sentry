@@ -114,9 +114,18 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
 
         try:
             hook_id = client.ensure_project_webhook(project_id, webhook_id)
-            if hook_id != webhook_id:
-                repo.config["webhook_id"] = hook_id
-                repository_service.update_repository(organization_id=organization_id, update=repo)
+            if hook_id != webhook_id and not repository_service.update_repository_config(
+                organization_id=organization_id,
+                id=repo.id,
+                config_updates={"webhook_id": hook_id},
+                expected_integration_id=integration_id,
+                expected_config={"webhook_id": webhook_id},
+            ):
+                # The repository was disabled, moved, or repaired concurrently while we
+                # talked to GitLab, so nothing will ever reference or delete the new hook.
+                lifecycle.add_extra("created_webhook_id", hook_id)
+                client.delete_project_webhook(project_id, hook_id)
+                lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED)
         except (ApiUnauthorized, ApiForbiddenError) as e:
             lifecycle.record_halt(e)
             # Don't retry if we've lost access

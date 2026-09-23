@@ -87,8 +87,26 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         except Exception as e:
             raise installation.raise_error(e)
         if hook_id != existing_webhook_id:
+            if not repository_service.update_repository_config(
+                organization_id=organization.id,
+                id=repo.id,
+                config_updates={"webhook_id": hook_id},
+                expected_integration_id=repo.integration_id,
+                expected_config={"webhook_id": existing_webhook_id},
+            ):
+                # The repository changed while we talked to GitLab, so nothing would
+                # ever reference or delete the new hook.
+                logger.info(
+                    "gitlab.repository.webhook_discarded",
+                    extra={**log_extra, "gitlab.repository.webhook_id": hook_id},
+                )
+                try:
+                    client.delete_project_webhook(project_id, hook_id)
+                except ApiError as e:
+                    if e.code != 404:
+                        raise installation.raise_error(e)
+                return
             repo.config["webhook_id"] = hook_id
-            repository_service.update_repository(organization_id=organization.id, update=repo)
             event = (
                 "gitlab.repository.webhook_recreated"
                 if existing_webhook_id

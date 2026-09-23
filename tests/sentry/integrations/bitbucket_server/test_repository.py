@@ -16,9 +16,12 @@ from fixtures.bitbucket_server import (
     EXAMPLE_PRIVATE_KEY,
     REPO,
 )
+from sentry.constants import ObjectStatus
 from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -183,6 +186,40 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
                 "timestamp": datetime.datetime(2019, 12, 19, 13, 56, 56, tzinfo=timezone.utc),
             },
         ]
+
+    @responses.activate
+    def test_on_create_repository_discards_hook_when_repository_disabled(self) -> None:
+        repo = Repository.objects.create(
+            provider="integrations:bitbucket_server",
+            name="sentryuser/newsdiffs",
+            organization_id=self.organization.id,
+            config={"name": "sentryuser/newsdiffs", "project": "sentryuser", "repo": "newsdiffs"},
+            integration_id=self.integration.id,
+        )
+
+        def create(request):
+            Repository.objects.filter(id=repo.id).update(status=ObjectStatus.DISABLED)
+            return 201, {}, '{"id": 79}'
+
+        responses.add_callback(
+            responses.POST,
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/webhooks",
+            callback=create,
+        )
+        responses.add(
+            responses.DELETE,
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/webhooks/79",
+            status=204,
+        )
+
+        self.provider.on_create_repository(
+            serialize_repository(repo), serialize_rpc_organization(self.organization)
+        )
+
+        assert [call.request.method for call in responses.calls] == ["POST", "DELETE"]
+        repo.refresh_from_db()
+        assert repo.status == ObjectStatus.DISABLED
+        assert "webhook_id" not in repo.config
 
     @responses.activate
     def test_build_repository_config(self) -> None:

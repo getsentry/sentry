@@ -72,6 +72,27 @@ class RepositoryService(RpcService):
 
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def update_repository_config(
+        self,
+        *,
+        organization_id: int,
+        id: int,
+        config_updates: dict[str, Any],
+        expected_integration_id: int | None = None,
+        expected_config: dict[str, Any] | None = None,
+    ) -> bool:
+        """
+        Merges ``config_updates`` into the repository's current config, leaving every other
+        field and config key untouched. Use this instead of ``update_repository`` when a
+        snapshot may have gone stale, e.g. across an external API call.
+
+        Returns False without changing anything unless the repository is still active,
+        still belongs to ``expected_integration_id`` (when given), and its config still
+        holds each ``expected_config`` value (a None value expects the key to be unset).
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def update_repositories(self, *, organization_id: int, updates: list[RpcRepository]) -> None:
         pass
 

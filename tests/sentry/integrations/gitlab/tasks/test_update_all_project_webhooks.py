@@ -671,6 +671,80 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         assert self.repo.config["webhook_id"] == 100
         assert [call.request.method for call in responses.calls] == ["PUT", "DELETE", "POST"]
 
+    def _create_hook_while(self, change_repository):
+        """Register a hook create that changes the repository mid-request, as a concurrent writer would."""
+
+        def create(request):
+            change_repository()
+            return 201, {}, '{"id": 100}'
+
+        self.repo.update(config={"project_id": "101", "path": "test-group/repo"})
+        responses.add_callback(
+            responses.POST, "https://example.gitlab.com/api/v4/projects/101/hooks", callback=create
+        )
+        responses.add(
+            responses.DELETE,
+            "https://example.gitlab.com/api/v4/projects/101/hooks/100",
+            status=204,
+        )
+
+    @responses.activate
+    def test_task_preserves_config_written_during_repair(self):
+        self._create_hook_while(
+            lambda: Repository.objects.filter(id=self.repo.id).update(
+                name="renamed", config={**self.repo.config, "sync_comments": True}
+            )
+        )
+        update_project_webhook(self.integration.id, self.organization.id, self.repo.id)
+        self.repo.refresh_from_db()
+        assert self.repo.name == "renamed"
+        assert self.repo.config == {
+            "project_id": "101",
+            "path": "test-group/repo",
+            "sync_comments": True,
+            "webhook_id": 100,
+        }
+        assert [call.request.method for call in responses.calls] == ["POST"]
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_task_discards_hook_when_repository_disabled_during_repair(self, record_event):
+        self._create_hook_while(
+            lambda: Repository.objects.filter(id=self.repo.id).update(status=ObjectStatus.DISABLED)
+        )
+        update_project_webhook(self.integration.id, self.organization.id, self.repo.id)
+        self.repo.refresh_from_db()
+        assert self.repo.status == ObjectStatus.DISABLED
+        assert "webhook_id" not in self.repo.config
+        assert [call.request.method for call in responses.calls] == ["POST", "DELETE"]
+        assert_slo_metric(record_event, event_outcome=EventLifecycleOutcome.HALTED)
+
+    @responses.activate
+    def test_task_discards_hook_when_repository_moved_during_repair(self):
+        other = self.create_integration(
+            organization=self.organization, external_id="other", provider="gitlab"
+        )
+        self._create_hook_while(
+            lambda: Repository.objects.filter(id=self.repo.id).update(integration_id=other.id)
+        )
+        update_project_webhook(self.integration.id, self.organization.id, self.repo.id)
+        self.repo.refresh_from_db()
+        assert self.repo.integration_id == other.id
+        assert "webhook_id" not in self.repo.config
+        assert [call.request.method for call in responses.calls] == ["POST", "DELETE"]
+
+    @responses.activate
+    def test_task_discards_hook_when_repaired_concurrently(self):
+        self._create_hook_while(
+            lambda: Repository.objects.filter(id=self.repo.id).update(
+                config={**self.repo.config, "webhook_id": 99}
+            )
+        )
+        update_project_webhook(self.integration.id, self.organization.id, self.repo.id)
+        self.repo.refresh_from_db()
+        assert self.repo.config["webhook_id"] == 99
+        assert [call.request.method for call in responses.calls] == ["POST", "DELETE"]
+
     @responses.activate
     @patch("sentry.integrations.gitlab.client.metrics.incr")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

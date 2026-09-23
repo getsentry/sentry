@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
@@ -18,6 +19,8 @@ from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.integrations.bitbucket.integration import BitbucketIntegration  # NOQA
+
+logger = logging.getLogger(__name__)
 
 
 class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegration"]):
@@ -86,8 +89,27 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
             )
         except Exception as e:
             installation.raise_error(e)
-        repo.config["webhook_id"] = resp["uuid"]
-        repository_service.update_repository(organization_id=organization.id, update=repo)
+        webhook_id = resp["uuid"]
+        if repository_service.update_repository_config(
+            organization_id=organization.id,
+            id=repo.id,
+            config_updates={"webhook_id": webhook_id},
+            expected_integration_id=repo.integration_id,
+            expected_config={"webhook_id": None},
+        ):
+            repo.config["webhook_id"] = webhook_id
+            return
+        # The repository changed while we created the hook, so nothing would ever
+        # reference or delete it.
+        logger.info(
+            "repository.webhook_discarded",
+            extra={"repository_id": repo.id, "organization_id": organization.id},
+        )
+        try:
+            client.delete_hook(repo.config["name"], webhook_id)
+        except ApiError as e:
+            if e.code != 404:
+                installation.raise_error(e)
 
     def on_delete_repository(self, repo):
         installation = self.get_installation(repo.integration_id, repo.organization_id)
