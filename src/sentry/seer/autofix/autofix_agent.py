@@ -131,6 +131,7 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
         completed_event=AiAutofixRootCauseCompletedEvent,
     ),
     AutofixStep.SOLUTION: StepConfig(
+        # Solution runs through Seer, see autofix_rca/feature.py in seer for changing behavior
         artifact_schema=SolutionArtifact,
         prompt_fn=solution_prompt,
         started_event=AiAutofixSolutionStartedEvent,
@@ -547,9 +548,9 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    use_seer_feature = (step == AutofixStep.ROOT_CAUSE) or (
-        step == AutofixStep.SOLUTION
-        and features.has("organizations:autofix-solution-in-seer", group.organization, actor=user)
+    use_seer_feature = step in (
+        AutofixStep.ROOT_CAUSE,
+        AutofixStep.SOLUTION,
     )
     if use_seer_feature:
         if run_id is not None:
