@@ -216,6 +216,8 @@ register(key="sentry:seer_automation_handoff_point", default=None)
 register(key="sentry:seer_automation_handoff_target", default=None)
 register(key="sentry:seer_automation_handoff_integration_id", default=None)
 register(key="sentry:seer_automation_handoff_auto_create_pr", default=False)
+# Should Autofix automatically iterate on the PRs it opens for this project's issues
+register(key="sentry:seer_pr_iteration", default=True)
 
 SEER_PROJECT_PREFERENCE_OPTION_KEYS = [
     "sentry:seer_automated_run_stopping_point",
@@ -225,6 +227,7 @@ SEER_PROJECT_PREFERENCE_OPTION_KEYS = [
     "sentry:seer_automation_handoff_auto_create_pr",
     "sentry:autofix_automation_tuning",
     "sentry:seer_scanner_automation",
+    "sentry:seer_pr_iteration",
 ]
 
 # Boolean to enable/disable preprod size analysis for this project.

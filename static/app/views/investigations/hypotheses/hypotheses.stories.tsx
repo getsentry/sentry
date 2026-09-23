@@ -9,7 +9,10 @@ import {
   InvestigationOrchestrationFixture,
   InvestigationVerificationStepFixture,
 } from 'sentry/views/investigations/fixtures';
-import {HypothesisList} from 'sentry/views/investigations/hypotheses/hypothesisList';
+import {
+  HypothesisList,
+  HypothesisListPlaceholder,
+} from 'sentry/views/investigations/hypotheses/hypothesisList';
 import {InvestigationHypotheses} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 
 export default Storybook.story('Investigations — Hypotheses', story => {
@@ -34,6 +37,46 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         <HypothesisList
           hypotheses={InvestigationHypothesesFixture()}
           primaryHypothesisId="hypothesis-1"
+        />
+      </Storybook.Demo>
+    </Fragment>
+  ));
+
+  story('Before the first hypothesis', () => (
+    <Fragment>
+      <p>
+        There is a real dead window at the start of a run. Intake, broad scan and planning
+        all happen before the agent has written a single hypothesis, and together they
+        cover a good share of a run's opening stretch. Rendering nothing there leaves a
+        blank area under a status block that says work is happening, and then drops the
+        whole row in at once.
+      </p>
+      <p>
+        The placeholder is the row's own grid, so it reflows into the same number of
+        columns the real cards will use and their arrival moves nothing. It holds three
+        cards — what a run actually produces.
+      </p>
+      <Storybook.Demo resizable direction="column" align="stretch" maxHeight="none">
+        <HypothesisListPlaceholder />
+      </Storybook.Demo>
+      <p>
+        The same rows appear inside a <em>real</em> card whose statement has arrived but
+        whose checks have not. A hypothesis that settled without any checks gets none —
+        there is nothing on its way to hold space for.
+      </p>
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
+        <HypothesisList
+          hypotheses={[
+            InvestigationHypothesisFixture({
+              id: 'unplanned',
+              order: 0,
+              statement: 'A cache stampede followed the deploy',
+              effectiveStatus: 'pending',
+              confidence: null,
+              agentVerdict: null,
+              verificationSteps: [],
+            }),
+          ]}
         />
       </Storybook.Demo>
     </Fragment>
