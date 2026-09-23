@@ -304,7 +304,7 @@ describe('ReplayClipPreview', () => {
     );
   });
 
-  it('Keeps the full replay button in a wrapping header instead of overlaying metadata', () => {
+  it('Wraps replay metadata while reserving space for the full replay button', () => {
     render(<ReplayClipPreview {...defaultProps} />);
 
     const button = screen.getByRole('button', {name: 'See Full Replay'});
@@ -314,8 +314,10 @@ describe('ReplayClipPreview', () => {
     expect(buttonRules).toContain('position: relative');
     expect(buttonRules).not.toContain('position: absolute');
     const headerRules = getEmotionRules(button.parentElement!).join(' ');
-    expect(headerRules).toContain('flex-wrap: wrap');
+    expect(headerRules).toContain('grid-template-columns: minmax(0, 1fr) auto');
     expect(headerRules).toContain('gap: 8px');
+    const metadata = screen.getByText(mockReplayId.slice(0, 8)).parentElement!;
+    expect(getEmotionRules(metadata).join(' ')).toContain('flex-wrap: wrap');
   });
 
   it('Display URL and breadcrumbs in fullscreen mode', async () => {

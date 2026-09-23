@@ -6,7 +6,7 @@ import type {Query} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -100,11 +100,10 @@ export function ReplayPreviewPlayer({
           )}
         </StyledAlert>
       )}
-      <Flex
-        justify="between"
+      <Grid
+        columns="minmax(0, 1fr) auto"
         align="center"
         gap="md"
-        wrap="wrap"
         marginBottom="md"
         position="relative"
       >
@@ -137,7 +136,7 @@ export function ReplayPreviewPlayer({
         >
           {t('See Full Replay')}
         </LinkButton>
-      </Flex>
+      </Grid>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
         {/* oxlint-disable-next-line react/refs */}
         <TooltipContext value={{container: fullscreenRef.current}}>
