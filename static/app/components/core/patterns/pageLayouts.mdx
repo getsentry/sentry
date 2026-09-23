@@ -6,6 +6,7 @@ status: in-progress
 ---
 
 import {Container, Stack} from '@sentry/scraps/layout';
+import {InlineCode} from '@sentry/scraps/code';
 import {SidebarPage, SingleColumnPage} from '@sentry/scraps/pageframe';
 import {Heading, Text} from '@sentry/scraps/text';
 import * as Storybook from 'sentry/stories';
@@ -24,12 +25,36 @@ page layout per rendered page. Do not wrap these patterns in another `main` elem
 | `full`   | Tables and canvases that should fill the available page frame |
 
 <Storybook.Demo resizable>
-  <SingleColumnPage width="narrow" padding="xl">
-    <Stack gap="sm">
-      <Heading as="h2">Focused content</Heading>
-      <Text>This page grows responsively and stops at the narrow content width.</Text>
-    </Stack>
-  </SingleColumnPage>
+  <Stack gap="md" flex="0 1 100%">
+    <SingleColumnPage width="narrow" padding="xl">
+      <Stack gap="sm">
+        <Heading as="h2">
+          <InlineCode>narrow</InlineCode>: focused content
+        </Heading>
+        <Text>
+          This page grows responsively and stops at <InlineCode>960px</InlineCode>.
+        </Text>
+      </Stack>
+    </SingleColumnPage>
+    <SingleColumnPage width="wide" padding="xl">
+      <Stack gap="sm">
+        <Heading as="h2">
+          <InlineCode>wide</InlineCode>: data-heavy content
+        </Heading>
+        <Text>
+          This page grows responsively and stops at <InlineCode>1440px</InlineCode>.
+        </Text>
+      </Stack>
+    </SingleColumnPage>
+    <SingleColumnPage width="full" padding="xl">
+      <Stack gap="sm">
+        <Heading as="h2">
+          <InlineCode>full</InlineCode>: flexible canvas
+        </Heading>
+        <Text>This page grows infinitely.</Text>
+      </Stack>
+    </SingleColumnPage>
+  </Stack>
 </Storybook.Demo>
 
 ```tsx
@@ -49,14 +74,10 @@ established flexible-content plus `325px` sidebar columns in wide containers.
 <Storybook.Demo resizable>
   <SidebarPage>
     <SidebarPage.Main>
-      <Container padding="xl" background="secondary" radius="md">
-        Main content
-      </Container>
+      <Container border="primary">Main content</Container>
     </SidebarPage.Main>
     <SidebarPage.Aside>
-      <Container padding="xl" background="secondary" radius="md">
-        Supporting content
-      </Container>
+      <Container border="primary">Supporting content</Container>
     </SidebarPage.Aside>
   </SidebarPage>
 </Storybook.Demo>

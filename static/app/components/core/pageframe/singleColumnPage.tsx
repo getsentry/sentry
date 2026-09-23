@@ -2,6 +2,8 @@ import {useTheme} from '@emotion/react';
 
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
 
+import {unreachable} from 'sentry/utils/unreachable';
+
 export interface SingleColumnPageProps extends Omit<
   ContainerProps<'main'>,
   'as' | 'containerType' | 'margin' | 'marginLeft' | 'marginRight' | 'maxWidth' | 'width'
@@ -9,32 +11,37 @@ export interface SingleColumnPageProps extends Omit<
   width: 'narrow' | 'wide' | 'full';
 }
 
-export function SingleColumnPage({width, ...props}: SingleColumnPageProps) {
-  const theme = useTheme();
-  const isConstrained = width !== 'full';
+const defaultProps: ContainerProps<'main'> = {
+  as: 'main',
+  containerType: 'inline-size',
+  flexGrow: 1,
+  padding: {zero: '0 md', xl: '0'},
+  width: '100%',
+};
 
-  return (
-    <Container
-      as="main"
-      containerType="inline-size"
-      flexGrow={1}
-      background="primary"
-      margin={isConstrained ? '0 auto' : undefined}
-      padding={{zero: '0 md', xl: '0'}}
-      width="100%"
-      maxWidth={
-        width === 'narrow'
-          ? {
-              zero: '100%',
-              xl: theme.size['2xl'],
-              '2xl': theme.size['3xl'],
-              '3xl': theme.size['4xl'],
-            }
-          : width === 'wide'
-            ? theme.size['7xl']
-            : undefined
-      }
-      {...props}
-    />
-  );
+const useVariantProps = ({width}: SingleColumnPageProps): ContainerProps<'main'> => {
+  const theme = useTheme();
+
+  switch (width) {
+    case 'narrow':
+      return {
+        margin: '0 auto',
+        maxWidth: theme.size['4xl'],
+      };
+    case 'wide':
+      return {
+        margin: '0 auto',
+        maxWidth: theme.size['7xl'],
+      };
+    case 'full':
+      return {};
+    default:
+      return unreachable(width);
+  }
+};
+
+export function SingleColumnPage({width, ...props}: SingleColumnPageProps) {
+  const variantProps = useVariantProps({width});
+
+  return <Container {...defaultProps} {...variantProps} {...props} />;
 }
