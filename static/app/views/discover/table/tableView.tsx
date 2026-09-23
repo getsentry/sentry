@@ -218,17 +218,15 @@ export function TableView(props: TableViewProps) {
   }
 
   function _renderCell({
-    column,
     columnIndex,
     dataRow,
+    field: columnKey,
     rendered,
     rowIndex,
     wrap,
   }: RenderCellOptions): React.ReactNode {
     const {isFirstPage, eventView, location, organization, tableData, queryDataset} =
       props;
-
-    const columnKey = String(column.key);
 
     const display = eventView.getDisplayMode();
     const isTopEvents =

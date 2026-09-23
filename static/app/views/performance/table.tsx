@@ -248,8 +248,7 @@ export function Table({
     };
   };
 
-  function renderCell({column, dataRow, rendered, wrap}: RenderCellOptions) {
-    const field = String(column.key);
+  function renderCell({dataRow, field, rendered, wrap}: RenderCellOptions) {
     const isUnparameterizedRow = dataRow.transaction === UNPARAMETERIZED_TRANSACTION;
 
     if (field === 'transaction') {
@@ -382,8 +381,9 @@ export function Table({
     index: number
   ): React.ReactNode => renderHeadCell(column, columnTitles[index]!);
 
-  const renderPrependCellWithData = (tableData: TableData | null) => {
-    const {renderBodyCell} = getGrid(tableData?.meta);
+  const renderPrependCellWithData = (
+    renderBodyCell: ReturnType<typeof getGrid>['renderBodyCell']
+  ) => {
     const teamKeyTransactionColumn = eventView
       .getColumns()
       .find((col: TableColumn<string | number>) => col.name === 'team_key_transaction');
@@ -446,6 +446,7 @@ export function Table({
       Object.fromEntries(
         Object.entries(tableMeta).map(([key, value]) => [getAggregateAlias(key), value])
       ),
+    getValueKey: getAggregateAlias,
     location,
     onSort: currentSort =>
       trackAnalytics('performance_views.landingv2.transactions.sort', {
@@ -475,32 +476,39 @@ export function Table({
               transactionThreshold={transactionData?.threshold}
               queryExtras={value ? getMEPQueryParams(value) : undefined}
             >
-              {({pageLinks, isLoading, tableData}) => (
-                <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
-                  <VisuallyCompleteWithData
-                    id="PerformanceTable"
-                    hasData={!isLoading && !!tableData?.data && tableData.data.length > 0}
-                    isLoading={isLoading}
-                  >
-                    <GridEditable
+              {({pageLinks, isLoading, tableData}) => {
+                const grid = getGrid(tableData?.meta);
+                return (
+                  <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
+                    <VisuallyCompleteWithData
+                      id="PerformanceTable"
+                      hasData={
+                        !isLoading && !!tableData?.data && tableData.data.length > 0
+                      }
                       isLoading={isLoading}
-                      data={tableData ? tableData.data : []}
-                      columnOrder={columnOrder}
-                      bodyStyle={{overflow: 'visible'}}
-                      grid={{
-                        ...getGrid(tableData?.meta),
-                        renderHeadCell: renderHeadCellWithTitle,
-                        renderPrependColumns: renderPrependCellWithData(tableData),
-                        prependColumnWidths,
-                      }}
+                    >
+                      <GridEditable
+                        isLoading={isLoading}
+                        data={tableData ? tableData.data : []}
+                        columnOrder={columnOrder}
+                        bodyStyle={{overflow: 'visible'}}
+                        grid={{
+                          ...grid,
+                          renderHeadCell: renderHeadCellWithTitle,
+                          renderPrependColumns: renderPrependCellWithData(
+                            grid.renderBodyCell
+                          ),
+                          prependColumnWidths,
+                        }}
+                      />
+                    </VisuallyCompleteWithData>
+                    <Pagination
+                      pageLinks={pageLinks}
+                      paginationAnalyticsEvent={paginationAnalyticsEvent}
                     />
-                  </VisuallyCompleteWithData>
-                  <Pagination
-                    pageLinks={pageLinks}
-                    paginationAnalyticsEvent={paginationAnalyticsEvent}
-                  />
-                </TrackHasDataAnalytics>
-              )}
+                  </TrackHasDataAnalytics>
+                );
+              }}
             </DiscoverQuery>
           );
         }}

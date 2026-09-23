@@ -22,6 +22,7 @@ import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery'
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {
+  getAggregateAlias,
   isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
@@ -199,9 +200,7 @@ export function EventsTable({
     [organization, eventView, excludedTags, applyEnvironmentFilter, location, navigate]
   );
 
-  function renderCell({column, dataRow, rendered, wrap}: RenderCellOptions) {
-    const field = String(column.key);
-
+  function renderCell({dataRow, field, rendered, wrap}: RenderCellOptions) {
     if (['attachments', 'minidump'].includes(field)) {
       return rendered;
     }
@@ -295,6 +294,7 @@ export function EventsTable({
     fieldRendererOptions: {eventView, projectSlug},
     filterColumn: column => shouldRenderColumn(containsSpanOpsBreakdown, column.name),
     getCellActionHandler: handleCellAction,
+    getValueKey: getAggregateAlias,
     location,
     onSort: currentSort =>
       trackAnalytics('performance_views.transactionEvents.sort', {
