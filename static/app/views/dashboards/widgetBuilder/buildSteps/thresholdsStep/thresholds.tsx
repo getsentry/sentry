@@ -232,11 +232,15 @@ export function Thresholds({
           showHelpInTooltip
           value={thresholdTimeWindow}
           disabled={thresholdTimeWindowDisabled}
-          onChange={value =>
+          onChange={(value: unknown) => {
+            if (typeof value !== 'string') {
+              return;
+            }
+
             onThresholdTimeWindowChange?.(
               value === FIXED_THRESHOLD_TIME_WINDOW ? undefined : value
-            )
-          }
+            );
+          }}
           options={thresholdTimeWindowOptions}
           inline={false}
         />
