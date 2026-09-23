@@ -1,8 +1,8 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {docs as nodeDocs} from 'sentry/gettingStartedDocs/node';
-import {mastraOnboarding} from 'sentry/gettingStartedDocs/node/agentMonitoring';
+import {onboarding} from 'sentry/gettingStartedDocs/node-mastra/onboarding';
 
 export const docs: Docs = {
   ...nodeDocs,
-  onboarding: mastraOnboarding,
+  onboarding,
 };

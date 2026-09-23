@@ -12,6 +12,9 @@ import {
   getJsDataCollectionDocsLink,
   getDataCollectionStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {onboarding as eveFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-eve/onboarding';
+import {onboarding as flueFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-flue/onboarding';
+import {onboarding as mastraFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-mastra/onboarding';
 import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
@@ -774,15 +777,15 @@ export function getInstallStep(
   const selected = getAgentIntegration(params);
 
   if (selected === AgentIntegration.MASTRA) {
-    return mastraOnboarding.install(params);
+    return mastraFrameworkOnboarding.install(params);
   }
 
   if (selected === AgentIntegration.FLUE) {
-    return flueOnboarding.install(params);
+    return flueFrameworkOnboarding.install(params);
   }
 
   if (selected === AgentIntegration.EVE) {
-    return eveOnboarding.install(params);
+    return eveFrameworkOnboarding.install(params);
   }
 
   const resolvedPackageName =
@@ -993,7 +996,7 @@ Sentry.init({
       title: t('Configure'),
       content:
         integration === AgentIntegration.MASTRA
-          ? (mastraOnboarding.configure(params)[0]?.content ?? [])
+          ? (mastraFrameworkOnboarding.configure(params)[0]?.content ?? [])
           : [
               {
                 type: 'text',
@@ -1022,15 +1025,15 @@ function getVerifyStep(params: DocsParams): OnboardingStep[] {
   const selected = getAgentIntegration(params);
 
   if (selected === AgentIntegration.MASTRA) {
-    return mastraOnboarding.verify(params);
+    return mastraFrameworkOnboarding.verify(params);
   }
 
   if (selected === AgentIntegration.FLUE) {
-    return flueOnboarding.verify(params);
+    return flueFrameworkOnboarding.verify(params);
   }
 
   if (selected === AgentIntegration.EVE) {
-    return eveOnboarding.verify(params);
+    return eveFrameworkOnboarding.verify(params);
   }
 
   // The Agents SDK only produces spans once the wrapped agent runs, so there's
@@ -1240,11 +1243,11 @@ function getAgentConfigureSteps(
   }
 
   if (selected === AgentIntegration.FLUE) {
-    return flueOnboarding.configure(params);
+    return flueFrameworkOnboarding.configure(params);
   }
 
   if (selected === AgentIntegration.EVE) {
-    return eveOnboarding.configure(params);
+    return eveFrameworkOnboarding.configure(params);
   }
 
   if (selected === AgentIntegration.CLOUDFLARE_AGENTS) {

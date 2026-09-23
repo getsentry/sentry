@@ -1,11 +1,9 @@
 import {docs as eveDocs} from 'sentry/gettingStartedDocs/node-eve';
+import {onboarding as eveOnboarding} from 'sentry/gettingStartedDocs/node-eve/onboarding';
 import {docs as flueDocs} from 'sentry/gettingStartedDocs/node-flue';
+import {onboarding as flueOnboarding} from 'sentry/gettingStartedDocs/node-flue/onboarding';
 import {docs as mastraDocs} from 'sentry/gettingStartedDocs/node-mastra';
-import {
-  eveOnboarding,
-  flueOnboarding,
-  mastraOnboarding,
-} from 'sentry/gettingStartedDocs/node/agentMonitoring';
+import {onboarding as mastraOnboarding} from 'sentry/gettingStartedDocs/node-mastra/onboarding';
 
 describe('agent framework getting started docs', () => {
   it.each([

@@ -1,7 +1,6 @@
 import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
 import replayOnboardingImg from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
@@ -26,7 +25,6 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
-  BasePlatformOptions,
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -37,7 +35,6 @@ import {
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
-import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -62,20 +59,9 @@ import {
   CopyLLMPromptButton,
   getAgentSetupPrompt,
 } from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
-import {
-  AGENT_INTEGRATION_ICONS,
-  AGENT_INTEGRATION_LABELS,
-  AgentIntegration,
-  DEPLOYMENT_TARGET_ICONS,
-  DEPLOYMENT_TARGET_LABELS,
-  DeploymentTarget,
-  getDefaultAgentIntegration,
-  getIntegrationDeploymentTarget,
-  NODE_AGENT_INTEGRATIONS,
-  PHP_AGENT_INTEGRATIONS,
-  PYTHON_AGENT_INTEGRATIONS,
-} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
+import {useAgentOnboardingOptions} from 'sentry/views/insights/pages/agents/utils/useAgentOnboardingOptions';
 import {
   BulletList,
   HeaderText,
@@ -583,90 +569,19 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     projSlug: project?.slug,
   });
 
-  const isPythonPlatform = (project?.platform ?? '').startsWith('python');
-  const isPhpPlatform = (project?.platform ?? '').startsWith('php');
-  // Node-based platforms can deploy to either the Node runtime or Cloudflare
-  // Workers, so we let the user pick a target that tailors the instructions.
-  const isNodePlatform = (project?.platform ?? '').startsWith('node');
-  // Cloudflare Workers projects are pinned to the Cloudflare (withSentry) setup.
-  // Cloudflare Pages bootstraps via `sentryPagesPlugin` instead, so it's left out
-  // of this selector for now and keeps its existing onboarding.
-  const isCloudflareWorkers = project?.platform === 'node-cloudflare-workers';
-  const isCloudflarePages = project?.platform === 'node-cloudflare-pages';
-  const projectAgentIntegration = getDefaultAgentIntegration(project?.platform);
-  const showDeploymentTarget =
-    isNodePlatform &&
-    !isCloudflareWorkers &&
-    !isCloudflarePages &&
-    !projectAgentIntegration;
-
-  const deploymentTargetOptions: BasePlatformOptions = showDeploymentTarget
-    ? {
-        deploymentTarget: {
-          label: t('Deployment'),
-          defaultValue: DeploymentTarget.NODE,
-          items: [DeploymentTarget.NODE, DeploymentTarget.CLOUDFLARE].map(target => ({
-            label: DEPLOYMENT_TARGET_LABELS[target],
-            value: target,
-            leadingItems: (
-              <PlatformIcon platform={DEPLOYMENT_TARGET_ICONS[target]} size={16} alt="" />
-            ),
-          })),
-        },
-      }
-    : {};
-
-  // The SDK list is no longer filtered by runtime: Node projects see every
-  // Node/Cloudflare agent SDK, and the chosen SDK drives the runtime below.
-  const integrations = projectAgentIntegration
-    ? [projectAgentIntegration]
-    : isPythonPlatform
-      ? PYTHON_AGENT_INTEGRATIONS
-      : isPhpPlatform
-        ? PHP_AGENT_INTEGRATIONS
-        : NODE_AGENT_INTEGRATIONS;
-
-  const platformOptions: BasePlatformOptions = {
-    integration: {
-      label: t('Integration'),
-      items: integrations.map(integration => ({
-        label: isPhpPlatform
-          ? (currentPlatform?.name ?? t('Laravel'))
-          : AGENT_INTEGRATION_LABELS[integration],
-        value: integration,
-        leadingItems: (
-          <PlatformIcon
-            platform={
-              isPhpPlatform
-                ? (project?.platform ?? 'php-laravel')
-                : AGENT_INTEGRATION_ICONS[integration]
-            }
-            size={16}
-            alt=""
-          />
-        ),
-      })),
-    },
-    ...deploymentTargetOptions,
-  };
-
-  const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
-
-  // A runtime-specific SDK (e.g. Workers AI -> Cloudflare, Mastra -> Node) pins
-  // the runtime and locks the selector; otherwise the user's dropdown choice
-  // wins (the selector defaults to Node). Cloudflare Workers projects stay
-  // pinned to Cloudflare regardless of the SDK.
-  const integrationDeploymentTarget = getIntegrationDeploymentTarget(
-    selectedPlatformOptions.integration
-  );
-  const selectedDeploymentTarget = selectedPlatformOptions.deploymentTarget as
-    | DeploymentTarget
-    | undefined;
-  const deploymentTarget = isCloudflareWorkers
-    ? DeploymentTarget.CLOUDFLARE
-    : (integrationDeploymentTarget ?? selectedDeploymentTarget);
-  const isCloudflareTarget =
-    isNodePlatform && deploymentTarget === DeploymentTarget.CLOUDFLARE;
+  const {
+    deploymentTarget,
+    integrationDeploymentTarget,
+    isCloudflareTarget,
+    isPhpPlatform,
+    isPythonPlatform,
+    platformOptions,
+    projectAgentIntegration,
+    selectedPlatformOptions,
+  } = useAgentOnboardingOptions({
+    platform: project?.platform,
+    platformInfo: currentPlatform,
+  });
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
