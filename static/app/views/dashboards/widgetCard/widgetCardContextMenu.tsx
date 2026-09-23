@@ -310,7 +310,7 @@ export function getMenuOptions(
         return {
           key: `create-alert-${seriesName}-${index}`,
           label: (
-            <Text ellipsis style={{maxWidth: 300}}>
+            <Text ellipsis style={{maxWidth: 400}}>
               {label}
             </Text>
           ),
