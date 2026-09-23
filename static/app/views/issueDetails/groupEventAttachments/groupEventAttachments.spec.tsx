@@ -12,6 +12,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   within,
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
@@ -20,6 +21,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 import {GroupEventAttachments} from './groupEventAttachments';
 
@@ -49,6 +51,7 @@ describe('GroupEventAttachments', () => {
 
   beforeEach(() => {
     project = ProjectFixture({platform: 'apple-ios'});
+    localStorageWrapper.removeItem(`issue-details-attachments-default-tab-${project.id}`);
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
 
@@ -88,6 +91,54 @@ describe('GroupEventAttachments', () => {
       })
     );
   });
+
+  it.each([
+    {label: 'Screenshots', filter: 'screenshot', filterQuery: {screenshot: '1'}},
+    {
+      label: 'Only Crash Reports',
+      filter: 'onlyCrash',
+      filterQuery: {types: ['event.minidump', 'event.applecrashreport']},
+    },
+  ])(
+    'restarts pagination when switching to $label',
+    async ({label, filter, filterQuery}) => {
+      const query = {
+        environment: 'production',
+        statsPeriod: '7d',
+        query: 'release:1.0',
+      };
+      const {router} = render(<GroupEventAttachments project={project} group={group} />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/${groupId}/attachments/`,
+            query: {...query, attachmentFilter: 'all', cursor: '2:0:0'},
+          },
+        },
+      });
+
+      await waitFor(() => {
+        expect(getAttachmentsMock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/issues/group-id/attachments/',
+          expect.objectContaining({
+            query: {...query, environment: ['production'], cursor: '2:0:0'},
+          })
+        );
+      });
+      await userEvent.click(screen.getByRole('radio', {name: label}));
+
+      await waitFor(() => {
+        expect(getAttachmentsMock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/issues/group-id/attachments/',
+          expect.objectContaining({
+            query: {...query, environment: ['production'], ...filterQuery},
+          })
+        );
+      });
+      expect(router.location.query).toEqual({...query, attachmentFilter: filter});
+    }
+  );
 
   it('calls opens modal when clicking on panel body', async () => {
     render(<GroupEventAttachments project={project} group={group} />, {

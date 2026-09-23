@@ -37,7 +37,7 @@ export function GroupEventAttachmentsFilter({
           navigate(
             {
               pathname: location.pathname,
-              query: {...location.query, attachmentFilter: key},
+              query: {...location.query, attachmentFilter: key, cursor: undefined},
             },
             {replace: true}
           );
