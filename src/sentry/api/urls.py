@@ -872,7 +872,6 @@ from .endpoints.project_profiling_profile import (
 from .endpoints.project_repo import ProjectRepoEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
-from .endpoints.project_rule_enable import ProjectRuleEnableEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
@@ -3178,11 +3177,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/jobs/delete/(?P<job_id>\d+)/$",
         ProjectReplayDeletionJobDetailEndpoint.as_view(),
         name="sentry-api-0-project-replay-deletion-job-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/(?P<rule_id>[^/]+)/enable/$",
-        ProjectRuleEnableEndpoint.as_view(),
-        name="sentry-api-0-project-rule-enable",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/(?P<rule_id>[^/]+)/group-history/$",
