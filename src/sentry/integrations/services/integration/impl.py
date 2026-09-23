@@ -670,18 +670,15 @@ class DatabaseBackedIntegrationService(IntegrationService):
                     IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
                 ],
                 status=ObjectStatus.ACTIVE,
+                # An integration id on its own is not enough to reach an
+                # installation: the organization has to actually have it
+                # installed. get_installation below does not check that.
+                organizationintegration__organization_id=organization_id,
             )
         except Integration.DoesNotExist:
             return None
 
         installation = integration.get_installation(organization_id=organization_id)
-        # get_installation doesn't actually check if the integration is
-        # associated with the organization, so this validates that it does,
-        # and caches the org_integration preemptively.
-        try:
-            installation.org_integration
-        except OrganizationIntegrationNotFound:
-            return None
 
         # Read with the app JWT rather than minting a token: the installation
         # itself reports its current permissions, so there is no reason to
