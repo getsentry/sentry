@@ -176,6 +176,14 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     },
   ];
 
+  // List views such as "View more events" have no tab of their own, so they
+  // keep Events selected, as the dropdown label did.
+  const selectedContentTab = contentTabs.some(
+    tab => tab.key === currentTab && !tab.hidden
+  )
+    ? currentTab
+    : Tab.DETAILS;
+
   const trackContentSelected = (key: Tab) => {
     trackAnalytics('issue_details.issue_content_selected', {
       organization,
@@ -224,7 +232,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       {showContentTabs ? (
         <Tabs
           size="sm"
-          value={currentTab}
+          value={selectedContentTab}
           onChange={key => trackContentSelected(key as Tab)}
         >
           <TabList>

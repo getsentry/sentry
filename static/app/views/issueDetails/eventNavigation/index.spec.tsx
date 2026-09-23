@@ -173,12 +173,15 @@ describe('EventNavigation', () => {
       hideAiFeatures: false,
     });
 
-    function renderNav(org: typeof organization, navGroup = group) {
-      render(
+    function renderNav(
+      org: typeof organization,
+      {navGroup = group, tab = Tab.EVENTS}: {navGroup?: typeof group; tab?: Tab} = {}
+    ) {
+      return render(
         <GroupDataContextProvider group={navGroup} project={navGroup.project}>
           <IssueEventNavigation {...defaultProps} group={navGroup} />
         </GroupDataContextProvider>,
-        {initialRouterConfig, organization: org}
+        {initialRouterConfig: routerConfigForTab(tab), organization: org}
       );
     }
 
@@ -241,7 +244,7 @@ describe('EventNavigation', () => {
         issueCategory: IssueCategory.CRON,
         issueType: IssueType.MONITOR_CHECK_IN_FAILURE,
       });
-      renderNav(seerOrganization, cronGroup);
+      renderNav(seerOrganization, {navGroup: cronGroup});
 
       expect(screen.getByRole('tab', {name: /Events/})).toBeInTheDocument();
       expect(screen.queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
@@ -260,6 +263,38 @@ describe('EventNavigation', () => {
         expect(screen.queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument()
       );
       expect(screen.getByRole('tab', {name: /Events/})).toBeInTheDocument();
+    });
+
+    it('keeps Events selected on the "view more events" list', async () => {
+      const {router} = renderNav(seerOrganization, {tab: Tab.EVENTS});
+
+      expect(screen.getByRole('tab', {name: /Events/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      // Close leaves the list for event details, which is also under Events.
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Return to event details'})
+      );
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/issues/${group.id}/${TabPaths[Tab.DETAILS]}`
+      );
+      expect(screen.getByRole('tab', {name: /Events/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+    });
+
+    it('keeps the first tab selected on other list views', () => {
+      const cronGroup = GroupFixture({
+        id: group.id,
+        issueCategory: IssueCategory.CRON,
+        issueType: IssueType.MONITOR_CHECK_IN_FAILURE,
+      });
+      renderNav(seerOrganization, {navGroup: cronGroup, tab: Tab.CHECK_INS});
+
+      expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true');
     });
   });
 
