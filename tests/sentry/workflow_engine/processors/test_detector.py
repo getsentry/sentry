@@ -41,11 +41,11 @@ from sentry.workflow_engine.processors.detector import (
     process_detectors,
     query_all_projects_detector,
 )
-from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
 from sentry.workflow_engine.processors.evaluations import (
     DetectorEvaluationOutcome,
     EvaluationType,
 )
+from sentry.workflow_engine.processors.evaluations.logging import emit_detector_evaluation_logs
 from sentry.workflow_engine.types import (
     ConditionError,
     DetectorPriorityLevel,
@@ -196,7 +196,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 }
             ),
             mock.patch(
-                "sentry.workflow_engine.processors.evaluation_logging.random.random",
+                "sentry.workflow_engine.processors.evaluations.logging.random.random",
                 return_value=0.1,
             ) as mock_random,
         ):
@@ -233,7 +233,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 }
             ),
             mock.patch(
-                "sentry.workflow_engine.processors.evaluation_logging.sdk_logger"
+                "sentry.workflow_engine.processors.evaluations.logging.sdk_logger"
             ) as mock_sentry_logger,
         ):
             assert emit_detector_evaluation_logs(

@@ -5,10 +5,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.workflow_engine.models import DataConditionGroup
-from sentry.workflow_engine.processors.evaluation_logging import (
-    emit_workflow_evaluation_logs,
-    should_log,
-)
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionEvaluation,
     DataConditionGroupEvaluation,
@@ -19,9 +15,13 @@ from sentry.workflow_engine.processors.evaluations import (
     WorkflowEvaluation,
     WorkflowEvaluationOutcome,
 )
+from sentry.workflow_engine.processors.evaluations.logging import (
+    emit_workflow_evaluation_logs,
+    should_log,
+)
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
-LOGGING_MODULE = "sentry.workflow_engine.processors.evaluation_logging"
+LOGGING_MODULE = "sentry.workflow_engine.processors.evaluation.logging"
 
 
 class TestWorkflowEvaluationArtifact(TestCase):

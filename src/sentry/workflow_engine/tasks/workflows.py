@@ -22,7 +22,7 @@ from sentry.utils.exceptions import quiet_redis_noise, quiet_retriable_timeouts
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import DataConditionGroup, Detector
-from sentry.workflow_engine.processors.evaluation_logging import emit_workflow_evaluation_logs
+from sentry.workflow_engine.processors.evaluations.logging import emit_workflow_evaluation_logs
 from sentry.workflow_engine.tasks.utils import (
     EventNotFoundError,
     ProjectNotActiveError,

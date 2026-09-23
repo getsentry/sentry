@@ -6,14 +6,18 @@ from typing import TYPE_CHECKING, cast
 
 from sentry import features, options
 from sentry.utils.sdk import sdk_logger
-from sentry.workflow_engine.processors.evaluations.detector import ProcessDetectorsResult
-from sentry.workflow_engine.processors.evaluations.workflow import ProcessWorkflowsResult
+from sentry.workflow_engine.processors.evaluations import (
+    ProcessDetectorsResult,
+    ProcessWorkflowsResult,
+)
+from sentry.workflow_engine.processors.evaluations.eap import emit_evaluation_to_eap
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.workflow_engine.processors.delayed_workflow import (
         DelayedWorkflowEvaluationResult,
     )
+    from sentry.workflow_engine.types import WorkflowEngineArtifacts
 
 
 DETECTOR_EVALUATION_LOG_PREFIX = "workflow_engine.process_detectors.evaluation"
@@ -41,11 +45,11 @@ def should_log(
     return _is_sampled()
 
 
-def _emit_evaluation_artifacts(
+def _emit_evaluation_logs(
     logger: Logger,
     *,
     organization_id: int | None,
-    artifacts: list[dict[str, object]],
+    artifacts: WorkflowEngineArtifacts,
     log_prefix: str,
 ) -> None:
     direct_to_sentry = options.get("workflow_engine.evaluation_logs_direct_to_sentry")
@@ -66,16 +70,17 @@ def emit_detector_evaluation_logs(
     result: ProcessDetectorsResult,
     log_prefix: str = DETECTOR_EVALUATION_LOG_PREFIX,
 ) -> bool:
-    if not _is_sampled():
-        return False
+    artifacts = result.artifacts
 
-    _emit_evaluation_artifacts(
-        logger,
-        organization_id=organization_id,
-        artifacts=result.evaluation_artifacts(),
-        log_prefix=log_prefix,
-    )
-    return True
+    if _is_sampled():
+        _emit_evaluation_logs(
+            logger,
+            organization_id=organization_id,
+            artifacts=artifacts,
+            log_prefix=log_prefix,
+        )
+
+    emit_evaluation_to_eap(artifacts)
 
 
 def emit_workflow_evaluation_logs(
@@ -84,19 +89,20 @@ def emit_workflow_evaluation_logs(
     organization: Organization,
     result: ProcessWorkflowsResult | DelayedWorkflowEvaluationResult,
     log_prefix: str = WORKFLOW_EVALUATION_LOG_PREFIX,
-) -> bool:
+) -> None:
     """
     This method is used to log the workflows batched evaluations
     to individual logs, allowing us to easily filter and search for
     a specific workflow's evaluation.
     """
-    if not should_log(organization, result):
-        return False
+    artifacts = result.artifacts
 
-    _emit_evaluation_artifacts(
-        logger,
-        organization_id=organization.id,
-        artifacts=result.evaluation_artifacts(),
-        log_prefix=log_prefix,
-    )
-    return True
+    if should_log(organization, result):
+        _emit_evaluation_logs(
+            logger,
+            organization_id=organization.id,
+            artifacts=artifacts,
+            log_prefix=log_prefix,
+        )
+
+    emit_evaluation_to_eap(artifacts)

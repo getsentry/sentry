@@ -24,7 +24,7 @@ from sentry.workflow_engine.defaults.detectors import (
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
-from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
+from sentry.workflow_engine.processors.evaluations.logging import emit_detector_evaluation_logs
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,

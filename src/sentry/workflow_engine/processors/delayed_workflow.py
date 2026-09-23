@@ -48,13 +48,13 @@ from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
 )
-from sentry.workflow_engine.processors.evaluation_logging import emit_workflow_evaluation_logs
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionGroupEvaluation,
     EvaluationPhase,
     EvaluationType,
     WorkflowEvaluationOutcome,
 )
+from sentry.workflow_engine.processors.evaluations.logging import emit_workflow_evaluation_logs
 from sentry.workflow_engine.processors.evaluations.workflow import WorkflowEvaluationArtifact
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
