@@ -83,7 +83,7 @@ import {
   DEFAULT_EVENT_VIEW,
   DEFAULT_EVENT_VIEW_MAP,
 } from 'sentry/views/discover/results/data';
-import ResultsChart from 'sentry/views/discover/results/resultsChart';
+import {ResultsChartContainer} from 'sentry/views/discover/results/resultsChart';
 import {ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
 import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
@@ -647,8 +647,7 @@ export class Results extends Component<Props, State> {
   };
 
   render() {
-    const {organization, location, selection, api, setSavedQuery, isHomepage} =
-      this.props;
+    const {organization, location, selection, setSavedQuery, isHomepage} = this.props;
     const {
       eventView,
       error,
@@ -745,8 +744,7 @@ export class Results extends Component<Props, State> {
                   organization={organization}
                   location={location}
                 >
-                  <ResultsChart
-                    api={api}
+                  <ResultsChartContainer
                     organization={organization}
                     eventView={eventView}
                     location={location}

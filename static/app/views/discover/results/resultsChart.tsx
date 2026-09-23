@@ -180,11 +180,7 @@ export const ResultsChartContainer = memo(
     const api = useApi();
     const customMeasurementsContext = useContext(CustomMeasurementsContext);
 
-    const yAxisOptions = useMemo(
-      () => eventView.getYAxisOptions(),
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [eventView]
-    );
+    const yAxisOptions = useMemo(() => eventView.getYAxisOptions(), [eventView]);
 
     const hasQueryFeature = organization.features.includes('discover-query');
     const displayOptions = eventView

@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DISPLAY_MODE_OPTIONS, DisplayModes} from 'sentry/utils/discover/types';
-import ResultsChart from 'sentry/views/discover/results/resultsChart';
+import {ResultsChartContainer} from 'sentry/views/discover/results/resultsChart';
 
 describe('Discover > ResultsChart', () => {
   const features = ['discover-basic'];
@@ -32,7 +32,7 @@ describe('Discover > ResultsChart', () => {
 
   it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', async () => {
     render(
-      <ResultsChart
+      <ResultsChartContainer
         organization={organization}
         eventView={eventView}
         location={location}
@@ -64,7 +64,7 @@ describe('Discover > ResultsChart', () => {
 
   it('does not display a chart if no y axis is selected', async () => {
     render(
-      <ResultsChart
+      <ResultsChartContainer
         organization={organization}
         eventView={eventView}
         location={location}
