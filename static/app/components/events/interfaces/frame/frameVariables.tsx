@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {Container, Grid} from '@sentry/scraps/layout';
@@ -119,7 +118,7 @@ export function FrameVariables({data, meta, platform}: Props) {
           <Container minWidth="0" padding="md lg" role="cell">
             <Text monospace size="sm" wordBreak="break-word" wrap="pre-wrap">
               {textProps => (
-                <StyledStructuredEventData
+                <StructuredEventData
                   {...textProps}
                   config={config}
                   data={data[key]}
@@ -134,13 +133,3 @@ export function FrameVariables({data, meta, platform}: Props) {
     </Grid>
   );
 }
-
-const StyledStructuredEventData = styled(StructuredEventData)`
-  overflow: visible;
-
-  > pre {
-    display: inline-block;
-    margin: 0;
-    padding: 0;
-  }
-`;
