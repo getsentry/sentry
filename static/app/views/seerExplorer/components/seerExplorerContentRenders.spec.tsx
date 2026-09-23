@@ -55,6 +55,8 @@ function makeTurn(turn: number): Block[] {
         },
       ],
       tool_links: [{kind: 'telemetry_live_search', params: {}}],
+      // A todo list in a settled turn: every row reads the conversation's latest snapshot.
+      todos: turn === 0 ? [{content: 'Investigate', status: 'in_progress'}] : undefined,
     },
     {
       id: `answer-${turn}`,

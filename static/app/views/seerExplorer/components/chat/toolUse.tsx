@@ -796,6 +796,11 @@ function RequestDetail({
 
 export type LatestTodos = {block: Block; todos: TodoItem[]};
 
+// A block's snapshot is fixed for a given block object (query structural sharing gives a changed
+// block a new identity), so reuse one result per block. Otherwise every poll would hand memoized
+// rows a fresh `latestTodos` object and re-render them all.
+const latestTodosCache = new WeakMap<Block, LatestTodos>();
+
 /**
  * The newest todo snapshot in the conversation and the block that carries it.
  *
@@ -806,18 +811,30 @@ export type LatestTodos = {block: Block; todos: TodoItem[]};
  * null when no block carries one.
  */
 export function findLatestTodos(blocks?: Block[]): LatestTodos | null {
-  let latest: LatestTodos | null = null;
+  let latestBlock: Block | null = null;
+  let latestTodos: TodoItem[] | null = null;
   for (const block of blocks ?? []) {
     if (block.todos?.length) {
-      latest = {block, todos: block.todos};
+      latestBlock = block;
+      latestTodos = block.todos;
     }
     for (const result of block.tool_results ?? []) {
       const todos = result?.structuredContent?.todos;
       if (todos?.length) {
-        latest = {block, todos};
+        latestBlock = block;
+        latestTodos = todos;
       }
     }
   }
+  if (!latestBlock || !latestTodos) {
+    return null;
+  }
+  const cached = latestTodosCache.get(latestBlock);
+  if (cached?.todos === latestTodos) {
+    return cached;
+  }
+  const latest = {block: latestBlock, todos: latestTodos};
+  latestTodosCache.set(latestBlock, latest);
   return latest;
 }
 
