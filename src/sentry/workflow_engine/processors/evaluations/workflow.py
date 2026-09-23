@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, TypedDict
 
@@ -204,4 +204,4 @@ class ProcessWorkflowsResult:
         if not self.evaluations:
             return [self.to_artifact()]
 
-        return [asdict(evaluation.to_artifact()) for evaluation in self.evaluations.values()]
+        return [evaluation.to_artifact().to_dict() for evaluation in self.evaluations.values()]

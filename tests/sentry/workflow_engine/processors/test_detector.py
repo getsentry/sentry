@@ -41,7 +41,8 @@ from sentry.workflow_engine.processors.detector import (
     process_detectors,
     query_all_projects_detector,
 )
-from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
+from sentry.workflow_engine.processors.evaluation_eap import EAP_FEATURE
+from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluations
 from sentry.workflow_engine.processors.evaluations import (
     DetectorEvaluationOutcome,
     EvaluationType,
@@ -108,6 +109,57 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             triggered=True,
             priority=DetectorPriorityLevel.HIGH,
         )
+
+    def test_eap_resolves_uncached_project_independently_of_log_sampling(self) -> None:
+        detector_id = self.create_detector(type=self.handler_type.slug).id
+        detector = Detector.objects.get(id=detector_id)
+        with (
+            self.feature(EAP_FEATURE),
+            override_options({"workflow_engine.evaluation_log_sample_rate": 0.0}),
+            mock.patch(
+                "sentry.workflow_engine.processors.evaluation_logging.produce_evaluation_artifacts"
+            ) as produce_artifacts,
+            mock.patch("sentry.workflow_engine.processors.detector.logger") as mock_logger,
+        ):
+            results = process_detectors(self.build_data_packet(), [detector])
+        assert len(results) == 1
+        mock_logger.info.assert_not_called()
+        produce_artifacts.assert_called_once()
+        organization, artifacts = produce_artifacts.call_args.args
+        assert organization.id == self.organization.id
+        assert artifacts[0]["detector_id"] == detector.id
+        assert artifacts[0]["project_id"] == detector.project_id
+        assert artifacts[0]["evaluation_type"] == EvaluationType.DETECTOR
+
+    def test_eap_disabled_does_not_publish_even_when_logs_enabled(self) -> None:
+        detector = self.create_detector(type=self.handler_type.slug)
+        with (
+            self.feature({EAP_FEATURE: False}),
+            override_options({"workflow_engine.evaluation_log_sample_rate": 1.0}),
+            mock.patch(
+                "sentry.workflow_engine.processors.evaluation_logging.produce_evaluation_artifacts"
+            ) as produce_artifacts,
+        ):
+            assert len(process_detectors(self.build_data_packet(), [detector])) == 1
+        produce_artifacts.assert_not_called()
+
+    def test_eap_failure_does_not_prevent_issue_platform_publication(self) -> None:
+        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
+        data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
+        with (
+            self.feature(EAP_FEATURE),
+            mock.patch(
+                "sentry.workflow_engine.processors.evaluation_eap._eap_producer.produce",
+                side_effect=BufferError,
+            ) as produce_artifact,
+            mock.patch(
+                "sentry.workflow_engine.processors.detector.create_issue_platform_payload"
+            ) as publish_occurrence,
+        ):
+            results = process_detectors(data_packet, [detector])
+        produce_artifact.assert_called_once()
+        assert len(results) == 1
+        publish_occurrence.assert_called_once_with(results[0][1][None], detector.type)
 
     def test_logs_canonical_evaluation_artifact(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
@@ -200,7 +252,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 return_value=0.1,
             ) as mock_random,
         ):
-            assert emit_detector_evaluation_logs(
+            assert emit_detector_evaluations(
                 mock_logger,
                 organization_id=None,
                 result=ProcessDetectorsResult(
@@ -236,7 +288,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 "sentry.workflow_engine.processors.evaluation_logging.sdk_logger"
             ) as mock_sentry_logger,
         ):
-            assert emit_detector_evaluation_logs(
+            assert emit_detector_evaluations(
                 mock_logger,
                 organization_id=self.organization.id,
                 result=ProcessDetectorsResult(
@@ -265,7 +317,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector = self.create_detector(type=self.handler_type.slug)
 
         with mock.patch(
-            "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
+            "sentry.workflow_engine.processors.detector.emit_detector_evaluations"
         ) as mock_emit:
             process_detectors(self.build_data_packet(), [detector])
 
@@ -276,7 +328,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector = Detector.objects.get(id=detector.id)
 
         with mock.patch(
-            "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
+            "sentry.workflow_engine.processors.detector.emit_detector_evaluations"
         ) as mock_emit:
             process_detectors(self.build_data_packet(), [detector])
 
@@ -287,7 +339,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector.update(project=None, config={"organization_id": self.organization.id})
 
         with mock.patch(
-            "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
+            "sentry.workflow_engine.processors.detector.emit_detector_evaluations"
         ) as mock_emit:
             process_detectors(self.build_data_packet(), [detector])
 
@@ -298,7 +350,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector.update(project=None, config={})
 
         with mock.patch(
-            "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
+            "sentry.workflow_engine.processors.detector.emit_detector_evaluations"
         ) as mock_emit:
             results = process_detectors(self.build_data_packet(), [detector])
 
@@ -336,7 +388,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 "workflow_engine.evaluation_logs_direct_to_sentry": False,
             }
         ):
-            assert emit_detector_evaluation_logs(
+            assert emit_detector_evaluations(
                 mock_logger,
                 organization_id=None,
                 result=result,

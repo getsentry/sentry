@@ -48,7 +48,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
 )
-from sentry.workflow_engine.processors.evaluation_logging import emit_workflow_evaluation_logs
+from sentry.workflow_engine.processors.evaluation_logging import emit_workflow_evaluations
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionGroupEvaluation,
     EvaluationPhase,
@@ -1075,7 +1075,7 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
         dcg_to_slow_conditions,
         project.id,
     )
-    emit_workflow_evaluation_logs(
+    emit_workflow_evaluations(
         logger,
         organization=project.organization,
         result=evaluation,

@@ -57,6 +57,7 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     get_groups_to_fire,
     is_retry,
 )
+from sentry.workflow_engine.processors.evaluation_logging import emit_workflow_evaluations
 from sentry.workflow_engine.processors.evaluations import (
     EvaluationPhase,
     EvaluationType,
@@ -789,6 +790,43 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         assert artifact.group_id == self.group1.id
         assert artifact.outcome == WorkflowEvaluationOutcome.ACTIONS_TRIGGERED
         assert len(artifact.filter_evaluations) == 1
+
+    def test_delayed_artifacts_are_shared_with_eap_and_redacted_for_logs(self) -> None:
+        result = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            self.event_data,
+            self.condition_group_results,
+            self.dcg_to_slow_conditions,
+            project_id=self.project.id,
+        )
+        logger = MagicMock()
+        with (
+            self.feature(
+                [
+                    "organizations:workflow-engine-evaluation-artifacts-eap",
+                    "organizations:workflow-engine-log-evaluations",
+                ]
+            ),
+            patch(
+                "sentry.workflow_engine.processors.evaluation_logging.produce_evaluation_artifacts"
+            ) as produce_artifacts,
+            patch.object(
+                type(result), "evaluation_artifacts", wraps=result.evaluation_artifacts
+            ) as build_artifacts,
+        ):
+            assert emit_workflow_evaluations(logger, organization=self.organization, result=result)
+        build_artifacts.assert_called_once_with()
+        produce_artifacts.assert_called_once()
+        organization, full_artifacts = produce_artifacts.call_args.args
+        assert organization.id == self.organization.id
+        assert len(full_artifacts) == 2
+        assert logger.info.call_count == 2
+        assert full_artifacts[0]["evaluation_phase"] == EvaluationPhase.DELAYED
+        assert full_artifacts[0]["trigger_evaluation"]["condition_evaluations"][0]["input"] == [101]
+        redacted = logger.info.call_args_list[0].kwargs["extra"]
+        assert redacted["trigger_evaluation"]["condition_evaluations"][0]["input"] is None
+        assert result.artifacts[0].trigger_evaluation.condition_evaluations[0].input == [101]
 
     def test_missing_when_dcg_creates_error_artifact(self) -> None:
         missing_when_dcg_id = self.workflow1.when_condition_group_id

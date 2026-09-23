@@ -25,7 +25,7 @@ class DataConditionEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     condition_id: int
     condition_type: str
     input_type: str
-    input: bool | int | float | str | None
+    input: ConditionEvaluationData
     result: DataConditionResult
 
 
@@ -64,7 +64,6 @@ class DataConditionEvaluation(
         triggered: bool,
         error: str | None,
     ) -> DataConditionEvaluationArtifact:
-        safe_input = self.data if isinstance(self.data, (bool, int, float, str)) else None
         comparison = json.dumps(self.condition.comparison, sort_keys=True)
 
         return DataConditionEvaluationArtifact(
@@ -74,6 +73,6 @@ class DataConditionEvaluation(
             condition_id=self.condition.id,
             condition_type=self.condition.type,
             input_type=type(self.data).__name__,
-            input=safe_input,
+            input=self.data,
             result=getattr(self.result, "value", self.result),
         )

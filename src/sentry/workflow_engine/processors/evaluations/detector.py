@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, TypedDict
 
@@ -135,7 +135,7 @@ class ProcessDetectorsResult:
         return [
             {
                 **self.artifact_data,
-                **asdict(evaluation.to_artifact()),
+                **evaluation.to_artifact().to_dict(),
                 "outcome": evaluation.outcome,
             }
             for evaluation in self.evaluations.values()

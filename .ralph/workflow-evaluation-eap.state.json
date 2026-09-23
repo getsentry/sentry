@@ -1,0 +1,14 @@
+{
+  "name": "workflow-evaluation-eap",
+  "taskFile": ".ralph/workflow-evaluation-eap.md",
+  "iteration": 3,
+  "maxIterations": 8,
+  "itemsPerIteration": 2,
+  "reflectEvery": 2,
+  "reflectInstructions": "REFLECTION CHECKPOINT\n\nPause and reflect on your progress:\n1. What has been accomplished so far?\n2. What's working well?\n3. What's not working or blocking progress?\n4. Should the approach be adjusted?\n5. What are the next priorities?\n\nUpdate the task file with your reflection, then continue working.",
+  "active": true,
+  "status": "active",
+  "startedAt": "2026-09-23T17:12:12.735Z",
+  "lastReflectionAt": 3,
+  "ownerSessionId": "01a0cf1f-8ae7-7480-8369-d0cf89de53bb"
+}

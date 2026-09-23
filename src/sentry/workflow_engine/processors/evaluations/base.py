@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field, fields, is_dataclass, replace
 from enum import StrEnum
 from typing import Any, final
 
@@ -28,10 +28,34 @@ def _find_error(
     return next((item.error for item in items if predicate(item)), None)
 
 
+def _artifact_value_to_dict(value: Any) -> Any:
+    if is_dataclass(value) and not isinstance(value, type):
+        artifact: dict[str, object] = {}
+        for artifact_field in fields(value):
+            field_value = getattr(value, artifact_field.name)
+            artifact[artifact_field.name] = (
+                field_value
+                if artifact_field.name == "input"
+                else _artifact_value_to_dict(field_value)
+            )
+        return artifact
+    if isinstance(value, (list, tuple)):
+        return [_artifact_value_to_dict(item) for item in value]
+    return value
+
+
 @dataclass(frozen=True)
 class BaseWorkflowEngineEvaluationArtifact:
     triggered: bool
     error: str | None
+
+    def to_dict(self) -> dict[str, object]:
+        """Convert the artifact tree without copying or traversing raw condition inputs.
+
+        Inputs can contain live event/model objects. Logs must redact those before
+        serialization; only the EAP sink should serialize their contents.
+        """
+        return _artifact_value_to_dict(self)
 
 
 @dataclass(frozen=True, kw_only=True)
