@@ -277,9 +277,6 @@ class Release(Model):
     authors = ArrayField(models.TextField(), default=list, null=True)
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedBigIntegerField(null=True)
-    # Narrow leftover of the `last_deploy_id` widening. Nothing should read it; it stays
-    # declared only so previous-release code can keep writing it across the deploy.
-    new_last_deploy_id = BoundedPositiveIntegerField(null=True)
 
     # Denormalized semver columns. These will be filled if `version` matches at least
     # part of our more permissive model of semver:
