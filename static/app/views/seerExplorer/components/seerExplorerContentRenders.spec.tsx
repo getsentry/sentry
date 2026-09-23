@@ -42,11 +42,7 @@ function makeTurn(turn: number): Block[] {
         content: null,
         thinking_content: `Thinking about question ${turn}`,
         tool_calls: [
-          {
-            id: `call-${turn}`,
-            function: 'telemetry_live_search',
-            args: '{"q":"x"}',
-          },
+          {id: `call-${turn}`, function: 'telemetry_live_search', args: '{"q":"x"}'},
         ],
       },
       timestamp: ts,
@@ -164,11 +160,7 @@ describe('SeerExplorerContent re-renders', () => {
         content: null,
         thinking_content: 'Live thinking 1',
         tool_calls: [
-          {
-            id: 'call-live-1',
-            function: 'telemetry_live_search',
-            args: '{"q":"x"}',
-          },
+          {id: 'call-live-1', function: 'telemetry_live_search', args: '{"q":"x"}'},
         ],
       },
       timestamp: '2024-01-01T02:00:01Z',
@@ -180,11 +172,7 @@ describe('SeerExplorerContent re-renders', () => {
       hook.mockReturnValue({
         ...defaultHookReturn,
         isPolling: true,
-        sessionData: {
-          blocks: [...blocks],
-          status: 'processing',
-          updated_at: updatedAt,
-        },
+        sessionData: {blocks: [...blocks], status: 'processing', updated_at: updatedAt},
       });
     const content = (
       <PictureInPictureProvider>

@@ -25,11 +25,7 @@ function createBlock(overrides?: Partial<Block>): Block {
       content: null,
       thinking_content: 'Let me search for issues...',
       tool_calls: [
-        {
-          id: 'call-1',
-          function: 'telemetry_live_search',
-          args: '{"question":"errors"}',
-        },
+        {id: 'call-1', function: 'telemetry_live_search', args: '{"question":"errors"}'},
       ],
     },
     timestamp: '2024-01-01T00:01:00Z',
@@ -418,11 +414,7 @@ describe('ToolUseBlock', () => {
         tool_calls: [{id: 'call-1', function: 'todo_write', args: '{}'}],
       },
       tool_results: [
-        {
-          tool_call_id: 'call-1',
-          tool_call_function: 'todo_write',
-          content: '{}',
-        },
+        {tool_call_id: 'call-1', tool_call_function: 'todo_write', content: '{}'},
       ],
       tool_links: [{kind: 'todo_write', params: {summary: 'Updated todo list'}}],
       todos: [
@@ -838,10 +830,7 @@ describe('ToolUseBlock', () => {
           content: '{}',
           structuredContent: {
             links: [
-              {
-                kind: 'get_issue_details',
-                params: {issue_id: '123', is_error: true},
-              },
+              {kind: 'get_issue_details', params: {issue_id: '123', is_error: true}},
               {kind: 'get_trace_waterfall', params: {trace_id: 'abc'}},
             ],
           },
@@ -920,10 +909,7 @@ describe('ToolUseBlock', () => {
       // The dedupe key ignores is_error so the twin is matched regardless of which side flags it.
       const block = createBlock({
         tool_links: [
-          {
-            kind: 'get_issue_details',
-            params: {issue_id: '123', is_error: true},
-          },
+          {kind: 'get_issue_details', params: {issue_id: '123', is_error: true}},
         ],
         tool_results: [
           {
@@ -956,10 +942,7 @@ describe('ToolUseBlock', () => {
             content: '{}',
             structuredContent: {
               links: [
-                {
-                  kind: 'get_issue_details',
-                  params: {issue_id: '123', is_error: true},
-                },
+                {kind: 'get_issue_details', params: {issue_id: '123', is_error: true}},
               ],
             },
           },
@@ -987,10 +970,7 @@ describe('ToolUseBlock', () => {
             content: 'ran',
             structuredContent: {
               links: [
-                {
-                  kind: 'get_issue_details',
-                  params: {issue_id: '123', is_error: true},
-                },
+                {kind: 'get_issue_details', params: {issue_id: '123', is_error: true}},
                 {kind: 'get_trace_waterfall', params: {trace_id: 'abc'}},
                 {
                   kind: 'get_replay_details',
@@ -1013,10 +993,7 @@ describe('ToolUseBlock', () => {
       // linkKey sorts params, so the dedupe does not depend on JSON key order across channels.
       const block = createBlock({
         tool_links: [
-          {
-            kind: 'get_issue_details',
-            params: {issue_id: '123', project_slug: 'p'},
-          },
+          {kind: 'get_issue_details', params: {issue_id: '123', project_slug: 'p'}},
         ],
         tool_results: [
           {
@@ -1026,10 +1003,7 @@ describe('ToolUseBlock', () => {
             structuredContent: {
               links: [
                 // Same link, keys declared in the opposite order.
-                {
-                  kind: 'get_issue_details',
-                  params: {project_slug: 'p', issue_id: '123'},
-                },
+                {kind: 'get_issue_details', params: {project_slug: 'p', issue_id: '123'}},
               ],
             },
           },
@@ -1337,13 +1311,7 @@ describe('ToolUseBlock', () => {
 
     it('uses only the call status for an in-flight call row', () => {
       const block = executeBlock([
-        {
-          id: 1,
-          kind: 'api',
-          method: 'GET',
-          path: '/issues/',
-          title: 'Listing issues',
-        },
+        {id: 1, kind: 'api', method: 'GET', path: '/issues/', title: 'Listing issues'},
       ]);
 
       render(<BlockComponent block={block} blockIndex={0} />);
@@ -1373,11 +1341,7 @@ describe('ToolUseBlock', () => {
     });
 
     it('leaves a classic tool to its own label rather than adding a placeholder', () => {
-      const block = createBlock({
-        loading: true,
-        tool_results: [],
-        tool_links: [],
-      });
+      const block = createBlock({loading: true, tool_results: [], tool_links: []});
 
       render(<BlockComponent block={block} blockIndex={0} />);
 

@@ -570,10 +570,7 @@ export function SeerExplorerContent({
   const prevIsTimedOutRef = useRef(false);
   useEffect(() => {
     if (isTimedOut && !prevIsTimedOutRef.current) {
-      trackAnalytics('seer.explorer.timed_out', {
-        organization,
-        run_id: runId,
-      });
+      trackAnalytics('seer.explorer.timed_out', {organization, run_id: runId});
     }
     prevIsTimedOutRef.current = isTimedOut;
   }, [isTimedOut, organization, runId]);
@@ -628,11 +625,7 @@ export function SeerExplorerContent({
         containerType="inline-size"
       >
         {renderHeader ? (
-          renderHeader({
-            children: headerContent,
-            isPoppedOut,
-            onClose: handleClose,
-          })
+          renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
         ) : (
           <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
         )}

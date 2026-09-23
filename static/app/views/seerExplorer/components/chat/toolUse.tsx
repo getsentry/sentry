@@ -393,10 +393,8 @@ export function ToolCallList({block, latestTodos, getPageReferrer}: ToolCallList
           ? sortedToolLinks[correspondingLinkIndex]
           : undefined;
         const toolUrl = positionalLink
-          ? (resolveLink(subjectFromToolLink(positionalLink), {
-              organization,
-              projects,
-            })?.url ?? null)
+          ? (resolveLink(subjectFromToolLink(positionalLink), {organization, projects})
+              ?.url ?? null)
           : null;
 
         // Both channels' links stop propagation (so the click doesn't reach the blocks
@@ -452,13 +450,7 @@ export function ToolCallList({block, latestTodos, getPageReferrer}: ToolCallList
               projects,
             });
             return resolved
-              ? [
-                  {
-                    kind: resolved.id,
-                    label: resolved.label,
-                    url: resolved.url,
-                  },
-                ]
+              ? [{kind: resolved.id, label: resolved.label, url: resolved.url}]
               : [];
           });
         const structuredContentMarkdown = toolCall.id
