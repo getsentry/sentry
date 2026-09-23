@@ -7,6 +7,11 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  GEN_AI_DATA_COLLECTION_SNIPPET,
+  getJsDataCollectionDocsLink,
+  getDataCollectionStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 function getInstallSnippet({
@@ -232,13 +237,6 @@ Sentry.init({
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call
   profilesSampleRate: 1.0,`
   }
-
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/node/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },
 });${
                 params.profilingOptions?.defaultProfilingMode === 'continuous' &&
                 profilingLifecycle === 'trace'
@@ -312,6 +310,23 @@ Sentry.profiler.stopProfiler();
   ],
 });
 
+/**
+ * The data collection step for MCP monitoring; `recordInputs`/`recordOutputs`
+ * on `wrapMcpServerWithSentry` override it per server. Not collapsible because
+ * the MCP onboarding's `GuidedSteps` drops collapsible steps.
+ */
+function getMcpDataCollectionStep(params: DocsParams) {
+  return getDataCollectionStep({
+    collapsible: false,
+    // Shared across platforms, so resolve the link from the project's platform.
+    docsLink: getJsDataCollectionDocsLink(params.platformKey),
+    description: t(
+      'By default, the SDK sends the inputs and outputs of your MCP tool calls, prompt retrievals, and resource reads. This gives you rich debugging context.'
+    ),
+    code: GEN_AI_DATA_COLLECTION_SNIPPET,
+  });
+}
+
 export const getNodeMcpOnboarding = ({
   packageName = '@sentry/node',
   importPath,
@@ -360,12 +375,6 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   // Tracing must be enabled for MCP monitoring to work
   tracesSampleRate: 1.0,
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/node/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },
 });`,
             },
           ],
@@ -438,6 +447,7 @@ Sentry.init({
           type: StepType.CONFIGURE,
           content,
         },
+        getMcpDataCollectionStep(params),
       ];
     },
     verify: () => [
@@ -612,12 +622,6 @@ Sentry.init({
     profileLifecycle: 'trace',`
       : ''
   }
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/node/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },
   });${
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode === 'continuous'

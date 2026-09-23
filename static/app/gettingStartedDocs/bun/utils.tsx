@@ -57,12 +57,5 @@ Sentry.init({
   tracesSampleRate: 1.0,`
       : ''
   }
-
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/bun/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },
 });`;
 }

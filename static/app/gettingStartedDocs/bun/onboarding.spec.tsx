@@ -37,8 +37,10 @@ describe('bun onboarding docs', () => {
     expect(
       screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0,/))
     ).toBeInTheDocument();
+
+    // `dataCollection` is presented as its own step rather than in the snippet.
     expect(
-      screen.getByText(textWithMarkupMatcher(/dataCollection: \{/))
+      screen.getByText('Control the Data You Send to Sentry (Optional)')
     ).toBeInTheDocument();
   });
 

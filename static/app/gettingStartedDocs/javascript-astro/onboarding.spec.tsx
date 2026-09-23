@@ -190,7 +190,6 @@ describe('javascript-astro onboarding docs', () => {
     expect(runtimeConfigs).toHaveLength(2);
     for (const config of runtimeConfigs) {
       expect(config).toHaveTextContent('dsn:');
-      expect(config).toHaveTextContent('dataCollection:');
       expect(config).toHaveTextContent('tracesSampleRate: 1.0');
     }
   });

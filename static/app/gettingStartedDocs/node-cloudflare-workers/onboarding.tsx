@@ -2,7 +2,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getDataCollectionStep,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 
@@ -36,14 +39,7 @@ ${indent}// Learn more at
 ${indent}// https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
 ${indent}tracesSampleRate: 1.0,`
       : ''
-  }
-
-${indent}dataCollection: {
-${indent}  // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-${indent}  // https://docs.sentry.io/platforms/javascript/guides/cloudflare/configuration/options/#dataCollection
-${indent}  // userInfo: false,
-${indent}  // httpBodies: [],
-${indent}},`;
+  }`;
 
 const getViteConfigSnippet = () => `
 import { cloudflare } from "@cloudflare/vite-plugin";
@@ -269,6 +265,10 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
       guideLink:
         'https://docs.sentry.io/platforms/javascript/guides/cloudflare/sourcemaps/',
       ...params,
+    }),
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/cloudflare/configuration/options/#dataCollection',
     }),
   ],
   verify: params => [

@@ -29,8 +29,12 @@ describe('javascript-ember onboarding docs', () => {
     const setup = screen.getByText(textWithMarkupMatcher(/Sentry\.init\(/));
     expect(setup).toHaveTextContent('import config from "./config/environment"');
     expect(setup).toHaveTextContent('loadInitializers(App, config.modulePrefix)');
-    expect(setup).toHaveTextContent('dataCollection:');
     expect(setup).not.toHaveTextContent(/sendDefaultPii|enableLogs|enableMetrics/);
+
+    // `dataCollection` is presented as its own step rather than in the snippet.
+    expect(
+      screen.getByText('Control the Data You Send to Sentry (Optional)')
+    ).toBeInTheDocument();
   });
 
   it('registers a performance instance initializer when tracing is selected', () => {

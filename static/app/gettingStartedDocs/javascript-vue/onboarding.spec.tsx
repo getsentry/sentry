@@ -68,8 +68,12 @@ describe('javascript-vue onboarding docs', () => {
     );
 
     const setup = screen.getByText(textWithMarkupMatcher(/Sentry\.init\(/));
-    expect(setup).toHaveTextContent('dataCollection:');
     expect(setup).not.toHaveTextContent(/sendDefaultPii|enableLogs|enableMetrics/);
+
+    // `dataCollection` is presented as its own step rather than in the snippet.
+    expect(
+      screen.getByText('Control the Data You Send to Sentry (Optional)')
+    ).toBeInTheDocument();
   });
 
   it.each([VueVersion.VUE2, VueVersion.VUE3])(
