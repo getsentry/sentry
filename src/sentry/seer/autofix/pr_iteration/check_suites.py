@@ -47,7 +47,7 @@ from sentry.seer.autofix.pr_iteration.constants import (
     REVIEW_REQUEST_FLAG,
 )
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
-from sentry.seer.models import SeerApiError
+from sentry.seer.models import SeerApiError, SeerUnavailableError
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
 from sentry.utils.tracing import trace
@@ -370,6 +370,9 @@ def resolve_check_suite_autofix_run(
     could place it, but GitHub always sends ``base.repo``, so such an entry is not
     a payload this path receives — and resolving one anyway would re-admit, for the
     entry we cannot place, exactly the shadowing above.
+
+    Raises ``SeerUnavailableError`` if nothing matched and Seer was down for any
+    lookup, since the run may well exist.
     """
     # `sentry.integrations.github` registers rule actions at import time, and this
     # module loads while the SCM stream listeners initialize in AppConfig.ready,
@@ -393,12 +396,16 @@ def resolve_check_suite_autofix_run(
         return None
 
     matches: list[CheckSuiteAutofixRun] = []
+    unavailable: SeerUnavailableError | None = None
     for pr_id in (pr.id for pr in pull_requests):
         for candidate in repos:
             try:
                 state = get_agent_state_from_pr_id(
                     candidate.organization_id, SEER_GITHUB_PROVIDER, pr_id
                 )
+            except SeerUnavailableError as e:
+                unavailable = e
+                continue
             except SeerApiError as e:
                 sentry_sdk.capture_exception(e)
                 continue
@@ -428,6 +435,8 @@ def resolve_check_suite_autofix_run(
             )
 
     if not matches:
+        if unavailable is not None:
+            raise unavailable
         return None
 
     if len(matches) > 1:
