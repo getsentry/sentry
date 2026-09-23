@@ -330,6 +330,25 @@ describe('groupDetails', () => {
     ).toBeInTheDocument();
   });
 
+  it('retries the issue request after an initial load failure', async () => {
+    const url = `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`;
+    MockApiClient.addMockResponse({url, statusCode: 500});
+    setWindowLocation(`http://localhost/?project=${group.project.id}`);
+
+    render(<GroupDetails />, {
+      organization: defaultInit.organization,
+      initialRouterConfig,
+    });
+
+    const retryButton = await screen.findByRole('button', {name: 'Retry'});
+    const retryRequest = MockApiClient.addMockResponse({url, body: group});
+    await userEvent.click(retryButton);
+
+    expect(await screen.findByText(group.shortId)).toBeInTheDocument();
+    expect(retryRequest).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+  });
+
   it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
