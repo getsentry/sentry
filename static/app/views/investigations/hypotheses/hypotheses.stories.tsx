@@ -52,9 +52,9 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         whole row in at once.
       </p>
       <p>
-        The placeholder is the row's own grid, so it reflows into the same number of
-        columns the real cards will use and their arrival moves nothing. It holds three
-        cards — what a run actually produces.
+        The placeholder uses the row's own column sizing, so its single card is as wide as
+        the first real card and that card's arrival moves nothing. It holds one card
+        rather than guessing how many hypotheses a run will produce.
       </p>
       <Storybook.Demo resizable direction="column" align="stretch" maxHeight="none">
         <HypothesisListPlaceholder />
