@@ -172,6 +172,18 @@ class SecurityHeadersMiddlewareTest(TestCase):
             "report-uri https://example.com/security/?sentry_key=abc"
         )
 
+    @override_settings(TRUSTED_TYPES_ENABLED=True, CSP_REPORT_ONLY=False)
+    def test_trusted_types_header_allowlists_the_policies_we_install(self) -> None:
+        """The default allowlist must name every policy the frontend registers."""
+        request = self.factory.get("/")
+        response = Response()
+        processed_response = self.middleware.process_response(request, response)
+
+        assert processed_response["Content-Security-Policy-Report-Only"] == (
+            "require-trusted-types-for 'script'; "
+            "trusted-types dompurify sentry-bundler sentry-script-url"
+        )
+
     @override_settings(TRUSTED_TYPES_ENABLED=True, CSP_REPORT_ONLY=False, TRUSTED_TYPES_POLICIES=[])
     def test_trusted_types_header_omits_empty_policy_allowlist(self) -> None:
         request = self.factory.get("/")
