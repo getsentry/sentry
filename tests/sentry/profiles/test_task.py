@@ -434,7 +434,8 @@ def test_process_symbolicator_results_for_sample() -> None:
 
 
 @pytest.mark.parametrize("sdk_frame", [{"in_app": True}, {"in_app": False}, {}])
-def test_cocoa_profile_preserves_in_app(sdk_frame: dict[str, Any]) -> None:
+@pytest.mark.parametrize("frames_sent", [set(), {0}])
+def test_cocoa_profile_preserves_in_app(sdk_frame: dict[str, Any], frames_sent: set[int]) -> None:
     profile: Profile = {
         "version": "2",
         "platform": "cocoa",
@@ -460,7 +461,7 @@ def test_cocoa_profile_preserves_in_app(sdk_frame: dict[str, Any]) -> None:
         }
     ]
 
-    _process_symbolicator_results_for_sample(profile, stacktraces, set(), "cocoa")
+    _process_symbolicator_results_for_sample(profile, stacktraces, frames_sent, "cocoa")
 
     frames = profile["profile"]["frames"]
     assert [frame.get("in_app") for frame in frames] == [
