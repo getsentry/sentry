@@ -894,6 +894,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/integrations/api/endpoints/organization_repository_settings.py   @getsentry/agent-interfaces-sentry-backend
 /src/sentry/seer/code_review/                                                @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/seer/code_review/                                              @getsentry/agent-interfaces-sentry-backend
+/src/sentry/**/pr_iteration*                                                 @getsentry/agent-interfaces-sentry-backend
+/tests/sentry/**/*pr_iteration*                                              @getsentry/agent-interfaces-sentry-backend
+/static/app/**/prIteration*                                                  @getsentry/agent-interfaces-sentry-frontend
 /src/sentry/releases/                                     @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/releases/                                   @getsentry/agent-interfaces-sentry-backend
 
