@@ -116,8 +116,8 @@ export default Storybook.story('Investigations — Hypotheses', story => {
       </Storybook.Demo>
       <p>
         A failure is the one in-flight state that gets a colour, because it is the only
-        one that has stopped. The hypothesis says why; its timeline keeps the check
-        titles.
+        one that has stopped. The hypothesis says why; like any settled card, its checks
+        fold behind a toggle.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <HypothesisList
@@ -169,65 +169,22 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         <HypothesisList
           hypotheses={[
             InvestigationHypothesisFixture({
-              id: 'many-checks',
+              id: 'many-checks-verifying',
               order: 0,
               statement: 'A cache regression slowed organization lookups',
-              rationale: 'Six checks have completed and the seventh is running.',
+              rationale: 'Four checks have completed and the fifth is running.',
               status: 'running',
               effectiveStatus: 'investigating',
               confidence: null,
               agentVerdict: null,
-              verificationSteps: [
-                InvestigationVerificationStepFixture({
-                  id: 'many-step-0',
-                  order: 0,
-                  title: 'Compared FCP and server response time',
-                  status: 'completed',
-                  result: 'Done.',
-                }),
-                InvestigationVerificationStepFixture({
-                  id: 'many-step-1',
-                  order: 1,
-                  title: 'Compared organization lookup spans',
-                  status: 'completed',
-                  result: 'Done.',
-                }),
-                InvestigationVerificationStepFixture({
-                  id: 'many-step-2',
-                  order: 2,
-                  title: 'Inspected cache and Redis behavior',
-                  status: 'completed',
-                  result: 'Done.',
-                }),
-                InvestigationVerificationStepFixture({
-                  id: 'many-step-3',
-                  order: 3,
-                  title: 'Compared cache misses with response time',
-                  status: 'completed',
-                  result: 'Done.',
-                }),
-                InvestigationVerificationStepFixture({
-                  id: 'many-step-4',
-                  order: 4,
-                  title: 'Checked Redis latency and connection usage',
-                  status: 'completed',
-                  result: 'Done.',
-                }),
-                InvestigationVerificationStepFixture({
-                  id: 'many-step-5',
-                  order: 5,
-                  title: 'Compared affected and unaffected organizations',
-                  status: 'completed',
-                  result: 'Done.',
-                }),
-                InvestigationVerificationStepFixture({
-                  id: 'many-step-6',
-                  order: 6,
-                  title: 'Reviewing database and cache evidence',
-                  status: 'running',
-                  result: null,
-                }),
-              ],
+              verificationSteps: manyVerificationSteps(4),
+            }),
+            InvestigationHypothesisFixture({
+              id: 'many-checks-settled',
+              order: 1,
+              statement: 'A cache regression slowed organization lookups',
+              rationale: 'Every check has reported and the evidence supports it.',
+              verificationSteps: manyVerificationSteps(null),
             }),
           ]}
         />
@@ -376,4 +333,34 @@ function inFlightHypotheses() {
       ],
     }),
   ];
+}
+
+/**
+ * Seven checks, those before `runningIndex` done, that one running and the rest
+ * queued. `null` finishes all of them.
+ */
+function manyVerificationSteps(runningIndex: number | null) {
+  return [
+    'Compare FCP and server response time',
+    'Compare organization lookup spans',
+    'Inspect cache and Redis behavior',
+    'Compare cache misses with response time',
+    'Check Redis latency and connection usage',
+    'Compare affected and unaffected organizations',
+    'Review database and cache evidence',
+  ].map((title, order) => {
+    const status =
+      runningIndex === null || order < runningIndex
+        ? 'completed'
+        : order === runningIndex
+          ? 'running'
+          : 'queued';
+    return InvestigationVerificationStepFixture({
+      id: `many-step-${order}`,
+      order,
+      title,
+      status,
+      result: status === 'completed' ? 'Done.' : null,
+    });
+  });
 }
