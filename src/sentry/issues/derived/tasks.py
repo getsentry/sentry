@@ -637,6 +637,8 @@ def heal_stale_derived_data(**kwargs: object) -> None:
         )
         for start, end in ranges:
             regenerate_stale_derived_data_batch.delay(
+                # Workers from the previous release still require this argument.
+                stale_pipeline_hashes=[] if stale_hash is None else [stale_hash],
                 target_hash=stale_hash,
                 group_id_start=start,
                 group_id_end=end,
@@ -980,6 +982,7 @@ def regenerate_stale_derived_data_batch(
         assert result.resume_from_group_id is not None
         gen_id = result.resume_generation_id
         regenerate_stale_derived_data_batch.delay(
+            stale_pipeline_hashes=[] if target_hash is None else [target_hash],
             target_hash=target_hash,
             group_id_start=result.resume_from_group_id,
             group_id_end=group_id_end,
@@ -996,6 +999,7 @@ def regenerate_stale_derived_data_batch(
             tags={"reason": "range_overflow"},
         )
         regenerate_stale_derived_data_batch.delay(
+            stale_pipeline_hashes=[] if target_hash is None else [target_hash],
             target_hash=target_hash,
             group_id_start=group_ids[-1] + 1,
             group_id_end=group_id_end,
