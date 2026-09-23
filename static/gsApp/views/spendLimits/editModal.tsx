@@ -220,6 +220,7 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                   renderBudgetModeSettings={() =>
                     subscription.planDetails.hasOnDemandModes ? (
                       <modeField.Layout.Stack label={t('Spending limit type')}>
+                        {/* TODO: Replace this composition with a RadioCard primitive when available. */}
                         <modeField.Base<HTMLInputElement>>
                           {(baseProps, {indicator}) => (
                             <Grid
@@ -229,7 +230,6 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                               flexGrow={1}
                               minWidth="0"
                             >
-                              {/* TODO: Replace with a RadioCard primitive when available. */}
                               <BudgetModeSettings
                                 activePlan={subscription.planDetails}
                                 onDemandBudgets={onDemandBudgets}
