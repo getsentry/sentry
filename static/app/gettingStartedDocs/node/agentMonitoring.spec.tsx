@@ -305,4 +305,38 @@ describe('node agentMonitoring onboarding', () => {
       expect(collectText(steps)).toContain('Trigger your agent');
     });
   });
+  describe('data collection step', () => {
+    const DATA_COLLECTION_TITLE = 'Control the Data You Send to Sentry (Optional)';
+
+    it.each([
+      ['vercel_ai', {integration: 'vercel_ai'}],
+      ['manual', {integration: 'manual'}],
+      ['mastra', {integration: 'mastra'}],
+      ['flue', {integration: 'flue'}],
+      ['on Cloudflare', {integration: 'openai', deploymentTarget: 'cloudflare'}],
+      [
+        'cloudflare_agents',
+        {integration: 'cloudflare_agents', deploymentTarget: 'cloudflare'},
+      ],
+    ])('offers the genAI opt-out for %s', (_label, platformOptions) => {
+      const steps = config.configure(makeParams(platformOptions));
+      const dataCollectionSteps = steps.filter(
+        step => step.title === DATA_COLLECTION_TITLE
+      );
+
+      // Exactly one, even though several integrations reuse another config's steps.
+      expect(dataCollectionSteps).toHaveLength(1);
+      expect(collectCode(dataCollectionSteps)).toContain(
+        'genAI: { inputs: false, outputs: false }'
+      );
+      // GuidedSteps drops collapsible steps, so a collapsible step would never render.
+      expect(dataCollectionSteps[0]!.collapsible).toBeFalsy();
+    });
+
+    it('omits the step for Eve, which never configures the Sentry SDK', () => {
+      const steps = config.configure(makeParams({integration: 'eve'}));
+
+      expect(steps.filter(step => step.title === DATA_COLLECTION_TITLE)).toHaveLength(0);
+    });
+  });
 });

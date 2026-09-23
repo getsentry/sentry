@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Iterator
 
 import django.contrib.messages.storage.fallback
@@ -19,6 +20,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
 
 
 def _iter_url_resolvers(resolver: URLResolver) -> Iterator[URLResolver]:
@@ -72,17 +76,20 @@ class WarmupEndpoint(Endpoint):
         languages = [lang for lang, _ in settings.LANGUAGES]
         languages.append(settings.LANGUAGE_CODE)
 
-        # Warm every language to avoid resolver lock contention on requests.
-        _warm_up_url_resolver(languages)
+        with metrics.timer("warmup.url_resolver.duration"):
+            # Warm every language to avoid resolver lock contention on requests.
+            _warm_up_url_resolver(languages)
 
-        # for each possible language we support, warm up the translations
-        # cache for faster access
-        for lang in languages:
-            try:
-                language = translation.get_supported_language_variant(lang)
-            except LookupError:
-                pass
-            else:
-                translation.activate(language)
+        with metrics.timer("warmup.translation.duration"):
+            # for each possible language we support, warm up the translations
+            # cache for faster access
+            for lang in languages:
+                try:
+                    language = translation.get_supported_language_variant(lang)
+                except LookupError:
+                    pass
+                else:
+                    translation.activate(language)
 
+        logger.info("warmup.request_complete")
         return Response(200)

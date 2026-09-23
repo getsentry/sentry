@@ -137,7 +137,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "value": ["Rate limit*"]},
                 ],
                 "A filter on error data cannot use the log_message condition. "
-                "It accepts error_type, error_message, release.",
+                "It accepts error_type, error_message, release, ip_address.",
             ),
             (
                 "log",
@@ -146,7 +146,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "value": ["Rate limit*"]},
                 ],
                 "A filter on log data cannot use the error_type condition. "
-                "It accepts log_message, release.",
+                "It accepts log_message, release, ip_address.",
             ),
             (
                 "span",
@@ -154,7 +154,8 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "release", "value": ["1.*"]},
                     {"type": "metric_name", "value": ["counter.*"]},
                 ],
-                "A filter on span data cannot use the metric_name condition. It accepts release.",
+                "A filter on span data cannot use the metric_name condition. "
+                "It accepts release, ip_address.",
             ),
             (
                 "all",
@@ -162,7 +163,8 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "release", "value": ["1.*"]},
                     {"type": "error_message", "value": ["TypeError*"]},
                 ],
-                "A filter on all data cannot use the error_message condition. It accepts release.",
+                "A filter on all data cannot use the error_message condition. "
+                "It accepts release, ip_address.",
             ),
         ]
 
@@ -213,6 +215,40 @@ class CustomInboundFiltersTest(APITestCase):
         custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
         assert response.data["dataType"] == "span"
         assert custom_filter.data_type == "span"
+
+    def test_post_ip_address(self) -> None:
+        """An IP condition reads the envelope, so every data type takes it."""
+        conditions = [{"type": "ip_address", "value": ["10.0.0.0/8", "2001:db8::1"]}]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Block the office",
+                dataType="all",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
+    def test_rejects_ip_address_that_does_not_parse(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Typo",
+                dataType="error",
+                conditions=[{"type": "ip_address", "value": ["10.0.0.0/8", "10.0.0.*", "nope"]}],
+            )
+
+        assert str(response.data["conditions"][0]["value"][0]) == (
+            "10.0.0.*, nope is not an IP address or CIDR range."
+        )
 
     def test_catch_all_needs_no_ingestion_feature(self) -> None:
         """The catch-all filters whichever data types the organization ingests."""
@@ -509,7 +545,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on error data cannot use the log_message condition. "
-            "It accepts error_type, error_message, release."
+            "It accepts error_type, error_message, release, ip_address."
         )
 
     def test_put_to_catch_all(self) -> None:
@@ -567,7 +603,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on all data cannot use the error_message condition. "
-            "It accepts release."
+            "It accepts release, ip_address."
         )
         error_filter.refresh_from_db()
         assert error_filter.data_type == "error"
