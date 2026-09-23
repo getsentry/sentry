@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 from datetime import UTC, datetime, timedelta, timezone
 
@@ -50,8 +51,25 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.utils.tracing import start_span
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _organization_viewer_context_scope(
+    organization_id: int,
+) -> contextlib.AbstractContextManager[None]:
+    if get_viewer_context() is not None:
+        return contextlib.nullcontext()
+
+    return viewer_context_scope(
+        ViewerContext(organization_id=organization_id, actor_type=ActorType.SYSTEM)
+    )
 
 
 @instrumented_task(
@@ -132,11 +150,12 @@ def index_org_project_knowledge(org_id: int) -> None:
     viewer_context = SeerViewerContext(organization_id=org_id)
 
     try:
-        response = make_org_project_knowledge_index_request(
-            payload,
-            timeout=30,
-            viewer_context=viewer_context,
-        )
+        with _organization_viewer_context_scope(org_id):
+            response = make_org_project_knowledge_index_request(
+                payload,
+                timeout=30,
+                viewer_context=viewer_context,
+            )
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
     except Exception:
@@ -207,7 +226,8 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
             logger.info("No service map data found", extra={"org_id": organization_id})
             return
 
-        _send_to_seer(organization_id, nodes, edges)
+        with _organization_viewer_context_scope(organization_id):
+            _send_to_seer(organization_id, nodes, edges)
 
         logger.info(
             "Successfully completed service map build",
@@ -299,11 +319,14 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
                 }
 
     viewer_context = SeerViewerContext(organization_id=organization_id)
-    response = make_org_repo_knowledge_index_request(
-        AgentIndexOrgRepoRequest(org_id=organization.id, repos=list(org_repo_definitions.values())),
-        timeout=30,
-        viewer_context=viewer_context,
-    )
+    with _organization_viewer_context_scope(organization_id):
+        response = make_org_repo_knowledge_index_request(
+            AgentIndexOrgRepoRequest(
+                org_id=organization.id, repos=list(org_repo_definitions.values())
+            ),
+            timeout=30,
+            viewer_context=viewer_context,
+        )
 
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
