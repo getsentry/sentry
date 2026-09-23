@@ -513,7 +513,10 @@ describe('Loader Script Settings', () => {
     ).toBeInTheDocument();
   });
 
-  it.each(['10.x', '11.x'])('enables logs and metrics for SDK version %s', sdkVersion => {
+  it.each([
+    ['10.x', 'enableLogs: true', 'Sentry.logger'],
+    ['11.x', 'Sentry.logger', 'enableLogs: true'],
+  ])('enables logs and metrics for SDK version %s', (sdkVersion, hint, otherHint) => {
     const {organization, project} = initializeOrg();
     const params = {
       projectSlug: project.slug,
@@ -542,6 +545,8 @@ describe('Loader Script Settings', () => {
     });
     expect(logsCheckbox).toBeEnabled();
     expect(logsCheckbox).toBeChecked();
+    expect(screen.getByText(hint)).toBeInTheDocument();
+    expect(screen.queryByText(otherHint)).not.toBeInTheDocument();
   });
 
   it('renders the loader script tag', () => {

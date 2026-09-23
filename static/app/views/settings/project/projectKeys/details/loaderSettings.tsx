@@ -92,6 +92,26 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
     data.browserSdkVersion
   );
   const supportsLogs = sdkVersionSupportsLogsAndMetrics(data.browserSdkVersion);
+  const logsHint =
+    data.browserSdkVersion === '11.x'
+      ? tct(
+          'Logs are sent when you call [codeLogger:Sentry.logger] or add a logging integration. [configDocs:Read the docs] to learn how to configure this.',
+          {
+            codeLogger: <code />,
+            configDocs: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/logs" />
+            ),
+          }
+        )
+      : tct(
+          'The default config is [codeEnableLogs:enableLogs: true]. [configDocs:Read the docs] to learn how to configure this.',
+          {
+            codeEnableLogs: <code />,
+            configDocs: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/logs" />
+            ),
+          }
+        );
 
   return (
     <Access access={['project:write']} project={project}>
@@ -296,15 +316,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 hintText={
                   supportsLogs
                     ? data.dynamicSdkLoaderOptions.hasLogsAndMetrics
-                      ? tct(
-                          'The default config is [codeEnableLogs:enableLogs: true]. [configDocs:Read the docs] to learn how to configure this.',
-                          {
-                            codeEnableLogs: <code />,
-                            configDocs: (
-                              <ExternalLink href="https://docs.sentry.io/platforms/javascript/logs" />
-                            ),
-                          }
-                        )
+                      ? logsHint
                       : undefined
                     : t('Only available in SDK version 10.x and above')
                 }
