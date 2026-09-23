@@ -29,10 +29,15 @@ from sentry.seer.autofix.pr_iteration.constants import (
     MANUAL_FLAG,
     REVIEW_REQUEST_FLAG,
 )
-from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback import (
+    Feedback,
+    serialize_feedback,
+    should_trigger_run,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
     ConsumeTriggerSource,
+    Decision,
     TriggerDecision,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
@@ -1347,45 +1352,39 @@ class CheckSuiteHardCapTest(TestCase):
         self._options_ctx.__enter__()
         self.addCleanup(lambda: self._options_ctx.__exit__(None, None, None))
 
-    def _source(self) -> CheckSuiteFeedbackSource:
-        return _check_suite_source()
+    def _gate(self, blocks: list[MemoryBlock]) -> Decision:
+        return should_trigger_run(_check_suite_feedback(), _run_state(blocks=blocks))
 
-    def test_none_when_cap_reached(self) -> None:
+    def test_run_gate_rejects_when_cap_reached(self) -> None:
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP)]
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=None, reason="hard_cap_reached"
-        )
+        assert self._gate(blocks) == Decision(ok=False, reason="hard_cap_reached")
 
-    def test_none_when_project_disabled_pr_iteration(self) -> None:
+    def test_run_gate_rejects_when_project_disabled_pr_iteration(self) -> None:
         group = self.create_group()
         group.project.update_option("sentry:seer_pr_iteration", False)
+        run_state = _run_state(blocks=[])
+        run_state.metadata = {"group_id": group.id}
 
-        source = _check_suite_source(group_id=group.id)
-
-        assert source.should_trigger(_run_state(blocks=[])) == TriggerDecision(
-            task=None, reason="project_disabled"
+        assert should_trigger_run(_check_suite_feedback(), run_state) == Decision(
+            ok=False, reason="project_disabled"
         )
 
-    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
-    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
-    @patch("sentry.scm.factory.new")
-    def test_not_capped_when_fewer_than_cap_iterations(self, mock_new: MagicMock, _pages) -> None:
-        mock_new.return_value = MagicMock()
+    def test_run_gate_lets_a_person_past_the_cap(self) -> None:
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP)]
+        human = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
+
+        assert should_trigger_run(human, _run_state(blocks=blocks)) == Decision(
+            ok=True, reason="not_automated"
+        )
+
+    def test_not_capped_when_fewer_than_cap_iterations(self) -> None:
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=ConsumeTask.Now, reason="sweep_complete"
-        )
+        assert self._gate(blocks) == Decision(ok=True, reason="run_allows")
 
-    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
-    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
-    @patch("sentry.scm.factory.new")
-    def test_not_capped_when_one_iteration_has_human_feedback(
-        self, mock_new: MagicMock, _pages
-    ) -> None:
+    def test_not_capped_when_one_iteration_has_human_feedback(self) -> None:
         # A human UI iteration mixed into the last N breaks the automated streak.
-        mock_new.return_value = MagicMock()
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
         blocks.append(
             _iteration_block(
@@ -1395,17 +1394,13 @@ class CheckSuiteHardCapTest(TestCase):
             )
         )
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=ConsumeTask.Now, reason="sweep_complete"
-        )
+        assert self._gate(blocks) == Decision(ok=True, reason="run_allows")
 
     def test_only_last_n_iterations_considered(self) -> None:
         blocks = [_iteration_block(0, Feedback(source=UserUIFeedbackSource(user_id=1)))]
         blocks += [_iteration_block(i, _check_suite_feedback()) for i in range(1, self.CAP + 1)]
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=None, reason="hard_cap_reached"
-        )
+        assert self._gate(blocks) == Decision(ok=False, reason="hard_cap_reached")
 
     def test_none_when_mixed_automated_streak_reaches_cap(self) -> None:
         # Check suites and bot reviews share one streak: a mix of the two that
@@ -1414,19 +1409,11 @@ class CheckSuiteHardCapTest(TestCase):
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
         blocks.append(_iteration_block(self.CAP - 1, _review_comment_feedback(author_is_bot=True)))
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=None, reason="hard_cap_reached"
-        )
+        assert self._gate(blocks) == Decision(ok=False, reason="hard_cap_reached")
 
-    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
-    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
-    @patch("sentry.scm.factory.new")
-    def test_not_capped_when_human_review_breaks_mixed_streak(
-        self, mock_new: MagicMock, _pages
-    ) -> None:
+    def test_not_capped_when_human_review_breaks_mixed_streak(self) -> None:
         # A human review mixed into the automated (check-suite + bot-review) streak
         # resets it, so check-suite iteration resumes even at CAP iterations.
-        mock_new.return_value = MagicMock()
         blocks = [_iteration_block(0, _check_suite_feedback())]
         blocks.append(_iteration_block(1, _review_comment_feedback(author_is_bot=False)))
         blocks += [
@@ -1434,38 +1421,22 @@ class CheckSuiteHardCapTest(TestCase):
             for i in range(2, self.CAP + 1)
         ]
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=ConsumeTask.Now, reason="sweep_complete"
-        )
+        assert self._gate(blocks) == Decision(ok=True, reason="run_allows")
 
-    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
-    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
-    @patch("sentry.scm.factory.new")
-    def test_cap_disabled_when_zero(self, mock_new: MagicMock, _pages) -> None:
-        mock_new.return_value = MagicMock()
+    def test_cap_disabled_when_zero(self) -> None:
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(10)]
 
         with self.options({"autofix.pr-iteration.max-iterations": 0}):
-            assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-                task=ConsumeTask.Now, reason="sweep_complete"
-            )
+            assert self._gate(blocks) == Decision(ok=True, reason="run_allows")
 
-    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
-    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
-    @patch("sentry.scm.factory.new")
-    def test_empty_after_parse_iteration_counts_as_automated(
-        self, mock_new: MagicMock, _pages
-    ) -> None:
-        mock_new.return_value = MagicMock()
+    def test_empty_after_parse_iteration_counts_as_automated(self) -> None:
         # An iteration whose feedback parses to [] is a metadata gap, not human
         # input: it must not reset the automated streak (``iteration_is_automated``
         # treats no-feedback as automated), so a full window still trips the cap.
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
         blocks.append(_empty_feedback_iteration_block(self.CAP - 1))
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=None, reason="hard_cap_reached"
-        )
+        assert self._gate(blocks) == Decision(ok=False, reason="hard_cap_reached")
 
 
 class CheckSuiteFlagGateTest(TestCase):

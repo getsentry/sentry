@@ -77,6 +77,7 @@ from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
     automated_iteration_cap_reached,
     feedback_kind,
+    should_trigger_run,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
@@ -269,7 +270,10 @@ def trigger_consume_pr_iteration_feedback(
         )
         return TriggerDecision(task=None, reason="missing_github_permissions")
 
-    if bypass:
+    run_decision = should_trigger_run(feedback, run_state)
+    if not run_decision.ok:
+        decision = TriggerDecision(task=None, reason=run_decision.reason)
+    elif bypass:
         decision = TriggerDecision(task=ConsumeTask.Now, reason="bypass")
     else:
         decision = feedback.source.should_trigger(run_state)

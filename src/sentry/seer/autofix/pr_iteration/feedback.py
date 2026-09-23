@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, ValidationError, root_validator
 
 from sentry import options
 from sentry.seer.agent.client_models import MemoryBlock, SeerRunState
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
@@ -16,6 +17,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.project_setting import pr_iteration_enabled_for_group
 from sentry.utils import json
 
 FeedbackSource = Annotated[
@@ -151,3 +153,23 @@ def automated_iteration_cap_reached(run_state: SeerRunState) -> bool:
         return False
 
     return all(iteration_is_automated(iteration.blocks) for iteration in last_iterations)
+
+
+def should_trigger_run(feedback: Feedback, run_state: SeerRunState) -> Decision:
+    """Checks that apply to the whole run before we schedule an iteration.
+
+    Blocks automated feedback (CI, bots) when the project has PR iteration
+    turned off or the run has hit the automated iteration cap. Feedback from a
+    person is never blocked here.
+    """
+    if not feedback.source.is_automated:
+        return Decision(ok=True, reason="not_automated")
+
+    group_id = run_state.metadata.get("group_id") if run_state.metadata else None
+    if group_id is not None and not pr_iteration_enabled_for_group(group_id):
+        return Decision(ok=False, reason="project_disabled")
+
+    if automated_iteration_cap_reached(run_state):
+        return Decision(ok=False, reason="hard_cap_reached")
+
+    return Decision(ok=True, reason="run_allows")

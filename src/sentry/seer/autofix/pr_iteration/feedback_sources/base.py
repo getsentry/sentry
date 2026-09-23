@@ -38,9 +38,7 @@ ConsumeTask.Later = _ConsumeLater
 
 @dataclass(frozen=True)
 class Decision:
-    """A `should_consume` decision
-
-    `ok` decides whether the gate resolves
+    """`ok` decides whether the gate resolves
     `reason` is purely for o11y, included as a tag in logs and metrics
     """
 

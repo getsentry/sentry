@@ -23,7 +23,6 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     FeedbackSourceBase,
     TriggerDecision,
 )
-from sentry.seer.autofix.pr_iteration.project_setting import pr_iteration_enabled_for_group
 from sentry.utils import metrics
 from sentry.utils.tracing import trace
 
@@ -202,20 +201,10 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
 
     @trace
     def should_trigger(self, run_state: SeerRunState) -> TriggerDecision:
-        from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
-
         try:
             autofix_run = self.autofix_run
         except MissingCheckSuiteAutofixRun:
             return TriggerDecision(task=None, reason="no_autofix_run")
-
-        # Only automated iteration answers to the project setting; feedback a
-        # person sends goes through sources that never read it.
-        if not pr_iteration_enabled_for_group(autofix_run.group_id):
-            return TriggerDecision(task=None, reason="project_disabled")
-
-        if automated_iteration_cap_reached(run_state):
-            return TriggerDecision(task=None, reason="hard_cap_reached")
 
         # A suite for a superseded commit says nothing about the current head.
         # It stays queued (the next drain drops it via ``should_consume``) but

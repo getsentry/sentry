@@ -32,6 +32,7 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedba
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
     ConsumeTriggerSource,
+    Decision,
     TriggerDecision,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
@@ -2188,6 +2189,41 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         assert task_kwargs["trigger_source"] == ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER
         assert task_kwargs["trigger_id"]
         assert mock_apply.call_args.kwargs["countdown"] is None
+
+    @patch(
+        f"{TASK_PATH}.should_trigger_run",
+        return_value=Decision(ok=False, reason="hard_cap_reached"),
+    )
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_bypass_still_answers_to_the_run_gate(
+        self, mock_apply: MagicMock, _mock_run_gate: MagicMock
+    ) -> None:
+        decision = self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
+
+        mock_apply.assert_not_called()
+        assert decision == TriggerDecision(task=None, reason="hard_cap_reached")
+
+    @patch(
+        f"{TASK_PATH}.should_trigger_run",
+        return_value=Decision(ok=False, reason="project_disabled"),
+    )
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_run_gate_runs_before_should_trigger(
+        self, mock_apply: MagicMock, _mock_run_gate: MagicMock
+    ) -> None:
+        feedback = self._feedback()
+        with patch.object(type(feedback.source), "should_trigger") as mock_should_trigger:
+            decision = trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+            )
+
+        mock_should_trigger.assert_not_called()
+        mock_apply.assert_not_called()
+        assert decision == TriggerDecision(task=None, reason="project_disabled")
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_triggers_when_should_trigger_true(self, mock_apply: MagicMock) -> None:
