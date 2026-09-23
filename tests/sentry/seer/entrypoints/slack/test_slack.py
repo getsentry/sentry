@@ -2,7 +2,8 @@ from unittest.mock import ANY, Mock, patch
 
 import pytest
 
-from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
+from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
@@ -179,6 +180,61 @@ class SlackAutofixEntrypointTest(TestCase):
                 organization_id=cache_payload["organization_id"],
                 data=ANY,
             )
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    def test_on_autofix_update_filters_null_pr_fields(self, mock_schedule_all_thread_updates):
+        """PR entries with None pr_number or pr_url should be filtered; summary uses first valid PR."""
+        ep = self._get_entrypoint()
+        valid_url = "https://github.com/owner/repo/pull/456"
+        for event_type in (
+            SentryAppEventType.SEER_PR_CREATED,
+            SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
+        ):
+            event_payload = {
+                "run_id": MOCK_RUN_ID,
+                "group_id": MOCK_GROUP_ID,
+                "pull_requests": [
+                    {"pull_request": {"pr_number": None, "pr_url": None}},
+                    {"pull_request": {"pr_number": 456, "pr_url": valid_url}},
+                ],
+            }
+            cache_payload = ep.create_autofix_cache_payload()
+            # Should not raise ValidationError
+            ep.on_autofix_update(
+                event_type=event_type, event_payload=event_payload, cache_payload=cache_payload
+            )
+            call_kwargs = mock_schedule_all_thread_updates.call_args.kwargs
+            data = call_kwargs["data"]
+            # The None entry should be filtered; only the valid PR remains
+            assert len(data.pull_requests) == 1
+            assert data.pull_requests[0]["pr_number"] == 456
+            # summary should come from the first *valid* PR, not the null one
+            assert data.summary == valid_url
+            mock_schedule_all_thread_updates.reset_mock()
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    def test_on_autofix_update_skips_update_when_all_prs_null(
+        self, mock_schedule_all_thread_updates
+    ):
+        """When every PR entry has null fields, no Slack update should be sent."""
+        ep = self._get_entrypoint()
+        for event_type in (
+            SentryAppEventType.SEER_PR_CREATED,
+            SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
+        ):
+            event_payload = {
+                "run_id": MOCK_RUN_ID,
+                "group_id": MOCK_GROUP_ID,
+                "pull_requests": [
+                    {"pull_request": {"pr_number": None, "pr_url": None}},
+                ],
+            }
+            cache_payload = ep.create_autofix_cache_payload()
+            ep.on_autofix_update(
+                event_type=event_type, event_payload=event_payload, cache_payload=cache_payload
+            )
+            mock_schedule_all_thread_updates.assert_not_called()
+            mock_schedule_all_thread_updates.reset_mock()
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch(
