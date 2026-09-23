@@ -1,0 +1,320 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {makeCloseButton, ModalBody, ModalFooter} from '@sentry/scraps/modal';
+
+import SpendLimitsEditModal from 'getsentry/views/spendLimits/editModal';
+
+describe('SpendLimitsEditModal', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('submits the updated spending limit through the form', async () => {
+    const organization = OrganizationFixture({features: ['ondemand-budgets']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      onDemandMaxSpend: 0,
+    });
+    const closeModal = jest.fn();
+    const request = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'GET',
+    });
+
+    render(
+      <SpendLimitsEditModal
+        Header={() => <div />}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(closeModal)}
+        closeModal={closeModal}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    const input = screen.getByRole('spinbutton', {
+      name: 'Custom shared spending limit (in dollars)',
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, '123');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/ondemand-budgets/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            budgetMode: 'shared',
+            sharedMaxBudget: 12_300,
+          },
+        })
+      )
+    );
+    expect(closeModal).toHaveBeenCalled();
+  });
+
+  it('submits per-product limits after changing the budget mode', async () => {
+    const organization = OrganizationFixture({features: ['ondemand-budgets']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      onDemandMaxSpend: 0,
+    });
+    const closeModal = jest.fn();
+    const request = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'GET',
+    });
+
+    render(
+      <SpendLimitsEditModal
+        Header={() => <div />}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(closeModal)}
+        closeModal={closeModal}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    const perCategoryRadio = screen.getByRole('radio', {
+      name: 'Per-category spending limit mode',
+    });
+    expect(perCategoryRadio).toHaveAttribute('name', 'budgetMode');
+    await userEvent.click(perCategoryRadio);
+    const errorsInput = screen.getByRole('spinbutton', {
+      name: 'Custom errors spending limit (in dollars)',
+    });
+    await userEvent.clear(errorsInput);
+    await userEvent.type(errorsInput, '5');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/ondemand-budgets/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            budgetMode: 'per_category',
+            budgets: expect.objectContaining({errors: 500}),
+          },
+        })
+      )
+    );
+  });
+
+  it('preserves edited limits when switching budget modes', async () => {
+    const organization = OrganizationFixture({features: ['ondemand-budgets']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      onDemandMaxSpend: 0,
+    });
+    const request = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'GET',
+    });
+
+    render(
+      <SpendLimitsEditModal
+        Header={() => <div />}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    const input = screen.getByRole('spinbutton', {
+      name: 'Custom shared spending limit (in dollars)',
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, '123');
+    await userEvent.click(
+      screen.getByRole('radio', {name: 'Per-category spending limit mode'})
+    );
+    await userEvent.click(
+      screen.getByRole('radio', {name: 'Shared spending limit mode'})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/ondemand-budgets/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            budgetMode: 'shared',
+            sharedMaxBudget: 12_300,
+          },
+        })
+      )
+    );
+  });
+
+  it('does not allow selecting a budget mode when the plan does not support modes', () => {
+    const organization = OrganizationFixture({features: ['ondemand-budgets']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      onDemandMaxSpend: 0,
+    });
+
+    render(
+      <SpendLimitsEditModal
+        Header={() => <div />}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('spinbutton', {
+        name: 'Custom shared spending limit (in dollars)',
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('associates server field errors with the spending limit input', async () => {
+    const organization = OrganizationFixture({features: ['ondemand-budgets']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      onDemandMaxSpend: 0,
+    });
+    const closeModal = jest.fn();
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {sharedMaxBudget: ['Ensure this value is less than or equal to 500.']},
+    });
+
+    render(
+      <SpendLimitsEditModal
+        Header={() => <div />}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(closeModal)}
+        closeModal={closeModal}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    const input = screen.getByRole('spinbutton', {
+      name: 'Custom shared spending limit (in dollars)',
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, '123');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(
+      await screen.findByText('Ensure this value is less than or equal to 500.')
+    ).toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(closeModal).not.toHaveBeenCalled();
+  });
+
+  it('associates nested server errors with per-category inputs', async () => {
+    const organization = OrganizationFixture({features: ['ondemand-budgets']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      onDemandMaxSpend: 0,
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {budgets: {errors: ['Enter a lower errors spending limit.']}},
+    });
+
+    render(
+      <SpendLimitsEditModal
+        Header={() => <div />}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('radio', {name: 'Per-category spending limit mode'})
+    );
+    const input = screen.getByRole('spinbutton', {
+      name: 'Custom errors spending limit (in dollars)',
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(
+      await screen.findByText('Enter a lower errors spending limit.')
+    ).toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('shows a generic error when a server error cannot be mapped to an input', async () => {
+    const organization = OrganizationFixture({features: ['ondemand-budgets']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      onDemandMaxSpend: 0,
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {budgets: ['The spending limits are invalid.']},
+    });
+
+    render(
+      <SpendLimitsEditModal
+        Header={() => <div />}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('radio', {name: 'Per-category spending limit mode'})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to save your on-demand budget'
+    );
+  });
+});
