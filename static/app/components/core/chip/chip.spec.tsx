@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
@@ -17,12 +16,11 @@ describe('Chip', () => {
       </Fragment>
     );
 
-    const primary = ThemeFixture().tokens.content.primary;
     expect(getEmotionRules(screen.getByText('Flat value')).join('')).toContain(
-      `color: ${primary}`
+      'color: rgb(48, 46, 54)'
     );
     expect(getEmotionRules(screen.getByText('Compound value')).join('')).toContain(
-      `color: ${primary}`
+      'color: rgb(48, 46, 54)'
     );
   });
 
