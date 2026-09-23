@@ -70,12 +70,11 @@ from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStat
 from sentry.models.counter import Counter
 from sentry.models.custominboundfilter import (
     CustomInboundFilter,
-    CustomInboundFilterDataType,
+    DataType,
 )
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardHiddenUser,
     DashboardLastVisited,
     DashboardRevision,
 )
@@ -512,7 +511,7 @@ class ExhaustiveFixtures(Fixtures):
         CustomInboundFilter.objects.create(
             project=project,
             name=f"custom-inbound-filter-{slug}",
-            data_type=CustomInboundFilterDataType.ALL,
+            data_type=DataType.ALL,
             conditions=[{"type": "release", "value": ["1.0.0"]}],
         )
 
@@ -575,10 +574,6 @@ class ExhaustiveFixtures(Fixtures):
             dashboard=dashboard,
             user_id=owner_id,
             organization=org,
-        )
-        DashboardHiddenUser.objects.create(
-            user_id=owner_id,
-            dashboard=dashboard,
         )
         DashboardLastVisited.objects.create(
             user_id=owner_id,

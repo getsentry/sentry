@@ -93,8 +93,17 @@ export function getDisabledProducts(organization: Organization): DisabledProduct
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  bun: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  deno: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   dotnet: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,

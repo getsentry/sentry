@@ -6,9 +6,13 @@ import sentry_sdk
 from django.db.models import (
     Case,
     CharField,
+    Count,
+    Exists,
     F,
     IntegerField,
+    OrderBy,
     OuterRef,
+    Q,
     QuerySet,
     Subquery,
     Value,
@@ -45,6 +49,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.endpoints.bases import filter_to_accessible_discover_queries
 from sentry.discover.models import (
     DiscoverSavedQuery,
+    DiscoverSavedQueryLastVisited,
     DiscoverSavedQueryStarred,
     DiscoverSavedQueryTypes,
 )
@@ -59,6 +64,7 @@ from sentry.explore.endpoints.explore_saved_queries import (
 from sentry.explore.models import (
     ExploreSavedQuery,
     ExploreSavedQueryDataset,
+    ExploreSavedQueryLastVisited,
     ExploreSavedQueryStarred,
 )
 from sentry.explore.types import SavedQueryType
@@ -80,14 +86,15 @@ def get_discover_queryset(
     request: Request, organization: Organization, user_id: int
 ) -> QuerySet[DiscoverSavedQuery]:
     """Returns the Discover queryset filtering out homepage queries"""
-    queryset: QuerySet[DiscoverSavedQuery] = DiscoverSavedQuery.objects.filter(
-        organization=organization
-    ).exclude(is_homepage=True)
-
-    # Hide transactions saved queries if organizations has the discover transactions
-    # deprecation flag enabled
-    if features.has("organizations:deprecate-discover", organization, actor=request.user):
-        queryset = queryset.exclude(dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE)
+    queryset: QuerySet[DiscoverSavedQuery] = (
+        DiscoverSavedQuery.objects.filter(
+            organization=organization
+            # Hide transactions saved queries for everyone since they've been migrated to spans and
+            # the transactions dataset has been deprecated
+        )
+        .exclude(is_homepage=True)
+        .exclude(dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE)
+    )
 
     queryset = filter_to_accessible_discover_queries(request, queryset)
 
@@ -134,12 +141,14 @@ def get_explore_queryset(
 def build_combined_queryset(
     discover_queryset: QuerySet[DiscoverSavedQuery],
     explore_queryset: QuerySet[ExploreSavedQuery],
+    sort_by_list: list[str],
     *,
     starred_only: bool,
+    organization: Organization,
     user_id: int,
 ) -> QuerySet[DiscoverSavedQuery, dict[str, Any]]:
-    """Build an ordered union of the two querysets."""
-    order_by: list[str]
+    """Translate ``sortBy`` and two querysets into an ordered union."""
+    order_by: list[str | OrderBy] = []
 
     # Explore doesn't make this clear, but `starred=1` essentially hardcodes an order by
     # So to skip looping over the order by list, make it an if check
@@ -162,17 +171,106 @@ def build_combined_queryset(
         )
         order_by = ["position", "-date_added", "-id", "query_type"]
     else:
-        # TODO: add the actual order by logic Explore implements.
+        for sort_by in sort_by_list:
+            if sort_by.startswith("-"):
+                sort_by, desc = sort_by[1:], True
+            else:
+                desc = False
 
-        # Rows with equal sort keys need a deterministic tiebreaker. id is not enough
-        # with two different types of queries, so we also use query type.
-        order_by = ["lower_name", "-id", "query_type"]
+            if sort_by == "name":
+                order_by.append("-lower_name" if desc else "lower_name")
 
-    # Both sides of a UNION must project the same columns, including every column
-    # the ORDER BY names.
+            elif sort_by == "dateAdded":
+                order_by.append("-date_added" if desc else "date_added")
+
+            elif sort_by == "dateUpdated":
+                order_by.append("-date_updated" if desc else "date_updated")
+
+            elif sort_by == "mostPopular":
+                order_by.append("visits" if desc else "-visits")
+
+            elif sort_by == "recentlyViewed":
+                discover_queryset = discover_queryset.annotate(
+                    user_last_visited=Subquery(
+                        DiscoverSavedQueryLastVisited.objects.filter(
+                            organization=organization,
+                            user_id=user_id,
+                            discover_saved_query_id=OuterRef("id"),
+                        ).values("last_visited")[:1]
+                    )
+                )
+                explore_queryset = explore_queryset.annotate(
+                    user_last_visited=Subquery(
+                        ExploreSavedQueryLastVisited.objects.filter(
+                            organization=organization,
+                            user_id=user_id,
+                            explore_saved_query_id=OuterRef("id"),
+                        ).values("last_visited")[:1]
+                    )
+                )
+                order_by.append(
+                    F("user_last_visited").asc(nulls_last=True)
+                    if desc
+                    else F("user_last_visited").desc(nulls_last=True)
+                )
+
+            elif sort_by == "myqueries":
+                order_by.append("my_queries")
+
+            elif sort_by == "mostStarred":
+                # Unstarring sets starred to false, doesn't necessarily deletes the row
+                discover_queryset = discover_queryset.annotate(
+                    starred_count=Count(
+                        "discoversavedquerystarred",
+                        filter=Q(discoversavedquerystarred__starred=True),
+                    )
+                )
+                explore_queryset = explore_queryset.annotate(
+                    starred_count=Count(
+                        "exploresavedquerystarred",
+                        filter=Q(exploresavedquerystarred__starred=True),
+                    )
+                )
+                order_by.append("-starred_count")
+
+            elif sort_by == "starred":
+                discover_queryset = discover_queryset.annotate(
+                    is_starred=Exists(
+                        DiscoverSavedQueryStarred.objects.filter(
+                            discover_saved_query_id=OuterRef("id"), user_id=user_id, starred=True
+                        )
+                    )
+                )
+                explore_queryset = explore_queryset.annotate(
+                    is_starred=Exists(
+                        ExploreSavedQueryStarred.objects.filter(
+                            explore_saved_query_id=OuterRef("id"), user_id=user_id, starred=True
+                        )
+                    )
+                )
+                order_by.append("-is_starred")
+
+        if len(order_by) == 0:
+            order_by.append("lower_name")
+
+        #  Finally we always at least secondarily sort by dateAdded
+        if "dateAdded" not in sort_by_list and "-dateAdded" not in sort_by_list:
+            order_by.append("-date_added")
+
+        # Rows with equal sort keys need a deterministic tiebreaker.
+        # id is not enough with two different types of queries, so we also use query type
+        order_by.append("-id")
+        order_by.append("query_type")
+
+    # Both sides of a UNION must project the same columns in the same order
     columns = ["id", "query_type"]
     for column in order_by:
-        name = column.removeprefix("-")
+        if isinstance(column, str):
+            name = column.removeprefix("-")
+        elif isinstance(column.expression, F):
+            name = column.expression.name
+        else:
+            raise TypeError(f"Unsupported order_by term: {column!r}")
         if name not in columns:
             columns.append(name)
 
@@ -344,7 +442,9 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
         combined = build_combined_queryset(
             discover_queryset,
             explore_queryset,
+            request.query_params.getlist("sortBy"),
             starred_only=starred_only,
+            organization=organization,
             user_id=request.user.id,
         )
 

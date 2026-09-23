@@ -6,9 +6,9 @@ import classNames from 'classnames';
 import omit from 'lodash/omit';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -127,8 +127,8 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
 type LogsRowProps = {
   dataRow: OurLogsResponseItem;
@@ -153,6 +153,7 @@ type LogsRowProps = {
   onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
+  routingHint?: string;
   setHoveredRowId?: (logItemId: string | null) => void;
   showCellActions?: boolean;
   showExploreSimilarSpansLink?: boolean;
@@ -256,6 +257,7 @@ function isInsideButton(element: Element | null): boolean {
 
 export const LogRowContent = memo(function LogRowContentImpl({
   dataRow,
+  routingHint,
   embedded = false,
   embeddedOptions,
   highlightTerms,
@@ -400,6 +402,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
     timestamp: logTimestampSeconds,
+    routingHint,
     sharedHoverTimeoutRef,
     timeout: prefetchTimeout,
   });
@@ -765,6 +768,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
       {expanded && !isErrorRow && (
         <LogRowDetails
           dataRow={dataRow}
+          routingHint={routingHint}
           highlightTerms={highlightTerms}
           embedded={embedded}
           meta={meta}
@@ -778,6 +782,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
 
 function LogRowDetails({
   dataRow,
+  routingHint,
   embedded,
   highlightTerms,
   meta,
@@ -790,6 +795,7 @@ function LogRowDetails({
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
+  routingHint?: string;
 }) {
   const measureRef = useCallback(
     (node: HTMLTableRowElement | null) => {
@@ -832,6 +838,7 @@ function LogRowDetails({
       ? getLogRowTimestampMillis(dataRow) / 1000
       : null,
     enabled: !missingLogId && !isPseudoRow,
+    routingHint,
   });
 
   const {data, isPending, isError} = fullLogDataResult;
@@ -956,6 +963,7 @@ function LogRowDetails({
           }}
         >
           <LogRowDetailsActions
+            routingHint={routingHint}
             fullLogDataResult={fullLogDataResult}
             projectSlug={projectSlug}
             tableDataRow={dataRow}
@@ -1003,12 +1011,14 @@ function LogRowDetailsFilterActions({filter}: {filter: MessageFilter}) {
 
 function LogRowDetailsActions({
   fullLogDataResult,
+  routingHint,
   projectSlug,
   tableDataRow,
 }: {
   fullLogDataResult: UseQueryResult<TraceItemDetailsResponse>;
   projectSlug: string;
   tableDataRow: OurLogsResponseItem;
+  routingHint?: string;
 }) {
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
@@ -1045,6 +1055,10 @@ function LogRowDetailsActions({
           normalizeTimestampToSeconds(getLogRowTimestampMillis(tableDataRow))
         ),
       });
+
+      if (routingHint) {
+        query.set('routing_hint', routingHint);
+      }
 
       logDebugEndpoint = `/api/0${getApiUrl(
         '/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/',

@@ -1818,6 +1818,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert mock_trigger.call_args.kwargs["commit_author"] == {
             "name": "octocat",
             "email": "583231+octocat@users.noreply.github.com",
+            "scm_login": "octocat",
         }
 
         # Two different commenters in one batch: no single author to attribute to.
@@ -2035,7 +2036,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         *,
         decision: TriggerDecision | None = None,
         delay: int | None = None,
-        bypass: bool = False,
+        source: str = ConsumeTriggerSource.FEEDBACK,
     ) -> None:
         feedback = self._feedback()
         ctx: AbstractContextManager[Any] = (
@@ -2051,7 +2052,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
                 feedback=feedback,
                 run_state=self._state(),
                 delay=delay,
-                bypass=bypass,
+                source=source,
             )
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
@@ -2066,12 +2067,31 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         )
 
         with patch(f"{PAUSE_PATH}.metrics") as mock_metrics:
-            self._trigger(bypass=True)
+            self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
 
         mock_apply.assert_not_called()
         mock_metrics.incr.assert_any_call(
             "autofix.pr_iteration.paused.blocked", tags={"gate": "trigger_consume"}
         )
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_gate_still_names_who_asked(self, mock_apply: MagicMock) -> None:
+        """``trigger_source`` is the only producer field, so a gate carries it too."""
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        pause_pr_iteration(
+            run_id=67890,
+            organization_id=self.organization.id,
+            reason=PauseReason.USER_STOP,
+        )
+
+        self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
+
+        mock_apply.assert_not_called()
+        (_, kwargs) = self.log.info.call_args
+        assert kwargs["extra"]["reason"] == "paused"
+        assert kwargs["extra"]["trigger_source"] == ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER
 
     def _pause(self, reason: PauseReason) -> None:
         self.create_seer_run(
@@ -2090,7 +2110,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         self._pause(PauseReason.RUN_ERRORED)
 
         with patch("sentry.analytics.record") as mock_record:
-            self._trigger(bypass=True)
+            self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
 
         assert mock_record.call_args.args[0].outcome == "paused_run_errored"
 
@@ -2099,7 +2119,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         self._pause(PauseReason.USER_STOP)
 
         with patch("sentry.analytics.record") as mock_record:
-            self._trigger(bypass=True)
+            self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
 
         assert mock_record.call_args.args[0].outcome == "paused_user_stop"
 
@@ -2108,9 +2128,9 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         self._pause(PauseReason.RUN_ERRORED)
 
         with patch("sentry.analytics.record") as mock_record:
-            self._trigger(bypass=True)
-            self._trigger(bypass=True)
-            self._trigger(bypass=True)
+            self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
+            self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
+            self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
 
         # Nothing drains a paused run, so every check suite on the PR arrives
         # here. The batch is one batch however many of them there are.
@@ -2150,7 +2170,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     def test_missing_permissions_skips_scheduling_even_with_bypass(
         self, mock_apply: MagicMock, _mock_block: MagicMock
     ) -> None:
-        self._trigger(bypass=True)
+        self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
 
         mock_apply.assert_not_called()
 
@@ -2158,7 +2178,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     def test_bypass_ignores_should_trigger(self, mock_apply: MagicMock) -> None:
         self._trigger(
             decision=TriggerDecision(task=None, reason="no_trigger"),
-            bypass=True,
+            source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
         )
 
         mock_apply.assert_called_once()

@@ -105,7 +105,11 @@ class UsecaseId(Enum):
                 return ObjectstoreClientUsecase(
                     self.value,
                     compression="zstd",
-                    expiration_policy=TimeToIdle(timedelta(days=90)),
+                    expiration_policy=TimeToIdle(
+                        timedelta(
+                            days=90 + options.get("system.debug-files-renewal-age-threshold-days")
+                        )
+                    ),
                 )
             case UsecaseId.PROFILE_ATTACHMENTS:
                 return ObjectstoreClientUsecase(

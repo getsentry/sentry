@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
+import pytest
 from django.conf import settings
 from taskbroker_client.scheduler.config import crontab
 
@@ -45,6 +46,8 @@ from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.cursors import Cursor
@@ -68,6 +71,14 @@ def _dispatched_feature_body(organization):
 class NightShiftFixtures(Fixtures):
     """Shared night-shift test setup. Mixed into the test cases below so the
     project-eligibility and event-seeding logic lives in one place."""
+
+    @pytest.fixture(autouse=True)
+    def enable_night_shift(self):
+        with (
+            override_options({"seer.night_shift.enable": True}),
+            with_feature("organizations:seer-night-shift"),
+        ):
+            yield
 
     def _make_eligible(
         self, project, *, stopping_point=AutofixStoppingPoint.OPEN_PR.value, **tweak_overrides
@@ -108,7 +119,8 @@ class TestBuildRunOptions(TestCase):
 
         assert resolved["source"] == "cron"
         assert resolved["max_candidates"] == 8
-        assert resolved["intelligence_level"] == "high"
+        assert resolved["intelligence_level"] == "medium"
+        assert resolved["reasoning_effort"] == "medium"
 
     def test_org_overrides_apply_over_defaults(self) -> None:
         with self.options(
@@ -121,7 +133,8 @@ class TestBuildRunOptions(TestCase):
 
         assert resolved["max_candidates"] == 15
         # Unset org fields fall through to the global default.
-        assert resolved["intelligence_level"] == "high"
+        assert resolved["intelligence_level"] == "medium"
+        assert resolved["reasoning_effort"] == "medium"
 
     def test_project_tweaks_override_org_overrides(self) -> None:
         project = self.create_project(organization=self.organization)
@@ -581,6 +594,24 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 @django_db_all
 class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
     reset_snuba_data = False
+
+    def test_skips_org_run_when_globally_disabled(self) -> None:
+        org = self.create_organization()
+
+        with self.options({"seer.night_shift.enable": False}):
+            run_id = run_night_shift_for_org(org.id)
+
+        assert run_id is None
+        assert not SeerWorkflowRun.objects.filter(organization=org).exists()
+
+    def test_skips_org_run_when_feature_disabled(self) -> None:
+        org = self.create_organization()
+
+        with self.feature({"organizations:seer-night-shift": False}):
+            run_id = run_night_shift_for_org(org.id)
+
+        assert run_id is None
+        assert not SeerWorkflowRun.objects.filter(organization=org).exists()
 
     def test_nonexistent_org(self) -> None:
         with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
@@ -1285,8 +1316,8 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
             "source": "manual",
             "max_candidates": 3,
             "dry_run": True,
-            "intelligence_level": "high",
-            "reasoning_effort": "high",
+            "intelligence_level": "medium",
+            "reasoning_effort": "medium",
             "extra_triage_instructions": "",
         }
         assert kwargs["project_ids"] == [project.id]
@@ -1328,8 +1359,8 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
                 "source": "manual",
                 "max_candidates": 5,
                 "dry_run": True,
-                "intelligence_level": "high",
-                "reasoning_effort": "high",
+                "intelligence_level": "medium",
+                "reasoning_effort": "medium",
                 "extra_triage_instructions": "",
             },
             "target_project_ids": [project.id],

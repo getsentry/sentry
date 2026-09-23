@@ -47,6 +47,14 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   groupBy?: Attribute[];
   /**
+   * Whether to request annotations (dropped-data outcomes) on the response's `meta.droppedAnnotations` and `meta.acceptedAnnotations`. Off by default, and gated behind the `explore-data-fidelity-annotations` feature flag.
+   */
+  includeAnnotations?: boolean;
+  /**
+   * Whether to request measured ingestion delay metadata.
+   */
+  includeMeasuredIngestionDelayMetadata?: boolean;
+  /**
    * Duration between items in the time series, as a string. e.g., `"5m"`
    */
   interval?: string;
@@ -109,6 +117,8 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     enabled,
     groupBy,
     extrapolate,
+    includeAnnotations,
+    includeMeasuredIngestionDelayMetadata,
     query,
     sampling,
     caseInsensitive,
@@ -170,6 +180,10 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           logQuery: logQueryParams,
           metricQuery: metricQueryParams,
           spanQuery: spanQueryParams,
+          includeAnnotations: includeAnnotations ? 1 : undefined,
+          includeMeasuredIngestionDelayMetadata: includeMeasuredIngestionDelayMetadata
+            ? 1
+            : undefined,
         },
         staleTime: Infinity,
       }
@@ -182,11 +196,33 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   });
 }
 
+/**
+ * One time bucket's volume for a system data-fidelity annotation.
+ */
+export interface Annotation {
+  category: string;
+  end: number;
+  eventCount: number;
+  outcome: string;
+  reason: string;
+  start: number;
+  type: string;
+  /**
+   * Only sent for datasets with a paired byte category (logs today).
+   */
+  byteSize?: number;
+}
+
 export type EventsTimeSeriesResponse = {
   timeSeries: TimeSeries[];
   meta?: {
     dataset: DiscoverDatasets;
     end: number;
     start: number;
+    acceptedAnnotations?: Annotation[];
+    completeThrough?: number;
+    droppedAnnotations?: Annotation[];
+    estimatedIngestionDelaySeconds?: number;
+    ingestionDelayStatus?: 'healthy' | 'stalled' | 'idle' | 'unknown';
   };
 };

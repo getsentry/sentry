@@ -1,4 +1,3 @@
-import pytest
 from django.urls import reverse
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryStarred
@@ -6,7 +5,6 @@ from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
 from sentry.testutils.cases import APITestCase
 
 
-@pytest.mark.skip(reason="API not public yet, this line will be removed in future")
 class SavedQueryStarredOrderTest(APITestCase):
     feature_flags = {
         "organizations:visibility-explore-view": True,
@@ -24,7 +22,7 @@ class SavedQueryStarredOrderTest(APITestCase):
         self.explore_b = self.create_explore_query("Explore B", position=3)
         self.discover_y = self.create_discover_query("Discover Y", position=4)
 
-        self.url = reverse("sentry-api-0-saved-query-starred-order", args=[self.org.slug])
+        self.url = reverse("sentry-api-0-explore-all-queries-starred-order", args=[self.org.slug])
 
     def create_explore_query(self, name: str, position: int) -> ExploreSavedQuery:
         query = ExploreSavedQuery.objects.create(
@@ -124,12 +122,39 @@ class SavedQueryStarredOrderTest(APITestCase):
             ("explore", self.explore_a.id),
         ]
 
-    def test_rejects_a_partial_list(self) -> None:
-        """A payload naming only one product cannot express the user's intent, so it errors."""
+    def test_accepts_a_partial_list(self) -> None:
+        """The nav may render a subset of the starred list, so a drag names only those rows"""
         with self.feature(self.feature_flags):
             response = self.client.put(
                 self.url,
                 data={"queries": [self.ref(self.discover_y), self.ref(self.discover_x)]},
+            )
+
+        assert response.status_code == 204
+        assert self.current_order() == [
+            ("explore", self.explore_a.id),
+            ("discover", self.discover_y.id),
+            ("explore", self.explore_b.id),
+            ("discover", self.discover_x.id),
+        ]
+
+    def test_rejects_a_query_the_user_has_not_starred(self) -> None:
+        unstarred = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Unstarred",
+            query=[{"fields": ["span.op"], "mode": "samples"}],
+        )
+
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                self.url,
+                data={
+                    "queries": [
+                        self.ref(self.explore_a),
+                        {"type": "explore", "query_id": unstarred.id},
+                    ]
+                },
             )
 
         assert response.status_code == 400

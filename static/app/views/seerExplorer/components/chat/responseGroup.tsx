@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {ClippedDetail, MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
+import {MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
 import {Container} from '@sentry/scraps/layout';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
@@ -205,6 +205,9 @@ export function ResponseGroup({
                 startTime={startTime}
                 endTime={endTime}
               >
+                {/* `hasTrace`, not `active`: an active response with nothing to show yet still
+                    maps to a non-empty array of blocks that each render nothing, and an array is
+                    truthy, so ThinkingBlock would open its bordered panel around no content. */}
                 {hasTrace
                   ? group.map((block, i) => {
                       const isAnswer = block === answer;
@@ -225,16 +228,12 @@ export function ResponseGroup({
                         <Fragment key={block.id}>
                           {showThinking &&
                             hasValidContent(block.message.thinking_content) && (
-                              <ClippedDetail>
-                                <ThinkingProse data-spaced={thinkingBetweenToolCalls}>
-                                  <SeerMarkdown raw={block.message.thinking_content} />
-                                </ThinkingProse>
-                              </ClippedDetail>
+                              <ThinkingProse data-spaced={thinkingBetweenToolCalls}>
+                                <SeerMarkdown raw={block.message.thinking_content} />
+                              </ThinkingProse>
                             )}
                           {!isAnswer && hasValidContent(block.message.content) && (
-                            <ClippedDetail>
-                              <SeerMarkdown raw={block.message.content} />
-                            </ClippedDetail>
+                            <SeerMarkdown raw={block.message.content} />
                           )}
                           {block.message.tool_calls ? (
                             <ToolCallList

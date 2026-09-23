@@ -45,6 +45,10 @@ import {
   itemIsSection,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
+import {
+  isQueryBuilderPanelChrome,
+  withPanelOverlayProps,
+} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {useOverlay} from 'sentry/utils/useOverlay';
@@ -280,6 +284,7 @@ function useUpdateOverlayPositionOnContentChange({
     return () => {
       resizeObserverRef.current?.disconnect();
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
@@ -295,7 +300,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   onTabForward,
   popoverRef,
   state,
-  overlayProps,
+  overlayProps: positionedOverlayProps,
   portalTarget,
   totalOptions,
 }: {
@@ -315,6 +320,8 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   portalTarget?: HTMLElement | null;
 }) {
   const {enableAISearch} = useSearchQueryBuilderAI();
+  const {menuPresentation} = useSearchQueryBuilderLayout();
+  const overlayProps = withPanelOverlayProps(positionedOverlayProps, menuPresentation);
   const anyItemsShowing = totalOptions > hiddenOptions.size;
 
   if (!isOpen) {
@@ -417,7 +424,8 @@ export function SearchQueryBuilderCombobox<
 }: SearchQueryBuilderComboboxProps<T>) {
   const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
-  const {portalTarget, wrapperRef} = useSearchQueryBuilderLayout();
+  const {menuPresentation, panelRef, portalTarget, wrapperRef} =
+    useSearchQueryBuilderLayout();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -480,13 +488,17 @@ export function SearchQueryBuilderCombobox<
       shouldHideOutside: false,
       shouldFocusWrap: true,
       onFocus: e => {
-        if (openOnFocus) {
+        if (openOnFocus || menuPresentation === 'panel') {
           state.open();
         }
         onFocus?.(e);
       },
       onBlur: e => {
-        if (e.relatedTarget && !shouldCloseOnInteractOutside?.(e.relatedTarget)) {
+        if (
+          e.relatedTarget &&
+          (popoverRef.current?.contains(e.relatedTarget) ||
+            !shouldCloseOnInteractOutside?.(e.relatedTarget))
+        ) {
           return;
         }
         onCustomValueBlurred(inputValue, e);
@@ -579,7 +591,12 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
+      if (
+        popoverRef.current?.contains(el) ||
+        wrapperRef.current?.contains(el) ||
+        (menuPresentation === 'panel' &&
+          isQueryBuilderPanelChrome(el, panelRef.current, portalTarget))
+      ) {
         return false;
       }
 
@@ -610,10 +627,14 @@ export function SearchQueryBuilderCombobox<
     e => {
       e.stopPropagation();
       inputProps.onClick?.(e);
-      state.toggle();
+      if (menuPresentation === 'panel') {
+        state.open();
+      } else {
+        state.toggle();
+      }
       onClick?.(e);
     },
-    [inputProps, state, onClick]
+    [inputProps, menuPresentation, state, onClick]
   );
 
   useUpdateOverlayPositionOnContentChange({
@@ -640,6 +661,7 @@ export function SearchQueryBuilderCombobox<
     }
 
     return () => {};
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputRef, popoverRef, isOpen, customMenu, keepVisibleRef]);
 
   const autosizeInput = useAutosizeInput({value: inputValue});

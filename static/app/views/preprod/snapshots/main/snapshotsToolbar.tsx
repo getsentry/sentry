@@ -289,7 +289,12 @@ export function DiffModeToggle({
   const onionLabel = t('Onion');
 
   return (
-    <SegmentedControl size="xs" value={diffMode} onChange={onDiffModeChange}>
+    <SegmentedControl
+      size="xs"
+      value={diffMode}
+      onChange={onDiffModeChange}
+      aria-label={t('Diff mode')}
+    >
       {showSplit ? (
         <SegmentedControl.Item
           key="split"

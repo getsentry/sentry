@@ -63,6 +63,7 @@ from sentry.seer.autofix.github_perms import (
 )
 from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -95,9 +96,14 @@ from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
+
+# Keep in sync with AUTOFIX_USER_CONTEXT_MAX_LENGTH in
+# static/app/components/events/autofix/types.ts.
+USER_CONTEXT_MAX_LENGTH = 10000
 
 SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
 
@@ -139,6 +145,22 @@ def _parse_autofix_referrer(raw: str | None, request: Request) -> AutofixReferre
     except ValueError:
         logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
         return AutofixReferrer.UNKNOWN
+
+
+def _record_user_context_length(request_data: Any) -> None:
+    """Record the length of the user context passed to POST, including rejected requests."""
+    if not isinstance(request_data, dict):
+        return
+
+    user_context = request_data.get("user_context", request_data.get("userContext"))
+    if user_context is None:
+        return
+
+    metrics.distribution(
+        "seer.autofix.user_context.length",
+        len(user_context) if isinstance(user_context, str) else 0,
+        sample_rate=1.0,  # data should be sparse enough
+    )
 
 
 def _check_autofix_setup(organization: Organization, project: Project) -> str | None:
@@ -206,7 +228,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
     )
     user_context = serializers.CharField(
         required=False,
-        max_length=1000,
+        max_length=USER_CONTEXT_MAX_LENGTH,
         help_text="Optional user context to append to the step prompt.",
         allow_blank=True,
     )
@@ -222,7 +244,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Referrer identifying where the issue fix was triggered from.",
     )
-    enable_bash_tools = serializers.BooleanField(
+    enable_bash_mode = serializers.BooleanField(
         required=False,
         default=False,
         help_text="Override bash mode tools.",
@@ -300,6 +322,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
         The process runs asynchronously, and you can get the state using the GET endpoint.
         """
+        _record_user_context_length(request.data)
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
@@ -398,6 +421,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             group.organization.id,
                             referrer="autofix_open_pr",
                         ),
+                        user=request.user,
                     )
                 except SeerPermissionError:
                     return Response(status=status.HTTP_404_NOT_FOUND)
@@ -482,7 +506,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     organization_id=group.organization.id,
                     feedback=feedback,
                     run_state=run_state,
-                    bypass=True,
+                    source=ConsumeTriggerSource.UI_CONSUME,
                 )
 
                 run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id
@@ -570,7 +594,10 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
                         user=request.user,
-                        enable_bash_tools=data.get("enable_bash_tools", False),
+                        enable_bash_mode=data.get("enable_bash_mode", False),
+                        actor_user_id=(
+                            request.user.id if step == AutofixStep.CODE_CHANGES.value else None
+                        ),
                     )
                 except NoSeerQuotaException:
                     return Response(

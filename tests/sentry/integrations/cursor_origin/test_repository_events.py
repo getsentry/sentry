@@ -1,0 +1,201 @@
+from __future__ import annotations
+
+from typing import Any
+from unittest import mock
+
+import pytest
+
+from sentry.constants import ObjectStatus
+from sentry.integrations.cursor_origin.repository_events import (
+    RepositoryMetadataUpdatedHandler,
+    refresh_repository_name,
+)
+from sentry.integrations.cursor_origin.webhook_types import (
+    OriginPayloadError,
+    RepositoryMetadataEvent,
+)
+from sentry.integrations.services.integration import integration_service
+from sentry.models.repository import Repository
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import cell_silo_test
+
+INSTALLATION_ID = "i_01example"
+REPO = "acme/rocket"
+REPO_EXTERNAL_ID = "r_01example"
+WEB = "https://cursor.com/codebase"
+DELIVERY_ID = "whd_01example"
+
+
+def _payload(**overrides: Any) -> dict[str, Any]:
+    repository: dict[str, Any] = {
+        "id": REPO_EXTERNAL_ID,
+        "name": "rocket",
+        "fullName": REPO,
+        "owner": {"slug": "acme", "id": "ns_01example", "type": "team"},
+        "defaultBranch": "main",
+    }
+    repository.update(overrides)
+    return {"repository": repository}
+
+
+@cell_silo_test
+class RepositoryMetadataUpdatedHandlerTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name=REPO,
+            url=f"{WEB}/{REPO}",
+            provider="integrations:cursor_origin",
+            integration_id=self.integration.id,
+            external_id=REPO_EXTERNAL_ID,
+            config={"name": REPO, "default_branch": "main"},
+        )
+        context = integration_service.organization_contexts(
+            provider="cursor_origin", external_id=INSTALLATION_ID
+        )
+        assert context.integration is not None
+        self.rpc_integration = context.integration
+        self.org_integrations = context.organization_integrations
+
+    def _handle(self, payload: dict[str, Any]) -> None:
+        RepositoryMetadataUpdatedHandler()(
+            payload, DELIVERY_ID, self.rpc_integration, self.org_integrations
+        )
+
+    def _reloaded(self) -> Repository:
+        return Repository.objects.get(id=self.repo.id)
+
+    def test_a_new_default_branch_is_stored(self) -> None:
+        self._handle(_payload(defaultBranch="trunk"))
+
+        assert self._reloaded().config["default_branch"] == "trunk"
+
+    def test_an_unchanged_snapshot_writes_nothing(self) -> None:
+        before = self._reloaded().date_added
+
+        self._handle(_payload())
+
+        assert self._reloaded().date_added == before
+
+    def test_a_repository_sentry_does_not_have_is_ignored(self) -> None:
+        self._handle(_payload(id="r_01nope", defaultBranch="trunk"))
+
+        assert self._reloaded().config["default_branch"] == "main"
+
+    def test_another_organizations_repository_is_left_alone(self) -> None:
+        other_org = self.create_organization()
+        other_repo = Repository.objects.create(
+            organization_id=other_org.id,
+            name=REPO,
+            provider="integrations:cursor_origin",
+            external_id=REPO_EXTERNAL_ID,
+            config={"name": REPO, "default_branch": "main"},
+        )
+
+        self._handle(_payload(defaultBranch="trunk"))
+
+        assert Repository.objects.get(id=other_repo.id).config["default_branch"] == "main"
+
+
+class RepositoryMetadataEventTest(TestCase):
+    def test_a_missing_repository_id_is_refused(self) -> None:
+        payload = _payload()
+        del payload["repository"]["id"]
+
+        with pytest.raises(OriginPayloadError, match="repository -> id"):
+            RepositoryMetadataEvent.from_payload(payload)
+
+    def test_a_missing_full_name_is_refused(self) -> None:
+        payload = _payload()
+        del payload["repository"]["fullName"]
+
+        with pytest.raises(OriginPayloadError, match="repository -> fullName"):
+            RepositoryMetadataEvent.from_payload(payload)
+
+    def test_a_missing_default_branch_is_refused(self) -> None:
+        """Origin documents it as always set."""
+        payload = _payload()
+        del payload["repository"]["defaultBranch"]
+
+        with pytest.raises(OriginPayloadError, match="repository -> defaultBranch"):
+            RepositoryMetadataEvent.from_payload(payload)
+
+    def test_unknown_fields_are_ignored(self) -> None:
+        """Origin asks receivers to ignore fields they do not know."""
+        payload = _payload(cloneUrl="https://git.example.com/acme/rocket.git")
+        payload["pushedAt"] = "2026-09-16T12:00:05Z"
+
+        assert RepositoryMetadataEvent.from_payload(payload).repository.full_name == REPO
+
+
+@cell_silo_test
+class RefreshRepositoryNameTest(TestCase):
+    """Any event that names the repository repairs a name that drifted."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name=REPO,
+            url=f"{WEB}/{REPO}",
+            provider="integrations:cursor_origin",
+            integration_id=self.integration.id,
+            external_id=REPO_EXTERNAL_ID,
+            config={"name": REPO, "default_branch": "main"},
+        )
+        context = integration_service.organization_contexts(
+            provider="cursor_origin", external_id=INSTALLATION_ID
+        )
+        self.org_integrations = context.organization_integrations
+
+    def _refresh(self, payload: dict[str, Any]) -> None:
+        refresh_repository_name(payload, self.org_integrations, DELIVERY_ID)
+
+    def _reloaded(self) -> Repository:
+        return Repository.objects.get(id=self.repo.id)
+
+    def _reference(self, owner: str = "acme", name: str = "rocket") -> dict[str, Any]:
+        return {"repository": {"id": REPO_EXTERNAL_ID, "name": name, "owner": {"slug": owner}}}
+
+    def test_a_drifted_name_is_repaired(self) -> None:
+        self._refresh(self._reference(owner="rocketry", name="booster"))
+
+        repo = self._reloaded()
+        assert repo.name == "rocketry/booster"
+        assert repo.url == f"{WEB}/rocketry/booster"
+        assert repo.config["name"] == "rocketry/booster"
+        assert repo.config["default_branch"] == "main"
+
+    def test_a_name_that_agrees_is_left_alone(self) -> None:
+        with mock.patch.object(Repository, "update") as update:
+            self._refresh(self._reference())
+
+        assert update.call_count == 0
+
+    def test_an_event_that_names_no_repository_is_ignored(self) -> None:
+        self._refresh({"installation": {"id": INSTALLATION_ID}})
+
+        assert self._reloaded().name == REPO
+
+    def test_another_repository_is_left_alone(self) -> None:
+        payload = self._reference(owner="rocketry")
+        payload["repository"]["id"] = "r_02example"
+
+        self._refresh(payload)
+
+        assert self._reloaded().name == REPO

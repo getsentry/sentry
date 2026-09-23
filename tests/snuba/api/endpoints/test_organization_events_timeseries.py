@@ -9,6 +9,7 @@ from django.urls import reverse
 
 from sentry.api.endpoints.timeseries import INGESTION_DELAY_MESSAGE
 from sentry.constants import DataCategory
+from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.outcomes import Outcome
@@ -530,81 +531,68 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def _store_span_drop(self, quantity: int, minutes: int = 30) -> None:
+    def _store_outcome(
+        self,
+        outcome: Outcome,
+        category: DataCategory,
+        quantity: int,
+        reason: str = "none",
+        minutes: int = 30,
+    ) -> None:
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
                 "project_id": self.project.id,
-                "outcome": Outcome.RATE_LIMITED,
-                "reason": "over_quota",
-                "category": DataCategory.SPAN,
+                "outcome": outcome,
+                "reason": reason,
+                "category": category,
                 "timestamp": self.start + timedelta(minutes=minutes),
                 "quantity": quantity,
             }
         )
 
-    def _do_request(self, features: dict[str, bool], annotations: bool = True):
+    def test_annotations_include_byte_size_and_accepted_annotations(self) -> None:
+        # Logs carry byte sizes (paired LOG_BYTE category); accepted and dropped
+        # come back as two series in meta, each with eventCount + byteSize.
+        self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
+        self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_BYTE, 500_000)
+        self._store_outcome(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="key_quota")
+        self._store_outcome(
+            Outcome.RATE_LIMITED, DataCategory.LOG_BYTE, 200_000, reason="key_quota"
+        )
+
         data: dict[str, Any] = {
             "start": self.start,
             "end": self.end,
             "interval": "1h",
             "project": [self.project.id],
-            "dataset": "spans",
+            "dataset": "logs",
+            "includeAnnotations": "",
         }
-        if annotations:
-            data["includeAnnotations"] = ""
-        with self.feature(features):
-            return self.client.get(self.url, data=data, format="json")
-
-    def test_annotations_absent_without_flag(self) -> None:
-        self._store_span_drop(2000)
-        response = self._do_request({"organizations:visibility-explore-view": True})
-        assert response.status_code == 200, response.content
-        assert "annotations" not in response.data["meta"]
-
-    def test_annotations_absent_without_query_param(self) -> None:
-        # Flag on, but the endpoint must not enrich unless the caller opts in.
-        self._store_span_drop(2000)
-        response = self._do_request(
-            {
-                "organizations:visibility-explore-view": True,
-                "organizations:explore-data-fidelity-annotations": True,
-            },
-            annotations=False,
-        )
-        assert response.status_code == 200, response.content
-        assert "annotations" not in response.data["meta"]
-
-    def test_annotations_present_with_flag(self) -> None:
-        # Two drops in different hourly buckets: annotations are per-bucket, so
-        # each carries its own start/end rather than the whole query's range.
-        self._store_span_drop(2000, minutes=30)
-        self._store_span_drop(1500, minutes=90)
-        response = self._do_request(
+        with self.feature(
             {
                 "organizations:visibility-explore-view": True,
                 "organizations:explore-data-fidelity-annotations": True,
             }
-        )
-        assert response.status_code == 200, response.content
-        assert "annotations" in response.data["meta"]
-        annotations = response.data["meta"]["annotations"]
-        assert len(annotations) == 2
-        assert {a["droppedCount"] for a in annotations} == {2000, 1500}
-        assert {a["category"] for a in annotations} == {DataCategory.SPAN.api_name()}
-        # Distinct buckets => distinct start times, one interval apart.
-        starts = sorted(a["start"] for a in annotations)
-        assert starts[1] - starts[0] == 3_600_000
+        ):
+            response = self.client.get(self.url, data=data, format="json")
 
-    def test_annotations_empty_when_no_drops(self) -> None:
-        response = self._do_request(
-            {
-                "organizations:visibility-explore-view": True,
-                "organizations:explore-data-fidelity-annotations": True,
-            }
-        )
         assert response.status_code == 200, response.content
-        assert response.data["meta"]["annotations"] == []
+
+        dropped = response.data["meta"]["droppedAnnotations"]
+        assert len(dropped) == 1
+        assert dropped[0]["category"] == DataCategory.LOG_ITEM.api_name()
+        assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
+        assert dropped[0]["reason"] == "key_quota"
+        assert dropped[0]["eventCount"] == 400
+        assert dropped[0]["byteSize"] == 200_000
+        assert "label" not in dropped[0]
+
+        accepted = response.data["meta"]["acceptedAnnotations"]
+        assert len(accepted) == 1
+        assert accepted[0]["outcome"] == Outcome.ACCEPTED.api_name()
+        assert accepted[0]["eventCount"] == 1000
+        assert accepted[0]["byteSize"] == 500_000
 
 
 class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
@@ -638,15 +626,16 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         with self.feature(features):
             return self.client.get(self.url, data=data, format="json")
 
-    @mock.patch("sentry.api.helpers.ingestion_delay.measure_delay_seconds")
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_ingestion_delay_absent_without_flag(self, mock_measure) -> None:
         response = self._do_request({"organizations:visibility-explore-view": True})
         assert response.status_code == 200, response.content
         assert "estimatedIngestionDelaySeconds" not in response.data["meta"]
+        assert "completeThrough" not in response.data["meta"]
         # The measurement costs a snuba query, so it must not run when unflagged.
         assert not mock_measure.called
 
-    @mock.patch("sentry.api.helpers.ingestion_delay.measure_delay_seconds")
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_ingestion_delay_with_flag_but_without_query_param(self, mock_measure) -> None:
         # Flag on, but the endpoint must not enrich unless the caller opts in.
         response = self._do_request(
@@ -658,11 +647,17 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         )
         assert response.status_code == 200, response.content
         assert "estimatedIngestionDelaySeconds" not in response.data["meta"]
+        assert "completeThrough" not in response.data["meta"]
         assert not mock_measure.called
 
-    @mock.patch("sentry.api.helpers.ingestion_delay.measure_delay_seconds")
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_ingestion_delay_present(self, mock_measure) -> None:
-        mock_measure.return_value = 42.5
+        complete_through = before_now(minutes=5)
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=42.5,
+            complete_through=complete_through,
+            status=IngestionStatus.HEALTHY,
+        )
         response = self._do_request(
             {
                 "organizations:visibility-explore-view": True,
@@ -671,10 +666,16 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         )
         assert response.status_code == 200, response.content
         assert response.data["meta"]["estimatedIngestionDelaySeconds"] == 42.5
+        # Milliseconds, matching start/end on the same object.
+        assert response.data["meta"]["completeThrough"] == complete_through.timestamp() * 1000
 
-    @mock.patch("sentry.api.helpers.ingestion_delay.measure_delay_seconds")
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_ingestion_delay_absent(self, mock_measure) -> None:
-        mock_measure.return_value = None
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=None,
+            complete_through=None,
+            status=IngestionStatus.UNKNOWN,
+        )
         response = self._do_request(
             {
                 "organizations:visibility-explore-view": True,
@@ -683,8 +684,9 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         )
         assert response.status_code == 200, response.content
         assert "estimatedIngestionDelaySeconds" not in response.data["meta"]
+        assert "completeThrough" not in response.data["meta"]
 
-    @mock.patch("sentry.api.helpers.ingestion_delay.measure_delay_seconds")
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_ingestion_delay_query_failure_does_not_break_the_response(self, mock_measure) -> None:
         mock_measure.side_effect = Exception("snuba is down")
         response = self._do_request(
@@ -695,3 +697,66 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         )
         assert response.status_code == 200, response.content
         assert "estimatedIngestionDelaySeconds" not in response.data["meta"]
+        assert "completeThrough" not in response.data["meta"]
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_complete_through_is_returned_in_milliseconds(self, mock_measure) -> None:
+        complete_through = before_now(seconds=10)
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=42.5,
+            complete_through=complete_through,
+            status=IngestionStatus.HEALTHY,
+        )
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:measured-ingestion-delay-metadata": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["estimatedIngestionDelaySeconds"] == 42.5
+        assert response.data["meta"]["completeThrough"] == complete_through.timestamp() * 1000
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_buckets_are_marked_incomplete_from_measured_complete_through(
+        self, mock_measure
+    ) -> None:
+        complete_through = self.end - timedelta(seconds=10)
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=3600.0,
+            complete_through=complete_through,
+            status=IngestionStatus.HEALTHY,
+        )
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:measured-ingestion-delay-metadata": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        boundary_ms = complete_through.timestamp() * 1000
+        interval_ms = response.data["timeSeries"][0]["meta"]["interval"]
+        rows = response.data["timeSeries"][0]["values"]
+        for row in rows:
+            extends_past_boundary = row["timestamp"] + interval_ms >= boundary_ms
+            assert row["incomplete"] is extends_past_boundary, row
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_buckets_fall_back_to_static_incomplete_boundary_when_no_measurement(
+        self, mock_measure
+    ) -> None:
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=None,
+            complete_through=None,
+            status=IngestionStatus.UNKNOWN,
+        )
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:measured-ingestion-delay-metadata": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert "completeThrough" not in response.data["meta"]
+        assert not any(row["incomplete"] for row in response.data["timeSeries"][0]["values"])

@@ -57,7 +57,6 @@ type Props = {
       | 'sampleCount'
     >
   ) => void;
-  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   tableItemLimit?: number;
   widgetInterval?: string;
   // Number of buckets for a non-time axis. Used by heat maps for the Y-axis
@@ -72,7 +71,6 @@ export function WidgetCardDataLoader({
   dashboardFilters,
   tableItemLimit,
   onDataFetched,
-  onWidgetSplitDecision,
   onDataFetchStart,
   widgetInterval,
   yBuckets,
@@ -203,7 +201,6 @@ export function WidgetCardDataLoader({
       onDataFetched={onDataFetched}
       onDataFetchStart={onDataFetchStart}
       dashboardFilters={dashboardFilters}
-      onWidgetSplitDecision={onWidgetSplitDecision}
       widgetInterval={widgetInterval}
     >
       {({

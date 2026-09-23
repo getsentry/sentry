@@ -1,26 +1,51 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import logging
 
 import sentry_sdk
 
-from sentry.ingestion_delay.query import measure_delay_seconds
+from sentry.ingestion_delay.activity import ITEM_TYPE_TO_CATEGORY
+from sentry.ingestion_delay.status import (
+    IngestionDelayStatus,
+)
+from sentry.ingestion_delay.status import (
+    get_ingestion_delay_status as compute_ingestion_delay_status,
+)
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.rpc_dataset_common import RPCBase
+from sentry.utils.tracing import set_span_data, start_span
+
+logger = logging.getLogger(__name__)
 
 
-def get_ingestion_delay_seconds(dataset: type[RPCBase], snuba_params: SnubaParams) -> float | None:
-    """Measured ingestion delay only for EAP RPC datasets."""
+def get_ingestion_delay_status(
+    dataset: type[RPCBase], snuba_params: SnubaParams
+) -> IngestionDelayStatus | None:
+    """Ingestion status only for EAP RPC datasets."""
     item_type = dataset.DEFINITIONS.trace_item_type
 
     if snuba_params.organization_id is None:
         return None
 
-    with sentry_sdk.start_span(op="ingestion_delay.get_ingestion_delay_seconds") as span:
-        span.set_data("organization_id", snuba_params.organization_id)
-        span.set_data("item_type", item_type)
-        return measure_delay_seconds(
-            organization_id=snuba_params.organization_id,
-            item_type=item_type,
-            now=datetime.now(tz=UTC),
+    if item_type not in ITEM_TYPE_TO_CATEGORY:
+        logger.warning(
+            "ingestion_delay.unsupported_item_type",
+            extra={"organization_id": snuba_params.organization_id, "item_type": item_type},
         )
+        return None
+
+    with start_span(
+        name="ingestion_delay.get_ingestion_delay_status",
+        op="ingestion_delay.get_ingestion_delay_status",
+    ) as span:
+        set_span_data(span, "organization_id", snuba_params.organization_id)
+        set_span_data(span, "item_type", item_type)
+        try:
+            return compute_ingestion_delay_status(
+                organization_id=snuba_params.organization_id,
+                project_ids=snuba_params.project_ids,
+                item_type=item_type,
+            )
+        except Exception:
+            sentry_sdk.capture_exception()
+            return None

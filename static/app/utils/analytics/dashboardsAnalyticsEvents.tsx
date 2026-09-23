@@ -204,8 +204,8 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_views.widget_viewer.sort': 'Widget Viewer: Table Sorted',
   'dashboards_views.widget_viewer.toggle_legend': 'Widget Viewer: Legend Toggled',
   'dashboards_views.widget_viewer.zoom': 'Widget Viewer: Chart zoomed',
-  'dashboards2.edit_access.start': 'Dashboards2: Edit Access Dropdown Opened',
-  'dashboards2.edit_access.save': 'Dashboards2: Edit Access Dropdown Selection Saved',
+  'dashboards2.edit_access.start': 'Dashboards2: Edit Access Modal Opened',
+  'dashboards2.edit_access.save': 'Dashboards2: Edit Access Modal Selection Saved',
   'dashboards2.span_migration.results_check':
     'Dashboards2: Check Widget Results From Span Migration',
   'dashboards_views.insights_redirect': 'Insights: Redirected to Dashboard',

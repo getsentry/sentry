@@ -8,8 +8,14 @@ from django.core.exceptions import ObjectDoesNotExist
 from sentry import quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.per_org.calculations import calculate_recalibration_factor
-from sentry.dynamic_sampling.per_org.queries import get_outcomes_organization_volume
+from sentry.dynamic_sampling.per_org.calculations import (
+    calculate_recalibration_factor,
+    compute_sliding_window_sample_rate,
+)
+from sentry.dynamic_sampling.per_org.queries import (
+    OrganizationDataVolume,
+    get_outcomes_organization_volume,
+)
 from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
 from sentry.dynamic_sampling.per_org.serving import get_previous_recalibration_factor
 from sentry.dynamic_sampling.per_org.telemetry import (
@@ -17,11 +23,6 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingStatus,
 )
 from sentry.dynamic_sampling.rules.utils import ProjectId
-from sentry.dynamic_sampling.tasks.common import (
-    OrganizationDataVolume,
-    compute_sliding_window_sample_rate,
-)
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
 from sentry.models.options.project_option import ProjectOption
@@ -30,6 +31,9 @@ from sentry.models.project import Project
 
 TargetSampleRate = float | None
 ProjectSampleRates = dict[ProjectId, TargetSampleRate]
+
+# The volume of an organization over this many hours is extrapolated to a monthly volume.
+SLIDING_WINDOW_HOURS = 24
 
 
 def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
@@ -177,17 +181,16 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         if not self.projects:
             return None
 
-        org_volume_24h = get_outcomes_organization_volume(
-            self, time_interval=timedelta(hours=FALLBACK_SLIDING_WINDOW_SIZE)
+        org_volume = get_outcomes_organization_volume(
+            self, time_interval=timedelta(hours=SLIDING_WINDOW_HOURS)
         )
-        if org_volume_24h is None:
+        if org_volume is None:
             return None
 
         return compute_sliding_window_sample_rate(
             org_id=self.organization.id,
-            project_id=None,
-            total_root_count=org_volume_24h.total,
-            window_size=FALLBACK_SLIDING_WINDOW_SIZE,
+            total_root_count=org_volume.total,
+            window_size=SLIDING_WINDOW_HOURS,
         )
 
 

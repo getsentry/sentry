@@ -48,8 +48,6 @@ class OrganizationInvestigationBlockOrderEndpoint(OrganizationInvestigationEndpo
             serialize(
                 updated,
                 request.user,
-                InvestigationDetailsSerializer(
-                    accessible_project_ids=request.access.accessible_project_ids
-                ),
+                InvestigationDetailsSerializer(),
             )
         )

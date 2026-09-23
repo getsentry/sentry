@@ -5,7 +5,6 @@ import threading
 import time
 from collections.abc import Callable
 from datetime import datetime
-from difflib import SequenceMatcher
 from typing import Any, Literal, NamedTuple
 
 import orjson
@@ -20,7 +19,7 @@ from taskbroker_client.retry import Retry
 from sentry import analytics, options
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
-from sentry.preprod.snapshots.categorize import categorize_image_sets
+from sentry.preprod.snapshots.categorize import categorize_image_diff
 from sentry.preprod.snapshots.constants import (
     MISSING_BASE_GRACE_PERIOD_SECONDS,
     RECONSTRUCTION_RETRY_COUNTDOWN_SECONDS,
@@ -42,6 +41,7 @@ from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ComparisonPlan,
     ComparisonSummary,
+    ImageMetadata,
     SnapshotManifest,
 )
 from sentry.preprod.snapshots.models import (
@@ -124,9 +124,8 @@ def _get_json[T: BaseModel](session: SnapshotStorage, key: str, model_cls: type[
 
 
 def _put_json(session: SnapshotStorage, key: str, model: BaseModel) -> None:
-    _retry_objectstore(
-        lambda: session.put(orjson.dumps(model.dict()), key=key, content_type="application/json")
-    )
+    data = orjson.dumps(model.dict())
+    _retry_objectstore(lambda: session.put(data, key=key, content_type="application/json"))
 
 
 def _put_diff_mask(session: SnapshotStorage, key: str, data: bytes) -> None:
@@ -156,111 +155,6 @@ def _mark_chunk_done(comparison_id: int, chunk_index: int) -> None:
             output_field=ArrayField(models.IntegerField()),
         ),
         date_updated=timezone.now(),
-    )
-
-
-class _DiffCandidate(NamedTuple):
-    name: str
-    head_hash: str
-    base_hash: str
-    pixel_count: int
-    kind: Literal["base", "sibling"] = "base"
-
-
-class _ImageDiffResult(NamedTuple):
-    renamed_pairs: list[tuple[str, str]]
-    added: set[str]
-    removed: set[str]
-    matched: set[str]
-    head_by_name: dict[str, str]
-    base_by_name: dict[str, str]
-    skipped: set[str]
-
-
-# When multiple added/removed files share the same content hash (e.g. dark/light
-# theme variants), greedily pair them by filename similarity for rename detection.
-def _match_by_name_similarity(
-    added_names: list[str], removed_names: list[str]
-) -> list[tuple[str, str]]:
-    scored: list[tuple[float, int, int]] = []
-    for ai, a in enumerate(added_names):
-        for ri, r in enumerate(removed_names):
-            scored.append((SequenceMatcher(None, a, r).ratio(), ai, ri))
-
-    scored.sort(reverse=True)
-
-    pairs: list[tuple[str, str]] = []
-    used_added: set[int] = set()
-    used_removed: set[int] = set()
-
-    for _, ai, ri in scored:
-        if ai in used_added or ri in used_removed:
-            continue
-        pairs.append((added_names[ai], removed_names[ri]))
-        used_added.add(ai)
-        used_removed.add(ri)
-
-    return pairs
-
-
-def categorize_image_diff(
-    head_manifest: SnapshotManifest, base_manifest: SnapshotManifest
-) -> _ImageDiffResult:
-    head_by_name = {key: meta.content_hash for key, meta in head_manifest.images.items()}
-    base_by_name = {key: meta.content_hash for key, meta in base_manifest.images.items()}
-
-    matched, added, removed, skipped = categorize_image_sets(head_manifest, base_manifest)
-
-    added_hash_to_names: dict[str, list[str]] = {}
-    for name in added:
-        h = head_by_name[name]
-        added_hash_to_names.setdefault(h, []).append(name)
-
-    removed_hash_to_names: dict[str, list[str]] = {}
-    for name in removed:
-        h = base_by_name[name]
-        removed_hash_to_names.setdefault(h, []).append(name)
-
-    renamed_pairs: list[tuple[str, str]] = []
-    for h in added_hash_to_names.keys() & removed_hash_to_names.keys():
-        a_names = added_hash_to_names[h]
-        r_names = removed_hash_to_names[h]
-        if len(a_names) == 1 and len(r_names) == 1:
-            renamed_pairs.append((a_names[0], r_names[0]))
-        else:
-            renamed_pairs.extend(_match_by_name_similarity(a_names, r_names))
-
-    for new_name, old_name in renamed_pairs:
-        added.discard(new_name)
-        removed.discard(old_name)
-        h = head_by_name[new_name]
-        if h in added_hash_to_names:
-            names = added_hash_to_names[h]
-            if new_name in names:
-                names.remove(new_name)
-            if not names:
-                del added_hash_to_names[h]
-
-    if skipped:
-        skipped_hash_to_names: dict[str, list[str]] = {}
-        for name in skipped:
-            h = base_by_name[name]
-            skipped_hash_to_names.setdefault(h, []).append(name)
-
-        for h in added_hash_to_names.keys() & skipped_hash_to_names.keys():
-            a_names = added_hash_to_names[h]
-            s_names = skipped_hash_to_names[h]
-            if len(a_names) == 1 and len(s_names) == 1:
-                matched_pairs = [(a_names[0], s_names[0])]
-            else:
-                matched_pairs = _match_by_name_similarity(a_names, s_names)
-            for a_name, s_name in matched_pairs:
-                renamed_pairs.append((a_name, s_name))
-                added.discard(a_name)
-                skipped.discard(s_name)
-
-    return _ImageDiffResult(
-        renamed_pairs, added, removed, matched, head_by_name, base_by_name, skipped
     )
 
 
@@ -295,11 +189,11 @@ def _fetch_batch_images(
 
 
 def _create_pixel_batches(
-    items: list[_DiffCandidate],
+    items: list[ChunkCandidate],
     max_pixels_per_batch: int,
-) -> list[list[_DiffCandidate]]:
-    batches: list[list[_DiffCandidate]] = []
-    current_batch: list[_DiffCandidate] = []
+) -> list[list[ChunkCandidate]]:
+    batches: list[list[ChunkCandidate]] = []
+    current_batch: list[ChunkCandidate] = []
     current_pixels = 0
     for item in items:
         pixels = item.pixel_count
@@ -411,6 +305,7 @@ def _find_approved_sibling(
             # Human approvals only: chaining through auto-approvals would let
             # sub-threshold drift compound across rebuilds.
             preprodcomparisonapproval__extras__auto_approval__isnull=True,
+            # Required: keeps force-approved failed/missing-base builds from seeding auto-approval.
             preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.SUCCESS,
         )
         .exclude(id=head_artifact.id)
@@ -558,6 +453,27 @@ def _try_auto_approve_snapshot(
     )
 
 
+def _build_chunk_candidate(
+    name: str,
+    head_meta: ImageMetadata,
+    reference_meta: ImageMetadata,
+    diff_threshold: float,
+    kind: Literal["base", "sibling"] = "base",
+) -> ChunkCandidate:
+    comparison_size = get_comparison_size(
+        ImageSize(head_meta.width, head_meta.height),
+        ImageSize(reference_meta.width, reference_meta.height),
+    )
+    return ChunkCandidate(
+        name=name,
+        head_hash=head_meta.content_hash,
+        base_hash=reference_meta.content_hash,
+        pixel_count=comparison_size.pixel_count,
+        diff_threshold=diff_threshold,
+        kind=kind,
+    )
+
+
 def _build_comparison_plan(
     head_manifest: SnapshotManifest,
     base_manifest: SnapshotManifest,
@@ -582,8 +498,7 @@ def _build_comparison_plan(
     skipped = categories.skipped
 
     non_diff_images: dict[str, ComparisonImageResult] = {}
-    eligible: list[_DiffCandidate] = []
-    eligible_thresholds: dict[str, float] = {}
+    eligible: list[ChunkCandidate] = []
 
     for name in sorted(matched):
         head_hash = head_by_name[name]
@@ -597,13 +512,14 @@ def _build_comparison_plan(
             )
             continue
 
-        head_meta = head_meta_by_hash[head_hash]
-        base_meta = base_meta_by_hash[base_hash]
-        head_size = ImageSize(head_meta.width, head_meta.height)
-        base_size = ImageSize(base_meta.width, base_meta.height)
-        pixel_count = get_comparison_size(head_size, base_size).pixel_count
+        candidate = _build_chunk_candidate(
+            name,
+            head_meta_by_hash[head_hash],
+            base_meta_by_hash[base_hash],
+            _effective_diff_threshold(head_manifest, name),
+        )
 
-        if pixel_count > MAX_DIFF_PIXELS:
+        if candidate.pixel_count > MAX_DIFF_PIXELS:
             non_diff_images[name] = ComparisonImageResult(
                 status="errored",
                 head_hash=head_hash,
@@ -612,8 +528,7 @@ def _build_comparison_plan(
             )
             continue
 
-        eligible.append(_DiffCandidate(name, head_hash, base_hash, pixel_count))
-        eligible_thresholds[name] = _effective_diff_threshold(head_manifest, name)
+        eligible.append(candidate)
 
     for name in sorted(added):
         non_diff_images[name] = ComparisonImageResult(
@@ -664,35 +579,23 @@ def _build_comparison_plan(
             sibling_hash = sibling_image.head_hash
             if not sibling_hash or sibling_hash == head_hash:
                 continue
-            head_meta = head_meta_by_hash[head_hash]
-            head_size = ImageSize(head_meta.width, head_meta.height)
             sibling_meta = sibling_meta_by_hash.get(sibling_hash)
             if sibling_meta is None:
                 continue
-            sibling_size = ImageSize(sibling_meta.width, sibling_meta.height)
-            pixel_count = get_comparison_size(head_size, sibling_size).pixel_count
-            if pixel_count > MAX_DIFF_PIXELS:
+            candidate = _build_chunk_candidate(
+                name,
+                head_meta_by_hash[head_hash],
+                sibling_meta,
+                _effective_diff_threshold(head_manifest, name),
+                kind="sibling",
+            )
+            if candidate.pixel_count > MAX_DIFF_PIXELS:
                 continue
-            eligible.append(_DiffCandidate(name, head_hash, sibling_hash, pixel_count, "sibling"))
-            eligible_thresholds[name] = _effective_diff_threshold(head_manifest, name)
+            eligible.append(candidate)
 
     batches = _create_pixel_batches(eligible, MAX_PIXELS_PER_BATCH)
     chunks = [
-        ChunkAssignment(
-            chunk_index=i,
-            candidates=[
-                ChunkCandidate(
-                    name=candidate.name,
-                    head_hash=candidate.head_hash,
-                    base_hash=candidate.base_hash,
-                    pixel_count=candidate.pixel_count,
-                    diff_threshold=eligible_thresholds[candidate.name],
-                    kind=candidate.kind,
-                )
-                for candidate in batch
-            ],
-        )
-        for i, batch in enumerate(batches)
+        ChunkAssignment(chunk_index=index, candidates=batch) for index, batch in enumerate(batches)
     ]
 
     return ComparisonPlan(

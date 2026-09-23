@@ -13,10 +13,12 @@ from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.delayed_workflow import (
+    DelayedWorkflowEvaluationResult,
     EventRedisData,
     _process_workflows_for_project,
     process_delayed_workflows,
 )
+from sentry.workflow_engine.processors.evaluations import EvaluationPhase
 from sentry.workflow_engine.processors.schedule import process_in_batches
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
@@ -184,6 +186,27 @@ class TestDelayedWorkflowTaskBase(BaseWorkflowTest, BaseEventFrequencyPercentTes
 
 
 class TestDelayedWorkflowTaskIntegration(TestDelayedWorkflowTaskBase):
+    @patch("sentry.workflow_engine.processors.delayed_workflow.metrics.incr")
+    def test_metric_tracks_retry_workload(self, mock_incr: MagicMock) -> None:
+        self._push_base_events()
+
+        with (
+            patch(
+                "sentry.workflow_engine.processors.delayed_workflow._process_workflows_for_project"
+            ),
+            patch(
+                "sentry.workflow_engine.processors.delayed_workflow.current_task"
+            ) as mock_current_task,
+        ):
+            mock_current_task.return_value.attempt = 1
+            process_delayed_workflows(self.batch_client, self.project.id)
+
+        mock_incr.assert_any_call(
+            "workflow_engine.delayed_workflow",
+            amount=2,
+            tags={"is_retry": True},
+        )
+
     @override_options({"delayed_processing.batch_size": 1})
     @patch("sentry.workflow_engine.tasks.delayed_workflows.process_delayed_workflows.apply_async")
     def test_batched_cleanup(self, mock_process_delayed: MagicMock) -> None:
@@ -256,11 +279,21 @@ class TestDelayedWorkflowTaskIntegration(TestDelayedWorkflowTaskBase):
         initial_data = project_client.get_hash_data(batch_key=None)
         assert len(initial_data) == 2
 
-        with patch(
-            "sentry.workflow_engine.processors.delayed_workflow.fire_actions_for_groups"
-        ) as mock_fire:
+        with (
+            patch(
+                "sentry.workflow_engine.processors.delayed_workflow.fire_actions_for_groups"
+            ) as mock_fire,
+            patch(
+                "sentry.workflow_engine.processors.delayed_workflow.emit_workflow_evaluation_logs"
+            ) as mock_emit,
+        ):
             process_delayed_workflows(self.batch_client, self.project.id)
-            assert mock_fire.called
+
+        mock_fire.assert_called_once()
+        mock_emit.assert_called_once()
+        result = mock_emit.call_args.kwargs["result"]
+        assert isinstance(result, DelayedWorkflowEvaluationResult)
+        assert result.artifacts[0].evaluation_phase == EvaluationPhase.DELAYED
 
         final_data = project_client.get_hash_data(batch_key=None)
         assert final_data == {}

@@ -6,9 +6,9 @@ from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
+    ConditionType,
     CustomInboundFilter,
-    CustomInboundFilterConditionType,
-    CustomInboundFilterDataType,
+    DataType,
 )
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
@@ -561,8 +561,8 @@ def _custom_error_type_condition(values: list[str]) -> RuleCondition:
 # Builds the Relay condition that matches one filter condition's glob values.
 _ConditionMatcher = Callable[[list[str]], RuleCondition]
 
-# Where each condition type's data lives on one kind of ingested item.
-_ConditionMatchers = Mapping[CustomInboundFilterConditionType, _ConditionMatcher]
+# The matcher for each condition type a data type supports.
+_ConditionMatchers = Mapping[ConditionType, _ConditionMatcher]
 
 
 def _field_matcher(name: str) -> _ConditionMatcher:
@@ -572,34 +572,39 @@ def _field_matcher(name: str) -> _ConditionMatcher:
     return match
 
 
-# Replays, sessions, profiles and transactions are not selectable data types: Relay
-# reads their release under `event.release`, so they cannot be told apart from errors.
-_MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
-    CustomInboundFilterDataType.ERROR: {
-        CustomInboundFilterConditionType.ERROR_TYPE: _custom_error_type_condition,
-        CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
-        CustomInboundFilterConditionType.RELEASE: _field_matcher("event.release"),
+def _cidr_matcher(name: str) -> _ConditionMatcher:
+    def match(values: list[str]) -> RuleCondition:
+        return {"op": "cidr", "name": name, "value": values}
+
+    return match
+
+
+_CONDITION_MATCHERS: Mapping[
+    ConditionType,
+    _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
+] = {
+    ConditionType.ERROR_TYPE: {
+        DataType.ERROR: _custom_error_type_condition,
     },
-    CustomInboundFilterDataType.LOG: {
-        CustomInboundFilterConditionType.LOG_MESSAGE: _field_matcher("log.body"),
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "log.attributes.sentry.release.value"
-        ),
+    ConditionType.ERROR_MESSAGE: {
+        DataType.ERROR: _custom_error_message_condition,
     },
-    CustomInboundFilterDataType.METRIC: {
-        CustomInboundFilterConditionType.METRIC_NAME: _field_matcher("trace_metric.name"),
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "trace_metric.attributes.sentry.release.value"
-        ),
+    ConditionType.LOG_MESSAGE: {
+        DataType.LOG: _field_matcher("log.body"),
     },
-    # Matches standalone spans only. A span sent inside a transaction is dropped with
-    # the transaction, which the error matcher reads.
-    CustomInboundFilterDataType.SPAN: {
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "span.attributes.sentry.release.value"
-        ),
+    ConditionType.METRIC_NAME: {
+        DataType.METRIC: _field_matcher("trace_metric.name"),
     },
+    ConditionType.RELEASE: {
+        DataType.ERROR: _field_matcher("event.release"),
+        DataType.LOG: _field_matcher("log.attributes.sentry.release.value"),
+        DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.release.value"),
+        DataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
+    },
+    ConditionType.IP_ADDRESS: _cidr_matcher("envelope.client_ip"),
 }
+
+_SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
 
 
 def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
@@ -611,28 +616,30 @@ def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionM
     return match
 
 
-def _build_all_data_types_matchers() -> _ConditionMatchers:
-    per_data_type = list(_MATCHERS_BY_SINGLE_DATA_TYPE.values())
-    shared_condition_types = set.intersection(*(set(matchers.keys()) for matchers in per_data_type))
+def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMatcher | None:
+    spec = _CONDITION_MATCHERS[condition_type]
+    if callable(spec):
+        return spec
+    if data_type is not DataType.ALL:
+        return spec.get(data_type)
+    if set(spec) != _SINGLE_DATA_TYPES:
+        return None
+    return _any_condition_matcher(list(spec.values()))
 
-    return {
-        condition_type: _any_condition_matcher(
-            [matchers[condition_type] for matchers in per_data_type]
-        )
-        for condition_type in CustomInboundFilterConditionType
-        if condition_type in shared_condition_types
+
+_MATCHERS_BY_DATA_TYPE: Mapping[DataType, _ConditionMatchers] = {
+    data_type: {
+        condition_type: matcher
+        for condition_type in ConditionType
+        if (matcher := _matcher(condition_type, data_type)) is not None
     }
-
-
-_MATCHERS_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
-    CustomInboundFilterDataType.ALL: _build_all_data_types_matchers(),
-    **_MATCHERS_BY_SINGLE_DATA_TYPE,
+    for data_type in DataType
 }
 
 
 def get_supported_condition_types(
-    data_type: CustomInboundFilterDataType,
-) -> list[CustomInboundFilterConditionType]:
+    data_type: DataType,
+) -> list[ConditionType]:
     return list(_MATCHERS_BY_DATA_TYPE[data_type])
 
 
@@ -652,14 +659,14 @@ def _custom_filter_condition(
         return None
 
     try:
-        matchers = _MATCHERS_BY_DATA_TYPE[CustomInboundFilterDataType(data_type)]
+        matchers = _MATCHERS_BY_DATA_TYPE[DataType(data_type)]
     except ValueError:
         return None
 
     rule_conditions: list[RuleCondition] = []
     for condition in conditions:
         try:
-            condition_type = CustomInboundFilterConditionType(condition.get("type", ""))
+            condition_type = ConditionType(condition.get("type", ""))
         except ValueError:
             return None
 
