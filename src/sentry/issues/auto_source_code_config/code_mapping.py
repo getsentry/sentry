@@ -368,6 +368,7 @@ def create_code_mapping(
         defaults={
             "integration_id": installation.model.id,
             "external_id": code_mapping.repo.external_id,
+            "provider": f"integrations:{installation.model.provider}",
         },
     )
     with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):

@@ -329,6 +329,26 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
             expected_new_code_mappings=[self.code_mapping("", "src/foo/")],
         )
 
+    def test_created_repository_has_integration_provider(self) -> None:
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar.py"]},
+            frames=[self.frame("bar.py", True)],
+            platform="python",
+            expected_new_code_mappings=[self.code_mapping("", "src/foo/")],
+        )
+        repository = Repository.objects.get(name=REPO1, organization_id=self.organization.id)
+        assert repository.provider == "integrations:github"
+        assert repository.integration_id == self.integration.id
+
+    def test_create_code_mapping_sets_integration_provider(self) -> None:
+        repo = RepoAndBranch(name=REPO1, branch="master", external_id="1")
+        cm = CodeMapping(repo=repo, stacktrace_root="foo/", source_path="src/foo/")
+        create_code_mapping(self.organization, cm, self.project)
+
+        repository = Repository.objects.get(name=REPO1, organization_id=self.organization.id)
+        assert repository.provider == "integrations:github"
+        assert repository.integration_id == self.integration.id
+
     def test_dry_run_platform(self) -> None:
         frame_filename = "foo/bar.py"
         file_in_repo = "src/foo/bar.py"

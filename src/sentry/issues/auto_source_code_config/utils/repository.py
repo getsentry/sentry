@@ -10,6 +10,7 @@ from ..constants import METRIC_PREFIX
 def create_repository(
     repo_name: str,
     org_integration: RpcOrganizationIntegration,
+    integration_provider: str,
     tags: Mapping[str, str | bool],
     external_id: str,
 ) -> Repository | None:
@@ -28,6 +29,7 @@ def create_repository(
                 integration_id=org_integration.integration_id,
                 defaults={
                     "external_id": external_id,
+                    "provider": f"integrations:{integration_provider}",
                 },
             )
         if created or tags["dry_run"]:
