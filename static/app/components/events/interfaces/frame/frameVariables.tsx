@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {Container, Grid} from '@sentry/scraps/layout';
@@ -115,7 +116,7 @@ export function FrameVariables({data, meta, platform}: Props) {
               {key}
             </Text>
           </Container>
-          <Container
+          <ValueCell
             minWidth="0"
             padding="md lg"
             radius="sm"
@@ -139,9 +140,16 @@ export function FrameVariables({data, meta, platform}: Props) {
                 </Container>
               )}
             </Text>
-          </Container>
+          </ValueCell>
         </Grid>
       ))}
     </Grid>
   );
 }
+
+const ValueCell = styled(Container)`
+  > pre {
+    background: transparent;
+    border-radius: 0;
+  }
+`;
