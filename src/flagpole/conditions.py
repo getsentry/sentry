@@ -341,8 +341,8 @@ class Segment:
     """
     Rollout rate controls how many buckets will be granted a feature when this segment matches.
 
-    Rollout rates range from 0 (off) to 100 (all users). Rollout rates use `context.id`
-    to determine bucket membership consistently over time.
+    Rollout rates range from 0 (off) to 100 (all users). Rollout rates use
+    `context.bucket_id()` to determine bucket membership consistently over time.
     """
 
     @classmethod
@@ -361,7 +361,10 @@ class Segment:
                 return False
         return True
 
-    def in_rollout(self, context: EvaluationContext) -> bool:
+    def in_rollout(self, context: EvaluationContext, feature_name: str | None = None) -> bool:
+        """
+        `feature_name`, when given, buckets by feature as well as by identity.
+        """
         # Rollout = 0 allows segments to match and disable a feature
         # even if other segments would match
         if self.rollout == 0:
@@ -369,6 +372,6 @@ class Segment:
 
         # Apply incremental rollout if available.
         if self.rollout is not None and self.rollout < 100:
-            return context.id % 100 <= self.rollout
+            return context.bucket_id(feature_name) % 100 <= self.rollout
 
         return True

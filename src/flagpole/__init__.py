@@ -67,6 +67,7 @@ from __future__ import annotations
 import dataclasses
 import functools
 import os
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -101,6 +102,41 @@ def load_json_schema() -> dict[str, Any]:
     return data
 
 
+FEATURE_BUCKETING_EPOCH = datetime(2026, 10, 15, tzinfo=UTC)
+"""
+Features created after this instant bucket their percentage rollouts by feature
+name as well as by context identity, so two features at the same rollout reach
+different populations instead of the same low buckets. Features created at or
+before it, or whose ``created_at`` does not parse, keep bucketing on the
+identity alone: changing that would move their in-flight partial rollouts
+between organizations.
+
+Must not predate the deploy of this rule, and must match
+``FEATURE_BUCKETING_EPOCH`` in sentry-options (``clients/rust/src/features.rs``),
+which evaluates flags in production.
+"""
+
+
+def parse_created_at(value: str | None) -> datetime | None:
+    """
+    Parse a feature's ``created_at`` as UTC.
+
+    Accepts a date, a naive datetime with an optional fraction, or a datetime
+    with a UTC offset; naive values are taken as UTC. Anything else, including
+    the ``"None"`` that ``from_feature_dictionary`` stores for a missing value,
+    is None.
+    """
+    if value is None:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
 @dataclasses.dataclass(frozen=True)
 class OwnerInfo:
     team: str
@@ -130,14 +166,24 @@ class Feature:
     experiment_mode: ExperimentMode | None = None
     "The experiment mode for this feature. When set, the flag is treated as an experiment."
 
+    @property
+    def buckets_by_feature(self) -> bool:
+        """
+        Rollouts bucket by feature name as well as identity; see
+        ``FEATURE_BUCKETING_EPOCH``.
+        """
+        created_at = parse_created_at(self.created_at)
+        return created_at is not None and created_at > FEATURE_BUCKETING_EPOCH
+
     def match(self, context: EvaluationContext) -> bool:
         if not self.enabled:
             return False
 
+        feature_name = self.name if self.buckets_by_feature else None
         for segment in self.segments:
             match = segment.match(context)
             if match:
-                return segment.in_rollout(context)
+                return segment.in_rollout(context, feature_name=feature_name)
 
         return False
 

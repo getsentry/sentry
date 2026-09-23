@@ -12,7 +12,7 @@ from flagpole import (
     InvalidFeatureFlagConfiguration,
     OwnerInfo,
 )
-from flagpole.conditions import ConditionOperatorKind
+from flagpole.conditions import ConditionOperatorKind, Segment
 
 
 @dataclass
@@ -349,3 +349,52 @@ class TestParseFeatureConfig:
 
         features_from_yaml = Feature.from_bulk_yaml(feature.to_yaml_str())
         assert features_from_yaml == [feature]
+
+
+class TestRolloutBucketing:
+    @pytest.mark.parametrize(
+        ("created_at", "expected"),
+        [
+            ("2026-10-15", False),
+            ("2026-10-15T00:00:01", True),
+            ("2026-10-16", True),
+            ("2026-10-15T00:00:00.000001", True),
+            ("2026-10-14T23:00:00-02:00", True),
+            ("2026-10-15T01:00:00+02:00", False),
+            ("2026-10-15T01:00:00+0200", False),
+            ("2024-01-01", False),
+            ("None", False),
+            (None, False),
+            ("not a date", False),
+        ],
+    )
+    def test_buckets_by_feature(self, created_at: str | None, expected: bool) -> None:
+        feature = Feature(
+            name="organizations:test-feature", owner=OwnerInfo(team="test"), created_at=created_at
+        )
+        assert feature.buckets_by_feature is expected
+
+    def _feature(self, name: str, created_at: str, rollout: int) -> Feature:
+        return Feature(
+            name=name,
+            owner=OwnerInfo(team="test"),
+            created_at=created_at,
+            segments=[Segment(name="all", rollout=rollout, conditions=[])],
+        )
+
+    def test_keeps_identity_bucketing_for_features_created_before_epoch(self) -> None:
+        # foo:bar is bucket 62 on identity alone (see test_evaluation_context.py).
+        context = EvaluationContext({"foo": "bar"}, {"foo"})
+
+        assert self._feature("organizations:test-feature", "2024-01-01", 62).match(context)
+        assert not self._feature("organizations:test-feature", "2024-01-01", 61).match(context)
+
+    def test_buckets_by_feature_for_features_created_after_epoch(self) -> None:
+        # foo:bar is bucket 11 under organizations:test-feature and 40 under
+        # organizations:other-feature (see test_evaluation_context.py), so the
+        # two features at the same rollout reach different populations.
+        context = EvaluationContext({"foo": "bar"}, {"foo"})
+
+        assert self._feature("organizations:test-feature", "2026-12-01", 11).match(context)
+        assert not self._feature("organizations:test-feature", "2026-12-01", 10).match(context)
+        assert not self._feature("organizations:other-feature", "2026-12-01", 11).match(context)

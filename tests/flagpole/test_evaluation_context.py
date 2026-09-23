@@ -62,6 +62,19 @@ class TestEvaluationContext:
         expected_id = 1395427532315258482176540981434194664973697472186
         assert eval_context.id == expected_id
 
+    def test_bucket_id(self) -> None:
+        eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"}, {"foo"})
+        assert eval_context.bucket_id() == eval_context.id
+
+        # Pinned against sentry-options (clients/rust/src/features.rs) so both
+        # evaluators put a feature's rollout in the same buckets.
+        feature_id = eval_context.bucket_id("organizations:test-feature")
+        assert feature_id == 1003219311642623416031597232974552680155197022611
+        assert feature_id % 100 == 11, "bucket should be correct"
+        assert eval_context.bucket_id("organizations:other-feature") % 100 == 40
+
+        assert EvaluationContext({}).bucket_id("organizations:test-feature") % 100 == 6
+
     def test_get_has_data(self) -> None:
         eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"}, {"foo"})
 
