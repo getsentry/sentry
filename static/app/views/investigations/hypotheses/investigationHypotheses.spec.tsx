@@ -139,32 +139,49 @@ describe('InvestigationHypotheses', () => {
     expect(screen.getByTestId('investigation-hypotheses')).not.toBeVisible();
   });
 
-  it('collapses when verification finishes and lets the viewer reopen it', async () => {
+  it('stays open when verification finishes while the viewer is on the page', async () => {
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
       body: InvestigationOrchestrationFixture({phase: 'investigating'}),
     });
-    const {queryClient} = renderHypotheses();
+    const {queryClient} = renderHypotheses({phase: 'investigating'});
     await screen.findAllByTestId('investigation-hypothesis');
     const toggle = screen.getByRole('button', {name: /Hypotheses/});
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
-    MockApiClient.addMockResponse({
+    for (const phase of ['reporting', 'metadata'] as const) {
+      const reporting = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({phase}),
+      });
+      await act(() => queryClient.invalidateQueries());
+      await waitFor(() => expect(reporting).toHaveBeenCalled());
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    }
+
+    const completed = MockApiClient.addMockResponse({
       url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({phase: 'reporting'}),
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
     });
     await act(() => queryClient.invalidateQueries());
-    await waitFor(() => expect(toggle).toHaveAttribute('aria-expanded', 'false'));
-    expect(screen.getByTestId('investigation-hypotheses')).not.toBeVisible();
+    await waitFor(() => expect(completed).toHaveBeenCalled());
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('investigation-hypotheses')).toBeVisible();
+  });
+
+  it('starts collapsed when a completed run loads without a summary phase', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
+    });
+    renderHypotheses();
+    await screen.findAllByTestId('investigation-hypothesis');
+
+    const toggle = screen.getByRole('button', {name: /Hypotheses/});
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
     await userEvent.click(toggle);
     expect(screen.getByTestId('investigation-hypotheses')).toBeVisible();
-    MockApiClient.addMockResponse({
-      url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({phase: 'metadata'}),
-    });
-    await act(() => queryClient.invalidateQueries());
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
   });
 
   it.each(['reporting', 'metadata', 'completed'] as const)(

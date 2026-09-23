@@ -158,13 +158,37 @@ export function InvestigationHypotheses({
   const verificationComplete =
     projection?.status === 'completed' ||
     ['reporting', 'metadata', 'completed'].includes(phase ?? '');
+  // A run that has already finished verifying when the page loads opens
+  // collapsed: the report is what the viewer came for. A run that finishes while
+  // someone watches keeps the panel as it was, so the cards they were reading
+  // don't fold away underneath them. The decision is made once, on the first
+  // projection — until then the summary's phase stands in for it — and a
+  // toggle by the viewer before that lands settles it too.
   const [panelState, setPanelState] = useState({
-    verificationComplete,
+    investigationId,
+    settled: projection !== undefined,
     expanded: !verificationComplete,
   });
 
-  if (panelState.verificationComplete !== verificationComplete) {
-    setPanelState({verificationComplete, expanded: !verificationComplete});
+  if (panelState.investigationId !== investigationId) {
+    setPanelState({
+      investigationId,
+      settled: projection !== undefined,
+      expanded: !verificationComplete,
+    });
+  } else if (
+    !panelState.settled &&
+    (projection !== undefined || panelState.expanded === verificationComplete)
+  ) {
+    setPanelState({
+      investigationId,
+      settled: projection !== undefined,
+      expanded: !verificationComplete,
+    });
+  }
+
+  function setExpanded(expanded: boolean) {
+    setPanelState({investigationId, settled: true, expanded});
   }
 
   // Nothing is known yet, so the panel goes up empty rather than appearing a
@@ -175,10 +199,7 @@ export function InvestigationHypotheses({
 
     return worthHoldingSpaceFor ? (
       <Stack gap="2xl">
-        <HypothesesPanel
-          expanded={panelState.expanded}
-          onExpandedChange={expanded => setPanelState({verificationComplete, expanded})}
-        >
+        <HypothesesPanel expanded={panelState.expanded} onExpandedChange={setExpanded}>
           <HypothesisListPlaceholder />
         </HypothesesPanel>
       </Stack>
@@ -262,7 +283,7 @@ export function InvestigationHypotheses({
       {hasHypotheses || awaitingFirstHypothesis ? (
         <HypothesesPanel
           expanded={panelState.expanded}
-          onExpandedChange={expanded => setPanelState({verificationComplete, expanded})}
+          onExpandedChange={setExpanded}
           // No count before the first hypothesis: "0 plausible causes" reads
           // as a result rather than a wait.
           meta={
