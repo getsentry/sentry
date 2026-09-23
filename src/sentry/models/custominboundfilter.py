@@ -14,6 +14,7 @@ class ConditionType(StrEnum):
     LOG_MESSAGE = "log_message"
     METRIC_NAME = "metric_name"
     RELEASE = "release"
+    IP_ADDRESS = "ip_address"
 
 
 class DataType(StrEnum):

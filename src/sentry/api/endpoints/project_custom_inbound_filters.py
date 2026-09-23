@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
@@ -42,6 +43,14 @@ class CustomInboundFilterCondition(TypedDict):
     value: list[str]
 
 
+def _is_ip_address_or_range(value: str) -> bool:
+    try:
+        ipaddress.ip_network(value, strict=False)
+    except ValueError:
+        return False
+    return True
+
+
 class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboundFilterCondition]):
     type = serializers.ChoiceField(
         choices=[condition_type.value for condition_type in ConditionType]
@@ -50,6 +59,17 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         child=serializers.CharField(allow_blank=False, trim_whitespace=True),
         allow_empty=False,
     )
+
+    def validate(self, attrs: CustomInboundFilterCondition) -> CustomInboundFilterCondition:
+        # Relay drops an entry it cannot parse as an address or range, so a typo would
+        # silently disable part of the filter.
+        if attrs["type"] == ConditionType.IP_ADDRESS:
+            invalid = [value for value in attrs["value"] if not _is_ip_address_or_range(value)]
+            if invalid:
+                raise serializers.ValidationError(
+                    {"value": f"{', '.join(invalid)} is not an IP address or CIDR range."}
+                )
+        return attrs
 
 
 class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFilter]):

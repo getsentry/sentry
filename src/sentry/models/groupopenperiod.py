@@ -15,7 +15,6 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_m
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 
@@ -92,18 +91,13 @@ class GroupOpenPeriod(DefaultFieldsModel):
 
     def close_open_period(
         self,
-        resolution_activity: Activity,
         resolution_time: datetime,
     ) -> None:
         if self.date_ended is not None:
             logger.warning("Open period is already closed", extra={"group_id": self.group.id})
             return
 
-        self.update(
-            date_ended=resolution_time,
-            resolution_activity=resolution_activity,
-            user_id=resolution_activity.user_id,
-        )
+        self.update(date_ended=resolution_time)
 
         if get_group_type_by_type_id(self.group.type).detector_settings is not None:
             GroupOpenPeriodActivity.objects.create(
@@ -116,7 +110,7 @@ class GroupOpenPeriod(DefaultFieldsModel):
             logger.warning("Open period is not closed", extra={"group_id": self.group.id})
             return
 
-        self.update(date_ended=None, resolution_activity=None, user_id=None)
+        self.update(date_ended=None)
 
 
 def get_last_checked_for_open_period(group: Group) -> datetime:
@@ -204,7 +198,6 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
             project=group.project,
             date_started=start_time,
             date_ended=None,
-            resolution_activity=None,
         )
 
         # If we care about this group's activity, create activity entry
@@ -222,15 +215,13 @@ def update_group_open_period(
     group: Group,
     new_status: int,
     resolution_time: datetime | None = None,
-    resolution_activity: Activity | None = None,
 ) -> None:
     """
     Update an existing open period when the group is resolved or unresolved.
 
-    On resolution, we set the date_ended to the resolution time and link the activity to the open period.
-    On unresolved, we clear the date_ended and resolution_activity fields. This is only done if the group
-    is unresolved manually without a regression. If the group is unresolved due to a regression, the
-    open periods will be updated during ingestion.
+    On resolution, we set the date_ended to the resolution time. On unresolved, we clear date_ended. This
+    is only done if the group is unresolved manually without a regression. If the group is unresolved due
+    to a regression, the open periods will be updated during ingestion.
     """
     # if the group does not track open periods, this is a no-op
     if not should_create_open_periods(group.type):
@@ -247,17 +238,14 @@ def update_group_open_period(
         return
 
     if new_status == GroupStatus.RESOLVED:
-        if resolution_activity is None or resolution_time is None:
+        if resolution_time is None:
             logger.warning(
                 "Missing information to close open period",
                 extra={"group_id": group.id},
             )
             return
 
-        open_period.close_open_period(
-            resolution_activity=resolution_activity,
-            resolution_time=resolution_time,
-        )
+        open_period.close_open_period(resolution_time=resolution_time)
     elif new_status == GroupStatus.UNRESOLVED:
         open_period.reopen_open_period()
 
