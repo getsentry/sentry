@@ -1,5 +1,4 @@
 import {InputGroup} from '@sentry/scraps/input';
-import {Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -42,21 +41,19 @@ export function SpendLimitInput({
     : 'shared';
 
   return (
-    <Container width="100%">
-      <InputGroup>
-        <InputGroup.LeadingItems disablePointerEvents>$</InputGroup.LeadingItems>
-        <InputGroup.Input
-          aria-label={t('Custom %s spending limit (in dollars)', displayName)}
-          inputMode="numeric"
-          pattern="[0-9]*"
-          placeholder="300"
-          value={(currentSpendingLimit / 100).toString()}
-          onChange={event => {
-            const value = Math.max(parseInt(event.target.value, 10) || 0, 0);
-            onUpdate({newData: {[inputName]: value * 100}});
-          }}
-        />
-      </InputGroup>
-    </Container>
+    <InputGroup>
+      <InputGroup.LeadingItems disablePointerEvents>$</InputGroup.LeadingItems>
+      <InputGroup.Input
+        aria-label={t('Custom %s spending limit (in dollars)', displayName)}
+        inputMode="numeric"
+        pattern="[0-9]*"
+        placeholder="300"
+        value={(currentSpendingLimit / 100).toString()}
+        onChange={event => {
+          const value = Math.max(parseInt(event.target.value, 10) || 0, 0);
+          onUpdate({newData: {[inputName]: value * 100}});
+        }}
+      />
+    </InputGroup>
   );
 }
