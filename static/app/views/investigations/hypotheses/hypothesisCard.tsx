@@ -20,7 +20,7 @@ import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
 /** States where missing checks mean "not yet"; anything else finished without them. */
 const PENDING_EVIDENCE_STATUSES = new Set<string>(['pending', 'investigating']);
 
-/** Past this many checks, only the latest shows until the rest are asked for. */
+/** While verifying, past this many checks only one shows until the rest are asked for. */
 const MAX_UNCOLLAPSED_STEPS = 2;
 
 type HypothesisCardProps = {
@@ -54,14 +54,27 @@ export function HypothesisCard({
   isPrimary = false,
 }: HypothesisCardProps) {
   const theme = useTheme();
-  const [showAllSteps, setShowAllSteps] = useState(false);
   const steps = [...(hypothesis.verificationSteps ?? [])].sort(
     (a, b) => a.order - b.order
   );
-  const isCollapsible = steps.length > MAX_UNCOLLAPSED_STEPS;
-  // Collapsed, the latest check stands in for the rest: it is where the agent
-  // is, or where it ended up.
-  const visibleSteps = isCollapsible && !showAllSteps ? steps.slice(-1) : steps;
+  // Once a verdict lands the checks are supporting detail, so they fold away
+  // entirely; while verifying, one check stays out to show where the agent is.
+  const isTerminal = !PENDING_EVIDENCE_STATUSES.has(hypothesis.effectiveStatus);
+  // Remembers which phase the steps were opened in, so a card that reaches its
+  // verdict while expanded starts collapsed again.
+  const [expandedWhileTerminal, setExpandedWhileTerminal] = useState<boolean | null>(
+    null
+  );
+  const showAllSteps = expandedWhileTerminal === isTerminal;
+  const isCollapsible = isTerminal || steps.length > MAX_UNCOLLAPSED_STEPS;
+  const currentStep =
+    steps.find(step => step.status === 'running') ?? steps[steps.length - 1];
+  const visibleSteps =
+    !isCollapsible || showAllSteps
+      ? steps
+      : isTerminal || !currentStep
+        ? []
+        : [currentStep];
   const hiddenStepCount = steps.length - visibleSteps.length;
   const dotColorConfig = {
     icon: theme.tokens.graphics.neutral.moderate,
@@ -130,13 +143,21 @@ export function HypothesisCard({
                 <Button
                   variant="link"
                   aria-expanded={showAllSteps}
-                  onClick={() => setShowAllSteps(value => !value)}
+                  onClick={() =>
+                    setExpandedWhileTerminal(showAllSteps ? null : isTerminal)
+                  }
                 >
                   <Flex as="span" align="center" gap="xs">
                     <StepTitle size="sm" variant="muted" bold={false}>
                       {showAllSteps
                         ? t('Show less')
-                        : tn('Show %s more step', 'Show %s more steps', hiddenStepCount)}
+                        : isTerminal
+                          ? tn('Show all %s step', 'Show all %s steps', steps.length)
+                          : tn(
+                              'Show %s more step',
+                              'Show %s more steps',
+                              hiddenStepCount
+                            )}
                     </StepTitle>
                     <IconChevron
                       size="xs"

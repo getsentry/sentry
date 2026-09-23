@@ -159,9 +159,11 @@ export default Storybook.story('Investigations — Hypotheses', story => {
   story('Many checks', () => (
     <Fragment>
       <p>
-        Past two checks, the timeline collapses to the latest one — where the agent is, or
-        where it ended up — behind a toggle that names how many are hidden. Opening it
-        shows every check, with a toggle to collapse them again.
+        While verifying, past two checks the timeline collapses to the first running check
+        — where the agent is — behind a toggle that names how many are hidden. Once a
+        verdict lands, every check folds away behind a toggle to show all of them, since
+        the verdict is what the card is about by then. Either way, opening it shows every
+        check with a toggle to collapse them again.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <HypothesisList
