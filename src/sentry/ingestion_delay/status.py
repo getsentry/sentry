@@ -93,6 +93,8 @@ def get_ingestion_delay_status(
         item_type=item_type,
         start=evidence_start,
         end=evidence_end,
+        last_ingested_at=last_ingested_at,
+        delay_seconds=delay_seconds,
     )
 
     if accepted is None:

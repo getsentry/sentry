@@ -5,11 +5,7 @@ from django.core.cache import cache
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry.constants import DataCategory
-from sentry.ingestion_delay.activity import (
-    _outcomes_cache_key,
-    get_accepted_outcomes,
-    has_accepted_outcomes,
-)
+from sentry.ingestion_delay.activity import get_accepted_outcomes, has_accepted_outcomes
 from sentry.testutils.cases import OutcomesSnubaTest, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.outcomes import Outcome
@@ -78,19 +74,29 @@ class GetAcceptedOutcomesCacheTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        cache.delete(_outcomes_cache_key(self.organization.id, [self.project.id], self.item_type))
+        cache.clear()
+        self.project
 
     def _get(
         self,
         project_ids: list[int] | None = None,
         seconds_ago: int = 0,
+        last_ingested_seconds_ago: float | None = 600,
+        delay_seconds: float | None = 5.0,
     ) -> bool | None:
+        last_ingested_at = (
+            None
+            if last_ingested_seconds_ago is None
+            else self.now - timedelta(seconds=last_ingested_seconds_ago)
+        )
         return get_accepted_outcomes(
             organization_id=self.organization.id,
             project_ids=project_ids or [self.project.id],
             item_type=self.item_type,
-            start=self.now - timedelta(minutes=60),
+            start=last_ingested_at or self.now - timedelta(minutes=60),
             end=self.now - timedelta(seconds=seconds_ago),
+            last_ingested_at=last_ingested_at,
+            delay_seconds=delay_seconds,
         )
 
     @mock.patch("sentry.ingestion_delay.activity.metrics.incr")
@@ -115,3 +121,11 @@ class GetAcceptedOutcomesCacheTest(TestCase):
         assert self._get() is None
         assert self._get() is True
         assert mock_accepted.call_count == 2
+
+    def test_new_measurements_forces_outcomes_refresh(self, mock_accepted: mock.MagicMock) -> None:
+        mock_accepted.return_value = True
+
+        assert self._get(last_ingested_seconds_ago=600, delay_seconds=10.0) is True
+        assert self._get(last_ingested_seconds_ago=120, delay_seconds=5.0) is True
+        assert self._get(last_ingested_seconds_ago=None, delay_seconds=None) is True
+        assert mock_accepted.call_count == 3

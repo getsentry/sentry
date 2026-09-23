@@ -63,9 +63,16 @@ def _outcomes_cache_key(
     organization_id: int,
     project_ids: list[int],
     item_type: TraceItemType.ValueType,
+    last_ingested_at: datetime | None,
+    delay_seconds: float | None,
 ) -> str:
-    projects = md5_text(",".join(str(id) for id in sorted(project_ids))).hexdigest()
-    return f"ingestion-delay:outcomes:{organization_id}:{item_type}:{projects}"
+    window = (
+        f"{'none' if last_ingested_at is None else last_ingested_at.timestamp()}"
+        f":{'none' if delay_seconds is None else delay_seconds}"
+    )
+    projects = ",".join(str(id) for id in sorted(project_ids))
+    digest = md5_text(f"{projects}|{window}").hexdigest()
+    return f"ingestion-delay:outcomes:{organization_id}:{item_type}:{digest}"
 
 
 def get_accepted_outcomes(
@@ -74,6 +81,8 @@ def get_accepted_outcomes(
     item_type: TraceItemType.ValueType,
     start: datetime,
     end: datetime,
+    last_ingested_at: datetime | None,
+    delay_seconds: float | None,
 ) -> bool | None:
     """
     Wrapper around `has_accepted_outcomes` cached by organization, projects and item type.
@@ -82,7 +91,9 @@ def get_accepted_outcomes(
     if ttl <= 0:
         return has_accepted_outcomes(organization_id, project_ids, item_type, start, end)
 
-    key = _outcomes_cache_key(organization_id, project_ids, item_type)
+    key = _outcomes_cache_key(
+        organization_id, project_ids, item_type, last_ingested_at, delay_seconds
+    )
     cached = cache.get(key)
     if cached is not None:
         metrics.incr("ingestion_delay.outcomes_cache", tags={"result": "hit"})
