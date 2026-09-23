@@ -606,6 +606,8 @@ def _serialize_orchestration_run(run: InvestigationOrchestrationRun) -> dict[str
             "notebookRevision": run.notebook_revision,
             "heartbeatAt": run.heartbeat_at,
             "updatedAt": run.date_updated,
+            # This must be fresh on every read, even when the stored projection has not changed.
+            "serverTime": timezone.now(),
         }
     )
     report = projection["report"]

@@ -72,6 +72,7 @@ import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
+import {NavigationTypeGate} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeGate';
 import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -1107,17 +1108,19 @@ class DashboardDetail extends Component<Props, State> {
               />
             </Stack>
             <PrebuiltDashboardOnboardingGate prebuiltId={dashboard.prebuiltId}>
-              <Dashboard
-                dashboard={modifiedDashboard ?? dashboard}
-                isEditingDashboard={this.isEditingDashboard}
-                widgetLimitReached={widgetLimitReached}
-                onUpdate={this.handleUpdateEditStateWidgets}
-                handleUpdateWidgetList={this.handleUpdateWidgetList}
-                handleAddCustomWidget={this.handleAddCustomWidget}
-                isEmbedded={this.isEmbedded}
-                isPreview={this.isPreview}
-                widgetLegendState={this.state.widgetLegendState}
-              />
+              <NavigationTypeGate prebuiltId={dashboard.prebuiltId}>
+                <Dashboard
+                  dashboard={modifiedDashboard ?? dashboard}
+                  isEditingDashboard={this.isEditingDashboard}
+                  widgetLimitReached={widgetLimitReached}
+                  onUpdate={this.handleUpdateEditStateWidgets}
+                  handleUpdateWidgetList={this.handleUpdateWidgetList}
+                  handleAddCustomWidget={this.handleAddCustomWidget}
+                  isEmbedded={this.isEmbedded}
+                  isPreview={this.isPreview}
+                  widgetLegendState={this.state.widgetLegendState}
+                />
+              </NavigationTypeGate>
             </PrebuiltDashboardOnboardingGate>
           </NoProjectMessage>
         </Stack>
@@ -1316,22 +1319,24 @@ class DashboardDetail extends Component<Props, State> {
                 <Fragment>
                   <WidgetQueryQueueProvider>
                     <PrebuiltDashboardOnboardingGate prebuiltId={dashboard.prebuiltId}>
-                      <Dashboard
-                        dashboard={modifiedDashboard ?? dashboard}
-                        isEditingDashboard={this.isEditingDashboard}
-                        widgetLimitReached={widgetLimitReached}
-                        onUpdate={this.handleUpdateEditStateWidgets}
-                        handleUpdateWidgetList={this.handleUpdateWidgetList}
-                        handleAddCustomWidget={this.handleAddCustomWidget}
-                        onAddWidget={this.onAddWidget}
-                        isEmbedded={this.isEmbedded}
-                        isPreview={this.isPreview}
-                        widgetLegendState={this.state.widgetLegendState}
-                        onEditWidget={this.onEditWidget}
-                        newlyAddedWidget={newlyAddedWidget}
-                        onNewWidgetScrollComplete={this.handleScrollToNewWidgetComplete}
-                        widgetInterval={this.props.widgetInterval}
-                      />
+                      <NavigationTypeGate prebuiltId={dashboard.prebuiltId}>
+                        <Dashboard
+                          dashboard={modifiedDashboard ?? dashboard}
+                          isEditingDashboard={this.isEditingDashboard}
+                          widgetLimitReached={widgetLimitReached}
+                          onUpdate={this.handleUpdateEditStateWidgets}
+                          handleUpdateWidgetList={this.handleUpdateWidgetList}
+                          handleAddCustomWidget={this.handleAddCustomWidget}
+                          onAddWidget={this.onAddWidget}
+                          isEmbedded={this.isEmbedded}
+                          isPreview={this.isPreview}
+                          widgetLegendState={this.state.widgetLegendState}
+                          onEditWidget={this.onEditWidget}
+                          newlyAddedWidget={newlyAddedWidget}
+                          onNewWidgetScrollComplete={this.handleScrollToNewWidgetComplete}
+                          widgetInterval={this.props.widgetInterval}
+                        />
+                      </NavigationTypeGate>
                     </PrebuiltDashboardOnboardingGate>
                   </WidgetQueryQueueProvider>
 

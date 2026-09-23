@@ -27,13 +27,17 @@ const hoverElevation = '1px';
 
 export function DO_NOT_USE_getButtonStyles(
   p: Pick<CommonButtonProps, 'variant' | 'busy'> &
-    Pick<ButtonProps, 'disabled'> & {
+    Pick<ButtonProps, 'disabled' | 'aria-disabled'> & {
       shapeVariant: 'rectangular' | 'square';
       size: ButtonSize;
       theme: Theme;
     }
 ): StrictCSSObject {
   const variant = p.variant ?? 'secondary';
+  // A button that is only aria-disabled stays focusable (so its tooltip can
+  // open on focus) but must look and hover like a disabled one.
+  const ariaDisabled = p['aria-disabled'];
+  const disabled = p.disabled || ariaDisabled === true || ariaDisabled === 'true';
 
   const buttonSizes = {
     ...p.theme.form,
@@ -59,10 +63,10 @@ export function DO_NOT_USE_getButtonStyles(
 
     fontWeight: p.theme.font.weight.sans.medium,
 
-    opacity: p.disabled ? 0.6 : undefined,
+    opacity: disabled ? 0.6 : undefined,
 
     cursor: 'pointer',
-    '&[disabled]': {
+    '&[disabled], &[aria-disabled="true"]': {
       cursor: 'not-allowed',
     },
 
@@ -111,7 +115,7 @@ export function DO_NOT_USE_getButtonStyles(
 
     '&:focus-visible': {
       outline: 'none',
-      color: p.disabled || p.busy ? undefined : buttonTheme.color,
+      color: disabled || p.busy ? undefined : buttonTheme.color,
 
       '&::after': buttonTheme.focus
         ? {border: `2px dotted ${buttonTheme.focus}`}
@@ -145,7 +149,7 @@ export function DO_NOT_USE_getButtonStyles(
 
     '&:hover': {
       '--button-lift': `calc(${buttonElevation} + ${hoverElevation})`,
-      color: p.disabled || p.busy ? undefined : buttonTheme.color,
+      color: disabled || p.busy ? undefined : buttonTheme.color,
     },
 
     '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
@@ -206,7 +210,7 @@ export function DO_NOT_USE_getButtonStyles(
           transform: 'translateY(0px)',
         },
         backgroundColor:
-          p.busy || p.disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray100,
+          p.busy || disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray100,
       },
 
       '&:active': {
@@ -215,7 +219,7 @@ export function DO_NOT_USE_getButtonStyles(
         },
 
         backgroundColor:
-          p.busy || p.disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray200,
+          p.busy || disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray200,
       },
     }),
 

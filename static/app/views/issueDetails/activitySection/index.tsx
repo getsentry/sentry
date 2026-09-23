@@ -44,7 +44,7 @@ interface ActivityFeedRowProps {
 
 function getActivityKey(activity: GroupActivity): string {
   return isActivityNote(activity)
-    ? `comment:${activity.commentId ?? activity.id}`
+    ? `comment:${activity.commentId}`
     : `activity:${activity.id}`;
 }
 
@@ -151,28 +151,27 @@ export function ActivitySection({
   }
 
   async function handleDelete(item: GroupActivityNote) {
-    const commentId = item.commentId ?? item.id;
+    const commentId = item.commentId;
     await deleteComment(commentId);
     trackAnalytics('issue_details.comment_deleted', {organization});
     addSuccessMessage(t('Comment removed'));
     onActivityChange?.(
       activities.filter(
-        activity =>
-          !isActivityNote(activity) || (activity.commentId ?? activity.id) !== commentId
+        activity => !isActivityNote(activity) || activity.commentId !== commentId
       )
     );
   }
 
   async function handleUpdate(item: GroupActivityNote, data: NoteType) {
     try {
-      const commentId = item.commentId ?? item.id;
+      const commentId = item.commentId;
       const result = await updateComment(commentId, data);
       trackAnalytics('issue_details.comment_updated', {organization});
       addSuccessMessage(t('Comment updated'));
       onActivityChange?.(
         activities.map(activity =>
-          isActivityNote(activity) && (activity.commentId ?? activity.id) === commentId
-            ? {...activity, commentId, data: {...activity.data, ...result.data}}
+          isActivityNote(activity) && activity.commentId === commentId
+            ? {...activity, data: {...activity.data, ...result.data}}
             : activity
         )
       );

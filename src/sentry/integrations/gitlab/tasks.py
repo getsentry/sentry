@@ -135,7 +135,7 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
 def update_all_project_webhooks(integration_id: int, organization_id: int) -> None:
     """
     Spawn individual tasks to update all project webhooks for a GitLab integration.
-    This is triggered when sync settings are changed to ensure all webhooks have the correct permissions.
+    Triggered after installation or sync settings changes to refresh tokens and event subscriptions.
     """
     integration = integration_service.get_integration(
         integration_id=integration_id,
