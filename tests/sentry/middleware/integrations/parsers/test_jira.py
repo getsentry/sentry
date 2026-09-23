@@ -13,7 +13,11 @@ from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
-from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
+from sentry.testutils.outbox import (
+    assert_no_webhook_payloads,
+    assert_webhook_payloads_for_mailbox,
+    override_mailbox_bucket_count,
+)
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, Locality
 
@@ -29,6 +33,11 @@ cell_config = (cell, eu_cell)
 class JiraRequestParserTest(TestCase):
     factory = RequestFactory()
     path_base = f"{IntegrationClassification.integration_prefix}jira"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # Pin the rate-derived width so routing assertions exercise the bucket key.
+        self.enterContext(override_mailbox_bucket_count(64))
 
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
@@ -161,8 +170,8 @@ class JiraRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
-            # 10425 % 10
-            mailbox_name=f"jira:{integration.id}:5",
+            # 10425 % 64
+            mailbox_name=f"jira:{integration.id}:57",
             cell_names=[cell.name],
             request=request,
         )

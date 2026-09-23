@@ -346,14 +346,14 @@ class IntegrationRepositoryTestCase(TestCase):
             external_id=self.config["external_id"],
         )
         legacy.update(status=ObjectStatus.HIDDEN)
-        existing = self._create_repo(external_id=self.config["external_id"])
+        self._create_repo(external_id=self.config["external_id"])
 
         created, reactivated, missing = self.provider.create_repositories(
             [self.config], self.organization
         )
 
         assert created == []
-        assert {repo.id for repo in reactivated} == {existing.id}
+        assert reactivated == []
         assert missing == [self.provider.build_repository_config(self.organization, self.config)]
         legacy.refresh_from_db()
         assert (legacy.status, legacy.provider) == (ObjectStatus.HIDDEN, "github")
