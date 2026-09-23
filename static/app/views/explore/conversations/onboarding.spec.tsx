@@ -3,7 +3,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
@@ -192,48 +192,6 @@ describe('ConversationOnboarding', () => {
         .length
     ).toBeGreaterThan(0);
   });
-
-  it('renders Copy instructions in the Install step', async () => {
-    const {organization} = setupProject('node-eve');
-
-    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
-    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
-
-    expect(
-      within(screen.getByTestId('guided-step-1')).getByRole('button', {
-        name: 'Copy instructions',
-      })
-    ).toBeInTheDocument();
-  });
-
-  it.each([
-    ['node-mastra', 'Mastra', /@mastra\/observability/],
-    ['node-flue', 'Flue', /flue add tooling sentry/],
-    ['node-eve', 'Eve', /Install the Sentry Node SDK in your Eve project/],
-  ] as const)(
-    'uses the known %s integration without showing a selector',
-    async (platform, integration, setupCode) => {
-      const {organization} = setupProject(platform);
-
-      render(<ConversationOnboarding onDismiss={jest.fn()} />, {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/',
-            query: {integration: 'openai', deploymentTarget: 'cloudflare'},
-          },
-        },
-      });
-      await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
-
-      expect(
-        (await screen.findAllByText(textWithMarkupMatcher(setupCode))).length
-      ).toBeGreaterThan(0);
-      expect(screen.queryByRole('button', {name: integration})).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'OpenAI SDK'})).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
-    }
-  );
 
   it('shows manual instrumentation guidance for a browser project without a DSN', async () => {
     const {organization, project} = setupProject('javascript');

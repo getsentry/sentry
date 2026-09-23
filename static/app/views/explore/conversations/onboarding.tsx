@@ -559,6 +559,12 @@ $response = (new MyAgent)
   };
 }
 
+const INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS = new Set<string>([
+  AgentIntegration.EVE,
+  AgentIntegration.FLUE,
+  AgentIntegration.MASTRA,
+]);
+
 export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const api = useApi();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
@@ -717,11 +723,8 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     selectedPlatformOptions.integration ?? AgentIntegration.VERCEL_AI;
   const jsPackageName = isCloudflareTarget ? '@sentry/cloudflare' : '@sentry/node';
 
-  const setsConversationIdAutomatically = [
-    AgentIntegration.EVE,
-    AgentIntegration.FLUE,
-    AgentIntegration.MASTRA,
-  ].includes(selectedIntegration as AgentIntegration);
+  const setsConversationIdAutomatically =
+    INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS.has(selectedIntegration);
 
   const steps: OnboardingStep[] = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
