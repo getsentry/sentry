@@ -116,13 +116,18 @@ export function FrameVariables({data, meta, platform}: Props) {
               {key}
             </Text>
           </Container>
-          <Container minWidth="0" role="cell">
-            <StyledStructuredEventData
-              config={config}
-              data={data[key]}
-              meta={meta?.[key]}
-              withAnnotatedText
-            />
+          <Container minWidth="0" padding="md lg" role="cell">
+            <Text monospace size="sm" wordBreak="break-word" wrap="pre-wrap">
+              {textProps => (
+                <StyledStructuredEventData
+                  {...textProps}
+                  config={config}
+                  data={data[key]}
+                  meta={meta?.[key]}
+                  withAnnotatedText
+                />
+              )}
+            </Text>
           </Container>
         </Grid>
       ))}
@@ -131,21 +136,11 @@ export function FrameVariables({data, meta, platform}: Props) {
 }
 
 const StyledStructuredEventData = styled(StructuredEventData)`
-  box-sizing: border-box;
-  white-space: pre-wrap;
-  margin: 2px 0;
-  word-break: break-word;
-  padding: 8px 10px;
-  font-size: 12px;
   overflow: visible;
-
-  .val-string:first-child {
-    padding-left: 0;
-  }
 
   > pre {
     display: inline-block;
-    margin: 0 !important;
-    padding: 0 !important;
+    margin: 0;
+    padding: 0;
   }
 `;
