@@ -2,6 +2,8 @@ import unittest.mock as mock
 from datetime import timedelta
 from typing import Any
 
+import pytest
+
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.cases import TestCase
@@ -661,6 +663,32 @@ class TestStatefulDetectorActivationId(TestCase):
 
     def activation_fingerprint(self, activation_id: int | None) -> list[str]:
         return [f"detector:{self.detector.id}:activation:{activation_id}"]
+
+    def test_detector_without_a_project__resolves_its_organization(self) -> None:
+        """
+        An all-projects detector has project=NULL and carries its org in config, so
+        `linked_project` raises for it and cannot be used to check the flag.
+        """
+        org_scoped_detector = self.create_all_projects_detector(self.organization)
+
+        assert org_scoped_detector.project is None
+
+        handler = RotatingDetectorStateHandler(detector=org_scoped_detector)
+
+        assert handler._get_detector_organization() == self.organization
+
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+            assert handler._should_rotate_activation_id() is True
+
+    def test_detector_without_a_project_or_organization__raises(self) -> None:
+        orphaned_detector = self.create_all_projects_detector(self.organization)
+
+        orphaned_detector.config = {}
+
+        handler = RotatingDetectorStateHandler(detector=orphaned_detector)
+
+        with pytest.raises(ValueError):
+            handler._get_detector_organization()
 
     def test_no_opt_in__never_rotates(self) -> None:
         handler = MockDetectorStateHandler(detector=self.detector)
