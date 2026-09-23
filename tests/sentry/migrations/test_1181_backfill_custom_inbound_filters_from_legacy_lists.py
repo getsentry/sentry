@@ -28,6 +28,7 @@ class BackfillCustomInboundFiltersFromLegacyListsTest(TestMigrations):
         option(self.full, "sentry:error_messages", ["TypeError: Cannot read*", "*timeout*"])
         option(self.full, "sentry:log_messages", ["*DEBUG*"])
         option(self.full, "sentry:trace_metric_names", ["checkout.*"])
+        option(self.full, "sentry:blacklisted_ips", ["10.0.0.0/8", "2001:db8::1", "# 192.0.2.1"])
         # A project option that is not a legacy filter list is left alone.
         option(self.full, "sentry:resolve_age", 24)
 
@@ -106,6 +107,18 @@ class BackfillCustomInboundFiltersFromLegacyListsTest(TestMigrations):
                 "active": True,
                 "data_type": "metric",
                 "conditions": [{"type": "metric_name", "value": ["checkout.*"]}],
+            },
+            {
+                "name": "IP Addresses",
+                "active": True,
+                "data_type": "all",
+                "conditions": [{"type": "ip_address", "value": ["10.0.0.0/8", "2001:db8::1"]}],
+            },
+            {
+                "name": "IP Addresses (disabled)",
+                "active": False,
+                "data_type": "all",
+                "conditions": [{"type": "ip_address", "value": ["192.0.2.1"]}],
             },
         ]
 
