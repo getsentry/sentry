@@ -1745,11 +1745,14 @@ def _trigger_pr_iteration_from_review(
 
     try:
         agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
-    except SeerApiError:
-        metrics.incr("autofix.pr_iteration.review_trigger.seer_api_error")
+    except SeerApiError as e:
+        metrics.incr(
+            "autofix.pr_iteration.review_trigger.seer_api_error",
+            tags={"status_code": e.status},
+        )
         logger.warning(
             "autofix.pr_iteration.review_trigger.seer_api_error",
-            extra={**log_extra, "pr_id": pr_id},
+            extra={**log_extra, "pr_id": pr_id, "status_code": e.status},
             exc_info=True,
         )
         return None
