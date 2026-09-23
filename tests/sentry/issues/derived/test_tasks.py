@@ -1761,6 +1761,39 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
             target_hash=stale,
             group_id_start=group_ids[1] + 1,
             group_id_end=group_ids[-1] + 1,
+            rows_found_before=2,
+            range_overflowed=True,
+        )
+
+    def test_records_rows_found_across_overflow_retriggers(self) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        stale = self._stale()
+        GroupDerivedData.objects.filter(group_id__in=group_ids).update(pipeline_hash=stale)
+
+        with (
+            override_options({"issues.derived.heal-batch-size": 2}),
+            patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
+            patch("sentry.issues.derived.tasks.metrics.distribution") as distribution,
+        ):
+            regenerate_stale_derived_data_batch(
+                stale_pipeline_hashes=[stale],
+                target_hash=stale,
+                group_id_start=group_ids[0],
+                group_id_end=group_ids[-1] + 1,
+            )
+
+            distribution.assert_not_called()
+            regenerate_stale_derived_data_batch(**mock_delay.call_args.kwargs)
+
+        distribution.assert_called_once_with(
+            "issues.derived.heal_range_rows_found",
+            3,
+            sample_rate=1.0,
+            tags={"hash_kind": "stale", "range_overflowed": "true"},
         )
 
     def test_reschedules_on_group_log_timeout(self) -> None:
