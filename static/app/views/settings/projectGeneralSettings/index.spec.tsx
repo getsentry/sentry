@@ -589,17 +589,7 @@ describe('projectGeneralSettings', () => {
   });
 
   describe('Connected Repositories panel', () => {
-    it('is hidden when the code-mappings-refactor flag is off', async () => {
-      render(
-        <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />,
-        {organization, initialRouterConfig}
-      );
-
-      expect(await screen.findByRole('textbox', {name: 'Slug'})).toBeInTheDocument();
-      expect(screen.queryByText('Connected Repositories')).not.toBeInTheDocument();
-    });
-
-    it('is visible when the code-mappings-refactor flag is on', async () => {
+    it('renders panel with empty state', async () => {
       const orgWithFlag = OrganizationFixture({features: ['code-mappings-refactor']});
 
       render(
@@ -608,6 +598,10 @@ describe('projectGeneralSettings', () => {
       );
 
       expect(await screen.findByText('Connected Repositories')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Connect repository'})
+      ).toBeInTheDocument();
+      expect(screen.getByText('No repositories connected')).toBeInTheDocument();
     });
   });
 });

@@ -12,7 +12,7 @@ export function ConnectedRepositoriesPanel() {
   return (
     <Panel>
       <PanelHeader hasButtons>
-        {t('Connected Repositories')}
+        <span>{t('Connected Repositories')}</span>
         <Button size="xs" icon={<IconAdd />}>
           {t('Connect repository')}
         </Button>
