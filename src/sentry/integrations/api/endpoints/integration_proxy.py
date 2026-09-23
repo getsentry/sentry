@@ -599,11 +599,11 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             logger.info(
                 "hybrid_cloud.integration_proxy.api_invalid_request_error", extra=self.log_extra
             )
-            response = self.respond(status=exc.code)
+            response = self.respond(exc.json if exc.json is not None else exc.text, status=exc.code)
             self._record_failure(
                 IntegrationProxyFailureMetricType.API_INVALID_REQUEST_ERROR, response
             )
-            return self.respond(exc.json if exc.json is not None else exc.text, status=exc.code)
+            return response
         elif isinstance(exc, ApiUnauthorized):
             logger.info("hybrid_cloud.integration_proxy.unauthorized_error", extra=self.log_extra)
             response = self.respond(status=exc.code)
