@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from bisect import bisect_left
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
@@ -894,6 +895,8 @@ def regenerate_stale_derived_data_batch(
     target_hash: str | None = None,  # None targets the NULL hash, not "unset"
     resume_generated_at: str | None = None,
     resume_pipeline_hash: str | None = None,
+    rows_found_before: int = 0,
+    range_overflowed: bool = False,
     **kwargs: object,
 ) -> None:
     """Rebuild GroupDerivedData rows in ``[group_id_start, group_id_end)`` whose ``pipeline_hash`` is ``target_hash``.
@@ -952,18 +955,6 @@ def regenerate_stale_derived_data_batch(
     if range_overflow:
         group_ids = group_ids[:batch_size]
 
-    # How close the scheduler's density estimate landed to reality. The worker
-    # records at most batch_size rows here and reports denser ranges separately as
-    # ``range_overflow`` reschedules. Counts well below batch_size mean ranges span
-    # too few IDs and scheduling slots are being wasted; frequent overflow means they
-    # span too many. Use both signals to tune the density sampling constants.
-    metrics.distribution(
-        "issues.derived.heal_range_rows_found",
-        len(group_ids),
-        sample_rate=1.0,
-        tags={"hash_kind": "null" if target_hash is None else "stale"},
-    )
-
     result = build_and_promote_batch(
         group_ids,
         timeout=BATCH_RETRIGGER_TIMEOUT,
@@ -981,6 +972,7 @@ def regenerate_stale_derived_data_batch(
         )
         assert result.resume_from_group_id is not None
         gen_id = result.resume_generation_id
+        rows_consumed = bisect_left(group_ids, result.resume_from_group_id)
         regenerate_stale_derived_data_batch.delay(
             stale_pipeline_hashes=[] if target_hash is None else [target_hash],
             target_hash=target_hash,
@@ -988,6 +980,8 @@ def regenerate_stale_derived_data_batch(
             group_id_end=group_id_end,
             resume_generated_at=gen_id.generated_at.isoformat() if gen_id else None,
             resume_pipeline_hash=gen_id.pipeline_hash if gen_id else None,
+            rows_found_before=rows_found_before + rows_consumed,
+            range_overflowed=range_overflowed or range_overflow,
         )
         if activation_id:
             mark_spawned(_REGENERATE_STALE_BATCH_TASK_KEY, activation_id)
@@ -1003,9 +997,23 @@ def regenerate_stale_derived_data_batch(
             target_hash=target_hash,
             group_id_start=group_ids[-1] + 1,
             group_id_end=group_id_end,
+            rows_found_before=rows_found_before + len(group_ids),
+            range_overflowed=True,
         )
         if activation_id:
             mark_spawned(_REGENERATE_STALE_BATCH_TASK_KEY, activation_id)
+    else:
+        # Record one density observation for the scheduler's original range, not
+        # one capped observation for every self-chain invocation.
+        metrics.distribution(
+            "issues.derived.heal_range_rows_found",
+            rows_found_before + len(group_ids),
+            sample_rate=1.0,
+            tags={
+                "hash_kind": "null" if target_hash is None else "stale",
+                "range_overflowed": str(range_overflowed).lower(),
+            },
+        )
 
     _record_batch_metrics(
         result.processed,

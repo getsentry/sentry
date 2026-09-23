@@ -72,6 +72,7 @@ const TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'repos', width: '74px'},
   {key: 'fixes', width: '1fr'},
   {key: 'automation_steps', width: '1fr'},
+  {key: 'pr_iteration', width: 'max-content'},
 ];
 
 export function SeerProjectTable() {
@@ -310,6 +311,28 @@ export function SeerProjectTable() {
                           )}
                         </AutoSaveForm>
                       </Stack>
+                    </InfiniteTable.RowCell>
+                    <InfiniteTable.RowCell justify="center">
+                      <AutoSaveForm
+                        name="prIteration"
+                        schema={seerProjectSettingsSchema}
+                        initialValue={item.prIteration}
+                        mutationOptions={getMutateSeerProjectSettingsOptions({
+                          organization,
+                          project: {slug: item.projectSlug},
+                          queryClient,
+                        })}
+                      >
+                        {field => (
+                          <field.Switch
+                            aria-label={t('Auto-iterate on PRs for %s', item.projectSlug)}
+                            size="sm"
+                            checked={field.state.value}
+                            onChange={field.handleChange}
+                            disabled={!canWrite}
+                          />
+                        )}
+                      </AutoSaveForm>
                     </InfiniteTable.RowCell>
                   </InfiniteTable.Row>
                 )}
