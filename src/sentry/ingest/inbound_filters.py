@@ -6,9 +6,9 @@ from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
+    ConditionType,
     CustomInboundFilter,
-    CustomInboundFilterConditionType,
-    CustomInboundFilterDataType,
+    DataType,
 )
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
@@ -546,7 +546,7 @@ def _custom_error_type_condition(values: list[str]) -> RuleCondition:
 _ConditionMatcher = Callable[[list[str]], RuleCondition]
 
 # Where each condition type's data lives on one kind of ingested item.
-_ConditionMatchers = Mapping[CustomInboundFilterConditionType, _ConditionMatcher]
+_ConditionMatchers = Mapping[ConditionType, _ConditionMatcher]
 
 
 def _field_matcher(name: str) -> _ConditionMatcher:
@@ -558,30 +558,24 @@ def _field_matcher(name: str) -> _ConditionMatcher:
 
 # Replays, sessions, profiles and transactions are not selectable data types: Relay
 # reads their release under `event.release`, so they cannot be told apart from errors.
-_MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
-    CustomInboundFilterDataType.ERROR: {
-        CustomInboundFilterConditionType.ERROR_TYPE: _custom_error_type_condition,
-        CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
-        CustomInboundFilterConditionType.RELEASE: _field_matcher("event.release"),
+_MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[DataType, _ConditionMatchers] = {
+    DataType.ERROR: {
+        ConditionType.ERROR_TYPE: _custom_error_type_condition,
+        ConditionType.ERROR_MESSAGE: _custom_error_message_condition,
+        ConditionType.RELEASE: _field_matcher("event.release"),
     },
-    CustomInboundFilterDataType.LOG: {
-        CustomInboundFilterConditionType.LOG_MESSAGE: _field_matcher("log.body"),
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "log.attributes.sentry.release.value"
-        ),
+    DataType.LOG: {
+        ConditionType.LOG_MESSAGE: _field_matcher("log.body"),
+        ConditionType.RELEASE: _field_matcher("log.attributes.sentry.release.value"),
     },
-    CustomInboundFilterDataType.METRIC: {
-        CustomInboundFilterConditionType.METRIC_NAME: _field_matcher("trace_metric.name"),
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "trace_metric.attributes.sentry.release.value"
-        ),
+    DataType.METRIC: {
+        ConditionType.METRIC_NAME: _field_matcher("trace_metric.name"),
+        ConditionType.RELEASE: _field_matcher("trace_metric.attributes.sentry.release.value"),
     },
     # Matches standalone spans only. A span sent inside a transaction is dropped with
     # the transaction, which the error matcher reads.
-    CustomInboundFilterDataType.SPAN: {
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "span.attributes.sentry.release.value"
-        ),
+    DataType.SPAN: {
+        ConditionType.RELEASE: _field_matcher("span.attributes.sentry.release.value"),
     },
 }
 
@@ -603,20 +597,20 @@ def _build_all_data_types_matchers() -> _ConditionMatchers:
         condition_type: _any_condition_matcher(
             [matchers[condition_type] for matchers in per_data_type]
         )
-        for condition_type in CustomInboundFilterConditionType
+        for condition_type in ConditionType
         if condition_type in shared_condition_types
     }
 
 
-_MATCHERS_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
-    CustomInboundFilterDataType.ALL: _build_all_data_types_matchers(),
+_MATCHERS_BY_DATA_TYPE: Mapping[DataType, _ConditionMatchers] = {
+    DataType.ALL: _build_all_data_types_matchers(),
     **_MATCHERS_BY_SINGLE_DATA_TYPE,
 }
 
 
 def get_supported_condition_types(
-    data_type: CustomInboundFilterDataType,
-) -> list[CustomInboundFilterConditionType]:
+    data_type: DataType,
+) -> list[ConditionType]:
     return list(_MATCHERS_BY_DATA_TYPE[data_type])
 
 
@@ -636,14 +630,14 @@ def _custom_filter_condition(
         return None
 
     try:
-        matchers = _MATCHERS_BY_DATA_TYPE[CustomInboundFilterDataType(data_type)]
+        matchers = _MATCHERS_BY_DATA_TYPE[DataType(data_type)]
     except ValueError:
         return None
 
     rule_conditions: list[RuleCondition] = []
     for condition in conditions:
         try:
-            condition_type = CustomInboundFilterConditionType(condition.get("type", ""))
+            condition_type = ConditionType(condition.get("type", ""))
         except ValueError:
             return None
 
