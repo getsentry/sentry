@@ -4,6 +4,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DiscoverButton} from 'sentry/components/discoverButton';
@@ -125,7 +126,88 @@ const HEADERS = [
   null, // Discover Query button
 ];
 
-function SpikeProtectionHistoryTable({
+function SpikeRow({
+  dataCategoryInfo,
+  organization,
+  project,
+  spike,
+  subscription,
+}: {
+  dataCategoryInfo: DataCategoryInfo;
+  organization: Organization;
+  project: ProjectSummaryWithOptions;
+  spike: SpikeDetails;
+  subscription: Subscription;
+}) {
+  // ms -> s, rounds up to get duration in minutes
+  // rounding up to match the formatted date and time values
+  const millisecondsPerSecond = 1000;
+  const secondsPerMinute = 60;
+  const duration = spike.end
+    ? Math.ceil(
+        (new Date(spike.end).valueOf() - new Date(spike.start).valueOf()) /
+          (millisecondsPerSecond * secondsPerMinute)
+      ) * secondsPerMinute
+    : null;
+  return (
+    <SimpleTable.Row>
+      <SimpleTable.RowCell>
+        <SpikeProtectionTimeDetails spike={spike} />
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        {defined(spike.threshold)
+          ? formatUsageWithUnits(
+              spike.threshold,
+              dataCategoryInfo.plural,
+              getFormatUsageOptions(dataCategoryInfo.plural)
+            )
+          : '-'}
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        {duration ? getExactDuration(duration, true) : t('Ongoing')}
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        {spike.dropped
+          ? formatUsageWithUnits(
+              spike.dropped,
+              dataCategoryInfo.plural,
+              getFormatUsageOptions(dataCategoryInfo.plural)
+            )
+          : '-'}
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
+        <DiscoverButton
+          icon={<IconTelescope size="sm" />}
+          data-test-id="spike-protection-discover-button"
+          onClick={() =>
+            trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_DISCOVER_CLICKED, {
+              organization,
+              subscription,
+              view: 'project_stats',
+            })
+          }
+          to={{
+            pathname: makeDiscoverPathname({
+              organization,
+              path: '/homepage/',
+            }),
+            query: {
+              project: [project.id],
+              start: decodeScalar(spike.start),
+              end: decodeScalar(spike.end),
+            },
+          }}
+        >
+          {getDiscoverDeprecation(organization)
+            ? t('Open in Explore')
+            : t('Open in Discover')}
+        </DiscoverButton>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
+  );
+}
+
+function SpikeHistoryContent({
   dataCategoryInfo,
   onEnableSpikeProtection,
   organization,
@@ -134,93 +216,15 @@ function SpikeProtectionHistoryTable({
   subscription,
   isLoading,
 }: Props) {
-  function renderSpikeRow(spike: SpikeDetails) {
-    // ms -> s, rounds up to get duration in minutes
-    // rounding up to match the formatted date and time values
-    const millisecondsPerSecond = 1000;
-    const secondsPerMinute = 60;
-    const duration = spike.end
-      ? Math.ceil(
-          (new Date(spike.end).valueOf() - new Date(spike.start).valueOf()) /
-            (millisecondsPerSecond * secondsPerMinute)
-        ) * secondsPerMinute
-      : null;
+  if (isLoading) {
     return (
-      <SimpleTable.Row key={spike.start}>
-        <SimpleTable.RowCell>
-          <SpikeProtectionTimeDetails spike={spike} />
-        </SimpleTable.RowCell>
-        <SimpleTable.RowCell>
-          {defined(spike.threshold)
-            ? formatUsageWithUnits(
-                spike.threshold,
-                dataCategoryInfo.plural,
-                getFormatUsageOptions(dataCategoryInfo.plural)
-              )
-            : '-'}
-        </SimpleTable.RowCell>
-        <SimpleTable.RowCell>
-          {duration ? getExactDuration(duration, true) : t('Ongoing')}
-        </SimpleTable.RowCell>
-        <SimpleTable.RowCell>
-          {spike.dropped
-            ? formatUsageWithUnits(
-                spike.dropped,
-                dataCategoryInfo.plural,
-                getFormatUsageOptions(dataCategoryInfo.plural)
-              )
-            : '-'}
-        </SimpleTable.RowCell>
-        <SimpleTable.RowCell justify="end">
-          <DiscoverButton
-            icon={<IconTelescope size="sm" />}
-            data-test-id="spike-protection-discover-button"
-            onClick={() =>
-              trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_DISCOVER_CLICKED, {
-                organization,
-                subscription,
-                view: 'project_stats',
-              })
-            }
-            to={{
-              pathname: makeDiscoverPathname({
-                organization,
-                path: '/homepage/',
-              }),
-              query: {
-                project: [project.id],
-                start: decodeScalar(spike.start),
-                end: decodeScalar(spike.end),
-              },
-            }}
-          >
-            {getDiscoverDeprecation(organization)
-              ? t('Open in Explore')
-              : t('Open in Discover')}
-          </DiscoverButton>
-        </SimpleTable.RowCell>
-      </SimpleTable.Row>
+      <Placeholder height="150px">
+        <LoadingIndicator mini />
+      </Placeholder>
     );
   }
 
-  function renderEmptyMessage() {
-    return (
-      <EmptySpikeHistory data-test-id="spike-history-empty">
-        <b>{t('No Significant Spikes')}</b>
-        <p>
-          {t(
-            'Spike Protection is enabled for this project, but there are no significant spikes that lasted 2hrs or longer.'
-          )}
-          <br />
-          {tct('Please see the [auditLogLink: audit log] for all detected spikes.', {
-            auditLogLink: <Link to={`/settings/${organization?.slug}/audit-log/`} />,
-          })}
-        </p>
-      </EmptySpikeHistory>
-    );
-  }
-
-  function renderDisabledMessage() {
+  if (!isSpikeProtectionEnabled(project)) {
     return (
       <EmptySpikeHistory data-test-id="spike-history-disabled">
         <b>{t('Spike Protection Disabled')}</b>
@@ -236,75 +240,77 @@ function SpikeProtectionHistoryTable({
     );
   }
 
-  function renderTable() {
-    if (isLoading ?? false) {
-      return (
-        <Placeholder height="150px">
-          <LoadingIndicator mini />
-        </Placeholder>
-      );
-    }
-
-    if (!isSpikeProtectionEnabled(project)) {
-      return renderDisabledMessage();
-    }
-
-    if (spikes.length === 0) {
-      return renderEmptyMessage();
-    }
-
+  if (spikes.length === 0) {
     return (
-      <SimpleTable
-        columns={SPIKE_COLUMNS}
-        header={
-          <SimpleTable.HeaderRow>
-            {HEADERS.map((header, i) => (
-              <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
-            ))}
-          </SimpleTable.HeaderRow>
-        }
-      >
-        {spikes.map(spike => renderSpikeRow(spike))}
-      </SimpleTable>
+      <EmptySpikeHistory data-test-id="spike-history-empty">
+        <b>{t('No Significant Spikes')}</b>
+        <p>
+          {t(
+            'Spike Protection is enabled for this project, but there are no significant spikes that lasted 2hrs or longer.'
+          )}
+          <br />
+          {tct('Please see the [auditLogLink: audit log] for all detected spikes.', {
+            auditLogLink: <Link to={`/settings/${organization.slug}/audit-log/`} />,
+          })}
+        </p>
+      </EmptySpikeHistory>
     );
   }
 
   return (
+    <SimpleTable
+      columns={SPIKE_COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          {HEADERS.map((header, i) => (
+            <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
+          ))}
+        </SimpleTable.HeaderRow>
+      }
+    >
+      {spikes.map(spike => (
+        <SpikeRow
+          key={spike.start}
+          dataCategoryInfo={dataCategoryInfo}
+          organization={organization}
+          project={project}
+          spike={spike}
+          subscription={subscription}
+        />
+      ))}
+    </SimpleTable>
+  );
+}
+
+function SpikeProtectionHistoryTable(props: Props) {
+  return (
     <div data-test-id="spike-protection-history-table">
       <Flex align="center" marginBottom="xl" gap="md">
-        <Title>
-          {t('Spike Protection')}
+        <Flex flex="1" align="center" gap="sm">
+          <Text bold size="lg" variant="secondary">
+            {t('Spike Protection')}
+          </Text>
           <PageHeadingQuestionTooltip
             docsUrl={SPIKE_PROTECTION_DOCS_LINK}
             title={t(
               'Sentry applies a dynamic rate limit to your account designed to protect you from short-term spikes.'
             )}
           />
-        </Title>
+        </Flex>
         <LinkButton
           size="sm"
           icon={<IconSettings />}
-          to={`/settings/${organization.slug}/spike-protection/`}
+          to={`/settings/${props.organization.slug}/spike-protection/`}
         >
           {t('Spike Protection Settings')}
         </LinkButton>
       </Flex>
-      {renderTable()}
+      <SpikeHistoryContent {...props} />
     </div>
   );
 }
 
 export default withSubscription(withOrganization(SpikeProtectionHistoryTable));
-
-const Title = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.font.size.lg};
-  color: ${p => p.theme.colors.gray500};
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-`;
 
 const EmptySpikeHistory = styled(Panel)`
   width: 100%;
