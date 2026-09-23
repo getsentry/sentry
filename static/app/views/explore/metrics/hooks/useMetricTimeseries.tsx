@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {shouldTriggerHighAccuracy} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {
@@ -58,6 +59,7 @@ function useMetricTimeseriesImpl({
   const topEvents = useTopEvents();
   const search = useQueryParamsSearch();
   const sortBys = useQueryParamsAggregateSortBys();
+  const organization = useOrganization();
 
   const yAxis = useMemo(() => {
     return visualizes.map(v => v.yAxis);
@@ -77,7 +79,9 @@ function useMetricTimeseriesImpl({
           )),
       topEvents,
       orderby: sortBys.map(formatSort),
-      includeMeasuredIngestionDelayMetadata: true,
+      includeMeasuredIngestionDelayMetadata: organization.features.includes(
+        'measured-ingestion-delay-ui'
+      ),
       ...queryExtras,
     },
     'api.explore.tracemetrics-timeseries',

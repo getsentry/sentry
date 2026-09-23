@@ -193,7 +193,10 @@ describe('AccountSecurity', () => {
     ).toBeInTheDocument();
 
     await userEvent.hover(screen.getByRole('button', {name: 'Delete'}));
-    expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Delete'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
 
     expect(
       await screen.findByText(
