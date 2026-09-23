@@ -38,7 +38,9 @@ export function IssueDetailsEventNavigation({
 
   // Reset shouldPreload when the groupId changes
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setShouldPreload({next: false, previous: false});
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [group.id]);
 
   // Prefetch next
@@ -149,7 +151,7 @@ export function IssueDetailsEventNavigation({
           }}
         />
       </Navigation>
-      <Tabs value={currentEventKey} disableOverflow onChange={onTabChange} size="xs">
+      <Tabs value={currentEventKey} onChange={onTabChange} size="xs">
         <TabList variant="floating">
           {eventNavPresets.map(({key, label, tooltip}) => {
             const eventPath =

@@ -6,10 +6,9 @@ from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
-    DATA_TYPE_BY_CONDITION_TYPE,
+    ConditionType,
     CustomInboundFilter,
-    CustomInboundFilterConditionType,
-    CustomInboundFilterDataType,
+    DataType,
 )
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
@@ -546,8 +545,8 @@ def _custom_error_type_condition(values: list[str]) -> RuleCondition:
 # Builds the Relay condition that matches one filter condition's glob values.
 _ConditionMatcher = Callable[[list[str]], RuleCondition]
 
-# Where each condition type's data lives on one kind of ingested item.
-_ConditionMatchers = Mapping[CustomInboundFilterConditionType, _ConditionMatcher]
+# The matcher for each condition type a data type supports.
+_ConditionMatchers = Mapping[ConditionType, _ConditionMatcher]
 
 
 def _field_matcher(name: str) -> _ConditionMatcher:
@@ -557,46 +556,101 @@ def _field_matcher(name: str) -> _ConditionMatcher:
     return match
 
 
-# A filter's data type selects the item its conditions match against, since only that
-# item carries such data. Release lives on a different field on each of them.
-_MATCHERS_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
-    CustomInboundFilterDataType.ERROR: {
-        CustomInboundFilterConditionType.ERROR_TYPE: _custom_error_type_condition,
-        CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
-        CustomInboundFilterConditionType.RELEASE: _field_matcher("event.release"),
+def _cidr_matcher(name: str) -> _ConditionMatcher:
+    def match(values: list[str]) -> RuleCondition:
+        return {"op": "cidr", "name": name, "value": values}
+
+    return match
+
+
+_CONDITION_MATCHERS: Mapping[
+    ConditionType,
+    _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
+] = {
+    ConditionType.ERROR_TYPE: {
+        DataType.ERROR: _custom_error_type_condition,
     },
-    CustomInboundFilterDataType.LOG: {
-        CustomInboundFilterConditionType.LOG_MESSAGE: _field_matcher("log.body"),
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "log.attributes.sentry.release.value"
-        ),
+    ConditionType.ERROR_MESSAGE: {
+        DataType.ERROR: _custom_error_message_condition,
     },
-    CustomInboundFilterDataType.METRIC: {
-        CustomInboundFilterConditionType.METRIC_NAME: _field_matcher("trace_metric.name"),
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "trace_metric.attributes.sentry.release.value"
-        ),
+    ConditionType.LOG_MESSAGE: {
+        DataType.LOG: _field_matcher("log.body"),
     },
+    ConditionType.METRIC_NAME: {
+        DataType.METRIC: _field_matcher("trace_metric.name"),
+    },
+    ConditionType.RELEASE: {
+        DataType.ERROR: _field_matcher("event.release"),
+        DataType.LOG: _field_matcher("log.attributes.sentry.release.value"),
+        DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.release.value"),
+        DataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
+    },
+    ConditionType.IP_ADDRESS: _cidr_matcher("envelope.client_ip"),
+}
+
+_SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
+
+
+def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
+    # Relay reads a field the item does not carry as no match, so the OR reduces to the
+    # item's own field.
+    def match(values: list[str]) -> RuleCondition:
+        return {"op": "or", "inner": [matcher(values) for matcher in matchers]}
+
+    return match
+
+
+def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMatcher | None:
+    spec = _CONDITION_MATCHERS[condition_type]
+    if callable(spec):
+        return spec
+    if data_type is not DataType.ALL:
+        return spec.get(data_type)
+    if set(spec) != _SINGLE_DATA_TYPES:
+        return None
+    return _any_condition_matcher(list(spec.values()))
+
+
+_MATCHERS_BY_DATA_TYPE: Mapping[DataType, _ConditionMatchers] = {
+    data_type: {
+        condition_type: matcher
+        for condition_type in ConditionType
+        if (matcher := _matcher(condition_type, data_type)) is not None
+    }
+    for data_type in DataType
 }
 
 
-def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition | None:
+def get_supported_condition_types(
+    data_type: DataType,
+) -> list[ConditionType]:
+    return list(_MATCHERS_BY_DATA_TYPE[data_type])
+
+
+def _custom_filter_condition(
+    conditions: list[dict[str, Any]], data_type: str | None
+) -> RuleCondition | None:
     """
     Translates a custom inbound filter's conditions into a Relay rule condition.
 
-    Conditions are combined with AND. Returns None if any condition cannot be
-    translated (a type or value shape unknown to this revision, or a type whose
-    data the matched item does not carry): since every condition narrows the
-    match, dropping only the broken condition would filter more data than
-    configured.
+    Conditions are combined with AND. Returns None if the filter cannot be translated
+    (a missing data type, a data type, condition type, or value shape unknown to this
+    revision, or a condition type whose field the filter's data type does not carry):
+    since every condition narrows the match, dropping only the broken condition would
+    filter more data than configured.
     """
-    if not conditions:
+    if not conditions or data_type is None:
         return None
 
-    parsed: list[tuple[CustomInboundFilterConditionType, list[str]]] = []
+    try:
+        matchers = _MATCHERS_BY_DATA_TYPE[DataType(data_type)]
+    except ValueError:
+        return None
+
+    rule_conditions: list[RuleCondition] = []
     for condition in conditions:
         try:
-            condition_type = CustomInboundFilterConditionType(condition.get("type", ""))
+            condition_type = ConditionType(condition.get("type", ""))
         except ValueError:
             return None
 
@@ -604,22 +658,6 @@ def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition 
         if not (isinstance(values, list) and values and all(isinstance(v, str) for v in values)):
             return None
 
-        parsed.append((condition_type, values))
-
-    # A filter carrying only release conditions falls through to events, mirroring the
-    # legacy `releases` inbound filter.
-    data_type = next(
-        (
-            DATA_TYPE_BY_CONDITION_TYPE[condition_type]
-            for condition_type, _ in parsed
-            if condition_type in DATA_TYPE_BY_CONDITION_TYPE
-        ),
-        CustomInboundFilterDataType.ERROR,
-    )
-    matchers = _MATCHERS_BY_DATA_TYPE[data_type]
-
-    rule_conditions: list[RuleCondition] = []
-    for condition_type, values in parsed:
         matcher = matchers.get(condition_type)
         if matcher is None:
             return None
@@ -637,7 +675,7 @@ def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericF
         project_id=project.id, active=True
     ).order_by("id")
     for custom_filter in custom_filters:
-        condition = _custom_filter_condition(custom_filter.conditions)
+        condition = _custom_filter_condition(custom_filter.conditions, custom_filter.data_type)
         if condition is not None:
             generic_filters.append(
                 _generic_filter(f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}", condition)

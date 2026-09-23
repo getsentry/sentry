@@ -39,6 +39,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
+from sentry.api.client_kind import ClientKind, client_kind_scope
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
 from sentry.auth.exceptions import IdentityNotValid
@@ -93,6 +94,7 @@ from sentry.seer.agent.tools import (
     get_issue_ownership,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
+    get_project_members,
     get_replay_metadata,
     get_repository_definition,
     get_team_members,
@@ -145,6 +147,7 @@ from sentry.seer.sentry_data_models import (
     OrganizationProjectDetail,
     OrganizationProjectsResponse,
     OrganizationSlugResponse,
+    ReferencedFixStatementsResponse,
     RefreshMonitoringProviderTokenErrorResponse,
     RefreshMonitoringProviderTokenSuccessResponse,
     SendSeerWebhookErrorResponse,
@@ -161,6 +164,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics, snuba_rpc
 from sentry.utils.env import in_test_environment
+from sentry.utils.groupreference import find_fix_statements
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.utils.tracing import start_span, trace
 from sentry.viewer_context import (
@@ -391,7 +395,8 @@ class SeerRpcServiceEndpoint(Endpoint):
         self._enforce_investigation_event_viewer_context(request, method_name, arguments)
 
         try:
-            result = self._dispatch_to_local_method(method_name, arguments)
+            with client_kind_scope(ClientKind.SEER):
+                result = self._dispatch_to_local_method(method_name, arguments)
         except RpcResolutionException as e:
             sentry_sdk.capture_exception()
             raise NotFound from e
@@ -418,6 +423,21 @@ class SeerRpcServiceEndpoint(Endpoint):
 def get_organization_slug(*, org_id: int) -> OrganizationSlugResponse:
     org: Organization = Organization.objects.get(id=org_id)
     return OrganizationSlugResponse(slug=org.slug)
+
+
+def find_referenced_fix_statements(*, org_id: int, text: str) -> ReferencedFixStatementsResponse:
+    statements = find_fix_statements(text, org_id)
+    return ReferencedFixStatementsResponse(
+        statements=[line for line, _ in statements],
+        short_ids=sorted(
+            {
+                group.qualified_short_id
+                for _, groups in statements
+                for group in groups
+                if group.qualified_short_id
+            }
+        ),
+    )
 
 
 def deliver_investigation_event(
@@ -1028,6 +1048,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     #
     # Autofix
     "get_organization_slug": seer_rpc(get_organization_slug),
+    "find_referenced_fix_statements": seer_rpc(find_referenced_fix_statements),
     "get_organization_autofix_consent": seer_rpc(get_organization_autofix_consent),
     "get_error_event_details": seer_rpc(get_error_event_details),
     "get_profile_details": seer_rpc(get_profile_details),
@@ -1063,6 +1084,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_issue_committers": seer_rpc(get_issue_committers),
     "get_issue_ownership": seer_rpc(get_issue_ownership),
     "get_team_members": seer_rpc(get_team_members),
+    "get_project_members": seer_rpc(get_project_members),
     "get_group_assignees": seer_rpc(get_group_assignees),
     "get_event_details": seer_rpc(get_event_details),
     "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),

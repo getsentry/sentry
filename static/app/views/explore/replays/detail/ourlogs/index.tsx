@@ -119,6 +119,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
       return;
     }
     if (logItems?.length) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setHasAnyLogs(true);
     }
   }, [logItems, replayId]);

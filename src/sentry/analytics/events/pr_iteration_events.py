@@ -1,3 +1,4 @@
+from dataclasses import field
 from typing import Literal
 
 from sentry import analytics
@@ -45,10 +46,46 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     dropped_count: int
     automated_feedback_count: int
 
-    # Outcome, written when the iteration ends.
+    # Outcome, written when the iteration ends. See ``PrIterationOutcome`` for
+    # the values Sentry knows about.
+    outcome: str
+
+    # Review bots behind the feedback the drain consumed, sorted and deduped.
+    feedback_bot_logins: list[str] = field(default_factory=list)
+
+    # Commit SHAs this iteration pushed. Empty unless the outcome is already_pushed.
+    head_shas: list[str] = field(default_factory=list)
+
+
+@analytics.eventclass("ai.autofix.pr_iteration.feedback_batch.blocked")
+class AiAutofixPrIterationFeedbackBatchBlockedEvent(analytics.Event):
+    """One batch of PR feedback that a gate stopped before any drain took it.
+
+    Separate from the completed event because the fields are: everything the
+    drain writes — the referrer, the trigger source and the queue counts — is
+    written when a drain claims the row, and no drain ever claimed this one.
+    An event carrying those as nulls would be a batch that ran and reported
+    nothing, which is not what happened.
+
+    A batch is blocked at most once per outcome, but blocked is not ended.
+    Some outcomes lift, and that batch also reports a completed event when it
+    finally runs; the ones that do not lift report only this. ``outcome`` says
+    which — see ``PrIterationOutcome``.
+    """
+
+    iteration_id: int
+
+    organization_id: int
+    project_id: int
+    group_id: int
+    run_id: int
+    iteration_index: int
+
+    # How long the batch had been waiting when the gate stopped it.
     duration_ms: int
-    pushed_changes: bool
+    outcome: str
 
 
 analytics.register(AiAutofixPrIterationMissingPermissionsEvent)
 analytics.register(AiAutofixPrIterationFeedbackBatchCompletedEvent)
+analytics.register(AiAutofixPrIterationFeedbackBatchBlockedEvent)

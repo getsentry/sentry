@@ -21,7 +21,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.base import CURSOR_LINK_HEADER
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import FilterParamsDateNotNull, OrganizationEndpoint
-from sentry.api.client_kind import set_client_kind_attributes
 from sentry.api.helpers.error_upsampling import (
     are_any_projects_error_upsampled,
     convert_fields_for_upsampling,
@@ -112,19 +111,6 @@ def resolve_axis_column(
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
-
-    def convert_args(
-        self,
-        request: Request,
-        *args: Any,
-        **kwargs: Any,
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        (args, kwargs) = super().convert_args(request, *args, **kwargs)
-        # Runs after authentication, so the credential-based checks in
-        # `get_client_kind` see the resolved auth. Done here rather than in each
-        # handler so every events endpoint reports the caller the same way.
-        set_client_kind_attributes(request, kwargs["organization"])
-        return (args, kwargs)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return (
@@ -445,6 +431,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 full_scan = meta.pop("full_scan", None)
                 bytes_scanned = meta.pop("bytes_scanned", None)
                 debug_info = meta.pop("debug_info", None)
+                routing_hint = meta.pop("routing_hint", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
@@ -468,6 +455,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
                 if bytes_scanned is not None:
                     meta["bytesScanned"] = bytes_scanned
+
+                if routing_hint:
+                    meta["routingHint"] = routing_hint
 
                 # Only appears in meta when debug is passed to the endpoint
                 if debug_info:

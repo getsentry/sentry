@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
@@ -29,10 +29,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {makeSeerPathname, makeSeerQuery} from 'sentry/views/issueDetails/autofix/utils';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {
   isArtifact,
@@ -88,7 +88,7 @@ export function isRootCauseArtifact(
   );
 }
 
-interface SolutionStep {
+export interface SolutionStep {
   description: string;
   title: string;
 }
@@ -154,6 +154,7 @@ interface GithubPrCommentFeedbackSource {
 
 interface GithubPrReviewCommentFeedbackSource {
   type: 'github-pr-review-comment';
+  author_is_bot?: boolean;
   comment?: {html_url?: string; user?: {login: string}};
   // The review this inline comment was submitted as part of. Shared with the
   // review body's `review_id` so the UI can group a review's body and its inline
@@ -257,6 +258,63 @@ export function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
 const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
   autofix: null,
 });
+
+/**
+ * Pulls a readable message out of an API error, falling back to `fallback`.
+ * Only `{detail: "..."}` is surfaced; serializer validation errors are for us,
+ * not for the user, so they fall back too.
+ */
+function getApiErrorMessage(e: unknown, fallback = 'An error occurred'): string {
+  const detail = (e as {responseJSON?: {detail?: unknown}} | null | undefined)
+    ?.responseJSON?.detail;
+  return isString(detail) ? detail : fallback;
+}
+
+/**
+ * A step refused because another one is still running on the same run.
+ *
+ * The endpoint returns several different 409s, and only this one is
+ * recoverable, so the machine-readable code decides — the detail text is free
+ * to be reworded. The body carries the live run's ids in the shape a success
+ * response uses.
+ */
+function isRunInFlightError(
+  e: unknown
+): e is {responseJSON: {run_id: number; sentry_run_id?: string | null}} {
+  const error = e as
+    | {responseJSON?: {code?: unknown; run_id?: unknown}; status?: number}
+    | null
+    | undefined;
+  return (
+    error?.status === 409 &&
+    error.responseJSON?.code === 'run_in_flight' &&
+    defined(error.responseJSON.run_id)
+  );
+}
+
+/**
+ * A new run refused because the organization is missing a supported SCM
+ * integration or the project has no connected repositories.
+ *
+ * Kickoffs are gated on the same Seer setup checks AutofixContent renders, so
+ * this 409 should be rare; the machine-readable code decides which check
+ * failed, and the detail text is user-facing copy telling the user what to set
+ * up. Unlike isRunInFlightError there is no live run to recover by refetching —
+ * setup must be completed first.
+ */
+function isAutofixSetupRequiredError(
+  e: unknown
+): e is {responseJSON: {code: 'scm_integration_required' | 'repos_not_linked'}} {
+  const error = e as
+    | {responseJSON?: {code?: unknown}; status?: number}
+    | null
+    | undefined;
+  const code = error?.responseJSON?.code;
+  return (
+    error?.status === 409 &&
+    (code === 'scm_integration_required' || code === 'repos_not_linked')
+  );
+}
 
 const makeErrorExplorerAutofixData = (errorMessage: string): ExplorerAutofixResponse => ({
   autofix: {
@@ -534,6 +592,71 @@ export function isLastStepPrIteration(runState: ExplorerAutofixState | null): bo
   return defined(lastBlock) && isPrIterationBlock(lastBlock);
 }
 
+function parseBlockFeedback(raw: string | undefined): RawFeedback[] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed: RawFeedback | RawFeedback[] = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return [];
+  }
+}
+
+// True when the last pr_iteration was driven only by failing check suites.
+// Bot reviews and human feedback (user-ui, comments) do not count.
+function lastPrIterationIsCheckSuite(blocks: Block[], start: number): boolean {
+  const items = blocks
+    .slice(start)
+    .flatMap(block => parseBlockFeedback(block.message.metadata?.feedback));
+  return items.length > 0 && items.every(item => item.source?.type === 'check-suite');
+}
+
+/**
+ * If the run died on a CI-driven PR iteration after a successful earlier
+ * step, drop that iteration and present the run as completed so the last
+ * good code changes stay on screen.
+ *
+ * Manual failures (user-ui, GitHub comments/reviews — including bots) and a
+ * failed PR push are left as `error`. A run whose only step is the failed
+ * iteration is also left alone — there is nothing earlier to fall back to.
+ */
+export function hideErroredPrIteration(
+  runState: ExplorerAutofixState | null
+): ExplorerAutofixState | null {
+  if (runState?.status !== 'error') {
+    return runState;
+  }
+
+  const pushFailed = Object.values(runState.repo_pr_states ?? {}).some(
+    prState => prState.pr_creation_status === 'error'
+  );
+  if (pushFailed) {
+    return runState;
+  }
+
+  const blocks = runState.blocks;
+  let start: number | null = null;
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    if (!defined(blocks[i]!.message.metadata?.step)) {
+      continue;
+    }
+    start = isPrIterationBlock(blocks[i]!) ? i : null;
+    break;
+  }
+
+  if (start === null || start === 0) {
+    return runState;
+  }
+
+  if (!lastPrIterationIsCheckSuite(blocks, start)) {
+    return runState;
+  }
+
+  return {...runState, status: 'completed', blocks: blocks.slice(0, start)};
+}
+
 export type AutofixArtifact =
   | Artifact<unknown>
   | ExplorerFilePatch[]
@@ -660,7 +783,10 @@ export function useExplorerAutofix(
     },
   });
 
-  const runState = apiData?.autofix ?? null;
+  const runState = useMemo(
+    () => hideErroredPrIteration(apiData?.autofix ?? null),
+    [apiData?.autofix]
+  );
 
   const startStep = useCallback(
     async (
@@ -669,7 +795,7 @@ export function useExplorerAutofix(
         /**
          * Whether to enable bash mode for the autofix run. Defaults to false.
          */
-        enableBashTools?: boolean;
+        enableBashMode?: boolean;
         /**
          * The index of the block to start the step. If specified, existing blocks from this index onwards is reset.
          */
@@ -701,8 +827,8 @@ export function useExplorerAutofix(
           data.user_context = startStepOptions.userContext;
         }
 
-        if (defined(startStepOptions?.enableBashTools)) {
-          data.enable_bash_tools = startStepOptions.enableBashTools;
+        if (defined(startStepOptions?.enableBashMode)) {
+          data.enable_bash_mode = startStepOptions.enableBashMode;
         }
 
         const response = await api.requestPromise(
@@ -740,12 +866,8 @@ export function useExplorerAutofix(
                 issueId: groupId,
                 notification: {
                   navigateTo: {
-                    pathname: normalizeUrl(
-                      `/organizations/${orgSlug}/issues/${groupId}/`
-                    ),
-                    query: {
-                      seerDrawer: 'true',
-                    },
+                    pathname: makeSeerPathname(organization, groupId),
+                    query: makeSeerQuery(organization),
                   },
                   project: {
                     avatar: 'https://sentry.io/favicon.ico', // TODO(ryan953): Use the project avatar url or base64 encoded bytes
@@ -772,27 +894,51 @@ export function useExplorerAutofix(
         return getAutofixRunId(response)!;
       } catch (e: any) {
         setWaitingForResponse(false);
-        queryClient.setQueryData(
-          explorerAutofixApiOptions(orgSlug, groupId).queryKey,
-          prev => ({
+        const queryKey = explorerAutofixApiOptions(orgSlug, groupId).queryKey;
+
+        // The step lost a race against one that is already running. Nothing is
+        // wrong from the user's side, so say nothing: refetch and let the live
+        // run take the view over. Returning its id keeps the callers that await
+        // startStep on their success path, which is what stops them from
+        // undoing the UI they just put into a loading state.
+        if (isRunInFlightError(e)) {
+          await queryClient.invalidateQueries({queryKey});
+          queryClient.invalidateQueries({
+            queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
+          });
+          return getAutofixRunId(e.responseJSON)!;
+        }
+
+        // The kickoff was refused because Seer setup is incomplete. There is no
+        // failed run to paint, and unlike the in-flight race there is nothing to
+        // recover by refetching — surface the backend's setup copy (it names the
+        // check that failed) and rethrow so callers keep their error paths. The
+        // sidebar renders the setup UI in AutofixContent; this covers the
+        // surfaces that don't (drawer, previews, command palette).
+        if (isAutofixSetupRequiredError(e)) {
+          addErrorMessage(
+            getApiErrorMessage(
+              e,
+              'Seer Autofix requires additional setup before starting a run'
+            )
+          );
+          throw e;
+        }
+
+        const errorMessage = getApiErrorMessage(e);
+        // Replacing the cached run would wipe out the blocks of a run that already exists.
+        if (defined(queryClient.getQueryData(queryKey)?.json?.autofix)) {
+          addErrorMessage(errorMessage);
+        } else {
+          queryClient.setQueryData(queryKey, prev => ({
             headers: prev?.headers ?? {},
-            json: makeErrorExplorerAutofixData(
-              e?.responseJSON?.detail ?? 'An error occurred'
-            ),
-          })
-        );
+            json: makeErrorExplorerAutofixData(errorMessage),
+          }));
+        }
         throw e;
       }
     },
-    [
-      api,
-      group.shortId,
-      groupId,
-      orgSlug,
-      organization.features,
-      queryClient,
-      serviceWorker,
-    ]
+    [api, group.shortId, groupId, orgSlug, organization, queryClient, serviceWorker]
   );
 
   /**
@@ -828,7 +974,7 @@ export function useExplorerAutofix(
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
       } catch (e: any) {
-        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to create PR');
+        addErrorMessage(getApiErrorMessage(e, 'Failed to create PR'));
         throw e;
       }
     },
@@ -949,9 +1095,7 @@ export function useExplorerAutofix(
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
-        reportCodingAgentErrors([
-          e?.responseJSON?.detail ?? 'Failed to launch coding agent',
-        ]);
+        reportCodingAgentErrors([getApiErrorMessage(e, 'Failed to launch coding agent')]);
         throw e;
       } finally {
         clearIndicators();

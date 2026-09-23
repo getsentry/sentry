@@ -10,7 +10,7 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextNodeSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
 describe('IssuesSecondaryNavigation', () => {
-  const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned,identified] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned,identified] assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const organization = OrganizationFixture({
     features: ['issue-inbox', 'gen-ai-features', 'seat-based-seer-enabled'],
   });
@@ -38,7 +38,7 @@ describe('IssuesSecondaryNavigation', () => {
     );
   }
 
-  it('shows the inbox count for Seer progress sections assigned or suggested to the user', async () => {
+  it('shows the inbox count for Seer progress sections assigned or suggested to the user or their teams', async () => {
     const request = mockInboxCount({
       [inboxCountQuery]: 12,
     });
@@ -57,7 +57,7 @@ describe('IssuesSecondaryNavigation', () => {
     expect(query).toContain('assigned');
     expect(query).toContain('identified');
     expect(query).toContain('is:unresolved');
-    expect(query).toContain('assigned_or_suggested:me');
+    expect(query).toContain('assigned_or_suggested:[me,my_teams]');
   });
 
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
@@ -70,10 +70,10 @@ describe('IssuesSecondaryNavigation', () => {
     expect(await screen.findByText('99+')).toBeInTheDocument();
   });
 
-  it('does not render Inbox or request its count without Autofix access', async () => {
+  it('does not render Inbox or request its count without the inbox feature', async () => {
     const request = mockInboxCount({});
     const organizationWithoutAutofix = OrganizationFixture({
-      features: ['issue-inbox', 'gen-ai-features'],
+      features: ['gen-ai-features', 'seat-based-seer-enabled'],
     });
 
     renderNavigation(organizationWithoutAutofix);
@@ -122,6 +122,7 @@ describe('IssuesSecondaryNavigation', () => {
 
       function ContextCapture() {
         const {getLLMContext} = useLLMContext();
+        // oxlint-disable-next-line react/immutability
         ref.current = () => getLLMContext().nodes;
         return null;
       }
@@ -169,7 +170,7 @@ describe('IssuesSecondaryNavigation', () => {
         );
 
         // The "issues" node also has an InboxCountBadge child in this fixture
-        // (Autofix access is on), so pick the starred-views child by shape
+        // (Inbox access is on), so pick the starred-views child by shape
         // rather than assuming it's the only — or the first — sibling.
         const starredViewsNode = issuesNode!.children.find(
           child =>

@@ -90,9 +90,7 @@ describe('addValidatedFieldTypesToMeta', () => {
 });
 
 describe('SpansTable', () => {
-  const {organization, project} = initializeOrg({
-    organization: {features: ['explore-span-item-details']},
-  });
+  const {organization, project} = initializeOrg();
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
@@ -154,12 +152,10 @@ describe('SpansTable', () => {
   });
 
   function renderTable({
-    features = ['explore-span-item-details'],
     requestIdentityKey,
     tableResult,
     tableRows = rows,
   }: {
-    features?: string[];
     requestIdentityKey?: string;
     tableResult?: SpansTableResult['result'];
     tableRows?: Array<Record<string, unknown>>;
@@ -176,7 +172,7 @@ describe('SpansTable', () => {
     const renderResult = render(
       renderSpansTable(tableResult ?? makeQueryResult(tableRows)),
       {
-        organization: {...organization, features},
+        organization,
         additionalWrapper: Wrapper,
         initialRouterConfig: {
           location: {
@@ -231,17 +227,6 @@ describe('SpansTable', () => {
       {pointerEventsCheck: 0}
     );
   }
-
-  it('does not render or fetch span details when the feature is disabled', () => {
-    const detailsMock = mockSpanDetails(firstRow, []);
-
-    renderTable({features: []});
-
-    expect(
-      screen.queryByRole('button', {name: 'Show span details'})
-    ).not.toBeInTheDocument();
-    expect(detailsMock).not.toHaveBeenCalled();
-  });
 
   it('independently expands span details only after clicking the chevrons', async () => {
     const firstDetailsMock = mockSpanDetails(firstRow, [
@@ -304,15 +289,35 @@ describe('SpansTable', () => {
     });
   });
 
-  it('retains expanded details while a new column loads and rolls it back on failure', async () => {
+  it('uses the hint from each new response when fetching expanded span details', async () => {
+    const request = mockSpanDetails(firstRow, [
+      {name: 'span.custom', type: 'str', value: 'custom value'},
+    ]);
+    const {rerenderTable} = renderTable({
+      tableResult: makeQueryResult([firstRow], 'first-hint'),
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Show span details'}));
+    expect(await screen.findByText('custom value')).toBeInTheDocument();
+    expect(request.mock.calls[0]![1].query.routing_hint).toBe('first-hint');
+
+    rerenderTable(makeQueryResult([firstRow], 'second-hint'));
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    expect(request.mock.calls[1]![1].query.routing_hint).toBe('second-hint');
+
+    rerenderTable(makeQueryResult([firstRow]));
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(3));
+    expect(request.mock.calls[2]![1].query).not.toHaveProperty('routing_hint');
+  });
+
+  it('retains expanded details and their hint while a new column loads and rolls it back on failure', async () => {
     const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
-    mockSpanDetails(firstRow, [
+    const request = mockSpanDetails(firstRow, [
       {name: 'span.custom', type: 'str', value: 'custom value'},
     ]);
 
     const {rerenderTable, router} = renderTable({
       requestIdentityKey: 'page-two',
-      tableRows: [firstRow],
+      tableResult: makeQueryResult([firstRow], 'original-hint'),
     });
     router.navigate(
       `/organizations/${organization.slug}/explore/traces/?cursor=0%3A100%3A0`
@@ -331,7 +336,7 @@ describe('SpansTable', () => {
       ).not.toBeInTheDocument();
     });
 
-    const pendingResult = makeQueryResult([]);
+    const pendingResult = makeQueryResult([], 'unrelated-hint');
     Object.assign(pendingResult, {
       isFetching: true,
       isPlaceholderData: true,
@@ -341,7 +346,7 @@ describe('SpansTable', () => {
     expect(screen.getByText('custom value')).toBeInTheDocument();
     expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
 
-    const failedResult = makeQueryResult(undefined);
+    const failedResult = makeQueryResult(undefined, 'unrelated-hint');
     Object.assign(failedResult, {
       error: new QueryError('Failed to update span samples'),
       isError: true,
@@ -363,6 +368,8 @@ describe('SpansTable', () => {
       within(table).getByRole('columnheader', {name: 'span.description'})
     ).toBeInTheDocument();
     expect(screen.getByText('custom value')).toBeInTheDocument();
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0]![1].query.routing_hint).toBe('original-hint');
   });
 
   it('resets expanded details when the result identity changes', async () => {
@@ -434,7 +441,8 @@ describe('SpansTable', () => {
 });
 
 function makeQueryResult(
-  data: Array<Record<string, unknown>> | undefined
+  data: Array<Record<string, unknown>> | undefined,
+  routingHint?: string
 ): SpansTableResult['result'] {
   const queryClient = makeTestQueryClient();
   const queryKey = ['spans-table-test'];
@@ -446,13 +454,13 @@ function makeQueryResult(
   >(queryClient, {queryKey, enabled: false}).getCurrentResult();
 
   return {
-    // eslint-disable-next-line @tanstack/query/no-rest-destructuring
     ...base,
     data,
     error: null,
     statusCode: undefined,
     response: undefined,
     meta: {
+      routingHint,
       fields: {
         id: FieldValueType.STRING,
         'span.name': FieldValueType.STRING,

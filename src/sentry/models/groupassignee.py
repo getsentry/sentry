@@ -249,8 +249,14 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                     group, None, assign=False, assignment_source=assignment_source
                 )
 
-            issue_unassigned.send_robust(
-                project=group.project, group=group, user=acting_user, sender=self.__class__
+            # Deferred for the same reasons `assign` defers `issue_assigned`: the receiver
+            # publishes a snapshot, which must not happen for a transaction that may still
+            # roll back, nor while a caller holds row locks.
+            transaction.on_commit(
+                lambda: issue_unassigned.send_robust(
+                    project=group.project, group=group, user=acting_user, sender=self.__class__
+                ),
+                router.db_for_write(GroupAssignee),
             )
             self.remove_old_assignees(group, previous_groupassignee)
 

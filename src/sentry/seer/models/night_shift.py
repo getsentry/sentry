@@ -21,52 +21,13 @@ class SeerNightShiftRunErrorType(StrEnum):
 
 
 @cell_silo_model
-class SeerNightShiftRun(DefaultFieldsModel):
-    """Records each night shift invocation for an organization.
-
-    Cron invocations create one row per organization, workflow config, and
-    schedule window. Manual invocations create one row per execution.
-    """
-
-    __relocation_scope__ = RelocationScope.Excluded
-
-    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
-    workflow_config = FlexibleForeignKey(
-        "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
-    )
-    # Cron-derived schedule window (currently YYYY-MM-DDTHH:MM), nullable for
-    # manual and historical runs.
-    schedule_id = models.CharField(max_length=256, null=True)
-    date_completed = models.DateTimeField(null=True)
-    extras = models.JSONField(db_default={}, default=dict)
-
-    class Meta:
-        app_label = "seer"
-        db_table = "seer_nightshiftrun"
-        indexes = [
-            models.Index(fields=["organization", "date_added"]),
-            models.Index(fields=["date_added"]),
-            models.Index(fields=["workflow_config", "date_added"]),
-        ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["organization", "workflow_config", "schedule_id"],
-                condition=models.Q(schedule_id__isnull=False),
-                name="seer_nightshiftrun_unique_org_config_schedule",
-            )
-        ]
-
-    __repr__ = sane_repr("organization_id", "workflow_config_id", "date_added")
-
-
-@cell_silo_model
 class SeerNightShiftRunResult(DefaultFieldsModel):
     """One unit of work produced by a night shift run, polymorphic by `kind`."""
 
     __relocation_scope__ = RelocationScope.Excluded
 
     run = FlexibleForeignKey(
-        "seer.SeerNightShiftRun", on_delete=models.CASCADE, related_name="results"
+        "seer.SeerWorkflowRun", on_delete=models.CASCADE, related_name="results"
     )
     kind = models.CharField(max_length=256, choices=SeerWorkflowStrategy.choices)
     group = FlexibleForeignKey(
@@ -98,26 +59,3 @@ class SeerNightShiftRunResult(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("run_id", "kind", "group_id")
-
-
-@cell_silo_model
-class SeerNightShiftRunShard(DefaultFieldsModel):
-    """One shard of a night shift run, owning the SeerRun for a single
-    dispatched Seer feature run. A run fans out its work into one or more shards
-    dispatched as independent feature runs."""
-
-    __relocation_scope__ = RelocationScope.Excluded
-
-    run = FlexibleForeignKey(
-        "seer.SeerNightShiftRun", on_delete=models.CASCADE, related_name="shards"
-    )
-    seer_run = models.OneToOneField(
-        "seer.SeerRun", on_delete=models.SET_NULL, null=True, related_name="night_shift_shard"
-    )
-    extras = models.JSONField(db_default={}, default=dict)
-
-    class Meta:
-        app_label = "seer"
-        db_table = "seer_nightshiftrunshard"
-
-    __repr__ = sane_repr("run_id", "seer_run_id")

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from sentry import eventstore
-from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.models.group import Group
 from sentry.notifications.platform.discord.provider import DiscordRenderable
+from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.service import NotificationRenderError
 from sentry.notifications.platform.templates.issue import IssueNotificationData
@@ -11,19 +11,21 @@ from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSource,
 )
 from sentry.services.eventstore.models import Event
 
 
+@renderer_registry.register(NotificationProviderKey.DISCORD, sources=[NotificationSource.ISSUE])
 class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
-    provider_key = NotificationProviderKey.DISCORD
-
     @classmethod
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> DiscordRenderable:
         if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueDiscordRenderer does not support {data.__class__.__name__}")
+
+        from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 
         # Retrieving Group and Event data is an anti-pattern, do not do this
         # in permanent renderers.

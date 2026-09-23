@@ -38,9 +38,9 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {sortAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {sortAttributes} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 const HIDDEN_SPAN_DETAIL_ATTRIBUTES = new Set(['is_segment', 'project_id', 'received']);
 
@@ -53,7 +53,13 @@ type SpanAttributeRenderer = (
   props: AttributesFieldRendererProps<SpanAttributesRendererExtra>
 ) => React.ReactNode;
 
-export function SpanItemDetails({dataRow}: {dataRow: EventData}) {
+export function SpanItemDetails({
+  dataRow,
+  routingHint,
+}: {
+  dataRow: EventData;
+  routingHint?: string;
+}) {
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -79,6 +85,7 @@ export function SpanItemDetails({dataRow}: {dataRow: EventData}) {
     traceId,
     timestamp,
     traceItemType: TraceItemDataset.SPANS,
+    routingHint,
     referrer: 'api.explore.span-item-details',
     enabled: canLoadDetails,
   });

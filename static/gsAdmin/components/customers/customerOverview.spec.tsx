@@ -327,7 +327,7 @@ describe('CustomerOverview', () => {
       },
     });
 
-    const mockOnAction = jest.fn();
+    const mockOnAction = jest.fn().mockResolvedValue(undefined);
 
     render(
       <CustomerOverview
@@ -403,7 +403,7 @@ describe('CustomerOverview', () => {
       sponsoredType: 'XX',
     });
 
-    const mockOnAction = jest.fn();
+    const mockOnAction = jest.fn().mockResolvedValue(undefined);
 
     render(
       <CustomerOverview
@@ -509,6 +509,142 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Seer:')).toBeInTheDocument();
     expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
+  });
+
+  it('disables non-Seer product trial start on enterprise plans', async () => {
+    const organization = OrganizationFixture();
+    const enterpriseSubscription = InvoicedSubscriptionFixture({
+      organization,
+      plan: 'am3_business_ent_auf',
+      productTrials: [
+        {
+          category: DataCategory.REPLAYS,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(20, 'days').format(),
+          endDate: moment().utc().subtract(10, 'days').format(),
+        },
+      ],
+    });
+
+    render(
+      <CustomerOverview
+        customer={enterpriseSubscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    const productTrialsHeading = screen.getByRole('heading', {
+      name: 'Product Trials',
+    });
+    const productTrialsList = productTrialsHeading.nextElementSibling;
+    expect(productTrialsList).toBeInTheDocument();
+    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
+      throw new Error('Product trials list not found or not an HTMLElement');
+    }
+
+    const getTrialButtons = (label: string) => {
+      const termElement = within(productTrialsList).getByText(label);
+      const definition = termElement.nextElementSibling;
+      expect(definition).toBeInTheDocument();
+      if (!definition || !(definition instanceof HTMLElement)) {
+        throw new Error(`${label} definition not found or not an HTMLElement`);
+      }
+
+      return {
+        allowTrialButton: within(definition).getByRole('button', {name: 'Allow Trial'}),
+        startTrialButton: within(definition).getByRole('button', {name: 'Start Trial'}),
+        stopTrialButton: within(definition).getByRole('button', {name: 'Stop Trial'}),
+        extendTrialButton: within(definition).getByRole('button', {
+          name: 'Extend Trial',
+        }),
+      };
+    };
+
+    const spansButtons = getTrialButtons('Spans:');
+    expect(spansButtons.startTrialButton).toHaveAttribute('aria-disabled', 'true');
+    expect(spansButtons.stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+    expect(spansButtons.extendTrialButton).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(spansButtons.startTrialButton);
+    expect(
+      await screen.findByText(
+        'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.'
+      )
+    ).toBeInTheDocument();
+
+    // Allow Trial is unaffected by the enterprise non-Seer start block: it stays
+    // enabled once a trial has been used, regardless of plan.
+    const replaysButtons = getTrialButtons('Replays:');
+    expect(replaysButtons.startTrialButton).toHaveAttribute('aria-disabled', 'true');
+    expect(replaysButtons.allowTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+
+    const seerButtons = getTrialButtons('Seer:');
+    expect(seerButtons.startTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+    expect(seerButtons.stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+    expect(seerButtons.extendTrialButton).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('keeps stop/extend available for an in-flight non-Seer trial on enterprise plans', async () => {
+    const organization = OrganizationFixture();
+    const enterpriseSubscription = InvoicedSubscriptionFixture({
+      organization,
+      plan: 'am3_business_ent_auf',
+    });
+    enterpriseSubscription.productTrials = [
+      {
+        category: DataCategory.SPANS,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(2, 'days').format(),
+        endDate: moment().utc().add(12, 'days').format(),
+      },
+    ];
+
+    render(
+      <CustomerOverview
+        customer={enterpriseSubscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    const productTrialsHeading = screen.getByRole('heading', {
+      name: 'Product Trials',
+    });
+    const productTrialsList = productTrialsHeading.nextElementSibling;
+    expect(productTrialsList).toBeInTheDocument();
+    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
+      throw new Error('Product trials list not found or not an HTMLElement');
+    }
+
+    const spansTerm = within(productTrialsList).getByText('Spans:');
+    const spansDefinition = spansTerm.nextElementSibling;
+    expect(spansDefinition).toBeInTheDocument();
+    if (!spansDefinition || !(spansDefinition instanceof HTMLElement)) {
+      throw new Error('Spans definition not found or not an HTMLElement');
+    }
+
+    // The enterprise gate only blocks starting/allowing a trial. An operator must
+    // still be able to wind down or extend a trial that is already running.
+    expect(
+      within(spansDefinition).getByRole('button', {name: 'Stop Trial'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(
+      within(spansDefinition).getByRole('button', {name: 'Extend Trial'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+
+    const startTrialButton = within(spansDefinition).getByRole('button', {
+      name: 'Start Trial',
+    });
+    expect(startTrialButton).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(startTrialButton);
+    expect(
+      await screen.findByText(
+        'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('renders SIZE_ANALYSIS admin-only product trials (GA, no feature flag required)', () => {
@@ -644,32 +780,32 @@ describe('CustomerOverview', () => {
         expect(extendTrialButton).toBeInTheDocument();
 
         if (category === DataCategory.REPLAYS) {
-          expect(allowTrialButton).toBeDisabled();
-          expect(startTrialButton).toBeDisabled();
-          expect(stopTrialButton).toBeEnabled();
-          expect(extendTrialButton).toBeEnabled();
+          expect(allowTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(startTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(stopTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+          expect(extendTrialButton).not.toHaveAttribute('aria-disabled', 'true');
           expect(
             within(definition).getByText(/Active \(until .* UTC\)/)
           ).toBeInTheDocument();
         } else if (category === DataCategory.SPANS) {
-          expect(allowTrialButton).toBeDisabled();
-          expect(startTrialButton).toBeDisabled();
-          expect(stopTrialButton).toBeDisabled();
-          expect(extendTrialButton).toBeEnabled();
+          expect(allowTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(startTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(extendTrialButton).not.toHaveAttribute('aria-disabled', 'true');
           expect(
             within(definition).getByText(/Active \(until .* UTC\)/)
           ).toBeInTheDocument();
         } else if (category === AddOnCategory.LEGACY_SEER) {
-          expect(allowTrialButton).toBeEnabled();
-          expect(startTrialButton).toBeDisabled();
-          expect(stopTrialButton).toBeDisabled();
-          expect(extendTrialButton).toBeDisabled();
+          expect(allowTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+          expect(startTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(extendTrialButton).toHaveAttribute('aria-disabled', 'true');
           expect(within(definition).getByText('Used')).toBeInTheDocument();
         } else {
-          expect(allowTrialButton).toBeDisabled();
-          expect(startTrialButton).toBeEnabled();
-          expect(stopTrialButton).toBeDisabled();
-          expect(extendTrialButton).toBeDisabled();
+          expect(allowTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(startTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+          expect(stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(extendTrialButton).toHaveAttribute('aria-disabled', 'true');
           expect(within(definition).getByText('Available')).toBeInTheDocument();
         }
       } else {

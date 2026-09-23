@@ -88,6 +88,7 @@ export function ReplayPreviewPlayer({
     ) {
       markAsViewed({projectSlug: replayRecord.project_id, replayId: replayRecord.id});
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [isFetching, isPlaying, markAsViewed, organization, replayRecord]);
 
   return (
@@ -131,6 +132,7 @@ export function ReplayPreviewPlayer({
         </ContainedLinkButton>
       </Flex>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
+        {/* oxlint-disable-next-line react/refs */}
         <TooltipContext value={{container: fullscreenRef.current}}>
           <PlayerBreadcrumbContainer>
             <PlayerContextContainer>

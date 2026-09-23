@@ -5,11 +5,9 @@ import moment from 'moment-timezone';
 
 import {markLine} from 'sentry/components/charts/components/markLine';
 import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
-import {BarSeries} from 'sentry/components/charts/series/barSeries';
-import {lineSeries} from 'sentry/components/charts/series/lineSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {
   ChartDataTransform,
@@ -21,220 +19,9 @@ import {
   getTooltipFormatter,
 } from 'sentry/views/organizationStats/usageChart/utils';
 
-import {GIGABYTE} from 'getsentry/constants';
-import {
-  ReservedBudgetCategoryType,
-  type BillingStats,
-  type CustomerUsage,
-  type ReservedBudgetForCategory,
-  type Subscription,
-} from 'getsentry/types';
-import {
-  displayBudgetName,
-  formatReservedWithUnits,
-  getPercentage,
-  isUnlimitedReserved,
-  MILLISECONDS_IN_HOUR,
-} from 'getsentry/utils/billing';
-import {
-  getCategoryInfoFromPlural,
-  getPlanCategoryName,
-  isByteCategory,
-  isContinuousProfiling,
-  isPartOfReservedBudget,
-} from 'getsentry/utils/dataCategory';
-import {formatCurrency} from 'getsentry/utils/formatCurrency';
-import {getBucket} from 'getsentry/views/amCheckout/utils';
-import {
-  getOnDemandBudget,
-  parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/spendLimits/utils';
-import {
-  calculateCategorySpend,
-  calculateTotalSpend,
-} from 'getsentry/views/subscriptionPage/utils';
-
-/**
- * Calculates usage metrics for a subscription category's prepaid (reserved) events.
- *
- * @param category - The data category to calculate usage for (e.g. 'errors', 'transactions')
- * @param subscription - The subscription object containing plan and usage details
- * @param accepted - The accepted event count for this category
- * @param prepaid - The prepaid/reserved event limit (volume-based reserved) or commited spend (budget-based reserved) for this category
- * @param reservedCpe - The reserved cost-per-event for this category (for reserved budget categories), in cents
- * @param reservedSpend - The reserved spend for this category (for reserved budget categories). If provided, calculations with `totals` and `reservedCpe` are overriden to use the number provided for `prepaidSpend`
- *
- * @returns Object containing:
- *   - onDemandUsage: Number of events that exceeded the prepaid limit and went to on-demand
- *   - prepaidPercentUsed: Percentage of prepaid limit used (0-100)
- *   - prepaidPrice: Monthly cost of the prepaid events (reserved budget if it is a reserved budget category)
- *   - prepaidSpend: Cost of prepaid events used so far this period
- *   - prepaidUsage: Number of events used within prepaid limit
- */
-function calculateCategoryPrepaidUsage(
-  category: DataCategory,
-  subscription: Subscription,
-  prepaid: number,
-  accepted?: number | null,
-  reservedCpe?: number | null,
-  reservedSpend?: number | null
-): {
-  onDemandUsage: number;
-  prepaidPercentUsed: number;
-  prepaidPrice: number;
-  /**
-   * Total category spend this period
-   */
-  prepaidSpend: number;
-  prepaidUsage: number;
-} {
-  const categoryInfo = subscription.categories[category];
-  const usage = accepted ?? categoryInfo?.usage ?? 0;
-
-  // If reservedCpe or reservedSpend aren't provided but category is part of a reserved budget,
-  // try to extract them from subscription.reservedBudgets
-  let effectiveReservedCpe = reservedCpe ?? undefined;
-  let effectiveReservedSpend = reservedSpend ?? undefined;
-
-  if (
-    (effectiveReservedCpe === undefined || effectiveReservedSpend === undefined) &&
-    isPartOfReservedBudget(category, subscription.reservedBudgets ?? [])
-  ) {
-    // Look for the category in reservedBudgets
-    for (const budget of subscription.reservedBudgets || []) {
-      if (category in budget.categories) {
-        const categoryBudget = budget.categories[category];
-        if (categoryBudget) {
-          if (effectiveReservedCpe === undefined) {
-            effectiveReservedCpe = categoryBudget.reservedCpe;
-          }
-          if (effectiveReservedSpend === undefined) {
-            effectiveReservedSpend = categoryBudget.reservedSpend;
-          }
-          break;
-        }
-      }
-    }
-  }
-
-  // Calculate the prepaid total
-  let prepaidTotal: any;
-  if (isUnlimitedReserved(prepaid)) {
-    prepaidTotal = prepaid;
-  } else {
-    // Convert prepaid limits to the appropriate unit based on category
-    prepaidTotal =
-      prepaid *
-      (isByteCategory(category)
-        ? GIGABYTE
-        : isContinuousProfiling(category)
-          ? MILLISECONDS_IN_HOUR
-          : 1);
-  }
-
-  const hasReservedBudget = Boolean(
-    reservedCpe || typeof effectiveReservedSpend === 'number'
-  ); // reservedSpend can be 0
-
-  const prepaidUsed = hasReservedBudget
-    ? (effectiveReservedSpend ?? usage * (effectiveReservedCpe ?? 0))
-    : usage;
-  const prepaidPercentUsed = getPercentage(prepaidUsed, prepaidTotal);
-
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const slots: EventBucket[] = subscription.planDetails.planCategories[category];
-
-  // If the category billing info is not in the subscription, return 0 for all values
-  // This seems to happen sometimes on partner accounts
-  if (!categoryInfo || !slots) {
-    return {
-      prepaidPrice: 0,
-      prepaidSpend: 0,
-      prepaidPercentUsed: 0,
-      onDemandUsage: 0,
-      prepaidUsage: 0,
-    };
-  }
-
-  // Get the price bucket for the reserved event amount
-  const prepaidPriceBucket = getBucket({events: categoryInfo.reserved!, buckets: slots});
-
-  // Convert annual prices to monthly if needed
-  const isMonthly = subscription.planDetails.billingInterval === 'monthly';
-  // This will be 0 when they are using the included amount
-  const prepaidPrice = hasReservedBudget
-    ? prepaid
-    : (prepaidPriceBucket.price ?? 0) / (isMonthly ? 1 : 12);
-
-  // Calculate spend based on percentage used
-  const prepaidSpend = (prepaidPercentUsed / 100) * prepaidPrice;
-
-  // Round the usage width to avoid half pixel artifacts
-  const prepaidPercentUsedRounded = Math.round(prepaidPercentUsed);
-
-  // Calculate on-demand usage if we've exceeded prepaid limit
-  // No on-demand usage for unlimited reserved
-  const onDemandUsage =
-    (prepaidUsed > prepaidTotal && !isUnlimitedReserved(prepaidTotal)) ||
-    (hasReservedBudget && prepaidUsed >= prepaidTotal)
-      ? categoryInfo.onDemandQuantity
-      : 0;
-  const prepaidUsage = usage - onDemandUsage;
-
-  return {
-    prepaidPrice,
-    prepaidSpend,
-    prepaidPercentUsed: prepaidPercentUsedRounded,
-    onDemandUsage,
-    prepaidUsage,
-  };
-}
-
-function calculateCategoryOnDemandUsage(
-  category: DataCategory,
-  subscription: Subscription
-): {
-  /**
-   * The maximum amount of on demand spend allowed for this category
-   * This can be shared across all categories or specific to this category.
-   * Other categories may have spent some of this budget making less avilable for this category.
-   */
-  onDemandCategoryMax: number;
-  onDemandCategorySpend: number;
-  /**
-   * Will be the total on demand spend available for all categories if shared
-   * or the total available for this category if not shared.
-   */
-  onDemandTotalAvailable: number;
-  ondemandPercentUsed: number;
-} {
-  const onDemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
-  const isSharedOnDemand = 'sharedMaxBudget' in onDemandBudgets;
-  const onDemandTotalAvailable = isSharedOnDemand
-    ? onDemandBudgets.sharedMaxBudget
-    : getOnDemandBudget(onDemandBudgets, category);
-  const {onDemandTotalSpent} = calculateTotalSpend(subscription);
-  const {onDemandSpent: onDemandCategorySpend} = calculateCategorySpend(
-    subscription,
-    category
-  );
-  const onDemandCategoryMax = isSharedOnDemand
-    ? // Subtract other category spend from shared on demand budget
-      onDemandTotalAvailable - onDemandTotalSpent + onDemandCategorySpend
-    : onDemandTotalAvailable;
-
-  // Round the usage width to avoid half pixel artifacts
-  const ondemandPercentUsed = Math.round(
-    getPercentage(onDemandCategorySpend, onDemandCategoryMax)
-  );
-
-  return {
-    onDemandTotalAvailable,
-    onDemandCategorySpend,
-    onDemandCategoryMax,
-    ondemandPercentUsed,
-  };
-}
+import {type BillingStats, type CustomerUsage, type Subscription} from 'getsentry/types';
+import {formatReservedWithUnits, isUnlimitedReserved} from 'getsentry/utils/billing';
+import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 
 type DroppedBreakdown = {
   other: number;
@@ -252,7 +39,7 @@ export function selectedTransform(location: Location) {
   return transform;
 }
 
-function chartTooltip(category: DataCategory, displayMode: 'usage' | 'cost') {
+function chartTooltip(category: DataCategory) {
   const tooltipValueFormatter = getTooltipFormatter(category);
 
   return ChartTooltip({
@@ -269,12 +56,8 @@ function chartTooltip(category: DataCategory, displayMode: 'usage' | 'cost') {
         seriesList
           .map(s => {
             const label = s.seriesName ?? '';
-            const value =
-              displayMode === 'usage'
-                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  tooltipValueFormatter(s.value?.[1])
-                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  formatCurrency(s.value?.[1] ?? 0);
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            const value = tooltipValueFormatter(s.value?.[1]);
 
             // @ts-expect-error TS(2339): Property 'dropped' does not exist on type 'OptionD... Remove this comment to see the full error message
             const dropped = s.data.dropped as DroppedBreakdown | undefined;
@@ -395,173 +178,8 @@ export function mapStatsToChart({
   return chartData;
 }
 
-export function mapCostStatsToChart({
-  stats,
-  transform,
-  subscription,
-  category,
-}: {
-  category: DataCategory;
-  stats: BillingStats;
-  subscription: Subscription;
-  transform: ChartDataTransform;
-}) {
-  const isCumulative = transform === ChartDataTransform.CUMULATIVE;
-
-  /**
-   * On demand is already a running total, so we'll need to subtract when not cumulative.
-   */
-  let previousOnDemandCostRunningTotal = 0;
-  let sumReserved = 0;
-  const chartData = defaultChartData();
-  const metricHistory = subscription.categories[category];
-
-  const prepaid = metricHistory?.prepaid ?? 0;
-  stats.forEach(stat => {
-    if (!stat) {
-      return;
-    }
-
-    const date = getDateFromMoment(moment(stat.date));
-
-    const isProjected = stat.isProjected ?? true;
-    const accepted = stat.accepted ?? 0;
-    let onDemand = 0;
-
-    if (defined(stat.onDemandCostRunningTotal)) {
-      onDemand = isCumulative
-        ? stat.onDemandCostRunningTotal
-        : stat.onDemandCostRunningTotal - previousOnDemandCostRunningTotal;
-      previousOnDemandCostRunningTotal = stat.onDemandCostRunningTotal;
-    }
-
-    const {prepaidSpend, prepaidPrice} = calculateCategoryPrepaidUsage(
-      category,
-      subscription,
-      prepaid,
-      accepted
-    );
-    sumReserved = isCumulative ? sumReserved + prepaidSpend : prepaidSpend;
-    // Ensure that the reserved amount does not exceed the prepaid amount.
-    sumReserved = Math.min(sumReserved, prepaidPrice);
-
-    if (!isProjected) {
-      chartData.reserved!.push({
-        value: [date, sumReserved],
-      });
-      chartData.onDemand!.push({
-        value: [date, onDemand],
-      });
-    }
-  });
-
-  return chartData;
-}
-
-function mapReservedBudgetStatsToChart({
-  statsByDateAndCategory,
-  transform,
-  subscription,
-  reservedBudgetCategoryInfo,
-}: {
-  statsByDateAndCategory: Record<string, Record<string, BillingStats>>;
-  subscription: Subscription;
-  transform: ChartDataTransform;
-  reservedBudgetCategoryInfo?: Record<string, ReservedBudgetForCategory>;
-}) {
-  const isCumulative = transform === ChartDataTransform.CUMULATIVE;
-
-  /**
-   * On demand is already a running total, so we'll need to subtract when not cumulative.
-   */
-  let previousOnDemandCostRunningTotal = 0;
-  let sumReserved = 0;
-  const chartData = defaultChartData();
-  if (!reservedBudgetCategoryInfo) {
-    return chartData;
-  }
-
-  let previousReservedForDate = 0;
-  let previousOnDemandForDate = 0;
-  Object.entries(statsByDateAndCategory).forEach(([date, statsByCategory]) => {
-    let reservedForDate = 0;
-    let onDemandForDate = 0;
-    (Object.entries(statsByCategory) as Array<[DataCategory, BillingStats]>).forEach(
-      ([category, stats]) => {
-        const prepaid = reservedBudgetCategoryInfo[category]?.prepaidBudget ?? 0;
-        const reservedCpe = reservedBudgetCategoryInfo[category]?.reservedCpe ?? 0;
-
-        stats.forEach(stat => {
-          if (!stat) {
-            return;
-          }
-
-          const isProjected = stat.isProjected ?? true;
-          const accepted = stat.accepted ?? 0;
-          let onDemand = 0;
-
-          if (defined(stat.onDemandCostRunningTotal)) {
-            onDemand = isCumulative
-              ? stat.onDemandCostRunningTotal
-              : stat.onDemandCostRunningTotal - previousOnDemandCostRunningTotal;
-            previousOnDemandCostRunningTotal = stat.onDemandCostRunningTotal;
-          }
-
-          const {prepaidSpend, prepaidPrice} = calculateCategoryPrepaidUsage(
-            category,
-            subscription,
-            prepaid,
-            accepted,
-            reservedCpe
-          );
-          sumReserved = isCumulative ? sumReserved + prepaidSpend : prepaidSpend;
-          sumReserved = Math.min(sumReserved, prepaidPrice);
-
-          if (!isProjected) {
-            // if cumulative, sumReserved is the prepaid amount used so far, otherwise it's the amount used for this date
-            if (isCumulative) {
-              reservedForDate = sumReserved;
-            } else {
-              reservedForDate += sumReserved;
-            }
-            // when cumulative, onDemand is the running total for the category
-            // otherwise, onDemand is the amount used for the category for this date
-            // either way we need to add them together to get the on-demand/PAYG amount across the categories
-            onDemandForDate += onDemand;
-          }
-        });
-      }
-    );
-    // if cumulative and there was no new spend on this date, use the previous date's spend
-    if (
-      reservedForDate === 0 &&
-      isCumulative &&
-      moment(date).isSameOrBefore(moment().toDate())
-    ) {
-      reservedForDate = previousReservedForDate;
-    }
-    if (onDemandForDate === 0 && isCumulative) {
-      onDemandForDate = previousOnDemandForDate;
-    }
-    const dateKey = getDateFromMoment(moment(date));
-    chartData.reserved!.push({
-      value: [dateKey, reservedForDate],
-    });
-    previousReservedForDate = reservedForDate;
-    chartData.onDemand!.push({
-      value: [dateKey, onDemandForDate],
-    });
-    previousOnDemandForDate = onDemandForDate;
-  });
-
-  return chartData;
-}
-
 export function ProductUsageChart({
   usageStats,
-  shouldDisplayBudgetStats,
-  reservedBudgetCategoryInfo,
-  displayMode,
   subscription,
   category,
   transform,
@@ -571,9 +189,6 @@ export function ProductUsageChart({
   useDisplayModeTitle,
 }: {
   category: DataCategory;
-  displayMode: 'usage' | 'cost';
-  reservedBudgetCategoryInfo: Record<string, ReservedBudgetForCategory>;
-  shouldDisplayBudgetStats: boolean;
   subscription: Subscription;
   transform: ChartDataTransform;
   usagePeriodEnd: string;
@@ -606,67 +221,10 @@ export function ProductUsageChart({
     };
 
     if (categoryStats) {
-      if (shouldDisplayBudgetStats && displayMode === 'cost') {
-        const budgetType = reservedBudgetCategoryInfo[category]?.apiName;
-        if (
-          budgetType !== ReservedBudgetCategoryType.DYNAMIC_SAMPLING ||
-          (budgetType === ReservedBudgetCategoryType.DYNAMIC_SAMPLING &&
-            subscription.hadCustomDynamicSampling)
-        ) {
-          const statsByDateAndCategory = categoryStats.reduce<
-            Record<string, Record<string, BillingStats>>
-          >((acc, stat) => {
-            if (stat) {
-              acc[stat.date] = {[category]: [stat]};
-            }
-            return acc;
-          }, {});
-          dataCategoryMetadata.chartData = mapReservedBudgetStatsToChart({
-            statsByDateAndCategory,
-            transform,
-            subscription,
-            reservedBudgetCategoryInfo,
-          });
-        } else {
-          const otherCategory =
-            category === DataCategory.SPANS
-              ? DataCategory.SPANS_INDEXED
-              : DataCategory.SPANS;
-          const otherCategoryStats = usageStats[otherCategory] ?? [];
-          const statsByCategory = {
-            [category]: categoryStats,
-            [otherCategory]: otherCategoryStats,
-          };
-          const statsByDateAndCategory = Object.entries(statsByCategory).reduce<
-            Record<string, Record<string, BillingStats>>
-          >((acc, [budgetCategory, stats]) => {
-            stats.forEach(stat => {
-              if (stat) {
-                acc[stat.date] = {...acc[stat.date], [budgetCategory]: [stat]};
-              }
-            });
-            return acc;
-          }, {});
-          dataCategoryMetadata.chartData = mapReservedBudgetStatsToChart({
-            statsByDateAndCategory,
-            transform,
-            subscription,
-            reservedBudgetCategoryInfo,
-          });
-        }
-      } else if (displayMode === 'cost') {
-        dataCategoryMetadata.chartData = mapCostStatsToChart({
-          stats: categoryStats,
-          transform,
-          category,
-          subscription,
-        });
-      } else {
-        dataCategoryMetadata.chartData = mapStatsToChart({
-          stats: categoryStats,
-          transform,
-        });
-      }
+      dataCategoryMetadata.chartData = mapStatsToChart({
+        stats: categoryStats,
+        transform,
+      });
     }
 
     if (currentHistory) {
@@ -678,19 +236,6 @@ export function ProductUsageChart({
           isAbbreviated: true,
         }),
       };
-      if (displayMode === 'cost') {
-        const {prepaidPrice} = calculateCategoryPrepaidUsage(
-          category,
-          subscription,
-          reservedBudgetCategoryInfo[category]?.prepaidBudget ?? currentHistory.prepaid,
-          0
-        );
-        const {onDemandCategoryMax} = calculateCategoryOnDemandUsage(
-          category,
-          subscription
-        );
-        dataCategoryMetadata.yAxisQuotaLine = prepaidPrice + onDemandCategoryMax;
-      }
     }
 
     return {
@@ -713,28 +258,7 @@ export function ProductUsageChart({
       usageStats={chartData}
       usageDateShowUtc={false}
       chartSeries={[
-        ...(displayMode === 'cost' && chartData.reserved
-          ? [
-              BarSeries({
-                // Reserved spend
-                name: 'Included in Subscription',
-                data: chartData.reserved,
-                barMinHeight: 1,
-                stack: 'usage',
-                legendHoverLink: false,
-                color: theme.chart.getColorPalette(5)[0],
-              }),
-              BarSeries({
-                name: displayBudgetName(subscription.planDetails, {title: true}),
-                data: chartData.onDemand,
-                barMinHeight: 1,
-                stack: 'usage',
-                legendHoverLink: false,
-                color: theme.chart.getColorPalette(5)[1],
-              }),
-            ]
-          : []),
-        lineSeries({
+        createLineSeries({
           markLine: markLine({
             silent: true,
             lineStyle: {
@@ -747,10 +271,7 @@ export function ProductUsageChart({
             label: {
               show: isCumulative ? true : false,
               position: 'insideStartBottom',
-              formatter:
-                displayMode === 'usage'
-                  ? t('Plan Quota (%s)', yAxisQuotaLineLabel)
-                  : t('Max Spend'),
+              formatter: t('Plan Quota (%s)', yAxisQuotaLineLabel),
               color: theme.tokens.content.secondary,
               backgroundColor: theme.tokens.background.primary,
               borderRadius: 2,
@@ -760,25 +281,8 @@ export function ProductUsageChart({
           }),
         }),
       ]}
-      yAxisFormatter={displayMode === 'usage' ? undefined : formatCurrency}
-      chartTooltip={chartTooltip(category, displayMode)}
-      title={
-        useDisplayModeTitle ? (
-          <Title>
-            {displayMode === 'usage'
-              ? t('Current Usage Period')
-              : t(
-                  'Estimated %s Spend This Period',
-                  getPlanCategoryName({
-                    plan: subscription.planDetails,
-                    category,
-                    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-                    title: true,
-                  })
-                )}
-          </Title>
-        ) : undefined
-      }
+      chartTooltip={chartTooltip(category)}
+      title={useDisplayModeTitle ? <Title>{t('Current Usage Period')}</Title> : undefined}
     />
   );
 }

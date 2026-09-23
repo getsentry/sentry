@@ -120,19 +120,21 @@ describe('mapPreviewCheckErrorToMessage', () => {
 
 describe('resolveErroredAssertionOp', () => {
   it('resolves errored op from assertion_failure_data by matching value', () => {
-    const target = makeStatusCodeOp({
+    const target = {
+      ...makeStatusCodeOp(),
       value: 404,
       operator: {cmp: UptimeComparisonType.EQUALS},
-    });
-    const other = makeStatusCodeOp({
+    };
+    const other = {
+      ...makeStatusCodeOp(),
       value: 200,
       operator: {cmp: UptimeComparisonType.EQUALS},
-    });
+    };
     const rootOp = makeAndOp({children: [other, target]});
 
     const failureRoot = makeAndOp({
       children: [
-        makeStatusCodeOp({value: 404, operator: {cmp: UptimeComparisonType.EQUALS}}),
+        {...makeStatusCodeOp(), value: 404, operator: {cmp: UptimeComparisonType.EQUALS}},
       ],
     });
     const data = {check_result: {assertion_failure_data: {root: failureRoot}}};

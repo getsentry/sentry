@@ -5,10 +5,6 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import type {MetricsResultsMetaMapKey} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-import {useMetricsResultsMeta} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {useOnDemandControl} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   WidgetType,
@@ -17,7 +13,6 @@ import {
 } from 'sentry/views/dashboards/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import type {
   GenericWidgetQueriesResult,
   OnDataFetchedProps,
@@ -35,13 +30,12 @@ type Props = {
   limit?: number;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
-  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
   widgetInterval?: string;
 };
 
-function WidgetQueriesWithOnDemandControl({
+function WidgetQueriesWithConfig({
   children,
   widget,
   dashboardFilters,
@@ -51,17 +45,9 @@ function WidgetQueriesWithOnDemandControl({
   onDataFetchStart,
   selection,
   config,
-  afterFetchSeriesData,
-  afterFetchTableData,
-  mepSettingContext,
-  OnDemandControlContext,
   widgetInterval,
-}: Omit<Props, 'onWidgetSplitDecision'> & {
-  OnDemandControlContext: any;
-  afterFetchSeriesData: (rawResults: SeriesResult) => void;
-  afterFetchTableData: (rawResults: TableResult) => void;
-  config: ReturnType<typeof getDatasetConfig>;
-  mepSettingContext: ReturnType<typeof useMEPSettingContext>;
+}: Props & {
+  config: any;
 }) {
   const props = useGenericWidgetQueries<SeriesResult, TableResult>({
     config,
@@ -74,12 +60,7 @@ function WidgetQueriesWithOnDemandControl({
     onDataFetched,
     onDataFetchStart,
     selection,
-    afterFetchSeriesData,
-    afterFetchTableData,
-    mepSetting: mepSettingContext.metricSettingState,
-    onDemandControlContext: OnDemandControlContext,
     widgetInterval,
-    ...OnDemandControlContext,
   });
 
   return children(props);
@@ -92,117 +73,15 @@ export function WidgetQueries({
   cursor,
   limit,
   onDataFetched,
-  onWidgetSplitDecision,
   onDataFetchStart,
   selection,
   widgetInterval,
 }: Props) {
-  // Discover and Errors datasets are the only datasets processed in this component
-  const config = getDatasetConfig(
-    widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS | WidgetType.TRANSACTIONS
-  );
-  const context = useDashboardsMEPContext();
-  const metricsMeta = useMetricsResultsMeta();
-  const mepSettingContext = useMEPSettingContext();
-  const onDemandControlContext = useOnDemandControl();
-
-  let setIsMetricsData: undefined | ((value?: boolean) => void);
-  let setIsMetricsExtractedData:
-    | undefined
-    | ((mapKey: MetricsResultsMetaMapKey, value: boolean) => void);
-
-  if (context) {
-    setIsMetricsData = context.setIsMetricsData;
-  }
-  if (metricsMeta) {
-    setIsMetricsExtractedData = metricsMeta.setIsMetricsExtractedData;
-  }
-
-  const isSeriesMetricsDataResults: boolean[] = [];
-  const isSeriesMetricsExtractedDataResults: Array<boolean | undefined> = [];
-  const afterFetchSeriesData = (rawResults: SeriesResult) => {
-    if (rawResults.data) {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-      rawResults = rawResults as EventsStats;
-      if (rawResults.isMetricsData !== undefined) {
-        isSeriesMetricsDataResults.push(rawResults.isMetricsData);
-      }
-      if (rawResults.isMetricsExtractedData !== undefined) {
-        isSeriesMetricsExtractedDataResults.push(rawResults.isMetricsExtractedData);
-      }
-      isSeriesMetricsExtractedDataResults.push(
-        rawResults.isMetricsExtractedData || rawResults.meta?.isMetricsExtractedData
-      );
-    } else {
-      Object.keys(rawResults).forEach(key => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        const rawResult: EventsStats = rawResults[key];
-        if (rawResult.isMetricsData !== undefined) {
-          isSeriesMetricsDataResults.push(rawResult.isMetricsData);
-        }
-        if (
-          (rawResult.isMetricsExtractedData || rawResult.meta?.isMetricsExtractedData) !==
-          undefined
-        ) {
-          isSeriesMetricsExtractedDataResults.push(
-            rawResult.isMetricsExtractedData || rawResult.meta?.isMetricsExtractedData
-          );
-        }
-      });
-    }
-    // If one of the queries is sampled, then mark the whole thing as sampled
-    setIsMetricsData?.(!isSeriesMetricsDataResults.includes(false));
-    setIsMetricsExtractedData?.(
-      widget,
-      isSeriesMetricsExtractedDataResults.every(Boolean) &&
-        isSeriesMetricsExtractedDataResults.some(Boolean)
-    );
-
-    const resultValues = Object.values(rawResults);
-    let splitDecision: WidgetType | undefined;
-    if (rawResults.meta) {
-      splitDecision = (rawResults.meta as EventsStats['meta'])?.discoverSplitDecision;
-    } else if (Object.values(rawResults).length > 0) {
-      // Multi-series queries will have a meta key on each series
-      // We can just read the decision from one.
-      splitDecision = resultValues[0]?.meta?.discoverSplitDecision;
-    }
-
-    if (splitDecision) {
-      // Update the dashboard state with the split decision
-      onWidgetSplitDecision?.(splitDecision);
-    }
-  };
-
-  const isTableMetricsDataResults: boolean[] = [];
-  const isTableMetricsExtractedDataResults: boolean[] = [];
-  const afterFetchTableData = (rawResults: TableResult) => {
-    if (rawResults.meta?.isMetricsData !== undefined) {
-      isTableMetricsDataResults.push(rawResults.meta.isMetricsData);
-    }
-    if (rawResults.meta?.isMetricsExtractedData !== undefined) {
-      isTableMetricsExtractedDataResults.push(rawResults.meta.isMetricsExtractedData);
-    }
-    // If one of the queries is sampled, then mark the whole thing as sampled
-    setIsMetricsData?.(!isTableMetricsDataResults.includes(false));
-    setIsMetricsExtractedData?.(
-      widget,
-      isTableMetricsExtractedDataResults.every(Boolean) &&
-        isTableMetricsExtractedDataResults.some(Boolean)
-    );
-
-    if (
-      [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
-        rawResults?.meta?.discoverSplitDecision
-      )
-    ) {
-      // Update the dashboard state with the split decision
-      onWidgetSplitDecision?.(rawResults?.meta?.discoverSplitDecision);
-    }
-  };
+  // Errors and Transactions datasets are the only datasets processed in this component.
+  const config = getDatasetConfig(widget.widgetType);
 
   return (
-    <WidgetQueriesWithOnDemandControl
+    <WidgetQueriesWithConfig
       widget={widget}
       dashboardFilters={dashboardFilters}
       cursor={cursor}
@@ -211,13 +90,9 @@ export function WidgetQueries({
       onDataFetchStart={onDataFetchStart}
       selection={selection}
       config={config}
-      afterFetchSeriesData={afterFetchSeriesData}
-      afterFetchTableData={afterFetchTableData}
-      mepSettingContext={mepSettingContext}
-      OnDemandControlContext={onDemandControlContext}
       widgetInterval={widgetInterval}
     >
       {children}
-    </WidgetQueriesWithOnDemandControl>
+    </WidgetQueriesWithConfig>
   );
 }

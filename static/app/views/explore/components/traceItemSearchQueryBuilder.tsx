@@ -48,6 +48,7 @@ export type TraceItemSearchQueryBuilderProps = {
   invalidFilterKeys?: string[];
   invalidMessages?: SearchQueryBuilderProps['invalidMessages'];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  menuPresentation?: SearchQueryBuilderProps['menuPresentation'];
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
   replaceRawSearchKeys?: string[];
@@ -330,6 +331,7 @@ export function TraceItemSearchQueryBuilder({
   invalidMessages,
   showSearchIcon,
   disableFullWidthFilterKeyMenu,
+  menuPresentation,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -376,6 +378,7 @@ export function TraceItemSearchQueryBuilder({
       autoFocus={autoFocus}
       showSearchIcon={showSearchIcon}
       disableFullWidthFilterKeyMenu={disableFullWidthFilterKeyMenu}
+      menuPresentation={menuPresentation}
       {...searchQueryBuilderProps}
     />
   );

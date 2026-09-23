@@ -65,7 +65,7 @@ from sentry.issues.action_log import (
     resolve_action_actor,
 )
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequestLifecycleState
@@ -776,9 +776,7 @@ class PushEventWebhook(GitHubWebhook):
                         if commit_author is not None:
                             authors[author_email] = commit_author
 
-            # TODO(dcramer): we need to deal with bad values here, but since
-            # its optional, lets just throw it out for now
-            if len(author_email) > 75:
+            if len(author_email) > COMMIT_AUTHOR_EMAIL_LENGTH:
                 author = None
             else:
                 if author_email not in authors:
@@ -979,7 +977,8 @@ class IssuesEventWebhook(GitHubWebhook):
 
         When switching assignees, GitHub sends two webhooks (assigned and unassigned) in
         non-deterministic order. To avoid race conditions, we sync based on the current
-        state in issue.assignees rather than the delta in the assignee field.
+        state in issue.assignees rather than the delta in the assignee field, and pass
+        `issue.updated_at` along so stale deliveries can be dropped.
 
         Args:
             integration: The GitHub integration
@@ -990,6 +989,7 @@ class IssuesEventWebhook(GitHubWebhook):
         # Use issue.assignees (current state) instead of assignee (delta) to avoid race conditions
         issue = event.get("issue", {})
         assignees = issue.get("assignees", [])
+        updated_at = issue.get("updated_at")
 
         # If there are no assignees, deassign
         if not assignees:
@@ -998,6 +998,7 @@ class IssuesEventWebhook(GitHubWebhook):
                 external_user_name="",  # Not used for deassignment
                 external_issue_key=external_issue_key,
                 assign=False,
+                provider_event_updated_at=updated_at,
             )
             logger.info(
                 "github.webhook.assignment.synced",
@@ -1034,6 +1035,7 @@ class IssuesEventWebhook(GitHubWebhook):
             external_user_name=assignee_name,
             external_issue_key=external_issue_key,
             assign=True,
+            provider_event_updated_at=updated_at,
         )
 
         logger.info(

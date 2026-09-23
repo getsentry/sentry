@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {markdownToPlainText} from '@sentry/scraps/markdown';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -19,13 +20,13 @@ import {
   GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
+  type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconFire, IconUser} from 'sentry/icons';
+import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -35,13 +36,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
-  useConversations,
+  CONVERSATION_FIELDS,
   type Conversation,
+  type ConversationSortField,
   type ConversationUser,
+  type useConversations,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
+import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
 
 // Tool tags wrap across at most this many rows; anything that doesn't fit
 // collapses into a trailing "+N" overflow tag.
@@ -81,7 +85,7 @@ const COLUMN_ORDER: ColumnKey[] = [
 // have sensible starting widths that the user can drag to resize.
 const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
   conversation: {name: t('Conversation'), width: COL_WIDTH_UNDEFINED},
-  duration: {name: t('Duration'), width: 120},
+  duration: {name: t('Timespan'), width: 120},
   messages: {name: t('Messages'), width: 120},
   errors: {name: t('Errors'), width: 100},
   cost: {name: t('Cost'), width: 120},
@@ -90,6 +94,13 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
 };
 
 const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
+
+const SORT_FIELD_BY_COLUMN: Partial<Record<ColumnKey, ConversationSortField>> = {
+  messages: CONVERSATION_FIELDS.messages.key,
+  errors: CONVERSATION_FIELDS.errors.key,
+  cost: CONVERSATION_FIELDS.totalCost.key,
+  age: CONVERSATION_FIELDS.age.key,
+};
 
 // Persisted per-column widths. Only the widths are stored, keyed by column:
 // names are translated, and keying by column (rather than storing the whole
@@ -100,6 +111,19 @@ type ColumnWidths = Partial<Record<ColumnKey, number>>;
 
 // Plain-text title/first-message is ellipsized to this length before rendering.
 const CELL_MAX_CHARS = 256;
+
+export function getConversationTimespan(
+  conversation: Pick<
+    Conversation,
+    'startTimestamp' | 'endTimestamp' | 'generationDuration'
+  >
+): number {
+  const elapsedDuration = conversation.endTimestamp - conversation.startTimestamp;
+  if (elapsedDuration < 0) {
+    return 0;
+  }
+  return elapsedDuration || conversation.generationDuration;
+}
 
 export function normalizeUserField(value: string | null | undefined): string | null {
   if (!value || value.toLowerCase() === 'none') {
@@ -181,11 +205,25 @@ export function parseStoredColumnWidths(value?: unknown): ColumnWidths {
   return widths;
 }
 
-export function ConversationsTable() {
+interface ConversationsTableProps {
+  conversations: ReturnType<typeof useConversations>;
+}
+
+export function ConversationsTable({conversations}: ConversationsTableProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const {data, isFetching, error, pageLinks, setCursor, isDirectHit} = useConversations();
+  const {
+    data,
+    isFetching,
+    error,
+    pageLinks,
+    setCursor,
+    unsetCursor,
+    isDirectHit,
+    sort,
+    setSort,
+  } = conversations;
   useConversationDirectHitRedirect({isDirectHit, conversations: data});
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
@@ -223,6 +261,14 @@ export function ConversationsTable() {
   const displayedColumns = useMemo(
     () => collapseToolsColumnWhenUnused(columnOrder, hasNoTools),
     [columnOrder, hasNoTools]
+  );
+  const staticColumnWidths = useMemo(
+    () =>
+      storedWidths.conversation === undefined ||
+      storedWidths.conversation === COL_WIDTH_UNDEFINED
+        ? {conversation: `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`}
+        : undefined,
+    [storedWidths.conversation]
   );
 
   const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
@@ -265,12 +311,34 @@ export function ConversationsTable() {
         justify={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'end' : 'start'}
       >
         {column.name}
-        {/* Raise the conversation column's growth-limit so it absorbs the
-            leftover width instead of the last column stretching. */}
-        {column.key === 'conversation' && <Container width="100vw" />}
       </Flex>
     ),
     []
+  );
+
+  const getColumnSort = useCallback(
+    (column: GridColumnOrder<ColumnKey>): GridColumnSort | undefined => {
+      const field = SORT_FIELD_BY_COLUMN[column.key];
+      if (!field) {
+        return undefined;
+      }
+
+      let direction: 'asc' | 'desc' | undefined;
+      if (sort === field) {
+        direction = 'asc';
+      } else if (sort === `-${field}`) {
+        direction = 'desc';
+      }
+      return {
+        align: RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined,
+        direction,
+        onSort: () => {
+          setSort(direction === 'desc' ? field : `-${field}`);
+          unsetCursor();
+        },
+      };
+    },
+    [setSort, sort, unsetCursor]
   );
 
   const renderBodyCell = useCallback(
@@ -293,9 +361,11 @@ export function ConversationsTable() {
           // the Stack's `lg` gap is the only spacing before the pagination.
           bodyStyle={{marginBottom: 0}}
           grid={{
+            getColumnSort,
             renderHeadCell,
             renderBodyCell,
             onResizeColumn: handleResizeColumn,
+            staticColumnWidths,
           }}
           onRowClick={handleRowClick}
           isRowClickable={() => true}
@@ -325,7 +395,7 @@ function BodyCell({
       return (
         <Text tabular>
           <PerformanceDuration
-            milliseconds={conversation.generationDuration}
+            milliseconds={getConversationTimespan(conversation)}
             abbreviation
           />
         </Text>
@@ -337,7 +407,7 @@ function BodyCell({
         </Text>
       );
     case 'errors':
-      return <ErrorsCell errors={conversation.errors} />;
+      return <ErrorCell value={conversation.errors} />;
     case 'cost':
       return (
         <Text tabular>
@@ -449,24 +519,6 @@ function ConversationUserLabel({user}: {user: Conversation['user']}) {
   );
 }
 
-function ErrorsCell({errors}: {errors: number}) {
-  if (errors === 0) {
-    return (
-      <Text tabular variant="muted">
-        0
-      </Text>
-    );
-  }
-  return (
-    <Flex align="center" gap="xs">
-      <Text tabular variant="danger">
-        <Count value={errors} />
-      </Text>
-      <IconFire size="xs" variant="danger" />
-    </Flex>
-  );
-}
-
 /**
  * Greedily packs tool tags into up to `maxRows` rows and returns how many are
  * visible. When they don't all fit, room is reserved on the last row for the
@@ -559,6 +611,7 @@ function ToolsCell({toolNames}: {toolNames: string[]}) {
       badgeWidth: badgeEl?.getBoundingClientRect().width ?? 0,
       rowHeight: badgeEl?.getBoundingClientRect().height ?? 0,
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [toolsKey]);
 
   const visibleCount = useMemo(() => {
@@ -589,13 +642,15 @@ function ToolsCell({toolNames}: {toolNames: string[]}) {
   // width) so it tracks resizing synchronously — otherwise the ResizeObserver
   // lag lets the tag/badge flicker onto a second line for a frame. `max()`
   // keeps a floor when the column is narrow.
-  const maxTagWidth = layout
-    ? overflowCount > 0
-      ? `max(${MIN_TOOL_TAG_WIDTH}px, calc(100% - ${
-          layout.badgeWidth + layout.gap + TAG_WIDTH_SLACK
-        }px))`
-      : '100%'
-    : undefined;
+  let maxTagWidth: string | undefined;
+  if (layout) {
+    maxTagWidth =
+      overflowCount > 0
+        ? `max(${MIN_TOOL_TAG_WIDTH}px, calc(100% - ${
+            layout.badgeWidth + layout.gap + TAG_WIDTH_SLACK
+          }px))`
+        : '100%';
+  }
 
   // Pin the container to exactly MAX_TOOL_ROWS so a transient reflow during
   // resize can't briefly spill onto another line before the count settles.

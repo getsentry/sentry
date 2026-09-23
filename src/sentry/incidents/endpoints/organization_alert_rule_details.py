@@ -38,10 +38,7 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.workflow_engine.endpoints.organization_detector_details import remove_detector
 from sentry.workflow_engine.models import AlertRuleDetector, Detector
-from sentry.workflow_engine.utils.legacy_metric_tracking import (
-    report_used_legacy_models,
-    track_alert_endpoint_execution,
-)
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +68,6 @@ def update_alert_rule(
             {"alert_rule": ["Passing a detector through this endpoint is not yet supported"]},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    report_used_legacy_models()
     data = request.data
     validator = DrfAlertRuleSerializer(
         context={
@@ -290,7 +286,6 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
     @extend_schema(
         operation_id="(DEPRECATED) Retrieve a Metric Alert Rule for an Organization",
     )
-    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
@@ -314,12 +309,12 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
         predefined threshold. These rules help you proactively identify and address issues in your
         project.
         """
+        enforce_alerts_api_deprecation(organization)
         return fetch_alert_rule(request, organization, alert_rule)
 
     @extend_schema(
         operation_id="(DEPRECATED) Update a Metric Alert Rule",
     )
-    @track_alert_endpoint_execution("PUT", "sentry-api-0-organization-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
@@ -348,12 +343,12 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
 
 
         """
+        enforce_alerts_api_deprecation(organization)
         return update_alert_rule(request, organization, alert_rule)
 
     @extend_schema(
         operation_id="(DEPRECATED) Delete a Metric Alert Rule",
     )
-    @track_alert_endpoint_execution("DELETE", "sentry-api-0-organization-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
@@ -376,4 +371,5 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
          predefined threshold. These rules help you proactively identify and address issues in your
          project.
         """
+        enforce_alerts_api_deprecation(organization)
         return remove_alert_rule(request, organization, alert_rule)

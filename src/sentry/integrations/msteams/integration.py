@@ -23,7 +23,6 @@ from sentry.integrations.base import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 from sentry.integrations.msteams.constants import SALT
-from sentry.integrations.msteams.metrics import translate_msteams_api_error
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.provider import (
@@ -34,7 +33,6 @@ from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.signing import unsign
 
 from .card_builder.installation import (
@@ -103,10 +101,7 @@ class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient)
         self, target: IntegrationNotificationTarget, payload: AdaptiveCard
     ) -> None:
         client = self.get_client()
-        try:
-            client.send_card(conversation_id=target.resource_id, card=payload)
-        except ApiError as e:
-            translate_msteams_api_error(e)
+        client.send_card(conversation_id=target.resource_id, card=payload)
 
     def send_notification_with_threading(
         self,

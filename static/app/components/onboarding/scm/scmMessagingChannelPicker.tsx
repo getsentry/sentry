@@ -1,4 +1,5 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useId, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -8,19 +9,17 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   providerDetails,
-  RAW_CHANNEL_FIELD,
   type IntegrationChannel,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   ChannelField,
   ChannelSelect,
 } from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
-import {
-  type Channel,
-  useMessagingChannel,
-} from 'sentry/views/projectInstall/useMessagingChannel';
+import {useMessagingChannel} from 'sentry/views/projectInstall/useMessagingChannel';
 
 import type {ScmMessagingProviderKey} from './messagingProviders';
 import type {ScmMessagingSetup} from './scmMessagingSetup';
@@ -31,6 +30,8 @@ export interface ScmMessagingChannelPickerProps {
    * can receive Issue Alert actions.
    */
   eligibleIntegrations: OrganizationIntegration[];
+  /** True while the parent is creating the project after a destination is saved. */
+  isContinuing: boolean;
   onConfigured: (setup: ScmMessagingSetup & {mode: 'selected'}) => void;
   providerKey: ScmMessagingProviderKey;
   /** Pre-seeds the channel selector when editing an existing destination. */
@@ -45,11 +46,15 @@ export function ScmMessagingChannelPicker({
   onConfigured,
   existingSetup,
   providerKey,
+  isContinuing,
 }: ScmMessagingChannelPickerProps) {
+  const theme = useTheme();
+  const organization = useOrganization();
+  const workspaceId = useId();
+  const channelId = useId();
   const {channelSelectedBy} = providerDetails[providerKey];
 
-  // The saved destination we're editing, if any. Drives both the dropdown seed
-  // and the preserve-on-no-op-save logic below.
+  // The saved destination we're editing, if any.
   const savedSelection =
     existingSetup?.mode === 'selected' && existingSetup.providerKey === providerKey
       ? existingSetup
@@ -73,9 +78,15 @@ export function ScmMessagingChannelPicker({
   }>(() => ({
     integrationId: savedSelection?.integrationId,
     // Only seed the channel when the default workspace is the saved one. Switching
-    // workspaces starts blank.
+    // workspaces starts blank. The seed carries both stored identifiers, so a
+    // no-op save keeps them even when the channel list cannot resolve it.
     channel: savedSelection
-      ? {label: savedSelection.channelName, value: savedSelection[channelSelectedBy]}
+      ? {
+          label: savedSelection.channelName,
+          value: savedSelection[channelSelectedBy],
+          channelId: savedSelection.channelId,
+          channelName: savedSelection.channelName,
+        }
       : undefined,
   }));
 
@@ -99,7 +110,6 @@ export function ScmMessagingChannelPicker({
     channelOptions,
     isChannelLoading,
     isChannelsError,
-    channelsData,
     channelError,
     clearChannelValidation,
     onChannelChange,
@@ -109,8 +119,25 @@ export function ScmMessagingChannelPicker({
     integration: selectedIntegration,
     provider: providerKey,
     setChannel,
+    onChannelSelected: source =>
+      trackAnalytics('onboarding.scm_messaging_channel_selected', {
+        organization,
+        provider: providerKey,
+        source,
+      }),
     options: {refetchOnWindowFocus: true},
   });
+
+  // A typed channel the provider rejected, or one the validate request could
+  // not check. Either keeps the user in the picker with the error shown.
+  useEffect(() => {
+    if (channelError) {
+      trackAnalytics('onboarding.scm_messaging_channel_validation_failed', {
+        organization,
+        provider: providerKey,
+      });
+    }
+  }, [channelError, organization, providerKey]);
 
   const handleIntegrationChange = (option: SelectValue<OrganizationIntegration>) => {
     setSelectedIntegrationId(option.value.id);
@@ -118,111 +145,115 @@ export function ScmMessagingChannelPicker({
     clearChannelValidation();
   };
 
+  const hasMultipleWorkspaces = eligibleIntegrations.length > 1;
+  const isConfirmDisabled =
+    !channel || !!channelError || isChannelLoading || isContinuing;
+
   if (!selectedIntegration) {
     return null;
   }
 
-  const handleSave = () => {
-    if (!channel) {
+  // A real form so Enter in the channel field submits through the Confirm
+  // and continue button (implicit submission), which stays a no-op while the
+  // button is disabled. react-select keeps Enter while its menu is open, so
+  // choosing an option never submits.
+  const handleSave = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!channel || isConfirmDisabled) {
       return;
     }
 
-    // Match the selected value against whichever field this provider's options
-    // are keyed on. Manual entries (channel.new) are not in the list.
-    const rawChannel = channel.new
-      ? undefined
-      : channelsData?.results.find(
-          (ch: Channel) => ch[RAW_CHANNEL_FIELD[channelSelectedBy]] === channel.value
-        );
-
-    // Prefer the resolved raw channel. If it can't be resolved (empty/errored
-    // /channels/ or a dropped channel) but the selection and workspace are unchanged,
-    // keep the stored identifiers — otherwise id-keyed providers (msteams, discord)
-    // would overwrite channelName with the id and break name-based revalidation.
-    // A new value falls through to itself.
-    let stored: {channelId: string; channelName: string};
-
-    if (rawChannel) {
-      stored = {channelId: rawChannel.id, channelName: rawChannel.display};
-    } else if (
-      selectedIntegration.id === savedSelection?.integrationId &&
-      channel.value === savedSelection?.[channelSelectedBy]
-    ) {
-      stored = {
-        channelId: savedSelection.channelId,
-        channelName: savedSelection.channelName,
-      };
-    } else {
-      stored = {channelId: channel.value, channelName: channel.value};
-    }
-
+    // A channel from the list, or the seeded saved one, carries both
+    // identifiers. A typed channel has only its text, which is stored under
+    // both so name-based revalidation reads what the user entered.
     onConfigured({
       mode: 'selected',
       providerKey,
       integrationId: selectedIntegration.id,
-      ...stored,
+      channelId: channel.channelId ?? channel.value,
+      channelName: channel.channelName ?? channel.value,
     });
   };
 
   return (
-    <Stack gap="xl">
-      <Grid columns="1fr 1fr" gap="md">
-        <Stack gap="xs">
-          <Text bold size="sm">
-            {t('Workspace')}
-          </Text>
-          <Select
-            aria-label={t('workspace')}
-            disabled={integrationOptions.length === 1}
-            value={selectedIntegration}
-            options={integrationOptions}
-            onChange={handleIntegrationChange}
-          />
-        </Stack>
-        <Stack gap="xs">
-          <Text bold size="sm">
-            {t('Channel')}
-          </Text>
-          <ChannelField
-            name="channel"
-            error={channelError}
-            inline={false}
-            flexibleControlStateSize
-          >
-            {() => (
-              <ChannelSelect
-                provider={providerKey}
-                options={channelOptions}
-                value={channel}
-                isLoading={isChannelLoading}
-                disabled={false}
-                onChange={onChannelChange}
-                onCreateOption={onCreateChannel}
+    <form onSubmit={handleSave}>
+      <Stack gap="lg" padding="xl">
+        <Grid columns={hasMultipleWorkspaces ? '1fr 1fr' : '1fr'} gap="md">
+          {hasMultipleWorkspaces && (
+            <Stack gap="xs">
+              <Text as="label" htmlFor={workspaceId} bold size="sm">
+                {t('Workspace')}
+              </Text>
+              <Select
+                inputId={workspaceId}
+                autoFocus
+                value={selectedIntegration}
+                options={integrationOptions}
+                onChange={handleIntegrationChange}
               />
-            )}
-          </ChannelField>
-        </Stack>
-      </Grid>
-      {isChannelsError && (
-        <Alert variant="warning">
-          {t('Failed to load channels. You can still type a channel name.')}
-        </Alert>
-      )}
-      <Flex gap="sm" justify="end">
+            </Stack>
+          )}
+          <Stack gap="xs">
+            <Text as="label" htmlFor={channelId} bold size="sm">
+              {t('Channel')}
+            </Text>
+            <ChannelField
+              name="channel"
+              error={channelError}
+              inline={false}
+              flexibleControlStateSize
+            >
+              {() => (
+                <ChannelSelect
+                  inputId={channelId}
+                  // The picker opens in place of the button that opened it, so
+                  // it takes focus on mount; the workspace select takes it first
+                  // when there is one.
+                  autoFocus={!hasMultipleWorkspaces}
+                  provider={providerKey}
+                  options={channelOptions}
+                  value={channel}
+                  isLoading={isChannelLoading}
+                  disabled={false}
+                  onChange={onChannelChange}
+                  onCreateOption={onCreateChannel}
+                />
+              )}
+            </ChannelField>
+          </Stack>
+        </Grid>
+        {isChannelsError && (
+          <Alert variant="warning" role="alert">
+            {t('Failed to load channels. You can still type a channel name.')}
+          </Alert>
+        )}
+      </Stack>
+      <Flex
+        gap="lg"
+        justify="end"
+        padding="lg"
+        background="secondary"
+        borderTop="primary"
+        style={{borderRadius: `0 0 ${theme.radius.lg} ${theme.radius.lg}`}}
+      >
         {onCancel && (
-          <Button size="sm" variant="link" onClick={onCancel}>
+          <Button size="sm" variant="link" disabled={isContinuing} onClick={onCancel}>
             {t('Cancel')}
           </Button>
         )}
         <Button
+          type="submit"
           size="sm"
           variant="primary"
-          disabled={!channel || !!channelError || isChannelLoading}
-          onClick={handleSave}
+          busy={isContinuing}
+          disabled={isConfirmDisabled}
+          analyticsEventKey="onboarding.scm_messaging_confirm_and_continue_clicked"
+          analyticsEventName="Onboarding: SCM Messaging Confirm And Continue Clicked"
+          analyticsParams={{provider: providerKey}}
         >
-          {t('Add destination')}
+          {t('Confirm and continue')}
         </Button>
       </Flex>
-    </Stack>
+    </form>
   );
 }

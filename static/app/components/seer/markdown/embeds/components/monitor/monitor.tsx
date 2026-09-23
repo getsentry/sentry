@@ -9,9 +9,13 @@ const LazyMonitorBlock = lazy(() => import('./monitorBlock'));
 export const Monitor = defineSeerEmbed({
   name: 'monitor',
   render(props, level) {
-    if (level === 'block') {
-      return <LazyLoad LazyComponent={LazyMonitorBlock} {...props} />;
+    switch (level) {
+      case 'block':
+        return <LazyLoad LazyComponent={LazyMonitorBlock} {...props} />;
+      case 'markdown':
+        return <MonitorLink {...props} format="markdown" />;
+      case 'inline':
+        return <MonitorLink {...props} />;
     }
-    return <MonitorLink {...props} />;
   },
 });

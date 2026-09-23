@@ -579,7 +579,6 @@ describe('useChartXRangeSelection', () => {
           }),
         {
           initialProps: {
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
             selection: initialSelection as typeof initialSelection | undefined,
           },
         }

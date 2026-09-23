@@ -1,3 +1,5 @@
+import {definePlugin} from '@oxlint/plugins';
+
 import {
   emotionStyledImport,
   emotionSyntaxPreference,
@@ -40,12 +42,11 @@ export const rules = {
   'sort-interface-keys': sortInterfaceKeys,
 };
 
-const sentryPlugin = {
+const sentryPlugin = definePlugin({
   meta: {
     name: '@sentry-internal/eslint-plugin-sentry',
-    version: '1.0.0',
   },
   rules,
-};
+});
 
 export default sentryPlugin;

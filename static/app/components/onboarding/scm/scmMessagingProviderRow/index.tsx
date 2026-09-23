@@ -1,11 +1,11 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import type {ReactNode} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
@@ -18,13 +18,13 @@ import type {
 } from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
-import {IconInfo} from 'sentry/icons/iconInfo';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {
   IntegrationWithConfig,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -124,8 +124,14 @@ function getInstallErrorMessage(
 
 export interface ScmMessagingProviderRowProps {
   activeRow: ScmMessagingActiveRow;
+  /**
+   * True while continue is waiting on revalidation or project create.
+   * Required alongside `onContinue` so the picker cannot stay idle.
+   */
+  isContinuing: boolean;
   messagingSetup: ScmMessagingSetup;
   onActiveRowChange: (row: ScmMessagingActiveRow) => void;
+  onContinue: () => void;
   onInstallComplete: (providerKey: ScmMessagingProviderKey) => void;
   onMessagingSetupChange: (setup: ScmMessagingSetup) => void;
   resolvedProvider: ScmMessagingResolvedProvider;
@@ -161,6 +167,8 @@ export function ScmMessagingProviderRow({
   onActiveRowChange,
   renderChannelPicker,
   isRefetchingIntegrations = false,
+  isContinuing,
+  onContinue,
 }: ScmMessagingProviderRowProps) {
   const organization = useOrganization();
   const {startFlow, state: installState} = useAddIntegration();
@@ -193,7 +201,9 @@ export function ScmMessagingProviderRow({
 
   const handleConnect = useCallback(() => {
     if (resolvedProvider.providerKey === 'msteams') {
-      openMsTeamsConnectionModal(resolvedProvider.provider);
+      openMsTeamsConnectionModal(resolvedProvider.provider, () => {
+        onInstallComplete(resolvedProvider.providerKey);
+      });
       return;
     }
     startFlow({
@@ -217,11 +227,50 @@ export function ScmMessagingProviderRow({
     onInstallComplete,
   ]);
 
+  const rowEventParams = {organization, provider: resolvedProvider.providerKey};
+
+  const handleConnectClick = () => {
+    trackAnalytics('onboarding.scm_messaging_connect_clicked', rowEventParams);
+    handleConnect();
+  };
+  const handleRetryInstall = () => {
+    trackAnalytics('onboarding.scm_messaging_install_retry_clicked', rowEventParams);
+    handleConnect();
+  };
+
   const activateRow = (mode: 'configuring' | 'removing') =>
     onActiveRowChange({providerKey: resolvedProvider.providerKey, mode});
-  const handleCancelConfiguring = () => onActiveRowChange(null);
-  const handleCancelRemoving = () => onActiveRowChange(null);
+  const handleChooseDestination = () => {
+    trackAnalytics('onboarding.scm_messaging_choose_destination_clicked', rowEventParams);
+    activateRow('configuring');
+  };
+  const handleEditDestination = () => {
+    trackAnalytics('onboarding.scm_messaging_destination_edit_clicked', rowEventParams);
+    activateRow('configuring');
+  };
+  const handleCancelConfiguring = () => {
+    // The same Cancel closes a first-time pick and an edit of a staged
+    // destination; only the latter restores a previous choice.
+    trackAnalytics(
+      isConfigured
+        ? 'onboarding.scm_messaging_destination_edit_cancelled'
+        : 'onboarding.scm_messaging_choose_destination_cancelled',
+      rowEventParams
+    );
+    onActiveRowChange(null);
+  };
+  const handleCancelRemoving = () => {
+    trackAnalytics(
+      'onboarding.scm_messaging_destination_remove_cancelled',
+      rowEventParams
+    );
+    onActiveRowChange(null);
+  };
   const handleConfirmRemove = () => {
+    trackAnalytics(
+      'onboarding.scm_messaging_destination_remove_confirmed',
+      rowEventParams
+    );
     onMessagingSetupChange({mode: 'unconfigured'});
     onActiveRowChange(null);
   };
@@ -229,12 +278,36 @@ export function ScmMessagingProviderRow({
   const handleConfigured = useCallback(
     (setup: ScmMessagingSetup & {mode: 'selected'}) => {
       onMessagingSetupChange(setup);
-      onActiveRowChange(null);
+      onContinue();
     },
-    [onMessagingSetupChange, onActiveRowChange]
+    [onMessagingSetupChange, onContinue]
   );
 
   const errorMessage = getInstallErrorMessage(installState);
+
+  // Every row transition swaps the actions in place, so the control the user
+  // activated unmounts and the browser drops focus to the body. Move it to the
+  // first control of the new state instead. The picker takes focus itself.
+  // Only transitions the user starts in this row are listed: a background
+  // refetch can promote installable to choose-destination on its own, and that
+  // must not pull focus from wherever the user is.
+  const focusRef = useRef<HTMLButtonElement>(null);
+  const previousVisualStateRef = useRef(visualState);
+  useEffect(() => {
+    const previous = previousVisualStateRef.current;
+    previousVisualStateRef.current = visualState;
+    if (previous === visualState || visualState === 'configuring') {
+      return;
+    }
+    const previousUnmountedControl =
+      previous === 'configuring' ||
+      previous === 'removing' ||
+      previous === 'installing' ||
+      previous === 'loading';
+    if (previousUnmountedControl || visualState === 'removing') {
+      focusRef.current?.focus();
+    }
+  }, [visualState]);
 
   return (
     <Container border={visualState === 'removing' ? 'danger' : 'primary'} radius="lg">
@@ -243,8 +316,11 @@ export function ScmMessagingProviderRow({
           <Stack padding="md" gap="md" align="start">
             <Alert
               variant="danger"
+              role="alert"
               trailingItems={
-                <Alert.Button onClick={handleConnect}>{t('Try again')}</Alert.Button>
+                <Alert.Button ref={focusRef} onClick={handleRetryInstall}>
+                  {t('Try again')}
+                </Alert.Button>
               }
             >
               {errorMessage || t('Installation failed. Please try again.')}
@@ -255,7 +331,17 @@ export function ScmMessagingProviderRow({
         {visualState !== 'install-error' && (
           <Flex padding="lg" gap="md" align="center" justify="between">
             <Flex gap="md" align="center" style={{flex: 1, minWidth: 0}}>
-              <Container flexShrink={0} paddingTop="2xs">
+              <Container
+                flexShrink={0}
+                paddingTop="2xs"
+                // The confirmation replaces the provider name, so the logo
+                // names the provider for screen readers. Elsewhere the name is
+                // adjacent text, and the logo stays decorative.
+                role={visualState === 'removing' ? 'img' : undefined}
+                aria-label={
+                  visualState === 'removing' ? resolvedProvider.provider.name : undefined
+                }
+              >
                 <PluginIcon pluginId={resolvedProvider.providerKey} size={28} />
               </Container>
               <Stack gap="sm">
@@ -267,22 +353,23 @@ export function ScmMessagingProviderRow({
                   </Text>
                   {resolvedProvider.status !== 'connected' &&
                     visualState !== 'removing' && (
-                      <Tooltip
+                      <InfoTip
                         title={
                           SCM_MESSAGING_PROVIDER_TOOLTIPS[resolvedProvider.providerKey]
                         }
-                      >
-                        <Flex align="center">
-                          <IconInfo size="xs" variant="muted" />
-                        </Flex>
-                      </Tooltip>
+                        size="xs"
+                        variant="muted"
+                      />
                     )}
                   {resolvedProvider.status === 'connected' &&
-                    visualState !== 'removing' && (
+                    visualState !== 'removing' &&
+                    (isConfigured ? (
                       <Tag variant="success" icon={<IconCheckmark />}>
-                        {isConfigured ? t('Destination added') : t('Connected')}
+                        {t('Connected')}
                       </Tag>
-                    )}
+                    ) : (
+                      <Tag variant="info">{t('Authorized')}</Tag>
+                    ))}
                 </Flex>
                 <RowSubtitle
                   visualState={visualState}
@@ -294,11 +381,12 @@ export function ScmMessagingProviderRow({
 
             <Flex gap="sm" align="center" style={{flexShrink: 0}}>
               <RowActions
+                focusRef={focusRef}
                 visualState={visualState}
                 resolvedProvider={resolvedProvider}
-                onConnect={handleConnect}
-                onChooseDestination={() => activateRow('configuring')}
-                onEditDestination={() => activateRow('configuring')}
+                onConnect={handleConnectClick}
+                onChooseDestination={handleChooseDestination}
+                onEditDestination={handleEditDestination}
                 onStartRemoving={() => activateRow('removing')}
                 onCancelRemoving={handleCancelRemoving}
                 onConfirmRemove={handleConfirmRemove}
@@ -309,7 +397,7 @@ export function ScmMessagingProviderRow({
 
         {visualState === 'configuring' &&
           resolvedProvider.eligibleIntegrations.length > 0 && (
-            <Container borderTop="primary" padding="lg">
+            <Container borderTop="primary">
               {renderChannelPicker ? (
                 renderChannelPicker({
                   integrations: resolvedProvider.eligibleIntegrations,
@@ -323,6 +411,7 @@ export function ScmMessagingProviderRow({
                   onCancel={handleCancelConfiguring}
                   onConfigured={handleConfigured}
                   existingSetup={isConfigured ? messagingSetup : undefined}
+                  isContinuing={isContinuing}
                 />
               )}
             </Container>

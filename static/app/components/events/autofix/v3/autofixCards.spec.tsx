@@ -292,7 +292,10 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 
@@ -388,7 +391,10 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 
@@ -556,7 +562,10 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('renders error state when all patches have no changes', () => {
@@ -2252,7 +2261,10 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 });

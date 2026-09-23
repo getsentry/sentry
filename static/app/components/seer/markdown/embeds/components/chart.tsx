@@ -128,6 +128,10 @@ export function ChartContent({
           })
           .filter((plottable): plottable is Plottable => plottable !== null)}
         showReleaseAs="none"
+        // An embed's chart is as wide as the card it sits in, which is narrow
+        // and clips. Left to size itself to a model-written series name, the
+        // legend's "+n more" menu grows past the card and is cut off.
+        truncateLegendMenuLabels
       />
     );
 
@@ -146,28 +150,16 @@ export function ChartContent({
         </Stack>
       ) : null}
       {/*
-        A multi-series chart renders a legend, and the legend lays its items out
-        at their natural width — each `flex-shrink: 0` and up to 180px — only
-        collapsing them into a "+N more" dropdown once it has measured the room
-        it actually has. That natural width becomes this box's min-content
-        width, which no ancestor can shrink below, so the surrounding embed ends
-        up wider than its container. `overflow` alone can't hold it back: a
-        non-visible overflow only zeroes the automatic minimum size of a *flex
-        item*, while a block's min-content width goes on depending on its
-        children regardless.
-
-        Inline-axis size containment is what detaches the two — this box's width
-        is computed as if it had no contents, so it takes its width from the
-        embed and the legend measures against that instead of dictating it,
-        which is also what lets the "+N more" collapse do its job. `overflow`
-        then clips a canvas that is briefly stale between a resize and ECharts'
-        own ResizeObserver catching up.
+        Inline-size containment: without it a wide legend sets this box's
+        min-content width, which no ancestor can shrink below, and the chart
+        overflows its container. Containment computes the width as if the box
+        were empty, so the legend measures against the container instead of
+        dictating it.
       */}
       <Container
         containerType="inline-size"
         data-test-id="seer-chart-content"
         height="220px"
-        overflow="hidden"
         width="100%"
       >
         {visualizationComponent}
@@ -178,19 +170,26 @@ export function ChartContent({
 
 export const Chart = defineSeerEmbed({
   name: 'chart',
-  render(data) {
-    return (
-      <Container
-        as="section"
-        background="primary"
-        border="primary"
-        data-test-id="seer-chart-embed"
-        margin="lg 0"
-        padding="lg xl md"
-        radius="md"
-      >
-        <ChartContent data={data} />
-      </Container>
-    );
+  render(data, level) {
+    switch (level) {
+      case 'markdown':
+        // A plot has no text form; the heading names the data being cited.
+        return data.subtitle ? `${data.title}: ${data.subtitle}` : data.title;
+      case 'block':
+      case 'inline':
+        return (
+          <Container
+            as="section"
+            background="primary"
+            border="primary"
+            data-test-id="seer-chart-embed"
+            margin="lg 0"
+            padding="lg xl md"
+            radius="md"
+          >
+            <ChartContent data={data} />
+          </Container>
+        );
+    }
   },
 });

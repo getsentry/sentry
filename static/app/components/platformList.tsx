@@ -29,40 +29,32 @@ export function PlatformList({
 }: Props) {
   const visiblePlatforms = platforms.slice(0, max);
 
-  function renderContent() {
-    if (!platforms.length) {
-      // Decorative: the platform is conveyed by adjacent text (e.g. a project
-      // name), so keep the icon out of the accessible name.
-      return (
+  const content = platforms.length ? (
+    <PlatformIcons>
+      {visiblePlatforms.toReversed().map((visiblePlatform, index) => (
         <StyledPlatformIcon
-          data-test-id="platform-icon-default"
+          data-test-id={`platform-icon-${visiblePlatform}`}
+          key={visiblePlatform + index}
+          platform={visiblePlatform}
           size={size}
-          platform="default"
           alt=""
         />
-      );
-    }
-
-    const platformIcons = visiblePlatforms.toReversed();
-
-    return (
-      <PlatformIcons>
-        {platformIcons.map((visiblePlatform, index) => (
-          <StyledPlatformIcon
-            data-test-id={`platform-icon-${visiblePlatform}`}
-            key={visiblePlatform + index}
-            platform={visiblePlatform}
-            size={size}
-            alt=""
-          />
-        ))}
-      </PlatformIcons>
-    );
-  }
+      ))}
+    </PlatformIcons>
+  ) : (
+    // Decorative: the platform is conveyed by adjacent text (e.g. a project
+    // name), so keep the icon out of the accessible name.
+    <StyledPlatformIcon
+      data-test-id="platform-icon-default"
+      size={size}
+      platform="default"
+      alt=""
+    />
+  );
 
   return (
     <Wrapper ref={ref} className={className} size={size}>
-      {renderContent()}
+      {content}
     </Wrapper>
   );
 }

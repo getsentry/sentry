@@ -6,7 +6,8 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {t, tct, tctCode} from 'sentry/locale';
+import {getDataCollectionStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {t, tct} from 'sentry/locale';
 
 import {getInstallContent} from './utils';
 
@@ -36,6 +37,10 @@ export const onboarding: OnboardingConfig = {
         copyDsnFieldBlock(params),
       ],
     },
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/nuxt/configuration/options/#dataCollection',
+    }),
   ],
   verify: () => [
     {
@@ -43,8 +48,9 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tctCode(
-            'Build and run your application and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.'
+          text: tct(
+            'Build and run your application and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.',
+            {code: <code />}
           ),
         },
         {

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -36,14 +37,11 @@ import {
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {decodeBoolean} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
@@ -220,7 +218,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
             environments: incomingEnvs,
-            expandDerivedData: orgHasIssueInbox(organization),
+            expandDerivedData: organization.features.includes('issue-inbox'),
           }).queryKey,
           prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
@@ -317,6 +315,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     if (defined(group)) {
       GroupStore.loadInitialData([group]);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [groupId, group]);
 
   useSyncGroupStore(groupId, environments);
@@ -393,6 +392,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       // something smarter.
       delete locationQuery._allp;
       navigate({...window.location, query: locationQuery}, {replace: true});
+      // oxlint-disable-next-line react/set-state-in-effect
       setAllProjectChanged(true);
     }
   }, [group?.project.id, allProjectChanged, navigate]);
@@ -575,7 +575,8 @@ type IssueView =
   | 'replays'
   | 'attachments'
   | 'distributions'
-  | 'distributions-tag-detail';
+  | 'distributions-tag-detail'
+  | 'autofix';
 
 const ISSUE_VIEW_PREAMBLES: Record<IssueView, string> = {
   'specific-event':
@@ -592,6 +593,8 @@ const ISSUE_VIEW_PREAMBLES: Record<IssueView, string> = {
     'Sentry issue tag detail page. The user is drilling into a specific tag distribution. You can get issue tag values for the tagKey below to see exact counts and percentages.',
   'issue-overview':
     'Sentry issue detail page. Shows a single grouped issue with its latest event.',
+  autofix:
+    "Sentry issue autofix tab. The user is viewing Seer's analysis of this issue — root cause, proposed solution, code changes and any pull requests it opened.",
 };
 
 function getIssueDetailContextHint(view: IssueView): string {
@@ -625,11 +628,7 @@ function GroupDetailsContentInner({
   const {isAnyDrawerOpen} = useDrawer();
 
   const {currentTab} = useGroupDetailsRoute();
-  const {seerDrawer} = useLocationQuery({
-    fields: {
-      seerDrawer: decodeBoolean,
-    },
-  });
+  const [seerDrawer] = useQueryState('seerDrawer', parseAsBoolean.withDefault(false));
 
   const {hasAutofixQuota} = useAiConfig(group, project);
 
@@ -689,6 +688,8 @@ function GroupDetailsContentInner({
     issueView = 'replays';
   } else if (currentTab === Tab.ATTACHMENTS) {
     issueView = 'attachments';
+  } else if (currentTab === Tab.AUTOFIX) {
+    issueView = 'autofix';
   } else if (currentTab === Tab.DISTRIBUTIONS) {
     issueView = tagKey ? 'distributions-tag-detail' : 'distributions';
   }

@@ -15,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {CreatedProject} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Repository} from 'sentry/types/integrations';
@@ -35,6 +36,7 @@ jest.mock('@tanstack/react-virtual', () => ({
         size: 36,
       })),
     getTotalSize: () => count * 36,
+    measure: jest.fn(),
     measureElement: jest.fn(),
     scrollToIndex: jest.fn(),
   })),
@@ -58,7 +60,7 @@ jest.mock('sentry/data/platforms', () => {
 });
 
 interface StateOverrides {
-  createdProjectSlug?: string;
+  createdProject?: CreatedProject;
   selectedFeatures?: ProductSolution[];
   selectedPlatform?: OnboardingSelectedSDK;
   selectedRepository?: Repository;
@@ -69,11 +71,11 @@ function defaultProps(state: StateOverrides = {}) {
     selectedRepository: state.selectedRepository,
     selectedPlatform: state.selectedPlatform,
     selectedFeatures: state.selectedFeatures,
-    createdProjectSlug: state.createdProjectSlug,
+    createdProject: state.createdProject,
     deferProjectCreation: false,
     onPlatformChange: jest.fn(),
     onFeaturesChange: jest.fn(),
-    onProjectCreated: jest.fn(),
+    onCreatedProjectChange: jest.fn(),
     onComplete: jest.fn(),
   };
 }
@@ -647,7 +649,7 @@ describe('ScmPlatformFeatures', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       expect(createRequest).not.toHaveBeenCalled();
-      expect(props.onProjectCreated).not.toHaveBeenCalled();
+      expect(props.onCreatedProjectChange).not.toHaveBeenCalled();
       expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
         product: [ProductSolution.ERROR_MONITORING],
       });
@@ -691,7 +693,10 @@ describe('ScmPlatformFeatures', () => {
       expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
         product: [ProductSolution.ERROR_MONITORING],
       });
-      expect(props.onProjectCreated).toHaveBeenCalledWith(createdProject.slug);
+      expect(props.onCreatedProjectChange).toHaveBeenCalledWith({
+        slug: createdProject.slug,
+        messagingSelection: undefined,
+      });
     });
 
     it('links selected repository to project after creation', async () => {
@@ -807,7 +812,7 @@ describe('ScmPlatformFeatures', () => {
       const props = defaultProps({
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        createdProjectSlug: existingProject.slug,
+        createdProject: {slug: existingProject.slug, messagingSelection: undefined},
       });
       render(<ScmPlatformFeatures {...props} />, {organization});
 
@@ -843,7 +848,7 @@ describe('ScmPlatformFeatures', () => {
       const props = defaultProps({
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        createdProjectSlug: stalePythonProject.slug,
+        createdProject: {slug: stalePythonProject.slug, messagingSelection: undefined},
       });
       render(<ScmPlatformFeatures {...props} />, {organization});
 

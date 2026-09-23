@@ -101,7 +101,7 @@ export interface UseVirtualizedTreeProps<T extends TreeLike> {
   expanded?: boolean;
   initialSelectedNodeIndex?: number;
   onScrollToNode?: (
-    node: VirtualizedTreeRenderedRow<T>,
+    node: VirtualizedTreeRenderedRow<T> | undefined,
     scrollContainer: MaybeContainers,
     coordinates?: {depth: number; top: number}
   ) => void;
@@ -160,11 +160,23 @@ export function useVirtualizedTree<T extends TreeLike>(
 
   // Keep a ref to latest state to avoid re-rendering
   const latestStateRef = useRef(state);
+  // oxlint-disable-next-line react/refs
   latestStateRef.current = state;
   const latestTreeRef = useRef(tree);
+  // oxlint-disable-next-line react/refs
   latestTreeRef.current = tree;
   const latestItemsRef = useRef(items);
+  // oxlint-disable-next-line react/refs
   latestItemsRef.current = items;
+
+  useEffect(() => {
+    markRowAsClicked(state.selectedNodeIndex, items, {
+      ghostRowRef: clickedGhostRowRef.current,
+      rowHeight: props.rowHeight,
+      scrollTop: state.scrollTop,
+      theme,
+    });
+  }, [items, props.rowHeight, state.scrollTop, state.selectedNodeIndex, theme]);
 
   // On scroll, we update scrollTop position.
   // Keep a rafId reference in the unlikely event where component unmounts before raf is executed.
@@ -293,7 +305,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           {
             ghostRowRef: clickedGhostRowRef.current,
             rowHeight: props.rowHeight,
-            scrollTop: latestStateRef.current.scrollTop,
+            scrollTop,
             theme,
           }
         );
@@ -751,7 +763,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       markRowAsClicked(newlyVisibleIndex, latestItemsRef.current, {
         ghostRowRef: clickedGhostRowRef.current,
         rowHeight: props.rowHeight,
-        scrollTop: latestStateRef.current.scrollTop,
+        scrollTop: newScrollTop,
         theme,
       });
 
@@ -781,6 +793,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           if (!firstChild) {
             return;
           }
+          // oxlint-disable-next-line react/immutability
           firstChild.style.height = `${newMaxHeight}px`;
           firstChild.style.maxHeight = `${newMaxHeight}px`;
         }
@@ -800,7 +813,7 @@ export function useVirtualizedTree<T extends TreeLike>(
 
       if (onScrollToNode) {
         onScrollToNode(
-          latestItemsRef.current[newlyVisibleIndex]!,
+          latestItemsRef.current.find(item => item.key === newlyVisibleIndex),
           props.scrollContainer,
           {
             top: newScrollTop,
@@ -841,8 +854,10 @@ export function useVirtualizedTree<T extends TreeLike>(
     // It is important that we do not create a copy of item
     // because refs will assign the dom node to the item.
     // If we map, we get a new object that our internals will not be able to access.
+    // oxlint-disable-next-line react/refs
     for (const item of latestItemsRef.current) {
       renderered.push(
+        // oxlint-disable-next-line react/refs
         renderRow(item, {
           handleRowClick: handleRowClick(item.key),
           handleExpandTreeNode,
@@ -898,6 +913,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       }
       resizeObserver.disconnect();
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [props.scrollContainer, props.rowHeight]);
 
   const getNodeAtIndex = useCallback((index: number) => {

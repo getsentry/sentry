@@ -12,7 +12,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 import {IconGithub, IconGoogle, IconLab, IconSentry, IconVsts} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -30,6 +29,7 @@ import {RequiredOrganizationSso} from './components/requiredOrganizationSso';
 import {SecondFactorAuth} from './components/secondFactorAuth';
 import {useAuthConfig} from './hooks/useAuthConfig';
 import {useAuthOrganization} from './hooks/useAuthOrganization';
+import {useDemoLogin} from './hooks/useDemoLogin';
 import type {EmailAuthResult} from './hooks/useEmailAuth';
 import type {AuthenticatedResult, MfaMethod} from './types';
 
@@ -48,7 +48,8 @@ export default function AuthLogin() {
   const theme = useTheme();
   const {orgSlug} = useParams<{orgSlug?: string}>();
   const location = useLocation();
-  const sentryUrl = ConfigStore.get('links').sentryUrl;
+  const requestedNextUri =
+    typeof location.query.next === 'string' ? location.query.next : undefined;
   const {setAuthV2CookieState} = useEnableAuthV2();
   const hasStartedAnalyticsSession = useRef(false);
 
@@ -152,18 +153,38 @@ export default function AuthLogin() {
     [completeAuthentication, location, navigate]
   );
 
-  const mainState = hasInitialAuthConfigError
-    ? 'auth_config_error'
-    : hasAuthOrganizationError
-      ? 'organization_error'
-      : pendingMfaMethods
-        ? 'mfa'
-        : organizationSsoOnly
-          ? 'organization_sso'
-          : 'login';
+  const demoLogin = useDemoLogin({
+    authOrganization,
+    enabled: Boolean(loginConfig && !pendingMfaMethods),
+    nextUri: requestedNextUri,
+    onAuthResult: handleAuthResult,
+  });
+
+  function getMainState() {
+    if (hasInitialAuthConfigError) {
+      return 'auth_config_error' as const;
+    }
+
+    if (hasAuthOrganizationError) {
+      return 'organization_error' as const;
+    }
+
+    if (pendingMfaMethods) {
+      return 'mfa' as const;
+    }
+
+    if (organizationSsoOnly) {
+      return 'organization_sso' as const;
+    }
+
+    return 'login' as const;
+  }
+
+  const mainState = getMainState();
   const isLoginRenderable = !(
     isAuthConfigPending ||
     (orgSlug && isAuthOrganizationPending) ||
+    demoLogin.isLoading ||
     (nextUri && !focusedOrgAuth && !hasAuthOrganizationError)
   );
   useBrandedAuthLoading(!isLoginRenderable);
@@ -270,6 +291,7 @@ export default function AuthLogin() {
                 <SecondFactorAuth
                   methods={pendingMfaMethods}
                   onBack={() => {
+                    demoLogin.reset();
                     setMfaMethods(undefined);
                   }}
                   onComplete={completeAuthentication}
@@ -309,20 +331,7 @@ export default function AuthLogin() {
                     />
                   </Stack>
 
-                  {focusedOrgAuth ? (
-                    <Stack gap="md">
-                      <Grid columns="1fr max-content 1fr" align="center" gap="md">
-                        <Container borderTop="secondary" />
-                        <Text as="div" align="center" variant="muted" size="lg">
-                          {t('or')}
-                        </Text>
-                        <Container borderTop="secondary" />
-                      </Grid>
-                      <LinkButton href={`${sentryUrl}/settings/account/`}>
-                        {t('Account Settings')}
-                      </LinkButton>
-                    </Stack>
-                  ) : (
+                  {!focusedOrgAuth && (
                     <Fragment>
                       <AuthDivider />
 

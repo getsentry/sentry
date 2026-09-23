@@ -30,6 +30,7 @@ import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySer
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import type {Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -39,6 +40,11 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {
+  getConditionalFilterInvalidSeriesMessageForAggregates,
+  getValidAggregatesForRequest,
+  hasNoValidAggregatesForRequest,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -57,6 +63,113 @@ type SpansTableResponse = TableData | EventsTableData;
 // Stable empty array to prevent infinite rerenders
 const EMPTY_ARRAY: any[] = [];
 
+function isOrderbyValidForAggregates(
+  orderby: string,
+  validAggregates: readonly string[],
+  columns: readonly string[]
+): boolean {
+  const orderbyField = trimStart(orderby, '-');
+  if (!orderbyField) {
+    return true;
+  }
+  if (validAggregates.includes(orderbyField) || columns.includes(orderbyField)) {
+    return true;
+  }
+  if (isEquationAlias(orderbyField)) {
+    return (
+      getEquationAliasIndex(orderbyField) < validAggregates.filter(isEquation).length
+    );
+  }
+  return false;
+}
+
+function getSkippedConditionalFilterQueryIndexes(
+  queries: Widget['queries'],
+  enabled: boolean
+): number[] {
+  if (!enabled) {
+    return [];
+  }
+  return queries.flatMap((query, index) =>
+    hasNoValidAggregatesForRequest(query.aggregates ?? []) ? [index] : []
+  );
+}
+
+function keepAlignedValues<T>(
+  values: readonly T[] | undefined,
+  keep: readonly boolean[]
+): T[] | undefined {
+  if (values === undefined) {
+    return undefined;
+  }
+  return keep.flatMap((kept, index) => {
+    if (!kept || index >= values.length) {
+      return [];
+    }
+    return [values[index]!];
+  });
+}
+
+/**
+ * Drop invalid Explore-style `_if` aggregates before building a series/table
+ * request. Also retarget `orderby` when it pointed at a removed series so
+ * getSeriesRequestData does not re-inject the invalid field.
+ *
+ * `fields`, `fieldAliases`, and `fieldMeta` are parallel arrays. Strip with the
+ * same keep-mask so table/series transforms do not zip leftover meta onto the
+ * wrong remaining field.
+ */
+function withValidConditionalAggregates(widget: Widget, queryIndex: number): Widget {
+  const query = widget.queries[queryIndex];
+  if (!query) {
+    return widget;
+  }
+  const aggregates = query.aggregates ?? [];
+  const validAggregates = getValidAggregatesForRequest(aggregates);
+  if (validAggregates.length === aggregates.length) {
+    return widget;
+  }
+
+  const columns = query.columns ?? [];
+  let nextOrderby = query.orderby ?? '';
+  if (!isOrderbyValidForAggregates(nextOrderby, validAggregates, columns)) {
+    const fallback = validAggregates[0];
+    if (!fallback) {
+      nextOrderby = '';
+    } else if (query.orderby?.startsWith('-')) {
+      nextOrderby = `-${fallback}`;
+    } else {
+      nextOrderby = fallback;
+    }
+  }
+
+  const validAggregateSet = new Set(validAggregates);
+  const columnSet = new Set(columns);
+  const originalFields = query.fields ?? [...columns, ...aggregates];
+  const keep = originalFields.map(
+    field => columnSet.has(field) || validAggregateSet.has(field)
+  );
+
+  return {
+    ...widget,
+    queries: widget.queries.map((widgetQuery, index) => {
+      if (index !== queryIndex) {
+        return widgetQuery;
+      }
+      return {
+        ...widgetQuery,
+        aggregates: validAggregates,
+        orderby: nextOrderby,
+        fields: widgetQuery.fields
+          ? originalFields.filter((_, fieldIndex) => keep[fieldIndex])
+          : widgetQuery.fields,
+        fieldAliases: keepAlignedValues(widgetQuery.fieldAliases, keep),
+        fieldMeta: keepAlignedValues(widgetQuery.fieldMeta, keep),
+      };
+    }),
+  };
+}
+
 export function useSpansSeriesQuery(
   params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}
 ): HookWidgetQueryResult {
@@ -74,6 +187,9 @@ export function useSpansSeriesQuery(
   const {queue} = useWidgetQueryQueue();
   // Cache the previous rawData array to prevent unnecessary rerenders
   const prevRawDataRef = useRef<SpansSeriesResponse[] | undefined>(undefined);
+  const hasConditionalAggregates = organization.features.includes(
+    'explore-conditional-aggregates'
+  );
 
   // Apply dashboard filters
   const filteredWidget = useMemo(
@@ -82,10 +198,30 @@ export function useSpansSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
+  const skippedConditionalFilterQueryIndexes = useMemo(
+    () =>
+      getSkippedConditionalFilterQueryIndexes(
+        filteredWidget.queries,
+        hasConditionalAggregates
+      ),
+    [filteredWidget.queries, hasConditionalAggregates]
+  );
+
+  const allQueriesSkippedForConditionalFilter =
+    filteredWidget.queries.length > 0 &&
+    skippedConditionalFilterQueryIndexes.length === filteredWidget.queries.length;
+
   const queryResults = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
+      const aggregates = filteredWidget.queries[queryIndex]!.aggregates ?? [];
+      const skippedForInvalidConditionalFilter =
+        hasConditionalAggregates && hasNoValidAggregatesForRequest(aggregates);
+      const widgetForRequest = hasConditionalAggregates
+        ? withValidConditionalAggregates(filteredWidget, queryIndex)
+        : filteredWidget;
+
       const requestData = getSeriesRequestData(
-        filteredWidget,
+        widgetForRequest,
         queryIndex,
         organization,
         pageFilters,
@@ -143,7 +279,7 @@ export function useSpansSeriesQuery(
           }
           return apiFetch<SpansSeriesResponse>(context);
         },
-        enabled,
+        enabled: enabled && !skippedForInvalidConditionalFilter,
         retry: false,
         retryDelay: getRetryDelay,
         placeholderData: keepPreviousData,
@@ -152,9 +288,25 @@ export function useSpansSeriesQuery(
   });
 
   const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
+    if (allQueriesSkippedForConditionalFilter) {
+      return {
+        loading: false,
+        errorMessage: getConditionalFilterInvalidSeriesMessageForAggregates(
+          filteredWidget.queries[0]!.aggregates ?? []
+        ),
+        rawData: EMPTY_ARRAY,
+      };
+    }
+
+    const activeQueryIndexes = filteredWidget.queries
+      .map((_, index) => index)
+      .filter(index => !skippedConditionalFilterQueryIndexes.includes(index));
+
+    const isFetching = activeQueryIndexes.some(index => queryResults[index]?.isFetching);
+    const allHaveData = activeQueryIndexes.every(index => queryResults[index]?.data);
+    const errorMessage = activeQueryIndexes
+      .map(index => queryResults[index]?.error?.message)
+      .find(Boolean);
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
@@ -170,41 +322,47 @@ export function useSpansSeriesQuery(
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
     const rawData: SpansSeriesResponse[] = [];
 
-    queryResults.forEach((q, requestIndex) => {
+    // Iterate active queries only and append densely so skipped invalid-_if
+    // queries do not leave undefined holes in series/raw arrays (charts map
+    // these by index; table results already use push).
+    activeQueryIndexes.forEach(requestIndex => {
+      const q = queryResults[requestIndex];
       if (!q?.data) {
         return;
       }
 
       const responseData = q.data;
 
-      rawData[requestIndex] = responseData;
+      rawData.push(responseData);
+
+      const queryForTransform = (
+        hasConditionalAggregates
+          ? withValidConditionalAggregates(filteredWidget, requestIndex)
+          : filteredWidget
+      ).queries[requestIndex]!;
 
       const transformedResult = SpansConfig.transformSeries!(
         responseData,
-        filteredWidget.queries[requestIndex]!,
+        queryForTransform,
         organization
       );
-      const seriesQueryPrefix = getSeriesQueryPrefix(
-        filteredWidget.queries[requestIndex]!,
-        filteredWidget
-      );
+      const seriesQueryPrefix = getSeriesQueryPrefix(queryForTransform, filteredWidget);
 
-      // Maintain color consistency
-      transformedResult.forEach((result: Series, resultIndex: number) => {
+      transformedResult.forEach((result: Series) => {
         if (seriesQueryPrefix) {
           result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
         }
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
+        timeseriesResults.push(result);
       });
 
       // Get result types and units from config
       const resultTypes = SpansConfig.getSeriesResultType?.(
         responseData,
-        filteredWidget.queries[requestIndex]!
+        queryForTransform
       );
       const resultUnits = SpansConfig.getSeriesResultUnit?.(
         responseData,
-        filteredWidget.queries[requestIndex]!
+        queryForTransform
       );
 
       if (resultTypes) {
@@ -217,15 +375,20 @@ export function useSpansSeriesQuery(
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
+    // oxlint-disable-next-line react/refs
     if (prevRawDataRef.current?.length === rawData.length) {
+      // oxlint-disable-next-line react/refs
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
+        // oxlint-disable-next-line react/refs
         finalRawData = prevRawDataRef.current;
       }
     }
 
     // Store current rawData for next comparison
+    // oxlint-disable-next-line react/refs
     if (finalRawData !== prevRawDataRef.current) {
+      // oxlint-disable-next-line react/refs
       prevRawDataRef.current = finalRawData;
     }
 
@@ -265,16 +428,40 @@ export function useSpansTableQuery(
   const {queue} = useWidgetQueryQueue();
 
   const prevRawDataRef = useRef<SpansTableResponse[] | undefined>(undefined);
+  const hasConditionalAggregates = organization.features.includes(
+    'explore-conditional-aggregates'
+  );
   const filteredWidget = useMemo(
     () =>
       applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
+  const skippedConditionalFilterQueryIndexes = useMemo(
+    () =>
+      getSkippedConditionalFilterQueryIndexes(
+        filteredWidget.queries,
+        hasConditionalAggregates
+      ),
+    [filteredWidget.queries, hasConditionalAggregates]
+  );
+
+  const allQueriesSkippedForConditionalFilter =
+    filteredWidget.queries.length > 0 &&
+    skippedConditionalFilterQueryIndexes.length === filteredWidget.queries.length;
+
   // Use native useQueries with queue-integrated queryFn
   // React Query auto-refetches when keys change, but API calls go through the queue
   const queryResults = useQueries({
-    queries: filteredWidget.queries.map(query => {
+    queries: filteredWidget.queries.map((_, queryIndex) => {
+      const aggregates = filteredWidget.queries[queryIndex]!.aggregates ?? [];
+      const skippedForInvalidConditionalFilter =
+        hasConditionalAggregates && hasNoValidAggregatesForRequest(aggregates);
+      const widgetForRequest = hasConditionalAggregates
+        ? withValidConditionalAggregates(filteredWidget, queryIndex)
+        : filteredWidget;
+      const query = widgetForRequest.queries[queryIndex]!;
+
       const eventView = eventViewFromWidget('', query, pageFilters);
 
       const requestParams: DiscoverQueryRequestParams = {
@@ -351,7 +538,7 @@ export function useSpansTableQuery(
           }
           return apiFetch<SpansTableResponse>(modifiedContext);
         },
-        enabled,
+        enabled: enabled && !skippedForInvalidConditionalFilter,
         retry: false,
         retryDelay: getRetryDelay,
         select: selectJsonWithHeaders,
@@ -360,9 +547,27 @@ export function useSpansTableQuery(
   });
 
   const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.json);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
+    if (allQueriesSkippedForConditionalFilter) {
+      return {
+        loading: false,
+        errorMessage: getConditionalFilterInvalidSeriesMessageForAggregates(
+          filteredWidget.queries[0]!.aggregates ?? []
+        ),
+        rawData: EMPTY_ARRAY,
+      };
+    }
+
+    const activeQueryIndexes = filteredWidget.queries
+      .map((_, index) => index)
+      .filter(index => !skippedConditionalFilterQueryIndexes.includes(index));
+
+    const isFetching = activeQueryIndexes.some(index => queryResults[index]?.isFetching);
+    const allHaveData = activeQueryIndexes.every(
+      index => queryResults[index]?.data?.json
+    );
+    const errorMessage = activeQueryIndexes
+      .map(index => queryResults[index]?.error?.message)
+      .find(Boolean);
 
     if (!allHaveData || isFetching) {
       // If there's an error and we're not fetching, we're done loading
@@ -378,32 +583,41 @@ export function useSpansTableQuery(
     const rawData: SpansTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
-    queryResults.forEach((q, i) => {
+    activeQueryIndexes.forEach(i => {
+      const q = queryResults[i];
       if (!q?.data?.json) {
         return;
       }
 
       const responseData = q.data.json;
-      rawData[i] = responseData;
+      rawData.push(responseData);
+
+      const queryForTransform = (
+        hasConditionalAggregates
+          ? withValidConditionalAggregates(filteredWidget, i)
+          : filteredWidget
+      ).queries[i]!;
 
       const transformedDataItem: TableDataWithTitle = {
         ...SpansConfig.transformTable(
           responseData,
-          filteredWidget.queries[0]!,
+          queryForTransform,
           organization,
           pageFilters
         ),
-        title: filteredWidget.queries[i]?.name ?? '',
+        title: queryForTransform.name ?? '',
       };
 
       const meta = transformedDataItem.meta;
-      const fieldMeta = filteredWidget.queries?.[i]?.fieldMeta;
+      const fieldMeta = queryForTransform.fieldMeta;
       if (fieldMeta && meta) {
+        const units = (meta.units ??= {});
+        const fields = (meta.fields ??= {});
         fieldMeta.forEach((m, index) => {
-          const field = filteredWidget.queries?.[i]?.fields?.[index];
+          const field = queryForTransform.fields?.[index];
           if (m && field) {
-            meta.units![field] = m.valueUnit ?? '';
-            meta.fields![field] = m.valueType;
+            units[field] = m.valueUnit ?? '';
+            fields[field] = m.valueType;
           }
         });
       }
@@ -417,15 +631,20 @@ export function useSpansTableQuery(
     // Check if rawData is the same as before to prevent unnecessary rerenders
     // Compare each data object reference - if they're all the same, reuse previous array
     let finalRawData = rawData;
+    // oxlint-disable-next-line react/refs
     if (prevRawDataRef.current?.length === rawData.length) {
+      // oxlint-disable-next-line react/refs
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
+        // oxlint-disable-next-line react/refs
         finalRawData = prevRawDataRef.current;
       }
     }
 
     // Store current rawData for next comparison
+    // oxlint-disable-next-line react/refs
     if (finalRawData !== prevRawDataRef.current) {
+      // oxlint-disable-next-line react/refs
       prevRawDataRef.current = finalRawData;
     }
 

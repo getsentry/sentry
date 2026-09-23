@@ -8,7 +8,7 @@ from sentry.projectoptions import register
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 15
+LATEST_EPOCH = 16
 
 register(key="sentry:grouping_config", default=DEFAULT_GROUPING_CONFIG)
 register(key="sentry:grouping_enhancements", default="")
@@ -27,7 +27,11 @@ register(key="sentry:secondary_grouping_config", default=None)
 # it can be flipped on in the backfill script, unlike inclusion in a getsentry feature handler.)
 register(key="sentry:similarity_backfill_completed", default=None)
 
-register(key="sentry:group_action_log_backfill_completed", default=None)
+register(
+    key="sentry:group_action_log_backfill_completed",
+    default=None,
+    epoch_defaults={16: True},
+)
 
 
 # The JavaScript loader version that is the project default.  This option
@@ -182,8 +186,8 @@ register(
 register(
     key="sentry:loader_available_sdk_versions",
     epoch_defaults={
-        1: ["10.x", "9.x", "8.x", "7.x", "6.x", "5.x", "4.x"],
-        11: ["10.x", "9.x", "8.x", "7.x"],
+        1: ["11.x", "10.x", "9.x", "8.x", "7.x", "6.x", "5.x", "4.x"],
+        11: ["11.x", "10.x", "9.x", "8.x", "7.x"],
     },
 )
 
@@ -212,6 +216,8 @@ register(key="sentry:seer_automation_handoff_point", default=None)
 register(key="sentry:seer_automation_handoff_target", default=None)
 register(key="sentry:seer_automation_handoff_integration_id", default=None)
 register(key="sentry:seer_automation_handoff_auto_create_pr", default=False)
+# Should Autofix automatically iterate on the PRs it opens for this project's issues
+register(key="sentry:seer_pr_iteration", default=True)
 
 SEER_PROJECT_PREFERENCE_OPTION_KEYS = [
     "sentry:seer_automated_run_stopping_point",
@@ -221,6 +227,7 @@ SEER_PROJECT_PREFERENCE_OPTION_KEYS = [
     "sentry:seer_automation_handoff_auto_create_pr",
     "sentry:autofix_automation_tuning",
     "sentry:seer_scanner_automation",
+    "sentry:seer_pr_iteration",
 ]
 
 # Boolean to enable/disable preprod size analysis for this project.

@@ -108,6 +108,7 @@ export function AttributeField({
       setSuggestedAttributeValues(elideTagBasedAttributes(traceItemAttributeResult.data));
     }
   }, [
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     onChange,
     traceItemAttributeResult.data,
     traceItemAttributeResult.isLoading,
@@ -162,12 +163,12 @@ export function AttributeField({
       setShowSuggestions(true);
       setActiveSuggestion(0);
     },
-    [onChange]
+    [onChange, setShowSuggestions, setActiveSuggestion]
   );
 
   const handleFocus = useCallback(() => {
     setShowSuggestions(true);
-  }, []);
+  }, [setShowSuggestions]);
 
   const handleBlur = useCallback(
     (event: React.FocusEvent<HTMLInputElement>) => {
@@ -177,7 +178,7 @@ export function AttributeField({
       onBlur?.(event.target.value, event);
       fieldProps.onBlur();
     },
-    [onBlur, fieldProps]
+    [onBlur, fieldProps, setShowSuggestions]
   );
 
   const handleClickSuggestion = useCallback(
@@ -186,7 +187,7 @@ export function AttributeField({
       setShowSuggestions(false);
       setActiveSuggestion(0);
     },
-    [onChange]
+    [onChange, setShowSuggestions, setActiveSuggestion]
   );
 
   const handleKeyDown = useCallback(
@@ -217,7 +218,14 @@ export function AttributeField({
           break;
       }
     },
-    [showSuggestions, filteredSuggestions, activeSuggestion, handleClickSuggestion]
+    [
+      showSuggestions,
+      filteredSuggestions,
+      activeSuggestion,
+      handleClickSuggestion,
+      setActiveSuggestion,
+      setShowSuggestions,
+    ]
   );
 
   return (

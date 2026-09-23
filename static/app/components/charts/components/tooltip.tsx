@@ -123,7 +123,7 @@ export type FormatterOptions = Pick<
      * names. Receives the names of the series in the tooltip. Called on each tooltip
      * render, so it can render a React tree to a string.
      */
-    renderSeriesDetails?: (seriesNames: string[]) => string;
+    renderSeriesDetails?: (seriesNames: string[], timestamp: number) => string;
     /**
      * If true does not display sublabels with a value of 0.
      */
@@ -312,8 +312,10 @@ export function getFormatter({
     );
 
     const seriesDetails =
-      renderSeriesDetails?.(visibleSeriesParams.map(serie => serie.seriesName ?? '')) ??
-      '';
+      renderSeriesDetails?.(
+        visibleSeriesParams.map(serie => serie.seriesName ?? ''),
+        timestamp
+      ) ?? '';
 
     if (subLabels.length > 0) {
       return [
@@ -410,7 +412,6 @@ export function computeChartTooltip(
      */
     position(pos, _params, dom, _rec, size) {
       // Types seem to be broken on dom
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       dom = dom as HTMLDivElement;
       // Center the tooltip slightly above the cursor.
       const [tipWidth, tipHeight] = size.contentSize;
