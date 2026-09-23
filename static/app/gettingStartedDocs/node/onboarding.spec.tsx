@@ -29,6 +29,16 @@ describe('node onboarding docs', () => {
     });
   });
 
+  it('starts the app with the --import flag', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/node --import \.\/instrument\.mjs index\.mjs/)
+      )
+    ).toBeInTheDocument();
+  });
+
   it('displays sample rates by default', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
@@ -67,7 +77,7 @@ describe('node onboarding docs', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+          /import { nodeProfilingIntegration } from "@sentry\/profiling-node"/
         )
       )
     ).toBeInTheDocument();
@@ -93,7 +103,7 @@ describe('node onboarding docs', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+          /import { nodeProfilingIntegration } from "@sentry\/profiling-node"/
         )
       )
     ).toBeInTheDocument();
