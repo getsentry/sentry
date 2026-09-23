@@ -305,6 +305,9 @@ const IssuesTraceGrid = styled(TraceGrid)<{
 }>`
   display: block;
   flex-grow: 1;
+  /* Keep the calculated row height clear of the border and rounded bottom corners. */
+  box-sizing: content-box;
+  padding-bottom: ${p => p.theme.space.sm};
   max-height: ${MAX_HEIGHT}px;
   height: ${p =>
     Math.min(Math.max(p.rowCount, MIN_ROW_COUNT), MAX_ROW_COUNT) * ROW_HEIGHT +
