@@ -189,6 +189,45 @@ describe('Investigation detail', () => {
     });
   });
 
+  it('links a breached metric investigation to its monitor', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        sourceType: 'metric_open_period',
+        source: {
+          type: 'metric_open_period',
+          ref: {groupId: '123', openPeriodId: '456'},
+          snapshot: {monitor: {id: '789', name: 'Checkout error rate'}},
+        },
+      }),
+    });
+
+    renderView();
+
+    expect(await screen.findByRole('link', {name: 'Breached metric'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/monitors/789/'
+    );
+  });
+
+  it('does not link a breached metric investigation without a monitor snapshot', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        sourceType: 'metric_open_period',
+        source: {
+          type: 'metric_open_period',
+          ref: {groupId: '123', openPeriodId: '456'},
+        },
+      }),
+    });
+
+    renderView();
+
+    expect(await screen.findByText('Breached metric')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Breached metric'})).not.toBeInTheDocument();
+  });
+
   it('renders completed investigation metadata above the first block', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,

@@ -29,6 +29,7 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
@@ -292,6 +293,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const visibleNotebookCells = notebookCells.filter(block =>
     shouldDisplayInvestigationBlock(block)
   );
+  const sourceMonitorId = getSourceMonitorId(investigation);
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -384,7 +386,17 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             </Grid>
             <Flex align="center" justify="between" gap="md" wrap="wrap">
               <Flex align="center" gap="sm" wrap="wrap">
-                <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
+                {sourceMonitorId ? (
+                  <Link
+                    to={makeMonitorDetailsPathname(organization.slug, sourceMonitorId)}
+                  >
+                    {formatSourceType(investigation.sourceType)}
+                  </Link>
+                ) : (
+                  <Text variant="muted">
+                    {formatSourceType(investigation.sourceType)}
+                  </Text>
+                )}
                 <MetaDivider />
                 <Text variant="muted">
                   {tct('Last update: [date]', {
@@ -489,6 +501,20 @@ function getInvestigationPath(organizationSlug: string, investigationId: string)
   return normalizeUrl(
     `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
   );
+}
+
+// A breached metric investigation snapshots the monitor it was started from, so
+// the header can link back to it. Older investigations may predate the snapshot.
+function getSourceMonitorId(investigation: InvestigationDetail): string | null {
+  const snapshot = investigation.source?.snapshot;
+  if (!snapshot || typeof snapshot !== 'object' || !('monitor' in snapshot)) {
+    return null;
+  }
+  const {monitor} = snapshot;
+  if (!monitor || typeof monitor !== 'object' || !('id' in monitor)) {
+    return null;
+  }
+  return typeof monitor.id === 'string' && monitor.id ? monitor.id : null;
 }
 
 function formatSourceType(sourceType: string) {
