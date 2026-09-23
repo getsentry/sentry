@@ -75,6 +75,20 @@ describe('cloudflare onboarding docs', () => {
     expect(screen.getByRole('link', {name: 'migrate to Workers'})).toBeInTheDocument();
   });
 
+  it('tells Pages users where to put and how to trigger the verify snippet', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedOptions: {setupType: CloudflareSetupType.PAGES},
+    });
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /Add it to a functions\/customerror\.js file, then access the \/customerror path/
+        )
+      )
+    ).toBeInTheDocument();
+  });
+
   it('displays sample rates by default', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [

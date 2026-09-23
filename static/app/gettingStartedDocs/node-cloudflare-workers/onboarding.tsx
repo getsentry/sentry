@@ -274,21 +274,35 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
   verify: params => [
     {
       type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-          ),
-        },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: isPagesSetup(params)
-            ? getPagesVerifySnippet(params)
-            : getVerifySnippet(params),
-        },
-      ],
+      content: isPagesSetup(params)
+        ? [
+            {
+              type: 'text',
+              text: tct(
+                "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected. Add it to a [code:functions/customerror.js] file, then access the [code:/customerror] path on your deployment to trigger it.",
+                {code: <code />}
+              ),
+            },
+            {
+              type: 'code',
+              language: 'javascript',
+              filename: 'functions/customerror.js',
+              code: getPagesVerifySnippet(params),
+            },
+          ]
+        : [
+            {
+              type: 'text',
+              text: t(
+                "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+              ),
+            },
+            {
+              type: 'code',
+              language: 'javascript',
+              code: getVerifySnippet(params),
+            },
+          ],
     },
   ],
   nextSteps: params => {
