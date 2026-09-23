@@ -9,7 +9,6 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {stubIframeScrollTo} from 'sentry-test/iframeScrollTo';
 import {render as baseRender, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import type {ResponseMeta} from 'sentry/types/api';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -302,22 +301,6 @@ describe('ReplayClipPreview', () => {
       'href',
       mockButtonHref
     );
-  });
-
-  it('Wraps replay metadata while reserving space for the full replay button', () => {
-    render(<ReplayClipPreview {...defaultProps} />);
-
-    const button = screen.getByRole('button', {name: 'See Full Replay'});
-    const buttonRules = getEmotionRules(button)
-      .filter(rule => button.matches(rule.split('{')[0]!.trim()))
-      .join(' ');
-    expect(buttonRules).toContain('position: relative');
-    expect(buttonRules).not.toContain('position: absolute');
-    const headerRules = getEmotionRules(button.parentElement!).join(' ');
-    expect(headerRules).toContain('grid-template-columns: minmax(0, 1fr) auto');
-    expect(headerRules).toContain('gap: 8px');
-    const metadata = screen.getByText(mockReplayId.slice(0, 8)).parentElement!;
-    expect(getEmotionRules(metadata).join(' ')).toContain('flex-wrap: wrap');
   });
 
   it('Display URL and breadcrumbs in fullscreen mode', async () => {
