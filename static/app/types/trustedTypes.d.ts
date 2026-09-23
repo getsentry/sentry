@@ -11,13 +11,3 @@ interface ServiceWorkerContainer {
     options?: RegistrationOptions
   ): Promise<ServiceWorkerRegistration>;
 }
-
-// Trusted values stringify to the value they wrap, but @types/trusted-types
-// leaves the stringifier out.
-interface TrustedHTML {
-  toString(): string;
-}
-
-interface TrustedScriptURL {
-  toString(): string;
-}
