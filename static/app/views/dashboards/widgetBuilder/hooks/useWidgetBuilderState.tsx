@@ -1420,23 +1420,19 @@ function normalizeSortField(field: string): string {
   return parsedField.kind === 'function' ? generateFieldAsString(parsedField) : field;
 }
 
-function normalizeSorts(sorts: Sort[]): Sort[] {
-  return sorts.map(sort => ({...sort, field: normalizeSortField(sort.field)}));
-}
-
 function deserializeSorts(dataset?: WidgetType) {
   return function (sorts: Sort[]): Sort[] {
-    return normalizeSorts(sorts).map(sort => {
+    return sorts.map(sort => {
       if (
         dataset === WidgetType.ISSUE &&
         REVERSED_ORDER_FIELD_SORT_LIST.includes(sort.field)
       ) {
         return {
-          field: sort.field,
+          field: normalizeSortField(sort.field),
           kind: 'desc',
         };
       }
-      return sort;
+      return {...sort, field: normalizeSortField(sort.field)};
     });
   };
 }
