@@ -135,10 +135,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if options.get("issues.derived_data.read_path_checks.killswitch"):
             return
 
-        if not (
-            features.has("projects:issue-status-reconciliation", group.project)
-            or derived_should_be_correct(group.project)
-        ):
+        if not derived_should_be_correct(group.project):
             return
 
         derived = GroupDerivedData.objects.filter(group_id=group.id).first()
@@ -146,10 +143,13 @@ class GroupDetailsEndpoint(GroupEndpoint):
             return
 
         inconsistency = record_status_consistency(group, derived, source="read_path")
-        if inconsistency is not None:
+        if inconsistency is not None and options.get(
+            "issues.derived_data.status_reconciliation.enabled"
+        ):
             from sentry.issues.derived.tasks import reconcile_group_status
 
-            reconcile_group_status.delay(group.id)
+            # Allow transient inconsistencies to settle before checking again.
+            reconcile_group_status.apply_async(kwargs={"group_id": group.id}, countdown=5 * 60)
 
     @staticmethod
     def __group_hourly_daily_stats(

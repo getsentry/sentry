@@ -11,6 +11,7 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived.check import StatusInconsistency
 from sentry.issues.derived.features import IssueStatus
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.derived.processing import PIPELINE
 from sentry.issues.derived.reconcile import reconcile_group_status
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
@@ -19,13 +20,22 @@ from sentry.locks import locks
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import CapturedAction, capture_action_log
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.types.group import GroupSubStatus
 
 
-@with_feature("projects:issue-status-reconciliation")
 class ReconcileGroupStatusTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self._options_ctx = self.options(
+            {
+                "issues.derived_data.status_reconciliation.enabled": True,
+                "issues.derived_data.status_reconciliation.dry_run": False,
+            }
+        )
+        self._options_ctx.__enter__()
+        self.addCleanup(lambda: self._options_ctx.__exit__(None, None, None))
+
     def _create_divergent_group(
         self,
         *,
@@ -179,9 +189,9 @@ class ReconcileGroupStatusTest(TestCase):
             tags={"result": "no_derived_data"},
         )
 
-    @override_options({"issues.derived_data.read_path_checks.killswitch": True})
-    def test_killswitch_bails(self) -> None:
+    def test_derived_not_expected_correct_bails(self) -> None:
         group, _ = self._create_divergent_group()
+        group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, False)
 
         with (
             capture_action_log() as log,
@@ -193,7 +203,43 @@ class ReconcileGroupStatusTest(TestCase):
         mock_incr.assert_any_call(
             "issues.derived.reconcile_group_status.result",
             sample_rate=1.0,
-            tags={"result": "killswitched"},
+            tags={"result": "derived_not_expected_correct"},
+        )
+
+    @override_options({"issues.derived_data.read_path_checks.killswitch": True})
+    def test_read_path_killswitch_does_not_disable_reconciliation(self) -> None:
+        group, _ = self._create_divergent_group()
+
+        with capture_action_log() as log:
+            reconcile_group_status(group.id)
+
+        log.assert_logged(ReconcileStatusAction, group_id=group.id, status="closed")
+
+    @override_options({"issues.derived_data.status_reconciliation.dry_run": True})
+    def test_dry_run_does_not_publish(self) -> None:
+        group, derived = self._create_divergent_group()
+
+        with (
+            capture_action_log() as log,
+            patch("sentry.issues.derived.reconcile.logger") as mock_logger,
+            patch("sentry.issues.derived.reconcile.metrics.incr") as mock_incr,
+        ):
+            reconcile_group_status(group.id)
+
+        log.assert_not_logged(ReconcileStatusAction)
+        mock_logger.info.assert_any_call(
+            "reconcile_group_status.would_publish",
+            extra={
+                "group_id": group.id,
+                "target_status": "closed",
+                "observed_derived_status": "open",
+                "derived_generated_at": derived.generated_at.isoformat(),
+            },
+        )
+        mock_incr.assert_any_call(
+            "issues.derived.reconcile_group_status.result",
+            sample_rate=1.0,
+            tags={"result": "dry_run", "target_status": "closed"},
         )
 
     def test_lock_held_bails(self) -> None:
@@ -322,13 +368,8 @@ class ReconcileGroupStatusTest(TestCase):
             tags={"result": "changed_during_check"},
         )
 
-    @with_feature(
-        {
-            "projects:issue-status-reconciliation": False,
-            "projects:issue-action-log-write-to-db": False,
-        }
-    )
-    def test_not_gated_bails(self) -> None:
+    @override_options({"issues.derived_data.status_reconciliation.enabled": False})
+    def test_disabled_bails(self) -> None:
         group, _ = self._create_divergent_group()
 
         with (
@@ -341,7 +382,7 @@ class ReconcileGroupStatusTest(TestCase):
         mock_incr.assert_any_call(
             "issues.derived.reconcile_group_status.result",
             sample_rate=1.0,
-            tags={"result": "not_gated"},
+            tags={"result": "disabled"},
         )
 
     def test_group_not_found_bails(self) -> None:

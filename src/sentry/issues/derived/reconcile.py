@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from sentry import features, options
+from sentry import options
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, publish_action
 from sentry.issues.action_log.types import ReconcileStatusAction
@@ -49,8 +49,8 @@ def reconcile_group_status(group_id: int) -> None:
     """
     logger.info("reconcile_group_status.started", extra={"group_id": group_id})
 
-    if options.get("issues.derived_data.read_path_checks.killswitch"):
-        _record_result("killswitched")
+    if not options.get("issues.derived_data.status_reconciliation.enabled"):
+        _record_result("disabled")
         return
 
     lock = locks.get(
@@ -65,11 +65,8 @@ def reconcile_group_status(group_id: int) -> None:
                 _record_result("group_not_found")
                 return
 
-            if not (
-                features.has("projects:issue-status-reconciliation", group.project)
-                or derived_should_be_correct(group.project)
-            ):
-                _record_result("not_gated")
+            if not derived_should_be_correct(group.project):
+                _record_result("derived_not_expected_correct")
                 return
 
             derived = GroupDerivedData.objects.get_or_none(group_id=group_id)
@@ -125,6 +122,19 @@ def reconcile_group_status(group_id: int) -> None:
             # This check and publish are intentionally non-atomic; a rare unnecessary
             # reconcile is preferable to locking the Group row.
             target_status = observed_inconsistency.actual.value
+            if options.get("issues.derived_data.status_reconciliation.dry_run"):
+                logger.info(
+                    "reconcile_group_status.would_publish",
+                    extra={
+                        "group_id": group.id,
+                        "target_status": target_status,
+                        "observed_derived_status": observed_inconsistency.derived.value,
+                        "derived_generated_at": observed_generated_at.isoformat(),
+                    },
+                )
+                _record_result("dry_run", target_status=target_status)
+                return
+
             publish_action(
                 ReconcileStatusAction(
                     status=target_status,
