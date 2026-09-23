@@ -11,6 +11,8 @@ import {
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 
 type ThresholdsSectionProps = {
   dataType?: string;
@@ -29,6 +31,8 @@ export function ThresholdsSection({
   const isTimeSeriesWidget = Boolean(
     state.displayType && usesTimeSeriesData(state.displayType)
   );
+  const showThresholdTimeWindow =
+    isTimeSeriesWidget && canScaleThresholds(convertBuilderStateToWidget(state));
   const hasThresholdValues = Boolean(
     defined(state.thresholds?.max_values?.max1) ||
     defined(state.thresholds?.max_values?.max2)
@@ -54,6 +58,15 @@ export function ThresholdsSection({
       });
     }
   }, [dataType, dispatch, state.thresholds]);
+
+  useEffect(() => {
+    if (state.thresholds?.timeWindow && !showThresholdTimeWindow) {
+      dispatch({
+        type: BuilderStateAction.SET_THRESHOLDS,
+        payload: {...state.thresholds, timeWindow: undefined},
+      });
+    }
+  }, [dispatch, showThresholdTimeWindow, state.thresholds]);
 
   return (
     <Fragment>
@@ -131,7 +144,7 @@ export function ThresholdsSection({
             },
           });
         }}
-        showThresholdTimeWindow={isTimeSeriesWidget}
+        showThresholdTimeWindow={showThresholdTimeWindow}
         thresholdTimeWindowDisabled={!hasThresholdValues}
         onThresholdTimeWindowChange={timeWindow => {
           if (!state.thresholds) {

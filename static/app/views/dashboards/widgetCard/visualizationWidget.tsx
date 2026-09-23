@@ -30,6 +30,7 @@ import {
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
+import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {scaleThresholdsToInterval} from 'sentry/views/dashboards/widgetCard/scaleThresholdsToInterval';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
@@ -416,7 +417,9 @@ function VisualizationWidgetContent({
   ) {
     plottables.push(
       new Thresholds({
-        thresholds: scaleThresholdsToInterval(widget.thresholds, widgetInterval),
+        thresholds: canScaleThresholds(widget)
+          ? scaleThresholdsToInterval(widget.thresholds, widgetInterval)
+          : widget.thresholds,
         dataType: timeSeriesWithPlottable[0]?.[0]?.meta?.valueType,
       })
     );

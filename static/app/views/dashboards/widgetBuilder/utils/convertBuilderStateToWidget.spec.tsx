@@ -1,3 +1,4 @@
+import {explodeFieldString} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
@@ -131,6 +132,46 @@ describe('convertBuilderStateToWidget', () => {
     const widget = convertBuilderStateToWidget(mockState);
 
     expect(widget.thresholds).toEqual(mockState.thresholds);
+  });
+
+  it('preserves the interval for a count time series', () => {
+    const thresholds = {max_values: {max1: 100}, unit: null, timeWindow: '10m'};
+    const widget = convertBuilderStateToWidget({
+      displayType: DisplayType.LINE,
+      yAxis: [
+        {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
+      ],
+      thresholds,
+    });
+
+    expect(widget.thresholds).toEqual(thresholds);
+  });
+
+  it.each(['sum(span.duration)', 'equation|count() / 2'])(
+    'preserves the interval for %s',
+    aggregate => {
+      const thresholds = {max_values: {max1: 100}, unit: null, timeWindow: '10m'};
+      const widget = convertBuilderStateToWidget({
+        displayType: DisplayType.LINE,
+        yAxis: [explodeFieldString(aggregate)],
+        thresholds,
+      });
+
+      expect(widget.thresholds).toEqual(thresholds);
+    }
+  );
+
+  it.each([
+    ['duration', 'p95', 'span.duration'],
+    ['rate', 'eps', ''],
+  ])('removes the saved interval for a %s aggregate', (_name, functionName, field) => {
+    const widget = convertBuilderStateToWidget({
+      displayType: DisplayType.LINE,
+      yAxis: [explodeFieldString(`${functionName}(${field})`)],
+      thresholds: {max_values: {max1: 100}, unit: null, timeWindow: '10m'},
+    });
+
+    expect(widget.thresholds).toEqual({max_values: {max1: 100}, unit: null});
   });
 
   it('uses the fields from widget state when displaying as a table', () => {

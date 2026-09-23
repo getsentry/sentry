@@ -231,4 +231,39 @@ describe('VisualizationWidget threshold time windows', () => {
 
     expect(screen.getByTestId('threshold-values')).toHaveTextContent('100, 200');
   });
+
+  it('treats a saved interval as fixed for unsupported aggregates', () => {
+    const durationWidget = {
+      ...thresholdWidget,
+      queries: [{...thresholdWidget.queries[0]!, aggregates: ['p95(span.duration)']}],
+    };
+
+    render(
+      <VisualizationWidget
+        widget={durationWidget}
+        selection={selection}
+        widgetInterval="1h"
+      />,
+      {organization: OrganizationFixture()}
+    );
+
+    expect(screen.getByTestId('threshold-values')).toHaveTextContent('100, 200');
+  });
+
+  it.each(['sum(span.duration)', 'equation|count() / 2'])(
+    'scales a saved interval for %s',
+    aggregate => {
+      const widget = {
+        ...thresholdWidget,
+        queries: [{...thresholdWidget.queries[0]!, aggregates: [aggregate]}],
+      };
+
+      render(
+        <VisualizationWidget widget={widget} selection={selection} widgetInterval="1h" />,
+        {organization: OrganizationFixture()}
+      );
+
+      expect(screen.getByTestId('threshold-values')).toHaveTextContent('600, 1200');
+    }
+  );
 });

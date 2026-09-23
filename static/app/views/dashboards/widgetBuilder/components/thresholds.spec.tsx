@@ -43,6 +43,7 @@ describe('Thresholds', () => {
             pathname: '/mock-pathname/',
             query: {
               displayType: DisplayType.LINE,
+              yAxis: ['count()'],
             },
           },
         },
@@ -69,6 +70,7 @@ describe('Thresholds', () => {
             pathname: '/mock-pathname/',
             query: {
               displayType: DisplayType.LINE,
+              yAxis: ['count()'],
               interval: '1h',
               thresholds:
                 '{"max_values":{"max1":100,"max2":200},"unit":null,"timeWindow":"10m"}',
@@ -92,6 +94,7 @@ describe('Thresholds', () => {
             pathname: '/mock-pathname/',
             query: {
               displayType: DisplayType.LINE,
+              yAxis: ['count()'],
               thresholds: '{"max_values":{"max1":100},"unit":null}',
             },
           },
@@ -107,6 +110,63 @@ describe('Thresholds', () => {
       )
     ).toBeInTheDocument();
   });
+
+  it.each(['p95(span.duration)', 'eps()'])(
+    'hides the interval selector for %s and clears a saved interval',
+    async aggregate => {
+      const {router} = render(
+        <WidgetBuilderProvider>
+          <Thresholds dataType="integer" />
+        </WidgetBuilderProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/mock-pathname/',
+              query: {
+                displayType: DisplayType.LINE,
+                yAxis: [aggregate],
+                thresholds: '{"max_values":{"max1":100},"unit":null,"timeWindow":"10m"}',
+              },
+            },
+          },
+        }
+      );
+
+      expect(screen.queryByText('10 minutes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Fixed')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
+          max_values: {max1: 100},
+          unit: null,
+        });
+      });
+    }
+  );
+
+  it.each(['sum(span.duration)', 'equation|count() / 2'])(
+    'shows the saved interval for %s',
+    aggregate => {
+      render(
+        <WidgetBuilderProvider>
+          <Thresholds dataType="integer" />
+        </WidgetBuilderProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/mock-pathname/',
+              query: {
+                displayType: DisplayType.LINE,
+                yAxis: [aggregate],
+                thresholds: '{"max_values":{"max1":100},"unit":null,"timeWindow":"10m"}',
+              },
+            },
+          },
+        }
+      );
+
+      expect(screen.getByText('10 minutes')).toBeInTheDocument();
+    }
+  );
 
   it('updates the unit when applied', async () => {
     const {router} = render(
