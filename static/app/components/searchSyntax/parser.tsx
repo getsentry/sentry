@@ -31,6 +31,12 @@ const listJoiner = <K,>([s1, comma, s2, value]: ListItem<K>) => {
 };
 
 /**
+ * Must stay in sync with MAX_REGEX_PATTERN_LENGTH in src/sentry/api/event_search.py,
+ * which rejects longer patterns server side.
+ */
+export const MAX_REGEX_PATTERN_LENGTH = 64;
+
+/**
  * A token represents a node in the syntax tree. These are all extrapolated
  * from the grammar and may not be named exactly the same.
  */
@@ -63,6 +69,7 @@ export enum Token {
   VALUE_BOOLEAN = 'valueBoolean',
   VALUE_NUMBER = 'valueNumber',
   VALUE_TEXT = 'valueText',
+  VALUE_REGEX = 'valueRegex',
   VALUE_NUMBER_LIST = 'valueNumberList',
   VALUE_TEXT_LIST = 'valueTextList',
 }
@@ -120,6 +127,7 @@ export enum FilterType {
   HAS = 'has',
   IS = 'is',
   ARRAY_INCLUDES = 'arrayIncludes',
+  REGEX = 'regex',
 }
 
 /**
@@ -190,6 +198,8 @@ const textKeys = [
 ] as const;
 
 const arrayIncludesKeys = [Token.KEY_ARRAY_INCLUDES] as const;
+
+const regexKeys = [...textKeys, ...arrayIncludesKeys] as const;
 
 /**
  * This constant-type configuration object declares how each filter type
@@ -314,6 +324,12 @@ export const filterTypeConfig = {
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
   },
+  [FilterType.REGEX]: {
+    validKeys: regexKeys,
+    validOps: basicOperators,
+    validValues: [Token.VALUE_REGEX],
+    canNegate: true,
+  },
 } as const;
 
 type FilterTypeConfig = typeof filterTypeConfig;
@@ -340,6 +356,7 @@ export enum InvalidReason {
   INVALID_DURATION = 'invalid-duration',
   INVALID_DATE_FORMAT = 'invalid-date-format',
   PARENS_NOT_ALLOWED = 'parens-not-allowed',
+  REGEX_PATTERN_TOO_LONG = 'regex-pattern-too-long',
 }
 
 /**
@@ -802,6 +819,14 @@ export class TokenConverter {
     };
   };
 
+  tokenValueRegex = (value: string) => {
+    return {
+      ...this.defaultTokenFields,
+      type: Token.VALUE_REGEX as const,
+      value,
+    };
+  };
+
   /**
    * This method is used while tokenizing to predicate whether a filter should
    * match or not. We do this because not all keys are valid for specific
@@ -850,6 +875,9 @@ export class TokenConverter {
 
       case FilterType.AGGREGATE_PERCENTAGE:
         return checkAggregate(isPercentage);
+
+      case FilterType.REGEX:
+        return this.config.allowRegex;
 
       default:
         return true;
@@ -996,6 +1024,10 @@ export class TokenConverter {
       return this.checkInvalidTextValue(value as TextFilter['value']);
     }
 
+    if (filter === FilterType.REGEX) {
+      return this.checkInvalidRegexValue(value as FilterMap[FilterType.REGEX]['value']);
+    }
+
     if ([FilterType.TEXT_IN, FilterType.NUMERIC_IN].includes(filter)) {
       return this.checkInvalidInFilter(value as InFilter['value']);
     }
@@ -1102,6 +1134,17 @@ export class TokenConverter {
       return {
         type: InvalidReason.FILTER_MUST_HAVE_VALUE,
         reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE],
+      };
+    }
+
+    return null;
+  };
+
+  checkInvalidRegexValue = (value: FilterMap[FilterType.REGEX]['value']) => {
+    if (value.value.length > MAX_REGEX_PATTERN_LENGTH) {
+      return {
+        type: InvalidReason.REGEX_PATTERN_TOO_LONG,
+        reason: this.config.invalidMessages[InvalidReason.REGEX_PATTERN_TOO_LONG],
       };
     }
 
@@ -1404,6 +1447,12 @@ export type AggregateFilter = AggregateFilterType & {
  */
 export type SearchConfig = {
   /**
+   * Enables the `key://pattern//` regex filter syntax. Only searches whose
+   * backend resolver compiles regex patterns should turn this on; elsewhere
+   * `//pattern//` stays the literal text value it has always been.
+   */
+  allowRegex: boolean;
+  /**
    * Keys considered valid for boolean filter types
    */
   booleanKeys: Set<string>;
@@ -1518,6 +1567,7 @@ export const defaultConfig: SearchConfig = {
   ]),
   sizeKeys: new Set(),
   disallowedLogicalOperators: new Set(),
+  allowRegex: false,
   disallowFreeText: false,
   disallowWildcard: false,
   disallowNegation: false,
@@ -1548,6 +1598,10 @@ export const defaultConfig: SearchConfig = {
       'Lists should not have empty values'
     ),
     [InvalidReason.PARENS_NOT_ALLOWED]: t('Parentheses are not supported in this search'),
+    [InvalidReason.REGEX_PATTERN_TOO_LONG]: t(
+      'Regex patterns are limited to %s characters. To search for a literal value that starts with //, quote it: "//..."',
+      MAX_REGEX_PATTERN_LENGTH
+    ),
   },
 };
 

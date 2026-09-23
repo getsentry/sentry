@@ -67,6 +67,7 @@ filter
   / aggregate_filter
   / has_filter
   / is_filter
+  / regex_filter
   / array_includes_filter
   / text_in_filter
   / text_filter
@@ -205,6 +206,28 @@ is_filter
       return tc.predicateFilter(FilterType.IS, key)
     } {
       return tc.tokenFilter(FilterType.IS, key, value, opDefault, !!negation);
+    }
+
+// Regex filter, eg. `foo://bar.*//`. The pattern runs to the first `//` that
+// ends the value, so it can hold spaces and parens unquoted. Like
+// array_includes_filter the syntax carries the operation, so it uses the
+// default operator (`:`) with `!` for negation. Mirrors regex_filter in
+// src/sentry/api/event_search.py.
+regex_filter
+  = negation:negation?
+    key:(array_includes_key / text_key)
+    sep
+    value:regex_value &{
+      return tc.predicateFilter(FilterType.REGEX, key)
+    } {
+      return tc.tokenFilter(
+        FilterType.REGEX,
+        key,
+        value,
+        opDefault,
+        !!negation,
+        undefined,
+      );
     }
 
 // Array membership filter, eg. `foo[*]:value`. The `[*]` on the key carries the
@@ -398,6 +421,16 @@ in_value
 
 text_in_value
   = quoted_value / in_value
+
+// A quoted "//...//" stays a literal, since quoted_value wins in search_value.
+// There is no IN-list form because `a|b` already covers it.
+regex_value
+  = "//" !regex_value_end pattern:(!regex_value_end [^\n])+ regex_value_end {
+      return tc.tokenValueRegex(pattern.map(char => char[1]).join(''));
+    }
+
+regex_value_end
+  = "//" &end_value
 
 search_value
   = quoted_value / value

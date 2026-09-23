@@ -63,6 +63,28 @@ def register_fixture_tests(cls, skipped):
         assign_test_case(name, tests)
 
 
+# Fixture config keys the backend parser can honor. A fixture using any other
+# key has no backend equivalent and belongs in shared_tests_skipped.
+FIXTURE_CONFIG_TO_SEARCH_CONFIG = {"allowRegex": "allow_regex"}
+
+
+def search_config_for_case(case):
+    additional_config = case.get("additionalConfig")
+    if not additional_config:
+        return default_config
+
+    overrides = {}
+    for key, value in additional_config.items():
+        if key not in FIXTURE_CONFIG_TO_SEARCH_CONFIG:
+            raise AssertionError(
+                f"Fixture config key {key!r} has no backend equivalent. Either map it in "
+                "FIXTURE_CONFIG_TO_SEARCH_CONFIG or add the fixture to shared_tests_skipped."
+            )
+        overrides[FIXTURE_CONFIG_TO_SEARCH_CONFIG[key]] = value
+
+    return SearchConfig.create_from(default_config, **overrides)
+
+
 def result_transformer(result):
     """
     This is used to translate the expected token results from the format used
@@ -140,6 +162,11 @@ def result_transformer(result):
             args = ", ".join(arg["value"]["value"] for arg in token["args"]["args"])
             return AggregateKey(name=f"{name}({args})")
 
+        if token["type"] == "valueRegex":
+            # Patterns are handed to the regex engine as written, so they skip
+            # wildcard and escape translation
+            return SearchValue(raw_value=token["value"], use_raw_value=True, is_regex=True)
+
         if token["type"] == "valueText":
             # Normalize values by removing the escaped quotes
             value = token["value"].replace('\\"', '"')
@@ -204,6 +231,7 @@ class ParseSearchQueryTest(SimpleTestCase):
         expect_error = None
 
         query = case["query"]
+        config = search_config_for_case(case)
 
         # We include the path to the test data in the case of failure
         path = os.path.join(fixture_path, f"{name}.json")
@@ -266,10 +294,10 @@ class ParseSearchQueryTest(SimpleTestCase):
 
         if expect_error:
             with pytest.raises(InvalidSearchQuery):
-                parse_search_query(query)
+                parse_search_query(query, config=config)
             return
 
-        assert parse_search_query(query) == expected, failure_help
+        assert parse_search_query(query, config=config) == expected, failure_help
 
 
 # Shared test cases which should not be run. Usually because we have a test

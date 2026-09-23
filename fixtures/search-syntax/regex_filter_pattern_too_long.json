@@ -1,0 +1,25 @@
+[
+  {
+    "query": "browser.name://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa//",
+    "additionalConfig": {"allowRegex": true},
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "regex",
+        "negated": false,
+        "operator": "",
+        "invalid": {
+          "type": "regex-pattern-too-long",
+          "reason": "Regex patterns are limited to 64 characters. To search for a literal value that starts with //, quote it: \"//...\""
+        },
+        "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
+        "value": {
+          "type": "valueRegex",
+          "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

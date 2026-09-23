@@ -1,0 +1,65 @@
+[
+  {
+    "query": "browser.name:\"//firefox//\"",
+    "additionalConfig": {"allowRegex": true},
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "operator": "",
+        "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
+        "value": {"type": "valueText", "value": "//firefox//", "quoted": true}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "browser.name:////",
+    "additionalConfig": {"allowRegex": true},
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "operator": "",
+        "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
+        "value": {"type": "valueText", "value": "////", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "browser.name://foo",
+    "additionalConfig": {"allowRegex": true},
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "operator": "",
+        "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
+        "value": {"type": "valueText", "value": "//foo", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "browser.name://fire.*fox//",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "operator": "",
+        "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
+        "value": {"type": "valueText", "value": "//fire.*fox//", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

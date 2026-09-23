@@ -384,6 +384,8 @@ export function stringifyToken(token: TokenResult<Token>): string {
       return `flags[${stringifyToken(token.key)},string]`;
     case Token.VALUE_TEXT:
       return token.quoted ? `"${token.value}"` : token.value;
+    case Token.VALUE_REGEX:
+      return `//${token.value}//`;
     case Token.VALUE_RELATIVE_DATE:
       return `${token.sign}${token.value}${token.unit}`;
     case Token.VALUE_BOOLEAN:
