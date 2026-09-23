@@ -115,16 +115,22 @@ export function FrameVariables({data, meta, platform}: Props) {
               {key}
             </Text>
           </Container>
-          <Container minWidth="0" padding="md lg" role="cell">
+          <Container minWidth="0" role="cell">
             <Text monospace size="sm" wordBreak="break-word" wrap="pre-wrap">
               {textProps => (
-                <StructuredEventData
-                  {...textProps}
-                  config={config}
-                  data={data[key]}
-                  meta={meta?.[key]}
-                  withAnnotatedText
-                />
+                <Container overflow="visible" padding="md lg">
+                  {layoutProps => (
+                    <StructuredEventData
+                      {...textProps}
+                      {...layoutProps}
+                      className={`${textProps.className} ${layoutProps.className}`}
+                      config={config}
+                      data={data[key]}
+                      meta={meta?.[key]}
+                      withAnnotatedText
+                    />
+                  )}
+                </Container>
               )}
             </Text>
           </Container>
