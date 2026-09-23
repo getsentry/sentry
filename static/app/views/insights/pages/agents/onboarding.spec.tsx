@@ -174,13 +174,17 @@ describe('Onboarding deployment target', () => {
     }
   );
 
-  it('shows Conversations guidance for Eve projects', async () => {
-    const {organization} = setupProject('node-eve');
+  it.each(['node-mastra', 'node-flue', 'node-eve'] as const)(
+    'hides generic Conversations guidance for %s projects',
+    async platform => {
+      const {organization} = setupProject(platform);
 
-    render(<Onboarding />, {organization});
+      render(<Onboarding />, {organization});
 
-    expect(await screen.findByRole('link', {name: 'Conversations'})).toBeInTheDocument();
-  });
+      expect(await screen.findByText('Install')).toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'Conversations'})).not.toBeInTheDocument();
+    }
+  );
 
   it('ignores integration and deployment query overrides for framework projects', async () => {
     const {organization} = setupProject('node-eve');

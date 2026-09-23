@@ -409,19 +409,21 @@ export function Onboarding() {
         </OptionsWrapper>
       )}
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <DescriptionWrapper>
-        <p>
-          {tct(
-            'To use [link:Conversations], set a conversation ID for each chat. Sentry uses the [code:gen_ai.conversation.id] attribute to group related AI spans.',
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/ai/monitoring/conversations/" />
-              ),
-            }
-          )}
-        </p>
-      </DescriptionWrapper>
+      {!projectAgentIntegration && (
+        <DescriptionWrapper>
+          <p>
+            {tct(
+              'To use [link:Conversations], set a conversation ID for each chat. Sentry uses the [code:gen_ai.conversation.id] attribute to group related AI spans.',
+              {
+                code: <code />,
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/ai/monitoring/conversations/" />
+                ),
+              }
+            )}
+          </p>
+        </DescriptionWrapper>
+      )}
       <GuidedSteps
         // Remount when the integration or runtime changes so the stepper doesn't
         // carry over stale per-step state from the previous selection.
