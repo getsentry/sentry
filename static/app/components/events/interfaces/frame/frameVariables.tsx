@@ -106,5 +106,12 @@ export function FrameVariables({data, meta, platform}: Props) {
       }));
   }, [data, meta, platform]);
 
-  return <KeyValueTableDataList data={transformedData} />;
+  return (
+    <KeyValueTableDataList
+      data={transformedData}
+      keyPadding="md 0 md xl"
+      rowDivider
+      rowPadding="md xl"
+    />
+  );
 }
