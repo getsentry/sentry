@@ -129,6 +129,9 @@ const Table = styled('table')<{margin: boolean}>`
 
 const TableValue = styled('div')`
   pre {
+    /* <pre> defaults to white-space: pre, which suppresses the soft-wrap
+       opportunities word-break relies on. */
+    white-space: pre-wrap;
     margin: 2px 0;
     word-break: break-word;
     padding: 8px 10px;
