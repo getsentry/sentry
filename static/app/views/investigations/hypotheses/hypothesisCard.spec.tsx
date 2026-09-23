@@ -466,7 +466,7 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Show all 1 step'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Show 1 step'})).toBeInTheDocument();
   });
 
   it('starts collapsed again when a verdict lands on an expanded card', async () => {
