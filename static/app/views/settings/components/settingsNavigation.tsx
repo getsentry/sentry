@@ -2,6 +2,7 @@ import {cloneElement, Component, Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
+import {SearchButton} from 'sentry/views/navigation/searchButton';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
@@ -39,7 +40,17 @@ function SettingsSecondaryNavigation({
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header>{t('Settings')}</SecondaryNavigation.Header>
+      <SecondaryNavigation.Header
+        actions={
+          <SearchButton
+            label={t('Search settings and more')}
+            size="xs"
+            variant="transparent"
+          />
+        }
+      >
+        {t('Settings')}
+      </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         {navWithHooks.map((config, index) => (
           <Fragment key={config.name}>

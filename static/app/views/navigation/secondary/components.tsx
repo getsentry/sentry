@@ -258,6 +258,7 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
 }
 
 interface SecondaryNavigationHeaderProps {
+  actions?: ReactNode;
   children?: ReactNode;
 }
 
@@ -282,7 +283,8 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
           {props.children}
         </Text>
       </div>
-      <div>
+      <Flex align="center" gap="xs">
+        {props.actions}
         {isMobile ? (
           <Button
             size="xs"
@@ -305,7 +307,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
             }}
           />
         )}
-      </div>
+      </Flex>
     </Grid>
   );
 }

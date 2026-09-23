@@ -13,7 +13,15 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
-export function SearchButton(props: Pick<ButtonProps, 'className'>) {
+interface SearchButtonProps extends Pick<ButtonProps, 'className' | 'size' | 'variant'> {
+  label?: string;
+}
+
+export function SearchButton({
+  label = t('Command Palette'),
+  variant = 'secondary',
+  ...props
+}: SearchButtonProps) {
   const organization = useOrganization({allowNull: true});
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
@@ -21,13 +29,13 @@ export function SearchButton(props: Pick<ButtonProps, 'className'>) {
   return (
     <Button
       {...props}
-      variant="secondary"
+      variant={variant}
       icon={<IconSearch size="xs" />}
-      aria-label={t('Command Palette')}
+      aria-label={label}
       tooltipProps={{
         title: (
           <Flex align="center" gap="sm">
-            {t('Command Palette')}
+            {label}
             <Hotkey value="command+k" />
           </Flex>
         ),
