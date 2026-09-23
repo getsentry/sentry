@@ -11,10 +11,6 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry import options
 from sentry.dynamic_sampling.rules.utils import ProjectId
-from sentry.dynamic_sampling.tasks.common import (
-    ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
-    OrganizationDataVolume,
-)
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -27,7 +23,7 @@ from sentry.snuba.rpc_dataset_common import LimitBy
 from sentry.snuba.spans_rpc import Spans
 
 # The window recalibration measures an organization over.
-RECALIBRATION_TIME_INTERVAL = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL
+RECALIBRATION_TIME_INTERVAL = timedelta(minutes=5)
 
 
 class OrganizationVolumeConfig(Protocol):
@@ -47,6 +43,24 @@ class DynamicSamplingQueryFields(StrEnum):
     COUNT_SAMPLE = "count_sample()"
     COUNT_UNIQUE_TRANSACTIONS = "count_unique(sentry.dsc.transaction)"
     MAX_RECEIVED = "max(received)"
+
+
+@dataclass(frozen=True)
+class OrganizationDataVolume:
+    """The segments an organization received and stored in an interval of time."""
+
+    org_id: int
+    total: int
+    indexed: int | None
+
+    def is_valid_for_recalibration(self) -> bool:
+        return self.total > 0 and self.indexed is not None and self.indexed > 0
+
+    @property
+    def effective_sample_rate(self) -> float | None:
+        if self.indexed is None or self.total <= 0:
+            return None
+        return self.indexed / self.total
 
 
 @dataclass(order=True)
@@ -114,7 +128,7 @@ def run_eap_spans_table_query_in_chunks(
 def get_eap_organization_volume(
     organization: Organization,
     projects: list[Project],
-    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    time_interval: timedelta = RECALIBRATION_TIME_INTERVAL,
     end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
     end_time = end or datetime.now(UTC)
@@ -157,7 +171,7 @@ def get_eap_organization_volume(
 
 def get_outcomes_organization_volume(
     config: OrganizationVolumeConfig,
-    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    time_interval: timedelta = RECALIBRATION_TIME_INTERVAL,
     end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
     end_time = end or datetime.now(UTC)
@@ -324,10 +338,8 @@ def get_eap_transaction_volumes(
     root_projects: Sequence[Project] | None = None,
 ) -> list[ProjectTransactionCounts]:
     """
-    Fetch the highest-volume transactions of every root project in a single
-    LIMIT BY query, mirroring the legacy pipeline's per-project top-N
-    (``LIMIT BY (org_id, project_id)`` in boost_low_volume_transactions) so the
-    transaction rebalancing model sees the same explicit transaction set.
+    Fetch the highest-volume transactions of every root project in a single LIMIT BY
+    query. These are the explicit transactions the transaction rebalancing model balances.
     """
     # Spans rooted in one project can be owned by any project in the org, so the query
     # scope stays config.projects; root_projects only narrows which root projects
@@ -338,9 +350,6 @@ def get_eap_transaction_volumes(
         return []
 
     if max_transactions_per_project is None:
-        # Shared with the legacy pipeline so both select the same explicit transaction
-        # set per project. The companion small-transactions option is 0 in production,
-        # so only the largest transactions are fetched.
         max_transactions_per_project = int(
             options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
         )

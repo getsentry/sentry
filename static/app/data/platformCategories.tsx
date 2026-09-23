@@ -317,6 +317,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'cocoa-objc',
   'cocoa-swift',
   'dart',
+  'deno',
   'dotnet',
   'dotnet-aspnet',
   'dotnet-aspnetcore',
@@ -416,6 +417,8 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'apple',
   'apple-ios',
   'apple-macos',
+  'bun',
+  'deno',
   'dotnet',
   'dotnet-aspnet',
   'dotnet-aspnetcore',
@@ -856,16 +859,7 @@ export const featureFlagDrawerPlatforms: readonly PlatformKey[] = [
   'react-native',
 ];
 
-export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
-  ...platformKeys.filter(id => id.startsWith('javascript')),
-  ...platformKeys.filter(id => id.startsWith('node')),
-  ...platformKeys.filter(id => id.startsWith('python')),
-  'deno',
-  'bun',
-  'php-laravel',
-]);
-
-export const javascriptMetaFrameworks: readonly PlatformKey[] = [
+const javascriptMetaFrameworks: readonly PlatformKey[] = [
   'javascript-astro',
   'javascript-nextjs',
   'javascript-nuxt',
@@ -876,8 +870,19 @@ export const javascriptMetaFrameworks: readonly PlatformKey[] = [
   'javascript-tanstackstart-react',
 ] as const;
 
+export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  ...javascriptMetaFrameworks,
+  ...platformKeys.filter(id => id.startsWith('node')),
+  ...platformKeys.filter(id => id.startsWith('python')),
+  'deno',
+  'bun',
+  'php-laravel',
+]);
+
 export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...javascriptMetaFrameworks,
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
+  'bun',
+  'deno',
 ]);

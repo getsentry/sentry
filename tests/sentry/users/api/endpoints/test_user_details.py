@@ -18,10 +18,27 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.api.endpoints.user_details import UserOptionsSerializer
+from sentry.users.api.parsers.display_preference import (
+    DISPLAY_PREFERENCE_OPTION_KEYS,
+    DisplayPreferencesData,
+)
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.userpermission import UserPermission
-from sentry.users.models.userrole import UserRole
+
+
+def test_user_option_types_cover_every_serializer_field() -> None:
+    """The option types are declared by hand, so keep them in step with the serializer.
+
+    A field present on the serializer but missing from DISPLAY_PREFERENCE_OPTION_KEYS is accepted by
+    the API and then silently never written. Type checking cannot see DRF's fields,
+    which are declared at runtime, so assert the three agree here instead.
+    """
+    serializer_fields = set(UserOptionsSerializer().fields)
+
+    assert serializer_fields == set(DisplayPreferencesData.__annotations__)
+    assert serializer_fields == set(DISPLAY_PREFERENCE_OPTION_KEYS)
 
 
 class UserDetailsTest(APITestCase):
@@ -85,14 +102,13 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "permissions" in resp.data
         assert resp.data["permissions"] == ["users.admin"]
 
-        role = UserRole.objects.create(name="test", permissions=["broadcasts.admin"])
-        role.users.add(self.superuser)
+        UserPermission.objects.create(user=self.superuser, permission="broadcasts.admin")
 
         resp = self.get_success_response(self.superuser.id)
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
     @override_options({"staff.ga-rollout": True})
-    def test_staff_includes_roles_and_permissions(self) -> None:
+    def test_staff_includes_permissions(self) -> None:
         self.add_user_permission(self.staff_user, "users.admin")
         self.login_as(user=self.staff_user, staff=True)
 
@@ -102,8 +118,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "permissions" in resp.data
         assert resp.data["permissions"] == ["users.admin"]
 
-        role = UserRole.objects.create(name="test", permissions=["broadcasts.admin"])
-        role.users.add(self.staff_user)
+        UserPermission.objects.create(user=self.staff_user, permission="broadcasts.admin")
 
         resp = self.get_success_response(self.staff_user.id)
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]

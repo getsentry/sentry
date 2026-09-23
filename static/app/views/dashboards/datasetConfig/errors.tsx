@@ -48,7 +48,7 @@ import {
   renderEventIdAsLinkable,
   renderTraceAsLinkable,
   transformEventsResponseToTable,
-} from './errorsAndTransactions';
+} from './events';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',

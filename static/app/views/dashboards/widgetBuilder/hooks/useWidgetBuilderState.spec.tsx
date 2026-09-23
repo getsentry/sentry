@@ -833,14 +833,14 @@ describe('useWidgetBuilderState', () => {
       act(() => {
         result.current.dispatch({
           type: BuilderStateAction.SET_DATASET,
-          payload: WidgetType.METRICS,
+          payload: WidgetType.TRACEMETRICS,
         });
       });
 
       flushUrlUpdates();
 
       expect(router.location.query).toEqual(
-        expect.objectContaining({dataset: WidgetType.METRICS})
+        expect.objectContaining({dataset: WidgetType.TRACEMETRICS})
       );
     });
 
@@ -1708,6 +1708,81 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.sort).toEqual([
         {kind: 'desc', field: 'sum(value,my.metric,counter,none)'},
       ]);
+    });
+
+    it('retargets sort when SET_Y_AXIS applies a spans series filter', () => {
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.SPANS,
+        displayType: DisplayType.LINE,
+        field: ['transaction'],
+        yAxis: ['avg(span.duration)'],
+        sort: ['-avg(span.duration)'],
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {
+              kind: 'function',
+              function: ['avg_if', '`span.op:db`', 'span.duration'],
+            },
+          ] as Column[],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {kind: 'desc', field: 'avg_if(`span.op:db`,span.duration)'},
+      ]);
+    });
+
+    it('retargets sort onto the edited series when SET_Y_AXIS changes a non-first y-axis', () => {
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.SPANS,
+        displayType: DisplayType.LINE,
+        field: ['transaction'],
+        yAxis: ['avg(span.duration)', 'p95(span.duration)'],
+        sort: ['-p95(span.duration)'],
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {
+              kind: 'function',
+              function: ['avg', 'span.duration'],
+            },
+            {
+              kind: 'function',
+              function: ['p95_if', '`span.op:db`', 'span.duration'],
+            },
+          ] as Column[],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {kind: 'desc', field: 'p95_if(`span.op:db`,span.duration)'},
+      ]);
+    });
+
+    it('retargets sort to equation[N] when DELETE_AGGREGATE leaves an equation', () => {
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.SPANS,
+        displayType: DisplayType.LINE,
+        field: ['transaction'],
+        yAxis: ['count(span.duration)', 'equation|count(span.duration) / 5'],
+        sort: ['-count(span.duration)'],
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.DELETE_AGGREGATE,
+          payload: 0,
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([{kind: 'desc', field: 'equation[0]'}]);
     });
 
     it('preserves trace metric args when switching from line to categorical bar', () => {

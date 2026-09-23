@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import type {ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
@@ -36,8 +34,7 @@ type OpBreakdownType = OpStats[];
 
 export function generateStats(
   transactionEvent: EventTransaction | AggregateEventTransaction,
-  operationNameFilters: ActiveOperationFilter,
-  topN?: number
+  operationNameFilters: ActiveOperationFilter
 ): OpBreakdownType {
   if (!transactionEvent) {
     return [];
@@ -166,18 +163,18 @@ export function generateStats(
     }
   );
 
-  const breakdown = sortedOpsBreakdown
-    .slice(0, topN)
-    .map(([operationName, duration]: [OperationName, Duration]): OpStats => {
+  const breakdown = sortedOpsBreakdown.map(
+    ([operationName, duration]: [OperationName, Duration]): OpStats => {
       return {
         name: operationName,
         // percentage to be recalculated after the ops breakdown group is decided
         percentage: 0,
         totalInterval: duration,
       };
-    });
+    }
+  );
 
-  const other = sortedOpsBreakdown.slice(topN).reduce(
+  const other = sortedOpsBreakdown.reduce(
     (accOther: OpStats, [_operationName, duration]: [OperationName, Duration]) => {
       accOther.totalInterval += duration;
 
@@ -209,16 +206,6 @@ export function generateStats(
 
   return breakdown;
 }
-
-export const OpsDot = styled('div')`
-  content: '';
-  display: block;
-  width: 8px;
-  min-width: 8px;
-  height: 8px;
-  margin-right: ${p => p.theme.space.md};
-  border-radius: 100%;
-`;
 
 function mergeInterval(intervals: TimeWindowSpan[]): TimeWindowSpan[] {
   // sort intervals by start timestamps

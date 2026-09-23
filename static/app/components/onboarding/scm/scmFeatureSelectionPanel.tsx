@@ -1,4 +1,4 @@
-import {type ReactNode, useCallback, useMemo} from 'react';
+import {type ReactNode, useCallback, useId, useMemo} from 'react';
 import {motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -71,6 +71,7 @@ export function ScmFeatureSelectionPanel({
   // on an unknown plan, so we hide that framing rather than show numbers that
   // may not apply.
   const isOnboarding = analyticsFlow === 'onboarding';
+  const productsHeadingId = useId();
   const {meta: featureMeta, isLoading: isFeatureMetaLoading} = useScmFeatureMeta();
 
   const currentFeatures = useMemo(
@@ -182,6 +183,7 @@ export function ScmFeatureSelectionPanel({
         featureMeta={featureMeta}
         isVolumeLoading={isFeatureMetaLoading}
         isOnboarding={isOnboarding}
+        labelledBy={productsHeadingId}
       />
     );
   } else if (featureMode === 'informational') {
@@ -214,7 +216,7 @@ export function ScmFeatureSelectionPanel({
                 radius="md"
                 gap="lg"
               >
-                <IconBusiness size="lg" variant="accent" />
+                <IconBusiness size="lg" variant="accent" aria-hidden />
                 <Text size="md" density="comfortable">
                   {tct(
                     'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
@@ -232,9 +234,15 @@ export function ScmFeatureSelectionPanel({
 
             {isOnboarding ? null : (
               <Flex justify="between" align="center" gap="md">
-                <Heading as="h4">{t('Products')}</Heading>
+                <Heading as="h4" id={productsHeadingId}>
+                  {t('Products')}
+                </Heading>
                 {currentPlatformKey ? null : (
-                  <Tag variant="muted" icon={<IconInfo />} style={{minWidth: 0}}>
+                  <Tag
+                    variant="muted"
+                    icon={<IconInfo aria-hidden />}
+                    style={{minWidth: 0}}
+                  >
                     <Text ellipsis variant="inherit">
                       {t('Select a platform to configure products')}
                     </Text>

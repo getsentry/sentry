@@ -95,12 +95,14 @@ class IntegrationRepositoryTestCase(TestCase):
         assert exc_info.value.existing_repo.id == existing.id
         assert Repository.objects.count() == 1
 
-    def test_create_repository__transfer_repo_in_org(self, get_jwt: MagicMock) -> None:
-        # can transfer a disabled repo from one integration to another in a single org
+    def test_create_repository__transfers_repo_from_other_integration_in_org(
+        self, get_jwt: MagicMock
+    ) -> None:
+        # the repo moved between GitHub orgs: it exists on another integration of this org
         integration = self.create_integration(
             organization=self.organization, provider="github", external_id="123456"
         )
-        self._create_repo(
+        existing = self._create_repo(
             external_id=self.config["external_id"],
             name="getsentry/santry",
             status=ObjectStatus.DISABLED,
@@ -109,8 +111,63 @@ class IntegrationRepositoryTestCase(TestCase):
 
         _, repo = self.provider.create_repository(self.config, self.organization)
 
-        assert repo.name == self.config["identifier"]
-        assert repo.url == self.config["url"]
+        assert repo.id == existing.id
+        assert Repository.objects.count() == 1
+        existing.refresh_from_db()
+        assert existing.integration_id == self.integration.id
+        assert existing.status == ObjectStatus.ACTIVE
+        assert existing.name == self.repo_name
+        assert existing.url == self.config["url"]
+
+    def test_create_repository__does_not_transfer_when_provider_cannot(
+        self, get_jwt: MagicMock
+    ) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="123456"
+        )
+        repo = self._create_repo(
+            external_id=self.config["external_id"],
+            name="getsentry/santry",
+            status=ObjectStatus.DISABLED,
+            integration_id=integration.id,
+        )
+
+        with (
+            patch.object(GitHubRepositoryProvider, "can_transfer_repositories", False),
+            pytest.raises(RepoExistsError) as exc_info,
+        ):
+            self.provider.create_repository(self.config, self.organization)
+
+        assert exc_info.value.existing_repo is None
+        repo.refresh_from_db()
+        assert repo.integration_id == integration.id
+        assert repo.status == ObjectStatus.DISABLED
+        assert repo.name == "getsentry/santry"
+
+    def test_create_repository__does_not_reuse_hidden_repo_from_other_provider(
+        self, get_jwt: MagicMock
+    ) -> None:
+        ghe_integration = self.create_integration(
+            organization=self.organization, provider="github_enterprise", external_id="ghe:1"
+        )
+        ghe_repo = self.create_repo(
+            project=self.project,
+            name="ghe-org/sentry",
+            provider="integrations:github_enterprise",
+            integration_id=ghe_integration.id,
+            external_id=self.config["external_id"],
+        )
+        Repository.objects.filter(id=ghe_repo.id).update(status=ObjectStatus.DISABLED)
+
+        _, repo = self.provider.create_repository(self.config, self.organization)
+
+        assert repo.id != ghe_repo.id
+        assert repo.provider == "integrations:github"
+        assert repo.integration_id == self.integration.id
+        ghe_repo.refresh_from_db()
+        assert ghe_repo.provider == "integrations:github_enterprise"
+        assert ghe_repo.integration_id == ghe_integration.id
+        assert ghe_repo.status == ObjectStatus.DISABLED
 
     def test_create_repository__repo_exists_update_name(self, get_jwt: MagicMock) -> None:
         repo = self._create_repo(external_id=self.config["external_id"], name="getsentry/santry")
@@ -179,3 +236,53 @@ class IntegrationRepositoryTestCase(TestCase):
         assert exc_info.value.existing_repo is None
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.PENDING_DELETION
+
+
+class CreateRepositoriesTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="654321"
+        )
+        self.config = {
+            "identifier": "getsentry/sentry",
+            "external_id": "654321",
+            "integration_id": self.integration.id,
+        }
+
+    @cached_property
+    def provider(self) -> GitHubRepositoryProvider:
+        return GitHubRepositoryProvider("integrations:github")
+
+    def _existing(self, status: int) -> Repository:
+        return Repository.objects.create(
+            name="getsentry/old-name",
+            provider="integrations:github",
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_id="654321",
+            status=status,
+        )
+
+    def test_an_active_repository_is_refreshed_but_not_reactivated(self) -> None:
+        repo = self._existing(ObjectStatus.ACTIVE)
+
+        created, reactivated, _ = self.provider.create_repositories(
+            configs=[self.config], organization=self.organization
+        )
+
+        assert (created, reactivated) == ([], [])
+        repo.refresh_from_db()
+        assert repo.name == "getsentry/sentry"
+
+    def test_a_disabled_repository_is_reactivated(self) -> None:
+        repo = self._existing(ObjectStatus.DISABLED)
+
+        created, reactivated, _ = self.provider.create_repositories(
+            configs=[self.config], organization=self.organization
+        )
+
+        assert created == []
+        assert [r.id for r in reactivated] == [repo.id]
+        repo.refresh_from_db()
+        assert repo.status == ObjectStatus.ACTIVE

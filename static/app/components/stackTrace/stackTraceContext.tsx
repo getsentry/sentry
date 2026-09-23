@@ -1,7 +1,7 @@
 import {createContext, useContext, useMemo, useState} from 'react';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import type {Event, Frame} from 'sentry/types/event';
+import type {Event, Frame, Thread} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -82,10 +82,12 @@ export interface StackTraceContextValue {
   exceptionIndex?: number;
   /** Optional per-frame source map debugger resolution data. */
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
+  lockAddress?: string;
   /** Optional redaction metadata used by variable/register renderers. */
   meta?: StackTraceMeta;
   /** Active project from ProjectsStore, used by frame source-link actions. */
   project?: Project;
+  thread?: Thread;
 }
 
 export interface StackTraceFrameContextValue {

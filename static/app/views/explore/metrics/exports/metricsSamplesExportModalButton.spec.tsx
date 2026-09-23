@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {PageFiltersFixture, PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {initializeTraceMetricsTest} from 'sentry-fixture/tracemetrics';
 
 import {
@@ -11,7 +11,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MetricsSamplesExportModalButton} from 'sentry/views/explore/metrics/exports/metricsSamplesExportModalButton';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -24,8 +24,6 @@ const mockDownloadFromHref = jest.fn();
 jest.mock('sentry/utils/downloadFromHref', () => ({
   downloadFromHref: (...args: unknown[]) => mockDownloadFromHref(...args),
 }));
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 const TRACE_METRIC: TraceMetric = {name: 'llm.token_usage', type: 'distribution'};
 const SUM_AGGREGATE = 'sum(value,llm.token_usage,distribution,-)';
@@ -118,11 +116,9 @@ describe('MetricsSamplesExportModalButton', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    jest.mocked(usePageFilters).mockReturnValue(
-      PageFilterStateFixture({
-        selection: PageFiltersFixture({
-          datetime: {start: null, end: null, period: '24h', utc: null},
-        }),
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
+        datetime: {start: null, end: null, period: '24h', utc: null},
       })
     );
     eventsRequest = MockApiClient.addMockResponse({
@@ -130,6 +126,10 @@ describe('MetricsSamplesExportModalButton', () => {
       method: 'GET',
       body: {data: []},
     });
+  });
+
+  afterEach(() => {
+    PageFiltersStore.reset();
   });
 
   it('asks the server export for the accuracy the table escalates to', async () => {
@@ -201,12 +201,18 @@ describe('MetricsSamplesExportModalButton', () => {
   it('disables the button when the table has no rows', () => {
     renderButton({rows: []});
 
-    expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Export'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('disables the button when the table errored', () => {
     renderButton({isError: true});
 
-    expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Export'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

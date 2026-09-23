@@ -99,11 +99,25 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         assert resp.status_code == 204
         assert not RepositoryProjectPathConfig.objects.filter(id=str(self.config.id)).exists()
 
+    def test_delete_with_non_integer_config_id(self) -> None:
+        url = reverse(self.endpoint, args=[self.org.slug, "invalid"])
+
+        resp = self.client.delete(url)
+
+        assert resp.status_code == 404
+
     def test_basic_edit(self) -> None:
         resp = self.make_put({"sourceRoot": "newRoot"})
         assert resp.status_code == 200
         assert resp.data["id"] == str(self.config.id)
         assert resp.data["sourceRoot"] == "newRoot"
+
+    def test_edit_with_out_of_range_config_id(self) -> None:
+        url = reverse(self.endpoint, args=[self.org.slug, "999999999999999999999"])
+
+        resp = self.client.put(url)
+
+        assert resp.status_code == 404
 
     def test_edit_rejects_missing_required_fields(self) -> None:
         resp = self.client.put(self.url, {"sourceRoot": ""})

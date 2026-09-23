@@ -1,20 +1,18 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import noop from 'lodash/noop';
 
-import deviceAnimation from 'sentry-images/spot/u2f-small.gif';
-
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {ChallengeData} from 'sentry/types/auth';
 
+import {AuthenticatorIconCarousel} from './authenticatorIconCarousel';
 import {handleSign} from './handlers';
 
 interface WebAuthnParams {
@@ -55,11 +53,6 @@ function getResponseError(err: any): ResponseError {
 
   return 'UNKNOWN_ERROR';
 }
-
-const MESSAGES = {
-  signin: t('Sign in with your passkey, biometrics, or security key.'),
-  sudo: t('You can also confirm this action using your passkey.'),
-};
 
 export function WebAuthnAssert({
   onWebAuthn,
@@ -155,13 +148,17 @@ export function WebAuthnAssert({
   }
 
   return (
-    <WebAuthnContainer>
-      <DeviceAnimation activated={activated} role="presentation" />
-      {MESSAGES[mode]}
+    <Stack gap="2xl" align="center" padding="2xl 0" marginBottom="xl">
+      <AuthenticatorIconCarousel isActive />
+      <Text>
+        {activated
+          ? t('Authorizing...')
+          : t('Waiting for passkey, biometric, or hardware key')}
+      </Text>
 
       <input type="hidden" name="challenge" value={challenge} />
       <input type="hidden" name="response" value={response ?? ''} ref={inputRef} />
-    </WebAuthnContainer>
+    </Stack>
   );
 }
 
@@ -219,30 +216,6 @@ function AlertContainer({children}: {children: React.ReactNode}) {
     </Container>
   );
 }
-
-const WebAuthnContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
-  align-items: center;
-  padding: ${p => p.theme.space['2xl']} 0;
-  margin-bottom: ${p => p.theme.space.xl};
-`;
-
-const DeviceAnimation = styled('div')<{activated: boolean}>`
-  height: 100px;
-  width: 100px;
-  border-radius: 50%;
-  background-image: url(${deviceAnimation});
-  background-size: 100px;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  ${p =>
-    p.activated &&
-    css`
-      filter: blur(8px);
-      transition: filter 300ms ease;
-    `}
-`;
 
 // XXX(epurkhiser): We are ONLY exporting this as default for the
 // processInitQueue COMPONENT_MAP

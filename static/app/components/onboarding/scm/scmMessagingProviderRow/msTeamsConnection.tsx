@@ -102,6 +102,8 @@ export function openMsTeamsConnectionModal(
 ) {
   openModal(
     deps => <MsTeamsConnection {...deps} provider={provider} onConnected={onConnected} />,
-    {closeEvents: 'none'}
+    // Escape closes the modal like the close button does; a backdrop click
+    // must not, so the handoff to the Teams marketplace is not lost by accident.
+    {closeEvents: 'escape-key'}
   );
 }

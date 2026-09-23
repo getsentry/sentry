@@ -8,10 +8,12 @@ import {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
 } from 'sentry/components/tables/gridEditable';
+import {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
 
 import {
   collapseToolsColumnWhenUnused,
   ConversationsTable,
+  getConversationTimespan,
   getUserDisplayName,
   getVisibleToolCount,
   parseStoredColumnWidths,
@@ -46,22 +48,20 @@ const organization = OrganizationFixture({
   features: ['gen-ai-conversations'],
 });
 
-const sortingOrganization = OrganizationFixture({
-  features: ['gen-ai-conversations', 'gen-ai-conversations-querying-enhancements'],
-});
-
-function mockConversations(
-  body: Array<Record<string, unknown>>,
-  currentOrganization = organization
-) {
+function mockConversations(body: Array<Record<string, unknown>>) {
   return MockApiClient.addMockResponse({
-    url: `/organizations/${currentOrganization.slug}/agents/conversations/`,
+    url: `/organizations/${organization.slug}/agents/conversations/`,
     body,
   });
 }
 
-function renderTable(currentOrganization = organization) {
-  return render(<ConversationsTable />, {organization: currentOrganization});
+function TestConversationsTable() {
+  const conversations = useConversations();
+  return <ConversationsTable conversations={conversations} />;
+}
+
+function renderTable() {
+  return render(<TestConversationsTable />, {organization});
 }
 
 describe('ConversationsTable', () => {
@@ -131,6 +131,37 @@ describe('ConversationsTable', () => {
     renderTable();
 
     expect(await screen.findByText('sarah@example.com')).toBeInTheDocument();
+  });
+
+  it('uses elapsed wall-clock time for the conversation timespan', () => {
+    expect(
+      getConversationTimespan({
+        ...BASE_CONVERSATION,
+        startTimestamp: 1_000,
+        endTimestamp: 421_000,
+      })
+    ).toBe(420_000);
+  });
+
+  it('uses generation duration for a single span with no elapsed timespan', () => {
+    expect(
+      getConversationTimespan({
+        ...BASE_CONVERSATION,
+        startTimestamp: 1_000,
+        endTimestamp: 1_000,
+        generationDuration: 750,
+      })
+    ).toBe(750);
+  });
+
+  it('clamps the conversation timespan when timestamps are out of order', () => {
+    expect(
+      getConversationTimespan({
+        ...BASE_CONVERSATION,
+        startTimestamp: 2_000,
+        endTimestamp: 1_000,
+      })
+    ).toBe(0);
   });
 
   it('uses the user ID when no other identifying fields are available', () => {
@@ -271,13 +302,12 @@ describe('ConversationsTable', () => {
     });
   });
 
-  it('sorts by supported headers when the feature is enabled', async () => {
-    const request = mockConversations(
-      [{...BASE_CONVERSATION, title: 'Sortable conversation'}],
-      sortingOrganization
-    );
+  it('sorts by supported headers', async () => {
+    const request = mockConversations([
+      {...BASE_CONVERSATION, title: 'Sortable conversation'},
+    ]);
 
-    renderTable(sortingOrganization);
+    renderTable();
 
     await screen.findByText('Sortable conversation');
     expect(screen.getByRole('columnheader', {name: 'Age'})).toHaveAttribute(
@@ -285,13 +315,14 @@ describe('ConversationsTable', () => {
       'descending'
     );
     expect(screen.queryByRole('button', {name: 'Conversation'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Timespan'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Tools'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Cost'}));
 
     await waitFor(() =>
       expect(request).toHaveBeenCalledWith(
-        `/organizations/${sortingOrganization.slug}/agents/conversations/`,
+        `/organizations/${organization.slug}/agents/conversations/`,
         expect.objectContaining({
           query: expect.objectContaining({sort: ['-conversation.totalCost']}),
         })
@@ -303,15 +334,6 @@ describe('ConversationsTable', () => {
         'descending'
       )
     );
-  });
-
-  it('does not make headers sortable when the feature is disabled', async () => {
-    mockConversations([{...BASE_CONVERSATION, title: 'Unsortable conversation'}]);
-
-    renderTable();
-
-    await screen.findByText('Unsortable conversation');
-    expect(screen.queryByRole('button', {name: 'Cost'})).not.toBeInTheDocument();
   });
 
   it('navigates to the conversation detail on row click', async () => {

@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from dataclasses import replace
 from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
 
@@ -55,6 +56,7 @@ seer_grouping_default_connection_pool = connection_from_url(
 
 def _resolve_viewer_context(
     explicit: SeerViewerContext | None = None,
+    endpoint: str | None = None,
 ) -> ViewerContext | None:
     """Merge explicit SeerViewerContext with the contextvar.
 
@@ -80,11 +82,12 @@ def _resolve_viewer_context(
             extra={
                 "explicit_org_id": explicit_vc.organization_id,
                 "explicit_user_id": explicit_vc.user_id,
+                "endpoint": endpoint,
             },
         )
         metrics.incr(
             "seer.viewer_context_resolution",
-            tags={"outcome": "contextvar_missing"},
+            tags={"outcome": "contextvar_missing", "endpoint": endpoint or "unknown"},
         )
         return explicit_vc
 
@@ -100,6 +103,7 @@ def _resolve_viewer_context(
                     "field": "organization_id",
                     "contextvar": org_id,
                     "explicit": explicit_vc.organization_id,
+                    "endpoint": endpoint,
                 },
             )
             has_mismatch = True
@@ -113,6 +117,7 @@ def _resolve_viewer_context(
                     "field": "user_id",
                     "contextvar": user_id,
                     "explicit": explicit_vc.user_id,
+                    "endpoint": endpoint,
                 },
             )
             has_mismatch = True
@@ -123,16 +128,13 @@ def _resolve_viewer_context(
         tags={
             "outcome": "mismatch" if has_mismatch else "match",
             "has_project": str(vc.project_id is not None).lower(),
+            "endpoint": endpoint or "unknown",
         },
     )
 
-    return ViewerContext(
-        organization_id=org_id,
-        project_id=None if has_mismatch else (vc.project_id if vc else None),
-        user_id=user_id,
-        actor_type=vc.actor_type,
-        token=None if has_mismatch else vc.token,
-    )
+    if has_mismatch:
+        return replace(vc, organization_id=org_id, user_id=user_id, project_id=None, token=None)
+    return replace(vc, organization_id=org_id, user_id=user_id)
 
 
 @trace
@@ -162,7 +164,7 @@ def make_signed_seer_api_request(
         **auth_headers,
     }
 
-    resolved = _resolve_viewer_context(viewer_context)
+    resolved = _resolve_viewer_context(viewer_context, endpoint=metrics_endpoint or parsed.path)
     observe_viewer_context_propagation("seer_rpc_out", ctx=resolved)
     if resolved:
         try:

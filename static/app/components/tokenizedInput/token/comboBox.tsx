@@ -8,6 +8,7 @@ import type {
   Ref,
 } from 'react';
 import {useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
+import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import type {AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';
@@ -29,6 +30,11 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
+import {
+  isQueryBuilderPanelChrome,
+  useComboBoxLayout,
+  withPanelOverlayProps,
+} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {UnstyledInput} from 'sentry/components/tokenizedInput/token/unstyledInput';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
@@ -132,6 +138,7 @@ export function ComboBox({
   onInputKeyUp,
   shouldFilterResults = true,
 }: ComboBoxProps) {
+  const {menuPresentation, panelRef, portalTarget} = useComboBoxLayout();
   const inputRef = useRef<HTMLInputElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -233,6 +240,24 @@ export function ComboBox({
   // oxlint-disable-next-line react/refs
   closeMenuRef.current = () => state.close();
 
+  const handleShouldCloseOnInteractOutside = useCallback(
+    (el: Element) => {
+      if (popoverRef.current?.contains(el)) {
+        return false;
+      }
+
+      if (
+        menuPresentation === 'panel' &&
+        isQueryBuilderPanelChrome(el, panelRef.current, portalTarget)
+      ) {
+        return false;
+      }
+
+      return shouldCloseOnInteractOutside?.(el) ?? true;
+    },
+    [menuPresentation, panelRef, portalTarget, shouldCloseOnInteractOutside]
+  );
+
   const handleComboBoxFocus: FocusEventHandler<HTMLInputElement> = useCallback(
     evt => {
       onInputFocus?.(evt);
@@ -246,13 +271,16 @@ export function ComboBox({
 
   const handleComboBoxBlur: FocusEventHandler<HTMLInputElement> = useCallback(
     evt => {
-      if (evt.relatedTarget && !shouldCloseOnInteractOutside?.(evt.relatedTarget)) {
+      if (
+        evt.relatedTarget instanceof Element &&
+        !handleShouldCloseOnInteractOutside(evt.relatedTarget)
+      ) {
         return;
       }
       onInputBlur?.(evt);
       state.close();
     },
-    [onInputBlur, shouldCloseOnInteractOutside, state]
+    [handleShouldCloseOnInteractOutside, onInputBlur, state]
   );
 
   // Showing the overlay with nothing to select renders as an empty grey bar
@@ -305,24 +333,13 @@ export function ComboBox({
     onOpenChange?.(isOpen);
   }, [onOpenChange, isOpen]);
 
-  const handleShouldCloseOnInteractOutside = useCallback(
-    (el: Element) => {
-      if (popoverRef.current?.contains(el)) {
-        return false;
-      }
-
-      return shouldCloseOnInteractOutside?.(el) ?? true;
-    },
-    [shouldCloseOnInteractOutside]
-  );
-
   const handleOnInteractOutside = useCallback(() => {
     onInputBlur?.();
     state.close();
   }, [onInputBlur, state]);
 
   const {
-    overlayProps,
+    overlayProps: positionedOverlayProps,
     triggerProps,
     update: updateOverlayPosition,
   } = useOverlay({
@@ -371,6 +388,32 @@ export function ComboBox({
 
   const autosizeInputRef = useAutosizeInput({value: inputValue});
 
+  const overlayProps = withPanelOverlayProps(positionedOverlayProps, menuPresentation);
+
+  const overlay = (
+    <StyledPositionWrapper
+      {...overlayProps}
+      hidden={!isMenuVisible}
+      visible={isMenuVisible}
+      style={{
+        ...overlayProps.style,
+        display: isMenuVisible ? overlayProps.style?.display : 'none',
+      }}
+    >
+      <ListBoxOverlay ref={popoverRef} fullWidth={menuPresentation === 'panel'}>
+        <ListBox
+          {...listBoxProps}
+          ref={listBoxRef}
+          listState={state}
+          hasSearch={!!filterValue}
+          hiddenOptions={hiddenOptions}
+          overlayIsOpen={isMenuVisible}
+          size="sm"
+        />
+      </ListBoxOverlay>
+    </StyledPositionWrapper>
+  );
+
   return (
     <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
@@ -398,27 +441,7 @@ export function ComboBox({
         onKeyUp={handleInputKeyUp}
         data-test-id={dataTestId}
       />
-      <StyledPositionWrapper
-        {...overlayProps}
-        hidden={!isMenuVisible}
-        visible={isMenuVisible}
-        style={{
-          ...overlayProps.style,
-          display: isMenuVisible ? overlayProps.style?.display : 'none',
-        }}
-      >
-        <ListBoxOverlay ref={popoverRef}>
-          <ListBox
-            {...listBoxProps}
-            ref={listBoxRef}
-            listState={state}
-            hasSearch={!!filterValue}
-            hiddenOptions={hiddenOptions}
-            overlayIsOpen={isMenuVisible}
-            size="sm"
-          />
-        </ListBoxOverlay>
-      </StyledPositionWrapper>
+      {isMenuVisible && portalTarget ? createPortal(overlay, portalTarget) : overlay}
     </Flex>
   );
 }
@@ -470,6 +493,7 @@ function useUpdateOverlayPositionOnContentChange({
     return () => {
       resizeObserverRef.current?.disconnect();
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
@@ -478,10 +502,13 @@ const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
-const ListBoxOverlay = styled(Overlay)`
+const ListBoxOverlay = styled(Overlay, {
+  shouldForwardProp: prop => prop !== 'fullWidth',
+})<{fullWidth?: boolean}>`
   max-height: 400px;
-  min-width: 200px;
-  width: 600px;
-  max-width: min-content;
+  min-width: ${p => (p.fullWidth ? 0 : '200px')};
+  width: ${p => (p.fullWidth ? '100%' : '600px')};
+  max-width: ${p => (p.fullWidth ? '100%' : 'min-content')};
   overflow-y: auto;
+  text-align: left;
 `;

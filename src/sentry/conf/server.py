@@ -184,11 +184,9 @@ SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
 SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
 SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
 SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
-SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
-SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 # Redis cluster for span buffer data and flush locks. Flush locks must remain
 # on this cluster because add-buffer.lua checks lock existence atomically.
@@ -199,7 +197,6 @@ SENTRY_SPAN_DEDUPE_CLUSTER: str | None = None
 SENTRY_ASSEMBLE_CLUSTER = "default"
 SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
-SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER = "default"
 SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
 SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
@@ -554,7 +551,8 @@ CSP_OBJECT_SRC = [
     "'none'",
 ]
 CSP_WORKER_SRC = [
-    "'none'",
+    "'self'",  # service worker
+    "blob:",  # session replay workers
 ]
 CSP_BASE_URI = [
     "'none'",
@@ -595,6 +593,10 @@ CSP_REPORT_ONLY = True
 COOP_ENABLED = False
 COOP_REPORT_ONLY = True
 COOP_REPORT_TO: str | None = None
+
+TRUSTED_TYPES_ENABLED = False
+TRUSTED_TYPES_POLICIES: list[str] = []
+TRUSTED_TYPES_REPORT_URI: str | None = None
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
@@ -881,7 +883,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.per_org.feature_cache",
     "sentry.dynamic_sampling.per_org.scheduler",
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.feedback.tasks.update_user_reports",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
@@ -1017,6 +1018,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.lightweight_rca_cluster",
     "sentry.tasks.seer.investigation",
     "sentry.tasks.seer.night_shift.cron",
+    "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
     # Used for tests
     "sentry.taskworker.tasks.examples",
@@ -1138,6 +1140,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "uptime:sentry.uptime.tasks.broken_monitor_checker",
         "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
+    "uptime-config-drift-dispatcher": {
+        "task": "uptime:sentry.uptime.tasks.config_drift_dispatcher",
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
+    },
     "poll_tempest": {
         "task": "tempest:sentry.tempest.tasks.poll_tempest",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
@@ -1184,6 +1190,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "seer:sentry.tasks.seer.night_shift.schedule_night_shift",
         # Run every 12 hours, at 10:00 and 22:00 UTC
         "schedule": crontab("0", "10,22", "*", "*", "*"),
+    },
+    "seer-autofix-issue-data-judging": {
+        "task": "seer:sentry.tasks.seer.autofix_issue_data.schedule_judging",
+        # Twice daily at 08:00 and 20:00 PST (16:00 and 04:00 UTC)
+        "schedule": crontab("0", "4,16", "*", "*", "*"),
     },
     "pr-metrics-reap-stuck-judge-verdicts": {
         "task": "seer.code_review:sentry.pr_metrics.tasks.reap_stuck_judge_verdicts",
@@ -1801,16 +1812,12 @@ SENTRY_METRICS_INDEXER_REINDEXED_INTS: dict[int, str] = {}
 
 # Rate limits during string indexing for our metrics product.
 # Which cluster to use. Example: {"cluster": "default"}
+# Release-health indexer only; generic metrics consumers are gone.
 SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS: dict[str, str] = {}
-SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE = (
-    SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS
-)
 
 # Controls the sample rate with which we report errors to Sentry for metric messages
 # dropped due to rate limits.
 SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
-
-SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
@@ -1898,6 +1905,9 @@ SENTRY_SCOPES = {
     "event:admin",
     "alerts:read",
     "alerts:write",
+    "dashboard:read",
+    "dashboard:write",
+    "dashboard:delete",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
@@ -1912,6 +1922,7 @@ SENTRY_READONLY_SCOPES = {
     "project:read",
     "event:read",
     "alerts:read",
+    "dashboard:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -1937,6 +1948,9 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "event:admin": {"event:read", "event:write", "event:admin"},
     "alerts:read": {"alerts:read"},
     "alerts:write": {"alerts:read", "alerts:write"},
+    "dashboard:read": {"dashboard:read"},
+    "dashboard:write": {"dashboard:read", "dashboard:write"},
+    "dashboard:delete": {"dashboard:read", "dashboard:write", "dashboard:delete"},
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -1997,6 +2011,11 @@ SENTRY_SCOPE_SETS = (
         ("alerts:write", "Read and write alerts"),
         ("alerts:read", "Read alerts"),
     ),
+    (
+        ("dashboard:delete", "Read, write, and delete access to dashboards."),
+        ("dashboard:write", "Read and write access to dashboards."),
+        ("dashboard:read", "Read access to dashboards."),
+    ),
     (("openid", "Confirms authentication status and provides basic information."),),
     (
         (
@@ -2032,6 +2051,9 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "team:read",
             "alerts:read",
             "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
         },
     },
     {
@@ -2064,6 +2086,9 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
         },
         "is_retired": True,
     },
@@ -2091,6 +2116,9 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
         },
         "is_global": True,
     },
@@ -2125,6 +2153,9 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:admin",
             "alerts:read",
             "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
         },
         "is_global": True,
     },
@@ -2222,8 +2253,6 @@ SENTRY_WATCHERS = (
 SENTRY_USE_RELAY = False
 SENTRY_RELAY_PORT = 7899
 
-SENTRY_DEV_USE_REDIS_CLUSTER = bool(os.getenv("SENTRY_DEV_USE_REDIS_CLUSTER", False))
-
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
@@ -2281,7 +2310,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.8.0"
+SELF_HOSTED_STABLE_VERSION = "26.9.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2310,6 +2339,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
+    "sentry.integrations.cursor_origin.integration.CursorOriginIntegrationProvider",
 )
 
 
@@ -2912,7 +2942,7 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
-SAMPLED_DEFAULT_RATE = 0.0125
+SAMPLED_DEFAULT_RATE = 0.0015
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
@@ -3091,36 +3121,9 @@ GATEWAY_PROXY_TIMEOUT: int | None = (
     else None
 )
 
-SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
-# This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)
-# to a given slice. A slice is a set of physical resources in Sentry and Snuba.
-#
-# For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
-# to a slice ID
-SENTRY_SLICING_CONFIG: Mapping[str, Mapping[tuple[int, int], int]] = {}
-
 # Mapping of (logical topic names, slice id) to physical topic names
 # and kafka broker names. The kafka broker names are used to construct
 # the broker config from KAFKA_CLUSTERS. This is used for slicing only.
-# Example:
-# SLICED_KAFKA_TOPICS = {
-#   ("snuba-generic-metrics", 0): {
-#       "topic": "generic_metrics_0",
-#       "cluster": "cluster_1",
-#   },
-#   ("snuba-generic-metrics", 1): {
-#       "topic": "generic_metrics_1",
-#       "cluster": "cluster_2",
-# }
-# And then in KAFKA_CLUSTERS:
-# KAFKA_CLUSTERS = {
-#   "cluster_1": {
-#       "bootstrap.servers": "kafka1:9092",
-#   },
-#   "cluster_2": {
-#       "bootstrap.servers": "kafka2:9092",
-#   },
-# }
 SLICED_KAFKA_TOPICS: Mapping[tuple[str, int], Mapping[str, Any]] = {}
 
 # Used by silo tests -- activate all silo mode test decorators even if not marked stable

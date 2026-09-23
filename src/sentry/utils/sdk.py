@@ -96,6 +96,7 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 0.1,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
     "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
+    "sentry.workflow_engine.tasks.process_workflows_event": 0.00006,
 }
 
 SAMPLED_ROUTES = {
@@ -311,8 +312,6 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
 
 
 class Dsns(NamedTuple):
-    sentry4sentry: str | None
-    sentry_saas: str | None
     backend: str | None
 
 
@@ -335,10 +334,11 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
     dsns = Dsns(
-        sentry4sentry=sdk_options.pop("dsn", None),
-        sentry_saas=sdk_options.pop("relay_dsn", None),
         backend=sdk_options.pop("sentry_mirror_dsn", None),
     )
+    # Remove legacy keys to avoid cross-deploy problems.
+    sdk_options.pop("dsn", None)
+    sdk_options.pop("relay_dsn", None)
 
     return sdk_options, dsns
 

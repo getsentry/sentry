@@ -1,34 +1,34 @@
-import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
+import {defineRule, type ESTree} from '@oxlint/plugins';
 
-type StyleExpression = TSESTree.Expression | TSESTree.SpreadElement | null;
+type StyleExpression = ESTree.Expression | ESTree.SpreadElement | null;
 
-function isStringStyle(node: TSESTree.TaggedTemplateExpression): boolean {
+function isStringStyle(node: ESTree.TaggedTemplateExpression): boolean {
   const {tag} = node;
   return (
-    (tag.type === AST_NODE_TYPES.Identifier && tag.name === 'css') ||
-    (tag.type === AST_NODE_TYPES.MemberExpression &&
-      tag.object.type === AST_NODE_TYPES.Identifier &&
+    (tag.type === 'Identifier' && tag.name === 'css') ||
+    (tag.type === 'MemberExpression' &&
+      tag.object.type === 'Identifier' &&
       tag.object.name === 'styled') ||
-    (tag.type === AST_NODE_TYPES.CallExpression &&
-      tag.callee.type === AST_NODE_TYPES.Identifier &&
+    (tag.type === 'CallExpression' &&
+      tag.callee.type === 'Identifier' &&
       tag.callee.name === 'styled')
   );
 }
 
-function isObjectStyle(node: TSESTree.CallExpression): boolean {
+function isObjectStyle(node: ESTree.CallExpression): boolean {
   const {callee} = node;
   return (
-    (callee.type === AST_NODE_TYPES.Identifier && callee.name === 'css') ||
-    (callee.type === AST_NODE_TYPES.MemberExpression &&
-      callee.object.type === AST_NODE_TYPES.Identifier &&
+    (callee.type === 'Identifier' && callee.name === 'css') ||
+    (callee.type === 'MemberExpression' &&
+      callee.object.type === 'Identifier' &&
       callee.object.name === 'styled') ||
-    (callee.type === AST_NODE_TYPES.CallExpression &&
-      callee.callee.type === AST_NODE_TYPES.Identifier &&
+    (callee.type === 'CallExpression' &&
+      callee.callee.type === 'Identifier' &&
       callee.callee.name === 'styled')
   );
 }
 
-export const noVanillaEmotion = ESLintUtils.RuleCreator.withoutDocs({
+export const noVanillaEmotion = defineRule({
   meta: {
     type: 'problem',
     docs: {description: 'Disallow vanilla Emotion'},
@@ -46,7 +46,7 @@ export const noVanillaEmotion = ESLintUtils.RuleCreator.withoutDocs({
   },
 });
 
-export const emotionStyledImport = ESLintUtils.RuleCreator.withoutDocs({
+export const emotionStyledImport = defineRule({
   meta: {
     type: 'problem',
     docs: {description: 'Require styled to be imported from @emotion/styled'},
@@ -66,7 +66,7 @@ export const emotionStyledImport = ESLintUtils.RuleCreator.withoutDocs({
           messageId: 'incorrectImport',
           fix:
             node.specifiers.length === 1 &&
-            node.specifiers[0]?.type === AST_NODE_TYPES.ImportDefaultSpecifier
+            node.specifiers[0]?.type === 'ImportDefaultSpecifier'
               ? fixer => fixer.replaceText(node.source, "'@emotion/styled'")
               : undefined,
         });
@@ -75,7 +75,7 @@ export const emotionStyledImport = ESLintUtils.RuleCreator.withoutDocs({
   },
 });
 
-export const emotionSyntaxPreference = ESLintUtils.RuleCreator.withoutDocs({
+export const emotionSyntaxPreference = defineRule({
   meta: {
     type: 'problem',
     docs: {description: 'Choose between string and object Emotion syntax'},
@@ -94,13 +94,13 @@ export const emotionSyntaxPreference = ESLintUtils.RuleCreator.withoutDocs({
       if (!node) {
         return;
       }
-      if (node.type === AST_NODE_TYPES.ArrayExpression) {
+      if (node.type === 'ArrayExpression') {
         for (const element of node.elements) {
           checkPreferringString(element);
         }
-      } else if (node.type === AST_NODE_TYPES.ObjectExpression) {
+      } else if (node.type === 'ObjectExpression') {
         context.report({node, messageId: 'preferStringStyle'});
-      } else if (node.type === AST_NODE_TYPES.Literal && typeof node.value === 'string') {
+      } else if (node.type === 'Literal' && typeof node.value === 'string') {
         context.report({node, messageId: 'preferWrappingWithCSS'});
       }
     }
@@ -109,13 +109,13 @@ export const emotionSyntaxPreference = ESLintUtils.RuleCreator.withoutDocs({
       if (!node) {
         return;
       }
-      if (node.type === AST_NODE_TYPES.ArrayExpression) {
+      if (node.type === 'ArrayExpression') {
         for (const element of node.elements) {
           checkPreferringObject(element);
         }
-      } else if (node.type === AST_NODE_TYPES.TemplateLiteral) {
+      } else if (node.type === 'TemplateLiteral') {
         context.report({node, messageId: 'preferObjectStyle'});
-      } else if (node.type === AST_NODE_TYPES.Literal && typeof node.value === 'string') {
+      } else if (node.type === 'Literal' && typeof node.value === 'string') {
         context.report({node, messageId: 'preferObjectStyle'});
       }
     }
@@ -131,7 +131,7 @@ export const emotionSyntaxPreference = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
         for (const argument of node.arguments) {
-          if (argument.type !== AST_NODE_TYPES.SpreadElement) {
+          if (argument.type !== 'SpreadElement') {
             if (preference === 'string') {
               checkPreferringString(argument);
             } else if (preference === 'object') {
@@ -141,7 +141,7 @@ export const emotionSyntaxPreference = ESLintUtils.RuleCreator.withoutDocs({
         }
       },
       JSXAttribute(node) {
-        if (node.name.type !== AST_NODE_TYPES.JSXIdentifier || node.name.name !== 'css') {
+        if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'css') {
           return;
         }
         if (!node.value) {
@@ -150,14 +150,11 @@ export const emotionSyntaxPreference = ESLintUtils.RuleCreator.withoutDocs({
         }
 
         const expression =
-          node.value.type === AST_NODE_TYPES.JSXExpressionContainer
-            ? node.value.expression.type === AST_NODE_TYPES.JSXEmptyExpression
+          node.value.type === 'JSXExpressionContainer'
+            ? node.value.expression.type === 'JSXEmptyExpression'
               ? null
               : node.value.expression
             : node.value;
-        if (expression?.type === AST_NODE_TYPES.JSXSpreadChild) {
-          return;
-        }
         if (preference === 'string') {
           checkPreferringString(expression);
         } else if (preference === 'object') {

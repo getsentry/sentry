@@ -149,12 +149,6 @@ snuba_metrics_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     is_raw_mode=True,
 )
 
-snuba_generic_metrics_subscriptions_raw_tasks = app.taskregistry.create_namespace(
-    "snuba.subscriptions.generic_metrics.raw",
-    app_feature="transactions",
-    is_raw_mode=True,
-)
-
 snuba_eap_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.eap.raw",
     app_feature="transactions",
@@ -224,11 +218,6 @@ options_control_tasks = app.taskregistry.create_namespace(
 performance_tasks = app.taskregistry.create_namespace(
     "performance",
     app_feature="transactions",
-)
-
-preprod_tasks = app.taskregistry.create_namespace(
-    "preprod",
-    app_feature="preprod",
 )
 
 preprod_size_tasks = app.taskregistry.create_namespace(

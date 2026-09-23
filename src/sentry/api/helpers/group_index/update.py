@@ -572,22 +572,13 @@ def process_group_resolution(
                             organization_id=group.project.organization_id,
                         )
 
-                        date_order_q = Q(date_added__gt=current_release_obj.date_added) | Q(
-                            date_added=current_release_obj.date_added,
-                            id__gt=current_release_obj.id,
-                        )
-
-                        # Find the next release after the current_release_version
-                        # i.e. the release that resolves the issue
-                        resolved_in_release = (
-                            Release.objects.filter(
-                                date_order_q,
-                                projects=group.project,
-                                organization_id=group.project.organization_id,
-                            )
-                            .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                            .order_by("sort", "id")[:1]
-                            .get()
+                        resolved_in_release = Release.objects.get_next_release(
+                            group.project,
+                            current_release_obj,
+                            use_finalized_order=features.has(
+                                "organizations:release-resolution-finalized-order",
+                                group.project.organization,
+                            ),
                         )
 
                         # If we get here, we assume it exists and so we update
@@ -671,7 +662,6 @@ def process_group_resolution(
             group=group,
             new_status=GroupStatus.RESOLVED,
             resolution_time=now,
-            resolution_activity=activity,
         )
         if group.issue_type == MetricIssue:
             update_incident_based_on_open_period_status_change(group, GroupStatus.RESOLVED)

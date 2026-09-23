@@ -21,7 +21,6 @@ from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
-    NotificationCategory,
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
@@ -316,9 +315,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         )
         data = MockNotification(message="test")
         rendered_template = MockNotificationTemplate().render(data)
-        renderer = SlackNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
+        renderer = SlackNotificationProvider.get_renderer(data=data)
         self.slack_renderable = renderer.render(data=data, rendered_template=rendered_template)
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")

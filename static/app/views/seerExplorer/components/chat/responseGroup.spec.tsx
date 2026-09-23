@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -264,6 +264,23 @@ describe('ResponseGroup', () => {
     );
   });
 
+  it('stays expanded in the gap between tool calls when no block is loading', () => {
+    // CW-2044: between tool calls, the backend briefly returns all blocks with
+    // loading: false before the next tool starts. The ThinkingBlock must stay
+    // expanded as long as no final answer has settled.
+    const group = [toolUseBlock('t1'), toolUseBlock('t2')];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      {organization}
+    );
+
+    expect(reasoningBox(container).querySelector('button')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+  });
+
   it('spins inside the box while a tool works', () => {
     const group = [toolUseBlock('t1', {loading: true})];
 
@@ -301,6 +318,9 @@ describe('ResponseGroup', () => {
     );
 
     expect(queryReasoningBox(container)).toBeInTheDocument();
+    // Title only. The panel is the bordered card, so opening it around nothing draws an
+    // empty box under "Thinking..." for as long as the agent takes to report anything.
+    expect(within(reasoningBox(container)).queryByRole('group')).not.toBeInTheDocument();
   });
 
   it('gates thinking prose on the showThinking toggle but keeps tool calls', async () => {

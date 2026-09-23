@@ -10,9 +10,6 @@ from django.dispatch import receiver
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule
-from sentry.workflow_engine.utils.legacy_metric_tracking import (
-    report_used_legacy_models,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -213,9 +210,6 @@ class DuplicateRuleEvaluator:
             all_rules = Rule.objects.exclude(id=self._rule_id)
 
         existing_rules = all_rules.filter(project__id=self._project_id, status=ObjectStatus.ACTIVE)
-        # Mark that we're using legacy Rule models (even if query returns no results)
-        report_used_legacy_models()
-
         for existing_rule in existing_rules:
             keys_checked = 0
             keys_matched = 0

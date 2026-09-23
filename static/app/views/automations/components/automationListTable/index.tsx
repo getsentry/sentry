@@ -29,7 +29,7 @@ import {
   AutomationListRowSkeleton,
 } from 'sentry/views/automations/components/automationListTable/row';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
-import {useCanEditAutomation} from 'sentry/views/automations/hooks/useCanEditAutomation';
+import {hasOrganizationAutomationWriteAccess} from 'sentry/views/automations/utils/permissions';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 type AutomationListTableProps = {
@@ -97,7 +97,7 @@ export function AutomationListTable({
   allResultsVisible,
 }: AutomationListTableProps) {
   const organization = useOrganization();
-  const canEditAutomations = useCanEditAutomation();
+  const canEditAutomations = hasOrganizationAutomationWriteAccess(organization);
   const [query] = useQueryState('query', parseAsString);
   const [selected, setSelectedIds] = useState(new Set<string>());
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);
@@ -118,7 +118,7 @@ export function AutomationListTable({
     }
     setSelected(newSelected);
   };
-  const automationIds = new Set(automations.map(a => a.id));
+  const automationIds = new Set(automations.map(automation => automation.id));
   const pageSelected =
     !isPending &&
     automationIds.size !== 0 &&
@@ -166,20 +166,14 @@ export function AutomationListTable({
                 <span>{t('Name')}</span>
               </Flex>
             </HeaderCell>
-            <HeaderCell columnKey="last-triggered" sort={sort} sortKey="lastTriggered">
+            <HeaderCell sort={sort} sortKey="lastTriggered">
               {t('Last Triggered')}
             </HeaderCell>
-            <HeaderCell columnKey="action" sort={sort} sortKey="actions">
+            <HeaderCell sort={sort} sortKey="actions">
               {t('Actions')}
             </HeaderCell>
-            <HeaderCell columnKey="projects" sort={sort}>
-              {t('Projects')}
-            </HeaderCell>
-            <HeaderCell
-              columnKey="connected-monitors"
-              sort={sort}
-              sortKey="connectedDetectors"
-            >
+            <HeaderCell sort={sort}>{t('Projects')}</HeaderCell>
+            <HeaderCell sort={sort} sortKey="connectedDetectors">
               {t('Monitors')}
             </HeaderCell>
           </SimpleTable.HeaderRow>
@@ -237,6 +231,7 @@ export function AutomationListTable({
           <AutomationListRow
             key={automation.id}
             automation={automation}
+            canEdit={canEditAutomations}
             selected={selected.has(automation.id)}
             onSelect={handleSelect}
           />
@@ -251,7 +246,11 @@ const StyledFlex = styled(Flex)`
 
 const AUTOMATION_COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: {zero: '1fr', sm: '2.5fr', '4xl': 'minmax(0, 3fr)'}},
-  {key: 'last-triggered', visible: {'3xl': true}, width: 'minmax(160px, 1fr)'},
+  {
+    key: 'last-triggered',
+    visible: {'3xl': true},
+    width: 'minmax(160px, 1fr)',
+  },
   {key: 'action', visible: {xl: true}, width: '1fr'},
   {key: 'projects', visible: {sm: true}, width: '1fr'},
   {key: 'connected-monitors', visible: {'4xl': true}, width: '1fr'},

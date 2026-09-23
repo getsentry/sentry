@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from typing import Any
@@ -13,6 +14,8 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.anomaly_detection.store_data import trim_leading_zeros
+from sentry.seer.anomaly_detection.types import TimeSeriesPoint
 from sentry.seer.anomaly_detection.utils import fetch_historical_data, format_historical_data
 from sentry.snuba import errors, metrics_performance
 from sentry.snuba.dataset import Dataset
@@ -385,3 +388,53 @@ class AnomalyDetectionStoreDataTest(
         assert result
         assert self.time_1 in result.data.get("data").get("intervals")
         assert 1 in result.data.get("data").get("groups")[0].get("series").get("sum(session)")
+
+
+def build_daily_series(values: Sequence[float], start: datetime) -> list[TimeSeriesPoint]:
+    return [
+        TimeSeriesPoint(timestamp=(start + timedelta(days=i)).timestamp(), value=value)
+        for i, value in enumerate(values)
+    ]
+
+
+def test_trim_leading_zeros_trims_when_enough_real_data_remains() -> None:
+    data = build_daily_series([0] * 14 + [200000] * 14, before_now(days=28))
+
+    result = trim_leading_zeros(data)
+
+    assert result == data[14:]
+    assert result[0]["value"] == 200000
+
+
+def test_trim_leading_zeros_keeps_data_when_too_little_real_data_remains() -> None:
+    data = build_daily_series([0] * 25 + [200000] * 3, before_now(days=28))
+
+    result = trim_leading_zeros(data)
+
+    assert result == data
+
+
+def test_trim_leading_zeros_keeps_all_zero_series() -> None:
+    data = build_daily_series([0] * 28, before_now(days=28))
+
+    result = trim_leading_zeros(data)
+
+    assert result == data
+
+
+def test_trim_leading_zeros_keeps_series_without_leading_zeros() -> None:
+    data = build_daily_series([200000] * 28, before_now(days=28))
+
+    result = trim_leading_zeros(data)
+
+    assert result == data
+
+
+def test_trim_leading_zeros_preserves_zeros_after_real_data_starts() -> None:
+    values = [0] * 10 + [200000] * 5 + [0, 0] + [200000] * 11
+    data = build_daily_series(values, before_now(days=28))
+
+    result = trim_leading_zeros(data)
+
+    assert result == data[10:]
+    assert [point["value"] for point in result[5:7]] == [0, 0]
