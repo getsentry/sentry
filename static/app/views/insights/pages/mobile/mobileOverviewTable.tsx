@@ -4,10 +4,10 @@ import type {Location} from 'history';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 
+import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
-import {renderColumnLabel} from 'sentry/components/tables/renderColumnLabel';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -161,7 +161,7 @@ export function MobileOverviewTable({response, sort}: Props) {
           renderPrependColumns,
           getColumnSort: column =>
             getColumnSort({column, location, sort, sortableFields: SORTABLE_FIELDS}),
-          renderHeadCell: column => renderColumnLabel({column}),
+          renderHeadCell: column => <ColumnLabel column={column} />,
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, navigate, organization, theme),
           onResizeColumn: handleResizeColumn,

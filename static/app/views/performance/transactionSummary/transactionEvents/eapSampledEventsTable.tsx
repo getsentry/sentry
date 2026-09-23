@@ -15,12 +15,12 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
   type GridColumnHeader,
 } from 'sentry/components/tables/gridEditable';
-import {renderColumnLabel} from 'sentry/components/tables/renderColumnLabel';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -255,7 +255,7 @@ export function SampledEventsTable({
                 </Fragment>
               );
             }
-            return renderColumnLabel({column});
+            return <ColumnLabel column={column} />;
           },
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, navigate, organization, theme),

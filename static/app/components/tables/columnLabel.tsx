@@ -9,17 +9,13 @@ import {
   type ColumnAlign,
 } from 'sentry/components/tables/sortableHeaderCell';
 
-interface RenderColumnLabelOptions {
+interface ColumnLabelProps {
   column: {name: ReactNode; tooltip?: ReactNode};
   align?: ColumnAlign;
   tooltip?: ReactNode;
 }
 
-export function renderColumnLabel({
-  align,
-  column,
-  tooltip = column.tooltip,
-}: RenderColumnLabelOptions) {
+export function ColumnLabel({align, column, tooltip = column.tooltip}: ColumnLabelProps) {
   const label = tooltip ? (
     <LabelTooltip showUnderline title={tooltip}>
       {column.name}

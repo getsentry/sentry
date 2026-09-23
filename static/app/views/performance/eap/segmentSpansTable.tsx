@@ -9,8 +9,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
+import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import {GridEditable} from 'sentry/components/tables/gridEditable';
-import {renderColumnLabel} from 'sentry/components/tables/renderColumnLabel';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -158,7 +158,7 @@ export function SegmentSpansTable({
         columnOrder={SEGMENT_SPANS_COLUMN_ORDER}
         grid={{
           getColumnSort: column => ({align: getAlignment(column.key)}),
-          renderHeadCell: column => renderColumnLabel({column}),
+          renderHeadCell: column => <ColumnLabel column={column} />,
           renderBodyCell: (column, row) =>
             renderBodyCell(
               column,

@@ -7,13 +7,13 @@ import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import type {
   GridColumnHeader,
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
-import {renderColumnLabel} from 'sentry/components/tables/renderColumnLabel';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -190,19 +190,16 @@ export function PageOverviewWebVitalsDetailPanel({
 
   const renderHeadCell = (col: Column) => {
     if (col.key === 'webVital') {
-      return renderColumnLabel({align: 'right', column: {name: `${webVital}`}});
+      return <ColumnLabel align="right" column={{name: `${webVital}`}} />;
     }
     if (col.key === 'score' || col.key === 'measurements.score.inp') {
-      return renderColumnLabel({
-        align: 'center',
-        column: {name: `${webVital} ${col.name}`},
-      });
+      return <ColumnLabel align="center" column={{name: `${webVital} ${col.name}`}} />;
     }
     if (col.key === 'replayId' || col.key === 'profile.id') {
-      return renderColumnLabel({align: 'center', column: col});
+      return <ColumnLabel align="center" column={col} />;
     }
 
-    return renderColumnLabel({column: col});
+    return <ColumnLabel column={col} />;
   };
 
   const getFormattedDuration = (value: number) => {
