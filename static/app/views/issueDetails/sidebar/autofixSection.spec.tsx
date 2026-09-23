@@ -1,3 +1,4 @@
+import {useMatches} from 'react-router-dom';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -8,6 +9,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {IssueCategory, IssueType, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {
   LLMContextProvider,
   useLLMContext,
@@ -17,6 +19,25 @@ import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmCon
 import {AutofixSection} from './autofixSection';
 
 jest.mock('sentry/utils/cells');
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useMatches: jest.fn(),
+}));
+
+const mockUseMatches = jest.mocked(useMatches);
+
+/** The route match shape `useCurrentTab` reads, for whichever tab is on screen. */
+function matchesForTab(tab: Tab) {
+  return [
+    {
+      id: '0',
+      pathname: '/organizations/org-slug/issues/1/',
+      params: {orgId: 'org-slug', groupId: '1'},
+      data: null,
+      handle: {path: TabPaths[tab]},
+    },
+  ];
+}
 
 describe('AutofixSection', () => {
   const mockProject = DetailedProjectFixture();
@@ -30,6 +51,7 @@ describe('AutofixSection', () => {
   beforeEach(() => {
     mockGroup = GroupFixture();
     MockApiClient.clearMockResponses();
+    mockUseMatches.mockImplementation(() => matchesForTab(Tab.DETAILS));
 
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
@@ -176,6 +198,52 @@ describe('AutofixSection', () => {
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
+  });
+
+  it('drops the open button on the autofix tab but keeps the previews', async () => {
+    mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {
+        autofix: {
+          run_id: 1,
+          status: 'completed',
+          updated_at: new Date().toISOString(),
+          blocks: [
+            {
+              id: 'block-1',
+              message: {
+                content: 'Found root cause',
+                role: 'assistant',
+                metadata: {step: 'root_cause'},
+              },
+              timestamp: new Date().toISOString(),
+              artifacts: [
+                {
+                  key: 'root_cause',
+                  reason: 'Identified the issue',
+                  data: {
+                    one_line_description: 'Null pointer in user handler',
+                    five_whys: ['why1'],
+                    reproduction_steps: ['step1'],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    // The previews still earn their place as a table of contents; only the
+    // button, which would navigate to the page already on screen, goes.
+    expect(await screen.findByText('Root Cause')).toBeInTheDocument();
+    expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Open Autofix'})).not.toBeInTheDocument();
   });
 
   it('renders solution artifact', async () => {
