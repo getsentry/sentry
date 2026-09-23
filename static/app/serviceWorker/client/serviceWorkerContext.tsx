@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {isServiceWorkerSupported} from 'sentry/serviceWorker/client/isServiceWorkerSupported';
 import {ServiceWorkerController} from 'sentry/serviceWorker/client/serviceWorkerInterface';
+import {getSentryScriptUrlPolicy} from 'sentry/utils/trustedTypes';
 
 const DEBUG_LOGGING = false;
 
@@ -16,7 +17,13 @@ function log(message: string, options?: Sentry.metrics.MetricOptions) {
 }
 
 function getWorkerUrl(): string {
-  return window.__SENTRY_DEV_UI ? '/entrypoints/service-worker.js' : '/service-worker.js';
+  const url = window.__SENTRY_DEV_UI
+    ? '/entrypoints/service-worker.js'
+    : '/service-worker.js';
+
+  // `register()` is typed for a string but accepts a TrustedScriptURL, which is
+  // what it requires once Trusted Types is enforced.
+  return (getSentryScriptUrlPolicy()?.createScriptURL(url) ?? url) as string;
 }
 
 const Context = createContext({
