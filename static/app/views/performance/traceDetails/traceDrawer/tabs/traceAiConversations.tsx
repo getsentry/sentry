@@ -231,7 +231,6 @@ function TraceConversationTranscript({
     selectedSpanId,
     onSelectSpan,
     isLoading,
-    autoSelectDefaultNode: false,
   });
 
   const [detailTab, setDetailTab] = useState<DetailTab>('input');

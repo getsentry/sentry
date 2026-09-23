@@ -92,11 +92,12 @@ function ConversationsOverviewPage() {
     isLoading: isOnboardingLoading,
     refetch: refetchOnboarding,
   } = useShowConversationOnboarding();
+  const conversationsResult = useConversations();
   const {
     data: conversations,
     isFetching: isConversationsFetching,
     error: conversationsError,
-  } = useConversations();
+  } = conversationsResult;
   const showMissingMessagesAlert =
     !isConversationsFetching &&
     !conversationsError &&
@@ -244,11 +245,10 @@ function ConversationsOverviewPage() {
     content = (
       <Fragment>
         {hasAgenticSpans && <AgentsCharts />}
-        {isConversationsTab && showMissingMessagesAlert && (
-          <ConversationMissingMessagesAlert />
-        )}
+        {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
         <AgentsTable
           activeTab={activeTab}
+          conversations={conversationsResult}
           hasAgenticSpans={hasAgenticSpans}
           hasConversations={hasConversations}
           onConversationOnboardingDismiss={refetchOnboarding}
@@ -263,7 +263,7 @@ function ConversationsOverviewPage() {
       <Fragment>
         {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
         <ConversationsChart />
-        <ConversationsTable />
+        <ConversationsTable conversations={conversationsResult} />
       </Fragment>
     );
   }

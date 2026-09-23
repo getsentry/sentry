@@ -101,14 +101,14 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
         "images": {
             "type": "object",
             "additionalProperties": True,
-            "maxProperties": 50000,
+            "maxProperties": 100000,
         },
         "diff_threshold": {"type": "number", "minimum": 0.0, "exclusiveMaximum": 1.0},
         "selective": {"type": "boolean"},
         "all_image_file_names": {
             "type": "array",
             "items": {"type": "string"},
-            "maxItems": 50000,
+            "maxItems": 100000,
         },
         **VCS_SCHEMA_PROPERTIES,
     },
@@ -120,7 +120,7 @@ SNAPSHOT_POST_REQUEST_ERROR_MESSAGES: dict[str, str] = {
     "app_id": "The app_id field is required and must be a string with maximum length of 255 characters.",
     "images": "The images field is required and must be an object mapping image names to image metadata.",
     "selective": "The selective field must be a boolean.",
-    "all_image_file_names": "The all_image_file_names field must be an array of strings with at most 50000 entries.",
+    "all_image_file_names": "The all_image_file_names field must be an array of strings with at most 100000 entries.",
     **VCS_ERROR_MESSAGES,
 }
 

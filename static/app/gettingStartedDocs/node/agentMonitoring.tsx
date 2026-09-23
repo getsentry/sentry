@@ -7,6 +7,11 @@ import {
   type OnboardingConfig,
   type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  GEN_AI_DATA_COLLECTION_SNIPPET,
+  getJsDataCollectionDocsLink,
+  getDataCollectionStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
@@ -28,6 +33,7 @@ const CLOUDFLARE_AGENTS_MIN_VERSION = '10.69.0';
 
 const CLOUDFLARE_AGENT_TRACING_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/';
+
 const CLOUDFLARE_DURABLE_OBJECTS_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/durableobject/';
 const CLOUDFLARE_AGENTS_SDK_DOCS =
@@ -60,6 +66,29 @@ export function getMinRequiredVersion(params: DocsParams, fallback: string): str
 }
 
 /**
+ * The data collection step for agent monitoring, leading with generative AI
+ * content. Returns no step for Eve, which never configures the Sentry SDK.
+ */
+export function getAgentDataCollectionStep(params: DocsParams): OnboardingStep[] {
+  if (getAgentIntegration(params) === AgentIntegration.EVE) {
+    return [];
+  }
+
+  return [
+    getDataCollectionStep({
+      // GuidedSteps surfaces drop collapsible steps, so this must be a plain step.
+      collapsible: false,
+      // Shared across platforms, so resolve the link from the project's platform.
+      docsLink: getJsDataCollectionDocsLink(params.platformKey),
+      description: t(
+        'By default, the SDK sends the inputs and outputs of your LLM and tool calls, such as prompts, responses, and tool arguments. This gives you rich debugging context.'
+      ),
+      code: GEN_AI_DATA_COLLECTION_SNIPPET,
+    }),
+  ];
+}
+
+/**
  * Cloudflare Workers don't expose the public `Sentry.init()` API. Instead the
  * SDK is bootstrapped by wrapping the worker with `Sentry.withSentry`. The
  * Vercel AI SDK additionally requires the `nodejs_compat` entrypoint and its
@@ -88,12 +117,7 @@ export default Sentry.withSentry(
   (env) => ({
     dsn: "${dsn}",
     // Tracing must be enabled for agent monitoring to work
-    tracesSampleRate: 1.0,
-    dataCollection: {
-      // Control data collection of LLMs and tools.
-      // For more info visit: https://docs.sentry.io/platforms/javascript/data-management/data-collected/
-      // genAI: { inputs: false, outputs: false },
-    },${integrationsLine}
+    tracesSampleRate: 1.0,${integrationsLine}
   }),
   {
     async fetch(request, env, ctx) {
@@ -687,11 +711,6 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   // Tracing must be enabled for agent monitoring to work
   tracesSampleRate: 1.0,
-  dataCollection: {
-    // Control data collection of LLMs and tools.
-    // For more info visit: https://docs.sentry.io/platforms/javascript/data-management/data-collected/
-    // genAI: { inputs: false, outputs: false },
-  },
 });`;
 
   return [
@@ -944,11 +963,6 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   // Tracing must be enabled for agent monitoring to work
   tracesSampleRate: 1.0,
-  dataCollection: {
-    // Control data collection of LLMs and tools.
-    // For more info visit: https://docs.sentry.io/platforms/javascript/data-management/data-collected/
-    // genAI: { inputs: false, outputs: false },
-  },
 });`;
 
   // On Node the SDK auto-instruments the integration; on Cloudflare the worker is
@@ -1191,6 +1205,48 @@ const text = lastMessage.content;`,
   ];
 }
 
+/**
+ * The configure steps without the data collection step; the factory appends it
+ * once around these, so no branch can miss or repeat it.
+ */
+function getAgentConfigureSteps(
+  params: DocsParams,
+  {
+    packageName = '@sentry/node',
+    configFileName,
+  }: {
+    configFileName?: string;
+    packageName?: `@sentry/${string}`;
+  } = {}
+): OnboardingStep[] {
+  const selected = getAgentIntegration(params);
+
+  if (selected === AgentIntegration.MANUAL) {
+    return getManualConfigureStep(params, {
+      packageName,
+    });
+  }
+
+  if (selected === AgentIntegration.FLUE) {
+    return flueOnboarding.configure(params);
+  }
+
+  if (selected === AgentIntegration.EVE) {
+    return eveOnboarding.configure(params);
+  }
+
+  if (selected === AgentIntegration.CLOUDFLARE_AGENTS) {
+    return getCloudflareAgentsConfigureStep(params);
+  }
+
+  return getConfigureStep({
+    params,
+    integration: selected,
+    packageName,
+    configFileName,
+  });
+}
+
 export const agentMonitoring = ({
   packageName = '@sentry/node',
   configFileName,
@@ -1210,33 +1266,9 @@ export const agentMonitoring = ({
       packageName,
       minVersion: MIN_REQUIRED_VERSION,
     }),
-  configure: params => {
-    const selected = getAgentIntegration(params);
-
-    if (selected === AgentIntegration.MANUAL) {
-      return getManualConfigureStep(params, {
-        packageName,
-      });
-    }
-
-    if (selected === AgentIntegration.FLUE) {
-      return flueOnboarding.configure(params);
-    }
-
-    if (selected === AgentIntegration.EVE) {
-      return eveOnboarding.configure(params);
-    }
-
-    if (selected === AgentIntegration.CLOUDFLARE_AGENTS) {
-      return getCloudflareAgentsConfigureStep(params);
-    }
-
-    return getConfigureStep({
-      params,
-      integration: selected,
-      packageName,
-      configFileName,
-    });
-  },
+  configure: params => [
+    ...getAgentConfigureSteps(params, {packageName, configFileName}),
+    ...getAgentDataCollectionStep(params),
+  ],
   verify: getVerifyStep,
 });

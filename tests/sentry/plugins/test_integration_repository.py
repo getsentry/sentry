@@ -236,3 +236,53 @@ class IntegrationRepositoryTestCase(TestCase):
         assert exc_info.value.existing_repo is None
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.PENDING_DELETION
+
+
+class CreateRepositoriesTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="654321"
+        )
+        self.config = {
+            "identifier": "getsentry/sentry",
+            "external_id": "654321",
+            "integration_id": self.integration.id,
+        }
+
+    @cached_property
+    def provider(self) -> GitHubRepositoryProvider:
+        return GitHubRepositoryProvider("integrations:github")
+
+    def _existing(self, status: int) -> Repository:
+        return Repository.objects.create(
+            name="getsentry/old-name",
+            provider="integrations:github",
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_id="654321",
+            status=status,
+        )
+
+    def test_an_active_repository_is_refreshed_but_not_reactivated(self) -> None:
+        repo = self._existing(ObjectStatus.ACTIVE)
+
+        created, reactivated, _ = self.provider.create_repositories(
+            configs=[self.config], organization=self.organization
+        )
+
+        assert (created, reactivated) == ([], [])
+        repo.refresh_from_db()
+        assert repo.name == "getsentry/sentry"
+
+    def test_a_disabled_repository_is_reactivated(self) -> None:
+        repo = self._existing(ObjectStatus.DISABLED)
+
+        created, reactivated, _ = self.provider.create_repositories(
+            configs=[self.config], organization=self.organization
+        )
+
+        assert created == []
+        assert [r.id for r in reactivated] == [repo.id]
+        repo.refresh_from_db()
+        assert repo.status == ObjectStatus.ACTIVE

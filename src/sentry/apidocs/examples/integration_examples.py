@@ -27,6 +27,7 @@ class IntegrationExamples:
                         "users:read",
                     ],
                     "outOfDate": False,
+                    "missingFeatures": None,
                     "status": "active",
                     "provider": {
                         "key": "slack",
@@ -74,6 +75,7 @@ class IntegrationExamples:
                     "users:read",
                 ],
                 "outOfDate": False,
+                "missingFeatures": None,
                 "status": "active",
                 "provider": {
                     "key": "slack",
@@ -779,6 +781,7 @@ class IntegrationExamples:
                 "accountType": None,
                 "scopes": None,
                 "outOfDate": None,
+                "missingFeatures": None,
                 "status": "active",
                 "provider": {
                     "key": "jira",
@@ -820,6 +823,7 @@ class IntegrationExamples:
                 "accountType": None,
                 "scopes": None,
                 "outOfDate": None,
+                "missingFeatures": None,
                 "status": "active",
                 "provider": {
                     "key": "jira",
