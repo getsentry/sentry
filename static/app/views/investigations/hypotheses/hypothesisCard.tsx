@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -20,7 +21,7 @@ import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
 const PENDING_EVIDENCE_STATUSES = new Set<string>(['pending', 'investigating']);
 
 /** Past this many checks, only the latest shows until the rest are asked for. */
-const MAX_UNCOLLAPSED_STEPS = 3;
+const MAX_UNCOLLAPSED_STEPS = 2;
 
 type HypothesisCardProps = {
   hypothesis: InvestigationHypothesis;
@@ -126,8 +127,8 @@ export function HypothesisCard({
               icon={<Timeline.Dot />}
               colorConfig={dotColorConfig}
               title={
-                <StepsToggle
-                  type="button"
+                <Button
+                  variant="link"
                   aria-expanded={showAllSteps}
                   onClick={() => setShowAllSteps(value => !value)}
                 >
@@ -143,7 +144,7 @@ export function HypothesisCard({
                       direction={showAllSteps ? 'up' : 'right'}
                     />
                   </Flex>
-                </StepsToggle>
+                </Button>
               }
             />
           ) : null}
@@ -260,17 +261,4 @@ const EvidenceList = styled(Timeline.Container)`
  */
 const StepTitle = styled(Text)`
   line-height: 22px;
-`;
-
-/**
- * Reads as one more line of the timeline rather than a control, so it sheds the
- * browser's button chrome and takes the step titles' type.
- */
-const StepsToggle = styled('button')`
-  background: none;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-  color: inherit;
-  font: inherit;
 `;

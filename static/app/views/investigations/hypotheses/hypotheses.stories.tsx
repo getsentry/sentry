@@ -159,8 +159,8 @@ export default Storybook.story('Investigations — Hypotheses', story => {
   story('Many checks', () => (
     <Fragment>
       <p>
-        Past three checks, the timeline collapses to the latest one — where the agent is,
-        or where it ended up — behind a toggle that names how many are hidden. Opening it
+        Past two checks, the timeline collapses to the latest one — where the agent is, or
+        where it ended up — behind a toggle that names how many are hidden. Opening it
         shows every check, with a toggle to collapse them again.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">

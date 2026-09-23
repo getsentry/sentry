@@ -326,7 +326,27 @@ describe('HypothesisCard', () => {
     );
   });
 
-  it('shows every step when there are three or fewer', () => {
+  it('shows every step when there are two or fewer', () => {
+    render(
+      <HypothesisCard
+        hypothesis={InvestigationHypothesisFixture({
+          verificationSteps: [0, 1].map(order =>
+            InvestigationVerificationStepFixture({
+              id: `step-${order}`,
+              order,
+              title: `Check ${order + 1}`,
+            })
+          ),
+        })}
+      />
+    );
+
+    const steps = within(screen.getByRole('list', {name: 'Verification steps'}));
+    expect(steps.getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.queryByRole('button', {name: /show/i})).not.toBeInTheDocument();
+  });
+
+  it('collapses all but the latest step when there are more than two', async () => {
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({
@@ -341,40 +361,20 @@ describe('HypothesisCard', () => {
       />
     );
 
-    const steps = within(screen.getByRole('list', {name: 'Verification steps'}));
-    expect(steps.getAllByRole('listitem')).toHaveLength(3);
-    expect(screen.queryByRole('button', {name: /show/i})).not.toBeInTheDocument();
-  });
-
-  it('collapses all but the latest step when there are more than three', async () => {
-    render(
-      <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          verificationSteps: [0, 1, 2, 3].map(order =>
-            InvestigationVerificationStepFixture({
-              id: `step-${order}`,
-              order,
-              title: `Check ${order + 1}`,
-            })
-          ),
-        })}
-      />
-    );
-
-    expect(screen.getByText('Check 4')).toBeInTheDocument();
+    expect(screen.getByText('Check 3')).toBeInTheDocument();
     expect(screen.queryByText('Check 1')).not.toBeInTheDocument();
-    expect(screen.queryByText('Check 3')).not.toBeInTheDocument();
+    expect(screen.queryByText('Check 2')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Show 3 more steps'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 more steps'}));
 
-    for (const title of ['Check 1', 'Check 2', 'Check 3', 'Check 4']) {
+    for (const title of ['Check 1', 'Check 2', 'Check 3']) {
       expect(screen.getByText(title)).toBeInTheDocument();
     }
 
     await userEvent.click(screen.getByRole('button', {name: 'Show less'}));
 
     expect(screen.queryByText('Check 1')).not.toBeInTheDocument();
-    expect(screen.getByText('Check 4')).toBeInTheDocument();
+    expect(screen.getByText('Check 3')).toBeInTheDocument();
   });
 
   it('hides the timeline when there are no steps', () => {
