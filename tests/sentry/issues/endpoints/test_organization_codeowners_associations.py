@@ -65,7 +65,9 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
         response = self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
         for code_owner in [code_owner_1, code_owner_2]:
             assert code_owner.project.slug in response.data.keys()
-            associations, errors = build_codeowners_associations(code_owner.raw, code_owner.project)
+            associations, errors = build_codeowners_associations(
+                code_owner.raw, code_owner.project, code_owner.repository_project_path_config
+            )
             assert "associations" in response.data[code_owner.project.slug].keys()
             assert response.data[code_owner.project.slug]["associations"] == associations
             assert "errors" in response.data[code_owner.project.slug].keys()
