@@ -58,13 +58,16 @@ export interface SpendLimitSettingsProps {
   onUpdate: ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => void;
   organization: Organization;
   subscription: Subscription;
-  SpendLimitInputComponent?: React.ComponentType<SpendLimitInputProps>;
   footer?: React.ReactNode;
+}
+
+interface SpendLimitSettingsLayoutProps extends SpendLimitSettingsProps {
+  SpendLimitInputComponent?: React.ComponentType<SpendLimitInputProps>;
   renderBudgetModeSettings?: (props: BudgetModeSettingsProps) => React.ReactNode;
 }
 
 interface InnerSpendLimitSettingsProps extends Omit<
-  SpendLimitSettingsProps,
+  SpendLimitSettingsLayoutProps,
   'header' | 'subscription'
 > {}
 
@@ -336,7 +339,7 @@ function InnerSpendLimitSettings({
   );
 }
 
-export function SpendLimitSettings({
+function SpendLimitSettingsLayout({
   header,
   activePlan,
   onDemandBudgets,
@@ -348,7 +351,7 @@ export function SpendLimitSettings({
   subscription,
   renderBudgetModeSettings,
   SpendLimitInputComponent,
-}: SpendLimitSettingsProps) {
+}: SpendLimitSettingsLayoutProps) {
   const budgetModeSettingsProps = {activePlan, onDemandBudgets, onUpdate};
   return (
     <Stack gap="sm">
@@ -390,4 +393,12 @@ export function SpendLimitSettings({
       </Grid>
     </Stack>
   );
+}
+
+export function SpendLimitSettings(props: SpendLimitSettingsProps) {
+  return <SpendLimitSettingsLayout {...props} />;
+}
+
+export function SpendLimitFormSettings(props: SpendLimitSettingsLayoutProps) {
+  return <SpendLimitSettingsLayout {...props} />;
 }

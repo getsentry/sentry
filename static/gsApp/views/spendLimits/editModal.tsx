@@ -32,7 +32,7 @@ import {displayBudgetName} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import {BudgetModeSettings} from 'getsentry/views/spendLimits/budgetModeSettings';
 import type {SpendLimitInputProps} from 'getsentry/views/spendLimits/spendLimitInput';
-import {SpendLimitSettings} from 'getsentry/views/spendLimits/spendLimitSettings';
+import {SpendLimitFormSettings} from 'getsentry/views/spendLimits/spendLimitSettings';
 
 import {
   convertOnDemandBudget,
@@ -298,7 +298,7 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                 budgetMode: modeField.state.value,
               });
               return (
-                <SpendLimitSettings
+                <SpendLimitFormSettings
                   organization={organization}
                   subscription={subscription}
                   header={
