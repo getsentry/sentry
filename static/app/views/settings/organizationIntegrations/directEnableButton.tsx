@@ -56,27 +56,17 @@ export function DirectEnableButton({
     onError: () => addErrorMessage(t('Failed to enable integration.')),
   });
 
-  const nativelyDisabled = buttonProps.disabled || isPending;
-
   return (
-    // aria-disabled rather than disabled when the user lacks access, so the
-    // button stays focusable and the permission tooltip opens on keyboard focus.
     <Button
       {...buttonProps}
-      disabled={nativelyDisabled}
-      aria-disabled={nativelyDisabled || !userHasAccess}
+      disabled={buttonProps.disabled || !userHasAccess || isPending}
       tooltipProps={
         userHasAccess
           ? undefined
           : {title: t('You do not have permission to enable this integration.')}
       }
       busy={isPending}
-      onClick={() => {
-        if (!userHasAccess) {
-          return;
-        }
-        enable();
-      }}
+      onClick={() => enable()}
     >
       {t('Enable Integration')}
     </Button>

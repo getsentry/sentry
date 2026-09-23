@@ -54,10 +54,7 @@ export function AddIntegrationButton({
   });
 
   return (
-    // aria-disabled rather than disabled so the button stays focusable and the
-    // tooltip that says why it cannot be added opens on keyboard focus.
     <Button
-      aria-disabled={!provider.canAdd || undefined}
       tooltipProps={
         provider.canAdd
           ? undefined
@@ -70,10 +67,8 @@ export function AddIntegrationButton({
       }
       aria-label={t('Add integration')}
       {...buttonProps}
+      disabled={!provider.canAdd || buttonProps.disabled}
       onClick={() => {
-        if (!provider.canAdd) {
-          return;
-        }
         if (label === t('Reinstall')) {
           trackAnalytics('integrations.integration_reinstall_clicked', {
             organization,
