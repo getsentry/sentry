@@ -188,6 +188,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     trackAnalytics('issue_details.issue_content_selected', {
       organization,
       content: TabName[key]!,
+      surface: showContentTabs ? 'tabs' : 'dropdown',
     });
   };
 

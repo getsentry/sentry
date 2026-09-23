@@ -13,6 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory, IssueType} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {AutofixPanelProvider} from 'sentry/views/issueDetails/autofix/context';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
@@ -21,6 +22,7 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {IssueEventNavigation} from '.';
 
 jest.mock('sentry/views/issueDetails/context');
+jest.mock('sentry/utils/analytics');
 
 describe('EventNavigation', () => {
   const organization = OrganizationFixture({features: ['discover-basic']});
@@ -225,6 +227,29 @@ describe('EventNavigation', () => {
       expect(
         screen.getByRole('button', {name: 'Select issue content'})
       ).toBeInTheDocument();
+    });
+
+    it('records tab selections with the tabs surface', async () => {
+      renderNav(seerOrganization, {tab: Tab.DETAILS});
+
+      await userEvent.click(screen.getByRole('tab', {name: /Replays/}));
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'issue_details.issue_content_selected',
+        expect.objectContaining({content: 'Replays', surface: 'tabs'})
+      );
+    });
+
+    it('records dropdown selections with the dropdown surface', async () => {
+      renderNav(organization, {tab: Tab.DETAILS});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /Replays/}));
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'issue_details.issue_content_selected',
+        expect.objectContaining({content: 'Replays', surface: 'dropdown'})
+      );
     });
 
     it('omits the autofix tab when AI features are hidden', () => {
