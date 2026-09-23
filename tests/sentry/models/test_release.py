@@ -13,7 +13,7 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
 from sentry.issues.action_log.types import SetResolvedInReleaseAction
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.deploy import Deploy
 from sentry.models.distribution import Distribution
 from sentry.models.environment import Environment
@@ -871,7 +871,7 @@ class SetCommitsTestCase(TestCase):
         )
         commit = Commit.objects.get(repository_id=repo.id, organization_id=org.id, key="a" * 40)
         assert commit.author is not None
-        assert commit.author.email == truncatechars(commit_email, 75)
+        assert commit.author.email == truncatechars(commit_email, COMMIT_AUTHOR_EMAIL_LENGTH)
 
     @receivers_raise_on_send()
     def test_multiple_authors(self) -> None:

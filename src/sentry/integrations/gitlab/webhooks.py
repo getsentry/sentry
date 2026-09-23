@@ -34,7 +34,7 @@ from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_extern
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -654,7 +654,7 @@ class PushEventWebhook(GitlabWebhook):
 
             # TODO(dcramer): we need to deal with bad values here, but since
             # its optional, lets just throw it out for now
-            if author_email is None or len(author_email) > 75:
+            if author_email is None or len(author_email) > COMMIT_AUTHOR_EMAIL_LENGTH:
                 author = None
             elif author_email not in authors:
                 authors[author_email] = author = CommitAuthor.objects.get_or_create(
