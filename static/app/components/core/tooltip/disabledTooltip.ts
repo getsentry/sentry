@@ -1,3 +1,12 @@
+import type {TooltipProps} from './tooltip';
+
+export interface ControlTooltipProps extends Omit<
+  TooltipProps,
+  'children' | 'skipWrapper' | 'title'
+> {
+  title?: TooltipProps['title'];
+}
+
 type DisabledTooltipOptions<Element extends HTMLElement> = {
   disabled: boolean | undefined;
   onKeyDown: React.KeyboardEventHandler<Element> | undefined;

@@ -7,7 +7,7 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {
   getDisabledTooltipProps,
   Tooltip,
-  type TooltipProps,
+  type ControlTooltipProps,
 } from '@sentry/scraps/tooltip';
 
 import type {FormSize} from 'sentry/utils/theme';
@@ -92,14 +92,7 @@ export interface CheckboxProps extends Omit<
    * Props for an explanatory tooltip. A disabled checkbox with a tooltip remains
    * focusable so keyboard and screen reader users can access the explanation.
    */
-  tooltipProps?: CheckboxTooltipProps;
-}
-
-interface CheckboxTooltipProps extends Omit<
-  TooltipProps,
-  'children' | 'skipWrapper' | 'title'
-> {
-  title?: TooltipProps['title'];
+  tooltipProps?: ControlTooltipProps;
 }
 
 export function Checkbox({
