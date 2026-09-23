@@ -101,7 +101,6 @@ const Option = styled('div')<{isSelected: boolean}>`
   color: ${p => p.theme.tokens.content.primary};
   cursor: pointer;
   position: relative;
-  margin: 0;
 
   &:before,
   &:after {
