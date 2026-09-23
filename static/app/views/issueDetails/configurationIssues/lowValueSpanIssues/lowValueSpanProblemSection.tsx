@@ -7,6 +7,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -62,9 +63,9 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
         )}
       </Alert>
       <KeyValueTableCard
+        itemProps={{disableFormattedData: true}}
         contentItems={[
           {
-            disableFormattedData: true,
             item: {
               action: affectedSpanExploreUrl ? {link: affectedSpanExploreUrl} : undefined,
               key: 'affected-span',
@@ -73,7 +74,6 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
             },
           },
           {
-            disableFormattedData: true,
             item: {
               key: 'span-count',
               subject: t('Span count'),
@@ -96,31 +96,27 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
               ),
             },
           },
-          ...(canViewEstimatedCost && extrapolatedCount !== null
-            ? [
-                {
-                  disableFormattedData: true,
-                  item: {
-                    key: 'estimated-cost',
-                    subject: t('Estimated cost'),
-                    value: (
-                      <LowValueSpanEstimatedCost
-                        extrapolatedSpanCount={extrapolatedCount}
-                      />
-                    ),
-                  },
+          canViewEstimatedCost && extrapolatedCount !== null
+            ? {
+                item: {
+                  key: 'estimated-cost',
+                  subject: t('Estimated cost'),
+                  value: (
+                    <LowValueSpanEstimatedCost
+                      extrapolatedSpanCount={extrapolatedCount}
+                    />
+                  ),
                 },
-              ]
-            : []),
+              }
+            : undefined,
           {
-            disableFormattedData: true,
             item: {
               key: 'average-duration',
               subject: t('Average duration'),
               value: formatDurationMs(evidenceData.avgDurationMs),
             },
           },
-        ]}
+        ].filter(defined)}
       />
     </Stack>
   );

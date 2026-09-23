@@ -89,6 +89,10 @@ export default Storybook.story('KeyValueTable', story => {
             <code>subject</code>
           </li>
           <li>
+            <code>itemProps</code> - <code>KeyValueTableDataRow</code> props applied to
+            every row, overridden by anything a content item sets
+          </li>
+          <li>
             <code>children</code> - free-form content rendered below the rows, spanning
             the full card width. Use it for bodies that aren't key/value pairs, or for
             loading and empty states.

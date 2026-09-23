@@ -1019,19 +1019,20 @@ function SectionCard({
   items,
   title,
   sortAlphabetically = false,
-  itemProps = {},
+  itemProps,
 }: {
   items: SectionCardKeyValueList;
   title: React.ReactNode;
   itemProps?: Partial<KeyValueTableDataRowProps>;
   sortAlphabetically?: boolean;
 }) {
-  const contentItems = items.map(item => ({item, ...itemProps}));
+  const contentItems = items.map(item => ({item}));
 
   return (
     <KeyValueTableCard
       title={title}
       contentItems={contentItems}
+      itemProps={itemProps}
       sortAlphabetically={sortAlphabetically}
       truncateLength={SECTION_CARD_TRUNCATE_LENGTH}
     />

@@ -282,8 +282,8 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     >
       {hasFlags ? (
         <CardContainer numCols={shouldUseTwoColumns ? 2 : 1}>
-          <KeyValueTableCard expandLeft contentItems={columnOne} />
-          <KeyValueTableCard expandLeft contentItems={columnTwo} />
+          <KeyValueTableCard itemProps={{expandLeft: true}} contentItems={columnOne} />
+          <KeyValueTableCard itemProps={{expandLeft: true}} contentItems={columnTwo} />
         </CardContainer>
       ) : (
         <StyledEmptyStateWarning withIcon small>

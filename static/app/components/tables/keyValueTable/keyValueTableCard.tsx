@@ -23,9 +23,9 @@ interface KeyValueTableCardProps {
    */
   contentItems?: KeyValueTableDataRowProps[];
   /**
-   * If true, expands the left side of the cards to take up more space.
+   * Row props applied to every row, overridden by anything a content item sets.
    */
-  expandLeft?: boolean;
+  itemProps?: Partial<KeyValueTableDataRowProps>;
   /**
    *  Flag to enable alphabetical sorting by item subject. Uses given item ordering if false.
    */
@@ -43,10 +43,10 @@ interface KeyValueTableCardProps {
 export function KeyValueTableCard({
   children,
   contentItems = [],
+  itemProps,
   title,
   truncateLength = Infinity,
   sortAlphabetically = false,
-  expandLeft = false,
 }: KeyValueTableCardProps) {
   const [isTruncated, setIsTruncated] = useState(contentItems.length > truncateLength);
 
@@ -65,12 +65,8 @@ export function KeyValueTableCard({
   return (
     <CardPanel>
       {title && <CardTitle>{title}</CardTitle>}
-      {orderedItems.map((itemProps, index) => (
-        <KeyValueTableDataRow
-          expandLeft={expandLeft}
-          key={String(index)}
-          {...itemProps}
-        />
+      {orderedItems.map((contentItem, index) => (
+        <KeyValueTableDataRow key={String(index)} {...itemProps} {...contentItem} />
       ))}
       {contentItems.length > truncateLength && (
         <TruncateWrapper onClick={() => setIsTruncated(!isTruncated)}>

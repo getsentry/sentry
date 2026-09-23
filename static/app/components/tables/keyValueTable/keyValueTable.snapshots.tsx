@@ -131,7 +131,7 @@ describe('KeyValueTable', () => {
     'card-expand-left',
     () => (
       <div style={{padding: 8, width: 500}}>
-        <KeyValueTableCard contentItems={contentItems} expandLeft />
+        <KeyValueTableCard contentItems={contentItems} itemProps={{expandLeft: true}} />
       </div>
     ),
     {tags: {area: 'core', variant: 'card'}}
