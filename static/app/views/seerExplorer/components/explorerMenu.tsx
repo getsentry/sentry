@@ -238,12 +238,14 @@ export function useExplorerMenu({
     const relativeLeft = rect.left - panelRect.left;
 
     if (menuMode === 'slash-commands-keyboard') {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setMenuPosition({
         bottom: `${panelRect.height - relativeTop + spacing}px`,
         left: `${relativeLeft}px`,
       });
     } else {
       // Position above anchor (since button is at bottom of panel)
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setMenuPosition({
         bottom: `${panelRect.height - relativeTop + spacing}px`,
         right: `${panelRect.width - relativeLeft - rect.width}px`,
