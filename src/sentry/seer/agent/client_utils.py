@@ -19,7 +19,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils.timezone import now
 from rest_framework.request import Request
-from urllib3 import BaseHTTPResponse, HTTPConnectionPool
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -37,7 +37,7 @@ from sentry.net.http import connection_from_url
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
-from sentry.seer.models import SeerApiError
+from sentry.seer.models import SeerApiError, SeerUnavailableError
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
@@ -233,12 +233,14 @@ def make_agent_state_pr_request(
     body: AgentPrStateRequest,
     connection_pool: HTTPConnectionPool | None = None,
     viewer_context: SeerViewerContext | None = None,
+    retries: Retry | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or agent_connection_pool,
         "/v1/automation/explorer/state/pr",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
+        retries=retries,
     )
 
 
@@ -348,11 +350,33 @@ def enqueue_seer_run(
     return run
 
 
+# Retry the PR-state lookup on server errors, waiting 0s, 1s, then 2s. It only
+# reads, so repeating the POST is safe (urllib3 skips POSTs unless told to).
+AGENT_STATE_PR_RETRIES = Retry(
+    total=3,
+    backoff_factor=0.5,
+    status_forcelist=range(500, 600),
+    allowed_methods=frozenset({"POST"}),
+    respect_retry_after_header=False,
+    raise_on_status=False,
+)
+
+
 def get_agent_state_from_pr_id(
     organization_id: int, provider: str, pr_id: int
 ) -> SeerRunState | None:
+    """
+    Look up the Seer run that owns a pull request, or None if there isn't one.
+
+    Server errors are retried a few times; if Seer is still failing after that,
+    this raises ``SeerUnavailableError`` so callers can try again later.
+    """
     body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
-    response = make_agent_state_pr_request(body)
+    response = make_agent_state_pr_request(body, retries=AGENT_STATE_PR_RETRIES)
+
+    if response.status >= 500:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "unavailable"})
+        raise SeerUnavailableError("Seer request failed", response.status)
 
     if response.status == 404:
         metrics.incr("seer.agent.state_from_pr", tags={"outcome": "no_run_for_org"})

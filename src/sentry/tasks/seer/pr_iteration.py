@@ -5,6 +5,7 @@ from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
+from multiprocessing.context import TimeoutError as ProcessingDeadlineExceeded
 from typing import Any, NamedTuple
 from uuid import uuid4
 
@@ -117,7 +118,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
 )
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.steps import AutofixStep
-from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models import SeerApiError, SeerPermissionError, SeerUnavailableError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.model import RpcUser
@@ -1237,11 +1238,20 @@ def _resolve_run_for_pr_comment(
     return ResolvedPrCommentRun(agent_state=agent_state, scm=scm, actor_user=actor_user)
 
 
+# Seer outages (a deploy, say) can outlast the quick retries on the request
+# itself, so tasks that start with a Seer lookup try again every minute for five
+# minutes. Once those run out, the worker reports NoRetriesRemainingError. Only
+# that error is retried: taskbroker would otherwise also retry deadline timeouts.
+SEER_UNAVAILABLE_RETRY = Retry(
+    on=(SeerUnavailableError,), ignore=(ProcessingDeadlineExceeded,), times=6, delay=60
+)
+
+
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_pr_iteration_from_comment",
     namespace=seer_tasks,
     processing_deadline_duration=65,
-    retry=Retry(times=1),
+    retry=SEER_UNAVAILABLE_RETRY,
 )
 def trigger_pr_iteration_from_comment(
     *,
@@ -1398,7 +1408,7 @@ def _trigger_pr_iteration_from_comment(
     name="sentry.tasks.autofix.pause_pr_iteration_from_comment",
     namespace=seer_tasks,
     processing_deadline_duration=65,
-    retry=Retry(times=1),
+    retry=SEER_UNAVAILABLE_RETRY,
 )
 def pause_pr_iteration_from_comment(
     *,
@@ -1613,7 +1623,7 @@ def _build_review_feedback(
     name="sentry.tasks.autofix.trigger_pr_iteration_from_review",
     namespace=seer_tasks,
     processing_deadline_duration=65,
-    retry=Retry(times=1),
+    retry=SEER_UNAVAILABLE_RETRY,
 )
 def trigger_pr_iteration_from_review(
     *,
