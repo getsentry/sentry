@@ -939,7 +939,7 @@ def _process_symbolicator_results_for_sample(
             return stack
 
     symbolicated_frames = stacktraces[0]["frames"]
-    if platform in ("cocoa", "rust"):
+    if platform == "cocoa":
         raw_frames = profile["profile"]["frames"]
         raw_frame_indices = sorted(frames_sent) if frames_sent else range(len(raw_frames))
         for i, frame in enumerate(symbolicated_frames):

@@ -433,12 +433,11 @@ def test_process_symbolicator_results_for_sample() -> None:
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
 
 
-@pytest.mark.parametrize("platform", ["cocoa", "rust"])
 @pytest.mark.parametrize("sdk_frame", [{"in_app": True}, {"in_app": False}, {}])
-def test_native_profile_preserves_in_app(platform: str, sdk_frame: dict[str, Any]) -> None:
+def test_cocoa_profile_preserves_in_app(sdk_frame: dict[str, Any]) -> None:
     profile: Profile = {
         "version": "2",
-        "platform": platform,
+        "platform": "cocoa",
         "profile": {
             "frames": [{"instruction_addr": "0x1000", **sdk_frame}],
             "stacks": [[0]],
@@ -461,7 +460,7 @@ def test_native_profile_preserves_in_app(platform: str, sdk_frame: dict[str, Any
         }
     ]
 
-    _process_symbolicator_results_for_sample(profile, stacktraces, set(), platform)
+    _process_symbolicator_results_for_sample(profile, stacktraces, set(), "cocoa")
 
     frames = profile["profile"]["frames"]
     assert [frame.get("in_app") for frame in frames] == [
@@ -472,7 +471,7 @@ def test_native_profile_preserves_in_app(platform: str, sdk_frame: dict[str, Any
     assert profile["profile"]["stacks"] == [[0, 1]]
 
 
-def test_native_profile_preserves_in_app_for_selected_frames() -> None:
+def test_cocoa_profile_preserves_in_app_for_selected_frames() -> None:
     profile: Profile = {
         "version": "2",
         "platform": "javascript",
@@ -516,7 +515,7 @@ def test_native_profile_preserves_in_app_for_selected_frames() -> None:
     ("rules", "expected_in_app"),
     [("", [True, False, True, True]), ("stack.package:app* -app", [False, False, False, False])],
 )
-def test_native_profile_preserves_in_app_for_duplicated_leaf(
+def test_cocoa_profile_preserves_in_app_for_duplicated_leaf(
     rules: str, expected_in_app: list[bool]
 ) -> None:
     profile: Profile = {
