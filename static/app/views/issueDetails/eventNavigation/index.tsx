@@ -218,7 +218,11 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   return (
     <EventNavigationWrapper role="navigation" ref={navigationRef}>
       {showContentTabs ? (
-        <Tabs value={currentTab} onChange={key => trackContentSelected(key as Tab)}>
+        <Tabs
+          size="sm"
+          value={currentTab}
+          onChange={key => trackContentSelected(key as Tab)}
+        >
           <TabList>
             {contentTabs.map(tab => (
               <TabList.Item
