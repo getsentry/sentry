@@ -1091,6 +1091,39 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             ),
         ]
 
+    @mock.patch.object(
+        SnubaTagStorage.get_group_tag_value_iter,
+        "__defaults__",
+        ("-first_seen", 1, 0, None),
+    )
+    def test_get_group_tag_value_paginator_sorts_by_count_before_limit(self) -> None:
+        # Lower the query limit instead of creating 1000 distinct values. The
+        # existing "bar" value is more frequent, but "quux" was seen more recently.
+        self.store_event(
+            data={
+                "message": "message 1",
+                "platform": "python",
+                "environment": "test",
+                "fingerprint": ["group-1"],
+                "timestamp": self.now.isoformat(),
+                "tags": {"foo": "quux"},
+                "exception": exception,
+            },
+            project_id=self.proj1.id,
+        )
+
+        result = self.ts.get_group_tag_value_paginator(
+            self.proj1group1,
+            [self.proj1env1.id],
+            "foo",
+            order_by="-times_seen",
+            tenant_ids={"organization_id": self.proj1.organization_id},
+        ).get_result(1)
+
+        assert len(result) == 1
+        assert result[0].value == "bar"
+        assert result[0].times_seen == 2
+
     # mock default value only for "limit" argument of get_group_tag_value_iter()
     # it is set to 1 to avoid creating 1000+ tags for the test
     @mock.patch.object(
