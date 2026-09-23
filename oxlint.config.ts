@@ -813,8 +813,7 @@ const config = defineConfig({
     'unicorn/prefer-blob-reading-methods': 'error',
     'unicorn/prefer-classlist-toggle': 'error',
     'unicorn/prefer-date-now': 'error',
-    // TODO(ryan953): Fix violations and promote this warning to an error.
-    'unicorn/prefer-default-parameters': 'warn',
+    'unicorn/prefer-default-parameters': 'error',
     'unicorn/prefer-event-target': 'error',
     'unicorn/prefer-includes': 'off',
     'unicorn/prefer-keyboard-event-key': 'error',
