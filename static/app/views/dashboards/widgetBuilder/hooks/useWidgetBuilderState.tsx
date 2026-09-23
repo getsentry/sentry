@@ -402,7 +402,11 @@ export function useWidgetBuilderState(): {
   const [yAxis, setYAxis] = useSeededQueryState('yAxis', parseAsColumns);
   const [query, setQuery] = useSeededQueryState('query', parseAsQueries);
   // oxlint-disable-next-line react/refs
-  const [sort, setSort] = useSeededQueryState('sort', parseAsWidgetSorts(datasetRef));
+  const [sort, setRawSort] = useSeededQueryState('sort', parseAsWidgetSorts(datasetRef));
+  const setSort = useCallback<typeof setRawSort>(
+    (value, options) => setRawSort(value ? normalizeSorts(value) : value, options),
+    [setRawSort]
+  );
   const [limit, setLimit] = useSeededQueryState('limit', parseAsLimit);
   const [legendAlias, setLegendAlias] = useSeededQueryState(
     'legendAlias',
@@ -1400,19 +1404,29 @@ function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboar
 export function serializeSorts(dataset?: WidgetType) {
   return function (sorts: Sort[]): string[] {
     return sorts.map(sort => {
+      const field = normalizeSortField(sort.field);
       // All issue fields do not use '-' regardless of order
       if (dataset === WidgetType.ISSUE) {
-        return sort.field;
+        return field;
       }
       const direction = sort.kind === 'desc' ? '-' : '';
-      return `${direction}${sort.field}`;
+      return `${direction}${field}`;
     });
   };
 }
 
+function normalizeSortField(field: string): string {
+  const parsedField = explodeField({field});
+  return parsedField.kind === 'function' ? generateFieldAsString(parsedField) : field;
+}
+
+function normalizeSorts(sorts: Sort[]): Sort[] {
+  return sorts.map(sort => ({...sort, field: normalizeSortField(sort.field)}));
+}
+
 function deserializeSorts(dataset?: WidgetType) {
   return function (sorts: Sort[]): Sort[] {
-    return sorts.map(sort => {
+    return normalizeSorts(sorts).map(sort => {
       if (
         dataset === WidgetType.ISSUE &&
         REVERSED_ORDER_FIELD_SORT_LIST.includes(sort.field)
