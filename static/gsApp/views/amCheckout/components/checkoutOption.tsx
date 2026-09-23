@@ -53,8 +53,7 @@ export function CheckoutOption({
             ) : (
               <Checkbox
                 tabIndex={-1} // let parent handle the focus
-                aria-label={ariaLabel}
-                aria-checked={isSelected}
+                aria-hidden
                 checked={isSelected}
                 readOnly
               />
