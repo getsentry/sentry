@@ -56,9 +56,6 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
         if not getattr(settings, "TRUSTED_TYPES_ENABLED", False):
             return
 
-        # This middleware runs before CSPMiddleware, which bails when its header
-        # name is already set. When the CSP is itself report-only, claiming this
-        # header would drop the entire CSP to deliver Trusted Types.
         if getattr(settings, "CSP_REPORT_ONLY", False):
             global _warned_about_report_only_csp
             if not _warned_about_report_only_csp:

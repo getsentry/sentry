@@ -113,7 +113,11 @@ class SecurityHeadersMiddlewareTest(TestCase):
 
         assert "Content-Security-Policy-Report-Only" not in processed_response
 
-    @override_settings(TRUSTED_TYPES_ENABLED=True, CSP_REPORT_ONLY=False)
+    @override_settings(
+        TRUSTED_TYPES_ENABLED=True,
+        CSP_REPORT_ONLY=False,
+        TRUSTED_TYPES_POLICIES=["dompurify", "sentry-script-url", "sentry-bundler"],
+    )
     def test_trusted_types_header_set_when_enabled(self) -> None:
         request = self.factory.get("/")
         response = Response()
@@ -181,6 +185,7 @@ class SecurityHeadersMiddlewareTest(TestCase):
     @override_settings(
         TRUSTED_TYPES_ENABLED=True,
         CSP_REPORT_ONLY=False,
+        TRUSTED_TYPES_POLICIES=["dompurify", "sentry-script-url", "sentry-bundler"],
         TRUSTED_TYPES_REPORT_URI="https://example.com/security/?sentry_key=abc",
     )
     def test_trusted_types_header_includes_report_uri(self) -> None:
