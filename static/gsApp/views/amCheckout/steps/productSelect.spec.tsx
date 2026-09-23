@@ -15,14 +15,10 @@ import {AddOnCategory} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
 async function findLegacySeerOption() {
-  const options = await screen.findAllByRole('checkbox', {name: 'Add Seer to plan'});
-  const legacyOption = options.find(option =>
-    option.textContent?.includes('Includes $25/mo in credits')
-  );
-  if (!legacyOption) {
-    throw new Error('Could not find the legacy Seer option');
-  }
-  return legacyOption;
+  const legacyOptionText = await screen.findByText(/Includes \$25\/mo in credits/);
+  const legacyOption = legacyOptionText.closest('[role="checkbox"]');
+  expect(legacyOption).toBeInTheDocument();
+  return legacyOption!;
 }
 
 function querySeerOption() {
