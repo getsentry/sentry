@@ -1,39 +1,49 @@
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
+import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
+import {useAutoOpenInstallModal} from 'sentry/utils/integrations/useAutoOpenInstallModal';
 
-import {Button} from '@sentry/scraps/button';
-
-import {useIntegrationInstallFlow} from './integrationInstallFlow';
-
-type AddIntegrationButtonProps = {
-  provider: IntegrationWithConfig['provider'];
-  analyticsParams?: {
-    already_installed: boolean;
-    view: 'integrations_directory_integration_detail' | 'onboarding';
-  };
-  buttonProps?: React.ComponentProps<typeof Button>;
-  label?: React.ReactNode;
-  onAddIntegration?: () => void;
-  onCancel?: () => void;
-  onError?: () => void;
-  suppressSuccessMessage?: boolean;
-};
+interface AddIntegrationButtonProps
+  extends
+    Omit<ButtonProps, 'children' | 'analyticsParams' | 'onError'>,
+    Pick<
+      AddIntegrationParams,
+      | 'provider'
+      | 'organization'
+      | 'analyticsParams'
+      | 'suppressSuccessMessage'
+      | 'onCancel'
+      | 'onError'
+    > {
+  onAddIntegration: (data: IntegrationWithConfig) => void;
+  buttonText?: string;
+  installStatus?: string;
+}
 
 export function AddIntegrationButton({
   provider,
-  analyticsParams,
+  buttonText,
   onAddIntegration,
-  buttonProps,
+  organization,
+  analyticsParams,
+  installStatus,
   suppressSuccessMessage,
   onCancel,
   onError,
-  label = t('Add Integration'),
+  ...buttonProps
 }: AddIntegrationButtonProps) {
-  const organization = useOrganization();
+  const label =
+    buttonText ??
+    (installStatus === 'Disabled' ? t('Reinstall') : t('Add %s', provider.metadata.noun));
 
-  const {startFlow} = useIntegrationInstallFlow({
+  const {startFlow} = useAddIntegration();
+
+  useAutoOpenInstallModal({
     provider,
     organization,
     onInstall: onAddIntegration,
@@ -45,6 +55,7 @@ export function AddIntegrationButton({
   return (
     <Button
       disabled={!provider.canAdd}
+      aria-label={t('Add integration')}
       {...buttonProps}
       tooltipProps={{
         title: `Integration cannot be added on Sentry. Enable this integration via the ${provider.name} instance.`,
@@ -66,7 +77,6 @@ export function AddIntegrationButton({
           onError,
         });
       }}
-      aria-label={t('Add integration')}
     >
       {label}
     </Button>
