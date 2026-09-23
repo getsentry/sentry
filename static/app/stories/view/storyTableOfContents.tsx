@@ -60,7 +60,7 @@ function getContentEntries(main: HTMLElement): Entry[] {
       ? entry.nextElementSibling
       : null;
     if (headingLink instanceof HTMLAnchorElement) {
-      headingLink.href = `#${entry.id}`;
+      headingLink.hash = entry.id;
     }
 
     entries.push({
