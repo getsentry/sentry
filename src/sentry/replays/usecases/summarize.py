@@ -372,8 +372,12 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                 return f"Logged: '{message}' at {timestamp}"
             case EventType.RESOURCE_FETCH:
                 payload = event["data"]["payload"]
-                method = payload["data"].get("method")
-                status_code = payload["data"].get("statusCode")
+                data = payload.get("data")
+                # Missing network metadata does not establish that a request failed.
+                if not isinstance(data, dict):
+                    return None
+                method = data.get("method")
+                status_code = data.get("statusCode")
                 description = payload["description"]
 
                 # Format URL
@@ -397,8 +401,11 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                     return f'Fetch request "{request_str}" failed with {status_str} ({response_size} bytes) at {timestamp}'
             case EventType.RESOURCE_XHR:
                 payload = event["data"]["payload"]
-                method = payload["data"].get("method")
-                status_code = payload["data"].get("statusCode")
+                data = payload.get("data")
+                if not isinstance(data, dict):
+                    return None
+                method = data.get("method")
+                status_code = data.get("statusCode")
                 description = payload["description"]
 
                 # Format URL

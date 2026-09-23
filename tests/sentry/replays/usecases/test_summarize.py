@@ -353,6 +353,55 @@ def test_as_log_message_long_console_message() -> None:
     assert get_timestamp_unit(which(event)) == "ms"
 
 
+@pytest.mark.parametrize("op", ["resource.fetch", "resource.xhr"])
+@pytest.mark.parametrize("metadata", [{}, {"data": None}, {"data": "[Filtered]"}, {"data": []}])
+@patch("sentry.replays.usecases.summarize.logger.exception")
+def test_as_log_message_network_without_metadata(
+    mock_exception: Mock, op: str, metadata: dict[str, Any]
+) -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756401153.805,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": op,
+                "description": "https://example.com/api/items",
+                "startTimestamp": 1756401153.805,
+                "endTimestamp": 1756401154.178,
+                **metadata,
+            },
+        },
+    }
+
+    assert as_log_message(event) is None
+    mock_exception.assert_not_called()
+
+
+@pytest.mark.parametrize("op, label", [("resource.fetch", "Fetch"), ("resource.xhr", "XHR")])
+@patch("sentry.replays.usecases.summarize.logger.exception")
+def test_as_log_message_network_without_status(mock_exception: Mock, op: str, label: str) -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756401153.805,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": op,
+                "description": "https://example.com/api/items",
+                "startTimestamp": 1756401153.805,
+                "endTimestamp": 1756401154.178,
+                "data": {"method": "GET"},
+            },
+        },
+    }
+
+    assert as_log_message(event) == (
+        f'{label} request "GET example.com/api/items" failed with no response at 1756401153805.0'
+    )
+    mock_exception.assert_not_called()
+
+
 @pytest.mark.parametrize("status_code", [200, 204, 404, 500])
 @pytest.mark.parametrize("method", ["GET", "POST"])
 def test_as_log_message_resource_fetch(status_code: int, method: str) -> None:
