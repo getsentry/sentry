@@ -55,6 +55,23 @@ describe('convertBuilderStateToWidget', () => {
     expect(widget.queries[1]!.orderby).toBe('-geo.country');
   });
 
+  it('saves aggregate orderby without spaces between arguments', () => {
+    const widget = convertBuilderStateToWidget({
+      dataset: WidgetType.TRACEMETRICS,
+      query: [''],
+      sort: [
+        {
+          field: 'sum_if(`environment:"prod, us"`, value, alpha_metric, counter, none)',
+          kind: 'desc',
+        },
+      ],
+    });
+
+    expect(widget.queries[0]!.orderby).toBe(
+      '-sum_if(`environment:"prod, us"`,value,alpha_metric,counter,none)'
+    );
+  });
+
   it('does not convert aggregates to aliased format', () => {
     const mockState: WidgetBuilderState = {
       query: ['transaction.duration:>100', 'transaction.duration:>50'],
