@@ -15,6 +15,7 @@ from sentry import features
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
+from sentry.models.organization import Organization
 from sentry.utils import metrics, redis
 from sentry.workflow_engine.handlers.detector.base import (
     DataPacketEvaluationType,
@@ -730,7 +731,7 @@ class StatefulDetectorHandler(
         if not self.should_generate_unique_issues:
             return False
 
-        organization = self.detector.linked_project.organization
+        organization = self._get_detector_organization()
 
         return features.has(
             "organizations:workflow-engine-rotate-activation-id",
@@ -755,3 +756,21 @@ class StatefulDetectorHandler(
             return _get_unix_epoch_time_in_ms()
 
         return state_data.activation_id
+
+    def _get_detector_organization(self) -> Organization:
+        """
+        Attempt to resolve organization from detector
+        "All projects detectors" don't have a linked project so resolve from the config,
+        similar to how we do it in `process_detectors`
+        """
+        if self.detector.project is not None:
+            return self.detector.project.organization
+
+        organization_id = self.detector.config.get("organization_id")
+
+        if organization_id is None:
+            raise ValueError(
+                f"Detector {self.detector.id} has neither a project nor an organization_id"
+            )
+
+        return Organization.objects.get_from_cache(id=organization_id)
