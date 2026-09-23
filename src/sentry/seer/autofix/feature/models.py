@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from sentry.seer.agent.on_completion_hook import OnCompletionHookDefinition
 from sentry.seer.autofix.steps import AutofixStep
@@ -12,18 +12,6 @@ from sentry.seer.autofix.steps import AutofixStep
 FEATURE_ID = "autofix"
 # In-flight runs started before the rename still deliver and persist this id.
 LEGACY_FEATURE_ID = "autofix_rca"
-
-
-class AutofixRCATweaks(BaseModel):
-    """Deprecated RCA arguments retained until Seer reads step_args."""
-
-    class Config:
-        extra = "ignore"
-
-    intelligence_level: Literal["low", "medium", "high"] = "medium"
-    reasoning_effort: Literal["low", "medium", "high"] | None = "medium"
-    # Not to be confused with user_org_context, this is free-form context added by the user.
-    user_context: str | None = None
 
 
 class RepoPin(BaseModel):
@@ -48,13 +36,21 @@ class RCAStepArgs(BaseModel):
         extra = "ignore"
 
     intelligence_level: Literal["low", "medium", "high"] = "medium"
-    reasoning_effort: Literal["low", "medium", "high"] | None = "medium"
+    reasoning_effort: Literal["low", "medium", "high"] = "medium"
     repo_pins: RepoPins | None = None
+
+
+class SolutionStepArgs(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    should_run_repo_checks: bool = False
 
 
 class AutofixFeaturePayload(BaseModel):
     class Config:
         extra = "ignore"
+        smart_union = True
 
     # Universal params across all steps
     group_id: int
@@ -63,14 +59,10 @@ class AutofixFeaturePayload(BaseModel):
     title: str
     culprit: str
     on_completion_hook: OnCompletionHookDefinition
-
-    # Deprecated: the current Seer feature still reads these RCA-only fields.
-    # Keep them in sync with step_args until Seer accepts the step_args.
-    repo_pins: RepoPins | None = None
-    tweaks: AutofixRCATweaks = Field(default_factory=AutofixRCATweaks)
-
-    step: AutofixStep = AutofixStep.ROOT_CAUSE
-    step_args: RCAStepArgs
+    step: AutofixStep
+    step_args: RCAStepArgs | SolutionStepArgs
+    existing_run_id: int | None = None
+    insert_index: int | None = None
     # Not to be confused with user_org_context, this is free-form context added by the user.
     user_context: str | None = None
     stopping_point: str | None = None

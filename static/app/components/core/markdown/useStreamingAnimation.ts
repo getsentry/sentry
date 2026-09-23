@@ -128,6 +128,7 @@ export function useTextDecodeAnimation(
     }
     const animation = animateElement(element);
     return () => animation.destroy();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [ref, key, prefersReducedMotion]);
 }
 

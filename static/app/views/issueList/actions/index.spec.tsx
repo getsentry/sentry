@@ -373,7 +373,10 @@ describe('IssueListActions', () => {
 
     // Can resolve but not merge issues from multiple projects
     expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
-    expect(screen.getByRole('button', {name: 'Merge'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Merge'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('sets the project ID when My Projects is selected', async () => {
@@ -483,7 +486,10 @@ describe('IssueListActions', () => {
       expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
 
       // Merge is not supported and should be disabled
-      expect(screen.getByRole('button', {name: 'Merge'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Merge'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
 
       // Open overflow menu
       await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));

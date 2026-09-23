@@ -496,7 +496,8 @@ describe('ProjectFilters', () => {
 
     expect(await screen.findByText('Ignore flaky connection errors')).toBeInTheDocument();
     expect(screen.getByText('Drop debug log spam')).toBeInTheDocument();
-    expect(screen.getByText('Error Message:*ConnectionError*')).toBeInTheDocument();
+    expect(screen.getByText('Error Message')).toBeInTheDocument();
+    expect(screen.getByText('*ConnectionError*')).toBeInTheDocument();
 
     const searchInput = screen.getByRole('textbox', {name: 'Search rules'});
     await userEvent.type(searchInput, 'ConnectionError');
@@ -564,6 +565,74 @@ describe('ProjectFilters', () => {
     );
   });
 
+  it('saves each line of a condition as one of its values', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: CustomInboundFilterFixture({id: '10', name: 'Block noisy messages'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Name'}),
+      'Block noisy messages'
+    );
+    // Blank lines and surrounding whitespace are not values.
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Condition value'}),
+      '*timeout*{enter}{enter}  *refused*  {enter}'
+    );
+
+    MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      body: [CustomInboundFilterFixture({id: '10', name: 'Block noisy messages'})],
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        CUSTOM_INBOUND_FILTERS_URL,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            name: 'Block noisy messages',
+            dataType: 'error',
+            conditions: [{type: 'error_message', value: ['*timeout*', '*refused*']}],
+          },
+        })
+      )
+    );
+  });
+
+  it('shows the values of a condition as alternatives and edits them one per line', async () => {
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Old releases',
+        conditions: [{type: 'release', value: ['1.*', '2.*', '3.*', '4.*', '5.*']}],
+      }),
+    ]);
+
+    expect(await screen.findByText('Old releases')).toBeInTheDocument();
+    expect(screen.getByText('1.*')).toBeInTheDocument();
+    expect(screen.getByText('3.*')).toBeInTheDocument();
+    expect(screen.queryByText('4.*')).not.toBeInTheDocument();
+    expect(screen.getByText('2 more')).toBeInTheDocument();
+    expect(screen.getAllByText('or')).toHaveLength(3);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
+    expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
+    expect(screen.getAllByRole('textbox', {name: 'Condition value'})).toHaveLength(1);
+    expect(screen.getByRole('textbox', {name: 'Condition value'})).toHaveValue(
+      '1.*\n2.*\n3.*\n4.*\n5.*'
+    );
+  });
+
   it('keeps a condition type it does not know', async () => {
     // A newer deploy can store a condition type this bundle has no description
     // for. It has to stay visible and editable, not break the page or the modal.
@@ -576,7 +645,8 @@ describe('ProjectFilters', () => {
     ]);
 
     expect(await screen.findByText('Filter from a newer deploy')).toBeInTheDocument();
-    expect(screen.getByText('error_value:*boom*')).toBeInTheDocument();
+    expect(screen.getByText('error_value')).toBeInTheDocument();
+    expect(screen.getByText('*boom*')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
     expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
@@ -1098,7 +1168,10 @@ describe('ProjectFilters', () => {
     renderGlobalModal();
 
     expect(await screen.findByRole('checkbox', {name: 'Disable filter'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Add Filter'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Add Filter'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(screen.getByRole('button', {name: 'Edit filter'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Delete filter'})).toBeDisabled();
   });
@@ -1159,6 +1232,9 @@ describe('ProjectFilters', () => {
       },
     });
 
-    expect(await screen.findByRole('button', {name: 'Undiscard'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Undiscard'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

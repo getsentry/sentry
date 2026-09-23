@@ -19,14 +19,22 @@ from __future__ import annotations
 import logging
 from dataclasses import fields
 from enum import StrEnum
+from typing import TypeVar
+
+from django.utils import timezone
 
 from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationFeedbackBatchBlockedEvent,
     AiAutofixPrIterationFeedbackBatchCompletedEvent,
 )
 from sentry.models.group import Group
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import get_latest_iteration_index
+from sentry.seer.autofix.autofix_agent import (
+    get_iterations,
+    get_latest_iteration_index,
+    iteration_repos,
+)
 from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
 from sentry.seer.autofix.pr_iteration.details_store import (
     claim_iteration,
@@ -36,22 +44,35 @@ from sentry.seer.autofix.pr_iteration.details_store import (
     update_iteration,
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.pause import PauseReason
+from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
+from sentry.utils.tracing import trace
+
+EventT = TypeVar("EventT", bound=analytics.Event)
+
+# Blocking outcomes a row has already reported, so each is emitted once per
+# iteration.
+BLOCKED_OUTCOMES_DATA_KEY = "blocked_outcomes"
 
 
 class PrIterationOutcome(StrEnum):
-    """How a batch ended.
+    """An outcome of running an iteration.
 
-    ``ALREADY_PUSHED`` is the success: the batch is recorded on the hook pass
-    where its changes are on the PR, not on the earlier pass that only asked
-    for the push.
+    The goal is to run analytics on the trajectories of iterations
+    to figure out what the bottleneck is for getting autofix PRs green
 
-    The failure values are Seer's own ``ExplorerFailureReason`` spellings, so a
-    reason Seer adds since is recorded under its own outcome by
-    :func:`outcome_for_failed_run` rather than folded into ``ERRORED``.
+    so each iteration should get a set of these events and we should be able
+    to glance at the events for a given iteration and understand at a high level
+    what happened
     """
 
+    # success case
     ALREADY_PUSHED = "already_pushed"
+
+    # various failure cases, can't recover from these
+    # and they should result in a paused iteration
+    # if we get too many of any of these we should work to fix it
     NO_CODE_CHANGES = "no_code_changes"
     NO_PULL_REQUEST = "no_pull_request"
     PR_CLOSED = "pr_closed"
@@ -60,6 +81,35 @@ class PrIterationOutcome(StrEnum):
     TIMEOUT = "timeout"
     STALLED = "stalled"
     ERRORED = "errored"
+
+    # technically we can recover from this
+    # but an iteration is stuck until then
+    MISSING_PERMISSIONS = "missing_permissions"
+
+    # we can't recover from these at the moment
+    # when a iteration tries to trigger but is stopped
+    # because the run is paused
+    PAUSED_USER_STOP = "paused_user_stop"
+    PAUSED_RUN_ERRORED = "paused_run_errored"
+    PAUSED_PR_CLOSED = "paused_pr_closed"
+
+
+# Every pause reason has its own outcome; there is no catch-all. mypy flags a
+# missing key here the moment a ``PauseReason`` is added without one.
+_PAUSE_REASON_OUTCOMES: dict[PauseReason, PrIterationOutcome] = {
+    PauseReason.USER_STOP: PrIterationOutcome.PAUSED_USER_STOP,
+    PauseReason.RUN_ERRORED: PrIterationOutcome.PAUSED_RUN_ERRORED,
+    PauseReason.PR_CLOSED: PrIterationOutcome.PAUSED_PR_CLOSED,
+}
+
+
+def outcome_for_pause(reason: PauseReason) -> PrIterationOutcome:
+    """The outcome for a batch that arrived after the run was paused.
+
+    A pause reason maps one-to-one to its outcome, so the row records why the
+    feedback was abandoned rather than just that it was.
+    """
+    return _PAUSE_REASON_OUTCOMES[reason]
 
 
 def outcome_for_failed_run(run_state: SeerRunState) -> str:
@@ -133,13 +183,17 @@ def bootstrap_iteration(
 
     # Reads back the row just settled above, so the context reflects what is
     # actually in the table rather than what this call believes it wrote.
-    return PrIterationLogContext.for_run(
+    ctx = PrIterationLogContext.for_run(
         logger,
         run_state,
         organization_id,
         group_id,
         iteration=LogCtxIteration.UNTRIGGERED,
     )
+
+    set_pr_iteration_attributes(iteration_id=ctx.iteration_id)
+
+    return ctx
 
 
 def trigger_pr_iteration_details(
@@ -165,6 +219,7 @@ def trigger_pr_iteration_details(
             return None
 
         update_iteration(iteration, trigger_source=trigger_source)
+        set_pr_iteration_attributes(iteration_id=iteration.id)
         return iteration.id
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.trigger_failed")
@@ -182,6 +237,7 @@ def record_pr_iteration_counts(
     queued_count: int,
     dropped_count: int,
     automated_feedback_count: int,
+    feedback_bot_logins: list[str],
 ) -> None:
     """Write what the drain saw onto the row it claimed."""
     try:
@@ -200,6 +256,7 @@ def record_pr_iteration_counts(
             queued_count=queued_count,
             dropped_count=dropped_count,
             automated_feedback_count=automated_feedback_count,
+            feedback_bot_logins=feedback_bot_logins,
         )
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.counts_failed")
@@ -223,18 +280,50 @@ def discard_pr_iteration_details(
         log_ctx.error("autofix.pr_iteration.details.discard_failed")
 
 
+def _pushed_head_shas(run_state: SeerRunState) -> list[str]:
+    """The commit SHAs the latest iteration pushed, one for each repository."""
+    try:
+        iterations = get_iterations(run_state)
+    except Exception:
+        return []
+
+    if not iterations:
+        return []
+
+    shas = {
+        pr_state.commit_sha
+        for repo in iteration_repos(iterations[-1])
+        if (pr_state := run_state.repo_pr_states.get(repo)) and pr_state.commit_sha
+    }
+    return sorted(shas)
+
+
 def _build_event(
     log_ctx: PrIterationLogContext,
     iteration: SeerRunPrIteration,
+    event_cls: type[EventT],
     *,
     iteration_index: int,
     outcome: str,
-) -> AiAutofixPrIterationFeedbackBatchCompletedEvent | None:
-    """The event for a finished iteration. None when its row is incomplete."""
-    known = {f.name for f in fields(AiAutofixPrIterationFeedbackBatchCompletedEvent)}
+    head_shas: list[str] | None = None,
+) -> EventT | None:
+    """An event filled from an iteration's row. None when that row is incomplete.
+
+    The row accumulates whatever each stage of the batch learned, and the event
+    class decides how much of that is in scope: a blocked event takes the four
+    identity fields and leaves the drain's behind, still on the row, for the
+    completed event to pick up if the batch gets that far.
+    """
+    known = {f.name for f in fields(event_cls)}
     payload = {key: value for key, value in iteration.data.items() if key in known}
+    # Only the blocked event carries how long the batch waited; the completed
+    # event reports what the drain wrote instead.
+    if "duration_ms" in known:
+        payload["duration_ms"] = int((timezone.now() - iteration.date_added).total_seconds() * 1000)
+    if head_shas is not None and "head_shas" in known:
+        payload["head_shas"] = head_shas
     try:
-        return AiAutofixPrIterationFeedbackBatchCompletedEvent(
+        return event_cls(
             iteration_id=iteration.id,
             iteration_index=iteration_index,
             outcome=outcome,
@@ -255,6 +344,63 @@ def _build_event(
         return None
 
 
+def record_pr_iteration_blocked(
+    *,
+    log_ctx: PrIterationLogContext,
+    run_state: SeerRunState,
+    run_id: int,
+    organization_id: int,
+    outcome: str,
+) -> None:
+    """Record that the run's waiting iteration is blocked, once per outcome.
+
+    Unlike :func:`complete_pr_iteration_details`, this neither claims nor
+    removes the row. For a block that lifts, such as missing permissions, that
+    is because the batch has not ended: it reaches the agent once the block
+    clears and completes on its own, so this is a checkpoint on top of that
+    completion rather than a substitute for it.
+
+    For a block that never lifts, such as a paused run, the row stays for a
+    different reason. Keeping it is what holds the ``blocked_outcomes`` marker,
+    and the marker is the only thing stopping a batch nothing will ever drain
+    from recording itself again on every check suite the PR produces. Nothing
+    completes those rows; the stale-row sweep is what eventually takes them.
+
+    Which outcomes a row has already reported lives on the row, so a gate that
+    re-checks on every failing check suite still says each one once.
+    """
+    try:
+        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        if seer_run is None:
+            return
+
+        iteration = untriggered_iteration(seer_run)
+        if iteration is None:
+            return
+
+        recorded = iteration.data.get(BLOCKED_OUTCOMES_DATA_KEY) or []
+        if outcome in recorded:
+            return
+
+        event = _build_event(
+            log_ctx,
+            iteration,
+            AiAutofixPrIterationFeedbackBatchBlockedEvent,
+            iteration_index=get_latest_iteration_index(run_state),
+            outcome=outcome,
+        )
+        if event is None:
+            return
+
+        # Marked before the record, so a failing emit costs one event rather
+        # than repeating on every later check of the same outcome.
+        update_iteration(iteration, **{BLOCKED_OUTCOMES_DATA_KEY: [*recorded, outcome]})
+        analytics.record(event)
+    except Exception:
+        log_ctx.error("autofix.pr_iteration.details.blocked_failed")
+
+
+@trace
 def complete_pr_iteration_details(
     *,
     log_ctx: PrIterationLogContext,
@@ -273,6 +419,7 @@ def complete_pr_iteration_details(
             "autofix.pr_iteration.details.unresolved", exc_info=False, reason="no_iteration_id"
         )
         return
+    set_pr_iteration_attributes(iteration_id=iteration_id)
 
     try:
         seer_run = _seer_run(run_id=run_state.run_id, organization_id=organization_id)
@@ -287,11 +434,18 @@ def complete_pr_iteration_details(
             log_ctx.info("autofix.pr_iteration.details.skipped", reason="already_emitted")
             return
 
+        head_shas = (
+            _pushed_head_shas(run_state)
+            if outcome == PrIterationOutcome.ALREADY_PUSHED.value
+            else []
+        )
         event = _build_event(
             log_ctx,
             iteration,
+            AiAutofixPrIterationFeedbackBatchCompletedEvent,
             iteration_index=get_latest_iteration_index(run_state),
             outcome=outcome,
+            head_shas=head_shas,
         )
         if event is None or not remove_iteration(iteration):
             return

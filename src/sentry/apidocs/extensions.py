@@ -77,6 +77,17 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
         return resolve_type_hint(self.target.typeSchema)
 
 
+class SentryAppIssueActionSerializerExtension(OpenApiSerializerExtension):
+    target_class = "sentry.sentry_apps.api.endpoints.installation_external_issue_actions.SentryAppInstallationExternalIssueActionsSerializer"
+
+    def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> dict[str, Any]:
+        schema = auto_schema._map_serializer(self.target, direction, bypass_extensions=True)
+        schema["properties"]["action"]["enum"] = ["link", "create"]
+        # Apps define additional form fields at the top level of the request.
+        schema["additionalProperties"] = True
+        return schema
+
+
 class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):
     """
     This extension restricts Sentry's use of the JSONField to mimic a DictField.

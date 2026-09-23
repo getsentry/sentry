@@ -2,24 +2,32 @@ import styled from '@emotion/styled';
 
 import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
+import {hasDetectorWriteAccess} from 'sentry/views/detectors/utils/permissions';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 export function ProjectField() {
+  const organization = useOrganization();
   const {projects, fetching} = useProjects();
   const {detectorType, detector} = useDetectorFormContext();
   const project = useDetectorFormProject();
   const canEditDetector = useCanEditDetector({projectId: project.id, detectorType});
   const isEditing = !!detector;
+  const selectableProjects = isEditing
+    ? projects
+    : projects.filter(candidate =>
+        hasDetectorWriteAccess({organization, project: candidate})
+      );
 
   return (
     <StyledProjectField
       inline={false}
       flexibleControlStateSize
       stacked
-      projects={projects}
+      projects={selectableProjects}
       groupProjects={p => (p.isMember ? 'member' : 'all')}
       groups={[
         {key: 'member', label: t('My Projects')},

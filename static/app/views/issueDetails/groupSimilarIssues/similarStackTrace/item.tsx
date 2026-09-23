@@ -120,7 +120,9 @@ export function SimilarStackTraceItemSkeleton({
 }: {
   hasSimilarityEmbeddingsFeature: boolean;
 }) {
-  const scoreColumns = hasSimilarityEmbeddingsFeature ? 1 : 2;
+  const scoreColumns = hasSimilarityEmbeddingsFeature
+    ? (['exception'] as const)
+    : (['exception', 'message'] as const);
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell gap="md">
@@ -133,8 +135,8 @@ export function SimilarStackTraceItemSkeleton({
       <SimpleTable.RowCell justify="center">
         <Placeholder height="16px" width="32px" />
       </SimpleTable.RowCell>
-      {Array.from({length: scoreColumns}).map((_, i) => (
-        <SimpleTable.RowCell justify="center" key={i}>
+      {scoreColumns.map(interfaceName => (
+        <SimpleTable.RowCell justify="center" key={interfaceName}>
           <Placeholder height="24px" width="40px" />
         </SimpleTable.RowCell>
       ))}

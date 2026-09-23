@@ -1,6 +1,7 @@
 import omit from 'lodash/omit';
+import {parseAsString} from 'nuqs';
 
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 
 export enum ReleasesDrawerFields {
   DRAWER = 'rd',
@@ -23,37 +24,24 @@ export enum ReleasesDrawerFields {
 }
 
 /**
- * For use with `useLocationQuery` to decode the releases drawer query parameters.
+ * For use with nuqs' `useQueryStates` to read the releases drawer query parameters.
  */
-export const RELEASES_DRAWER_FIELD_MAP = {
-  [ReleasesDrawerFields.DRAWER]: decodeScalar,
-  [ReleasesDrawerFields.CHART]: decodeScalar,
-  [ReleasesDrawerFields.COMMIT_CURSOR]: decodeScalar,
-  [ReleasesDrawerFields.END]: decodeScalar,
-  [ReleasesDrawerFields.ENVIRONMENT]: decodeList,
-  [ReleasesDrawerFields.EVENT_ID]: decodeScalar,
-  [ReleasesDrawerFields.FILES_CURSOR]: decodeScalar,
-  [ReleasesDrawerFields.FLAGS_CURSOR]: decodeScalar,
-  [ReleasesDrawerFields.LIST_CURSOR]: decodeScalar,
-  [ReleasesDrawerFields.PROJECT]: decodeList,
-  [ReleasesDrawerFields.RELEASE]: decodeScalar,
-  [ReleasesDrawerFields.RELEASE_PROJECT_ID]: decodeScalar,
-  [ReleasesDrawerFields.START]: decodeScalar,
-  [ReleasesDrawerFields.SOURCE]: decodeScalar,
+export const RELEASES_DRAWER_PARSERS = {
+  [ReleasesDrawerFields.DRAWER]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.CHART]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.COMMIT_CURSOR]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.END]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.ENVIRONMENT]: parseAsStringArray,
+  [ReleasesDrawerFields.EVENT_ID]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.FILES_CURSOR]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.FLAGS_CURSOR]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.LIST_CURSOR]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.PROJECT]: parseAsStringArray,
+  [ReleasesDrawerFields.RELEASE]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.RELEASE_PROJECT_ID]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.START]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.SOURCE]: parseAsString.withDefault(''),
 };
-
-const RELEASES_DRAWER_FIELD_KEYS = Object.keys(RELEASES_DRAWER_FIELD_MAP);
-
-/**
- * Removes the releases drawer parameters from the location query.
- * @param query Location query object
- * @returns Location query object with the releases drawer parameters removed
- */
-export function cleanLocationQuery(
-  query: Record<string, string[] | string | null | undefined>
-) {
-  return omit(query, RELEASES_DRAWER_FIELD_KEYS);
-}
 
 /**
  * Cleans location.query of all releases drawer cursors
@@ -64,15 +52,12 @@ export function cleanLocationQuery(
 export function cleanReleaseCursors(
   query: Record<string, string[] | string | null | undefined>
 ) {
-  return omit(
-    query,
-    RELEASES_DRAWER_FIELD_KEYS.filter(key =>
-      [
-        ReleasesDrawerFields.COMMIT_CURSOR,
-        ReleasesDrawerFields.FILES_CURSOR,
-        ReleasesDrawerFields.LIST_CURSOR,
-        ReleasesDrawerFields.ACTIVE_REPO,
-      ].includes(key as ReleasesDrawerFields)
-    )
-  );
+  // Keep this list explicit: ACTIVE_REPO is parsed separately from
+  // RELEASES_DRAWER_PARSERS but must be cleared with the cursor state.
+  return omit(query, [
+    ReleasesDrawerFields.COMMIT_CURSOR,
+    ReleasesDrawerFields.FILES_CURSOR,
+    ReleasesDrawerFields.LIST_CURSOR,
+    ReleasesDrawerFields.ACTIVE_REPO,
+  ]);
 }

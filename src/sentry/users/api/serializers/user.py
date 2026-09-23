@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import itertools
 import warnings
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
@@ -27,7 +26,6 @@ from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userpermission import UserPermission
-from sentry.users.models.userrole import UserRoleUser
 from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.serializers import manytoone_to_dict
@@ -365,19 +363,10 @@ class DetailedSelfUserSerializer(UserSerializer):
         permissions = manytoone_to_dict(
             UserPermission.objects.filter(user_id__in=user_ids), "user_id"
         )
-        # XXX(dcramer): There is definitely a way to write this query using
-        #  Django's awkward ORM magic to cache it using `UserRole` but at least
-        #  someone can understand this direction of access/optimization.
-        roles = {
-            ur.user_id: ur.role.permissions
-            for ur in UserRoleUser.objects.filter(user_id__in=user_ids).select_related("role")
-        }
 
         for item in item_list:
             attrs[item]["authenticators"] = authenticators[item.id]
-            attrs[item]["permissions"] = {p.permission for p in permissions[item.id]} | set(
-                itertools.chain(roles.get(item.id, []))
-            )
+            attrs[item]["permissions"] = {p.permission for p in permissions[item.id]}
 
         return attrs
 

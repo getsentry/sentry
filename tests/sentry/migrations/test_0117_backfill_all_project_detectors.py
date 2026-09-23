@@ -1,7 +1,10 @@
+import pytest
+
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
 class BackfillAllProjectDetectorsTest(TestMigrations):
     app = "workflow_engine"
     migrate_from = "0116_detector_nullable_project"

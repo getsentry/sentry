@@ -36,6 +36,7 @@ import {
 import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   FieldKey,
   FieldKind,
@@ -310,6 +311,143 @@ describe('SearchQueryBuilder', () => {
       expect(
         await screen.findByRole('row', {name: 'browser.name:Chrome'})
       ).toBeInTheDocument();
+    });
+  });
+
+  it('keeps key and value suggestions in the same panel as the input', async () => {
+    render(
+      <SearchQueryBuilder
+        {...defaultProps}
+        menuPresentation="panel"
+        portalTarget={document.body}
+      />
+    );
+
+    const panel = screen.getByTestId('search-query-builder-panel');
+    await userEvent.click(getLastInput());
+    expect(panel).toContainElement(await screen.findByRole('listbox'));
+    expect(panel).toContainElement(getLastInput());
+
+    await userEvent.type(getLastInput(), 'browser');
+    expect(panel).toContainElement(
+      await screen.findByRole('option', {name: 'browser.name'})
+    );
+
+    await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
+    expect(panel).toContainElement(await screen.findByRole('option', {name: 'Chrome'}));
+    expect(within(panel).getByRole('listbox')).toHaveStyle({maxWidth: '100%'});
+    await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
+
+    expect(within(panel).getByRole('listbox')).toBeInTheDocument();
+
+    await userEvent.click(getLastInput());
+    expect(within(panel).getByRole('listbox')).toBeInTheDocument();
+
+    await userEvent.click(document.body);
+    expect(within(panel).queryByRole('listbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'browser.name:Chrome'})).toBeInTheDocument();
+  });
+
+  it.each(['padding', 'gap'])(
+    'preserves value editing when clicking panel %s',
+    async target => {
+      const onChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          menuPresentation="panel"
+          initialQuery="browser.name:Chrome"
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'Fire');
+      const option = await screen.findByRole('option', {name: 'Firefox'});
+      onChange.mockClear();
+
+      const panel = screen.getByTestId('search-query-builder-panel');
+      const chrome =
+        target === 'gap' ? panel.querySelector('[data-query-builder-menu]')! : panel;
+      await userEvent.click(chrome);
+
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('Fire');
+      expect(option).toBeInTheDocument();
+      expect(onChange).not.toHaveBeenCalled();
+
+      await userEvent.click(option);
+      await userEvent.click(document.body);
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {name: 'browser.name:[Chrome,Firefox]'})
+      ).toBeInTheDocument();
+    }
+  );
+
+  it('closes the previous value editor when focusing another filter in panel mode', async () => {
+    render(
+      <SearchQueryBuilder
+        {...defaultProps}
+        menuPresentation="panel"
+        initialQuery="browser.name:Chrome assigned:me"
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+    );
+    expect(
+      await screen.findByRole('combobox', {name: 'Edit filter value'})
+    ).toBeInTheDocument();
+
+    // Other tokens are aria-hidden while the value combobox is open.
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Edit value for filter: assigned', hidden: true})
+    );
+
+    expect(screen.getAllByRole('combobox', {name: 'Edit filter value'})).toHaveLength(1);
+    expect(
+      screen.getByRole('button', {
+        name: 'Edit value for filter: browser.name',
+        hidden: true,
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the date picker below the input in panel mode', async () => {
+    const onChange = jest.fn();
+    render(
+      <SearchQueryBuilder
+        {...defaultProps}
+        menuPresentation="panel"
+        initialQuery="age:-24h"
+        onChange={onChange}
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Edit value for filter: age'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'Absolute date'}));
+
+    const datePicker = await screen.findByTestId('specific-date-picker');
+    expect(screen.getByTestId('search-query-builder-panel')).toContainElement(datePicker);
+    expect(screen.getByTestId('search-query-builder')).not.toContainElement(datePicker);
+
+    await userEvent.type(await screen.findByTestId('date-picker'), '2017-10-17');
+    const panel = screen.getByTestId('search-query-builder-panel');
+    await userEvent.click(panel);
+    expect(datePicker).toBeInTheDocument();
+    await userEvent.click(panel.querySelector('[data-query-builder-menu]')!);
+    expect(datePicker).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith('age:>2017-10-17', expect.anything());
     });
   });
 
@@ -3385,6 +3523,92 @@ describe('SearchQueryBuilder', () => {
           ).getByText('does not have')
         ).toBeInTheDocument();
       });
+
+      it('seeds the attribute into the input when the value is clicked', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="has:browser.name" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: has'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+
+        expect(input).toHaveFocus();
+        expect(input).toHaveValue('browser.name');
+      });
+
+      it('keeps the surrounding attribute when a typo is fixed in place', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="has:browser.naem"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: has'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.click(input);
+        await userEvent.keyboard('{Backspace}{Backspace}me{Enter}');
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'has:browser.name',
+            expect.anything()
+          );
+        });
+      });
+
+      it('replaces the whole attribute when the seeded text is cleared', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="has:browser.name"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: has'})
+        );
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+        await userEvent.keyboard('custom_tag_name{Enter}');
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'has:custom_tag_name',
+            expect.anything()
+          );
+        });
+      });
+
+      it('leaves the attribute unchanged when the value is clicked and dismissed', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="has:browser.name"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: has'})
+        );
+        await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.keyboard('{Escape}');
+
+        expect(
+          await screen.findByRole('row', {name: 'has:browser.name'})
+        ).toBeInTheDocument();
+        expect(mockOnChange).not.toHaveBeenCalled();
+      });
     });
 
     describe('string', () => {
@@ -4152,6 +4376,64 @@ describe('SearchQueryBuilder', () => {
             selected_count: 1,
           })
         );
+      });
+
+      it('tracks a manual value submission as valid when it is accepted', async () => {
+        const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            searchSource="ourlogs"
+            initialQuery="timesSeen:>100"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: timesSeen'})
+        );
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('7{Enter}');
+
+        const calls = trackAnalyticsSpy.mock.calls.filter(
+          ([event]) => event === 'search.value_manual_submitted'
+        );
+
+        expect(calls).toEqual([
+          [
+            'search.value_manual_submitted',
+            expect.objectContaining({filter_value: '7', invalid: false}),
+          ],
+        ]);
+      });
+
+      it('tracks a manual value submission as invalid when it is rejected', async () => {
+        const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            searchSource="ourlogs"
+            initialQuery="timesSeen:>100"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: timesSeen'})
+        );
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('a{Enter}');
+
+        const calls = trackAnalyticsSpy.mock.calls.filter(
+          ([event]) => event === 'search.value_manual_submitted'
+        );
+
+        expect(calls).toEqual([
+          [
+            'search.value_manual_submitted',
+            expect.objectContaining({filter_value: 'a', invalid: true}),
+          ],
+        ]);
       });
 
       it('sorts value suggestions by fuzzy match relevance', async () => {
@@ -6095,7 +6377,12 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
         expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
         await userEvent.keyboard('transaction');
+
+        // React Aria dispatches virtual focus from a passive effect during selection.
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(jest.fn());
         await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
+        errorSpy.mockRestore();
+
         expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
         await userEvent.keyboard(',');
         await userEvent.click(screen.getByRole('option', {name: 'greater'}));
@@ -6627,6 +6914,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit value for filter: has'})
       );
+      await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter value'}));
       await userEvent.keyboard('foo');
       await userEvent.click(screen.getByRole('option', {name: 'foo'}));
 
@@ -7404,7 +7692,12 @@ describe('SearchQueryBuilder', () => {
                     status: string;
                     unsupported_reason: string | null;
                   }>({
-                    url: '/organizations/org-slug/trace-explorer-ai/query/',
+                    url: getApiUrl(
+                      '/organizations/$organizationIdOrSlug/trace-explorer-ai/query/',
+                      {
+                        path: {organizationIdOrSlug: 'org-slug'},
+                      }
+                    ),
                     method: 'POST',
                     data: {},
                   });
@@ -8543,6 +8836,7 @@ describe('SearchQueryBuilder', () => {
         screen.getByRole('button', {name: 'Edit value for filter: has'})
       );
       const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.clear(input);
       await userEvent.type(input, 'tag');
 
       await waitFor(() => {
@@ -8577,6 +8871,7 @@ describe('SearchQueryBuilder', () => {
         screen.getByRole('button', {name: 'Edit value for filter: has'})
       );
       const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.clear(input);
       await userEvent.type(input, 'async');
       await userEvent.click(await screen.findByRole('option', {name: 'async_tag_one'}));
 

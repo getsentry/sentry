@@ -26,7 +26,7 @@ export function EventMissingBanner() {
 
   const useGetMaxRetentionDays =
     getOverride('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
-  const maxRetentionDays = useGetMaxRetentionDays();
+  const maxRetentionDays = useGetMaxRetentionDays(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   const statsPeriod = maxRetentionDays ? `${maxRetentionDays}d` : '30d';
 
   const baseUrl = `/organizations/${organization.slug}/issues/${groupId}/events`;
