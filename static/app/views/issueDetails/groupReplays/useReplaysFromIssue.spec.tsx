@@ -57,7 +57,10 @@ describe('useReplaysFromIssue', () => {
       expect(result.current.eventView?.query).toBe('id:[staging-replay]');
     });
 
-    await act(async () => productionResponse.resolve());
+    await act(() => {
+      productionResponse.resolve();
+      return productionResponse.promise;
+    });
     expect(result.current.eventView?.query).toBe('id:[staging-replay]');
   });
 
@@ -124,7 +127,10 @@ describe('useReplaysFromIssue', () => {
     expect(result.current.eventView).toBeNull();
     expect(result.current.isFetching).toBe(true);
 
-    await act(async () => otherResponse.resolve());
+    await act(() => {
+      otherResponse.resolve();
+      return otherResponse.promise;
+    });
     await waitFor(() => {
       expect(result.current.eventView?.query).toBe('id:[second-issue-replay]');
     });
