@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {isServiceWorkerSupported} from 'sentry/serviceWorker/client/isServiceWorkerSupported';
 import {ServiceWorkerController} from 'sentry/serviceWorker/client/serviceWorkerInterface';
-import {getSentryScriptUrlPolicy} from 'sentry/utils/trustedTypes';
+import {trustedScriptUrl} from 'sentry/utils/trustedTypes';
 
 const DEBUG_LOGGING = false;
 
@@ -21,9 +21,7 @@ function getWorkerUrl(): string {
     ? '/entrypoints/service-worker.js'
     : '/service-worker.js';
 
-  // `register()` is typed for a string but accepts a TrustedScriptURL, which is
-  // what it requires once Trusted Types is enforced.
-  return (getSentryScriptUrlPolicy()?.createScriptURL(url) ?? url) as string;
+  return trustedScriptUrl(url);
 }
 
 const Context = createContext({

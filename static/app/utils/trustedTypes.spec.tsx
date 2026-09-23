@@ -22,27 +22,26 @@ describe('trustedTypes', () => {
     window.trustedTypes = original;
   });
 
-  it('does nothing when Trusted Types is unsupported', async () => {
+  it('returns the url unchanged when Trusted Types is unsupported', async () => {
     window.trustedTypes = undefined;
 
-    const {installTrustedTypesPolicies, getSentryScriptUrlPolicy} = await loadModule();
+    const {installTrustedTypesPolicies, trustedScriptUrl} = await loadModule();
     installTrustedTypesPolicies();
 
-    expect(getSentryScriptUrlPolicy()).toBeNull();
+    expect(trustedScriptUrl('/service-worker.js')).toBe('/service-worker.js');
   });
 
   it('registers sentry-script-url when supported', async () => {
     const trustedTypes = fakeTrustedTypes();
     window.trustedTypes = trustedTypes;
 
-    const {installTrustedTypesPolicies, getSentryScriptUrlPolicy} = await loadModule();
+    const {installTrustedTypesPolicies} = await loadModule();
     installTrustedTypesPolicies();
 
     expect(trustedTypes.createPolicy).toHaveBeenCalledWith(
       'sentry-script-url',
       expect.anything()
     );
-    expect(getSentryScriptUrlPolicy()?.name).toBe('sentry-script-url');
   });
 
   it('registers the policy only once', async () => {
@@ -56,29 +55,25 @@ describe('trustedTypes', () => {
     expect(trustedTypes.createPolicy).toHaveBeenCalledTimes(1);
   });
 
-  it('accepts a same-origin script URL', async () => {
+  it('accepts a same-origin script url', async () => {
     window.trustedTypes = fakeTrustedTypes();
 
-    const {installTrustedTypesPolicies, getSentryScriptUrlPolicy} = await loadModule();
+    const {installTrustedTypesPolicies, trustedScriptUrl} = await loadModule();
     installTrustedTypesPolicies();
 
-    expect(getSentryScriptUrlPolicy()?.createScriptURL('/service-worker.js')).toBe(
-      '/service-worker.js'
-    );
+    expect(trustedScriptUrl('/service-worker.js')).toBe('/service-worker.js');
   });
 
-  it('refuses a cross-origin script URL', async () => {
+  it('refuses a cross-origin script url', async () => {
     window.trustedTypes = fakeTrustedTypes();
 
-    const {installTrustedTypesPolicies, getSentryScriptUrlPolicy} = await loadModule();
+    const {installTrustedTypesPolicies, trustedScriptUrl} = await loadModule();
     installTrustedTypesPolicies();
 
-    expect(() =>
-      getSentryScriptUrlPolicy()?.createScriptURL('https://evil.example.com/x.js')
-    ).toThrow(TypeError);
+    expect(() => trustedScriptUrl('https://evil.example.com/x.js')).toThrow(TypeError);
   });
 
-  it('survives a policy the CSP allowlist rejects', async () => {
+  it('falls back to the raw url when the CSP allowlist rejects the policy', async () => {
     window.trustedTypes = {
       createPolicy: jest.fn(() => {
         throw new Error('refused by CSP');
@@ -86,9 +81,9 @@ describe('trustedTypes', () => {
     };
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const {installTrustedTypesPolicies, getSentryScriptUrlPolicy} = await loadModule();
+    const {installTrustedTypesPolicies, trustedScriptUrl} = await loadModule();
     expect(() => installTrustedTypesPolicies()).not.toThrow();
-    expect(getSentryScriptUrlPolicy()).toBeNull();
+    expect(trustedScriptUrl('/service-worker.js')).toBe('/service-worker.js');
 
     consoleError.mockRestore();
   });

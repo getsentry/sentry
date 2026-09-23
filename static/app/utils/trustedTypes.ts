@@ -54,6 +54,14 @@ export function installTrustedTypesPolicies(): void {
   }
 }
 
-export function getSentryScriptUrlPolicy(): TrustedTypePolicy | null {
-  return sentryScriptUrlPolicy;
+/**
+ * Mints a script URL through `sentry-script-url`, returning the input unchanged
+ * when Trusted Types is unavailable.
+ *
+ * Under enforcement this is a `TrustedScriptURL`, which is what the sink needs,
+ * but it is typed as a string: the DOM declares these sinks as strings, so a
+ * caller could not hand the real type to one without asserting at every site.
+ */
+export function trustedScriptUrl(url: string): string {
+  return (sentryScriptUrlPolicy?.createScriptURL(url) ?? url) as unknown as string;
 }
