@@ -24,6 +24,7 @@ CODEOWNERS_PROVIDERS = frozenset(
         ExternalProviders.GITHUB,
         ExternalProviders.GITHUB_ENTERPRISE,
         ExternalProviders.GITLAB,
+        ExternalProviders.CURSOR_ORIGIN,
     }
 )
 
