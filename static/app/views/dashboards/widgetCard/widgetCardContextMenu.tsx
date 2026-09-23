@@ -309,7 +309,13 @@ export function getMenuOptions(
 
         return {
           key: `create-alert-${seriesName}-${index}`,
-          label,
+          label: (
+            <Text ellipsis style={{maxWidth: 400}}>
+              {label}
+            </Text>
+          ),
+          textValue: label,
+          tooltip: label,
           to: getAlertsUrl({
             query: search.formatString(),
             aggregate: timeSeries.yAxis,
