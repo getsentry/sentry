@@ -69,6 +69,7 @@ import {
   DEPLOYMENT_TARGET_ICONS,
   DEPLOYMENT_TARGET_LABELS,
   DeploymentTarget,
+  getDefaultAgentIntegration,
   getIntegrationDeploymentTarget,
   NODE_AGENT_INTEGRATIONS,
   PHP_AGENT_INTEGRATIONS,
@@ -583,8 +584,12 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   // of this selector for now and keeps its existing onboarding.
   const isCloudflareWorkers = project?.platform === 'node-cloudflare-workers';
   const isCloudflarePages = project?.platform === 'node-cloudflare-pages';
+  const projectAgentIntegration = getDefaultAgentIntegration(project?.platform);
   const showDeploymentTarget =
-    isNodePlatform && !isCloudflareWorkers && !isCloudflarePages;
+    isNodePlatform &&
+    !isCloudflareWorkers &&
+    !isCloudflarePages &&
+    !projectAgentIntegration;
 
   const deploymentTargetOptions: BasePlatformOptions = showDeploymentTarget
     ? {
@@ -604,11 +609,13 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
 
   // The SDK list is no longer filtered by runtime: Node projects see every
   // Node/Cloudflare agent SDK, and the chosen SDK drives the runtime below.
-  const integrations = isPythonPlatform
-    ? PYTHON_AGENT_INTEGRATIONS
-    : isPhpPlatform
-      ? PHP_AGENT_INTEGRATIONS
-      : NODE_AGENT_INTEGRATIONS;
+  const integrations = projectAgentIntegration
+    ? [projectAgentIntegration]
+    : isPythonPlatform
+      ? PYTHON_AGENT_INTEGRATIONS
+      : isPhpPlatform
+        ? PHP_AGENT_INTEGRATIONS
+        : NODE_AGENT_INTEGRATIONS;
 
   const platformOptions: BasePlatformOptions = {
     integration: {
@@ -707,18 +714,16 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     selectedPlatformOptions.integration ?? AgentIntegration.VERCEL_AI;
   const jsPackageName = isCloudflareTarget ? '@sentry/cloudflare' : '@sentry/node';
 
-  // Eve only drains OpenTelemetry traces to Sentry - it doesn't run the Sentry
-  // SDK, so there's no `Sentry.setConversationId` / `Sentry.setUser` to call.
-  const isEve = selectedIntegration === AgentIntegration.EVE;
-  // Flue sets the conversation ID automatically, so the manual
-  // `Sentry.setConversationId` step is redundant. It still runs the Sentry SDK,
-  // so the `Sentry.setUser` step below stays.
-  const isFlue = selectedIntegration === AgentIntegration.FLUE;
+  const setsConversationIdAutomatically = [
+    AgentIntegration.EVE,
+    AgentIntegration.FLUE,
+    AgentIntegration.MASTRA,
+  ].includes(selectedIntegration as AgentIntegration);
 
   const steps: OnboardingStep[] = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
-    ...(isEve || isFlue
+    ...(setsConversationIdAutomatically
       ? []
       : [
           getConversationIdStep(
@@ -727,7 +732,7 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
             jsPackageName
           ),
         ]),
-    ...(isPhpPlatform || isEve ? [] : [getSetUserStep(isPythonPlatform, jsPackageName)]),
+    ...(isPhpPlatform ? [] : [getSetUserStep(isPythonPlatform, jsPackageName)]),
     ...(isPhpPlatform
       ? [getPhpConversationVerifyStep()]
       : agentMonitoringDocs.verify?.(docParams) || []),
@@ -739,26 +744,28 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     <ConversationOnboardingPanel project={project} dsn={dsn.public} onDismiss={onDismiss}>
       <Stack gap="xl">
         <Flex gap="lg" align="center" justify="between" wrap="wrap">
-          <Flex gap="sm" align="center" wrap="wrap">
-            <Text>{t('Set up')}</Text>
-            <PlatformOptionDropdown
-              platformOptions={platformOptions}
-              connectors={{deploymentTarget: t('on')}}
-              onChange={(option, value) => {
-                trackAnalytics('conversations.onboarding.interaction', {
-                  organization,
-                  action: 'select_setup_option',
-                  option,
-                  value,
-                });
-              }}
-              lockedValues={
-                integrationDeploymentTarget
-                  ? {deploymentTarget: integrationDeploymentTarget}
-                  : undefined
-              }
-            />
-          </Flex>
+          {!projectAgentIntegration && (
+            <Flex gap="sm" align="center" wrap="wrap">
+              <Text>{t('Set up')}</Text>
+              <PlatformOptionDropdown
+                platformOptions={platformOptions}
+                connectors={{deploymentTarget: t('on')}}
+                onChange={(option, value) => {
+                  trackAnalytics('conversations.onboarding.interaction', {
+                    organization,
+                    action: 'select_setup_option',
+                    option,
+                    value,
+                  });
+                }}
+                lockedValues={
+                  integrationDeploymentTarget
+                    ? {deploymentTarget: integrationDeploymentTarget}
+                    : undefined
+                }
+              />
+            </Flex>
+          )}
           <OnboardingCopyMarkdownButton
             borderless
             steps={steps}
