@@ -201,6 +201,32 @@ export function ConditionalDemo() {
 
 // fields.mdx demos
 
+export function NumberFieldDemo() {
+  const {t} = useTranslation();
+  const defaultValues: {amount: number | null} = {amount: 0};
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="amount">
+        {field => (
+          <field.Layout.Row label={t('Amount')}>
+            <field.Number
+              leadingItems="$"
+              value={field.state.value}
+              onChange={field.handleChange}
+              min={0}
+            />
+          </field.Layout.Row>
+        )}
+      </form.AppField>
+    </form.AppForm>
+  );
+}
+
 export function BaseFieldDemo() {
   const {t} = useTranslation();
   const form = useScrapsForm({
