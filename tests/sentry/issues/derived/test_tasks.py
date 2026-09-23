@@ -412,7 +412,6 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             heal_stale_derived_data()
 
         mock_delay.assert_called_once_with(
-            stale_pipeline_hashes=[stale],
             target_hash=stale,
             group_id_start=group_ids[0],
             group_id_end=group_ids[0] + 1,
@@ -1065,9 +1064,8 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
 
         mock_delay.assert_called_once()
         kwargs = mock_delay.call_args.kwargs
-        # A None target means the NULL hash; the legacy list stays empty.
+        # A None target means the NULL hash.
         assert kwargs["target_hash"] is None
-        assert kwargs["stale_pipeline_hashes"] == []
         assert kwargs["group_id_start"] == groups[0].id
         assert kwargs["group_id_end"] == groups[0].id + 1
 
@@ -1125,7 +1123,6 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             heal_stale_derived_data()
 
         mock_regenerate.assert_called_once_with(
-            stale_pipeline_hashes=[stale],
             target_hash=stale,
             group_id_start=group_ids[0],
             group_id_end=group_ids[0] + 1,
@@ -1590,7 +1587,6 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
         GroupDerivedData.objects.filter(group_id__in=group_ids).update(pipeline_hash=stale)
 
         regenerate_stale_derived_data_batch(
-            stale_pipeline_hashes=[stale],
             target_hash=stale,
             group_id_start=group_ids[0],
             group_id_end=group_ids[-1] + 1,
@@ -1607,7 +1603,6 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
         GroupDerivedData.objects.filter(group_id=gid).update(pipeline_hash=None)
 
         regenerate_stale_derived_data_batch(
-            stale_pipeline_hashes=[],
             target_hash=None,
             group_id_start=gid,
             group_id_end=gid + 1,
@@ -1627,7 +1622,6 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
         GroupDerivedData.objects.filter(group_id=group_ids[1]).update(pipeline_hash=stale)
 
         regenerate_stale_derived_data_batch(
-            stale_pipeline_hashes=[stale],
             target_hash=stale,
             group_id_start=group_ids[0],
             group_id_end=group_ids[-1] + 1,
@@ -1640,44 +1634,6 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
             == PIPELINE.pipeline_hash
         )
 
-    def test_legacy_activation_targets_first_listed_hash(self) -> None:
-        # Enqueued by the previous release: a list of hashes and no target.
-        groups = self.create_unprocessed_groups(2)
-        group_ids = sorted(g.id for g in groups)
-        for gid in group_ids:
-            process_group_log(gid)
-
-        first, second = self._stale(), "y" * 16
-        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash=first)
-        GroupDerivedData.objects.filter(group_id=group_ids[1]).update(pipeline_hash=second)
-
-        regenerate_stale_derived_data_batch(
-            stale_pipeline_hashes=[first, second],
-            group_id_start=group_ids[0],
-            group_id_end=group_ids[-1] + 1,
-        )
-
-        # Only the first hash is covered; the rest waits for the next scheduled run.
-        assert (
-            GroupDerivedData.objects.get(group_id=group_ids[0]).pipeline_hash
-            == PIPELINE.pipeline_hash
-        )
-        assert GroupDerivedData.objects.get(group_id=group_ids[1]).pipeline_hash == second
-
-    def test_legacy_activation_with_empty_list_targets_null(self) -> None:
-        groups = self.create_unprocessed_groups(1)
-        gid = groups[0].id
-        process_group_log(gid)
-        GroupDerivedData.objects.filter(group_id=gid).update(pipeline_hash=None)
-
-        regenerate_stale_derived_data_batch(
-            stale_pipeline_hashes=[],
-            group_id_start=gid,
-            group_id_end=gid + 1,
-        )
-
-        assert GroupDerivedData.objects.get(group_id=gid).pipeline_hash == PIPELINE.pipeline_hash
-
     def test_skips_rows_no_longer_stale(self) -> None:
         # Row now has the current hash — the range query should return
         # nothing so build_and_promote is never called.
@@ -1687,7 +1643,6 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
 
         with patch("sentry.issues.derived.promote.build_and_promote_derived_data") as mock_build:
             regenerate_stale_derived_data_batch(
-                stale_pipeline_hashes=[self._stale()],
                 target_hash=self._stale(),
                 group_id_start=gid,
                 group_id_end=gid + 1,
@@ -1714,7 +1669,6 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
             mock_time.monotonic.side_effect = [0.0, 0.0, expired]
 
             regenerate_stale_derived_data_batch(
-                stale_pipeline_hashes=[stale],
                 target_hash=stale,
                 group_id_start=group_ids[0],
                 group_id_end=group_ids[-1] + 1,
@@ -1741,7 +1695,6 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
             patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
         ):
             regenerate_stale_derived_data_batch(
-                stale_pipeline_hashes=[stale],
                 target_hash=stale,
                 group_id_start=group_ids[0],
                 group_id_end=group_ids[-1] + 1,
@@ -1757,7 +1710,6 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
         )
         assert GroupDerivedData.objects.get(group_id=group_ids[2]).pipeline_hash == stale
         mock_delay.assert_called_once_with(
-            stale_pipeline_hashes=[stale],
             target_hash=stale,
             group_id_start=group_ids[1] + 1,
             group_id_end=group_ids[-1] + 1,
@@ -1780,7 +1732,6 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
             patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
         ):
             regenerate_stale_derived_data_batch(
-                stale_pipeline_hashes=[stale],
                 target_hash=stale,
                 group_id_start=group_ids[0],
                 group_id_end=group_ids[-1] + 1,
