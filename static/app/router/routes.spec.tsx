@@ -90,6 +90,16 @@ function getRedirectTarget(routes: RouteObject[], url: string): string | undefin
   return to === undefined ? undefined : replaceRouterParams(to, match!.params);
 }
 
+function routeOwnsPageLayout(routes: RouteObject[], url: string): boolean {
+  return (
+    matchRoutes(routes, url)?.some(
+      match =>
+        (match.route.handle as {ownsPageLayout?: boolean} | undefined)?.ownsPageLayout ===
+        true
+    ) ?? false
+  );
+}
+
 describe('buildRoutes()', () => {
   // Until customer-domains is enabled for single-tenant, self-hosted and path
   // based slug routes are removed we need to ensure
@@ -172,6 +182,22 @@ describe('buildRoutes()', () => {
       );
       expect(matchedPaths).toContain('*');
     });
+  });
+
+  it.each([
+    '/organizations/test-org/explore/investigations/',
+    '/organizations/test-org/explore/investigations/investigation-1/',
+    '/organizations/test-org/preprod/size/artifact-1/',
+    '/organizations/test-org/preprod/install/artifact-1/',
+    '/organizations/test-org/preprod/size/compare/artifact-1/',
+  ])('marks %s as owning its page layout', url => {
+    expect(routeOwnsPageLayout(buildRoutes(), url)).toBe(true);
+  });
+
+  it('keeps legacy organization routes inside the organization page layout', () => {
+    expect(routeOwnsPageLayout(buildRoutes(), '/organizations/test-org/issues/')).toBe(
+      false
+    );
   });
 
   describe('legacy insights module redirects', () => {

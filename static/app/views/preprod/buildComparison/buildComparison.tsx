@@ -3,6 +3,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
+import {SingleColumnPage} from '@sentry/scraps/pageframe';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -95,11 +96,12 @@ export default function BuildComparison() {
             />
           </Layout.Header>
 
-          <Layout.Body>
-            <Layout.Main>
-              <LoadingIndicator />
-            </Layout.Main>
-          </Layout.Body>
+          <SingleColumnPage
+            width="full"
+            padding={{'screen:sm': 'lg', 'screen:md': 'lg xl'}}
+          >
+            <LoadingIndicator />
+          </SingleColumnPage>
         </Stack>
       </SentryDocumentTitle>
     );
@@ -107,9 +109,11 @@ export default function BuildComparison() {
 
   if (headBuildDetailsQuery.isError || !headBuildDetailsQuery.data) {
     return (
-      <Alert variant="danger">
-        {headBuildDetailsQuery.error?.message || t('Failed to load build details')}
-      </Alert>
+      <SingleColumnPage width="full" padding="xl">
+        <Alert variant="danger">
+          {headBuildDetailsQuery.error?.message || t('Failed to load build details')}
+        </Alert>
+      </SingleColumnPage>
     );
   }
 
@@ -137,9 +141,12 @@ export default function BuildComparison() {
           />
         </Layout.Header>
 
-        <Layout.Body>
-          <Layout.Main width="full">{mainContent}</Layout.Main>
-        </Layout.Body>
+        <SingleColumnPage
+          width="full"
+          padding={{'screen:sm': 'lg', 'screen:md': 'lg xl'}}
+        >
+          {mainContent}
+        </SingleColumnPage>
       </Stack>
     </SentryDocumentTitle>
   );

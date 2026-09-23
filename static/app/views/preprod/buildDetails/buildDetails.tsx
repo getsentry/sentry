@@ -3,6 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {SidebarPage, SingleColumnPage} from '@sentry/scraps/pageframe';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -153,7 +154,7 @@ export default function BuildDetails() {
   ) {
     return (
       <SentryDocumentTitle title={title}>
-        <Stack flex={1}>
+        <SingleColumnPage width="full">
           <BuildError
             title="Build details unavailable"
             message={
@@ -178,7 +179,7 @@ export default function BuildDetails() {
               </Stack>
             )}
           </BuildError>
-        </Stack>
+        </SingleColumnPage>
       </SentryDocumentTitle>
     );
   }
@@ -196,8 +197,19 @@ export default function BuildDetails() {
           />
         </Layout.Header>
 
-        <Layout.Body gap={{zero: '2xl', '4xl': '3xl'}}>
-          <Layout.Side
+        <SidebarPage gap={{zero: '2xl', '4xl': '3xl'}}>
+          <SidebarPage.Main row={{zero: 'auto', '4xl': '1'}}>
+            <BuildDetailsMainContent
+              appSizeQuery={appSizeQuery}
+              onRerunAnalysis={onRerunAnalysis}
+              isRerunning={isRerunning}
+              buildDetailsData={buildDetailsQuery.data}
+              isBuildDetailsPending={buildDetailsQuery.isLoading}
+              projectType={projectType}
+              projectId={projectSlug}
+            />
+          </SidebarPage.Main>
+          <SidebarPage.Aside
             minWidth={{zero: 'auto', '4xl': '325px'}}
             maxWidth={{zero: 'none', '4xl': '325px'}}
             row={{zero: 'auto', '4xl': '1'}}
@@ -208,19 +220,8 @@ export default function BuildDetails() {
               artifactId={artifactId}
               projectId={projectSlug ?? null}
             />
-          </Layout.Side>
-          <Layout.Main row={{zero: 'auto', '4xl': '1'}}>
-            <BuildDetailsMainContent
-              appSizeQuery={appSizeQuery}
-              onRerunAnalysis={onRerunAnalysis}
-              isRerunning={isRerunning}
-              buildDetailsData={buildDetailsQuery.data}
-              isBuildDetailsPending={buildDetailsQuery.isLoading}
-              projectType={projectType}
-              projectId={projectSlug}
-            />
-          </Layout.Main>
-        </Layout.Body>
+          </SidebarPage.Aside>
+        </SidebarPage>
       </Stack>
     </SentryDocumentTitle>
   );

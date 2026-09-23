@@ -2295,10 +2295,12 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'investigations/',
       component: make(() => import('sentry/views/investigations')),
+      handle: {ownsPageLayout: true},
     },
     {
       path: 'investigations/:investigationId/',
       component: make(() => import('sentry/views/investigations/detail')),
+      handle: {ownsPageLayout: true},
     },
     // Unknown /explore/ subpaths redirect to the default explore view, rather
     // than falling through to the `/:orgId/:projectId/` legacy redirect and
@@ -2329,10 +2331,12 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'size/:artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
+      handle: {ownsPageLayout: true},
     },
     {
       path: 'install/:artifactId/',
       component: make(() => import('sentry/views/preprod/install/installPage')),
+      handle: {ownsPageLayout: true},
     },
     {
       path: 'size/compare/',
@@ -2346,12 +2350,14 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/preprod/buildComparison/buildComparison')
           ),
+          handle: {ownsPageLayout: true},
         },
         {
           path: ':headArtifactId/:baseArtifactId/',
           component: make(
             () => import('sentry/views/preprod/buildComparison/buildComparison')
           ),
+          handle: {ownsPageLayout: true},
         },
       ],
     },

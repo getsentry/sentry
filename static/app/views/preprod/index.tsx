@@ -7,7 +7,7 @@ export default function PreprodContainer() {
   const organization = useOrganization();
 
   return (
-    <NoProjectMessage organization={organization}>
+    <NoProjectMessage as="main" organization={organization}>
       <Outlet />
     </NoProjectMessage>
   );

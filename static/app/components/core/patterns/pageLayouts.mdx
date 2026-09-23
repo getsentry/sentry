@@ -1,0 +1,154 @@
+---
+title: Page layouts
+layout: document
+description: Compose page-level content with consistent widths, gutters, and landmarks.
+status: in-progress
+---
+
+import {Container, Stack} from '@sentry/scraps/layout';
+import {InlineCode} from '@sentry/scraps/code';
+import {SidebarPage, SingleColumnPage} from '@sentry/scraps/pageframe';
+import {Heading, Text} from '@sentry/scraps/text';
+import * as Storybook from 'sentry/stories';
+
+Page layouts own the primary landmarks and horizontal structure of a route. Use one
+page layout per rendered page. Do not wrap these patterns in another `main` element.
+
+## Organization app frame
+
+Routes below an organization inherit the shared app frame from `OrganizationLayout`.
+Pages should compose inside this frame rather than recreate it.
+
+| Frame region               | Owner                | What pages provide                               |
+| -------------------------- | -------------------- | ------------------------------------------------ |
+| Primary navigation sidebar | `OrganizationLayout` | Nothing; it adapts for desktop and mobile        |
+| Sticky page header         | `TopBar`             | Breadcrumbs, title, actions, search, or feedback |
+| Page content landmark      | Layout or route      | The default `Layout.Page`, or a page frame       |
+| Optional content sidebar   | The route            | `SidebarPage.Aside`                              |
+| Alerts and global drawers  | `OrganizationLayout` | Nothing                                          |
+
+The navigation sidebar is app chrome. `SidebarPage.Aside` is a secondary region inside
+the current page; it does not replace or align the page around the app navigation.
+
+### Page header
+
+`OrganizationLayout` renders the responsive `TopBar` and its slot provider. Routes add
+content to its named slots; they do not render another `TopBar`. The title slot supplies
+the page's `h1` landmark.
+
+```tsx
+import {TopBar} from 'sentry/views/navigation/topBar';
+
+<>
+  <TopBar.Slot name="breadcrumbs">...</TopBar.Slot>
+  <TopBar.Slot name="title">Page title</TopBar.Slot>
+  <TopBar.Slot name="actions">...</TopBar.Slot>
+  <SingleColumnPage>...</SingleColumnPage>
+</>;
+```
+
+Use the `breadcrumbs`, `title`, `search`, `actions`, and `feedback` slots for content
+that belongs in the sticky header. `Layout.Title` is a convenience wrapper for the title
+slot.
+
+`Layout.Header` is a separate in-page header below the `TopBar`. Use it only when the
+page needs a content header or tabs in that position. Compose it with
+`Layout.HeaderContent`, `Layout.HeaderActions`, and `Layout.HeaderTabs` rather than
+creating another page-header container.
+
+## Single-column pages
+
+`SingleColumnPage` renders `main` and supports the shared content widths:
+
+| Width    | Use for                                                       |
+| -------- | ------------------------------------------------------------- |
+| `narrow` | Reading and focused workflows, capped at `960px`              |
+| `wide`   | Data-heavy custom pages, capped at `1440px`                   |
+| `full`   | Tables and canvases that should fill the available page frame |
+
+<Storybook.Demo resizable>
+  <Stack gap="md" flex="0 1 100%">
+    <SingleColumnPage width="narrow" padding="xl">
+      <Stack gap="sm">
+        <Heading as="h2">
+          <InlineCode>narrow</InlineCode>: focused content
+        </Heading>
+        <Text>
+          This page grows responsively and stops at <InlineCode>960px</InlineCode>.
+        </Text>
+      </Stack>
+    </SingleColumnPage>
+    <SingleColumnPage width="wide" padding="xl">
+      <Stack gap="sm">
+        <Heading as="h2">
+          <InlineCode>wide</InlineCode>: data-heavy content
+        </Heading>
+        <Text>
+          This page grows responsively and stops at <InlineCode>1440px</InlineCode>.
+        </Text>
+      </Stack>
+    </SingleColumnPage>
+    <SingleColumnPage width="full" padding="xl">
+      <Stack gap="sm">
+        <Heading as="h2">
+          <InlineCode>full</InlineCode>: flexible canvas
+        </Heading>
+        <Text>This page grows infinitely.</Text>
+      </Stack>
+    </SingleColumnPage>
+  </Stack>
+</Storybook.Demo>
+
+```tsx
+import {SingleColumnPage} from '@sentry/scraps/pageframe';
+
+<SingleColumnPage width="narrow">...</SingleColumnPage>;
+<SingleColumnPage width="wide">...</SingleColumnPage>;
+<SingleColumnPage width="full">...</SingleColumnPage>;
+```
+
+## Pages with a sidebar
+
+`SidebarPage` owns the responsive grid. Its primary region renders `main`; its
+secondary region renders `aside`. The regions stack in narrow containers and use the
+established flexible-content plus `325px` sidebar columns in wide containers.
+
+<Storybook.Demo resizable>
+  <SidebarPage>
+    <SidebarPage.Main>
+      <Container border="primary">Main content</Container>
+    </SidebarPage.Main>
+    <SidebarPage.Aside>
+      <Container border="primary">Supporting content</Container>
+    </SidebarPage.Aside>
+  </SidebarPage>
+</Storybook.Demo>
+
+```tsx
+import {SidebarPage} from '@sentry/scraps/pageframe';
+
+<SidebarPage>
+  <SidebarPage.Main>...</SidebarPage.Main>
+  <SidebarPage.Aside>...</SidebarPage.Aside>
+</SidebarPage>;
+```
+
+Keep headers and navigation outside the pattern when they are siblings of the page's
+main content.
+
+## Organization routes
+
+Organization routes are wrapped in `Layout.Page` by default. When a route renders a
+page frame that already owns `main`, declare that ownership on the route to prevent
+nested `main` landmarks:
+
+```tsx
+{
+  path: 'example/',
+  component: make(() => import('sentry/views/example')),
+  handle: {ownsPageLayout: true},
+}
+```
+
+The app frame's `#main` element is the navigation skip-link target and layout container;
+it does not render a `main` landmark itself.

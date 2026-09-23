@@ -36,6 +36,14 @@ describe('NoProjectMessage', () => {
     expect(screen.queryByTestId('child')).not.toBeInTheDocument();
   });
 
+  it('can provide the main landmark when it replaces a page', () => {
+    ProjectsStore.loadInitialData([]);
+
+    render(<NoProjectMessage as="main" organization={org} />);
+
+    expect(screen.getByRole('main')).toHaveTextContent('Remain Calm');
+  });
+
   it('shows "Create Project" button when there are no projects', () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',
