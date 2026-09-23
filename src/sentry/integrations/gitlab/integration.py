@@ -661,14 +661,14 @@ class GitlabIntegrationProvider(IntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
+        if not options.get("gitlab.webhook-update-on-install.enabled"):
+            return
+
         org_integration = OrganizationIntegration.objects.get(
             organization_id=organization.id, integration_id=integration.id
         )
         # Discover and relink repositories without waiting for the daily sync cycle.
         sync_repos_for_org.delay(organization_integration_id=org_integration.id)
-
-        if not options.get("gitlab.webhook-update-on-install.enabled"):
-            return
 
         # Retained repositories may still have stale tokens even at the current webhook version.
         repository_service.schedule_update_gitlab_project_webhooks(
