@@ -1743,7 +1743,16 @@ def _trigger_pr_iteration_from_review(
     if pr_id is None:
         return None
 
-    agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
+    try:
+        agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
+    except SeerApiError:
+        metrics.incr("autofix.pr_iteration.review_trigger.seer_api_error")
+        logger.warning(
+            "autofix.pr_iteration.review_trigger.seer_api_error",
+            extra={**log_extra, "pr_id": pr_id},
+            exc_info=True,
+        )
+        return None
     if agent_state is None or not agent_state.repo_pr_states:
         metrics.incr("autofix.pr_iteration.review_trigger.no_run")
         logger.info(
