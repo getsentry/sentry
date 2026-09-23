@@ -15,7 +15,6 @@ from sentry import features
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
-from sentry.models.organization import Organization
 from sentry.utils import metrics, redis
 from sentry.workflow_engine.handlers.detector.base import (
     DataPacketEvaluationType,
@@ -124,7 +123,9 @@ class DetectorStateManager:
         activation_id: int | None = None,
     ) -> None:
         self.state_updates[group_key] = DetectorStateUpdate(
-            is_triggered=is_triggered, priority=priority, activation_id=activation_id
+            is_triggered=is_triggered,
+            priority=priority,
+            activation_id=activation_id,
         )
 
     def get_redis_keys_for_group_keys(
@@ -345,8 +346,9 @@ class StatefulDetectorHandler(
     Stateful Detectors are provided as a base class for new detectors that need to track state.
     """
 
-    # When enabled, a detector going from OK to a non-OK priority mints a new activation_id
-    rotates_activation_id: ClassVar[bool] = False
+    # If this flag is true, unique issues will be generated for each open period
+    # If this flag is false, a new open period will regress a previous issue instead.
+    should_generate_unique_issues: ClassVar[bool] = False
 
     def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
         super().__init__(detector)
@@ -380,10 +382,35 @@ class StatefulDetectorHandler(
         """
         pass
 
+    def build_occurrence_fingerprint(
+        self, group_key: DetectorGroupKey, activation_id: int | None
+    ) -> list[str]:
+        """
+        Builds a fingerprint for an occurrence
+        This function determines which issues get resolved as well as if newly breached thresholds create new issues
+        or regress old ones.
+        """
+        detector_key = self.state_manager.build_key(group_key)
+
+        stable_fingerprint = [
+            *self.build_issue_fingerprint(group_key),
+            detector_key,
+        ]
+
+        if not self.should_generate_unique_issues:
+            return stable_fingerprint
+
+        # Close out the open period before the class variable was set to true
+        if activation_id is None:
+            return stable_fingerprint
+
+        return [f"{detector_key}:activation:{activation_id}"]
+
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         """
         A hook that allows for additional fingerprinting to be added to the detectors issue occurrences.
-        By default the fingerprint will be the detector id and group key.
+        This hook is only used if `should_generate_unique_issues` is false, or else it may interfere with
+        unique issue creation
         """
         return []
 
@@ -478,6 +505,7 @@ class StatefulDetectorHandler(
                 detector_trigger_evaluation,
                 data_packet,
                 data_value,
+                activation_id,
             )
 
         self.state_manager.commit_state_updates()
@@ -489,11 +517,9 @@ class StatefulDetectorHandler(
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
         group_key: DetectorGroupKey = None,
+        activation_id: int | None = None,
     ) -> StatusChangeMessage:
-        fingerprint = [
-            *self.build_issue_fingerprint(),
-            self.state_manager.build_key(group_key),
-        ]
+        fingerprint = self.build_occurrence_fingerprint(group_key, activation_id)
 
         workflow_engine_evidence_data = self._build_workflow_engine_evidence_data(
             group_evaluation,
@@ -526,6 +552,7 @@ class StatefulDetectorHandler(
         group_evaluation: DataConditionGroupEvaluation,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
+        activation_id: int | None = None,
     ) -> DetectorEvaluation:
         detector_result: IssueOccurrence | StatusChangeMessage
         event_data: EventData | None = None
@@ -537,6 +564,7 @@ class StatefulDetectorHandler(
                 data_packet,
                 evaluation_value,
                 group_key,
+                activation_id,
             )
         else:
             # Call the `create_occurrence` method to create the detector occurrence.
@@ -550,6 +578,7 @@ class StatefulDetectorHandler(
                 new_priority,
                 group_key,
                 evaluation_value,
+                activation_id,
             )
 
             # Set the event data with the necessary fields
@@ -584,6 +613,7 @@ class StatefulDetectorHandler(
         new_priority: DetectorPriorityLevel,
         group_key: DetectorGroupKey,
         data_value: DataPacketEvaluationType,
+        activation_id: int | None = None,
     ) -> IssueOccurrence:
         """
         Decorate the issue occurrence with the data from the detector's evaluation result.
@@ -594,10 +624,7 @@ class StatefulDetectorHandler(
             data_value,
         )
 
-        fingerprint = [
-            *self.build_issue_fingerprint(group_key),
-            self.state_manager.build_key(group_key),
-        ]
+        fingerprint = self.build_occurrence_fingerprint(group_key, activation_id)
 
         occurrence_id = str(uuid4())
 
@@ -700,13 +727,10 @@ class StatefulDetectorHandler(
         """
         Whether this detector should start a new activation on each OK -> non-OK transition.
         """
-        if not self.rotates_activation_id:
+        if not self.should_generate_unique_issues:
             return False
 
-        organization = self._get_detector_organization()
-
-        if organization is None:
-            return False
+        organization = self.detector.linked_project.organization
 
         return features.has(
             "organizations:workflow-engine-rotate-activation-id",
@@ -731,19 +755,3 @@ class StatefulDetectorHandler(
             return _get_unix_epoch_time_in_ms()
 
         return state_data.activation_id
-
-    def _get_detector_organization(self) -> Organization | None:
-        """
-        Attempt to resolve organization from detector
-        "All projects detectors" don't have a linked project so resolve from the config,
-        similar to how we do it in `process_detectors`
-        """
-        if self.detector.project is not None:
-            return self.detector.project.organization
-
-        organization_id = self.detector.config.get("organization_id")
-
-        if organization_id is None:
-            return None
-
-        return Organization.objects.get_from_cache(id=organization_id)
