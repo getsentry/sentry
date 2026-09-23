@@ -1,5 +1,7 @@
 from typing import Literal, NotRequired, TypedDict
 
+from sentry.ingestion_delay.meta import IngestionMeta
+
 # Assumed ingestion delay for timeseries, this is a static number for now just to match how the frontend was doing it
 INGESTION_DELAY = 90
 INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
@@ -25,9 +27,7 @@ class StatsMeta(TypedDict):
     end: float
     droppedAnnotations: NotRequired[list[Annotation]]
     acceptedAnnotations: NotRequired[list[Annotation]]
-    estimatedIngestionDelaySeconds: NotRequired[float]
-    completeThrough: NotRequired[float]
-    ingestionDelayStatus: NotRequired[str]
+    ingestion: NotRequired[IngestionMeta]
 
 
 class Row(TypedDict):

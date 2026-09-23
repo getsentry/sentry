@@ -630,8 +630,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
     def test_ingestion_delay_absent_without_flag(self, mock_measure) -> None:
         response = self._do_request({"organizations:visibility-explore-view": True})
         assert response.status_code == 200, response.content
-        assert "estimatedIngestionDelaySeconds" not in response.data["meta"]
-        assert "completeThrough" not in response.data["meta"]
+        assert "ingestion" not in response.data["meta"]
         # The measurement costs a snuba query, so it must not run when unflagged.
         assert not mock_measure.called
 
@@ -646,8 +645,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             ingestion_delay=False,
         )
         assert response.status_code == 200, response.content
-        assert "estimatedIngestionDelaySeconds" not in response.data["meta"]
-        assert "completeThrough" not in response.data["meta"]
+        assert "ingestion" not in response.data["meta"]
         assert not mock_measure.called
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
@@ -665,12 +663,15 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             }
         )
         assert response.status_code == 200, response.content
-        assert response.data["meta"]["estimatedIngestionDelaySeconds"] == 42.5
-        # Milliseconds, matching start/end on the same object.
-        assert response.data["meta"]["completeThrough"] == complete_through.timestamp() * 1000
+        assert response.data["meta"]["ingestion"] == {
+            "status": "healthy",
+            "delaySeconds": 42.5,
+            # Milliseconds, matching start/end on the same object.
+            "completeThrough": complete_through.timestamp() * 1000,
+        }
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_absent(self, mock_measure) -> None:
+    def test_unknown_status_is_reported_without_values(self, mock_measure) -> None:
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=None,
             complete_through=None,
@@ -683,8 +684,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             }
         )
         assert response.status_code == 200, response.content
-        assert "estimatedIngestionDelaySeconds" not in response.data["meta"]
-        assert "completeThrough" not in response.data["meta"]
+        assert response.data["meta"]["ingestion"] == {"status": "unknown"}
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_ingestion_delay_query_failure_does_not_break_the_response(self, mock_measure) -> None:
@@ -696,8 +696,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             }
         )
         assert response.status_code == 200, response.content
-        assert "estimatedIngestionDelaySeconds" not in response.data["meta"]
-        assert "completeThrough" not in response.data["meta"]
+        assert "ingestion" not in response.data["meta"]
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_complete_through_is_returned_in_milliseconds(self, mock_measure) -> None:
@@ -714,8 +713,11 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             }
         )
         assert response.status_code == 200, response.content
-        assert response.data["meta"]["estimatedIngestionDelaySeconds"] == 42.5
-        assert response.data["meta"]["completeThrough"] == complete_through.timestamp() * 1000
+        assert response.data["meta"]["ingestion"]["delaySeconds"] == 42.5
+        assert (
+            response.data["meta"]["ingestion"]["completeThrough"]
+            == complete_through.timestamp() * 1000
+        )
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_buckets_are_marked_incomplete_from_measured_complete_through(
@@ -758,5 +760,5 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             }
         )
         assert response.status_code == 200, response.content
-        assert "completeThrough" not in response.data["meta"]
+        assert "completeThrough" not in response.data["meta"]["ingestion"]
         assert not any(row["incomplete"] for row in response.data["timeSeries"][0]["values"])

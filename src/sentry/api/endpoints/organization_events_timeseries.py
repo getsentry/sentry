@@ -24,7 +24,10 @@ from sentry.api.endpoints.timeseries import (
     TimeSeries,
 )
 from sentry.api.helpers.data_annotations import get_dropped_data_annotations
-from sentry.api.helpers.ingestion_delay import get_ingestion_delay_status
+from sentry.api.helpers.ingestion_delay import (
+    get_ingestion_delay_status,
+    serialize_ingestion_status,
+)
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
@@ -468,16 +471,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         ):
             ingestion_delay_status = get_ingestion_delay_status(dataset, snuba_params)
             if ingestion_delay_status is not None:
-                if ingestion_delay_status.delay_seconds is not None:
-                    stats_meta["estimatedIngestionDelaySeconds"] = (
-                        ingestion_delay_status.delay_seconds
-                    )
+                stats_meta["ingestion"] = serialize_ingestion_status(ingestion_delay_status)
                 if ingestion_delay_status.complete_through is not None:
                     complete_through = ingestion_delay_status.complete_through.timestamp()
-                    # Seconds to milliseconds
-                    stats_meta["completeThrough"] = complete_through * 1000
-                if ingestion_delay_status.status is not None:
-                    stats_meta["ingestionDelayStatus"] = ingestion_delay_status.status
 
         response = StatsResponse(
             meta=stats_meta,
