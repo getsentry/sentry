@@ -104,7 +104,10 @@ function linkKey(link: ToolLink) {
  * The same terms as the per-call `hasContent` guard below, attributing progress and live rows the
  * way the list does: only to a call that has not settled.
  */
-export function blockRendersToolContent(block: Block, blocks?: Block[]): boolean {
+export function blockRendersToolContent(
+  block: Block,
+  latestTodos?: LatestTodos | null
+): boolean {
   const toolCalls = block.message.tool_calls ?? [];
   if (!toolCalls.length) {
     return false;
@@ -115,7 +118,7 @@ export function blockRendersToolContent(block: Block, blocks?: Block[]): boolean
     toolCall.id && !settledCallIds.has(toolCall.id) ? [toolCall.id] : []
   );
 
-  if (findLatestTodos(blocks)?.block === block) {
+  if (latestTodos?.block === block) {
     return true;
   }
   // Live rows hang off the block, so the list can only attribute them to a lone pending call.
@@ -160,6 +163,8 @@ export function ToolUseBlock({
   readOnly = false,
   respondToUserInput,
 }: ToolUseBlockProps) {
+  const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
+
   if (block.loading && !block.message.tool_calls) {
     return <MessagePlaceholder />;
   }
@@ -189,7 +194,11 @@ export function ToolUseBlock({
         </MessageRow>
       )}
       {block.message.tool_calls ? (
-        <ToolCallList block={block} blocks={blocks} getPageReferrer={getPageReferrer} />
+        <ToolCallList
+          block={block}
+          latestTodos={latestTodos}
+          getPageReferrer={getPageReferrer}
+        />
       ) : null}
     </AgentWriteApprovalProvider>
   );
@@ -343,11 +352,12 @@ function useToolLinks(block: Block) {
 
 interface ToolCallListProps {
   block: Block;
-  blocks?: Block[];
   getPageReferrer?: () => string;
+  /** The conversation's newest todo snapshot, from `findLatestTodos`. */
+  latestTodos?: LatestTodos | null;
 }
 
-export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
+export function ToolCallList({block, latestTodos, getPageReferrer}: ToolCallListProps) {
   const {
     sortedToolLinks,
     toolCallToLinkIndexMap,
@@ -364,8 +374,6 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
   } = useToolLinks(block);
   const toolsUsed = getToolsStringFromBlock(block);
   const blockStatus = getBlockStatus(block);
-  const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
-
   // Counts rows actually rendered, so the status tick lands on the first visible one rather than
   // on a Code Mode call that was suppressed.
   let rendered = 0;
@@ -385,8 +393,10 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
           ? sortedToolLinks[correspondingLinkIndex]
           : undefined;
         const toolUrl = positionalLink
-          ? (resolveLink(subjectFromToolLink(positionalLink), {organization, projects})
-              ?.url ?? null)
+          ? (resolveLink(subjectFromToolLink(positionalLink), {
+              organization,
+              projects,
+            })?.url ?? null)
           : null;
 
         // Both channels' links stop propagation (so the click doesn't reach the blocks
@@ -442,7 +452,13 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
               projects,
             });
             return resolved
-              ? [{kind: resolved.id, label: resolved.label, url: resolved.url}]
+              ? [
+                  {
+                    kind: resolved.id,
+                    label: resolved.label,
+                    url: resolved.url,
+                  },
+                ]
               : [];
           });
         const structuredContentMarkdown = toolCall.id
@@ -786,6 +802,8 @@ function RequestDetail({
   );
 }
 
+export type LatestTodos = {block: Block; todos: TodoItem[]};
+
 /**
  * The newest todo snapshot in the conversation and the block that carries it.
  *
@@ -795,8 +813,8 @@ function RequestDetail({
  * with the legacy field first so a same-block collision resolves to the structured value. Returns
  * null when no block carries one.
  */
-function findLatestTodos(blocks?: Block[]): {block: Block; todos: TodoItem[]} | null {
-  let latest: {block: Block; todos: TodoItem[]} | null = null;
+export function findLatestTodos(blocks?: Block[]): LatestTodos | null {
+  let latest: LatestTodos | null = null;
   for (const block of blocks ?? []) {
     if (block.todos?.length) {
       latest = {block, todos: block.todos};

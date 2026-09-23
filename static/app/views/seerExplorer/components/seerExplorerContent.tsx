@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, type ReactNode} from 'react';
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react';
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
@@ -40,6 +48,7 @@ import {
   groupTranscript,
   ResponseGroup,
 } from 'sentry/views/seerExplorer/components/chat/responseGroup';
+import {findLatestTodos} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
@@ -50,7 +59,12 @@ import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplo
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  PendingUserInput,
+  SeerExplorerRunId,
+  SeerExplorerSidebarPosition,
+} from 'sentry/views/seerExplorer/types';
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
@@ -186,7 +200,6 @@ export function SeerExplorerContent({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
   const userScrolledUpRef = useRef(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -544,11 +557,6 @@ export function SeerExplorerContent({
     return;
   }, []);
 
-  // Update block refs array when blocks change
-  useEffect(() => {
-    blockRefs.current = blockRefs.current.slice(0, blocks.length);
-  }, [blocks]);
-
   // Deep link effect
   useSeerExplorerDeepLink({callback: switchToRun});
 
@@ -562,7 +570,10 @@ export function SeerExplorerContent({
   const prevIsTimedOutRef = useRef(false);
   useEffect(() => {
     if (isTimedOut && !prevIsTimedOutRef.current) {
-      trackAnalytics('seer.explorer.timed_out', {organization, run_id: runId});
+      trackAnalytics('seer.explorer.timed_out', {
+        organization,
+        run_id: runId,
+      });
     }
     prevIsTimedOutRef.current = isTimedOut;
   }, [isTimedOut, organization, runId]);
@@ -617,7 +628,11 @@ export function SeerExplorerContent({
         containerType="inline-size"
       >
         {renderHeader ? (
-          renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
+          renderHeader({
+            children: headerContent,
+            isPoppedOut,
+            onClose: handleClose,
+          })
         ) : (
           <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
         )}
@@ -637,52 +652,21 @@ export function SeerExplorerContent({
             />
           ) : (
             <Fragment>
-              {groupTranscript(blocks).map(segment => {
-                const interactionPending =
+              <SeerExplorerTranscript
+                blocks={blocks}
+                runId={runId}
+                getPageReferrer={getPageReferrer}
+                interactionPending={
                   isFileApprovalPending ||
                   isAgentWriteApprovalPending ||
                   isQuestionPending ||
-                  showReauth;
-
-                if (segment.kind === 'user') {
-                  // For slide-in animation that runs on mount. Avoid running this twice on user
-                  // blocks when blocks are hydrated.
-                  return (
-                    <BlockComponent
-                      key={`user-${segment.index}`}
-                      ref={el => {
-                        blockRefs.current[segment.index] = el;
-                      }}
-                      block={segment.block}
-                      blockIndex={segment.index}
-                      blocks={blocks}
-                      runId={runId ?? undefined}
-                      getPageReferrer={getPageReferrer}
-                      interactionPending={interactionPending}
-                      pendingInput={pendingInput}
-                      readOnly={readOnly}
-                      respondToUserInput={respondToUserInput}
-                      showThinking={showThinking}
-                    />
-                  );
+                  showReauth
                 }
-
-                return (
-                  <ResponseGroup
-                    key={`response-${segment.indices[0]}`}
-                    group={segment.blocks}
-                    blockIndex={segment.indices[0]!}
-                    blocks={blocks}
-                    runId={runId ?? undefined}
-                    getPageReferrer={getPageReferrer}
-                    interactionPending={interactionPending}
-                    pendingInput={pendingInput}
-                    readOnly={readOnly}
-                    respondToUserInput={respondToUserInput}
-                    showThinking={showThinking}
-                  />
-                );
-              })}
+                pendingInput={pendingInput}
+                readOnly={readOnly}
+                respondToUserInput={respondToUserInput}
+                showThinking={showThinking}
+              />
               {!readOnly &&
                 isFileApprovalPending &&
                 fileApprovalIndex < fileApprovalTotalPatches && (
@@ -781,6 +765,68 @@ export function SeerExplorerContent({
     </AutofixChatProvider>
   );
 }
+
+interface SeerExplorerTranscriptProps {
+  blocks: Block[];
+  getPageReferrer: () => string;
+  interactionPending: boolean;
+  pendingInput: PendingUserInput | null;
+  readOnly: boolean;
+  respondToUserInput: (inputId: string, responseData?: Record<string, unknown>) => void;
+  runId: SeerExplorerRunId | null;
+  showThinking: boolean;
+}
+
+/**
+ * The conversation itself. Memoized so typing in the composer (whose state lives in the parent)
+ * doesn't re-render every message, and `ResponseGroup`/`BlockComponent` are memoized so a poll only
+ * re-renders the segments whose blocks actually changed.
+ */
+const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
+  blocks,
+  getPageReferrer,
+  interactionPending,
+  pendingInput,
+  readOnly,
+  respondToUserInput,
+  runId,
+  showThinking,
+}: SeerExplorerTranscriptProps) {
+  const segments = useMemo(() => groupTranscript(blocks), [blocks]);
+  // Walk the conversation once here rather than once per tool block.
+  const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
+
+  return segments.map(segment => {
+    if (segment.kind === 'user') {
+      // For slide-in animation that runs on mount. Avoid running this twice on user
+      // blocks when blocks are hydrated.
+      return (
+        <BlockComponent
+          key={`user-${segment.index}`}
+          block={segment.block}
+          blockIndex={segment.index}
+          runId={runId ?? undefined}
+        />
+      );
+    }
+
+    return (
+      <ResponseGroup
+        key={`response-${segment.indices[0]}`}
+        group={segment.blocks}
+        blockIndex={segment.indices[0]!}
+        latestTodos={latestTodos}
+        runId={runId ?? undefined}
+        getPageReferrer={getPageReferrer}
+        interactionPending={interactionPending}
+        pendingInput={pendingInput}
+        readOnly={readOnly}
+        respondToUserInput={respondToUserInput}
+        showThinking={showThinking}
+      />
+    );
+  });
+});
 
 const BlocksContainer = styled(Stack)`
   flex: 1;

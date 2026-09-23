@@ -211,15 +211,25 @@ export interface Block {
 // the API boundary so downstream code never encounters the sentinel.
 const THINKING_SENTINEL = 'Thinking...';
 
+// Keyed on the server's block object, which query structural sharing keeps stable across polls, so
+// an unchanged block normalizes to the same object every time and memoized rows can skip it.
+const normalizedBlockCache = new WeakMap<Block, Block>();
+
 export function normalizeBlocks(blocks: Block[] | undefined): Block[] {
   if (!blocks) {
     return [];
   }
-  return blocks.map(block =>
-    block.message.content === THINKING_SENTINEL
-      ? {...block, message: {...block.message, content: null}}
-      : block
-  );
+  return blocks.map(block => {
+    if (block.message.content !== THINKING_SENTINEL) {
+      return block;
+    }
+    let normalized = normalizedBlockCache.get(block);
+    if (!normalized) {
+      normalized = {...block, message: {...block.message, content: null}};
+      normalizedBlockCache.set(block, normalized);
+    }
+    return normalized;
+  });
 }
 
 export interface ExplorerSession {
