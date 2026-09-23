@@ -1,3 +1,5 @@
+import dompurify from 'dompurify';
+
 let sentryScriptUrlPolicy: Pick<TrustedTypePolicy, 'createScriptURL'> | null = null;
 
 /**
@@ -15,6 +17,16 @@ export function installTrustedTypesPolicies(): void {
 
   if (sentryScriptUrlPolicy) {
     return;
+  }
+
+  try {
+    // DOMPurify creates its `dompurify` policy lazily on first use. Force it
+    // here so a name missing from the CSP allowlist surfaces at boot rather
+    // than the first time something renders markdown.
+    dompurify.sanitize('', {RETURN_TRUSTED_TYPE: true});
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Trusted Types: failed to warm the dompurify policy', err);
   }
 
   try {

@@ -188,10 +188,14 @@ const ALLOWED_TAGS = [
 const ALLOWED_ATTR = ['href', 'title', 'alt', 'class', 'align'];
 
 export function sanitizeHtml(html: string) {
+  // DOMPurify returns a TrustedHTML under Trusted Types and a plain string
+  // otherwise. Every caller either assigns it to innerHTML, which takes both,
+  // or lets the DOM stringify it, so the pipeline stays typed as string.
   return dompurify.sanitize(html, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
-  });
+    RETURN_TRUSTED_TYPE: true,
+  }) as unknown as string;
 }
 
 function postprocess(html: string) {
