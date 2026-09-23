@@ -116,24 +116,29 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
       radius="md"
     >
       {leadingItems ? <Flex flexShrink={0}>{leadingItems}</Flex> : null}
-      <StretchedButton
-        hasTrailingItems={Boolean(trailingItems)}
-        icon={leadingItems ? undefined : chevron}
-        disabled={isDisabled}
-        size={context.size}
-        variant="transparent"
-        {...pressProps}
-        {...rest}
-      >
-        {leadingItems ? (
-          <Flex align="center" gap="xs" minWidth={0}>
-            {children}
-            {chevron}
-          </Flex>
-        ) : (
-          children
+      <Flex flexGrow={1} flexShrink={trailingItems ? 0 : 1} justify="start" minWidth="0">
+        {layoutProps => (
+          <Button
+            icon={leadingItems ? undefined : chevron}
+            disabled={isDisabled}
+            size={context.size}
+            variant="transparent"
+            {...layoutProps}
+            {...pressProps}
+            {...rest}
+            className={`${layoutProps.className} ${rest.className ?? ''}`}
+          >
+            {leadingItems ? (
+              <Flex align="center" gap="xs" minWidth={0}>
+                {children}
+                {chevron}
+              </Flex>
+            ) : (
+              children
+            )}
+          </Button>
         )}
-      </StretchedButton>
+      </Flex>
       {trailingItems ? (
         <Flex flexShrink={1} minWidth={0}>
           {trailingItems}
@@ -147,6 +152,10 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
 // background spans the full title (behind the leading and trailing items) for
 // both states, rather than the button rendering its own nested patch on top.
 const TitleRow = styled(Flex)`
+  > button {
+    padding-left: ${p => p.theme.space.xs};
+  }
+
   &:hover {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
@@ -154,21 +163,11 @@ const TitleRow = styled(Flex)`
   &:active {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
-`;
-
-const StretchedButton = styled(Button, {
-  shouldForwardProp: prop => prop !== 'hasTrailingItems',
-})<{hasTrailingItems: boolean}>`
-  flex-grow: 1;
-  flex-shrink: ${p => (p.hasTrailingItems ? 0 : 1)};
-  min-width: 0;
-  justify-content: flex-start;
-  padding-left: ${p => p.theme.space.xs};
 
   /* TitleRow owns the row's hover/active background; suppress the button's own
    * states entirely so it never renders a second, nested background on top. */
-  &&:hover,
-  &&:active {
+  > button:hover,
+  > button:active {
     background-color: transparent;
   }
 `;
