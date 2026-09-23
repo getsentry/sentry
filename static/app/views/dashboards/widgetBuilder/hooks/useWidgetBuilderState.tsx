@@ -404,7 +404,11 @@ export function useWidgetBuilderState(): {
   // oxlint-disable-next-line react/refs
   const [sort, setRawSort] = useSeededQueryState('sort', parseAsWidgetSorts(datasetRef));
   const setSort = useCallback<typeof setRawSort>(
-    (value, options) => setRawSort(value ? normalizeSorts(value) : value, options),
+    (value, options) =>
+      setRawSort(
+        value ? value.map(s => ({...s, field: normalizeSortField(s.field)})) : value,
+        options
+      ),
     [setRawSort]
   );
   const [limit, setLimit] = useSeededQueryState('limit', parseAsLimit);
