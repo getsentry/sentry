@@ -16,7 +16,5 @@ def emit_evaluations(
     result: WorkflowEngineResult,
     organization: Organization,
 ) -> None:
-    artifacts = result.evaluation_artifacts()
-
     emit_evaluation_logs(organization, result)
-    emit_evaluations_to_eap(artifacts, organization)
+    emit_evaluations_to_eap(organization, result)
