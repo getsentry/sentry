@@ -505,4 +505,32 @@ describe('InvestigationHypotheses', () => {
       screen.queryByTestId('investigation-hypotheses-placeholder')
     ).not.toBeInTheDocument();
   });
+
+  it('hides the status block once the run has completed', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
+    });
+
+    renderHypotheses({phase: 'completed'});
+
+    expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
+    expect(screen.queryByTestId('seer-status-block')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['processing', 'reporting'],
+    ['awaiting_input', 'intake'],
+    ['failed', 'failed'],
+    ['cancelled', 'cancelled'],
+  ] as const)('keeps the status block while the run is %s', async (status, phase) => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase, status}),
+    });
+
+    renderHypotheses({phase});
+
+    expect(await screen.findByTestId('seer-status-block')).toBeInTheDocument();
+  });
 });
