@@ -337,8 +337,6 @@ function HypothesesPanel({
       border="primary"
       radius="xl"
       background="secondary"
-      padding="lg"
-      gap={expanded ? 'xl' : undefined}
       data-test-id="investigation-run-panel"
     >
       <HypothesesTitle>
@@ -358,14 +356,44 @@ function HypothesesPanel({
   );
 }
 
+// The card carries no padding of its own: the header row runs edge to edge
+// and the button inside it holds the padding, so the whole header is the hit
+// area and the focus ring traces the card's corners rather than sitting inset
+// in its padding.
+//
+// The `[data-disclosure] > *:has(> &)` rules style Disclosure's title row, the
+// button's parent. Starting from the Disclosure root matters twice over: a
+// nested selector that starts with `:` is glued onto the button's own class,
+// so a bare `:has(> &)` never matches, and the extra attribute outranks the
+// row's own single-class rules whichever stylesheet lands last.
 const HypothesesTitle = styled(Disclosure.Title)`
-  :has(> &) {
+  [data-disclosure] > *:has(> &) {
     padding: 0;
+    border-radius: ${p => p.theme.radius.xl};
+  }
+
+  /* No hover or press background: the header is part of the card, and a tint
+   * on it alone sets it apart from the body below when expanded. */
+  /* The state goes before ":has()", one rule each: written as a list with the
+   * state after ":has(> &)", stylis left the "&" unreplaced. */
+  [data-disclosure] > *:hover:has(> &) {
+    background: transparent;
+  }
+
+  [data-disclosure] > *:active:has(> &) {
+    background: transparent;
+  }
+
+  /* Expanded, the header is only the top of the card. */
+  [data-disclosure] > *:has(> &[aria-expanded='true']) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
   }
 
   && {
     height: auto;
-    padding: 0;
+    padding: ${p => p.theme.space.lg};
+    border-radius: inherit;
     white-space: normal;
     text-align: left;
   }
@@ -377,6 +405,8 @@ const HypothesesTitle = styled(Disclosure.Title)`
   }
 `;
 
+// The header's bottom padding plus this top padding keeps the old `xl` gap
+// between the tally and the first card.
 const HypothesesContent = styled(Disclosure.Content)`
-  padding: 0;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg} ${p => p.theme.space.lg};
 `;
