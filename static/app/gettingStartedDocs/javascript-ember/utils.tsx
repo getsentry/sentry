@@ -43,7 +43,7 @@ const getDynamicParts = (params: DocsParams): string[] => {
   if (params.isPerformanceSelected) {
     dynamicParts.push(`
       // Tracing
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions
+      tracesSampleRate: 1.0, // Capture 100% of the traces
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
       tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
   }
@@ -91,6 +91,8 @@ export default class App extends Application {
   podModulePrefix = config.podModulePrefix;
   Resolver = Resolver;
 }
+
+loadInitializers(App, config.modulePrefix);
 `;
 }
 
