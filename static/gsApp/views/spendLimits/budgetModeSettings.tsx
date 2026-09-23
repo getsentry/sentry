@@ -38,7 +38,6 @@ export function BudgetModeSettings({
             key={budgetMode}
             ariaLabel={`${budgetModeName} spending limit mode`}
             ariaRole="radio"
-            dataTestId={`budget-mode-${budgetMode}`}
             isSelected={isSelected}
             onClick={() => onUpdate({onDemandBudgets: nextOnDemandBudget})}
             optionHeader={

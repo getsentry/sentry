@@ -18,10 +18,10 @@ export function CheckoutOption({
 }: {
   ariaLabel: string;
   ariaRole: 'radio' | 'checkbox';
-  dataTestId: string;
   isSelected: boolean;
   onClick: () => void;
   optionHeader: React.ReactNode;
+  dataTestId?: string;
   optionDescription?: React.ReactNode;
   topDecoration?: React.ReactNode;
   withDivider?: boolean;
