@@ -3,7 +3,13 @@ import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
 import {Separator} from '@sentry/scraps/separator';
+
+export type CheckoutOptionRadioProps = Omit<
+  React.ComponentProps<typeof Radio>,
+  'aria-label' | 'checked' | 'onChange'
+>;
 
 export function CheckoutOption({
   isSelected,
@@ -15,6 +21,7 @@ export function CheckoutOption({
   optionHeader,
   optionDescription,
   withDivider,
+  radioProps,
 }: {
   ariaLabel: string;
   ariaRole: 'radio' | 'checkbox';
@@ -23,32 +30,47 @@ export function CheckoutOption({
   optionHeader: React.ReactNode;
   dataTestId?: string;
   optionDescription?: React.ReactNode;
+  radioProps?: CheckoutOptionRadioProps;
   topDecoration?: React.ReactNode;
   withDivider?: boolean;
 }) {
+  const usesNativeRadio = ariaRole === 'radio' && radioProps;
+
   return (
     <Option
-      tabIndex={0}
-      role={ariaRole}
-      aria-checked={isSelected}
+      as={usesNativeRadio ? 'label' : undefined}
+      tabIndex={usesNativeRadio ? undefined : 0}
+      role={usesNativeRadio ? undefined : ariaRole}
+      aria-checked={usesNativeRadio ? undefined : isSelected}
       isSelected={isSelected}
-      onClick={onClick}
+      onClick={usesNativeRadio ? undefined : onClick}
       data-test-id={dataTestId}
-      aria-label={ariaLabel}
-      onKeyDown={event => {
-        if (event.code === 'Space') {
-          event.preventDefault();
-        }
-        if (['Enter', 'Space'].includes(event.code)) {
-          onClick();
-        }
-      }}
+      aria-label={usesNativeRadio ? undefined : ariaLabel}
+      onKeyDown={
+        usesNativeRadio
+          ? undefined
+          : event => {
+              if (event.code === 'Space') {
+                event.preventDefault();
+              }
+              if (['Enter', 'Space'].includes(event.code)) {
+                onClick();
+              }
+            }
+      }
     >
       <Stack padding="xl" gap="lg">
         {!!topDecoration && topDecoration}
         <Flex align="start" justify="between" gap="md">
           <Container paddingTop="2xs">
-            {ariaRole === 'radio' ? (
+            {usesNativeRadio ? (
+              <Radio
+                {...radioProps}
+                aria-label={ariaLabel}
+                checked={isSelected}
+                onChange={onClick}
+              />
+            ) : ariaRole === 'radio' ? (
               <RadioMarker isSelected={isSelected} />
             ) : (
               <Checkbox
