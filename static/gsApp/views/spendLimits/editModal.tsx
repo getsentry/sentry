@@ -25,6 +25,7 @@ import {
 } from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {BudgetModeSettings} from 'getsentry/views/spendLimits/budgetModeSettings';
 import {SpendLimitSettings} from 'getsentry/views/spendLimits/spendLimitSettings';
 
 import {
@@ -219,37 +220,29 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                   renderBudgetModeSettings={() =>
                     subscription.planDetails.hasOnDemandModes ? (
                       <modeField.Layout.Stack label={t('Spending limit type')}>
-                        <modeField.Radio.Group
-                          value={modeField.state.value}
-                          onChange={budgetMode => {
-                            const result = budgetModeSchema.safeParse(budgetMode);
-                            if (result.success) {
-                              handleBudgetUpdate(
-                                convertOnDemandBudget(onDemandBudgets, result.data)
-                              );
-                            }
-                          }}
-                        >
-                          {/* TODO: Replace with a card-style RadioField primitive when available. */}
-                          <Grid
-                            columns={{zero: '1fr', lg: 'repeat(2, minmax(0, 1fr))'}}
-                            gap="lg"
-                          >
-                            {/* TODO(getsentry): Remove these legacy labels after updating the acceptance test selectors. */}
-                            <modeField.Radio.Item
-                              value={OnDemandBudgetMode.PER_CATEGORY}
-                              aria-label="Per-category spending limit mode"
+                        <modeField.Base<HTMLInputElement>>
+                          {(baseProps, {indicator}) => (
+                            <Grid
+                              columns="minmax(0, 1fr) auto"
+                              gap="sm"
+                              align="center"
+                              flexGrow={1}
+                              minWidth="0"
                             >
-                              {t('Set a spending limit for each product')}
-                            </modeField.Radio.Item>
-                            <modeField.Radio.Item
-                              value={OnDemandBudgetMode.SHARED}
-                              aria-label="Shared spending limit mode"
-                            >
-                              {t('Set a spending limit shared across all products')}
-                            </modeField.Radio.Item>
-                          </Grid>
-                        </modeField.Radio.Group>
+                              {/* TODO: Replace with a RadioCard primitive when available. */}
+                              <BudgetModeSettings
+                                activePlan={subscription.planDetails}
+                                onDemandBudgets={onDemandBudgets}
+                                onUpdate={({onDemandBudgets: nextBudget}) =>
+                                  handleBudgetUpdate(nextBudget)
+                                }
+                                groupLabel={t('Spending limit type')}
+                                radioProps={baseProps}
+                              />
+                              {indicator}
+                            </Grid>
+                          )}
+                        </modeField.Base>
                       </modeField.Layout.Stack>
                     ) : null
                   }

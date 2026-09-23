@@ -92,9 +92,11 @@ describe('SpendLimitsEditModal', () => {
       />
     );
 
-    await userEvent.click(
-      screen.getByRole('radio', {name: 'Per-category spending limit mode'})
-    );
+    const perCategoryRadio = screen.getByRole('radio', {
+      name: 'Per-category spending limit mode',
+    });
+    expect(perCategoryRadio).toHaveAttribute('name', 'budgetMode');
+    await userEvent.click(perCategoryRadio);
     const errorsInput = screen.getByRole('spinbutton', {
       name: 'Custom errors spending limit (in dollars)',
     });
