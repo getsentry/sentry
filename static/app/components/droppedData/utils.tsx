@@ -48,6 +48,13 @@ export interface AnnotationBucket {
   start: number;
 }
 
+export interface DroppedData {
+  accepted?: Annotation[];
+  dropped?: Annotation[];
+  onClick?: (bucket: AnnotationBucket) => void;
+  visible?: boolean;
+}
+
 interface VolumeDraft {
   byteSize: number | undefined;
   eventCount: number;
@@ -74,6 +81,76 @@ function addAnnotation(volume: VolumeDraft, annotation: Annotation): void {
   }
 }
 
+function addDroppedAnnotation(
+  drafts: Map<string, BucketDraft>,
+  annotation: Annotation
+): void {
+  if (isConfiguredDrop(annotation)) {
+    return;
+  }
+
+  const key = `${annotation.start}-${annotation.end}`;
+  let draft = drafts.get(key);
+
+  if (!draft) {
+    draft = {
+      start: annotation.start,
+      end: annotation.end,
+      annotations: [],
+      byOutcome: new Map(),
+      dropped: emptyVolume(),
+      accepted: emptyVolume(),
+    };
+    drafts.set(key, draft);
+  }
+
+  draft.annotations.push(annotation);
+  addAnnotation(draft.dropped, annotation);
+
+  let outcomeVolume = draft.byOutcome.get(annotation.outcome);
+  if (!outcomeVolume) {
+    outcomeVolume = {
+      outcome: annotation.outcome,
+      ...emptyVolume(),
+    };
+    draft.byOutcome.set(annotation.outcome, outcomeVolume);
+  }
+  addAnnotation(outcomeVolume, annotation);
+}
+
+function acceptedVolumeByStart(annotations: Annotation[]): Map<number, VolumeDraft> {
+  const volumes = new Map<number, VolumeDraft>();
+
+  for (const annotation of annotations) {
+    const accepted = volumes.get(annotation.start) ?? emptyVolume();
+    addAnnotation(accepted, annotation);
+    volumes.set(annotation.start, accepted);
+  }
+
+  return volumes;
+}
+
+function toBucket(
+  draft: BucketDraft,
+  acceptedByStart: Map<number, VolumeDraft>
+): AnnotationBucket {
+  const accepted = acceptedByStart.get(draft.start) ?? emptyVolume();
+  const total = draft.dropped.eventCount + accepted.eventCount;
+  const ratio = total > 0 ? draft.dropped.eventCount / total : 0;
+
+  return {
+    start: draft.start,
+    end: draft.end,
+    annotations: draft.annotations,
+    byOutcome: Array.from(draft.byOutcome.values()).sort(
+      (a, b) => b.eventCount - a.eventCount
+    ),
+    dropped: draft.dropped,
+    accepted,
+    ratio,
+  };
+}
+
 /**
  * Group dropped annotations by their `(start, end)` time bucket, joining the
  * accepted volume for the same bucket so every total has a denominator.
@@ -85,61 +162,10 @@ export function groupIntoBuckets(
   const drafts = new Map<string, BucketDraft>();
 
   for (const annotation of droppedAnnotations) {
-    if (isConfiguredDrop(annotation)) {
-      continue;
-    }
-
-    const key = `${annotation.start}-${annotation.end}`;
-    let draft = drafts.get(key);
-
-    if (!draft) {
-      draft = {
-        start: annotation.start,
-        end: annotation.end,
-        annotations: [],
-        byOutcome: new Map(),
-        dropped: emptyVolume(),
-        accepted: emptyVolume(),
-      };
-      drafts.set(key, draft);
-    }
-
-    draft.annotations.push(annotation);
-    addAnnotation(draft.dropped, annotation);
-
-    let outcomeVolume = draft.byOutcome.get(annotation.outcome);
-    if (!outcomeVolume) {
-      outcomeVolume = {
-        outcome: annotation.outcome,
-        ...emptyVolume(),
-      };
-      draft.byOutcome.set(annotation.outcome, outcomeVolume);
-    }
-    addAnnotation(outcomeVolume, annotation);
+    addDroppedAnnotation(drafts, annotation);
   }
 
-  const acceptedByStart = new Map<number, VolumeDraft>();
-  for (const annotation of acceptedAnnotations) {
-    const accepted = acceptedByStart.get(annotation.start) ?? emptyVolume();
-    addAnnotation(accepted, annotation);
-    acceptedByStart.set(annotation.start, accepted);
-  }
+  const acceptedByStart = acceptedVolumeByStart(acceptedAnnotations);
 
-  return Array.from(drafts.values()).map(draft => {
-    const accepted = acceptedByStart.get(draft.start) ?? emptyVolume();
-    const total = draft.dropped.eventCount + accepted.eventCount;
-    const ratio = total > 0 ? draft.dropped.eventCount / total : 0;
-
-    return {
-      start: draft.start,
-      end: draft.end,
-      annotations: draft.annotations,
-      byOutcome: Array.from(draft.byOutcome.values()).sort(
-        (a, b) => b.eventCount - a.eventCount
-      ),
-      dropped: draft.dropped,
-      accepted,
-      ratio,
-    };
-  });
+  return Array.from(drafts.values()).map(draft => toBucket(draft, acceptedByStart));
 }
