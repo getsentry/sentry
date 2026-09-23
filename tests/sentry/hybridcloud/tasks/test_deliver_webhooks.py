@@ -2961,11 +2961,12 @@ class ChainDispatchTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.max_chain_depth": 1})
     @patch.object(deliver_webhooks, "MAX_MAILBOX_DRAIN", 3)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
-    def test_no_chain_at_the_default_depth(self, mock_drain: MagicMock) -> None:
-        # The ordinary dispatch is the first link, so the default of 1 means a
-        # finished drain never chains.
+    def test_no_chain_at_depth_one(self, mock_drain: MagicMock) -> None:
+        # The ordinary dispatch is the first link, so a depth of 1 turns
+        # chaining off: a finished drain never chains.
         self._respond_ok()
         records = create_payloads(4, "jira:123", provider="jira")
 

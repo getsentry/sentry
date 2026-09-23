@@ -2582,7 +2582,7 @@ register(
 # before falling back to the scheduler.
 register(
     "hybridcloud.webhookpayload.max_chain_depth",
-    default=1,
+    default=8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass for inbound webhook floods. Matching webhooks are dropped with a
