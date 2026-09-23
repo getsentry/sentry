@@ -297,7 +297,7 @@ export function DebugImageDetails({
       <Header closeButton>
         <Container width="calc(100% - 40px)">
           <Heading as="h2" size="xl" variant="inherit" wordBreak="break-all">
-            <Grid align="center" columns="max-content 1fr" gap="md">
+            <Grid as="span" align="center" columns="max-content 1fr" gap="md">
               {t('Image')}
               <Text monospace size="xl">
                 {fileName ?? t('Unknown')}
