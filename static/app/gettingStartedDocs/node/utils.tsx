@@ -9,6 +9,7 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   GEN_AI_DATA_COLLECTION_SNIPPET,
+  getJsDataCollectionDocsLink,
   getDataCollectionStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
@@ -310,19 +311,15 @@ Sentry.profiler.stopProfiler();
 });
 
 /**
- * The data collection step for MCP monitoring. `recordInputs` / `recordOutputs`
- * on `wrapMcpServerWithSentry` override this per server; the docs cover both.
- *
- * Not collapsible: the MCP onboarding renders `GuidedSteps`, which drops every
- * collapsible step.
+ * The data collection step for MCP monitoring; `recordInputs`/`recordOutputs`
+ * on `wrapMcpServerWithSentry` override it per server. Not collapsible because
+ * the MCP onboarding's `GuidedSteps` drops collapsible steps.
  */
-function getMcpDataCollectionStep() {
+function getMcpDataCollectionStep(params: DocsParams) {
   return getDataCollectionStep({
     collapsible: false,
-    // `dataCollection` is documented identically for every JavaScript guide, so
-    // link the canonical page rather than threading a platform through here.
-    docsLink:
-      'https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection',
+    // Shared across platforms, so resolve the link from the project's platform.
+    docsLink: getJsDataCollectionDocsLink(params.platformKey),
     description: t(
       'By default, the SDK sends the inputs and outputs of your MCP tool calls, prompt retrievals, and resource reads. This gives you rich debugging context.'
     ),
@@ -450,7 +447,7 @@ Sentry.init({
           type: StepType.CONFIGURE,
           content,
         },
-        getMcpDataCollectionStep(),
+        getMcpDataCollectionStep(params),
       ];
     },
     verify: () => [

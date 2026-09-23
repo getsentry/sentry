@@ -31,8 +31,7 @@ describe('getNodeMcpOnboarding data collection step', () => {
     );
 
     expect(dataCollectionSteps).toHaveLength(1);
-    // The MCP onboarding renders `GuidedSteps`, which drops every collapsible
-    // step, so a collapsible step here would never be shown.
+    // GuidedSteps drops collapsible steps, so a collapsible step would never render.
     expect(dataCollectionSteps[0]!.collapsible).toBeFalsy();
 
     const code = dataCollectionSteps

@@ -9,6 +9,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   GEN_AI_DATA_COLLECTION_SNIPPET,
+  getJsDataCollectionDocsLink,
   getDataCollectionStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
@@ -65,12 +66,8 @@ export function getMinRequiredVersion(params: DocsParams, fallback: string): str
 }
 
 /**
- * The data collection step for agent monitoring. Unlike the setup step, this one
- * leads with the generative AI content, because that is the data users most often
- * want to keep out of Sentry when they instrument an agent.
- *
- * Returns no step for integrations that do not configure the Sentry SDK, such as
- * Eve, which exports over OTLP and never calls `Sentry.init`.
+ * The data collection step for agent monitoring, leading with generative AI
+ * content. Returns no step for Eve, which never configures the Sentry SDK.
  */
 export function getAgentDataCollectionStep(params: DocsParams): OnboardingStep[] {
   if (getAgentIntegration(params) === AgentIntegration.EVE) {
@@ -79,14 +76,10 @@ export function getAgentDataCollectionStep(params: DocsParams): OnboardingStep[]
 
   return [
     getDataCollectionStep({
-      // The agent monitoring surfaces render `GuidedSteps` and drop every
-      // collapsible step, so this one has to be a plain numbered step to show up
-      // at all - the same as the "Identify Users (optional)" step beside it.
+      // GuidedSteps surfaces drop collapsible steps, so this must be a plain step.
       collapsible: false,
-      // `dataCollection` is documented identically for every JavaScript guide, so
-      // link the canonical page rather than threading a platform through here.
-      docsLink:
-        'https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection',
+      // Shared across platforms, so resolve the link from the project's platform.
+      docsLink: getJsDataCollectionDocsLink(params.platformKey),
       description: t(
         'By default, the SDK sends the inputs and outputs of your LLM and tool calls, such as prompts, responses, and tool arguments. This gives you rich debugging context.'
       ),
@@ -1213,9 +1206,8 @@ const text = lastMessage.content;`,
 }
 
 /**
- * The configure steps for the selected agent integration, without the data
- * collection step. The factory below appends that step once around these, so no
- * branch can miss it or repeat it.
+ * The configure steps without the data collection step; the factory appends it
+ * once around these, so no branch can miss or repeat it.
  */
 function getAgentConfigureSteps(
   params: DocsParams,

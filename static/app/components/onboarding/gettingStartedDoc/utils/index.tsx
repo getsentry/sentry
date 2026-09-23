@@ -85,11 +85,66 @@ export function getUploadSourceMapsStep({
   };
 }
 
+// Platform key families using the JavaScript SDKs. React Native is excluded
+// because its docs do not cover `dataCollection`.
+const JS_PLATFORM_PREFIXES = [
+  'javascript',
+  'node',
+  'bun',
+  'deno',
+  'electron',
+  'capacitor',
+  'cordova',
+  'ionic',
+];
+
 /**
- * Agent and MCP monitoring span several init shapes (`Sentry.init`,
- * `Sentry.withSentry`, `instrumentAgentWithSentry`), so their step shows the
- * options on their own rather than picking one wrapper that would be wrong for
- * the other targets.
+ * Whether the platform uses a JavaScript SDK that exposes `dataCollection`.
+ * A positive list, so a future non-JavaScript platform is excluded by default.
+ */
+export function isJavaScriptPlatform(platformKey: string | null | undefined): boolean {
+  return (
+    !!platformKey &&
+    JS_PLATFORM_PREFIXES.some(
+      prefix => platformKey === prefix || platformKey.startsWith(`${prefix}-`)
+    )
+  );
+}
+
+// Platform keys whose docs guide slug is not simply the key minus its family prefix.
+const DOCS_GUIDE_SLUG_OVERRIDES: Record<string, string> = {
+  'node-awslambda': 'aws-lambda',
+  'node-azurefunctions': 'azure-functions',
+  'node-gcpfunctions': 'gcp-functions',
+  // Workers and Pages share the `cloudflare` guide.
+  'node-cloudflare-workers': 'cloudflare',
+  'node-cloudflare-pages': 'cloudflare',
+  ionic: 'capacitor',
+};
+
+/**
+ * The `dataCollection` docs for the platform's own guide, for configs shared
+ * across JavaScript platforms. Unknown platforms get the canonical page.
+ */
+export function getJsDataCollectionDocsLink(
+  platformKey: string | null | undefined
+): string {
+  if (
+    !platformKey ||
+    !isJavaScriptPlatform(platformKey) ||
+    platformKey === 'javascript'
+  ) {
+    return 'https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection';
+  }
+  const slug =
+    DOCS_GUIDE_SLUG_OVERRIDES[platformKey] ??
+    platformKey.replace(/^(javascript|node)-/, '');
+  return `https://docs.sentry.io/platforms/javascript/guides/${slug}/configuration/options/#dataCollection`;
+}
+
+/**
+ * Shown without an init wrapper because agent and MCP monitoring span several
+ * init shapes (`Sentry.init`, `Sentry.withSentry`, `instrumentAgentWithSentry`).
  */
 export const GEN_AI_DATA_COLLECTION_SNIPPET = `dataCollection: {
   genAI: { inputs: false, outputs: false },
@@ -104,16 +159,9 @@ const DEFAULT_DATA_COLLECTION_SNIPPET = `Sentry.init({
 });`;
 
 /**
- * Presents `dataCollection` as its own setup step, as required by the SDK
- * data collection spec. Init snippets must not carry a commented-out
- * `dataCollection` override instead.
- *
- * @param docsLink Link to the `dataCollection` options of the platform or guide.
- * @param code Init snippet, for platforms that do not configure the SDK through `Sentry.init`.
- * @param description Replaces the default summary of what the SDK collects, for
- *   products that collect a more specific category, such as generative AI content.
- * @param collapsible Set to `false` for the guided `GuidedSteps` flows, which drop
- *   every collapsible step and render the rest as numbered steps.
+ * Presents `dataCollection` as its own setup step instead of a commented-out
+ * override in the init snippet, as the SDK data collection spec requires. Pass
+ * `collapsible: false` for `GuidedSteps` surfaces, which drop collapsible steps.
  */
 export function getDataCollectionStep({
   docsLink,

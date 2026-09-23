@@ -21,8 +21,8 @@ const MIN_VERSION = '10.61.0';
 
 const sentryImport = `import * as Sentry from "npm:${PACKAGE_NAME}";`;
 
-// Every branch returns the steps for one integration. The data collection step is
-// appended once around them, so no branch can miss it or repeat it.
+// The data collection step is appended once around these branches, so none can
+// miss or repeat it.
 function configureSteps(params: DocsParams): OnboardingStep[] {
   const selected = getAgentIntegration(params);
 

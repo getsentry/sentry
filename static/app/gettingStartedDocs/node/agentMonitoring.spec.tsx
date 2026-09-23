@@ -329,8 +329,7 @@ describe('node agentMonitoring onboarding', () => {
       expect(collectCode(dataCollectionSteps)).toContain(
         'genAI: { inputs: false, outputs: false }'
       );
-      // The agent onboarding surfaces render `GuidedSteps`, which drops every
-      // collapsible step - a collapsible step here would never be shown.
+      // GuidedSteps drops collapsible steps, so a collapsible step would never render.
       expect(dataCollectionSteps[0]!.collapsible).toBeFalsy();
     });
 

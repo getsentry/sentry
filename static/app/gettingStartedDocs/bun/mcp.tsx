@@ -60,8 +60,7 @@ const server = Sentry.wrapMcpServerWithSentry(new McpServer({
         },
       ],
     },
-    // Not collapsible: the MCP onboarding renders `GuidedSteps`, which drops
-    // every collapsible step.
+    // Not collapsible: the MCP onboarding's GuidedSteps drops collapsible steps.
     getDataCollectionStep({
       collapsible: false,
       docsLink:

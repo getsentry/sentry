@@ -31,12 +31,14 @@ describe('getAgentSetupPrompt', () => {
     }
   );
 
-  const DATA_COLLECTION_DOCS =
-    'https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection';
-
-  it.each(['node', 'javascript-nextjs', 'bun', 'deno', undefined] as const)(
-    'asks about AI inputs and outputs on %s',
-    platform => {
+  it.each([
+    ['node', 'guides/node'],
+    ['javascript-nextjs', 'guides/nextjs'],
+    ['bun', 'guides/bun'],
+    ['deno', 'guides/deno'],
+  ] as const)(
+    'asks about AI inputs and outputs on %s, linking its guide',
+    (platform, guidePath) => {
       const prompt = getAgentSetupPrompt({
         organizationSlug: OrganizationFixture().slug,
         project: ProjectFixture({platform}),
@@ -44,11 +46,14 @@ describe('getAgentSetupPrompt', () => {
       });
 
       expect(prompt).toContain('which AI inputs and outputs the SDK sends');
-      expect(prompt).toContain(DATA_COLLECTION_DOCS);
+      expect(prompt).toContain(
+        `https://docs.sentry.io/platforms/javascript/${guidePath}/configuration/options/#dataCollection`
+      );
     }
   );
 
-  it.each(['python', 'python-fastapi', 'php-laravel'] as const)(
+  // The prompt also renders for unsupported platforms; they must not get JS guidance.
+  it.each(['python', 'python-fastapi', 'php-laravel', 'other', undefined] as const)(
     'omits the question on %s, which does not expose dataCollection',
     platform => {
       const prompt = getAgentSetupPrompt({
@@ -58,7 +63,7 @@ describe('getAgentSetupPrompt', () => {
       });
 
       expect(prompt).not.toContain('which AI inputs and outputs the SDK sends');
-      expect(prompt).not.toContain(DATA_COLLECTION_DOCS);
+      expect(prompt).not.toContain('#dataCollection');
     }
   );
 });
