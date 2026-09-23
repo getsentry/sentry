@@ -289,8 +289,13 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             choices=IssueConstants.ARCHIVE_INPUT_CHOICES,
         )
 
+        try:
+            assignee = group.get_assignee()
+        except Actor.InvalidActor:
+            assignee = None
+
         assign_action = cls.build_action(
-            toggled=group.get_assignee() is not None,
+            toggled=assignee is not None,
             action=ACTION_TYPE.ASSIGN,
             action_title=IssueConstants.ASSIGN,
             reverse_action=ACTION_TYPE.UNASSIGN,
