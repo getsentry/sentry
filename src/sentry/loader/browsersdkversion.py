@@ -37,7 +37,7 @@ def get_highest_browser_sdk_version(versions):
 
 
 def get_all_browser_sdk_version_versions():
-    return ["latest", "10.x", "9.x", "8.x", "7.x", "6.x", "5.x", "4.x"]
+    return ["latest", "11.x", "10.x", "9.x", "8.x", "7.x", "6.x", "5.x", "4.x"]
 
 
 def get_all_browser_sdk_version_choices():
@@ -72,7 +72,7 @@ def match_selected_version_to_browser_sdk_version(selected_version):
         return get_highest_browser_sdk_version([x for x in versions if Version(x) < Version("8")])
     return get_highest_browser_sdk_version(
         # Filter for all versions that match the selected versions major
-        [x for x in versions if x.startswith(selected_version[0])]
+        [x for x in versions if x.split(".")[0] == selected_version.split(".")[0]]
     )
 
 

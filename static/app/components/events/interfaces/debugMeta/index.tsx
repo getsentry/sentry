@@ -7,7 +7,6 @@ import {
   useState,
 } from 'react';
 import {useTheme} from '@emotion/react';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
@@ -23,6 +22,7 @@ import {
 import {useDebugMetaSearch} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import type {Image, ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
@@ -153,6 +153,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     const defaults = (
       'options' in filterOptions[0]! ? filterOptions[0].options : []
     ).filter(opt => opt.value !== ImageStatus.UNUSED);
+    // oxlint-disable-next-line react/set-state-in-effect
     setFilterSelections(defaults);
     setFiltersInitialized(true);
   }, [filterOptions, filtersInitialized]);
@@ -162,16 +163,15 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     [allImages, filterSelections, searchTerm]
   );
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: filteredImages.length,
     getScrollElement: () => scrollContainer,
     estimateSize: () => ROW_HEIGHT,
-    overscan: 5,
   });
 
-  const totalSize = virtualizer.getTotalSize();
   useLayoutEffect(() => {
     if (!lockHeight && totalSize > MAX_HEIGHT) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setLockHeight(true);
     }
   }, [totalSize, lockHeight]);
@@ -262,7 +262,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
               style={{height: lockHeight ? MAX_HEIGHT : undefined, maxHeight: MAX_HEIGHT}}
             >
               <div style={{height: totalSize, position: 'relative'}}>
-                {virtualizer.getVirtualItems().map(row => (
+                {virtualItems.map(row => (
                   <div
                     key={row.key}
                     ref={virtualizer.measureElement}
