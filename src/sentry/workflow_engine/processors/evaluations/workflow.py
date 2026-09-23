@@ -87,7 +87,7 @@ class WorkflowEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     trigger_evaluation: DataConditionGroupEvaluationArtifact
     triggered_action_ids: Sequence[ActionId]
     workflow_id: WorkflowId
-    deferred: DeferredWorkflowData | None = None
+    delayed: DeferredWorkflowData | None = None
     detector_id: DetectorId | None = None
     event_id: str | None = None
 
