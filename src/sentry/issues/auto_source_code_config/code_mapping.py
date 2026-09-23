@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import (
@@ -31,6 +31,7 @@ from .errors import (
 from .frame_info import FrameInfo, create_frame_info
 from .integration_utils import InstallationNotFoundError, get_installation
 from .utils.misc import get_straight_path_prefix_end_index
+from .utils.repository import get_repository_by_provider_identity
 
 logger = logging.getLogger(__name__)
 
@@ -362,15 +363,21 @@ def create_code_mapping(
     if not installation.org_integration:
         raise InstallationNotFoundError
 
-    repository, _ = Repository.objects.get_or_create(
-        name=code_mapping.repo.name,
-        organization_id=organization.id,
-        defaults={
-            "integration_id": installation.model.id,
-            "external_id": code_mapping.repo.external_id,
-            "provider": f"integrations:{installation.model.provider}",
-        },
-    )
+    provider = f"integrations:{installation.model.provider}"
+    try:
+        repository, _ = Repository.objects.get_or_create(
+            name=code_mapping.repo.name,
+            organization_id=organization.id,
+            defaults={
+                "integration_id": installation.model.id,
+                "external_id": code_mapping.repo.external_id,
+                "provider": provider,
+            },
+        )
+    except IntegrityError:
+        repository = get_repository_by_provider_identity(
+            organization.id, provider, code_mapping.repo.external_id
+        )
     with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
         project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
             project_id=project.id,

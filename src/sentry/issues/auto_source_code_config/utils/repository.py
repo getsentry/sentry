@@ -1,5 +1,7 @@
 from collections.abc import Mapping
 
+from django.db import IntegrityError
+
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.models.repository import Repository
 from sentry.utils import metrics
@@ -23,16 +25,31 @@ def create_repository(
     )
     if not repository:
         if not tags["dry_run"]:
-            repository, created = Repository.objects.get_or_create(
-                name=repo_name,
-                organization_id=organization_id,
-                integration_id=org_integration.integration_id,
-                defaults={
-                    "external_id": external_id,
-                    "provider": f"integrations:{integration_provider}",
-                },
-            )
+            provider = f"integrations:{integration_provider}"
+            try:
+                repository, created = Repository.objects.get_or_create(
+                    name=repo_name,
+                    organization_id=organization_id,
+                    integration_id=org_integration.integration_id,
+                    defaults={"external_id": external_id, "provider": provider},
+                )
+            except IntegrityError:
+                repository = get_repository_by_provider_identity(
+                    organization_id, provider, external_id
+                )
         if created or tags["dry_run"]:
             metrics.incr(key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0)
 
     return repository
+
+
+def get_repository_by_provider_identity(
+    organization_id: int, provider: str, external_id: str
+) -> Repository:
+    """
+    Name lookups miss a repository that was renamed on the provider, and creating it
+    under the new name then collides with the row that already holds its identity.
+    """
+    return Repository.objects.get(
+        organization_id=organization_id, provider=provider, external_id=external_id
+    )
