@@ -556,6 +556,13 @@ def _field_matcher(name: str) -> _ConditionMatcher:
     return match
 
 
+def _cidr_matcher(name: str) -> _ConditionMatcher:
+    def match(values: list[str]) -> RuleCondition:
+        return {"op": "cidr", "name": name, "value": values}
+
+    return match
+
+
 _CONDITION_MATCHERS: Mapping[
     ConditionType,
     _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
@@ -578,6 +585,7 @@ _CONDITION_MATCHERS: Mapping[
         DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.release.value"),
         DataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
     },
+    ConditionType.IP_ADDRESS: _cidr_matcher("envelope.client_ip"),
 }
 
 _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
