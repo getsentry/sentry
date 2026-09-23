@@ -18,6 +18,7 @@ from rest_framework.request import Request as DRFRequest
 from rest_framework.response import Response as DRFResponse
 from sentry_sdk import Scope
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, internal_control_silo_endpoint
@@ -477,10 +478,12 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                         },
                     )
                     self._record_failure(IntegrationProxyFailureMetricType.STREAM_INTERRUPTED)
-                    # Re-raise so Django drops the connection. Swallowing it would hand the
-                    # caller a truncated body under a success status, which is
-                    # indistinguishable from a complete response.
-                    raise
+                    if options.get("hybridcloud.integration_proxy.raise_on_stream_interrupt"):
+                        # Re-raise so Django drops the connection. Swallowing it would hand the
+                        # caller a truncated body under a success status, which is
+                        # indistinguishable from a complete response.
+                        raise
+                    return
 
         return StreamingHttpResponse(
             iter_response(resp),
