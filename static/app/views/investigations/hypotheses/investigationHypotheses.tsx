@@ -316,8 +316,6 @@ function HypothesesPanel({
       border="primary"
       radius="xl"
       background="secondary"
-      padding="lg"
-      gap={expanded ? 'xl' : undefined}
       data-test-id="investigation-run-panel"
     >
       <HypothesesTitle>
@@ -337,14 +335,26 @@ function HypothesesPanel({
   );
 }
 
+// The card carries no padding of its own: the header row runs edge to edge
+// and the button inside it holds the padding, so the whole header is the hit
+// area and the hover background and focus ring trace the card's corners rather
+// than sitting inset in its padding.
 const HypothesesTitle = styled(Disclosure.Title)`
   :has(> &) {
     padding: 0;
+    border-radius: ${p => p.theme.radius.xl};
+  }
+
+  /* Expanded, the header is only the top of the card. */
+  :has(> &[aria-expanded='true']) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
   }
 
   && {
     height: auto;
-    padding: 0;
+    padding: ${p => p.theme.space.lg};
+    border-radius: inherit;
     white-space: normal;
     text-align: left;
   }
@@ -356,6 +366,8 @@ const HypothesesTitle = styled(Disclosure.Title)`
   }
 `;
 
+// The header's bottom padding plus this top padding keeps the old `xl` gap
+// between the tally and the first card.
 const HypothesesContent = styled(Disclosure.Content)`
-  padding: 0;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg} ${p => p.theme.space.lg};
 `;
