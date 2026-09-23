@@ -467,6 +467,46 @@ describe('Investigation detail', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the last update date while an investigation has no completed run', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture(),
+    });
+
+    renderView();
+
+    expect(await screen.findByText(/Last update:/)).toBeInTheDocument();
+    expect(screen.queryByText(/Completed:/)).not.toBeInTheDocument();
+  });
+
+  it('shows the completion date once the run completes', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        orchestration: {
+          phase: 'completed',
+          status: 'completed',
+          heartbeatAt: '2026-09-01T12:00:00Z',
+          notebookRevision: 5,
+        },
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        phase: 'completed',
+        status: 'completed',
+        finishedAt: '2026-09-01T12:00:00Z',
+      }),
+    });
+
+    renderView();
+
+    expect(await screen.findByText(/Completed:/)).toBeInTheDocument();
+    expect(screen.getByText(/Sep 1, 2026/)).toBeInTheDocument();
+    expect(screen.queryByText(/Last update:/)).not.toBeInTheDocument();
+  });
+
   it('renders a placeholder title and body while the report is still being written', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,

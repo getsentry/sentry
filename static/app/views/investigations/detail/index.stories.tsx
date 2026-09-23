@@ -399,6 +399,18 @@ const archivedInvestigation = InvestigationDetailFixture({
   template: {key: 'breached_metric', version: 1},
 });
 
+const completedRunInvestigation = InvestigationDetailFixture({
+  ...reportingInvestigation,
+  id: 'completed-run-investigation',
+  dateUpdated: '2026-08-27T15:44:03Z',
+  orchestration: {
+    phase: 'completed',
+    status: 'completed',
+    heartbeatAt: '2026-08-27T15:42:10Z',
+    notebookRevision: 5,
+  },
+});
+
 export default Storybook.story('Investigations — Detail', story => {
   story('Completed with every output type', () => (
     <InvestigationFixtureApi
@@ -517,6 +529,25 @@ export default Storybook.story('Investigations — Detail', story => {
     >
       <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
         <InvestigationBootstrapPage investigationId={reportingInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Completed agentic run', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-completed-run"
+      details={[completedRunInvestigation]}
+      orchestration={{
+        [completedRunInvestigation.id]: InvestigationOrchestrationFixture({
+          investigationId: completedRunInvestigation.id,
+          phase: 'completed',
+          status: 'completed',
+          finishedAt: '2026-08-27T15:42:10Z',
+        }),
+      }}
+    >
+      <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
+        <InvestigationBootstrapPage investigationId={completedRunInvestigation.id} />
       </Container>
     </InvestigationFixtureApi>
   ));

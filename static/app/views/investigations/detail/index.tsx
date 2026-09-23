@@ -168,6 +168,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     investigation.orchestration && orchestration
       ? getSeerStatusBlock(orchestration)
       : null;
+  const completedAt =
+    orchestration?.status === 'completed' ? orchestration.finishedAt : null;
 
   useEffect(() => {
     const status = titleGenerationQuery.data?.status;
@@ -387,9 +389,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
                 <MetaDivider />
                 <Text variant="muted">
-                  {tct('Last update: [date]', {
-                    date: <DateTime date={investigation.dateUpdated} year />,
-                  })}
+                  {completedAt
+                    ? tct('Completed: [date]', {
+                        date: <DateTime date={completedAt} year />,
+                      })
+                    : tct('Last update: [date]', {
+                        date: <DateTime date={investigation.dateUpdated} year />,
+                      })}
                 </Text>
               </Flex>
               <FeedbackButton
