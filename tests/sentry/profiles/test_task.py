@@ -36,7 +36,7 @@ from sentry.profiles.task import (
     process_profile_from_kafka,
     process_profile_task,
 )
-from sentry.profiles.utils import Profile
+from sentry.profiles.utils import Profile, apply_stack_trace_rules_to_profile
 from sentry.signals import first_profile_received
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
@@ -431,6 +431,129 @@ def test_process_symbolicator_results_for_sample() -> None:
     )
 
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
+
+
+@pytest.mark.parametrize("platform", ["cocoa", "rust"])
+@pytest.mark.parametrize("sdk_frame", [{"in_app": True}, {"in_app": False}, {}])
+def test_native_profile_preserves_in_app(platform: str, sdk_frame: dict[str, Any]) -> None:
+    profile: Profile = {
+        "version": "2",
+        "platform": platform,
+        "profile": {
+            "frames": [{"instruction_addr": "0x1000", **sdk_frame}],
+            "stacks": [[0]],
+        },
+    }
+    stacktraces = [
+        {
+            "frames": [
+                {
+                    "instruction_addr": "0x1000",
+                    "function": "inline_function",
+                    "original_index": 0,
+                },
+                {
+                    "instruction_addr": "0x1000",
+                    "function": "caller",
+                    "original_index": 0,
+                },
+            ]
+        }
+    ]
+
+    _process_symbolicator_results_for_sample(profile, stacktraces, set(), platform)
+
+    frames = profile["profile"]["frames"]
+    assert [frame.get("in_app") for frame in frames] == [
+        sdk_frame.get("in_app"),
+        sdk_frame.get("in_app"),
+    ]
+    assert [frame["function"] for frame in frames] == ["inline_function", "caller"]
+    assert profile["profile"]["stacks"] == [[0, 1]]
+
+
+def test_native_profile_preserves_in_app_for_selected_frames() -> None:
+    profile: Profile = {
+        "version": "2",
+        "platform": "javascript",
+        "profile": {
+            "frames": [
+                {"function": "javascript_function", "platform": "javascript", "in_app": False},
+                {"instruction_addr": "0x1000", "platform": "cocoa", "in_app": True},
+            ],
+            "stacks": [[1]],
+        },
+    }
+    stacktraces = [
+        {
+            "frames": [
+                {
+                    "instruction_addr": "0x1000",
+                    "function": "inline_function",
+                    "original_index": 0,
+                },
+                {
+                    "instruction_addr": "0x1000",
+                    "function": "caller",
+                    "original_index": 0,
+                },
+            ]
+        }
+    ]
+
+    _process_symbolicator_results_for_sample(profile, stacktraces, {1}, "cocoa")
+
+    frames = profile["profile"]["frames"]
+    assert [frame.get("in_app") for frame in frames] == [False, True, True]
+    assert [frame["function"] for frame in frames] == [
+        "javascript_function",
+        "inline_function",
+        "caller",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("rules", "expected_in_app"),
+    [("", [True, False, True, True]), ("stack.package:app* -app", [False, False, False, False])],
+)
+def test_native_profile_preserves_in_app_for_duplicated_leaf(
+    rules: str, expected_in_app: list[bool]
+) -> None:
+    profile: Profile = {
+        "version": "2",
+        "platform": "cocoa",
+        "debug_meta": {"images": []},
+        "profile": {
+            "frames": [
+                {"instruction_addr": "0x1000", "in_app": True},
+                {"instruction_addr": "0x2000", "in_app": False},
+            ],
+            "stacks": [[0, 1]],
+        },
+    }
+    _, _, frames_sent = _prepare_frames_from_profile(profile, "cocoa")
+    stacktraces = [
+        {
+            "frames": [
+                {"function": "caller", "package": "app", "original_index": 0},
+                {"function": "system", "package": "system", "original_index": 1},
+                {"function": "inline_function", "package": "app", "original_index": 2},
+                {"function": "caller", "package": "app", "original_index": 2},
+            ]
+        }
+    ]
+
+    _process_symbolicator_results_for_sample(profile, stacktraces, frames_sent, "cocoa")
+    apply_stack_trace_rules_to_profile(profile, rules)
+
+    frames = profile["profile"]["frames"]
+    assert [frame.get("in_app") for frame in frames] == expected_in_app
+    assert profile["profile"]["stacks"] == [[2, 3, 1]]
+    assert [frames[index]["function"] for index in profile["profile"]["stacks"][0]] == [
+        "inline_function",
+        "caller",
+        "system",
+    ]
 
 
 def test_process_symbolicator_results_for_sample_js() -> None:

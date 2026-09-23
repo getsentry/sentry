@@ -939,6 +939,17 @@ def _process_symbolicator_results_for_sample(
             return stack
 
     symbolicated_frames = stacktraces[0]["frames"]
+    if platform in ("cocoa", "rust"):
+        raw_frames = profile["profile"]["frames"]
+        raw_frame_indices = sorted(frames_sent) if frames_sent else range(len(raw_frames))
+        for i, frame in enumerate(symbolicated_frames):
+            # Native symbolication omits in_app. Restore the SDK classification for
+            # every inline frame, accounting for requests containing only a subset.
+            original_index = raw_frame_indices[frame.get("original_index", i)]
+            in_app = raw_frames[original_index].get("in_app")
+            if in_app is not None:
+                frame["in_app"] = in_app
+
     symbolicated_frames_dict = get_frame_index_map(symbolicated_frames)
 
     if len(frames_sent) > 0:
