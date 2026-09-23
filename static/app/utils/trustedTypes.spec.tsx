@@ -17,6 +17,12 @@ function fakeTrustedTypes() {
   };
 }
 
+// The module under test only calls createPolicy, so the fakes leave out the
+// rest of the factory.
+function setTrustedTypes(fake: {createPolicy: jest.Mock}) {
+  window.trustedTypes = fake as unknown as TrustedTypePolicyFactory;
+}
+
 async function loadModule() {
   jest.resetModules();
   return await import('sentry/utils/trustedTypes');
@@ -40,7 +46,7 @@ describe('trustedTypes', () => {
 
   it('registers sentry-script-url when supported', async () => {
     const trustedTypes = fakeTrustedTypes();
-    window.trustedTypes = trustedTypes;
+    setTrustedTypes(trustedTypes);
 
     const {installTrustedTypesPolicies} = await loadModule();
     installTrustedTypesPolicies();
@@ -53,7 +59,7 @@ describe('trustedTypes', () => {
 
   it('registers the policy only once', async () => {
     const trustedTypes = fakeTrustedTypes();
-    window.trustedTypes = trustedTypes;
+    setTrustedTypes(trustedTypes);
 
     const {installTrustedTypesPolicies} = await loadModule();
     installTrustedTypesPolicies();
@@ -66,7 +72,7 @@ describe('trustedTypes', () => {
   });
 
   it('accepts a same-origin script url', async () => {
-    window.trustedTypes = fakeTrustedTypes();
+    setTrustedTypes(fakeTrustedTypes());
 
     const {installTrustedTypesPolicies, trustedScriptUrl} = await loadModule();
     installTrustedTypesPolicies();
@@ -75,7 +81,7 @@ describe('trustedTypes', () => {
   });
 
   it('refuses a cross-origin script url', async () => {
-    window.trustedTypes = fakeTrustedTypes();
+    setTrustedTypes(fakeTrustedTypes());
 
     const {installTrustedTypesPolicies, trustedScriptUrl} = await loadModule();
     installTrustedTypesPolicies();
@@ -84,7 +90,7 @@ describe('trustedTypes', () => {
   });
 
   it('warms the dompurify policy so a rejected name surfaces at boot', async () => {
-    window.trustedTypes = fakeTrustedTypes();
+    setTrustedTypes(fakeTrustedTypes());
 
     // Reset before importing either, so the module under test resolves the same
     // dompurify instance the spy is attached to.
@@ -101,11 +107,11 @@ describe('trustedTypes', () => {
   });
 
   it('falls back to the raw url when the CSP allowlist rejects the policy', async () => {
-    window.trustedTypes = {
+    setTrustedTypes({
       createPolicy: jest.fn(() => {
         throw new Error('refused by CSP');
       }),
-    };
+    });
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const {installTrustedTypesPolicies, trustedScriptUrl} = await loadModule();

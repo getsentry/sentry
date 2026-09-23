@@ -335,8 +335,8 @@ describe('Markdown', () => {
         <Markdown
           raw="<script>alert(1)</script>"
           components={{
-            Html: ({html}: {html: string}) => {
-              receivedHtml = html;
+            Html: ({html}: {html: TrustedHTML}) => {
+              receivedHtml = html.toString();
               return <span data-test-id="custom-html" />;
             },
           }}

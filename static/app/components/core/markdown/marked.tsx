@@ -134,7 +134,9 @@ class SafeRenderer extends marked.Renderer {
     }
 
     const out = super.link(tokens);
-    return sanitizeHtml(out);
+    // The parser concatenates renderer output, so this has to stay a string;
+    // the whole document is sanitized again into TrustedHTML once parsed.
+    return sanitizeHtml(out).toString();
   }
 }
 
@@ -187,10 +189,9 @@ const ALLOWED_TAGS = [
 
 const ALLOWED_ATTR = ['href', 'title', 'alt', 'class', 'align'];
 
-export function sanitizeHtml(html: string) {
-  // DOMPurify returns a TrustedHTML under Trusted Types and a plain string
-  // otherwise. Every caller either assigns it to innerHTML, which takes both,
-  // or lets the DOM stringify it, so the pipeline stays typed as string.
+export function sanitizeHtml(html: string): TrustedHTML {
+  // DOMPurify falls back to a plain string when Trusted Types is unavailable,
+  // which every sink accepts in that case.
   return dompurify.sanitize(html, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
@@ -198,16 +199,9 @@ export function sanitizeHtml(html: string) {
   });
 }
 
-function postprocess(html: string) {
-  return sanitizeHtml(html);
-}
-
 const noHighlightingMarked = new Marked({
   async: false,
   renderer: new SafeRenderer(),
-  hooks: {
-    postprocess,
-  },
 });
 
 const highlightingMarked = new Marked(
@@ -253,27 +247,31 @@ const highlightingMarked = new Marked(
 ).use({
   async: true,
   renderer: new SafeRenderer(),
-  hooks: {
-    postprocess,
-  },
 });
 
 /**
  * Renders markdown and sanitizes the output.
  * Applies syntax highlighting. See `useMarked` for use in react.
  */
-export const asyncSanitizedMarked = (src: string, inline?: boolean): Promise<string> => {
-  return inline
-    ? highlightingMarked.parse(src, {async: true, renderer: new NoParagraphRenderer()})
-    : highlightingMarked.parse(src, {async: true});
+export const asyncSanitizedMarked = async (
+  src: string,
+  inline?: boolean
+): Promise<TrustedHTML> => {
+  const html = inline
+    ? await highlightingMarked.parse(src, {
+        async: true,
+        renderer: new NoParagraphRenderer(),
+      })
+    : await highlightingMarked.parse(src, {async: true});
+  return sanitizeHtml(html);
 };
 
 /**
  * Renders markdown and sanitizes the output.
  * WARNING: Does not apply any syntax highlighting.
  */
-export const sanitizedMarked = (src: string): string => {
-  return noHighlightingMarked.parse(src, {async: false});
+export const sanitizedMarked = (src: string): TrustedHTML => {
+  return sanitizeHtml(noHighlightingMarked.parse(src, {async: false}));
 };
 
 /**
@@ -291,12 +289,14 @@ export function markdownToPlainText(src: string): string {
  * Renders a single line of markdown not wrapped in a paragraph tag.
  * WARNING: Does not apply any syntax highlighting.
  */
-export const singleLineRenderer = (text: string): string => {
+export const singleLineRenderer = (text: string): TrustedHTML => {
   // https://marked.js.org/using_advanced#inline
-  return noHighlightingMarked.parse(text, {
-    async: false,
-    renderer: new NoParagraphRenderer(),
-  });
+  return sanitizeHtml(
+    noHighlightingMarked.parse(text, {
+      async: false,
+      renderer: new NoParagraphRenderer(),
+    })
+  );
 };
 
 /**

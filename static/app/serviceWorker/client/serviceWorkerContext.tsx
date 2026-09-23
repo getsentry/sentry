@@ -16,7 +16,7 @@ function log(message: string, options?: Sentry.metrics.MetricOptions) {
   }
 }
 
-function getWorkerUrl(): string {
+function getWorkerUrl(): TrustedScriptURL {
   const url = window.__SENTRY_DEV_UI
     ? '/entrypoints/service-worker.js'
     : '/service-worker.js';
