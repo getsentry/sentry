@@ -2,6 +2,9 @@ from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict, cast
 from unittest.mock import patch
 
+import pytest
+from django.db import IntegrityError
+
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch
@@ -386,6 +389,16 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         code_mapping = create_code_mapping(self.organization, cm, self.project)
 
         assert code_mapping.project_repository.repository_id == renamed.id
+
+    def test_create_code_mapping_reraises_unrelated_integrity_error(self) -> None:
+        repo = RepoAndBranch(name=REPO1, branch="master", external_id="1")
+        cm = CodeMapping(repo=repo, stacktrace_root="foo/", source_path="src/foo/")
+
+        with (
+            patch.object(Repository.objects, "get_or_create", side_effect=IntegrityError),
+            pytest.raises(IntegrityError),
+        ):
+            create_code_mapping(self.organization, cm, self.project)
 
     def test_dry_run_platform(self) -> None:
         frame_filename = "foo/bar.py"

@@ -375,9 +375,12 @@ def create_code_mapping(
             },
         )
     except IntegrityError:
-        repository = get_repository_by_provider_identity(
+        existing = get_repository_by_provider_identity(
             organization.id, provider, code_mapping.repo.external_id
         )
+        if existing is None:
+            raise
+        repository = existing
     with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
         project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
             project_id=project.id,

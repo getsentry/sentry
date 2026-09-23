@@ -37,6 +37,8 @@ def create_repository(
                 repository = get_repository_by_provider_identity(
                     organization_id, provider, external_id
                 )
+                if repository is None:
+                    raise
         if created or tags["dry_run"]:
             metrics.incr(key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0)
 
@@ -45,11 +47,14 @@ def create_repository(
 
 def get_repository_by_provider_identity(
     organization_id: int, provider: str, external_id: str
-) -> Repository:
+) -> Repository | None:
     """
     Name lookups miss a repository that was renamed on the provider, and creating it
     under the new name then collides with the row that already holds its identity.
+
+    None means the collision wasn't on that identity (or the row is already gone),
+    so the caller should re-raise its original error.
     """
-    return Repository.objects.get(
+    return Repository.objects.filter(
         organization_id=organization_id, provider=provider, external_id=external_id
-    )
+    ).first()
