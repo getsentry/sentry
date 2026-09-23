@@ -63,6 +63,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
 
 type Props = {
   onChangeSlug: (slug: string) => void;
@@ -719,6 +720,10 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             )}
           </AutoSaveForm>
         </FieldGroup>
+
+        {organization.features.includes('code-mappings-refactor') && (
+          <ConnectedRepositoriesPanel />
+        )}
 
         <FieldGroup title={t('Email')}>
           <AutoSaveForm

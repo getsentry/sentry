@@ -587,4 +587,27 @@ describe('projectGeneralSettings', () => {
       expect(screen.getByText('React')).toBeInTheDocument();
     });
   });
+
+  describe('Connected Repositories panel', () => {
+    it('is hidden when the code-mappings-refactor flag is off', async () => {
+      render(
+        <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />,
+        {organization, initialRouterConfig}
+      );
+
+      expect(await screen.findByRole('textbox', {name: 'Slug'})).toBeInTheDocument();
+      expect(screen.queryByText('Connected Repositories')).not.toBeInTheDocument();
+    });
+
+    it('is visible when the code-mappings-refactor flag is on', async () => {
+      const orgWithFlag = OrganizationFixture({features: ['code-mappings-refactor']});
+
+      render(
+        <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />,
+        {organization: orgWithFlag, initialRouterConfig}
+      );
+
+      expect(await screen.findByText('Connected Repositories')).toBeInTheDocument();
+    });
+  });
 });
