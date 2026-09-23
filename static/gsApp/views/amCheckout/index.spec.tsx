@@ -15,13 +15,10 @@ import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/spendLimits/utils';
 
 function getSeerOption() {
-  const option = screen
-    .getAllByRole('checkbox', {name: 'Add Seer to plan'})
-    .find(element => element.textContent?.includes('/ active contributor / month'));
-  if (!option) {
-    throw new Error('Could not find the Seer option');
-  }
-  return option;
+  const optionText = screen.getByText(/\/ active contributor \/ month/);
+  const option = optionText.closest('[role="checkbox"]');
+  expect(option).toBeInTheDocument();
+  return option!;
 }
 
 async function assertCheckoutSteps({
