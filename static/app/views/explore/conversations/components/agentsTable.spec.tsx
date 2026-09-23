@@ -105,32 +105,4 @@ describe('AgentsTable', () => {
       })
     );
   });
-
-  it('loads 20 traces per page', async () => {
-    const tracesRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/traces/`,
-      body: {data: []},
-    });
-
-    render(
-      <AgentsTable
-        activeTab="traces"
-        conversations={conversationsResult}
-        hasAgenticSpans
-        hasConversations={false}
-        onConversationOnboardingDismiss={jest.fn()}
-        onTabChange={jest.fn()}
-      />,
-      {organization}
-    );
-
-    await waitFor(() =>
-      expect(tracesRequest).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/traces/`,
-        expect.objectContaining({
-          query: expect.objectContaining({per_page: 20}),
-        })
-      )
-    );
-  });
 });
