@@ -41,6 +41,20 @@ GITLAB_RETRY_CODES = (
 )
 
 
+def _discard_project_webhook(client, project_id: int | str, hook_id: int | str) -> None:
+    # Retrying the task would not come back here: it re-reads the repository and either
+    # halts or reconciles the hook the repository now holds. So this is the only chance
+    # to delete the hook, and a failure only leaves it orphaned.
+    try:
+        client.delete_project_webhook(project_id, hook_id)
+    except ApiError as e:
+        if e.code != 404:
+            logger.warning(
+                "update-project-webhook.discard-failed",
+                extra={"project_id": project_id, "webhook_id": hook_id, "status_code": e.code},
+            )
+
+
 @instrumented_task(
     name="sentry.tasks.integrations.gitlab.update_project_webhook",
     namespace=integrations_tasks,
@@ -124,7 +138,7 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
                 # The repository was disabled, moved, or repaired concurrently while we
                 # talked to GitLab, so nothing will ever reference or delete the new hook.
                 lifecycle.add_extra("created_webhook_id", hook_id)
-                client.delete_project_webhook(project_id, hook_id)
+                _discard_project_webhook(client, project_id, hook_id)
                 lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED)
         except (ApiUnauthorized, ApiForbiddenError) as e:
             lifecycle.record_halt(e)

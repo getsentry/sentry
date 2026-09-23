@@ -671,7 +671,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         assert self.repo.config["webhook_id"] == 100
         assert [call.request.method for call in responses.calls] == ["PUT", "DELETE", "POST"]
 
-    def _create_hook_while(self, change_repository):
+    def _create_hook_while(self, change_repository, delete_status=204):
         """Register a hook create that changes the repository mid-request, as a concurrent writer would."""
 
         def create(request):
@@ -685,7 +685,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         responses.add(
             responses.DELETE,
             "https://example.gitlab.com/api/v4/projects/101/hooks/100",
-            status=204,
+            status=delete_status,
         )
 
     @responses.activate
@@ -718,6 +718,23 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         assert "webhook_id" not in self.repo.config
         assert [call.request.method for call in responses.calls] == ["POST", "DELETE"]
         assert_slo_metric(record_event, event_outcome=EventLifecycleOutcome.HALTED)
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_task_halts_when_discarding_the_hook_fails(self, record_event):
+        for delete_status in (404, 500):
+            responses.reset()
+            record_event.reset_mock()
+            self._create_hook_while(
+                lambda: Repository.objects.filter(id=self.repo.id).update(
+                    status=ObjectStatus.DISABLED
+                ),
+                delete_status=delete_status,
+            )
+            update_project_webhook(self.integration.id, self.organization.id, self.repo.id)
+            assert [call.request.method for call in responses.calls] == ["POST", "DELETE"]
+            assert_slo_metric(record_event, event_outcome=EventLifecycleOutcome.HALTED)
+            Repository.objects.filter(id=self.repo.id).update(status=ObjectStatus.ACTIVE)
 
     @responses.activate
     def test_task_discards_hook_when_repository_moved_during_repair(self):
