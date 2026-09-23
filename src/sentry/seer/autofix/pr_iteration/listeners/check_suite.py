@@ -125,7 +125,30 @@ def _retrigger_deferred_iteration(
 
 
 @scm_event_stream.listen_for(event_type="check_suite")
-def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
+def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent) -> None:
+    if not _should_process_check_suite(check_suite_event):
+        return None
+    return handle_check_suite_event(check_suite_event)
+
+
+def _should_process_check_suite(check_suite_event: CheckSuiteEvent) -> bool:
+    if check_suite_event.action != "completed":
+        return False
+
+    conclusion = check_suite_event.check_suite["conclusion"]
+    is_green = conclusion in GREEN_CONCLUSIONS
+
+    if not is_green and conclusion not in FAILURE_CONCLUSIONS:
+        return False
+
+    # Drop suites nobody behind the installation can act on
+    gate_flags = GREEN_CHECK_SUITE_FLAGS if is_green else FAILING_CHECK_SUITE_FLAGS
+    return bool(
+        resolve_check_suite_flag_gate(check_suite_event, gate_flags).flagged_organization_ids
+    )
+
+
+def handle_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
     with (
         sentry_sdk.isolation_scope(),
         start_span(
@@ -137,20 +160,9 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         return _handle_check_suite_event(check_suite_event)
 
 
-def _handle_check_suite_event(check_suite_event: CheckSuiteEvent):
-    if check_suite_event.action != "completed":
-        return None
-
+def _handle_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
     conclusion = check_suite_event.check_suite["conclusion"]
     is_green = conclusion in GREEN_CONCLUSIONS
-
-    if not is_green and conclusion not in FAILURE_CONCLUSIONS:
-        return None
-
-    # Drop suites nobody behind the installation can act on
-    gate_flags = GREEN_CHECK_SUITE_FLAGS if is_green else FAILING_CHECK_SUITE_FLAGS
-    if not resolve_check_suite_flag_gate(check_suite_event, gate_flags).flagged_organization_ids:
-        return None
 
     if is_green:
         resolved = resolve_green_check_suite(check_suite_event)
