@@ -299,10 +299,10 @@ function TagValueActionsMenu({
   return (
     <DropdownMenu
       size="xs"
-      className={isVisible ? '' : 'invisible'}
       onOpenChange={isOpen => setIsVisible(isOpen)}
       triggerProps={{
         'aria-label': t('Tag Value Actions Menu'),
+        className: isVisible ? '' : 'invisible',
         icon: <IconEllipsis />,
         showChevron: false,
         size: 'xs',
