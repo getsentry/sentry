@@ -6,6 +6,7 @@ import responses
 
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
+from sentry.integrations.gitlab.tasks import update_all_project_webhooks
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -190,6 +191,12 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         self.relink_repository(repo)
 
         assert [call.request.method for call in responses.calls] == ["PUT"]
+        # An install-triggered task may run after sync has already repaired the hook.
+        with assume_test_silo_mode(SiloMode.CELL), self.tasks():
+            update_all_project_webhooks(
+                integration_id=self.integration.id, organization_id=self.organization.id
+            )
+        assert [call.request.method for call in responses.calls] == ["PUT", "PUT"]
         assert self.get_repository(pk=repo.id).config["webhook_id"] == 99
 
     @responses.activate

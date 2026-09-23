@@ -1443,7 +1443,7 @@ describe('InboxPage', () => {
     await userEvent.click(retryButton);
 
     expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
-    await waitFor(() => expect(retryButton).toBeDisabled());
+    await waitFor(() => expect(retryButton).toHaveAttribute('aria-disabled', 'true'));
     await waitFor(() =>
       expect(retryPullRequest).toHaveBeenCalledWith(
         expect.anything(),

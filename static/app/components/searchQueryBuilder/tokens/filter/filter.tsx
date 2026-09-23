@@ -39,6 +39,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {isQueryBuilderPanelChrome} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -278,6 +279,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch, focusOverride} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
+  const {menuPresentation, panelRef, portalTarget} = useSearchQueryBuilderLayout();
 
   const [editSource, setEditSource] = useState<'click' | 'focusOverride' | false>(false);
 
@@ -295,7 +297,14 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
   }, [dispatch, editSource, focusOverride, item.key, onActiveChange]);
 
   const {focusWithinProps} = useFocusWithin({
-    onBlurWithin: () => {
+    onBlurWithin: event => {
+      if (
+        menuPresentation === 'panel' &&
+        event.relatedTarget instanceof Node &&
+        isQueryBuilderPanelChrome(event.relatedTarget, panelRef.current, portalTarget)
+      ) {
+        return;
+      }
       setEditSource(false);
     },
   });
@@ -319,7 +328,12 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
             setEditSource(false);
             onActiveChange(false);
             dispatch({type: 'COMMIT_QUERY'});
-            if (state.collection.getKeyAfter(item.key)) {
+            // Committing on blur must not move focus back into a dismissed panel.
+            if (
+              state.collection.getKeyAfter(item.key) &&
+              (menuPresentation !== 'panel' ||
+                panelRef.current?.contains(document.activeElement))
+            ) {
               state.selectionManager.setFocusedKey(
                 state.collection.getKeyAfter(item.key)
               );

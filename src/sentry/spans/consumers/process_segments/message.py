@@ -490,7 +490,7 @@ def _run_legacy_detectors(
             type=problem.type,
             issue_title=problem.title,
             subtitle=_truncate_value_for_occurrence(problem.desc, MAX_EVIDENCE_VALUE_LENGTH),
-            culprit=event_data["transaction"],
+            culprit=event_data.get("transaction"),
             evidence_data=evidence_data,
             evidence_display=evidence_display,
             detection_time=to_datetime(segment_span["end_timestamp"]),

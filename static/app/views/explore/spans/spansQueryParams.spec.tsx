@@ -192,6 +192,24 @@ describe('getReadableQueryParamsFromLocation', () => {
     );
   });
 
+  it('validates sortBys against overridden fields', () => {
+    const fields = ['id', 'gen_ai.response.model', 'timestamp'];
+    const location = locationFixture({
+      field: ['id', 'span.name', 'timestamp'],
+      sort: ['gen_ai.response.model'],
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location, fields);
+
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          fields,
+          sortBys: [{field: 'gen_ai.response.model', kind: 'asc'}],
+        })
+      )
+    );
+  });
+
   it('uses timestamp sort when fields include timestamp', () => {
     const location = locationFixture({field: ['id', 'span.op', 'timestamp'], sort: []});
     const queryParams = getReadableQueryParamsFromLocation(location);

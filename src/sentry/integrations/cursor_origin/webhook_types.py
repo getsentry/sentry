@@ -185,3 +185,37 @@ class PullRequestEvent(OriginModel):
             return cls.parse_obj(payload)
         except ValidationError as e:
             raise OriginPayloadError(str(e)) from e
+
+
+class InstallationTarget(OriginModel):
+    slug: str = Field(min_length=1)
+    id: str = Field(min_length=1)
+    type: Literal["team", "user"] | None = None
+
+
+class Installation(OriginModel):
+    target: InstallationTarget
+    scopes: list[str]
+    repo_selection_mode: Literal["all", "selected"] = Field(alias="repoSelectionMode")
+
+
+class InstallationEvent(OriginModel):
+    installation: Installation
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> InstallationEvent:
+        try:
+            return cls.parse_obj(payload)
+        except ValidationError as e:
+            raise OriginPayloadError(str(e)) from e
+
+
+class RepositoryDeletedEvent(OriginModel):
+    repository: Repository
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> RepositoryDeletedEvent:
+        try:
+            return cls.parse_obj(payload)
+        except ValidationError as e:
+            raise OriginPayloadError(str(e)) from e

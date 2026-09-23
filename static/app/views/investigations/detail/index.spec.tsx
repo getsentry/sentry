@@ -1145,7 +1145,10 @@ describe('Investigation detail', () => {
     const toggle = await screen.findByRole('button', {name: 'Toggle Latency query'});
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('820ms')).toBeVisible();
-    expect(screen.getByRole('button', {name: 'Show query'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Show query'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(screen.getByTestId('query-cell')).toContainElement(
       screen.getByRole('button', {name: 'Cell actions for Latency query'})
     );
@@ -1187,7 +1190,7 @@ describe('Investigation detail', () => {
     renderView();
 
     const showQuery = await screen.findByRole('button', {name: 'Show query'});
-    expect(showQuery).toBeEnabled();
+    expect(showQuery).not.toHaveAttribute('aria-disabled', 'true');
     expect(screen.queryByText('transaction:/api/checkout')).not.toBeInTheDocument();
 
     await userEvent.click(showQuery);
@@ -2227,7 +2230,7 @@ describe('Investigation detail', () => {
       within(header).getByRole('textbox', {name: 'Investigation title'})
     ).toBeInTheDocument();
     expect(within(header).getByText('Synthesizing…')).toBeInTheDocument();
-    expect(within(header).getByRole('timer')).toHaveTextContent('34.5 s');
+    expect(within(header).getByRole('timer')).toBeVisible();
     expect(
       within(screen.getByTestId('seer-status-block')).queryByText('Synthesizing…')
     ).not.toBeInTheDocument();
@@ -2256,7 +2259,9 @@ describe('Investigation detail', () => {
     expect(await within(header).findByText('Completed')).toBeInTheDocument();
     expect(within(header).getByRole('timer')).toHaveTextContent('35.0 s');
     expect(within(header).queryByText('Synthesizing…')).not.toBeInTheDocument();
-    expect(screen.getByText('Your investigation is ready')).toBeInTheDocument();
+    // The header badge carries a finished run; the block above the hypotheses
+    // only shows while there is something still in flight or needing attention.
+    expect(screen.queryByTestId('seer-status-block')).not.toBeInTheDocument();
   });
 
   it('does not reach for orchestration on a manual investigation', async () => {

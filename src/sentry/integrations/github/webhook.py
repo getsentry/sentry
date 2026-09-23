@@ -65,7 +65,7 @@ from sentry.issues.action_log import (
     resolve_action_actor,
 )
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequestLifecycleState
@@ -776,9 +776,7 @@ class PushEventWebhook(GitHubWebhook):
                         if commit_author is not None:
                             authors[author_email] = commit_author
 
-            # TODO(dcramer): we need to deal with bad values here, but since
-            # its optional, lets just throw it out for now
-            if len(author_email) > 75:
+            if len(author_email) > COMMIT_AUTHOR_EMAIL_LENGTH:
                 author = None
             else:
                 if author_email not in authors:

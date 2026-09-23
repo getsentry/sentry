@@ -581,14 +581,18 @@ def heal_stale_derived_data(**kwargs: object) -> None:
         lower_bound = 0 if stale_hash is None else state.stale[stale_hash]
         logger.info(
             "heal_stale_derived_data.range_selection_started",
-            extra={"hash_kind": hash_kind, "remaining_budget": remaining},
+            extra={
+                "hash_kind": hash_kind,
+                "remaining_budget": remaining,
+                "group_id_lower_bound": lower_bound,
+            },
         )
         range_selection_started_at = time.monotonic()
         try:
             range_result = group_id_ranges_for_hash(
                 stale_hash,
-                chunk_size=batch_size,
-                max_chunks=remaining,
+                range_size=batch_size,
+                max_ranges=remaining,
                 group_id_lower_bound=lower_bound,
             )
         except OperationalError:
@@ -597,6 +601,8 @@ def heal_stale_derived_data(**kwargs: object) -> None:
                 extra={
                     "hash_kind": hash_kind,
                     "elapsed": time.monotonic() - range_selection_started_at,
+                    "pipeline_hash": stale_hash,
+                    "group_id_lower_bound": lower_bound,
                 },
             )
             metrics.incr(
@@ -911,6 +917,7 @@ def regenerate_stale_derived_data_batch(
     )
     from taskbroker_client.state import current_task
 
+    from sentry import options
     from sentry.issues.derived.promote import build_and_promote_batch
     from sentry.issues.models.groupderiveddata import GroupDerivedData
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
@@ -944,6 +951,7 @@ def regenerate_stale_derived_data_batch(
 
     start = time.monotonic()
 
+    batch_size = max(1, options.get("issues.derived.heal-batch-size"))
     group_ids = list(
         GroupDerivedData.objects.filter(
             pipeline_hash=target_hash,  # a None target renders as IS NULL
@@ -951,7 +959,22 @@ def regenerate_stale_derived_data_batch(
             group_id__lt=group_id_end,
         )
         .order_by("group_id")
-        .values_list("group_id", flat=True)
+        .values_list("group_id", flat=True)[: batch_size + 1]
+    )
+    range_overflow = len(group_ids) > batch_size
+    if range_overflow:
+        group_ids = group_ids[:batch_size]
+
+    # How close the scheduler's density estimate landed to reality. The worker
+    # records at most batch_size rows here and reports denser ranges separately as
+    # ``range_overflow`` reschedules. Counts well below batch_size mean ranges span
+    # too few IDs and scheduling slots are being wasted; frequent overflow means they
+    # span too many. Use both signals to tune the density sampling constants.
+    metrics.distribution(
+        "issues.derived.heal_range_rows_found",
+        len(group_ids),
+        sample_rate=1.0,
+        tags={"hash_kind": "null" if target_hash is None else "stale"},
     )
 
     result = build_and_promote_batch(
@@ -978,6 +1001,21 @@ def regenerate_stale_derived_data_batch(
             group_id_end=group_id_end,
             resume_generated_at=gen_id.generated_at.isoformat() if gen_id else None,
             resume_pipeline_hash=gen_id.pipeline_hash if gen_id else None,
+        )
+        if activation_id:
+            mark_spawned(_REGENERATE_STALE_BATCH_TASK_KEY, activation_id)
+    elif range_overflow:
+        rescheduled = True
+        metrics.incr(
+            "issues.derived.regenerate_stale_batch_rescheduled",
+            sample_rate=1.0,
+            tags={"reason": "range_overflow"},
+        )
+        regenerate_stale_derived_data_batch.delay(
+            stale_pipeline_hashes=stale_pipeline_hashes,
+            target_hash=target_hash,
+            group_id_start=group_ids[-1] + 1,
+            group_id_end=group_id_end,
         )
         if activation_id:
             mark_spawned(_REGENERATE_STALE_BATCH_TASK_KEY, activation_id)

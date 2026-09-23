@@ -6,6 +6,7 @@ from typing import Any
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_WEB_BASE_URL
+from sentry.integrations.cursor_origin.webhook_types import InstallationEvent
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import (
     RpcIntegration,
@@ -156,28 +157,26 @@ class InstallationUpdatedHandler(InstallationEventHandler):
         integration: RpcIntegration,
         org_integrations: Sequence[RpcOrganizationIntegration],
     ) -> None:
-        installation = payload.get("installation") or {}
-        target = installation.get("target") or {}
-        name = target.get("slug")
+        installation = InstallationEvent.from_payload(payload).installation
+        slug = installation.target.slug
         changed: dict[str, Any] = {
             "installation_id": integration.external_id,
-            "target": target,
-            "scopes": installation.get("scopes") or [],
-            "repo_selection_mode": installation.get("repoSelectionMode"),
+            "target": installation.target.dict(exclude_none=True),
+            "scopes": installation.scopes,
+            "repo_selection_mode": installation.repo_selection_mode,
+            "domain_name": f"{CURSOR_ORIGIN_WEB_BASE_URL}/{slug}",
         }
-        if name:
-            changed["domain_name"] = f"{CURSOR_ORIGIN_WEB_BASE_URL}/{name}"
 
         # `update_integration` replaces metadata rather than merging it, which would
-        # drop the cached access token and, without a slug, `domain_name`.
+        # drop the cached access token.
         stored = integration_service.get_integration(integration_id=integration.id)
         assert stored is not None
         metadata = {**stored.metadata, **changed}
         previous_slug = stored.name
 
-        if name and name != previous_slug:
+        if slug != previous_slug:
             _rename_owner_repositories(
-                previous_slug, name, integration.id, org_integrations, delivery_id
+                previous_slug, slug, integration.id, org_integrations, delivery_id
             )
 
         logger.info(
@@ -185,6 +184,6 @@ class InstallationUpdatedHandler(InstallationEventHandler):
             extra={"delivery_id": delivery_id, "integration_id": integration.id},
         )
         integration_service.update_integration(
-            integration_id=integration.id, name=name or None, metadata=metadata
+            integration_id=integration.id, name=slug, metadata=metadata
         )
         _sync_repositories(org_integrations, delivery_id)
