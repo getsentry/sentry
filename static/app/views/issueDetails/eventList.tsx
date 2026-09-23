@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeSorts} from 'sentry/utils/queryString';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
@@ -98,7 +99,10 @@ export function EventList({group}: EventListProps) {
             </Header>
             <Container padding="lg">
               <LoadingError
-                message={error.message}
+                message={getRequestErrorUserMessage(
+                  error.getOriginalError(),
+                  error.message
+                )}
                 onRetry={() => setRetryCount(count => count + 1)}
               />
             </Container>

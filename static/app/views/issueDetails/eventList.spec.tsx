@@ -213,6 +213,26 @@ describe('EventList', () => {
     }
   );
 
+  it.each(['user.display', 'count()'])(
+    'shows the HTTP error message when a failed %s request has no detail',
+    async field => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [(_url, options) => options.query?.field?.includes(field)],
+        statusCode: 503,
+        body: {},
+      });
+      render(<EventList group={group} />, {initialRouterConfig});
+
+      expect(
+        await screen.findByText(
+          'The server is temporarily unavailable. Please try again in a few moments.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    }
+  );
+
   it('keeps the empty state for a successful query with no events', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
