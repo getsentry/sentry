@@ -273,7 +273,11 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         model.set_projects(data["project_ids"])
 
         try:
-            if request.user.is_authenticated and request.data.get("starred"):
+            if (
+                self.has_migrate_feature(organization, request)
+                and request.user.is_authenticated
+                and request.data.get("starred")
+            ):
                 DiscoverSavedQueryStarred.objects.insert_starred_query(
                     organization, request.user.id, model, starred=True
                 )
