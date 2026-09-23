@@ -309,6 +309,10 @@ const IssuesTraceGrid = styled(TraceGrid)<{
   height: ${p =>
     Math.min(Math.max(p.rowCount, MIN_ROW_COUNT), MAX_ROW_COUNT) * ROW_HEIGHT +
     HEADER_HEIGHT}px;
+
+  .TraceRow.Collapsed:last-child {
+    border-bottom: 0;
+  }
 `;
 
 const IssuesTraceContainer = styled('div')`
