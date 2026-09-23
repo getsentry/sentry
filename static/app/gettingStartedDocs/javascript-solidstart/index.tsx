@@ -25,7 +25,7 @@ export const docs: Docs = {
   }),
   agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/solidstart',
-    configFileName: 'instrument.server.mjs',
+    configFileName: 'instrument.server.ts',
   }),
   logsOnboarding: logsFullStack({
     docsPlatform: 'solidstart',
