@@ -484,7 +484,7 @@ function getNearestAgentId(
  * arrived, so a captured transcript can place bubbles differently, e.g. with
  * assistant output between tool calls or several exchanges within one run.
  */
-export function fillNotReportedTurns(
+function fillNotReportedTurns(
   turns: ConversationTurn[],
   nodes: AITraceSpanNode[]
 ): ConversationTurn[] {
