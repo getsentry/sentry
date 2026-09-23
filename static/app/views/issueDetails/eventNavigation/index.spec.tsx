@@ -45,8 +45,9 @@ describe('EventNavigation', () => {
 
   /**
    * `useGroupDetailsRoute` reads the current tab off the deepest route's `handle`,
-   * so each tab under test needs a child route carrying that handle. The nav under
-   * test renders on the parent route, so the child renders nothing of its own.
+   * so every tab gets a child route carrying that handle, which also lets tests
+   * navigate between tabs. The nav under test renders on the parent route, so the
+   * children render nothing of their own.
    */
   function routerConfigForTab(tab: Tab) {
     return {
@@ -54,9 +55,11 @@ describe('EventNavigation', () => {
         pathname: `/organizations/${organization.slug}/issues/${group.id}/${TabPaths[tab]}`,
       },
       route: '/organizations/:orgId/issues/:groupId/',
-      children: [
-        {path: TabPaths[tab], handle: {path: TabPaths[tab]}, element: <Fragment />},
-      ],
+      children: Array.from(new Set(Object.values(TabPaths)), path => ({
+        path,
+        handle: {path},
+        element: <Fragment />,
+      })),
     };
   }
 
@@ -279,6 +282,24 @@ describe('EventNavigation', () => {
       );
       expect(router.location.pathname).toBe(
         `/organizations/${organization.slug}/issues/${group.id}/${TabPaths[Tab.DETAILS]}`
+      );
+      expect(screen.getByRole('tab', {name: /Events/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+    });
+
+    it('keeps Events selected after clicking "View More Events"', async () => {
+      const {router} = renderNav(seerOrganization, {tab: Tab.DETAILS});
+
+      expect(screen.getByRole('tab', {name: /Events/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'View More Events'}));
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/issues/${group.id}/${TabPaths[Tab.EVENTS]}`
       );
       expect(screen.getByRole('tab', {name: /Events/})).toHaveAttribute(
         'aria-selected',
