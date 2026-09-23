@@ -154,6 +154,54 @@ describe('VisualizationWidget threshold time windows', () => {
     expect(screen.getByTestId('threshold-values')).toHaveTextContent('600, 1200');
   });
 
+  it('scales release thresholds using the interval requested for the series', () => {
+    const releaseWidget = {
+      ...thresholdWidget,
+      widgetType: WidgetType.RELEASE,
+      queries: [
+        {
+          ...thresholdWidget.queries[0]!,
+          fields: ['release', 'sum(session)'],
+          aggregates: ['sum(session)'],
+          columns: ['release'],
+          conditions: '',
+          orderby: '-release',
+        },
+      ],
+      thresholds: {
+        max_values: {max1: 100, max2: 200},
+        unit: null,
+        timeWindow: '1h',
+      },
+    };
+    jest.mocked(WidgetCardDataLoader).mockImplementationOnce(({children}: any) =>
+      children({
+        timeseriesResults: [
+          {
+            seriesName: 'v1 : sum(session)',
+            data: [{name: 1_000_000, value: 10}],
+            color: '#000',
+          },
+        ],
+        timeseriesInterval: '1h',
+        loading: false,
+      })
+    );
+
+    render(
+      <VisualizationWidget
+        widget={releaseWidget}
+        selection={PageFiltersFixture({
+          datetime: {...selection.datetime, period: '14d'},
+        })}
+        widgetInterval="3h"
+      />,
+      {organization: OrganizationFixture()}
+    );
+
+    expect(screen.getByTestId('threshold-values')).toHaveTextContent('100, 200');
+  });
+
   it('keeps fixed threshold ranges unchanged when the widget interval changes', () => {
     const fixedThresholdWidget = {
       ...thresholdWidget,

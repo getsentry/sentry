@@ -133,6 +133,7 @@ export function VisualizationWidget({
     >
       {({
         timeseriesResults,
+        timeseriesInterval,
         timeseriesResultsTypes,
         timeseriesResultsUnits,
         tableResults,
@@ -168,7 +169,7 @@ export function VisualizationWidget({
             legendSelection={decodedLegendSelection}
             onLegendSelectionChange={handleLegendSelectionChange}
             isFullScreen={isFullScreen}
-            widgetInterval={widgetInterval}
+            widgetInterval={timeseriesInterval ?? widgetInterval}
           />
         );
       }}
