@@ -29,7 +29,9 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
         e.g. {"projectSlug": {associations: {...}, errors: {...}}, ...]
         """
         projects = self.get_projects(request, organization)
-        project_code_owners = ProjectCodeOwners.objects.filter(project__in=projects)
+        project_code_owners = ProjectCodeOwners.objects.filter(project__in=projects).select_related(
+            "project", "repository_project_path_config"
+        )
         provider = request.GET.get("provider")
         if provider:
             org_integrations = integration_service.get_organization_integrations(
