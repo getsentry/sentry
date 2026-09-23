@@ -1,8 +1,9 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 
+import {LoadingError} from 'sentry/components/loadingError';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -32,7 +33,8 @@ export function EventList({group}: EventListProps) {
   const referrer = 'issue_details.streamline_list';
   const location = useLocation();
   const organization = useOrganization();
-  const [_error, setError] = useState('');
+  // Remount both Discover queries on retry, preserving the filters in the URL.
+  const [retryCount, setRetryCount] = useState(0);
   const {fields, columnTitles} = useEventColumns(group, organization);
   const eventView = useIssueDetailsEventView({
     group,
@@ -75,6 +77,7 @@ export function EventList({group}: EventListProps) {
   return (
     <EventListTable pagination={{enabled: false}}>
       <EventsTable
+        key={retryCount}
         theme={theme}
         eventView={eventView}
         location={location}
@@ -83,12 +86,24 @@ export function EventList({group}: EventListProps) {
         excludedTags={ALL_EVENTS_EXCLUDED_TAGS}
         projectSlug={group.project.slug}
         customColumns={['minidump']}
-        setError={err => setError(err ?? '')}
         transactionName={group.title || group.type}
         columnTitles={columnTitles}
         referrer={referrer}
         hidePagination
         applyEnvironmentFilter
+        renderError={error => (
+          <Container>
+            <Header>
+              <Title>{t('All Events')}</Title>
+            </Header>
+            <Container padding="lg">
+              <LoadingError
+                message={error.message}
+                onRetry={() => setRetryCount(count => count + 1)}
+              />
+            </Container>
+          </Container>
+        )}
         renderTableHeader={({
           pageLinks,
           pageEventsCount,
