@@ -157,17 +157,20 @@ describe('Onboarding deployment target', () => {
   });
 
   it.each([
-    ['node-mastra', 'Mastra'],
-    ['node-flue', 'Flue'],
-    ['node-eve', 'Eve'],
+    ['node-mastra', 'Mastra', /@mastra\/observability/],
+    ['node-flue', 'Flue', /flue add tooling sentry/],
+    ['node-eve', 'Eve', /Install the Sentry Node SDK in your Eve project/],
   ] as const)(
-    'defaults a %s project to the %s integration',
-    async (platform, integration) => {
+    'uses the %s project integration without showing a selector',
+    async (platform, integration, setupCode) => {
       const {organization} = setupProject(platform);
 
       render(<Onboarding />, {organization});
 
-      expect(await screen.findByRole('button', {name: integration})).toBeInTheDocument();
+      expect(
+        (await screen.findAllByText(textWithMarkupMatcher(setupCode))).length
+      ).toBeGreaterThan(0);
+      expect(screen.queryByRole('button', {name: integration})).not.toBeInTheDocument();
     }
   );
 
@@ -177,6 +180,30 @@ describe('Onboarding deployment target', () => {
     render(<Onboarding />, {organization});
 
     expect(await screen.findByRole('link', {name: 'Conversations'})).toBeInTheDocument();
+  });
+
+  it('ignores integration and deployment query overrides for framework projects', async () => {
+    const {organization} = setupProject('node-eve');
+
+    render(<Onboarding />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {integration: 'openai', deploymentTarget: 'cloudflare'},
+        },
+      },
+    });
+
+    expect(
+      (
+        await screen.findAllByText(
+          textWithMarkupMatcher(/Install the Sentry Node SDK in your Eve project/)
+        )
+      ).length
+    ).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', {name: 'OpenAI SDK'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
   });
 
   it('pins Cloudflare Workers projects to the Cloudflare runtime with no Node toggle', async () => {

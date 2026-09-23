@@ -260,8 +260,12 @@ export function Onboarding() {
   // of this selector for now and keeps its existing onboarding.
   const isCloudflareWorkers = project?.platform === 'node-cloudflare-workers';
   const isCloudflarePages = project?.platform === 'node-cloudflare-pages';
+  const projectAgentIntegration = getDefaultAgentIntegration(project?.platform);
   const showDeploymentTarget =
-    isNodePlatform && !isCloudflareWorkers && !isCloudflarePages;
+    isNodePlatform &&
+    !isCloudflareWorkers &&
+    !isCloudflarePages &&
+    !projectAgentIntegration;
 
   const deploymentTargetOptions: BasePlatformOptions = showDeploymentTarget
     ? {
@@ -281,18 +285,19 @@ export function Onboarding() {
 
   // The SDK list is no longer filtered by runtime: Node projects see every
   // Node/Cloudflare agent SDK, and the chosen SDK drives the runtime below.
-  const integrations = isPythonPlatform
-    ? PYTHON_AGENT_INTEGRATIONS
-    : isDenoPlatform
-      ? DENO_AGENT_INTEGRATIONS
-      : isPhpPlatform
-        ? PHP_AGENT_INTEGRATIONS
-        : NODE_AGENT_INTEGRATIONS;
+  const integrations = projectAgentIntegration
+    ? [projectAgentIntegration]
+    : isPythonPlatform
+      ? PYTHON_AGENT_INTEGRATIONS
+      : isDenoPlatform
+        ? DENO_AGENT_INTEGRATIONS
+        : isPhpPlatform
+          ? PHP_AGENT_INTEGRATIONS
+          : NODE_AGENT_INTEGRATIONS;
 
   const platformOptions: BasePlatformOptions = {
     integration: {
       label: t('Integration'),
-      defaultValue: getDefaultAgentIntegration(project?.platform),
       items: integrations.map(integration => ({
         label: isPhpPlatform
           ? (currentPlatform?.name ?? t('Laravel'))
@@ -390,17 +395,19 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      <OptionsWrapper>
-        <PlatformOptionDropdown
-          platformOptions={platformOptions}
-          connectors={{deploymentTarget: t('on')}}
-          lockedValues={
-            integrationDeploymentTarget
-              ? {deploymentTarget: integrationDeploymentTarget}
-              : undefined
-          }
-        />
-      </OptionsWrapper>
+      {!projectAgentIntegration && (
+        <OptionsWrapper>
+          <PlatformOptionDropdown
+            platformOptions={platformOptions}
+            connectors={{deploymentTarget: t('on')}}
+            lockedValues={
+              integrationDeploymentTarget
+                ? {deploymentTarget: integrationDeploymentTarget}
+                : undefined
+            }
+          />
+        </OptionsWrapper>
+      )}
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <DescriptionWrapper>
         <p>
