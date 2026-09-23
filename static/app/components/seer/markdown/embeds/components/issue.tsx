@@ -5,8 +5,10 @@ import {
   ResourceLink,
   type ResourceLinkFormatProps,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconIssues} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 const LazyGroupList = lazy(async () => {
   const {GroupList} = await import('sentry/components/issues/groupList');
@@ -37,13 +39,27 @@ function normalizeIds({id, shortId}: {id: string | number; shortId?: string}) {
   };
 }
 
+/** Shared by the inline link and the block's header link, so the two cannot drift. */
+function getIssueHref(id: string): string {
+  return `/issues/${id}/`;
+}
+
+/**
+ * What a reader should see the issue called: the short ID when Seer sent one,
+ * the group ID only as a fallback. Shared so the inline link and the block's
+ * heading name the same issue the same way.
+ */
+function getIssueTitle({id, shortId}: IssueEmbedProps): string {
+  return shortId ?? id;
+}
+
 function IssueLink({format, id, shortId}: IssueEmbedProps & ResourceLinkFormatProps) {
   return (
     <ResourceLink
       format={format}
       icon={IconIssues}
-      href={`/issues/${id}/`}
-      title={shortId ?? id}
+      href={getIssueHref(id)}
+      title={getIssueTitle({id, shortId})}
     />
   );
 }
@@ -63,17 +79,27 @@ function SingleIssueBlock({id, shortId}: IssueEmbedProps) {
   );
 
   return (
-    <LazyLoad
-      LazyComponent={LazyGroupList}
-      queryParams={queryParams}
-      withChart
-      withColumns={[]}
-      withHeader={false}
-      withPagination={false}
-      canSelectGroups={false}
-      useFilteredStats={false}
-      numPlaceholderRows={1}
-    />
+    // Left expanded, the card's default: one row, with nothing worth hiding
+    // behind a closed panel.
+    <SeerEmbedBlock
+      href={getIssueHref(id)}
+      icon={IconIssues}
+      linkLabel={t('View Issue')}
+      testId="seer-issue-embed"
+      title={getIssueTitle({id, shortId})}
+    >
+      <LazyLoad
+        LazyComponent={LazyGroupList}
+        queryParams={queryParams}
+        withChart
+        withColumns={[]}
+        withHeader={false}
+        withPagination={false}
+        canSelectGroups={false}
+        useFilteredStats={false}
+        numPlaceholderRows={1}
+      />
+    </SeerEmbedBlock>
   );
 }
 

@@ -402,6 +402,36 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert "alerts:write" not in member.get_scopes()
         assert "alerts:write" in admin.get_scopes()
 
+    def test_scopes_without_granular_permission_scopes(self) -> None:
+        for role in roles.get_all():
+            member = self.create_member(
+                organization=self.organization, role=role.id, email=f"{role.id}@example.com"
+            )
+            assert "dashboard:read" not in member.get_scopes()
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_scopes_with_granular_permission_scopes(self) -> None:
+        for role in roles.get_all():
+            member = self.create_member(
+                organization=self.organization, role=role.id, email=f"{role.id}@example.com"
+            )
+            assert member.get_scopes() == role.scopes | {
+                "dashboard:read",
+                "dashboard:write",
+                "dashboard:delete",
+            }
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_granular_scopes_respect_member_options(self) -> None:
+        member = self.create_member(
+            organization=self.organization, role="member", email="test@example.com"
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+
+        scopes = member.get_scopes()
+        assert "dashboard:read" in scopes
+        assert "alerts:write" not in scopes
+
     def test_get_contactable_members_for_org(self) -> None:
         organization = self.create_organization()
         user1 = self.create_user()

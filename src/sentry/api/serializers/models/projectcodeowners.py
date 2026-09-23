@@ -146,7 +146,9 @@ class ProjectCodeOwnersSerializer(Serializer[ProjectCodeOwnersResponse]):
             )
 
         if "errors" in self.expand:
-            _, errors = build_codeowners_associations(obj.raw, obj.project)
+            _, errors = build_codeowners_associations(
+                obj.raw, obj.project, obj.repository_project_path_config
+            )
             data["errors"] = errors
 
         if "hasTargetingContext" in self.expand:

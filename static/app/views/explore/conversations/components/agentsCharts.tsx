@@ -191,7 +191,7 @@ export function AgentsCharts() {
                 disableZoom
                 dashboardFilters={dashboard.filters}
                 selection={selection}
-                showContextMenu={false}
+                showContextMenu
                 widget={widget}
                 widgetInterval={chartInterval}
                 widgetLegendState={widgetLegendState}

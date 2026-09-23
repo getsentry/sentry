@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import BooleanField, CharField, URLField
 
-from sentry import features
+from sentry import features, options
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
 from sentry.identity.oauth2 import OAuth2ApiStep
@@ -27,6 +27,7 @@ from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_
 from sentry.integrations.gitlab.types import GitLabIssueStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.referrer_ids import GITLAB_PR_BOT_REFERRER
 from sentry.integrations.services.integration import integration_service
@@ -41,12 +42,14 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import (
@@ -650,6 +653,28 @@ class GitlabIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.CODEOWNERS,
         ]
     )
+
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
+    ) -> None:
+        if not options.get("gitlab.webhook-update-on-install.enabled"):
+            return
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=organization.id, integration_id=integration.id
+        )
+        # Discover and relink repositories without waiting for the daily sync cycle.
+        sync_repos_for_org.delay(organization_integration_id=org_integration.id)
+
+        # Retained repositories may still have stale tokens even at the current webhook version.
+        repository_service.schedule_update_gitlab_project_webhooks(
+            organization_id=organization.id,
+            integration_id=integration.id,
+        )
 
     def get_group_info(self, access_token, installation_data):
         client = GitLabSetupApiClient(

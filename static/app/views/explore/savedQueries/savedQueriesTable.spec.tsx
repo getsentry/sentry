@@ -467,8 +467,13 @@ describe('SavedQueriesTable with discover-queries-in-all-queries', () => {
     organization: {features: ['discover-queries-in-all-queries']},
   });
   let getQueriesMock: jest.Mock;
+  let updateDiscoverQueryMock: jest.Mock;
 
   beforeEach(() => {
+    updateDiscoverQueryMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/discover/saved/1/`,
+      method: 'PUT',
+    });
     getQueriesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
@@ -514,6 +519,37 @@ describe('SavedQueriesTable with discover-queries-in-all-queries', () => {
       expect(getQueriesMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/explore/all-queries/`,
         expect.objectContaining({method: 'GET'})
+      )
+    );
+  });
+
+  it('renames a discover query', async () => {
+    render(<SavedQueriesTable mode="owned" title="title" />, {organization});
+    renderGlobalModal();
+
+    await screen.findByText('Discover Query');
+    const discoverRow = screen.getByTestId('table-row-1');
+    await userEvent.click(within(discoverRow).getByLabelText('More options'));
+    await userEvent.click(screen.getByText('Rename'));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Rename Query')).toBeInTheDocument();
+
+    const input = within(dialog).getByPlaceholderText('Enter a name for your query');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'Renamed Discover Query');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() =>
+      expect(updateDiscoverQueryMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/discover/saved/1/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            name: 'Renamed Discover Query',
+            queryType: 'discover',
+          }),
+        })
       )
     );
   });

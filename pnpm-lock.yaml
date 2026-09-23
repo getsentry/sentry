@@ -18,6 +18,9 @@ patchedDependencies:
   zod@4.3.5:
     hash: 2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76
     path: patches/zod@4.3.5.patch
+  zrender@6.1.0:
+    hash: 183ccabb66e5590ca8a810519f1df210e5a87bb8e48b4bae25e76a619954a193
+    path: patches/zrender@6.1.0.patch
 
 importers:
 
@@ -311,6 +314,9 @@ importers:
       '@types/reflux':
         specifier: 0.4.1
         version: 0.4.1
+      '@types/trusted-types':
+        specifier: ^2.0.7
+        version: 2.0.7
       ansi-to-react:
         specifier: ^6.1.6
         version: 6.1.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -532,7 +538,7 @@ importers:
         version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
       zrender:
         specifier: 6.1.0
-        version: 6.1.0
+        version: 6.1.0(patch_hash=183ccabb66e5590ca8a810519f1df210e5a87bb8e48b4bae25e76a619954a193)
       zxcvbn:
         specifier: ^4.4.2
         version: 4.4.2
@@ -12901,8 +12907,7 @@ snapshots:
 
   '@types/tough-cookie@4.0.5': {}
 
-  '@types/trusted-types@2.0.7':
-    optional: true
+  '@types/trusted-types@2.0.7': {}
 
   '@types/unist@2.0.11': {}
 
@@ -14178,7 +14183,7 @@ snapshots:
   echarts@6.1.0:
     dependencies:
       tslib: 2.3.0
-      zrender: 6.1.0
+      zrender: 6.1.0(patch_hash=183ccabb66e5590ca8a810519f1df210e5a87bb8e48b4bae25e76a619954a193)
 
   editorconfig@3.0.2:
     dependencies:
@@ -19155,7 +19160,7 @@ snapshots:
 
   zod@4.4.3: {}
 
-  zrender@6.1.0:
+  zrender@6.1.0(patch_hash=183ccabb66e5590ca8a810519f1df210e5a87bb8e48b4bae25e76a619954a193):
     dependencies:
       tslib: 2.3.0
 

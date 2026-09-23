@@ -5,19 +5,24 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
 
-import {AgentsTable} from './agentsTable';
+import {AgentsTable, LLM_CALLS_SAVED_QUERY} from './agentsTable';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture({id: '1'});
 
-const LLM_CALLS_FIELDS = [
-  'id',
-  'gen_ai.output.messages',
-  'gen_ai.response.model',
-  'gen_ai.cost.total_tokens',
-  'timestamp',
-];
+const conversationsResult = {
+  data: [],
+  isFetching: false,
+  error: null,
+  pageLinks: undefined,
+  setCursor: jest.fn(),
+  unsetCursor: jest.fn(),
+  isDirectHit: false,
+  sort: '-conversation.age',
+  setSort: jest.fn(),
+} satisfies ReturnType<typeof useConversations>;
 
 describe('AgentsTable', () => {
   beforeEach(() => {
@@ -61,6 +66,7 @@ describe('AgentsTable', () => {
     render(
       <AgentsTable
         activeTab="spans"
+        conversations={conversationsResult}
         hasAgenticSpans
         hasConversations={false}
         onConversationOnboardingDismiss={jest.fn()}
@@ -77,12 +83,17 @@ describe('AgentsTable', () => {
     );
 
     expect(await screen.findByTestId('spans-table')).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'LLM Calls'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
     await waitFor(() =>
       expect(spansRequest).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/events/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            field: expect.arrayContaining(LLM_CALLS_FIELDS),
+            field: expect.arrayContaining(LLM_CALLS_SAVED_QUERY.fields),
+            query: LLM_CALLS_SAVED_QUERY.query,
           }),
         })
       )

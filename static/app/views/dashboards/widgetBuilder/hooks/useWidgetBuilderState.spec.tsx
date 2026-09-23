@@ -1527,6 +1527,59 @@ describe('useWidgetBuilderState', () => {
   });
 
   describe('sort', () => {
+    it('normalizes aggregate argument separators in the builder state and URL', () => {
+      const {result, router} = renderWidgetBuilderState({
+        dataset: WidgetType.TRACEMETRICS,
+        sort: ['-sum_if(`environment:"prod, us"`, value, alpha_metric, counter, none)'],
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {
+          field: 'sum_if(`environment:"prod, us"`,value,alpha_metric,counter,none)',
+          kind: 'desc',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_SORT,
+          payload: [
+            {
+              field: 'sum_if(`environment:prod`, value, alpha_metric, counter, none)',
+              kind: 'asc',
+            },
+          ],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {
+          field: 'sum_if(`environment:prod`,value,alpha_metric,counter,none)',
+          kind: 'asc',
+        },
+      ]);
+      flushUrlUpdates();
+      expect(router.location.query.sort).toBe(
+        'sum_if(`environment:prod`,value,alpha_metric,counter,none)'
+      );
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            sort: ['-sum_if(`environment:staging`, value, alpha_metric, counter, none)'],
+          },
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {
+          field: 'sum_if(`environment:staging`,value,alpha_metric,counter,none)',
+          kind: 'desc',
+        },
+      ]);
+    });
+
     it('can decode and update sorts', () => {
       const {result} = renderWidgetBuilderState({
         sort: ['-testField'],

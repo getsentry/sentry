@@ -6,7 +6,10 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getAISetupStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getAISetupStep,
+  getDataCollectionStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 import {getInstallSnippet} from './utils';
@@ -17,6 +20,12 @@ export const onboarding: OnboardingConfig = {
     {
       title: t('Automatic Configuration (Recommended)'),
       content: [
+        {
+          type: 'text',
+          text: tct('The Sentry Next.js SDK requires Next.js [code:14] or later.', {
+            code: <code />,
+          }),
+        },
         {
           type: 'text',
           text: tct(
@@ -56,6 +65,10 @@ export const onboarding: OnboardingConfig = {
       ],
     },
     getAISetupStep({sdkName: 'Next.js'}),
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#dataCollection',
+    }),
   ],
   verify: () => [
     {

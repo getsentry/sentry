@@ -71,6 +71,7 @@ export function NetworkList() {
     gridTemplateColumns,
     scrollContainerRef,
     totalColumnWidth,
+    totalSize,
     virtualRows,
     virtualizer,
     wrapperRef,
@@ -208,7 +209,7 @@ export function NetworkList() {
                   ) : (
                     <VirtualTable.Content
                       style={{
-                        height: virtualizer.getTotalSize(),
+                        height: totalSize,
                         width: totalColumnWidth,
                       }}
                     >
