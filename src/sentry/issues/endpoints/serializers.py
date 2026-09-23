@@ -21,6 +21,26 @@ from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.utils.codeowners import MAX_RAW_LENGTH
 
 
+class ProjectCodeOwnersCreateRequestSerializer(serializers.Serializer[dict[str, str]]):
+    raw = serializers.CharField(
+        help_text="The raw contents of the CODEOWNERS file.",
+    )
+    codeMappingId = serializers.CharField(
+        help_text="The ID of the code mapping used to translate repository paths to stack trace paths.",
+    )
+
+
+class ProjectCodeOwnersUpdateRequestSerializer(serializers.Serializer[dict[str, str]]):
+    raw = serializers.CharField(
+        required=False,
+        help_text="The raw contents of the CODEOWNERS file.",
+    )
+    codeMappingId = serializers.CharField(
+        required=False,
+        help_text="The ID of the code mapping used to translate repository paths to stack trace paths.",
+    )
+
+
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
     code_mapping_id = serializers.IntegerField(required=True)
     raw = serializers.CharField(required=True)
@@ -66,7 +86,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
 
         # Ignore association errors and continue parsing CODEOWNERS for valid lines.
         # Allow users to incrementally fix association errors; for CODEOWNERS with many external mappings.
-        associations, _ = build_codeowners_associations(attrs["raw"], self.context["project"])
+        associations, _ = build_codeowners_associations(
+            attrs["raw"], self.context["project"], attrs["code_mapping_id"]
+        )
 
         issue_owner_rules = convert_codeowners_syntax(
             attrs["raw"], associations, attrs["code_mapping_id"]

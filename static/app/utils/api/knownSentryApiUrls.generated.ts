@@ -641,6 +641,7 @@ export type KnownSentryApiUrls =
   | '/users/$userId/authenticators/$authId/$interfaceDeviceId/'
   | '/users/$userId/authenticators/$interfaceId/enroll/'
   | '/users/$userId/avatar/'
+  | '/users/$userId/display-preferences/'
   | '/users/$userId/emails/'
   | '/users/$userId/emails/confirm/'
   | '/users/$userId/identities/'

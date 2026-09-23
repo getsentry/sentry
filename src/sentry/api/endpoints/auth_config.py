@@ -4,7 +4,6 @@ from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
-from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -42,6 +41,7 @@ class AuthConfigResponse(TypedDict):
     vstsLoginLink: NotRequired[str]
     warning: NotRequired[str]
     loginBannerMarkdown: NotRequired[str]
+    singleOrganizationSlug: NotRequired[str]
 
 
 @control_silo_endpoint
@@ -83,12 +83,10 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         # Auth login verifies the test cookie is set
         request.session.set_test_cookie()
 
-        # Single org mode -- send them to the org-specific handler
-        if settings.SENTRY_SINGLE_ORGANIZATION:
-            org = Organization.get_default()
-            return Response({"nextUri": reverse("sentry-auth-organization", args=[org.slug])})
-
         payload = self.prepare_login_context(request, *args, **kwargs)
+        if settings.SENTRY_SINGLE_ORGANIZATION:
+            payload["singleOrganizationSlug"] = Organization.get_default().slug
+
         return self.respond_with_login_context(request, payload)
 
     def respond_with_login_context(self, request: Request, payload: AuthConfigResponse) -> Response:

@@ -353,6 +353,7 @@ class TestOrganizationSeerAgentUpdateCommitAuthor(APITestCase):
         assert self._sent_payload(mock_request, "create_pr")["author"] == {
             "name": self.user.get_display_name(),
             "email": "583231+octocat@users.noreply.github.com",
+            "scm_login": "octocat",
         }
 
         # A spoofed author is stripped on every payload type, not just create_pr.

@@ -7,8 +7,11 @@ from enum import StrEnum
 
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
-from sentry.ingestion_delay.activity import has_accepted_outcomes
-from sentry.ingestion_delay.query import get_measurement_lookback, measure_ingestion_delay
+from sentry.ingestion_delay.activity import get_accepted_outcomes
+from sentry.ingestion_delay.query import (
+    get_ingestion_delay_measurement,
+    get_measurement_lookback,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +45,7 @@ def get_ingestion_delay_status(
     The measured delay, and the time through which data is believed complete.
     """
     now = datetime.now(tz=UTC)
-    measurement = measure_ingestion_delay(organization_id, item_type, now)
+    measurement = get_ingestion_delay_measurement(organization_id, item_type, now)
 
     # Snuba query failure tells us nothing about the pipeline.
     if not measurement.succeeded:
@@ -84,12 +87,14 @@ def get_ingestion_delay_status(
         evidence_end = now - STALL_GRACE
         evidence_start = now - get_measurement_lookback()
 
-    accepted = has_accepted_outcomes(
+    accepted = get_accepted_outcomes(
         organization_id=organization_id,
         project_ids=project_ids,
         item_type=item_type,
         start=evidence_start,
         end=evidence_end,
+        last_ingested_at=last_ingested_at,
+        delay_seconds=delay_seconds,
     )
 
     if accepted is None:

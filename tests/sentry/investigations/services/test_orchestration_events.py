@@ -11,7 +11,6 @@ from rest_framework import serializers
 
 from sentry.api.serializers import serialize
 from sentry.db.models.fields.bounded import I64_MAX
-from sentry.investigations.endpoints.base import investigation_ids_with_project_access
 from sentry.investigations.endpoints.serializers import InvestigationBlockSerializer
 from sentry.investigations.endpoints.validators.block import BlockUpdateValidator
 from sentry.investigations.models import (
@@ -516,24 +515,11 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             assert set(
                 block.content_execution.data_project_links.values_list("project_id", flat=True)
             ) == {self.project.id, other_project.id}
-            assert self.investigation.id not in investigation_ids_with_project_access(
-                [self.investigation], {other_project.id}
-            )
             assert (
                 serialize(
                     block,
                     self.user,
-                    InvestigationBlockSerializer(accessible_project_ids={other_project.id}),
-                )["content"]
-                == ""
-            )
-            assert (
-                serialize(
-                    block,
-                    self.user,
-                    InvestigationBlockSerializer(
-                        accessible_project_ids={self.project.id, other_project.id}
-                    ),
+                    InvestigationBlockSerializer(),
                 )["content"]
                 == "Original report"
             )
@@ -580,9 +566,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             serialize(
                 block,
                 self.user,
-                InvestigationBlockSerializer(accessible_project_ids={self.project.id}),
+                InvestigationBlockSerializer(),
             )["content"]
-            == ""
+            == payload["content"]
         )
 
     def test_started_report_block_accepts_null_display(self) -> None:
@@ -827,16 +813,13 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         replacement_execution.refresh_from_db()
         assert replacement_execution.status == InvestigationBlockExecutionStatus.FAILED
         assert replacement_execution.block_id == block.id
-        assert self.investigation.id not in investigation_ids_with_project_access(
-            [self.investigation], {replacement_project.id}
-        )
         assert (
             serialize(
                 block,
                 self.user,
-                InvestigationBlockSerializer(accessible_project_ids={replacement_project.id}),
+                InvestigationBlockSerializer(),
             )["content"]
-            == ""
+            == "Original report"
         )
 
     def test_out_of_order_events_deduplicate_and_ignore_delayed_responses(self) -> None:
@@ -1176,16 +1159,16 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert list(
             block.content_execution.data_project_links.values_list("project_id", flat=True)
         ) == [self.project.id]
-        restricted_user = self.create_user()
-        self.create_member(organization=self.organization, user=restricted_user)
-        restricted = serialize(
+        viewer = self.create_user()
+        self.create_member(organization=self.organization, user=viewer)
+        shared = serialize(
             block,
-            restricted_user,
-            InvestigationBlockSerializer(accessible_project_ids=set()),
+            viewer,
+            InvestigationBlockSerializer(),
         )
-        assert restricted["content"] == ""
-        assert restricted["generatedContent"] == ""
-        assert restricted["outputStatus"] == "restricted"
+        assert shared["content"] == "fresh"
+        assert shared["generatedContent"] == "fresh"
+        assert shared["outputStatus"] == InvestigationBlockExecutionStatus.RUNNING
         self.investigation.refresh_from_db()
         assert self.investigation.title == "Final title"
         assert self.investigation.summary == "Root cause found"
@@ -1220,7 +1203,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             serialize(
                 in_flight,
                 self.user,
-                InvestigationBlockSerializer(accessible_project_ids={self.project.id}),
+                InvestigationBlockSerializer(),
             )["outputStatus"]
             == InvestigationBlockExecutionStatus.RUNNING
         )
