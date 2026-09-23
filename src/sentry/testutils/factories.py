@@ -112,7 +112,7 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.models.custominboundfilter import CustomInboundFilter, DataType
+from sentry.models.custominboundfilter import CustomInboundFilter, CustomInboundFilterDataType
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -858,7 +858,7 @@ class Factories:
         project: Project,
         name: str = "Custom inbound filter",
         active: bool = True,
-        data_type: str = DataType.ERROR,
+        data_type: str = CustomInboundFilterDataType.ERROR,
         conditions: list[dict[str, object]] | None = None,
     ) -> CustomInboundFilter:
         if conditions is None:

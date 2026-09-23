@@ -8,7 +8,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model, sane_repr
 
 
-class ConditionType(StrEnum):
+class CustomInboundFilterConditionType(StrEnum):
     ERROR_TYPE = "error_type"
     ERROR_MESSAGE = "error_message"
     LOG_MESSAGE = "log_message"
@@ -17,7 +17,7 @@ class ConditionType(StrEnum):
     IP_ADDRESS = "ip_address"
 
 
-class DataType(StrEnum):
+class CustomInboundFilterDataType(StrEnum):
     ALL = "all"
     ERROR = "error"
     LOG = "log"
@@ -38,7 +38,7 @@ class CustomInboundFilter(DefaultFieldsModel):
     # refuses a filter without one rather than guessing.
     data_type = models.CharField(
         max_length=32,
-        choices=[(data_type, data_type) for data_type in DataType],
+        choices=[(data_type, data_type) for data_type in CustomInboundFilterDataType],
         null=True,
     )
     conditions = models.JSONField(default=list)
