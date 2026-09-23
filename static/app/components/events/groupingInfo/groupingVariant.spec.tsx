@@ -1,17 +1,12 @@
 import {EventFixture} from 'sentry-fixture/event';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EventGroupVariantType} from 'sentry/types/event';
 
 import {GroupingVariant} from './groupingVariant';
 
 describe('Grouping Variant', () => {
-  function getValueCell(label: string) {
-    const row = screen.getByRole('row', {name: new RegExp(label)});
-    return within(row).getAllByRole('cell')[1];
-  }
-
   const event = EventFixture({
     entries: [
       {
@@ -67,9 +62,15 @@ describe('Grouping Variant', () => {
       />
     );
 
-    expect(getValueCell('Parent Span Hashes')).toHaveTextContent('[]');
-    expect(getValueCell('Source Span Hashes')).toHaveTextContent('hash1');
-    expect(getValueCell('Offender Span Hashes')).toHaveTextContent('hash2');
+    expect(
+      screen.getByRole('row', {name: /^Parent Span Hashes \[\s*\]$/})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: /^Source Span Hashes \[\s*hash1\s*\]$/})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: /^Offender Span Hashes \[\s*hash2\s*\]$/})
+    ).toBeInTheDocument();
   });
 
   it('renders grouping details for occurrence-backed performance issues', () => {
@@ -81,8 +82,14 @@ describe('Grouping Variant', () => {
       />
     );
 
-    expect(getValueCell('Parent Span Hashes')).toHaveTextContent('[]');
-    expect(getValueCell('Source Span Hashes')).toHaveTextContent('hash1');
-    expect(getValueCell('Offender Span Hashes')).toHaveTextContent('hash2');
+    expect(
+      screen.getByRole('row', {name: /^Parent Span Hashes \[\s*\]$/})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: /^Source Span Hashes \[\s*hash1\s*\]$/})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: /^Offender Span Hashes \[\s*hash2\s*\]$/})
+    ).toBeInTheDocument();
   });
 });
