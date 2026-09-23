@@ -1,0 +1,83 @@
+diff --git a/lib/canvas/Painter.js b/lib/canvas/Painter.js
+index 78dc6c8d46eca79366f5190a7c191410f8133816..3c79bc4e8abc8917458a0297159c5a0a307b01c8 100644
+--- a/lib/canvas/Painter.js
++++ b/lib/canvas/Painter.js
+@@ -111,7 +111,7 @@ var CanvasPainter = (function () {
+         var rootStyle = root.style;
+         if (rootStyle) {
+             util.disableUserSelect(root);
+-            root.innerHTML = '';
++            root.textContent = '';
+         }
+         this.storage = storage;
+         this._prevDisplayList = [];
+@@ -685,7 +685,7 @@ var CanvasPainter = (function () {
+         });
+     };
+     CanvasPainter.prototype.dispose = function () {
+-        this.root.innerHTML = '';
++        this.root.textContent = '';
+         this.root =
+             this.storage =
+                 this._domRoot =
+diff --git a/lib/svg/Painter.js b/lib/svg/Painter.js
+index 2db019c7e9ac4b13947d0bb9220fdecbfa591d2f..b514a95dd529b76e1bea37953dfd00ed065f4b5a 100644
+--- a/lib/svg/Painter.js
++++ b/lib/svg/Painter.js
+@@ -187,7 +187,7 @@ var SVGPainter = (function () {
+     };
+     SVGPainter.prototype.dispose = function () {
+         if (this.root) {
+-            this.root.innerHTML = '';
++            this.root.textContent = '';
+         }
+         this._svgDom =
+             this._viewport =
+@@ -198,7 +198,7 @@ var SVGPainter = (function () {
+     };
+     SVGPainter.prototype.clear = function () {
+         if (this._svgDom) {
+-            this._svgDom.innerHTML = null;
++            this._svgDom.textContent = '';
+         }
+         this._oldVNode = null;
+     };
+diff --git a/lib/svg-legacy/Painter.js b/lib/svg-legacy/Painter.js
+index 5ca3b0d2fb308a7e9019a5dcb0869ce05ea130db..a818d6be22e8fa7c35634841d02eefd503a24828 100644
+--- a/lib/svg-legacy/Painter.js
++++ b/lib/svg-legacy/Painter.js
+@@ -258,7 +258,7 @@ var SVGPainter = (function () {
+         return this._height;
+     };
+     SVGPainter.prototype.dispose = function () {
+-        this.root.innerHTML = '';
++        this.root.textContent = '';
+         this._svgRoot =
+             this._backgroundRoot =
+                 this._svgDom =
+diff --git a/lib/svg-legacy/helper/ClippathManager.js b/lib/svg-legacy/helper/ClippathManager.js
+index d99b65aeec73c96cb3d981a87752467819757517..1383275a0c58c5e86ec029eb05a4eaf18ad5ef44 100644
+--- a/lib/svg-legacy/helper/ClippathManager.js
++++ b/lib/svg-legacy/helper/ClippathManager.js
+@@ -73,7 +73,7 @@ var ClippathManager = (function (_super) {
+             }
+             path.brush(clipPath);
+             var pathEl = this.getSvgElement(clipPath);
+-            clipPathEl.innerHTML = '';
++            clipPathEl.textContent = '';
+             clipPathEl.appendChild(pathEl);
+             parentEl.setAttribute('clip-path', getIdURL(id));
+             if (clipPaths.length > 1) {
+diff --git a/lib/svg-legacy/helper/GradientManager.js b/lib/svg-legacy/helper/GradientManager.js
+index 7d413a137ebdc956c646e293820a745812b98a15..e802f747bae4e6b94271bb840958ee883047f55e 100644
+--- a/lib/svg-legacy/helper/GradientManager.js
++++ b/lib/svg-legacy/helper/GradientManager.js
+@@ -96,7 +96,7 @@ var GradientManager = (function (_super) {
+         dom.setAttribute('gradientUnits', gradient.global
+             ? 'userSpaceOnUse'
+             : 'objectBoundingBox');
+-        dom.innerHTML = '';
++        dom.textContent = '';
+         var colors = gradient.colorStops;
+         for (var i = 0, len = colors.length; i < len; ++i) {
+             var stop_1 = createElement('stop');
