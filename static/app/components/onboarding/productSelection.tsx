@@ -99,6 +99,11 @@ export const platformProductAvailability = {
     ProductSolution.METRICS,
   ],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  deno: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   dotnet: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,

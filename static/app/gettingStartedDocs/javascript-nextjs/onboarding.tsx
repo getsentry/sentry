@@ -22,6 +22,12 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
+          text: tct('The Sentry Next.js SDK requires Next.js [code:14] or later.', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'text',
           text: tct(
             'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
             {

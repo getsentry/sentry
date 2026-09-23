@@ -132,24 +132,27 @@ describe('ConversationOnboarding', () => {
     );
   });
 
-  it('uses the same agent setup for unsupported platforms', async () => {
-    const {organization, project} = setupProject('other');
-    const prompt = getAgentSetupPrompt({
-      organizationSlug: organization.slug,
-      project,
-      dsn: ProjectKeysFixture()[0].dsn.public,
-    });
+  it.each(['other', 'javascript'] as const)(
+    'uses the same agent setup for unsupported platform %s',
+    async platform => {
+      const {organization, project} = setupProject(platform);
+      const prompt = getAgentSetupPrompt({
+        organizationSlug: organization.slug,
+        project,
+        dsn: ProjectKeysFixture()[0].dsn.public,
+      });
 
-    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+      render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Copy prompt'}));
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prompt);
-    expect(screen.getByText(prompt, {collapseWhitespace: false})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'For you'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
-  });
+      await userEvent.click(await screen.findByRole('button', {name: 'Copy prompt'}));
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prompt);
+      expect(screen.getByText(prompt, {collapseWhitespace: false})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'For you'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    }
+  );
 
   it.each([
     {platform: 'node', linkName: 'documentation'},
@@ -190,8 +193,12 @@ describe('ConversationOnboarding', () => {
     ).toBeGreaterThan(0);
   });
 
-  it('shows the unsupported platform setup for a browser project', async () => {
-    const {organization} = setupProject('javascript');
+  it('shows manual instrumentation guidance for a browser project without a DSN', async () => {
+    const {organization, project} = setupProject('javascript');
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      body: [],
+    });
 
     render(<ConversationOnboarding onDismiss={jest.fn()} />, {
       organization,
@@ -204,7 +211,10 @@ describe('ConversationOnboarding', () => {
     });
 
     expect(
-      await screen.findByText(
+      await screen.findByRole('tab', {name: 'For you', selected: true})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(
+      screen.getByText(
         textWithMarkupMatcher(
           /Auto instrumentation isn't available for Browser JavaScript,/
         )
