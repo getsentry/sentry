@@ -71,6 +71,158 @@ describe('InvoiceDetails > Payment Form', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('completes 3D Secure without asking for a card again', async () => {
+    // The charge was already attempted with the card on file and the issuer
+    // wants the cardholder to authenticate, so the modal must not ask for
+    // card details -- only run the challenge and hand the result back.
+    const reloadInvoice = jest.fn();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
+      method: 'GET',
+      body: {...intentData, requiresAction: true, paymentIntentId: 'pi_123abc'},
+    });
+    const mockConfirm = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/${invoice.id}/confirm/`,
+      method: 'POST',
+      body: {paid: true},
+    });
+
+    render(
+      <InvoiceDetailsPaymentForm
+        organization={organization}
+        Header={modalDummy}
+        Body={ModalBody}
+        closeModal={jest.fn()}
+        reloadInvoice={reloadInvoice}
+        invoice={invoice}
+      />
+    );
+
+    const button = await screen.findByRole('button', {name: 'Verify with your bank'});
+    // The card form is what this flow exists to avoid.
+    expect(screen.queryByRole('button', {name: 'Pay Now'})).not.toBeInTheDocument();
+
+    await userEvent.click(button);
+
+    // Authenticating leaves a manual-confirmation intent in
+    // requires_confirmation, so the server has to finish it.
+    await waitFor(() => expect(mockConfirm).toHaveBeenCalled());
+    expect(mockConfirm.mock.calls[0][1].data).toEqual({paymentIntentId: 'test-payment'});
+    await waitFor(() => expect(reloadInvoice).toHaveBeenCalled());
+  });
+
+  it('falls back to the card form when verification fails', async () => {
+    // A failed challenge spends the intent -- Stripe needs a new payment method
+    // to fulfil it. Without refetching, the modal keeps offering a dead intent
+    // and the customer has no way to pay.
+    const reloadInvoice = jest.fn();
+    let call = 0;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
+      method: 'GET',
+      body: () => {
+        call += 1;
+        // First load offers the parked challenge; after it fails the server
+        // issues a fresh intent with no requiresAction.
+        return call === 1
+          ? {
+              ...intentData,
+              clientSecret: 'ERROR',
+              requiresAction: true,
+              paymentIntentId: 'pi_123abc',
+            }
+          : intentData;
+      },
+    });
+
+    render(
+      <InvoiceDetailsPaymentForm
+        organization={organization}
+        Header={modalDummy}
+        Body={ModalBody}
+        closeModal={jest.fn()}
+        reloadInvoice={reloadInvoice}
+        invoice={invoice}
+      />
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    );
+
+    expect(await screen.findByText(/authentication failed/)).toBeInTheDocument();
+    // The card form is back, so another card can be used.
+    expect(await screen.findByRole('button', {name: 'Pay Now'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Verify with your bank'})
+    ).not.toBeInTheDocument();
+    expect(reloadInvoice).not.toHaveBeenCalled();
+  });
+
+  it('does not strand the button when handleCardAction rejects', async () => {
+    const reloadInvoice = jest.fn();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
+      method: 'GET',
+      body: {
+        ...intentData,
+        clientSecret: 'REJECT',
+        requiresAction: true,
+        paymentIntentId: 'pi_123abc',
+      },
+    });
+
+    render(
+      <InvoiceDetailsPaymentForm
+        organization={organization}
+        Header={modalDummy}
+        Body={ModalBody}
+        closeModal={jest.fn()}
+        reloadInvoice={reloadInvoice}
+        invoice={invoice}
+      />
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    );
+
+    // Not left spinning on "Verifying..." with nothing explaining why.
+    expect(await screen.findByText(/did not go through/)).toBeInTheDocument();
+  });
+
+  it('surfaces a decline that happens after authentication', async () => {
+    const reloadInvoice = jest.fn();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
+      method: 'GET',
+      body: {...intentData, requiresAction: true, paymentIntentId: 'pi_123abc'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/${invoice.id}/confirm/`,
+      method: 'POST',
+      body: {paid: false, failureCode: 'card_declined'},
+    });
+
+    render(
+      <InvoiceDetailsPaymentForm
+        organization={organization}
+        Header={modalDummy}
+        Body={ModalBody}
+        closeModal={jest.fn()}
+        reloadInvoice={reloadInvoice}
+        invoice={invoice}
+      />
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    );
+
+    expect(await screen.findByText(/Your bank declined the payment/)).toBeInTheDocument();
+    expect(reloadInvoice).not.toHaveBeenCalled();
+  });
+
   it('renders an error when intent creation fails', async () => {
     const reloadInvoice = jest.fn();
     const mockget = MockApiClient.addMockResponse({
@@ -112,6 +264,11 @@ describe('InvoiceDetails > Payment Form', () => {
       method: 'GET',
       body: intentData,
     });
+    const mockConfirm = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/${invoice.id}/confirm/`,
+      method: 'POST',
+      body: {paid: true},
+    });
     render(
       <InvoiceDetailsPaymentForm
         organization={organization}
@@ -131,5 +288,39 @@ describe('InvoiceDetails > Payment Form', () => {
     await userEvent.click(button);
     await waitFor(() => expect(reloadInvoice).toHaveBeenCalled());
     expect(reloadInvoice).toHaveBeenCalled();
+    // The charge is confirmed server-side rather than left to the webhook,
+    // so the invoice is marked paid before the customer looks at it.
+    await waitFor(() => expect(mockConfirm).toHaveBeenCalled());
+  });
+
+  it('still reports success when recording the payment fails', async () => {
+    // The money has already moved at this point -- a failure to write it down
+    // is ours to chase (the webhook reconciles it), not the customer's.
+    const reloadInvoice = jest.fn();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
+      method: 'GET',
+      body: intentData,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/${invoice.id}/confirm/`,
+      method: 'POST',
+      statusCode: 500,
+      body: {detail: 'nope'},
+    });
+    render(
+      <InvoiceDetailsPaymentForm
+        organization={organization}
+        Header={modalDummy}
+        Body={ModalBody}
+        closeModal={jest.fn()}
+        reloadInvoice={reloadInvoice}
+        invoice={invoice}
+      />
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Pay Now'}));
+
+    await waitFor(() => expect(reloadInvoice).toHaveBeenCalled());
   });
 });

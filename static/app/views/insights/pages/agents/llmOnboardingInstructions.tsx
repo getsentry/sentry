@@ -1,5 +1,9 @@
 import {Button} from '@sentry/scraps/button';
 
+import {
+  getJsDataCollectionDocsLink,
+  isJavaScriptPlatform,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -58,11 +62,19 @@ export function getAgentSetupPrompt({
   organizationSlug: string;
   project: Pick<Project, 'slug' | 'platform'>;
 }) {
+  // `dataCollection` is a JavaScript SDK option, so only JavaScript projects get
+  // the question. The instrument skill keeps AI capture on unless the user asks.
+  const dataCollectionStep = isJavaScriptPlatform(project.platform)
+    ? `
+
+Then ask me whether I want to control which AI inputs and outputs the SDK sends, and point me to the [data collection options](${getJsDataCollectionDocsLink(project.platform)}).`
+    : '';
+
   return `Read and follow https://skills.sentry.dev/instrument to set up Sentry agent tracing and conversations.
 
 Use this existing project: ${organizationSlug}/${project.slug}
 DSN: ${dsn}
-Platform hint: ${project.platform || 'unknown'}
+Platform hint: ${project.platform || 'unknown'}${dataCollectionStep}
 
 Then offer to set up the [Sentry plugin](https://docs.sentry.io/ai/agent-plugin/) so I can find and fix production issues from my coding agent.`;
 }

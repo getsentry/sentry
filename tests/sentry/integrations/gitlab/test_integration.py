@@ -11,9 +11,12 @@ from django.test import override_settings
 from django.urls import reverse
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
+from sentry.constants import ObjectStatus
 from sentry.integrations.gitlab.client import GitLabApiClient, GitLabSetupApiClient
 from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_WEBHOOK_VERSION_KEY
 from sentry.integrations.gitlab.integration import GitlabIntegration, GitlabIntegrationProvider
+from sentry.integrations.gitlab.metrics import GitLabWebhookUpdateHaltReason
+from sentry.integrations.gitlab.tasks import update_all_project_webhooks
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -1276,6 +1279,16 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
     def _get_pipeline_signature(self, resp: Any) -> str:
         return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
 
+    def _run_pipeline(self, **overrides: Any) -> Any:
+        self._stub_gitlab_oauth()
+        self._stub_gitlab_user()
+        self._stub_gitlab_group()
+
+        self._initialize_pipeline()
+        resp = self._submit_config(**overrides)
+        pipeline_signature = self._get_pipeline_signature(resp)
+        return self._advance_step({"code": "gitlab-auth-code", "state": pipeline_signature})
+
     @responses.activate
     def test_initialize_pipeline(self) -> None:
         resp = self._initialize_pipeline()
@@ -1392,3 +1405,162 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         oauth_url = resp.data["data"]["oauthUrl"]
         assert "gitlab.example.com/oauth/authorize" in oauth_url
         assert "///" not in oauth_url
+
+    @responses.activate
+    def test_install_generates_webhook_secret(self) -> None:
+        self._run_pipeline()
+
+        integration = Integration.objects.get(provider="gitlab")
+        secret = integration.metadata["webhook_secret"]
+        assert secret
+        # The inbound webhook token is "<instance>:<group>:<secret>".
+        assert ":" not in secret
+
+    @responses.activate
+    def test_install_without_repositories_schedules_webhook_update(self) -> None:
+        with patch(
+            "sentry.integrations.gitlab.tasks.update_all_project_webhooks.delay"
+        ) as schedule:
+            resp = self._run_pipeline()
+
+        assert resp.data["status"] == "complete"
+        integration = Integration.objects.get(provider="gitlab")
+        schedule.assert_called_once_with(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        with (
+            assume_test_silo_mode(SiloMode.CELL),
+            patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay") as update,
+            patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt") as halt,
+        ):
+            update_all_project_webhooks(**schedule.call_args.kwargs)
+
+        halt.assert_called_once_with(GitLabWebhookUpdateHaltReason.NO_REPOSITORIES)
+        update.assert_not_called()
+
+    @responses.activate
+    def test_install_webhook_update_disabled(self) -> None:
+        with (
+            self.options({"gitlab.webhook-update-on-install.enabled": False}),
+            patch("sentry.integrations.gitlab.tasks.update_all_project_webhooks.delay") as schedule,
+        ):
+            resp = self._run_pipeline()
+
+        assert resp.data["status"] == "complete"
+        schedule.assert_not_called()
+
+    @responses.activate
+    def test_reinstall_updates_retained_webhooks_with_current_version(self) -> None:
+        self._run_pipeline()
+        integration = Integration.objects.get(provider="gitlab")
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+        config = {GITLAB_WEBHOOK_VERSION_KEY: GITLAB_WEBHOOK_VERSION, "sync_comments": True}
+        org_integration.update(config=config)
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:gitlab",
+            integration_id=integration.id,
+            external_id="gitlab.example.com:101",
+        )
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.update(config={"project_id": 101, "webhook_id": 99})
+        hook = responses.add(
+            responses.PUT,
+            f"{self.gitlab_url}/api/v4/projects/101/hooks/99",
+            json={"id": 99},
+        )
+
+        with patch(
+            "sentry.integrations.gitlab.tasks.update_all_project_webhooks.delay"
+        ) as schedule:
+            resp = self._run_pipeline()
+
+        assert resp.data["status"] == "complete"
+        schedule.assert_called_once_with(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        org_integration.refresh_from_db()
+        assert org_integration.config == config
+        with assume_test_silo_mode(SiloMode.CELL), self.tasks():
+            repo.refresh_from_db()
+            assert repo.integration_id == integration.id
+            update_all_project_webhooks(**schedule.call_args.kwargs)
+
+        assert hook.call_count == 1
+        payload = orjson.loads(responses.calls[-1].request.body)
+        assert payload["token"] == (
+            f"{integration.external_id}:{integration.metadata['webhook_secret']}"
+        )
+
+    @responses.activate
+    def test_failed_install_does_not_schedule_webhook_update(self) -> None:
+        with (
+            patch.object(Integration, "add_organization", side_effect=IntegrationError("Deleting")),
+            patch("sentry.integrations.gitlab.tasks.update_all_project_webhooks.delay") as schedule,
+        ):
+            resp = self._run_pipeline()
+
+        assert resp.data["status"] == "error"
+        schedule.assert_not_called()
+
+    @responses.activate
+    def test_reinstall_preserves_webhook_secret(self) -> None:
+        self._run_pipeline()
+        integration = Integration.objects.get(provider="gitlab")
+        secret = integration.metadata["webhook_secret"]
+
+        resp = self._run_pipeline(clientId="app-id-def456", verifySsl=False)
+        assert resp.data["status"] == "complete"
+
+        assert Integration.objects.filter(provider="gitlab").count() == 1
+        integration.refresh_from_db()
+        assert integration.metadata["webhook_secret"] == secret
+        assert integration.metadata["verify_ssl"] is False
+        assert integration.metadata["scopes"] == ["api"]
+
+    @responses.activate
+    def test_reinstall_preserves_webhook_secret_shared_with_another_org(self) -> None:
+        self._run_pipeline()
+        integration = Integration.objects.get(provider="gitlab")
+        secret = integration.metadata["webhook_secret"]
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_org = self.create_organization(name="other-org")
+        self.create_organization_integration(organization_id=other_org.id, integration=integration)
+
+        self._run_pipeline(clientId="app-id-def456")
+
+        integration.refresh_from_db()
+        assert integration.metadata["webhook_secret"] == secret
+        assert OrganizationIntegration.objects.filter(
+            organization_id=other_org.id, integration=integration
+        ).exists()
+
+    @responses.activate
+    def test_reinstall_preserves_webhook_secret_when_integration_is_disabled(self) -> None:
+        self._run_pipeline()
+        integration = Integration.objects.get(provider="gitlab")
+        secret = integration.metadata["webhook_secret"]
+        integration.update(status=ObjectStatus.DISABLED)
+
+        self._run_pipeline(clientId="app-id-def456")
+
+        integration.refresh_from_db()
+        assert integration.metadata["webhook_secret"] == secret
+        assert integration.status == ObjectStatus.ACTIVE
+
+    @responses.activate
+    def test_install_backfills_missing_webhook_secret(self) -> None:
+        integration = self.create_provider_integration(
+            provider="gitlab",
+            external_id="gitlab.example.com:1",
+            name="My Group",
+            metadata={"instance": "gitlab.example.com"},
+        )
+
+        self._run_pipeline()
+
+        integration.refresh_from_db()
+        assert integration.metadata["webhook_secret"]

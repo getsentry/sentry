@@ -34,7 +34,6 @@ type Tab = {
   content: () => React.ReactNode;
   key: TabKey;
   label: string;
-  feature?: string;
   featureBadge?: FeatureBadgeProps['type'];
 };
 
@@ -88,10 +87,8 @@ function ScreenDetailsPage() {
   const tabList = (
     <TabList>
       {tabs.map(tab => {
-        const visible =
-          tab.feature === undefined || organization.features.includes(tab.feature);
         return (
-          <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
+          <TabList.Item key={tab.key} textValue={tab.label}>
             {tab.label}
             {tab.featureBadge && <FeatureBadge type={tab.featureBadge} />}
           </TabList.Item>

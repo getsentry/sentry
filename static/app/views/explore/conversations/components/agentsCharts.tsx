@@ -22,7 +22,6 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
-import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {
@@ -186,20 +185,18 @@ export function AgentsCharts() {
         >
           {widgets.map(widget => (
             <Container key={widget.id} minHeight="240px" minWidth="0">
-              <DashboardsMEPProvider>
-                <WidgetCard
-                  disableFullscreen
-                  disableTableActions
-                  disableZoom
-                  dashboardFilters={dashboard.filters}
-                  selection={selection}
-                  showContextMenu={false}
-                  widget={widget}
-                  widgetInterval={chartInterval}
-                  widgetLegendState={widgetLegendState}
-                  widgetLimitReached={false}
-                />
-              </DashboardsMEPProvider>
+              <WidgetCard
+                disableFullscreen
+                disableTableActions
+                disableZoom
+                dashboardFilters={dashboard.filters}
+                selection={selection}
+                showContextMenu
+                widget={widget}
+                widgetInterval={chartInterval}
+                widgetLegendState={widgetLegendState}
+                widgetLimitReached={false}
+              />
             </Container>
           ))}
         </Grid>

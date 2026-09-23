@@ -32,6 +32,7 @@ from sentry.seer.autofix.pr_iteration.constants import (
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
+    ConsumeTriggerSource,
     Decision,
     TriggerDecision,
 )
@@ -728,8 +729,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
             organization_id=self.organization.id,
             feedback=parked.feedback,
             run_state=resolved.autofix_run.run_state,
-            bypass=True,
-            triggered_by="green_check_suite",
+            source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
         )
         mock_defer.assert_called_once_with(resolved)
         mock_confirm.assert_not_called()
@@ -759,7 +759,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
                 "sentry_organization_id": self.organization.id,
                 "sentry_group_id": self.group.id,
                 "scm_infos": [{"scm_repo_full_name": "owner/repo"}],
-                "triggered_by": "green_check_suite",
+                "trigger_source": ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
                 "outcome": "not_triggered",
                 "reason": "no_parked_feedback",
                 "countdown": None,
@@ -1223,16 +1223,18 @@ def _run_state(*, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
     )
 
 
-def _autofix_run(*, blocks: list[MemoryBlock] | None = None) -> CheckSuiteAutofixRun:
+def _autofix_run(
+    *, blocks: list[MemoryBlock] | None = None, group_id: int = 1
+) -> CheckSuiteAutofixRun:
     return CheckSuiteAutofixRun(
         repository=MagicMock(organization_id=1, id=2),
         run_state=_run_state(blocks=blocks or []),
         pr_id=1,
-        group_id=1,
+        group_id=group_id,
     )
 
 
-def _check_suite_source() -> CheckSuiteFeedbackSource:
+def _check_suite_source(*, group_id: int = 1) -> CheckSuiteFeedbackSource:
     source = CheckSuiteFeedbackSource(
         event={
             "check_suite": {
@@ -1249,7 +1251,8 @@ def _check_suite_source() -> CheckSuiteFeedbackSource:
         },
     )
     with patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
+        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+        return_value=_autofix_run(group_id=group_id),
     ):
         _ = source.autofix_run
     return source
@@ -1329,6 +1332,16 @@ class CheckSuiteHardCapTest(TestCase):
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
             task=None, reason="hard_cap_reached"
+        )
+
+    def test_should_queue_false_when_project_disabled_pr_iteration(self) -> None:
+        group = self.create_group()
+        group.project.update_option("sentry:seer_pr_iteration", False)
+
+        source = _check_suite_source(group_id=group.id)
+
+        assert source.should_queue(self._run_state_on_head(blocks=[])) == Decision(
+            ok=False, reason="project_disabled"
         )
 
     def test_should_queue_false_when_cap_reached(self) -> None:

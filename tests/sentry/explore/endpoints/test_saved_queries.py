@@ -1,4 +1,3 @@
-import pytest
 from django.urls import reverse
 
 from sentry.discover.models import (
@@ -7,6 +6,7 @@ from sentry.discover.models import (
     DiscoverSavedQueryStarred,
 )
 from sentry.explore.endpoints.explore_saved_queries import (
+    PREBUILT_SAVED_QUERIES,
     sync_prebuilt_queries,
     sync_prebuilt_queries_starred,
 )
@@ -19,7 +19,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-@pytest.mark.skip(reason="API not public yet, this line will be removed in future")
 class SavedQueriesTest(APITestCase):
     features = {
         "organizations:visibility-explore-view": True,
@@ -80,7 +79,7 @@ class SavedQueriesTest(APITestCase):
             is_homepage=True,
         )
 
-        self.url = reverse("sentry-api-0-saved-queries", args=[self.org.slug])
+        self.url = reverse("sentry-api-0-explore-all-queries", args=[self.org.slug])
 
     def test_get(self) -> None:
         with self.feature(self.features):
@@ -294,6 +293,14 @@ class SavedQueriesTest(APITestCase):
         )
         assert after_ids == reversed_ids
 
+    def test_get_my_queries(self) -> None:
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"exclude": "shared"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert [row["name"] for row in response.data] == ["Discover query", "Test query"]
+        assert [row["queryType"] for row in response.data] == ["discover", "explore"]
+
     def test_get_shared_queries(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         discover_model = DiscoverSavedQuery.objects.create(
@@ -470,3 +477,462 @@ class SavedQueriesTest(APITestCase):
         # The response is missing the 'query' key entirely — this is what
         # crashes the frontend, which expects it to be an array.
         assert "query" not in response.data
+
+    def test_get_sortby(self) -> None:
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="My query",
+            query=query,
+            date_added=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+        model.set_projects(self.project_ids)
+
+        discover_model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="My discover query",
+            query=self.discover_query_body,
+            version=1,
+        )
+        discover_model.set_projects(self.project_ids)
+        # date_created/date_updated are auto_now_add/auto_now, so they can only be
+        # backdated with an UPDATE.
+        DiscoverSavedQuery.objects.filter(id=discover_model.id).update(
+            date_created=before_now(minutes=20), date_updated=before_now(minutes=20)
+        )
+
+        sort_options = {
+            "dateAdded": True,
+            "-dateAdded": False,
+            "dateUpdated": True,
+            "-dateUpdated": False,
+            "name": True,
+            "-name": False,
+        }
+        for sorting, forward_sort in sort_options.items():
+            with self.feature(self.features):
+                response = self.client.get(self.url, data={"sortBy": sorting})
+            assert response.status_code == 200
+
+            key = sorting.strip("-")
+            # The two serializers disagree on the name of the creation
+            # timestamp: Explore emits dateAdded, Discover emits dateCreated.
+            values = [
+                row["dateCreated"] if key == "dateAdded" and "dateAdded" not in row else row[key]
+                for row in response.data
+            ]
+            assert len(values) == len(response.data)
+            if not forward_sort:
+                values = list(reversed(values))
+            assert list(sorted(values)) == values
+
+    def test_get_sortby_most_popular(self) -> None:
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        ExploreSavedQuery.objects.filter(name="Test query").update(visits=2)
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="My query",
+            query=query,
+            visits=3,
+            date_added=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+            last_visited=before_now(minutes=5),
+        )
+
+        model.set_projects(self.project_ids)
+
+        # Most-visited of all, and on the Discover side, so the top of the list
+        # has to come from the other table.
+        discover_model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="My discover query",
+            query=self.discover_query_body,
+            version=1,
+            visits=4,
+        )
+        discover_model.set_projects(self.project_ids)
+
+        for forward_sort in [True, False]:
+            sorting = "mostPopular" if forward_sort else "-mostPopular"
+            with self.feature(self.features):
+                response = self.client.get(self.url, data={"sortBy": sorting})
+
+            assert response.status_code == 200
+            values = [row["name"] for row in response.data]
+            expected = ["My discover query", "My query", "Test query"]
+
+            if forward_sort:
+                assert values[:3] == expected
+            else:
+                assert values[-3:] == list(reversed(expected))
+
+    def test_get_sortby_recently_viewed(self) -> None:
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="My query",
+            query=query,
+            visits=3,
+            date_added=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+            last_visited=before_now(minutes=5),
+        )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model,
+            last_visited=before_now(minutes=5),
+        )
+
+        model.set_projects(self.project_ids)
+        for forward_sort in [True, False]:
+            sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
+            with self.feature(self.features):
+                response = self.client.get(self.url, data={"sortBy": sorting})
+
+            assert response.status_code == 200
+            values = [row["name"] for row in response.data]
+
+            # Test query was visited most recently, then My query, then the
+            # Discover query from setUp -- last visited spans both sources.
+            if forward_sort:
+                assert values[:3] == ["Test query", "My query", "Discover query"]
+            else:
+                assert values[:3] == ["Discover query", "My query", "Test query"]
+
+            # Never-visited rows sort last in either direction.
+            assert values[-1] in {q["name"] for q in PREBUILT_SAVED_QUERIES}
+
+    def test_get_sortby_recently_viewed_stable_order(self) -> None:
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        same_date = before_now(minutes=1)
+        created = [
+            ExploreSavedQuery.objects.create(
+                organization=self.org,
+                created_by_id=self.user.id,
+                name=f"Unvisited {i}",
+                query=query,
+                date_added=same_date,
+                date_updated=same_date,
+            )
+            for i in range(3)
+        ]
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
+
+        assert response.status_code == 200, response.content
+        expected = [q.name for q in sorted(created, key=lambda q: q.id, reverse=True)]
+        returned = [row["name"] for row in response.data if row["name"].startswith("Unvisited ")]
+        assert returned == expected
+
+    def test_get_sortby_recently_viewed_nulls_last_in_both_directions(self) -> None:
+        """Never-visited rows sort after every visited row, ascending or descending.
+
+        The union's ORDER BY carries a NULLS LAST modifier, so this is the property
+        that breaks first if that modifier is dropped or the annotation stops being
+        projected into the combined select list.
+        """
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        second_explore = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Visited explore query",
+            query=query,
+            date_added=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+        second_explore.set_projects(self.project_ids)
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=second_explore,
+            last_visited=before_now(minutes=15),
+        )
+
+        # "Test query" and "Discover query" are visited in setUp, one per source.
+        visited = {"Test query", "Discover query", "Visited explore query"}
+
+        for sorting in ["recentlyViewed", "-recentlyViewed"]:
+            with self.feature(self.features):
+                response = self.client.get(self.url, data={"sortBy": sorting})
+
+            assert response.status_code == 200, response.content
+            names = [row["name"] for row in response.data]
+
+            visited_positions = [idx for idx, name in enumerate(names) if name in visited]
+            unvisited_positions = [idx for idx, name in enumerate(names) if name not in visited]
+
+            assert len(visited_positions) == len(visited), names
+            assert unvisited_positions, names
+            assert max(visited_positions) < min(unvisited_positions), (sorting, names)
+
+    def test_get_sortby_recently_viewed_orders_visited_rows_across_sources(self) -> None:
+        """Ascending and descending are exact mirrors of each other."""
+        with self.feature(self.features):
+            forward = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
+        with self.feature(self.features):
+            backward = self.client.get(self.url, data={"sortBy": "-recentlyViewed"})
+
+        assert forward.status_code == 200, forward.content
+        assert backward.status_code == 200, backward.content
+
+        visited = {"Test query", "Discover query"}
+        forward_visited = [row["name"] for row in forward.data if row["name"] in visited]
+        backward_visited = [row["name"] for row in backward.data if row["name"] in visited]
+
+        assert forward_visited == ["Test query", "Discover query"]
+        assert backward_visited == list(reversed(forward_visited))
+
+    def test_get_sortby_myqueries(self) -> None:
+        uhoh_user = self.create_user(username="uhoh")
+        self.create_member(organization=self.org, user=uhoh_user)
+
+        whoops_user = self.create_user(username="whoops")
+        self.create_member(organization=self.org, user=whoops_user)
+
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=uhoh_user.id,
+            name="a query for uhoh",
+            query=query,
+            date_added=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+        model.set_projects(self.project_ids)
+
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=whoops_user.id,
+            name="a query for whoops",
+            query=query,
+            date_added=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+        model.set_projects(self.project_ids)
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"sortBy": "myqueries"})
+        assert response.status_code == 200, response.content
+        # The caller's own queries come first, from both sources.
+        assert response.data[0]["createdBy"]["id"] == str(self.user.id)
+        assert response.data[1]["createdBy"]["id"] == str(self.user.id)
+        assert {response.data[0]["queryType"], response.data[1]["queryType"]} == {
+            "discover",
+            "explore",
+        }
+        assert response.data[2]["createdBy"]["id"] == str(uhoh_user.id)
+        assert response.data[3]["createdBy"]["id"] == str(whoops_user.id)
+
+    def test_get_most_starred_queries(self) -> None:
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Most starred query",
+            query=query,
+        )
+        second_model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Second most starred query",
+            query=query,
+        )
+        model.set_projects(self.project_ids)
+        second_model.set_projects(self.project_ids)
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model,
+            position=1,
+        )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            explore_saved_query=model,
+            position=1,
+        )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 2,
+            explore_saved_query=model,
+            position=1,
+        )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=second_model,
+            position=2,
+        )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            explore_saved_query=second_model,
+            position=2,
+        )
+
+        # Add some discover objects
+        discover_model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Most starred discover query",
+            query=self.discover_query_body,
+            version=1,
+        )
+        discover_model.set_projects(self.project_ids)
+        for offset, position in enumerate([3, 1, 1, 1]):
+            DiscoverSavedQueryStarred.objects.create(
+                organization=self.org,
+                user_id=self.user.id + offset,
+                discover_saved_query=discover_model,
+                position=position,
+            )
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"sortBy": "mostStarred"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 10
+        assert response.data[0]["name"] == "Most starred discover query"
+        assert response.data[0]["queryType"] == "discover"
+        assert response.data[0]["starred"] is True
+        assert response.data[0]["position"] == 3
+        assert response.data[1]["name"] == "Most starred query"
+        assert response.data[1]["starred"] is True
+        assert response.data[1]["position"] == 1
+        assert response.data[2]["name"] == "Second most starred query"
+        assert response.data[2]["starred"] is True
+        assert response.data[2]["position"] == 2
+        assert response.data[-1]["name"] == "Test query"
+        assert response.data[-1]["starred"] is False
+        assert response.data[-1]["position"] is None
+
+    def test_get_sortby_multiple(self) -> None:
+        # Trigger prebuilt queries creation and unstar prebuilt queries to simplify test
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+        ExploreSavedQueryStarred.objects.filter(
+            organization=self.org,
+            user_id=self.user.id,
+            starred=True,
+        ).update(starred=False, position=None)
+
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        model_a = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query A",
+            query=query,
+            last_visited=before_now(minutes=30),
+        )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_a,
+            last_visited=before_now(minutes=30),
+        )
+        model_a.set_projects(self.project_ids)
+
+        model_b = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query B",
+            query=query,
+            last_visited=before_now(minutes=20),
+        )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_b,
+            last_visited=before_now(minutes=20),
+        )
+        model_b.set_projects(self.project_ids)
+
+        model_c = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query C",
+            query=query,
+            last_visited=before_now(minutes=10),
+        )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_c,
+            last_visited=before_now(minutes=10),
+        )
+        model_c.set_projects(self.project_ids)
+
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_a,
+            position=1,
+        )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_b,
+            position=2,
+        )
+
+        model_d = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query D",
+            query=query,
+            last_visited=before_now(minutes=15),
+        )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_d,
+            last_visited=before_now(minutes=15),
+        )
+        model_d.set_projects(self.project_ids)
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            explore_saved_query=model_d,
+            position=1,
+        )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 2,
+            explore_saved_query=model_d,
+            position=1,
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"sortBy": ["starred", "recentlyViewed"]})
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 11
+        assert response.data[0]["name"] == "Query B"
+        assert response.data[0]["starred"] is True
+        assert response.data[0]["position"] == 2
+        assert response.data[1]["name"] == "Query A"
+        assert response.data[1]["starred"] is True
+        assert response.data[1]["position"] == 1
+        assert response.data[2]["name"] == "Test query"
+        assert response.data[2]["starred"] is False
+        assert response.data[2]["position"] is None
+        assert response.data[3]["name"] == "Query C"
+        assert response.data[3]["starred"] is False
+        assert response.data[3]["position"] is None
+        assert response.data[4]["name"] == "Query D"
+        assert (
+            response.data[4]["starred"] is False
+        )  # This should be false because this query is starred by a different user
+        assert response.data[4]["position"] is None
+        # setUp's Discover query was visited longest ago, so it closes out the
+        # visited group before the never-visited prebuilts.
+        assert response.data[5]["name"] == "Discover query"
+        assert response.data[5]["queryType"] == "discover"
+        assert response.data[5]["starred"] is False

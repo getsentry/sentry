@@ -43,6 +43,7 @@ def format_snapshot_status_check_messages(
     total_unchanged = 0
     total_skipped = 0
     total_errored = 0
+    has_approved_failure = False
 
     for artifact in artifacts:
         metrics = snapshot_metrics_map.get(artifact.id)
@@ -54,6 +55,9 @@ def format_snapshot_status_check_messages(
             continue
 
         if comparison.state == PreprodSnapshotComparison.State.FAILED:
+            if approvals_map is not None and artifact.id in approvals_map:
+                has_approved_failure = True
+                continue
             base_sha = artifact.commit_comparison.base_sha if artifact.commit_comparison else None
             if (
                 comparison.error_code == PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING
@@ -76,6 +80,8 @@ def format_snapshot_status_check_messages(
 
     if overall_status == StatusCheckStatus.IN_PROGRESS:
         subtitle = str(_("Comparing snapshots..."))
+    elif has_approved_failure and overall_status == StatusCheckStatus.SUCCESS:
+        subtitle = str(_("Approved despite failed comparison"))
     elif total_changed == 0 and total_added == 0 and total_removed == 0 and total_renamed == 0:
         subtitle = str(_("No changes detected"))
     else:
@@ -236,26 +242,60 @@ def format_missing_base_snapshot_status_check_messages(
     base_repo_url: str | None = None,
     expired: bool = False,
 ) -> tuple[str, str, str]:
+    # Check-run output.title is plain text; keep the SHA unlinked here.
+    subtitle = str(_("No base snapshot found for %(base_sha)s")) % {"base_sha": base_sha}
+    base_sha_markdown = format_commit_sha_markdown(base_sha, repo_url=base_repo_url)
+    if expired:
+        note = (
+            f"No snapshots were found for base commit {base_sha_markdown}. "
+            "Push a new commit to the base branch, then rebase this branch on it."
+        )
+    else:
+        note = (
+            f"Base commit {base_sha_markdown} did not produce snapshots to compare against. "
+            "Did its snapshot job fail? "
+            "Try rebasing this branch on a commit with a successful snapshot job."
+        )
+    return _format_missing_base_snapshot_status_check_messages(
+        artifacts, snapshot_metrics_map, project, subtitle=subtitle, note=note
+    )
+
+
+def format_approved_without_base_snapshot_status_check_messages(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+    project: Project,
+    *,
+    base_sha: str,
+    base_repo_url: str | None = None,
+) -> tuple[str, str, str]:
+    base_sha_markdown = format_commit_sha_markdown(base_sha, repo_url=base_repo_url)
+    return _format_missing_base_snapshot_status_check_messages(
+        artifacts,
+        snapshot_metrics_map,
+        project,
+        subtitle=str(_("Approved without base snapshots")),
+        note=(
+            f"Base commit {base_sha_markdown} did not produce snapshots to compare against. "
+            "These snapshots were approved without a comparison."
+        ),
+    )
+
+
+def _format_missing_base_snapshot_status_check_messages(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+    project: Project,
+    *,
+    subtitle: str,
+    note: str,
+) -> tuple[str, str, str]:
     if not artifacts:
         raise ValueError("Cannot format messages for empty artifact list")
 
     title = _SNAPSHOT_TITLE_BASE
-    # Check-run output.title is plain text; keep the SHA unlinked here.
-    subtitle = str(_("No base snapshot found for %(base_sha)s")) % {"base_sha": base_sha}
-
-    base_sha_markdown = format_commit_sha_markdown(base_sha, repo_url=base_repo_url)
     summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
-    if expired:
-        summary += (
-            f"\n\nNo snapshots were found for base commit {base_sha_markdown}. "
-            "Push a new commit to the base branch, then rebase this branch on it."
-        )
-    else:
-        summary += (
-            f"\n\nBase commit {base_sha_markdown} did not produce snapshots to compare against. "
-            "Did its snapshot job fail? "
-            "Try rebasing this branch on a commit with a successful snapshot job."
-        )
+    summary += "\n\n" + note
 
     settings_url = _get_settings_url(project)
     summary += "\n\n" + _format_configure_link(project, settings_url)
@@ -343,6 +383,10 @@ def _format_snapshot_summary(
             PreprodSnapshotComparison.State.PROCESSING,
         ):
             table_rows.append(f"| {name} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
+        elif comparison.state == PreprodSnapshotComparison.State.FAILED:
+            is_approved = approvals_map is not None and artifact.id in approvals_map
+            status = "✅ Approved (comparison failed)" if is_approved else "❌ Comparison failed"
+            table_rows.append(f"| {name} | - | - | - | - | - | - | {status} |")
         else:
             has_changes = changes_map.get(artifact.id, False)
             is_approved = approvals_map is not None and artifact.id in approvals_map

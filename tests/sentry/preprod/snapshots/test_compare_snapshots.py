@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 import orjson
 import pytest
@@ -8,7 +8,7 @@ from objectstore_client import RequestError
 
 from sentry.preprod.snapshots.image_diff.types import ImageSize
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison
-from sentry.preprod.snapshots.tasks import _retry_objectstore
+from sentry.preprod.snapshots.tasks import _put_json, _retry_objectstore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -53,6 +53,26 @@ class ChunksDoneIndicesTest(TestCase):
         _mark_chunk_done(comparison.id, 0)
         comparison.refresh_from_db()
         assert (timezone.now() - comparison.date_updated).total_seconds() < 5
+
+
+@patch("sentry.preprod.snapshots.tasks.time.sleep")
+def test_put_json_serializes_once_across_retries(mock_sleep: MagicMock) -> None:
+    session = MagicMock()
+    session.put.side_effect = [RequestError("unavailable", 503, "unavailable"), None]
+    model = MagicMock()
+    model.dict.return_value = {"images": {}}
+
+    with patch("sentry.preprod.snapshots.tasks.orjson.dumps", wraps=orjson.dumps) as dumps:
+        _put_json(session, "chunk.json", model)
+
+    model.dict.assert_called_once_with()
+    dumps.assert_called_once_with({"images": {}})
+    assert session.put.call_args_list == [
+        call(b'{"images":{}}', key="chunk.json", content_type="application/json"),
+        call(b'{"images":{}}', key="chunk.json", content_type="application/json"),
+    ]
+    assert session.put.call_args_list[0].args[0] is session.put.call_args_list[1].args[0]
+    mock_sleep.assert_called_once_with(0.5)
 
 
 @patch("sentry.preprod.snapshots.tasks.time.sleep")

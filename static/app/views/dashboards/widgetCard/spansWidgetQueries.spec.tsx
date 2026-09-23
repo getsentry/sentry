@@ -1,3 +1,4 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
@@ -5,7 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import {SpansWidgetQueries} from './spansWidgetQueries';
 
@@ -222,5 +223,44 @@ describe('spansWidgetQueries', () => {
         }),
       })
     );
+  });
+
+  it('skips the request and surfaces an error for an invalid series _if filter', async () => {
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {},
+    });
+    widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: '',
+          aggregates: ['avg_if(``,span.duration)'],
+          fields: ['avg_if(``,span.duration)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    render(
+      <SpansWidgetQueries widget={widget} dashboardFilters={{}}>
+        {({errorMessage, loading}) => (
+          <div>
+            {loading ? 'loading' : 'idle'}:{errorMessage}
+          </div>
+        )}
+      </SpansWidgetQueries>,
+      {
+        organization: OrganizationFixture({
+          features: ['explore-conditional-aggregates'],
+        }),
+      }
+    );
+
+    expect(await screen.findByText('idle:Invalid series filter')).toBeInTheDocument();
+    expect(eventsStatsMock).not.toHaveBeenCalled();
   });
 });
