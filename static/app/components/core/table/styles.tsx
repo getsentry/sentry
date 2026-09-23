@@ -1,6 +1,8 @@
 import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 export const TABLE_HEAD_ROW_HEIGHT = 45;
 
@@ -8,13 +10,26 @@ const Z_INDEX_RESIZER = 1;
 
 const Z_INDEX_STICKY_HEAD = 2;
 
-export const TableGrid = styled('table')`
+interface TableGridProps {
+  hiddenColumnIndexes?: number[];
+}
+
+export const TableGrid = styled('table')<TableGridProps>`
   position: inherit;
   display: grid;
 
   box-sizing: border-box;
   border-collapse: collapse;
   margin: 0;
+
+  ${p =>
+    p.hiddenColumnIndexes?.map(
+      index => css`
+        tr > *:nth-child(${index + 1} of [role='cell'], [role='columnheader']):not(:only-child) {
+          display: none;
+        }
+      `
+    )}
 `;
 
 const subgrid = css`
@@ -54,10 +69,9 @@ export const TableRow = styled('tr', {
     `}
 `;
 
-export const TableHeadCell = styled('th')`
-  position: relative;
-  min-width: 0;
-`;
+export function TableHeadCell(props: FlexProps<'th'>) {
+  return <Flex as="th" position="relative" minWidth={0} {...props} />;
+}
 
 export const TableCell = styled('td')`
   min-width: 0;
@@ -69,6 +83,23 @@ export const TableStatusCell = styled('td')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+export const fullWidthCellStyle = css`
+  align-items: stretch;
+  flex-direction: column;
+  padding: 0;
+`;
+
+export const statusCellStyle = (p: {theme: Theme}) => css`
+  min-height: 200px;
+  padding: ${p.theme.space.xl};
+`;
+
+export const emptyCellStyle = (p: {theme: Theme}) => css`
+  ${statusCellStyle(p)}
+  color: ${p.theme.tokens.content.secondary};
+  font-size: ${p.theme.font.size.md};
 `;
 
 export const TableResizer = styled('div')`

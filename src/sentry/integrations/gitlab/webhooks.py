@@ -29,11 +29,12 @@ from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_organization_info
+from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -251,7 +252,13 @@ class IssuesEventWebhook(GitlabWebhook):
 
         # Handle status changes (CLOSE and REOPEN)
         if action in [GitLabIssueAction.CLOSE, GitLabIssueAction.REOPEN] and organization:
-            self._handle_status_change(integration, external_issue_key, action, organization.id)
+            self._handle_status_change(
+                integration,
+                external_issue_key,
+                action,
+                organization.id,
+                object_attributes.get("updated_at"),
+            )
 
     def _handle_assignment(
         self,
@@ -263,9 +270,11 @@ class IssuesEventWebhook(GitlabWebhook):
         Handle issue assignment and unassignment events.
 
         GitLab sends webhooks with the current assignees array, so we sync based on
-        the current state to avoid race conditions.
+        the current state to avoid race conditions, and pass `object_attributes.updated_at`
+        along so stale deliveries can be dropped.
         """
         assignees = event.get("assignees", [])
+        updated_at = event.get("object_attributes", {}).get("updated_at")
 
         # If there are no assignees, deassign
         if not assignees:
@@ -274,6 +283,7 @@ class IssuesEventWebhook(GitlabWebhook):
                 external_user_name="",
                 external_issue_key=external_issue_key,
                 assign=False,
+                provider_event_updated_at=updated_at,
             )
             logger.info(
                 "gitlab.webhook.assignment.synced",
@@ -311,6 +321,7 @@ class IssuesEventWebhook(GitlabWebhook):
             external_issue_key=external_issue_key,
             assign=True,
             external_user_id=assignee_id,
+            provider_event_updated_at=updated_at,
         )
 
         logger.info(
@@ -330,11 +341,14 @@ class IssuesEventWebhook(GitlabWebhook):
         external_issue_key: str,
         action: str,
         organization_id: int,
+        updated_at: str | None,
     ) -> None:
         """
         Handle issue status changes (close/reopen).
 
         Triggers the sync_status_inbound task to update linked Sentry issues.
+
+        `updated_at` is GitLab's own timestamp, used to order deliveries.
         """
         org_integrations = integration_service.get_organization_integrations(
             integration_id=integration.id,
@@ -347,7 +361,7 @@ class IssuesEventWebhook(GitlabWebhook):
             if isinstance(installation, IssueSyncIntegration):
                 installation.sync_status_inbound(
                     external_issue_key,
-                    {"action": action},
+                    {"action": action, PROVIDER_EVENT_TIME_KEY: updated_at},
                 )
                 logger.info(
                     "gitlab.webhook.status.synced",
@@ -441,6 +455,7 @@ class MergeEventWebhook(GitlabWebhook):
 
         try:
             number = event["object_attributes"]["iid"]
+            external_id = event["object_attributes"]["id"]
             title = event["object_attributes"]["title"]
             body = event["object_attributes"]["description"]
             created_at = event["object_attributes"]["created_at"]
@@ -507,6 +522,7 @@ class MergeEventWebhook(GitlabWebhook):
             "provider_updated_at": state_changed_at,
             "state": state,
             "draft": draft,
+            "external_id": external_id,
         }
 
         # GitLab has no closed_at, so derive it from the lifecycle action. A
@@ -638,7 +654,7 @@ class PushEventWebhook(GitlabWebhook):
 
             # TODO(dcramer): we need to deal with bad values here, but since
             # its optional, lets just throw it out for now
-            if author_email is None or len(author_email) > 75:
+            if author_email is None or len(author_email) > COMMIT_AUTHOR_EMAIL_LENGTH:
                 author = None
             elif author_email not in authors:
                 authors[author_email] = author = CommitAuthor.objects.get_or_create(
@@ -723,10 +739,10 @@ class GitlabWebhookEndpoint(Endpoint):
 
         extra = {
             **extra,
-            # The metadata could be useful to debug
-            # domain_name -> gitlab.com/getsentry-ecosystem/foo'
-            # scopes -> ['api']
-            "webhook.integration.metadata": integration.metadata,
+            "webhook.integration.metadata.instance": integration.metadata.get("instance"),
+            "webhook.integration.metadata.domain_name": integration.metadata.get("domain_name"),
+            "webhook.integration.metadata.scopes": integration.metadata.get("scopes"),
+            "webhook.integration.metadata.verify_ssl": integration.metadata.get("verify_ssl"),
             "webhook.integration.id": integration.id,  # This is useful to query via Redash
             "webhook.integration.status": integration.status,  # 0 seems to be active
             # Logs/EAP attributes are scalar-first; a list serializes as an
@@ -737,7 +753,13 @@ class GitlabWebhookEndpoint(Endpoint):
             "webhook.org_ids": ",".join(str(install.organization_id) for install in installs[:25]),
         }
 
-        if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
+        webhook_secret = integration.metadata.get("webhook_secret")
+        if not webhook_secret:
+            extra["webhook.reason"] = GITLAB_WEBHOOK_SECRET_INVALID_ERROR
+            logger.warning("gitlab.webhook.missing-webhook-secret", extra=extra)
+            return HttpResponse(status=409, reason=GITLAB_WEBHOOK_SECRET_INVALID_ERROR)
+
+        if not constant_time_compare(secret, webhook_secret):
             # Summary and potential workaround mentioned here:
             # https://github.com/getsentry/sentry/issues/34903#issuecomment-1262754478
             extra["webhook.reason"] = GITLAB_WEBHOOK_SECRET_INVALID_ERROR
@@ -761,6 +783,11 @@ class GitlabWebhookEndpoint(Endpoint):
             )
             logger.warning("gitlab.webhook.wrong-event-type", extra=extra)
             return HttpResponse(status=400, reason=extra["webhook.reason"])
+
+        if not installs:
+            # Control rejects these deliveries before forwarding; monolith and
+            # self-hosted installations reach this endpoint directly.
+            logger.info("gitlab.webhook.no-organization-integration", extra=extra)
 
         for install in installs:
             org_context = organization_service.get_organization_by_id(

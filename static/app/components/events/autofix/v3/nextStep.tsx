@@ -1,17 +1,20 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
+import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
+import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
-import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
+import {
+  type PermissionsTarget,
+  useAutofixCreatePrGate,
+} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
 import {
   getAutofixArtifactFromSection,
   isCodeChangesSection,
@@ -23,14 +26,13 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
+import {RepositoryWritePermissionButton} from 'sentry/components/events/autofix/v3/repositoryWritePermissionButton';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconOpen} from 'sentry/icons/iconOpen';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -48,6 +50,18 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
   if (!defined(runId) || !defined(section)) {
+    return null;
+  }
+
+  // Failed create still renders the PR card (Retry PR). That is the next
+  // action — don't offer iteration feedback or "draft a PR" again.
+  const repoPrStates = autofix.runState?.repo_pr_states;
+  if (
+    isPullRequestsSection(section) &&
+    defined(repoPrStates) &&
+    Object.keys(repoPrStates).length > 0 &&
+    !hasCreatedPullRequests(repoPrStates)
+  ) {
     return null;
   }
 
@@ -276,7 +290,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
-  const {permissionsTarget, isPending} = useAutofixCreatePrGate({
+  const {permissionsTarget, isPending, checkTargetWriteAccess} = useAutofixCreatePrGate({
     group,
     enabled: defined(artifact),
   });
@@ -289,119 +303,69 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
     return null;
   }
 
-  if (permissionsTarget) {
-    return (
-      <CodeChangesNextStepWithoutWritePermissions
-        group={group}
-        autofix={autofix}
-        runId={runId}
-        section={section}
-        referrer={referrer}
-        integration={permissionsTarget.integration}
-        permissionsUrl={permissionsTarget.url}
-      />
-    );
-  }
-
   return (
-    <CodeChangesNextStepWithWritePermissions
+    <CodeChangesNextStepContent
       group={group}
       autofix={autofix}
       runId={runId}
       section={section}
       referrer={referrer}
+      permissionsTarget={permissionsTarget}
+      checkTargetWriteAccess={checkTargetWriteAccess}
     />
   );
 }
 
-interface CodeChangesNextStepWithoutWritePermissionsProps extends NextStepProps {
-  integration: OrganizationIntegration;
-  permissionsUrl: string;
+interface CodeChangesNextStepContentProps extends NextStepProps {
+  checkTargetWriteAccess: () => Promise<boolean>;
+  permissionsTarget: PermissionsTarget | null;
 }
 
-function CodeChangesNextStepWithoutWritePermissions({
-  autofix,
-  group,
-  runId,
-  section,
-  referrer,
-  integration,
-  permissionsUrl,
-}: CodeChangesNextStepWithoutWritePermissionsProps) {
-  const organization = useOrganization();
-  const {isPolling, startStep} = autofix;
-
-  const handleNoClick = useCallback(
-    (userContext: string) => {
-      startStep('code_changes', {runId, userContext, insertIndex: section.index});
-      trackAnalytics('autofix.code_changes.re_run', {
-        organization,
-        group_id: group.id,
-        mode: 'explorer',
-        referrer,
-      });
-    },
-    [organization, group, startStep, runId, referrer, section.index]
-  );
+function CodeChangesActionButton({
+  checkTargetWriteAccess,
+  getPermissionsLabel,
+  isPolling,
+  onClick,
+  permissionsTarget,
+  readyLabel,
+}: {
+  checkTargetWriteAccess: () => Promise<boolean>;
+  getPermissionsLabel: (providerName: string) => string;
+  isPolling: boolean;
+  onClick: () => void;
+  permissionsTarget: PermissionsTarget | null;
+  readyLabel: string;
+}) {
+  if (permissionsTarget) {
+    const providerName = permissionsTarget.integration.provider.name;
+    return (
+      <RepositoryWritePermissionButton
+        key={permissionsTarget.integration.id}
+        checkTargetWriteAccess={checkTargetWriteAccess}
+        disabled={isPolling}
+        label={getPermissionsLabel(providerName)}
+        permissionsUrl={permissionsTarget.url}
+        providerName={providerName}
+      />
+    );
+  }
 
   return (
-    <NextStepTemplate
-      isProcessing={isPolling}
-      prompt={t('Are you happy with these code changes?')}
-      labelNo={t('No')}
-      onClickNo={handleNoClick}
-      yesButton={
-        <Tooltip
-          title={t(
-            'You need to grant write permissions for your %s integration',
-            integration.provider.name
-          )}
-        >
-          <LinkButton
-            external
-            openInNewTab
-            variant="primary"
-            disabled={isPolling}
-            to={permissionsUrl}
-            icon={<IconOpen />}
-          >
-            {t('Yes, view %s permissions', integration.provider.name)}
-          </LinkButton>
-        </Tooltip>
-      }
-      nevermindButton={
-        <Tooltip
-          title={t(
-            'You need to grant write permissions for your %s integration',
-            integration.provider.name
-          )}
-        >
-          <LinkButton
-            external
-            openInNewTab
-            variant="primary"
-            disabled={isPolling}
-            to={permissionsUrl}
-            icon={<IconOpen />}
-          >
-            {t('Nevermind, view %s permissions', integration.provider.name)}
-          </LinkButton>
-        </Tooltip>
-      }
-      placeholderPrompt={t('Give seer additional context to improve this code change.')}
-      rethinkPrompt={t('How can this code change be improved?')}
-      labelRethink={t('Rethink code changes')}
-    />
+    <Button variant="primary" disabled={isPolling} onClick={onClick}>
+      {readyLabel}
+    </Button>
   );
 }
 
-function CodeChangesNextStepWithWritePermissions({
+function CodeChangesNextStepContent({
   autofix,
   group,
   runId,
   section,
   referrer,
-}: NextStepProps) {
+  checkTargetWriteAccess,
+  permissionsTarget,
+}: CodeChangesNextStepContentProps) {
   const organization = useOrganization();
   const {isPolling, createPR, startStep} = autofix;
 
@@ -435,14 +399,26 @@ function CodeChangesNextStepWithWritePermissions({
       labelNo={t('No')}
       onClickNo={handleNoClick}
       yesButton={
-        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
-          {t('Yes, draft a PR')}
-        </Button>
+        <CodeChangesActionButton
+          checkTargetWriteAccess={checkTargetWriteAccess}
+          getPermissionsLabel={providerName =>
+            t('Yes, view %s permissions', providerName)
+          }
+          isPolling={isPolling}
+          onClick={handleYesClick}
+          permissionsTarget={permissionsTarget}
+          readyLabel={t('Yes, draft a PR')}
+        />
       }
       nevermindButton={
-        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
-          {t('Nevermind, draft a PR')}
-        </Button>
+        <CodeChangesActionButton
+          checkTargetWriteAccess={checkTargetWriteAccess}
+          getPermissionsLabel={providerName => t('View %s permissions', providerName)}
+          isPolling={isPolling}
+          onClick={handleYesClick}
+          permissionsTarget={permissionsTarget}
+          readyLabel={t('Nevermind, draft a PR')}
+        />
       }
       placeholderPrompt={t('Give seer additional context to improve this code change.')}
       rethinkPrompt={t('How can this code change be improved?')}
@@ -513,6 +489,7 @@ function NextStepTemplate({
         <TextArea
           autosize
           rows={2}
+          maxLength={AUTOFIX_USER_CONTEXT_MAX_LENGTH}
           placeholder={placeholderPrompt}
           value={userContext}
           onChange={event => setUserContext(event.target.value)}

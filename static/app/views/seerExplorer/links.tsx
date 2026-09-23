@@ -1,38 +1,59 @@
 import type {LocationDescriptor} from 'history';
-import queryString from 'query-string';
+import queryString, {type ParsedQuery} from 'query-string';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Sort} from 'sentry/utils/discover/fields';
+import {isAggregateField, type Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {
+  makeAutomationBasePathname,
+  makeAutomationDetailsPathname,
+} from 'sentry/views/automations/pathnames';
+import {
+  makeMonitorBasePathname,
+  makeMonitorDetailsPathname,
+} from 'sentry/views/detectors/pathnames';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {
+  LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
+import {
+  LOGS_AGGREGATE_SORT_BYS_KEY,
+  LOGS_SORT_BYS_KEY,
+} from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   defaultAggregateSortBys,
   defaultMetricQuery,
   encodeMetricQueryParams,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
-import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+import {getDefaultMetricYAxis, getMetricYAxis} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {callRecordLabel} from 'sentry/views/seerExplorer/callRecords';
 import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
 
 /**
  * Where a Code Mode call sends you.
  *
- * `LINK_RULES` below is the only place in the app that knows. One table, one entry shape, read top
- * to bottom, first rule that resolves wins. A call no rule claims still renders as a row — it just
- * is not a link.
+ * `LINK_RULES` below is the only place in the app that knows. One table, one entry shape.
+ *
+ * Resolution order:
+ * 1. A lib helper or seer-emitted link whose `name` equals a rule id is tried first (by name).
+ * 2. Otherwise the **longest path prefix** wins: each entity rule declares a `prefix` regex over the
+ *    templated API path; the match that ends furthest to the right is preferred, so
+ *    `/issues/{issue_id}/tags/` links as an issue and `/projects/.../releases/{version}/files/` as a
+ *    release rather than a project. Ties keep table order. A rule that matches but returns null is
+ *    skipped and the next-longest is tried.
+ * 3. A call no rule claims still renders as a row — it just is not a link.
  *
  * ## Adding a link
  *
@@ -41,11 +62,11 @@ import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
  * 1. Find the route. The row's text is a title seer generates from
  *    `src/seer/experimental/mcp/call_title_lock.json` in the seer repo — grep the phrase there and
  *    the key is the `"<METHOD> <templated path>"` you need.
- * 2. Add a rule. `match` is a plain predicate over the call; write a comparison or a regex inline.
- *    `resolve` returns `{label, url}`, or `null` to decline and let a later rule try.
+ * 2. Add a rule. Give it a `prefix` over the entity segment in the templated path (not only the
+ *    end-of-path form). Nested calls under that entity inherit the same destination. `resolve`
+ *    returns `{label, url}`, or `null` to decline and let a shorter prefix try.
  * 3. Add its example to `LINK_RULE_EXAMPLES` in `links.spec.tsx`. The spec asserts every rule has
- *    one, that the example actually reaches the rule (nothing above it matches first), and that it
- *    resolves — so a rule buried under a more generic one fails by name.
+ *    one and that the example resolves to that rule under longest-prefix selection.
  * 4. `pnpm test-ci static/app/views/seerExplorer/`.
  *
  * Nothing on the seer side changes, and no other file needs editing.
@@ -84,8 +105,10 @@ export type LinkSubject = {
   path?: string;
   /** What was actually requested, query string removed. */
   pathname?: string;
+  /** Which external provider served the call, if any. */
+  provider?: string;
   /** The requested query string, parsed — params the route template does not name. */
-  query?: Record<string, string>;
+  query?: ParsedQuery;
   status?: number;
   /** The title seer shipped for this call. Absent on a seer-emitted link. */
   title?: string;
@@ -100,15 +123,18 @@ export type LinkResult = {
 export type LinkRule = {
   /**
    * Identifies the rule, and doubles as the call name it answers to: a lib method or seer-emitted
-   * link whose name equals this id reaches the rule without needing a `match`.
+   * link whose name equals this id reaches the rule without needing a path `prefix`.
    *
    * Reported as the `tool_kind` analytics dimension when the link is clicked, so renaming one
    * breaks that series.
    */
   id: string;
   resolve: (subject: LinkSubject, ctx: LinkContext) => LinkResult | null;
-  /** Omit for a rule that only ever answers to its own name. */
-  match?: (subject: LinkSubject) => boolean;
+  /**
+   * Templated-path segment this rule owns. Used for longest-prefix selection among path-matched
+   * API rows. Omit for name-only rules (lib helpers, seer-emitted links, search).
+   */
+  prefix?: RegExp;
 };
 
 /**
@@ -141,7 +167,8 @@ function asUrlSegment(value: unknown): string | undefined {
  */
 const ISSUE_RULE: LinkRule = {
   id: 'get_issue_details',
-  match: ({path}) => /\{issue_id\}\/?$/.test(path ?? ''),
+  // Any call under `/issues/{issue_id}/…` (tags, notes, hashes, …) inherits the issue page.
+  prefix: /\/issues\/\{issue_id\}/,
   resolve: ({params, title}) => {
     const {start, end} = params;
     const issueId = asUrlSegment(params.issue_id);
@@ -162,13 +189,15 @@ const ISSUE_RULE: LinkRule = {
 };
 
 export const LINK_RULES: LinkRule[] = [
-  // --- Entities. A route earns one of these by *ending* at the param that names its subject:
-  // `/issues/{issue_id}/` is about an issue, `/issues/{issue_id}/tags/` is about tags, and there is
-  // no tags page to send anyone to. ---
+  // --- Entities. Each `prefix` is the path segment that names the subject. Nested routes under that
+  // segment inherit the same destination via longest-prefix selection (e.g. issue tags → issue).
+  // More specific prefixes (event under issue, release under project) win because they end further
+  // to the right in the templated path. ---
 
   {
     id: 'get_event_details',
-    match: ({path}) => /\{event_id\}\/?$/.test(path ?? ''),
+    // Issue-scoped event only — project events use `get_project_event`.
+    prefix: /\/issues\/\{issue_id\}\/events\/\{event_id\}/,
     resolve: (subject, ctx) => {
       const {params, title} = subject;
       const {start, end} = params;
@@ -196,7 +225,7 @@ export const LINK_RULES: LinkRule[] = [
   ISSUE_RULE,
   {
     id: 'get_trace_waterfall',
-    match: ({path}) => /\{trace_id\}\/?$/.test(path ?? ''),
+    prefix: /\/trace(?:-meta)?\/\{trace_id\}/,
     resolve: ({params, title}) => {
       const {span_id, timestamp} = params;
       const traceId = asUrlSegment(params.trace_id);
@@ -242,7 +271,7 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_replay_details',
-    match: ({path}) => /\{replay_id\}\/?$/.test(path ?? ''),
+    prefix: /\/replays\/\{replay_id\}/,
     resolve: ({params, title}, {organization}) => {
       const replayId = asUrlSegment(params.replay_id);
       if (!replayId) {
@@ -259,7 +288,8 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_project_details',
-    match: ({path}) => /\{project_id_or_slug\}\/?$/.test(path ?? ''),
+    // Broad project root. Nested release/monitor/rule/event prefixes end further right and win.
+    prefix: /\/projects\/\{organization_id_or_slug\}\/\{project_id_or_slug\}/,
     resolve: ({params, title}, {organization, projects}) => {
       const value = asUrlSegment(params.project_id_or_slug);
       if (!value) {
@@ -285,14 +315,17 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_profile_flamegraph',
+    // Lib helper emits by name; the profiles API carries the project as a path param.
+    prefix: /\/profiles\/\{profile_id\}/,
     resolve: ({params, title}, {projects}) => {
-      const {project_id, is_continuous, start_ts, end_ts, thread_id} = params;
+      const {is_continuous, start_ts, end_ts, thread_id} = params;
       const profileId = asUrlSegment(params.profile_id);
-      if (!profileId || !project_id) {
+      if (!profileId) {
         return null;
       }
 
-      const project = projects?.find(p => p.id === String(project_id));
+      const project =
+        resolveProject(params.project_id ?? params.project_id_or_slug, projects) ?? null;
       if (!project) {
         return null;
       }
@@ -324,6 +357,194 @@ export const LINK_RULES: LinkRule[] = [
           pathname: `/explore/profiles/profile/${project.slug}/${profileId}/flamegraph/`,
           ...(thread_id && {query: {tid: thread_id}}),
         },
+      };
+    },
+  },
+  {
+    id: 'get_dashboard_details',
+    prefix: /\/dashboards\/\{dashboard_id\}/,
+    resolve: ({params, title}) => {
+      const dashboardId = asUrlSegment(params.dashboard_id);
+      if (!dashboardId) {
+        return null;
+      }
+
+      return {
+        label: title ?? t('View dashboard'),
+        // Singular `/dashboard/` is the live route; `/dashboards/:id` redirects into it.
+        url: {pathname: `/dashboard/${dashboardId}/`},
+      };
+    },
+  },
+  {
+    id: 'get_release_details',
+    prefix: /\/releases\/\{version\}/,
+    resolve: ({params, title}, {organization, projects}) => {
+      const version = asUrlSegment(params.version);
+      if (!version) {
+        return null;
+      }
+
+      const project = resolveProject(params.project_id_or_slug, projects);
+      return {
+        label: title ?? t('View release'),
+        url: {
+          pathname: makeReleasesPathname({
+            organization,
+            path: `/${encodeURIComponent(version)}/`,
+          }),
+          // Only pin a project filter when we know its numeric id — a slug-only fallback has no id
+          // to put on the query string.
+          ...(project?.id ? {query: {project: project.id}} : {}),
+        },
+      };
+    },
+  },
+  {
+    id: 'get_detector_details',
+    prefix: /\/detectors\/\{detector_id\}/,
+    resolve: ({params, title}, {organization}) => {
+      const detectorId = asUrlSegment(params.detector_id);
+      if (!detectorId) {
+        return null;
+      }
+
+      return {
+        label: title ?? t('View monitor'),
+        url: {pathname: makeMonitorDetailsPathname(organization.slug, detectorId)},
+      };
+    },
+  },
+  {
+    id: 'get_workflow_details',
+    prefix: /\/workflows\/\{workflow_id\}/,
+    resolve: ({params, title}, {organization}) => {
+      const workflowId = asUrlSegment(params.workflow_id);
+      if (!workflowId) {
+        return null;
+      }
+
+      return {
+        label: title ?? t('View alert'),
+        url: {pathname: makeAutomationDetailsPathname(organization.slug, workflowId)},
+      };
+    },
+  },
+  {
+    id: 'get_cron_monitor_details',
+    // Classic cron monitors. The workflow-engine `detectors` route is a different surface and is
+    // claimed above; these still need project + slug for the alerts UI.
+    prefix: /\/monitors\/\{monitor_id_or_slug\}/,
+    resolve: ({params, title}, {organization, projects}) => {
+      const monitor = asUrlSegment(params.monitor_id_or_slug);
+      if (!monitor) {
+        return null;
+      }
+
+      const project = resolveProject(params.project_id_or_slug, projects);
+      if (!project) {
+        // Org-level monitor fetch has no project in path params. The cron detail page needs one,
+        // and guessing wrong lands on a 404 — leave the row unlinked.
+        return null;
+      }
+
+      return {
+        label: title ?? t('View monitor'),
+        url: {
+          pathname: makeAlertsPathname({
+            organization,
+            path: `/rules/crons/${project.slug}/${encodeURIComponent(monitor)}/details/`,
+          }),
+        },
+      };
+    },
+  },
+  {
+    id: 'get_issue_alert_rule',
+    prefix: /\/rules\/\{rule_id\}/,
+    resolve: ({params, title}, {organization, projects}) => {
+      const ruleId = asUrlSegment(params.rule_id);
+      if (!ruleId) {
+        return null;
+      }
+
+      const project = resolveProject(params.project_id_or_slug, projects);
+      if (!project) {
+        return null;
+      }
+
+      // Legacy issue-alert detail; workflow-engine orgs redirect this onto the automation page.
+      return {
+        label: title ?? t('View alert rule'),
+        url: {
+          pathname: makeAlertsPathname({
+            organization,
+            path: `/rules/${project.slug}/${ruleId}/`,
+          }),
+        },
+      };
+    },
+  },
+  {
+    id: 'get_member_details',
+    prefix: /(?:\/members\/\{member_id\}|\/scim\/v2\/Users\/\{member_id\})/,
+    resolve: ({params, title}, {organization}) => {
+      const memberId = asUrlSegment(params.member_id);
+      if (!memberId) {
+        return null;
+      }
+
+      return {
+        label: title ?? t('View member'),
+        // Settings routes are already org-scoped; `scopeToOrganization` leaves `/settings/` alone.
+        url: {pathname: `/settings/${organization.slug}/members/${memberId}/`},
+      };
+    },
+  },
+  {
+    id: 'get_team_details',
+    // Require the org+team teams route (or SCIM). Do not claim `/members/…/teams/…` membership rows.
+    prefix:
+      /(?:\/teams\/\{organization_id_or_slug\}\/\{team_id_or_slug\}|\/scim\/v2\/Groups\/\{team_id_or_slug\})/,
+    resolve: ({params, title}, {organization}) => {
+      const team = asUrlSegment(params.team_id_or_slug);
+      if (!team) {
+        return null;
+      }
+
+      // Team settings route on slug. A bare numeric id is not something we can resolve without a
+      // team directory in context, so decline rather than build a dead settings URL.
+      if (/^\d+$/.test(team)) {
+        return null;
+      }
+
+      return {
+        label: title ?? t('View team'),
+        url: {pathname: `/settings/${organization.slug}/teams/${team}/`},
+      };
+    },
+  },
+  {
+    id: 'get_project_event',
+    // Project event fetch has no issue id. `/projects/:project/events/:event/` resolves the group
+    // client-side (ProjectEventRedirect) — better than leaving the row dead when the issue route
+    // cannot be built. Prefix ends after `{event_id}`, so it beats the bare project root.
+    prefix:
+      /\/projects\/\{organization_id_or_slug\}\/\{project_id_or_slug\}\/events\/\{event_id\}/,
+    resolve: ({params, title}, {projects}) => {
+      const eventId = asUrlSegment(params.event_id);
+      if (!eventId) {
+        return null;
+      }
+
+      const project = resolveProject(params.project_id_or_slug, projects);
+      if (!project) {
+        return null;
+      }
+
+      return {
+        label: title ?? t('View event'),
+        url: {pathname: `/projects/${project.slug}/events/${eventId}/`},
       };
     },
   },
@@ -360,24 +581,35 @@ export const LINK_RULES: LinkRule[] = [
     },
   },
 
-  // --- Searches. Not an entity: a set of results, reproduced as a query against the same dataset
-  // seer read. ---
+  // --- Searches / composites. Not a single entity: a result set or a section home, reproduced as a
+  // page URL. API query routes translate their query string into the search parameter vocabulary. ---
 
   {
     id: 'telemetry_live_search',
-    resolve: ({kind, params, title}, {projects}) => {
-      // Arrives on both channels. The bus link always carries the translated query. The call row
-      // starts with only `dataset` + `question`; seer stamps the translated params onto the record
-      // after the search returns, so a fresh row can deep-link the same way. Older rows without a
-      // query still decline here and keep the residual bus link underneath.
-      if (kind !== 'link' && kind !== 'lib') {
-        return null;
-      }
+    // Org + project Explore / issue-search collections only. Do not claim nested lists under an
+    // entity id (e.g. `/issues/{issue_id}/events/`) — those inherit the parent via longest-prefix.
+    prefix:
+      /\/(?:organizations\/\{organization_id_or_slug\}|projects\/\{organization_id_or_slug\}\/\{project_id_or_slug\})\/(?:events(?:-timeseries|-stats|-meta|-facets)?|traces|issues)\/?$/,
+    resolve: (subject, {projects}) => {
+      const {kind, params, title} = subject;
+      // Lib/bus: the bus link always carries the translated query. The call row starts with only
+      // `dataset` + `question`; seer stamps the translated params onto the record after the search
+      // returns. Older rows without a query still decline here and keep the residual bus link.
       if (kind === 'lib' && (params.query === undefined || params.query === null)) {
         return null;
       }
 
-      const url = searchUrl(params, projects);
+      // API rows: map Sentry query-string keys onto the searchUrl vocabulary, and infer dataset
+      // from the route when the agent did not send one (project error-event listing, issue search).
+      const searchParams =
+        kind === 'api' ? searchParamsFromApiCall(subject, projects) : params;
+      if (!searchParams) {
+        return null;
+      }
+
+      // A bare list with no filter still deep-links to the section home — better than an unlinked
+      // "Listing issues" row. Metrics still need a metric identity and decline without one.
+      const url = searchUrl(searchParams, projects);
       if (!url) {
         return null;
       }
@@ -385,10 +617,145 @@ export const LINK_RULES: LinkRule[] = [
       // Prefer seer's title when present (the call row ships one); otherwise name the dataset so a
       // residual nav link is not a generic "View results" under a row that already says which
       // dataset ran.
-      const datasetLabel = telemetryDatasetLabel(params.dataset);
+      const datasetLabel = telemetryDatasetLabel(searchParams.dataset);
       return {
         label: title ?? (datasetLabel ? t('View %s', datasetLabel) : t('View results')),
         url,
+      };
+    },
+  },
+  {
+    id: 'list_replays',
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/replays\/?$/,
+    resolve: (subject, {organization, projects}) => {
+      const {query = {}, title} = subject;
+      const projectIds = projectIdsFromApiCall(subject, projects);
+      if (projectIds === null) {
+        return null;
+      }
+      return {
+        label: title ?? t('View replays'),
+        url: {
+          pathname: makeReplaysPathname({organization, path: '/'}),
+          query: {
+            query: getApiScalar(query.query),
+            statsPeriod: getApiScalar(query.statsPeriod),
+            start: getApiScalar(query.start)?.replace(/Z$/, ''),
+            end: getApiScalar(query.end)?.replace(/Z$/, ''),
+            environment: query.environment
+              ? getStringArray(query.environment)
+              : undefined,
+            ...(projectIds ? {project: projectIds} : {}),
+          },
+        },
+      };
+    },
+  },
+  {
+    id: 'list_releases',
+    // Org or project release *collection* only — detail rows already match get_release_details.
+    prefix:
+      /\/(?:organizations\/\{organization_id_or_slug\}|projects\/\{organization_id_or_slug\}\/\{project_id_or_slug\})\/releases\/?$/,
+    resolve: (subject, {organization, projects}) => {
+      const {title} = subject;
+      const projectIds = projectIdsFromApiCall(subject, projects);
+      if (projectIds === null) {
+        return null;
+      }
+      return {
+        label: title ?? t('View releases'),
+        url: {
+          pathname: makeReleasesPathname({organization, path: '/'}),
+          query: projectIds ? {project: projectIds} : {},
+        },
+      };
+    },
+  },
+  {
+    id: 'list_dashboards',
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/dashboards\/?$/,
+    resolve: ({title}) => ({
+      label: title ?? t('View dashboards'),
+      url: {pathname: '/dashboards/'},
+    }),
+  },
+  {
+    id: 'list_detectors',
+    // Org detector list (+ count). Project-nested create stays on the project rule.
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/detectors(?:\/count)?\/?$/,
+    resolve: ({title}, {organization}) => ({
+      label: title ?? t('View monitors'),
+      url: {pathname: makeMonitorBasePathname(organization.slug)},
+    }),
+  },
+  {
+    id: 'list_workflows',
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/workflows\/?$/,
+    resolve: ({title}, {organization}) => ({
+      label: title ?? t('View alerts'),
+      url: {pathname: makeAutomationBasePathname(organization.slug)},
+    }),
+  },
+  {
+    id: 'list_monitors',
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/monitors\/?$/,
+    resolve: ({title}, {organization}) => ({
+      label: title ?? t('View monitors'),
+      // Classic cron list lives under the monitors surface; `/alerts/rules/crons/` has no index.
+      url: {pathname: makeMonitorBasePathname(organization.slug)},
+    }),
+  },
+  {
+    id: 'list_members',
+    // Org members only — project/team membership lists inherit their parent entity.
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/members\/?$/,
+    resolve: ({title}, {organization}) => ({
+      label: title ?? t('View members'),
+      url: {pathname: `/settings/${organization.slug}/members/`},
+    }),
+  },
+  {
+    id: 'list_teams',
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/teams\/?$/,
+    resolve: ({title}, {organization}) => ({
+      label: title ?? t('View teams'),
+      url: {pathname: `/settings/${organization.slug}/teams/`},
+    }),
+  },
+  {
+    id: 'list_projects',
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/projects\/?$/,
+    resolve: ({title}, {organization}) => ({
+      label: title ?? t('View projects'),
+      url: {pathname: makeProjectsPathname({organization, path: '/'})},
+    }),
+  },
+  {
+    id: 'get_discover_saved_query',
+    prefix: /\/discover\/saved\/\{query_id\}/,
+    resolve: ({params, title}) => {
+      const id = asUrlSegment(params.query_id);
+      if (!id) {
+        return null;
+      }
+      return {
+        label: title ?? t('View saved query'),
+        url: {pathname: '/explore/discover/results/', query: {id}},
+      };
+    },
+  },
+  {
+    id: 'resolve_short_id',
+    prefix: /\/shortids\/\{issue_id\}/,
+    resolve: ({params, title}) => {
+      const issueId = asUrlSegment(params.issue_id);
+      if (!issueId) {
+        return null;
+      }
+      // Short ids resolve on the issue route the same way numeric ids do.
+      return {
+        label: title ?? t('View issue'),
+        url: {pathname: `/issues/${issueId}/`},
       };
     },
   },
@@ -398,8 +765,9 @@ export const LINK_RULES: LinkRule[] = [
  * Where a call links to, or null when no rule claims it — which is the common case, and not a
  * failure: a row with no link is still a row, labeled by the title seer shipped.
  *
- * Rules run in order. One that matches but returns null has declined, and the search continues —
- * so a generic rule can sit under a specific one without swallowing it.
+ * Name-matched rules (lib / seer bus) are tried first. Path-matched API rows use longest prefix:
+ * the `prefix` match that ends furthest right wins; a resolve that returns null falls through to
+ * the next-longest candidate.
  */
 export function resolveLink(
   subject: LinkSubject,
@@ -411,42 +779,68 @@ export function resolveLink(
     return null;
   }
 
-  for (const rule of LINK_RULES) {
-    if (subject.name !== rule.id && rule.match?.(subject) !== true) {
-      continue;
-    }
+  // Every rule below is a first-party Sentry route, and a provider's can collide.
+  if (subject.provider) {
+    return null;
+  }
 
+  const finish = (rule: LinkRule, result: LinkResult) => ({
+    id: rule.id,
+    label: result.label,
+    url: scopeToOrganization(result.url, ctx.organization),
+  });
+
+  // Lib helpers and seer-emitted links address a rule by name.
+  if (subject.name) {
+    const named = LINK_RULES.find(rule => rule.id === subject.name);
+    if (named) {
+      const result = named.resolve(subject, ctx);
+      if (result) {
+        return finish(named, result);
+      }
+    }
+  }
+
+  const path = subject.path ?? '';
+  const ranked = LINK_RULES.flatMap((rule, index) => {
+    if (!rule.prefix) {
+      return [];
+    }
+    const match = rule.prefix.exec(path);
+    if (!match) {
+      return [];
+    }
+    return [{rule, index, end: match.index + match[0].length}];
+  }).sort((a, b) => b.end - a.end || a.index - b.index);
+
+  for (const {rule} of ranked) {
     const result = rule.resolve(subject, ctx);
-    if (!result) {
-      continue;
+    if (result) {
+      return finish(rule, result);
     }
-
-    return {
-      id: rule.id,
-      label: result.label,
-      url: scopeToOrganization(result.url, ctx.organization),
-    };
   }
   return null;
 }
 
 /** A call Code Mode reported, as something the rules can match on. */
 export function subjectFromCallRecord(record: CallRecord): LinkSubject {
-  const [pathname, query] = (record.resolved_path ?? '').split('?');
+  const [pathname, queryStringPart] = (record.resolved_path ?? '').split('?');
+  const query = queryStringPart ? queryString.parse(queryStringPart) : undefined;
+  const params = record.kind === 'lib' ? record.params : record.path_params;
 
   return {
     kind: record.kind === 'lib' ? 'lib' : 'api',
-    // API rows use path params. Lib rows use their scalar args — name-matched rules (e.g.
-    // `get_span_details`) are the only ones that see them, since route `match` predicates key on
-    // `path`, which a lib call does not have.
-    params: record.kind === 'lib' ? (record.params ?? {}) : (record.path_params ?? {}),
+    params: params ?? {},
     name: record.kind === 'lib' ? record.name : undefined,
     method: record.method,
     path: record.path,
+    provider: record.provider,
     pathname: pathname || undefined,
-    query: query ? (queryString.parse(query) as Record<string, string>) : undefined,
+    query,
     status: record.status,
-    title: record.title?.trim() || undefined,
+    // Same precedence as the row's own label, so a rule that names the row from its title
+    // still leads with the agent's line rather than dropping it on every navigable row.
+    title: callRecordLabel(record) ?? undefined,
   };
 }
 
@@ -471,12 +865,42 @@ function scopeToOrganization(
   const prefix = `/organizations/${organization.slug}`;
 
   if (typeof url === 'string') {
-    return normalizeUrl(url.startsWith('/organizations/') ? url : `${prefix}${url}`);
+    return normalizeUrl(
+      url.startsWith('/organizations/') || url.startsWith('/settings/')
+        ? url
+        : `${prefix}${url}`
+    );
   }
-  if (!url.pathname || url.pathname.startsWith('/organizations/')) {
+  if (
+    !url.pathname ||
+    url.pathname.startsWith('/organizations/') ||
+    url.pathname.startsWith('/settings/')
+  ) {
     return normalizeUrl(url);
   }
   return normalizeUrl({...url, pathname: `${prefix}${url.pathname}`});
+}
+
+/**
+ * Resolve a project id-or-slug against the viewer's project list.
+ *
+ * Returns undefined when the value is missing, or when a numeric id is not among the projects the
+ * viewer can see. A slug is returned as `{id, slug}` with an empty id when the list has not loaded
+ * that project — pages that only need the slug still work.
+ */
+function resolveProject(
+  value: unknown,
+  projects?: Array<{id: string; slug: string}>
+): {id: string; slug: string} | undefined {
+  const segment = asUrlSegment(value);
+  if (!segment) {
+    return undefined;
+  }
+  if (/^\d+$/.test(segment)) {
+    return projects?.find(p => p.id === segment);
+  }
+  const known = projects?.find(p => p.slug === segment);
+  return known ?? {id: '', slug: segment};
 }
 
 /** Validate an ISO string and return it with the 'Z' suffix stripped, or undefined if invalid. */
@@ -514,6 +938,88 @@ function telemetryDatasetLabel(dataset: unknown): string | undefined {
   }
 }
 
+/** Django QueryDict.get uses the last value for repeated scalar parameters. */
+function getApiScalar(value: ParsedQuery[string] | undefined): string | undefined {
+  const scalar = Array.isArray(value) ? value.at(-1) : value;
+  return typeof scalar === 'string' ? scalar : undefined;
+}
+
+/** Translate API parameters once; lib and bus searches already use the search vocabulary. */
+function searchParamsFromApiCall(
+  subject: LinkSubject,
+  projects: LinkContext['projects']
+): Record<string, unknown> | null {
+  const {query = {}, path} = subject;
+  const projectIds = projectIdsFromApiCall(subject, projects);
+  if (projectIds === null) {
+    return null;
+  }
+
+  let dataset = getApiScalar(query.dataset);
+  if (!dataset) {
+    if (path?.includes('/issues/')) {
+      dataset = 'issues';
+    } else if (path?.includes('/traces/')) {
+      dataset = 'spans';
+    } else if (path?.includes('/projects/')) {
+      dataset = 'errors';
+    } else {
+      // Organization events default to legacy Discover, which can include transactions.
+      // Its query cannot be reproduced faithfully on the errors or spans surface.
+      return null;
+    }
+  }
+  const fields = getStringArray(query.field);
+  const yAxes = getStringArray(query.yAxis);
+  const aggregates = fields.filter(isAggregateField);
+  const isAggregate =
+    (dataset === 'spans' || dataset === 'logs') &&
+    (aggregates.length > 0 || yAxes.length > 0);
+  let groupBy = query.groupBy ? getStringArray(query.groupBy) : undefined;
+  if (isAggregate) {
+    groupBy ??= fields.filter(field => !isAggregateField(field));
+    if (!yAxes.length) {
+      yAxes.push(...aggregates);
+    }
+  }
+
+  return {
+    dataset,
+    query: getApiScalar(query.query),
+    stats_period: getApiScalar(query.statsPeriod),
+    start: getApiScalar(query.start),
+    end: getApiScalar(query.end),
+    sort: Array.isArray(query.sort)
+      ? getStringArray(query.sort)
+      : getApiScalar(query.sort),
+    environment: query.environment ? getStringArray(query.environment) : undefined,
+    project_ids: projectIds,
+    fields: fields.length ? fields : undefined,
+    y_axes: yAxes.length ? yAxes : undefined,
+    group_by: groupBy,
+    // No events route takes a `mode`; it is ours to infer, and anything else would be coerced to
+    // `samples` on the way out anyway.
+    mode: isAggregate ? 'aggregates' : undefined,
+  };
+}
+
+/** Keep wire ids without a loaded project list; null means a scoped slug cannot be resolved. */
+function projectIdsFromApiCall(
+  {params, query}: LinkSubject,
+  projects: LinkContext['projects']
+): string[] | null | undefined {
+  const pathProject = asUrlSegment(params.project_id_or_slug);
+  if (pathProject) {
+    if (/^\d+$/.test(pathProject)) {
+      return [pathProject];
+    }
+    const project = projects?.find(p => p.slug === pathProject);
+    return project ? [project.id] : null;
+  }
+  const ids = getStringArray(query?.project);
+  return ids.length ? ids : undefined;
+}
+
 /**
  * The search a `telemetry_live_search` link stands for, as a URL onto the matching Explore page.
  *
@@ -524,7 +1030,8 @@ function searchUrl(
   params: Record<string, any>,
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
-  const {dataset, project_slugs, query, sort, stats_period, start, end} = params;
+  const {dataset, project_slugs, project_ids, query, sort, stats_period, start, end} =
+    params;
 
   const queryParams: Record<string, any> = {query: query || '', project: null};
   if (stats_period) {
@@ -533,20 +1040,25 @@ function searchUrl(
   if (sort) {
     queryParams.sort = sort;
   }
+  if (params.environment !== undefined) {
+    queryParams.environment = getStringArray(params.environment);
+  }
   // The page filter expects no timezone (treated as UTC) or a +HH:MM offset.
   if (start) {
-    queryParams.start = start.replace(/Z$/, '');
+    queryParams.start = String(start).replace(/Z$/, '');
   }
   if (end) {
-    queryParams.end = end.replace(/Z$/, '');
+    queryParams.end = String(end).replace(/Z$/, '');
   }
   if (project_slugs?.length && projects) {
-    const projectIds = project_slugs
+    const projectIds = getStringArray(project_slugs)
       .map((slug: string) => projects.find(p => p.slug === slug)?.id)
       .filter((id: string | undefined) => id !== undefined);
     if (projectIds.length > 0) {
       queryParams.project = projectIds;
     }
+  } else if (project_ids?.length) {
+    queryParams.project = getStringArray(project_ids);
   }
 
   if (dataset === 'issues') {
@@ -567,7 +1079,11 @@ function searchUrl(
       ? {pathname: '/explore/metrics/', query: {...queryParams, metric}}
       : null;
   }
-  return {pathname: '/traces/', query: spansQuery(queryParams, params)};
+  if (dataset === 'spans' || !dataset) {
+    return {pathname: '/traces/', query: spansQuery(queryParams, params)};
+  }
+  // Unknown dataset — fail closed rather than guess a page.
+  return null;
 }
 
 function errorsQuery(
@@ -585,16 +1101,25 @@ function errorsQuery(
     next.yAxis = y_axes;
   }
 
-  // In Discover, group_by values become selected columns (the `field` param) alongside the y_axes
-  // aggregates. Always force some: with no fields Discover re-routes to the saved default query.
-  const fields = [...getStringArray(group_by), ...getStringArray(y_axes)];
+  // In Discover, group_by / y_axes become selected columns (`field`). Prefer explicit `fields` from
+  // the events API when present; otherwise force defaults so Discover does not re-route to saved.
+  // Dedup: wire `field` and `yAxis` often both carry the same aggregate (e.g. count()).
+  const fields = [
+    ...new Set([
+      ...getStringArray(params.fields),
+      ...getStringArray(group_by),
+      ...getStringArray(y_axes),
+    ]),
+  ];
   next.field = fields.length
     ? fields
     : [...DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS].fields];
 
   // Discover sort strips parentheses from aggregates: -count() -> -count
   if (next.sort) {
-    next.sort = next.sort.replace(/\(\)/g, '');
+    next.sort = Array.isArray(next.sort)
+      ? getStringArray(next.sort).map(sort => sort.replace(/\(\)/g, ''))
+      : next.sort.replace(/\(\)/g, '');
   }
 
   return next;
@@ -604,14 +1129,25 @@ function logsQuery(
   queryParams: Record<string, any>,
   params: Record<string, any>
 ): Record<string, any> {
-  const {group_by, mode} = params;
+  const {y_axes, group_by, mode} = params;
   const {query, sort, ...rest} = queryParams;
   const next: Record<string, any> = {...rest, [LOGS_QUERY_KEY]: query || ''};
 
   if (sort) {
-    next[LOGS_SORT_BYS_KEY] = sort;
+    next[mode === 'aggregates' ? LOGS_AGGREGATE_SORT_BYS_KEY : LOGS_SORT_BYS_KEY] = sort;
   }
-  if (group_by) {
+  if (params.fields && mode !== 'aggregates') {
+    next[LOGS_FIELDS_KEY] = getStringArray(params.fields);
+  }
+  // `aggregateField` carries the group bys alongside the axes, and the Logs page ignores
+  // `logsGroupBy` whenever it is present. Only fall back to the older key when there is no axis to
+  // hang an aggregateField on.
+  if (y_axes) {
+    next.aggregateField = [
+      JSON.stringify({yAxes: getStringArray(y_axes)}),
+      ...getStringArray(group_by).map(groupBy => JSON.stringify({groupBy})),
+    ];
+  } else if (group_by) {
     next[LOGS_GROUP_BY_KEY] = getStringArray(group_by);
   }
   if (mode) {
@@ -626,8 +1162,19 @@ function spansQuery(
   params: Record<string, any>
 ): Record<string, any> {
   const {y_axes, group_by, mode} = params;
-  const next = {...queryParams};
+  const {sort, ...rest} = queryParams;
+  const next: Record<string, any> = {...rest};
   const aggregateFields: string[] = [];
+
+  // Aggregate mode orders the aggregate table from its own key; `sort` only orders the samples
+  // table, so leaving an aggregate sort there drops the ordering the call asked for.
+  if (sort) {
+    next[mode === 'aggregates' ? 'aggregateSort' : 'sort'] = sort;
+  }
+
+  if (params.fields && mode !== 'aggregates') {
+    next.field = getStringArray(params.fields);
+  }
 
   if (y_axes) {
     const axes = getStringArray(y_axes);
@@ -676,23 +1223,6 @@ function getTraceMetricFromParams(params: Record<string, any>): TraceMetric | nu
     traceMetric.unit = rawTraceMetric.unit;
   }
   return traceMetric;
-}
-
-function getMetricYAxis(yAxis: string, traceMetric: TraceMetric): string {
-  const visualize = new VisualizeFunction(yAxis);
-  const aggregate = visualize.parsedFunction?.name;
-  if (!aggregate) {
-    return yAxis;
-  }
-
-  return makeMetricsAggregate({aggregate, traceMetric});
-}
-
-function getDefaultMetricYAxis(traceMetric: TraceMetric): string {
-  return makeMetricsAggregate({
-    aggregate: DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'sum',
-    traceMetric,
-  });
 }
 
 function parseMetricsSort(

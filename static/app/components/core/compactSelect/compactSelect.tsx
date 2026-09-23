@@ -4,7 +4,8 @@ import * as Sentry from '@sentry/react';
 import maxBy from 'lodash/maxBy';
 import type {DistributedOmit} from 'type-fest';
 
-import {t} from 'sentry/locale';
+import {useTranslation} from '@sentry/scraps/translationContext';
+
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 
 import {Control, type ControlProps} from './control';
@@ -81,6 +82,7 @@ export function CompactSelect<Value extends SelectKey>({
   menuWidth,
   ...controlProps
 }: SelectProps<Value>) {
+  const {t} = useTranslation();
   const triggerId = useId();
 
   // Combine list props into an object with two clearly separated types, one where

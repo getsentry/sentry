@@ -1,7 +1,8 @@
+import Cookies from 'js-cookie';
 import {InstallWizardFixture} from 'sentry-fixture/installWizard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {getOverride, registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -37,6 +38,7 @@ describe('App', () => {
   const configState = ConfigStore.getState();
 
   beforeEach(() => {
+    Cookies.remove('sentry_react_auth', {path: '/'});
     const organization = OrganizationFixture();
 
     ConfigStore.init();
@@ -75,6 +77,8 @@ describe('App', () => {
   });
 
   afterEach(() => {
+    Cookies.remove('sentry_react_auth', {path: '/'});
+    localStorage.removeItem('sentry_react_auth_rollout_organization');
     jest.clearAllMocks();
   });
 
@@ -86,7 +90,20 @@ describe('App', () => {
     expect(testableWindowLocation.replace).not.toHaveBeenCalled();
   });
 
-  it('renders NewsletterConsent', async () => {
+  it.each(['0', '1'])('preserves the Auth V2 cookie %s on app load', async cookie => {
+    Cookies.set('sentry_react_auth', cookie, {path: '/'});
+    localStorage.setItem(
+      'sentry_react_auth_rollout_organization',
+      JSON.stringify('org-slug')
+    );
+
+    render(<App />, {initialRouterConfig: defaultRouterConfig});
+
+    expect(await screen.findByText('placeholder content')).toBeInTheDocument();
+    expect(Cookies.get('sentry_react_auth')).toBe(cookie);
+  });
+
+  it('requires an explicit NewsletterConsent choice', async () => {
     const user = ConfigStore.get('user');
     user.flags.newsletter_consent_prompt = true;
 
@@ -94,12 +111,21 @@ describe('App', () => {
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 
-    const updatesViaEmail = await screen.findByText(
-      'Yes, I would like to receive updates via email',
-      undefined,
+    const yes = await screen.findByRole(
+      'radio',
+      {name: 'Yes, I would like to receive updates via email'},
       {timeout: 2000, interval: 100}
     );
-    expect(updatesViaEmail).toBeInTheDocument();
+    const no = screen.getByRole('radio', {
+      name: "No, I'd prefer not to receive these updates",
+    });
+
+    expect(yes).not.toBeChecked();
+    expect(no).not.toBeChecked();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    expect(await screen.findByText('Please select an option')).toBeInTheDocument();
 
     user.flags.newsletter_consent_prompt = false;
   });

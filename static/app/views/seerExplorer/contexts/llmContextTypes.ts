@@ -18,6 +18,9 @@
  * Add new types here as new context-aware components are registered.
  */
 export type LLMContextNodeType =
+  | 'alert-builder'
+  | 'alert-detail'
+  | 'alert-list'
   | 'autofix'
   | 'chart'
   | 'dashboard'
@@ -25,6 +28,10 @@ export type LLMContextNodeType =
   | 'issue-list'
   | 'logs-explorer'
   | 'metrics-explorer'
+  | 'monitor-builder'
+  | 'monitor-detail'
+  | 'monitor-list'
+  | 'navigation'
   | 'profiling-explorer'
   | 'releases-list'
   | 'replay-detail'
@@ -95,9 +102,24 @@ export interface LLMContextNodeSnapshot {
 }
 
 /**
+ * A single registered node, flattened for DOM-position overlays (e.g. Seer
+ * XRay Mode). Unlike `LLMContextNodeSnapshot` this carries `nodeId`, which an
+ * overlay needs to locate the node's DOM anchor via
+ * `data-seer-xray-node-id`. Not used by the LLM-facing snapshot, where ids
+ * would be meaningless.
+ */
+export interface LLMContextOverlayNode {
+  data: unknown;
+  nodeId: string;
+  nodeType: string;
+  parentId?: string;
+}
+
+/**
  * The value exposed by the internal LLMContext to the HOC and hooks.
  */
 export interface LLMContextInternalValue {
+  getOverlayNodes: () => LLMContextOverlayNode[];
   getSnapshot: (fromNodeId?: string) => LLMContextSnapshot;
   registerNode: (nodeId: string, nodeType: string, parentId?: string) => void;
   unregisterNode: (nodeId: string) => void;

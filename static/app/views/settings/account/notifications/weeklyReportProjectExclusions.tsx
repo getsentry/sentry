@@ -22,6 +22,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -84,7 +85,9 @@ export function WeeklyReportProjectExclusions({
   const organization = organizations.find(({id}) => id === orgId);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setCurrentPage(0);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization?.id]);
 
   const {
@@ -124,7 +127,10 @@ export function WeeklyReportProjectExclusions({
     mutationFn: (newExcludedIds: string[]) =>
       fetchMutation({
         method: 'PUT',
-        url: `/organizations/${organization!.slug}/weekly-report-project-exclusions/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/weekly-report-project-exclusions/',
+          {path: {organizationIdOrSlug: organization!.slug}}
+        ),
         options: {host: organization!.links?.regionUrl},
         data: {projectIds: newExcludedIds.map(Number)},
       }),

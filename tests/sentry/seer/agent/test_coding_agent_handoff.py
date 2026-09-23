@@ -15,13 +15,14 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
 
-def _repo(owner: str, name: str) -> SeerRepoDefinition:
+def _repo(owner: str, name: str, integration_id: str | None = None) -> SeerRepoDefinition:
     """Minimal SeerRepoDefinition for tests."""
     return SeerRepoDefinition(
         provider="github",
         owner=owner,
         name=name,
         external_id="123",
+        integration_id=integration_id,
     )
 
 
@@ -262,6 +263,146 @@ class TestLaunchCodingAgents(TestCase):
         failure = result["failures"][0]
         assert failure["failure_type"] == "github_copilot_not_licensed"
         assert "Copilot license" in failure["error_message"]
+
+    def _copilot_permissions_failure(self, mock_copilot_client_class, mock_identity_service, repo):
+        mock_identity_service.get_access_token_for_user.return_value = "test-token"
+        mock_client_instance = MagicMock()
+        mock_copilot_client_class.return_value = mock_client_instance
+        mock_client_instance.launch.side_effect = ApiError(
+            "Resource not accessible by integration", code=403
+        )
+
+        result = launch_coding_agents(
+            organization=self.organization,
+            integration_id=None,
+            run_id=self.run_id,
+            prompt="Fix the bug",
+            repos=[repo],
+            provider="github_copilot",
+            user_id=1,
+        )
+
+        assert len(result["failures"]) == 1
+        failure = result["failures"][0]
+        assert failure["failure_type"] == "github_app_permissions"
+        return failure
+
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.GithubCopilotAgentClient")
+    @patch("sentry.seer.agent.coding_agent_handoff.github_copilot_identity_service")
+    def test_permissions_403_names_the_installation_that_owns_the_repo(
+        self,
+        mock_identity_service,
+        mock_copilot_client_class,
+        mock_store,
+    ):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="1111",
+            name="other-gh-org",
+            metadata={"account_type": "Organization"},
+        )
+        owning = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="2222",
+            name="owning-gh-org",
+            metadata={"account_type": "Organization"},
+        )
+
+        failure = self._copilot_permissions_failure(
+            mock_copilot_client_class,
+            mock_identity_service,
+            _repo("owning-gh-org", "repo", integration_id=str(owning.id)),
+        )
+
+        assert failure["github_installation_id"] == "2222"
+        assert failure["github_installation_url"] == (
+            "https://github.com/organizations/owning-gh-org"
+            "/settings/installations/2222/permissions/update"
+        )
+
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.GithubCopilotAgentClient")
+    @patch("sentry.seer.agent.coding_agent_handoff.github_copilot_identity_service")
+    def test_permissions_403_uses_personal_namespace_for_user_installations(
+        self,
+        mock_identity_service,
+        mock_copilot_client_class,
+        mock_store,
+    ):
+        owning = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="3333",
+            name="some-user",
+            metadata={"account_type": "User"},
+        )
+
+        failure = self._copilot_permissions_failure(
+            mock_copilot_client_class,
+            mock_identity_service,
+            _repo("some-user", "repo", integration_id=str(owning.id)),
+        )
+
+        assert failure["github_installation_id"] == "3333"
+        assert failure["github_installation_url"] == (
+            "https://github.com/settings/installations/3333/permissions/update"
+        )
+
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.GithubCopilotAgentClient")
+    @patch("sentry.seer.agent.coding_agent_handoff.github_copilot_identity_service")
+    def test_permissions_403_omits_installation_when_repo_has_no_integration(
+        self,
+        mock_identity_service,
+        mock_copilot_client_class,
+        mock_store,
+    ):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="4444",
+            name="unrelated-gh-org",
+            metadata={"account_type": "Organization"},
+        )
+
+        failure = self._copilot_permissions_failure(
+            mock_copilot_client_class,
+            mock_identity_service,
+            _repo("owner", "repo"),
+        )
+
+        assert "github_installation_id" not in failure
+        assert "github_installation_url" not in failure
+
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.GithubCopilotAgentClient")
+    @patch("sentry.seer.agent.coding_agent_handoff.github_copilot_identity_service")
+    def test_permissions_403_omits_installation_from_another_organization(
+        self,
+        mock_identity_service,
+        mock_copilot_client_class,
+        mock_store,
+    ):
+        other_org = self.create_organization()
+        foreign = self.create_integration(
+            organization=other_org,
+            provider="github",
+            external_id="5555",
+            name="foreign-gh-org",
+            metadata={"account_type": "Organization"},
+        )
+
+        failure = self._copilot_permissions_failure(
+            mock_copilot_client_class,
+            mock_identity_service,
+            _repo("foreign-gh-org", "repo", integration_id=str(foreign.id)),
+        )
+
+        assert "github_installation_id" not in failure
+        assert "github_installation_url" not in failure
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")

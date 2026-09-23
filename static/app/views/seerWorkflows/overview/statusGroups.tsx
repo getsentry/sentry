@@ -1,6 +1,10 @@
+import styled from '@emotion/styled';
+
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {Sticky} from 'sentry/components/sticky';
 import {IconCode, IconCommit, IconMerge, IconPullRequest, IconSearch} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
@@ -73,3 +77,24 @@ export function StatusGroupTooltip({groupKey}: {groupKey: StatusGroupKey}) {
     </Stack>
   );
 }
+
+// Disclosure.Content adds its own horizontal panel padding; cards align to the
+// section edge instead.
+export const StatusGroup = styled(Disclosure)`
+  && > * + * {
+    padding-left: 0;
+    padding-right: 0;
+  }
+`;
+
+export const GroupHeader = styled(Sticky)`
+  z-index: ${p => p.theme.zIndex.initial + 1};
+  align-self: stretch;
+  background: ${p => p.theme.tokens.background.secondary};
+  border-radius: ${p => p.theme.radius.md};
+
+  &[data-stuck] {
+    border-radius: 0;
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+`;

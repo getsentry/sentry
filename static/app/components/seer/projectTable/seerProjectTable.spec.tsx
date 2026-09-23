@@ -91,12 +91,11 @@ describe('SeerProjectTable', () => {
     jest.restoreAllMocks();
   });
 
-  function renderTable() {
-    render(
+  function ExampleSeerProjectTable() {
+    return (
       <SentryNuqsTestingAdapter>
         <SeerProjectTable />
-      </SentryNuqsTestingAdapter>,
-      {organization}
+      </SentryNuqsTestingAdapter>
     );
   }
 
@@ -108,7 +107,7 @@ describe('SeerProjectTable', () => {
     });
     const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-    renderTable();
+    render(<ExampleSeerProjectTable />, {organization});
 
     // The agent dropdown renders its current value, "Seer".
     await userEvent.click(await screen.findByText('Seer'));
@@ -152,7 +151,7 @@ describe('SeerProjectTable', () => {
     });
     const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-    renderTable();
+    render(<ExampleSeerProjectTable />, {organization});
 
     await userEvent.click(await screen.findByText('Seer'));
     await userEvent.click(
@@ -177,7 +176,7 @@ describe('SeerProjectTable', () => {
     });
     const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-    renderTable();
+    render(<ExampleSeerProjectTable />, {organization});
 
     await userEvent.click(await screen.findByText('Seer'));
     await userEvent.click(
@@ -187,5 +186,13 @@ describe('SeerProjectTable', () => {
     // The check passes, so the selection is persisted and no warning is shown.
     await waitFor(() => expect(settingsPut).toHaveBeenCalled());
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('disables adding a project without organization write access', async () => {
+    render(<ExampleSeerProjectTable />, {
+      organization: OrganizationFixture({slug: organization.slug, access: []}),
+    });
+
+    expect(await screen.findByRole('button', {name: 'Add Project'})).toBeDisabled();
   });
 });

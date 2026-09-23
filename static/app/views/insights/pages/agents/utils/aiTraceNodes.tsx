@@ -12,7 +12,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 
 // TODO(aknaus): Remove the special handling for tags once the endpoint returns the correct type
 function getAttributeValue(
@@ -28,8 +28,7 @@ function getAttributeValue(
     return Number(attribute.value);
   }
   if (attribute.type === 'bool') {
-    /* @ts-expect-error - tags are always returned as strings */
-    return attribute.value === 'true';
+    return String(attribute.value) === 'true';
   }
   return attribute.value;
 }

@@ -1,4 +1,4 @@
-import {dragHandle} from 'sentry-test/dragMove';
+import {dragHandle, dragMove} from 'sentry-test/dragMove';
 import {
   render,
   screen,
@@ -6,7 +6,9 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
+import {Container} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 const COLUMNS: TableColumnConfig[] = [
@@ -23,8 +25,8 @@ function TestTable({
     <Table columns={columns} {...props}>
       <Table.Head>
         <Table.Row>
-          {columns.map(column => (
-            <Table.HeadCell column={column.key} key={column.key}>
+          {columns.map((column, index) => (
+            <Table.HeadCell columnIndex={index} key={column.key}>
               {column.key}
             </Table.HeadCell>
           ))}
@@ -219,6 +221,22 @@ describe('Table', () => {
     expect(onColumnResize).not.toHaveBeenCalled();
   });
 
+  it('sizes the other columns from the latest widths when a re-render lands mid-drag', async () => {
+    const {rerender} = render(<TestTable />);
+
+    dragHandle(resizers()[0]!, {from: 100, to: 400, release: false});
+    await waitFor(() => expect(gridTemplate()).toBe('300px 150px minmax(90px, auto)'));
+
+    rerender(
+      <TestTable
+        columns={[{key: 'name', width: 200}, {key: 'count', width: 400}, {key: 'age'}]}
+      />
+    );
+    dragMove({to: 450});
+
+    await waitFor(() => expect(gridTemplate()).toBe('350px 400px minmax(90px, auto)'));
+  });
+
   it('keeps the in-progress width when an unrelated re-render lands mid-drag', async () => {
     const {rerender} = render(<TestTable aria-label="before" />);
 
@@ -229,6 +247,138 @@ describe('Table', () => {
 
     expect(screen.getByRole('table')).toHaveAttribute('aria-label', 'after');
     expect(gridTemplate()).toBe('300px 150px minmax(90px, auto)');
+  });
+
+  describe('responsive columns', () => {
+    // `clientWidth` is an accessor on Element.prototype, not HTMLElement.
+    const setClientWidth = (width: number) => {
+      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(width);
+    };
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    const RESPONSIVE_COLUMNS: TableColumnConfig[] = [
+      {key: 'name', width: {zero: 120, xl: 200}},
+      {key: 'age', visible: {xl: true}, width: 150},
+      {key: 'count'},
+    ];
+
+    it('sizes a column by the width its container width resolves to', () => {
+      // Container scale: xl = 768px, 2xl = 896px -> 800px resolves to xl.
+      setClientWidth(800);
+      render(
+        <Container containerType="inline-size">
+          <TestTable columns={RESPONSIVE_COLUMNS} />
+        </Container>
+      );
+
+      expect(gridTemplate()).toBe('200px 150px minmax(90px, auto)');
+    });
+
+    it('drops the track of a column hidden at the container width', () => {
+      setClientWidth(400);
+      render(
+        <Container containerType="inline-size">
+          <TestTable columns={RESPONSIVE_COLUMNS} />
+        </Container>
+      );
+
+      expect(gridTemplate()).toBe('120px minmax(90px, auto)');
+    });
+
+    it('hides the cells sitting in the position of a hidden column', () => {
+      setClientWidth(400);
+      render(
+        <Container containerType="inline-size">
+          <TestTable columns={RESPONSIVE_COLUMNS} />
+        </Container>
+      );
+
+      // jsdom does not resolve descendant rules through getComputedStyle, so the
+      // hiding rule is read off the emitted stylesheet rather than the cell.
+      expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
+        "nth-child(2 of [role='cell'], [role='columnheader']):not(:only-child)"
+      );
+    });
+
+    it('keeps a column named only at wider breakpoints hidden at the base', () => {
+      setClientWidth(400);
+      render(
+        <Container containerType="inline-size">
+          <TestTable columns={[{key: 'name'}, {key: 'age', visible: {xl: true}}]} />
+        </Container>
+      );
+
+      expect(gridTemplate()).toBe('minmax(90px, auto)');
+      expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
+        "nth-child(2 of [role='cell'], [role='columnheader']):not(:only-child)"
+      );
+    });
+
+    it('keeps a column visible at the base when its `visible` says so', () => {
+      setClientWidth(400);
+      render(
+        <Container containerType="inline-size">
+          <TestTable
+            columns={[{key: 'name'}, {key: 'age', visible: {zero: true, xl: false}}]}
+          />
+        </Container>
+      );
+
+      expect(gridTemplate()).toBe('minmax(90px, auto) minmax(90px, auto)');
+    });
+
+    it('leaves the last visible column flexible when a later column is hidden', () => {
+      setClientWidth(400);
+      render(
+        <Container containerType="inline-size">
+          <TestTable
+            columns={[
+              {key: 'name', width: 120},
+              {key: 'age', visible: {xl: true}, width: 150},
+            ]}
+          />
+        </Container>
+      );
+
+      expect(gridTemplate()).toBe('minmax(120px, auto)');
+    });
+
+    it('omits the resize handle of a column hidden at the container width', () => {
+      setClientWidth(400);
+      render(
+        <Container containerType="inline-size">
+          <TestTable columns={RESPONSIVE_COLUMNS} />
+        </Container>
+      );
+
+      expect(resizers()).toHaveLength(1);
+      expect(resizers()[0]).toHaveAccessibleName('name');
+    });
+
+    it('reports the config index of a resized column to onColumnResize', () => {
+      const onColumnResize = jest.fn();
+      setClientWidth(400);
+      render(
+        <Container containerType="inline-size">
+          <TestTable
+            columns={[
+              {key: 'name', visible: {xl: true}, width: 200},
+              {key: 'age', width: 150},
+              {key: 'count'},
+            ]}
+            onColumnResize={onColumnResize}
+          />
+        </Container>
+      );
+
+      dragHandle(resizers()[0]!, {from: 100, to: 350});
+
+      // The first column is hidden, so the first handle is the second entry.
+      expect(onColumnResize).toHaveBeenCalledWith(1, 250);
+    });
   });
 
   it('leaves consumer-provided tracks alone when no columns are described', () => {

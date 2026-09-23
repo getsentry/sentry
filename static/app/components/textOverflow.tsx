@@ -21,10 +21,6 @@ type Props = {
    * @default 'right'
    */
   ellipsisDirection?: 'left' | 'right';
-  /**
-   * @default false
-   */
-  isParagraph?: boolean;
   style?: CSSProperties;
 };
 
@@ -33,22 +29,20 @@ export const TextOverflow = styled(
     children,
     className,
     ellipsisDirection = 'right',
-    isParagraph = false,
     'data-test-id': dataTestId,
     style,
   }: Props) => {
-    const Component = isParagraph ? 'p' : 'div';
     if (ellipsisDirection === 'left') {
       return (
-        <Component className={className} style={style} data-test-id={dataTestId}>
+        <div className={className} style={style} data-test-id={dataTestId}>
           <bdi>{children}</bdi>
-        </Component>
+        </div>
       );
     }
     return (
-      <Component className={className} style={style} data-test-id={dataTestId}>
+      <div className={className} style={style} data-test-id={dataTestId}>
         {children}
-      </Component>
+      </div>
     );
   }
 )`

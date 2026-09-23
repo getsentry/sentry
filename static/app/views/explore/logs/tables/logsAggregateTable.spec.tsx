@@ -19,6 +19,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+import {type OurLogsAggregateResponseItem} from 'sentry/views/explore/logs/types';
 import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 
 import {LogsAggregateTable} from './logsAggregateTable';
@@ -186,6 +187,46 @@ describe('LogsAggregateTable', () => {
       expect(cells[1]).toHaveTextContent(expected[i]![0]!);
       expect(cells[2]).toHaveTextContent(expected[i]![1]!);
     });
+  });
+
+  it('renders an empty boolean group-by as "(no value)" rather than a second false', () => {
+    const booleanRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        query: {
+          ...initialRouterConfig.location.query,
+          [LOGS_GROUP_BY_KEY]: 'is_equal',
+          [LOGS_AGGREGATE_SORT_BYS_KEY]: '-count(message)',
+          [LOGS_AGGREGATE_FN_KEY]: 'count',
+          [LOGS_AGGREGATE_PARAM_KEY]: 'message',
+        },
+      },
+    };
+
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={createAggregatesTableResult({
+          data: {
+            // Boolean fields come back as real booleans; the empty bucket as ''.
+            data: [
+              {is_equal: false, 'count(message)': 40_000_000},
+              {is_equal: true, 'count(message)': 1_000_000},
+              {is_equal: '', 'count(message)': 168_000},
+            ] as unknown as OurLogsAggregateResponseItem[],
+            meta: {
+              fields: {is_equal: 'boolean', 'count(message)': 'integer'},
+              units: {},
+            },
+          },
+        })}
+      />,
+      {initialRouterConfig: booleanRouterConfig}
+    );
+
+    expect(screen.getByText('true')).toBeInTheDocument();
+    expect(screen.getByText('(no value)')).toBeInTheDocument();
+    expect(screen.getAllByText('false')).toHaveLength(1);
   });
 
   it('renders top result colors when the page is the first one', () => {

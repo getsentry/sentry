@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {useQueryState} from 'nuqs';
 
 import {
   addErrorMessage,
@@ -12,8 +13,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
-import {decodeList} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const statusToButtonLabel: Record<string, string> = {
@@ -32,21 +32,17 @@ interface Props extends Pick<ListItemCheckboxState, 'deselectAll' | 'selectedIds
 
 export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
   const organization = useOrganization();
-  const queryView = useLocationQuery({
-    fields: {
-      project: decodeList,
-    },
-  });
+  const [projectIds] = useQueryState('project', parseAsStringArray);
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: selectedIds,
     organization,
-    projectIds: queryView.project,
+    projectIds,
   });
   // TODO: should only be true if you're a member of some of the projects of the
   // selected feedbacks... which is not currently available
   const enableMarkAsRead = true;
 
-  const onDelete = useDeleteFeedback(selectedIds, queryView.project);
+  const onDelete = useDeleteFeedback(selectedIds, projectIds);
   const hasDelete = selectedIds !== 'all';
   const enableDelete = organization.access.includes('event:admin');
 

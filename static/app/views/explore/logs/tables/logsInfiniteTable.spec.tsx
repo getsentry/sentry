@@ -34,7 +34,7 @@ import {
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {createErrorLogRow} from 'sentry/views/explore/logs/utils';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
 jest.mock('@tanstack/react-virtual', () => {
   return {
@@ -196,6 +196,7 @@ describe('LogsInfiniteTable', () => {
       body: {
         data: mockLogsData,
         meta: {
+          routingHint: 'table-hint',
           fields: {
             [OurLogKnownFieldKey.ID]: 'string',
             [OurLogKnownFieldKey.PROJECT_ID]: 'string',
@@ -638,6 +639,7 @@ describe('LogsInfiniteTable', () => {
     // full details are fetched.
     expect(await screen.findByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
     await waitFor(() => expect(traceItemRequest).toHaveBeenCalled());
+    expect(traceItemRequest.mock.calls[0]![1].query.routing_hint).toBe('table-hint');
   });
 
   it('expands the linked row when navigation adds logsRowId', async () => {

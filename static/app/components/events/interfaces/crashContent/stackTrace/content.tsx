@@ -14,8 +14,7 @@ import {
 import {Panel} from 'sentry/components/panels/panel';
 import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
-import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils/defined';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 import {OmittedFrames} from './omittedFrames';
 
@@ -32,10 +31,7 @@ type Props = {
   className?: string;
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   hideSourceMapDebugger?: boolean;
-  isHoverPreviewed?: boolean;
   lockAddress?: string;
-  maxDepth?: number;
-  mechanism?: StackTraceMechanism | null;
   meta?: Record<any, any>;
   threadId?: number;
 } & Partial<DefaultProps>;
@@ -48,8 +44,6 @@ export function Content({
   expandFirstFrame = true,
   platform,
   includeSystemFrames = true,
-  isHoverPreviewed = false,
-  maxDepth,
   meta,
   threadId,
   lockAddress,
@@ -126,7 +120,7 @@ export function Content({
 
   let nRepeats = 0;
 
-  let convertedFrames = frames
+  const convertedFrames = frames
     .map((frame, frameIndex) => {
       const nextFrame = frames[frameIndex + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
@@ -154,7 +148,7 @@ export function Content({
           },
           isSubFrame: hiddenFrameIndices.includes(frameIndex),
           isShowFramesToggleExpanded: toggleFrameMap[frameIndex],
-          isHoverPreviewed,
+          isHoverPreviewed: false,
           frameMeta: meta?.frames?.[frameIndex],
           registersMeta: meta?.registers,
           isANR,
@@ -190,10 +184,6 @@ export function Content({
       return <OmittedFrames key={frameIndex} omittedFrames={data.framesOmitted} />;
     })
     .filter((frame): frame is React.ReactElement => !!frame);
-
-  if (defined(maxDepth)) {
-    convertedFrames = convertedFrames.slice(-maxDepth);
-  }
 
   const wrapperClassName = `${!!className && className} traceback ${
     includeSystemFrames ? 'full-traceback' : 'in-app-traceback'

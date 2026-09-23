@@ -11,6 +11,7 @@ from sentry.taskworker.namespaces import auth_tasks
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
+audit_logger = logging.getLogger("sentry.audit.user")
 
 SUPERUSER_WRITE_PERMISSION = "superuser.write"
 
@@ -27,28 +28,70 @@ def _resolve_privilege_attrs(team_slug: str, *, grant: bool) -> dict[str, bool]:
     return {}
 
 
+def _slug_to_permission() -> dict[str, str]:
+    """Build a reverse map from team slug to permission string."""
+    return {slug: perm for perm, slug in settings.SENTRY_SCIM_PERMISSION_TEAM_SLUGS.items()}
+
+
+def _resolve_managed_permission(team_slug: str) -> str | None:
+    """Return the UserPermission string managed by this team slug, if any."""
+    if team_slug == settings.SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG:
+        return SUPERUSER_WRITE_PERMISSION
+    return _slug_to_permission().get(team_slug)
+
+
+def _is_privileged_slug(team_slug: str) -> bool:
+    return (
+        team_slug
+        in (
+            settings.SENTRY_SCIM_STAFF_TEAM_SLUG,
+            settings.SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG,
+            settings.SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG,
+        )
+        or team_slug in settings.SENTRY_SCIM_PERMISSION_TEAM_SLUGS.values()
+    )
+
+
+def _audit_permission_change(user_id: int, permission: str | None, *, grant: bool) -> None:
+    audit_logger.info(
+        "user.add-permission" if grant else "user.delete-permission",
+        extra={
+            "actor": "scim",
+            "user_id": user_id,
+            "permission_name": permission,
+        },
+    )
+
+
 def update_privilege(
     user_id: int,
     attrs: dict[str, bool],
     *,
     grant: bool,
-    manage_write_permission: bool,
+    managed_permission: str | None,
 ) -> None:
     """
-    Update a single user's privilege flags and optionally manage the superuser.write permission.
+    Update a single user's privilege flags and optionally manage a UserPermission.
 
-    For grants with write permission: adds permission first, rolls back on failure.
-    For revokes with write permission: removes permission first (fail-secure).
+    For grants with a permission: adds permission first, rolls back on failure.
+    For revokes with a permission: removes permission first (fail-secure).
     """
     permission_added = False
 
-    if manage_write_permission:
+    if managed_permission:
         if grant:
             permission_added = user_service.add_permission(
-                user_id=user_id, permission=SUPERUSER_WRITE_PERMISSION
+                user_id=user_id, permission=managed_permission
             )
         else:
-            user_service.remove_permission(user_id=user_id, permission=SUPERUSER_WRITE_PERMISSION)
+            removed = user_service.remove_permission(user_id=user_id, permission=managed_permission)
+            if removed:
+                _audit_permission_change(user_id, managed_permission, grant=False)
+
+    if not attrs:
+        if permission_added:
+            _audit_permission_change(user_id, managed_permission, grant=True)
+        return
 
     try:
         user_service.update_user(user_id=user_id, attrs=attrs)
@@ -58,12 +101,15 @@ def update_privilege(
             extra={"user_id": user_id},
         )
         if permission_added:
-            user_service.remove_permission(user_id=user_id, permission=SUPERUSER_WRITE_PERMISSION)
+            user_service.remove_permission(user_id=user_id, permission=managed_permission)
         return
     except Exception:
         if permission_added:
-            user_service.remove_permission(user_id=user_id, permission=SUPERUSER_WRITE_PERMISSION)
+            user_service.remove_permission(user_id=user_id, permission=managed_permission)
         raise
+
+    if permission_added:
+        _audit_permission_change(user_id, managed_permission, grant=True)
 
 
 @instrumented_task(
@@ -82,21 +128,17 @@ def sync_scim_team_privileges(
     if settings.SENTRY_MODE != SentryMode.SAAS or organization_id != settings.SUPERUSER_ORG_ID:
         return
 
-    if team_slug not in (
-        settings.SENTRY_SCIM_STAFF_TEAM_SLUG,
-        settings.SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG,
-        settings.SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG,
-    ):
+    if not _is_privileged_slug(team_slug):
         return
 
-    manage_write_permission = team_slug == settings.SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG
+    managed_permission = _resolve_managed_permission(team_slug)
 
     # Revoke
     revoke_attrs = _resolve_privilege_attrs(team_slug, grant=False)
     for user_id in user_ids_to_revoke:
         try:
             update_privilege(
-                user_id, revoke_attrs, grant=False, manage_write_permission=manage_write_permission
+                user_id, revoke_attrs, grant=False, managed_permission=managed_permission
             )
             logger.info(
                 "scim.privilege.revoked",
@@ -118,7 +160,7 @@ def sync_scim_team_privileges(
     for user_id in user_ids_to_grant:
         try:
             update_privilege(
-                user_id, grant_attrs, grant=True, manage_write_permission=manage_write_permission
+                user_id, grant_attrs, grant=True, managed_permission=managed_permission
             )
             logger.info(
                 "scim.privilege.granted",

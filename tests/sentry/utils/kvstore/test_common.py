@@ -85,12 +85,12 @@ def test_single_key_operations(properties: Properties) -> None:
     key, value = next(properties.keys), next(properties.values)
 
     # Test setting a key with no prior value.
-    store.set(key, value)
+    store.set(key, value, ttl=timedelta(hours=1))
     assert store.get(key) == value
 
     # Test overwriting a key with a prior value.
     new_value = next(properties.values)
-    store.set(key, new_value)
+    store.set(key, new_value, ttl=timedelta(hours=1))
     assert store.get(key) == new_value
 
     # Test overwriting a key with a new TTL.
@@ -115,7 +115,7 @@ def test_multiple_key_operations(properties: Properties) -> None:
 
     items = dict(itertools.islice(properties.items, 10))
     for key, value in items.items():
-        store.set(key, value)
+        store.set(key, value, ttl=timedelta(hours=1))
 
     missing_keys = set(itertools.islice(properties.keys, 5))
 

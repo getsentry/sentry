@@ -1,15 +1,13 @@
 import type {ReactNode} from 'react';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -17,8 +15,12 @@ function Wrapper({children}: {children: ReactNode}) {
 
 describe('useExploreTimeseries', () => {
   beforeEach(() => {
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    PageFiltersStore.reset();
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
@@ -140,5 +142,63 @@ describe('useExploreTimeseries', () => {
         }),
       })
     );
+  });
+
+  it('forwards a bracketed list with whitespace between items unchanged', async () => {
+    // The grammar allows `key:[a, b]`, but re-serializing through the legacy
+    // token splitter used to break the list on the space and quote each half,
+    // so the chart queried for something the table never filtered on.
+    const query =
+      'span.op:pageload sentry.segment.name:["/issues/", "/issues/:groupId/"]';
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      method: 'GET',
+    });
+
+    renderHookWithProviders(() => useExploreTimeseries({query, enabled: true}), {
+      additionalWrapper: Wrapper,
+    });
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        query: expect.objectContaining({query}),
+      })
+    );
+  });
+
+  it('does not query when the only series has an invalid conditional filter', () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      method: 'GET',
+    });
+
+    renderHookWithProviders(
+      () =>
+        useExploreTimeseries({
+          query: 'test value',
+          enabled: true,
+        }),
+      {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              aggregateField: [
+                JSON.stringify({groupBy: ''}),
+                JSON.stringify({
+                  yAxes: ['count_if(`p95(span.duration):>100`,span.duration)'],
+                }),
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    expect(mockRequest).not.toHaveBeenCalled();
   });
 });

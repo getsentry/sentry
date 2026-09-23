@@ -2,15 +2,17 @@ import {useCallback} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {AlertsMonitorsShowcaseButton} from 'sentry/components/workflowEngine/alertsMonitorsShowcaseButton';
 import {WorkflowEngineListLayout as ListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -24,15 +26,56 @@ import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {useAutomationListQueryOptions} from 'sentry/views/automations/hooks/useAutomationListDetectors';
 import {
   getNoAlertWritePermissionTooltip,
-  useCanEditAutomation,
+  useCanCreateAutomation,
 } from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
+import {
+  LLM_CONTEXT_MAX_ROWS,
+  useLLMContext,
+} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
-export default function AutomationsList() {
+const CONTEXT_HINT =
+  'Sentry alerts list page. Alerts watch monitors and run actions when one fires — Slack and email ' +
+  'notifications, tickets, and webhooks. ' +
+  'query is only what the user typed in the search box. ' +
+  `displayedAlerts is a pipe-delimited CSV with a header row of the visible alerts, capped at ${LLM_CONTEXT_MAX_ROWS} rows. ` +
+  'alertCount is the total number of matching alerts — there may be many more than are displayed, ' +
+  'so look an alert up by id rather than assuming the sample is complete. ' +
+  'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+  'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.';
+
+/**
+ * Report the visible alerts as a pipe-delimited CSV, capped at
+ * `LLM_CONTEXT_MAX_ROWS`. Same shape the monitor list sends, and a fraction of
+ * the tokens the equivalent array of objects would cost.
+ */
+function formatAutomationRows(automations: Automation[]): string {
+  return [
+    'id|name|enabled|lastTriggered',
+    ...automations
+      .slice(0, LLM_CONTEXT_MAX_ROWS)
+      .map(automation =>
+        [
+          automation.id,
+          automation.name.replace(/[|\n]/g, ' '),
+          automation.enabled,
+          automation.lastTriggered,
+        ].join('|')
+      ),
+  ].join('\n');
+}
+
+function AutomationsListInner() {
+  const getPaginationCaption = useGetPaginationCaption();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const {queryOptions, enabled, cursor, sort} = useAutomationListQueryOptions();
+  const {queryOptions, enabled, cursor, sort, query} = useAutomationListQueryOptions();
   const {data, isLoading, isError, isSuccess} = useQuery({
     ...queryOptions,
     select: selectJsonWithHeaders,
@@ -62,6 +105,19 @@ export default function AutomationsList() {
           pageLength: automations.length,
           total: hits,
         });
+
+  const selectedProjects = useSelectedProjectsForLLMContext();
+
+  useLLMContext({
+    contextHint: CONTEXT_HINT,
+    query,
+    sort: sort ? `${sort.kind === 'asc' ? '' : '-'}${sort.field}` : '',
+    alertCount: hits,
+    cursor,
+    isLoading,
+    ...toLLMContextProjectFields(selectedProjects),
+    displayedAlerts: formatAutomationRows(automations ?? []),
+  });
 
   return (
     <SentryDocumentTitle title={t('Alerts')}>
@@ -106,11 +162,13 @@ export default function AutomationsList() {
   );
 }
 
+export default registerLLMContext('alert-list', AutomationsListInner);
+
 function TableHeader() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const canCreateAlert = useCanEditAutomation();
+  const canCreateAlert = useCanCreateAutomation();
   const initialQuery =
     typeof location.query.query === 'string' ? location.query.query : '';
 
@@ -125,32 +183,56 @@ function TableHeader() {
   );
 
   return (
-    <Flex gap="xl">
-      <ProjectPageFilter size="md" />
-      <Flex
-        flexGrow={1}
-        gap="md"
-        align={{'screen:xs': 'stretch', 'screen:md': 'center'}}
-        direction={{'screen:xs': 'column', 'screen:md': 'row'}}
-      >
-        <div style={{flexGrow: 1}}>
-          <AutomationSearch initialQuery={initialQuery} onSearch={onSearch} />
-        </div>
-        <LinkButton
-          to={makeAutomationCreatePathname(organization.slug)}
-          disabled={!canCreateAlert}
-          tooltipProps={{
-            title: canCreateAlert ? undefined : getNoAlertWritePermissionTooltip(),
-            isHoverable: true,
-          }}
-          variant="primary"
-          icon={<IconAdd />}
-          size="sm"
-        >
-          {t('Create Alert')}
-        </LinkButton>
+    <Grid
+      columns={{
+        zero: '100%',
+        xl: '1fr auto',
+        '3xl': 'auto 1fr min-content',
+      }}
+      areas={{
+        zero: `
+          "project"
+          "search"
+          "create"
+        `,
+        xl: `
+          "project create"
+          "search search"
+        `,
+        '3xl': '"project search create"',
+      }}
+      align="center"
+      gap="md"
+      width="100%"
+    >
+      <Container area="project" justifySelf={{zero: 'stretch', sm: 'start'}}>
+        <PageFilterBar>
+          <ProjectPageFilter size="md" />
+        </PageFilterBar>
+      </Container>
+      <Container area="search" minWidth="0">
+        <AutomationSearch initialQuery={initialQuery} onSearch={onSearch} />
+      </Container>
+      <Flex area="create" align="start" justifySelf={{zero: 'stretch', sm: 'end'}}>
+        <Container width={{zero: '100%', sm: 'auto'}}>
+          {buttonProps => (
+            <LinkButton
+              {...buttonProps}
+              to={makeAutomationCreatePathname(organization.slug)}
+              disabled={!canCreateAlert}
+              tooltipProps={{
+                title: canCreateAlert ? undefined : getNoAlertWritePermissionTooltip(),
+              }}
+              variant="primary"
+              icon={<IconAdd />}
+              size="sm"
+            >
+              {t('Create Alert')}
+            </LinkButton>
+          )}
+        </Container>
       </Flex>
-    </Flex>
+    </Grid>
   );
 }
 

@@ -13,7 +13,6 @@ from django.db import router, transaction
 from django.db.models import ProtectedError
 from objectstore_client import GetResponse, Session
 
-from sentry import features
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.models.debugfile import (
     ProjectDebugFile,
@@ -21,14 +20,17 @@ from sentry.models.debugfile import (
 )
 from sentry.models.files.file import File
 from sentry.models.project import Project
-from sentry.objectstore import get_debug_files_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.utils.db import atomic_transaction
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 
 logger = logging.getLogger(__name__)
 
 
-def migrate_debug_file(debug_file: ProjectDebugFile) -> None:
+def migrate_debug_file(
+    debug_file: ProjectDebugFile,
+    delete_corrupt: bool = False,
+) -> None:
     """Migrate one File-backed DIF, or drop the legacy File from a dual-written DIF."""
 
     def attempt() -> None:
@@ -40,7 +42,16 @@ def migrate_debug_file(debug_file: ProjectDebugFile) -> None:
             drop_legacy_file(debug_file.id, source_file_id=source_file_id)
             return
 
-        metadata = upload_and_verify(debug_file)
+        try:
+            metadata = upload_and_verify(debug_file)
+        except FilestoreIntegrityError as error:
+            _handle_filestore_integrity_error(
+                debug_file.id,
+                source_file_id=source_file_id,
+                error=error,
+                delete_corrupt=delete_corrupt,
+            )
+            return
         if metadata is None:
             return
         commit(debug_file.id, metadata, source_file_id=source_file_id)
@@ -62,8 +73,57 @@ class PostMigrationMetadata:
     checksum: str
 
 
-class MigrationIntegrityError(Exception):
-    """Payload checksum/size did not match the legacy File."""
+class ObjectstoreIntegrityError(Exception):
+    """Objectstore payload checksum/size did not match the legacy File."""
+
+
+class FilestoreIntegrityError(Exception):
+    """Downloaded filestore payload did not match the File record."""
+
+    def __init__(
+        self,
+        *,
+        checksum: str,
+        expected_checksum: str | None,
+        size: int,
+        expected_size: int | None,
+    ) -> None:
+        self.checksum = checksum
+        self.expected_checksum = expected_checksum
+        self.size = size
+        self.expected_size = expected_size
+        super().__init__(
+            f"Filestore payload does not match File record "
+            f"(checksum={checksum!r} expected={expected_checksum!r}, "
+            f"size={size} expected={expected_size})"
+        )
+
+
+def _handle_filestore_integrity_error(
+    dif_id: int,
+    source_file_id: int,
+    error: FilestoreIntegrityError,
+    delete_corrupt: bool,
+) -> None:
+    deleted = False
+    if delete_corrupt:
+        deleted = delete_corrupt_debug_file(
+            dif_id,
+            source_file_id=source_file_id,
+        )
+
+    logger.warning(
+        "debug_files.objectstore_migration.filestore_integrity_mismatch",
+        extra={
+            "debug_file_id": dif_id,
+            "file_id": source_file_id,
+            "checksum": error.checksum,
+            "expected_checksum": error.expected_checksum,
+            "size": error.size,
+            "expected_size": error.expected_size,
+            "deleted": deleted,
+        },
+    )
 
 
 def _sha1_stream(stream: IO[bytes]) -> tuple[str, int]:
@@ -101,19 +161,52 @@ def _spool_to_tempfile(file: File) -> tuple[IO[bytes], str, int]:
     return tmp, digest.hexdigest(), size
 
 
+def _spool_and_validate_with_retry(
+    file: File,
+    *,
+    expected_checksum: str | None,
+    expected_size: int | None,
+) -> tuple[IO[bytes], str, int]:
+    """Download and validate a File, retrying filestore integrity mismatches."""
+
+    def attempt() -> tuple[IO[bytes], str, int]:
+        tmp, checksum, size = _spool_to_tempfile(file)
+        checksum_matches = expected_checksum is None or checksum == expected_checksum
+        size_matches = expected_size is None or size == expected_size
+        if checksum_matches and size_matches:
+            return tmp, checksum, size
+
+        tmp.close()
+        raise FilestoreIntegrityError(
+            checksum=checksum,
+            expected_checksum=expected_checksum,
+            size=size,
+            expected_size=expected_size,
+        )
+
+    base_delay = exponential_delay(2)
+    policy = ConditionalRetryPolicy(
+        test_function=lambda attempt_number, error: (
+            isinstance(error, FilestoreIntegrityError) and attempt_number < 3
+        ),
+        delay_function=lambda n: random.uniform(base_delay(n), base_delay(n) * 2),
+    )
+    return policy(attempt)
+
+
 def _get_object_with_retry(session: Session, storage_path: str) -> GetResponse:
     """Retry verification reads without re-uploading the DIF."""
 
     def get_object() -> GetResponse:
         response = session.get(storage_path)
         if response is None:
-            raise MigrationIntegrityError("Object not found in Objectstore")
+            raise ObjectstoreIntegrityError("Object not found in Objectstore")
         return response
 
     base_delay = exponential_delay(2)
     policy = ConditionalRetryPolicy(
         test_function=lambda attempt_number, error: (
-            not isinstance(error, MigrationIntegrityError) and attempt_number <= 3
+            not isinstance(error, ObjectstoreIntegrityError) and attempt_number <= 3
         ),
         delay_function=lambda n: random.uniform(base_delay(n), base_delay(n) * 2),
     )
@@ -127,7 +220,8 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
         Metadata to commit, or ``None`` to skip.
 
     Raises:
-        MigrationIntegrityError: Local File or Objectstore payload mismatch.
+        FilestoreIntegrityError: Downloaded filestore payload mismatch.
+        ObjectstoreIntegrityError: Objectstore payload mismatch.
         Exception: I/O, network, or other failures during spool/upload/verify.
     """
     file = debug_file.file
@@ -139,11 +233,11 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
     except Project.DoesNotExist:
         return None
 
-    session = get_debug_files_session(project.organization_id, project.id)
+    session = get_session(UsecaseId.DEBUG_FILES, project)
 
     content_type = file.headers.get("Content-Type", "application/octet-stream")
     date_created = file.timestamp
-    recorded_checksum = file.checksum
+    recorded_checksum = file.checksum or None
     recorded_size = file.size
     file_format = KNOWN_DIF_FORMATS.get(content_type.lower(), "unknown")
     filename = (
@@ -151,32 +245,30 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
         f"{_dif_file_extension(file_format, debug_file.file_type)}"
     )
 
-    if not recorded_checksum:
+    if recorded_checksum is None:
         logger.warning(
             "debug_files.objectstore_migration.checksum_missing",
             extra={"debug_file_id": debug_file.id, "file_id": file.id},
         )
 
-    tmp, local_checksum, local_size = _spool_to_tempfile(file)
+    if recorded_size is None:
+        logger.warning(
+            "debug_files.objectstore_migration.size_missing",
+            extra={"debug_file_id": debug_file.id, "file_id": file.id},
+        )
+
+    tmp, local_checksum, local_size = _spool_and_validate_with_retry(
+        file,
+        expected_checksum=recorded_checksum,
+        expected_size=recorded_size,
+    )
+
     try:
-        expected_checksum = recorded_checksum or local_checksum
+        expected_checksum = recorded_checksum if recorded_checksum is not None else local_checksum
         expected_size = recorded_size if recorded_size is not None else local_size
-        if local_checksum != expected_checksum or local_size != expected_size:
-            raise MigrationIntegrityError(
-                f"Filestore payload does not match File record "
-                f"(checksum={local_checksum!r} expected={expected_checksum!r}, "
-                f"size={local_size} expected={expected_size})"
-            )
         storage_path = session.put(
             tmp,
             key=f"legacy.{debug_file.id}",
-            compression=(
-                "zstd"
-                if features.has(
-                    "organizations:objectstore-debugfiles-compression", project.organization
-                )
-                else "none"
-            ),
             content_type=content_type,
             filename=filename,
         )
@@ -194,7 +286,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
                 "debug_files.objectstore_migration.unverified_object_delete_failed",
                 extra={"debug_file_id": debug_file.id, "storage_path": storage_path},
             )
-        raise MigrationIntegrityError(
+        raise ObjectstoreIntegrityError(
             f"Objectstore payload does not match File "
             f"(checksum={remote_checksum!r} expected={expected_checksum!r}, "
             f"size={remote_size} expected={expected_size})"
@@ -252,6 +344,22 @@ def drop_legacy_file(dif_id: int, *, source_file_id: int) -> None:
             return
 
         transaction.on_commit(lambda: try_cleanup_file(source_file_id), using=database)
+
+
+def delete_corrupt_debug_file(dif_id: int, *, source_file_id: int) -> bool:
+    """Delete a corrupt DIF and clean up its legacy File if it is unreferenced."""
+    database = router.db_for_write(ProjectDebugFile)
+    with atomic_transaction(using=database):
+        deleted, _ = ProjectDebugFile.objects.filter(
+            id=dif_id,
+            file_id=source_file_id,
+            storage_path__isnull=True,
+        ).delete()
+        if not deleted:
+            return False
+
+        transaction.on_commit(lambda: try_cleanup_file(source_file_id), using=database)
+        return True
 
 
 def try_cleanup_file(file_id: int | None) -> None:

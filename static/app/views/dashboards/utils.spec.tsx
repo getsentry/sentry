@@ -1,3 +1,4 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -9,6 +10,7 @@ import {
   getCurrentPageFilters,
   getFieldsFromEquations,
   getNumEquations,
+  getSavedFiltersAsPageFilters,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   hasUnsavedFilterChanges,
@@ -31,7 +33,7 @@ describe('Dashboards util', () => {
       widget = {
         title: 'Test Query',
         displayType: DisplayType.AREA,
-        widgetType: WidgetType.DISCOVER,
+        widgetType: WidgetType.TRANSACTIONS,
         interval: '5m',
         queries: [
           {
@@ -50,6 +52,46 @@ describe('Dashboards util', () => {
       const eventView = eventViewFromWidget(widget.title, query, selection);
       expect(eventView.fields[0]!.field).toBe('count()');
       expect(eventView.sorts).toEqual([{field: 'count', kind: 'desc'}]);
+    });
+  });
+
+  describe('getSavedFiltersAsPageFilters', () => {
+    it('uses the dashboard default when no datetime is saved', () => {
+      expect(
+        getSavedFiltersAsPageFilters(
+          DashboardFixture([], {
+            environment: ['production'],
+            projects: [1],
+            utc: false,
+          })
+        )
+      ).toEqual({
+        datetime: {
+          end: null,
+          period: '24h',
+          start: null,
+          utc: false,
+        },
+        environments: ['production'],
+        projects: [1],
+      });
+    });
+
+    it('preserves a saved absolute datetime and UTC setting', () => {
+      expect(
+        getSavedFiltersAsPageFilters(
+          DashboardFixture([], {
+            end: '2026-08-31T14:00:00',
+            start: '2026-08-31T12:00:00',
+            utc: true,
+          })
+        ).datetime
+      ).toEqual({
+        end: '2026-08-31T14:00:00',
+        period: null,
+        start: '2026-08-31T12:00:00',
+        utc: true,
+      });
     });
   });
 
@@ -75,7 +117,7 @@ describe('Dashboards util', () => {
       widget = {
         title: 'Test Query',
         displayType: DisplayType.LINE,
-        widgetType: WidgetType.DISCOVER,
+        widgetType: WidgetType.TRANSACTIONS,
         interval: '5m',
         queries: [
           {
@@ -97,7 +139,7 @@ describe('Dashboards util', () => {
         OrganizationFixture()
       );
       expect(url).toBe(
-        '/organizations/org-slug/explore/discover/results/?field=count%28%29&name=Test%20Query&project=&query=&statsPeriod=7d&yAxis=count%28%29'
+        '/organizations/org-slug/explore/discover/results/?field=count%28%29&name=Test%20Query&project=&query=&queryDataset=transaction-like&statsPeriod=7d&yAxis=count%28%29'
       );
     });
     it('returns the discover url of a topn widget query', () => {
@@ -124,7 +166,7 @@ describe('Dashboards util', () => {
         OrganizationFixture()
       );
       expect(url).toBe(
-        '/organizations/org-slug/explore/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&project=&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
+        '/organizations/org-slug/explore/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&project=&query=error.unhandled%3Atrue&queryDataset=transaction-like&sort=-count&statsPeriod=7d&yAxis=count%28%29'
       );
     });
     it('applies the dashboard filters to the query', () => {
@@ -205,7 +247,7 @@ describe('Dashboards util', () => {
               value: 'transaction:/api/foo',
             },
             {
-              dataset: WidgetType.DISCOVER,
+              dataset: WidgetType.ERRORS,
               tag: {key: 'transaction', name: 'transaction'},
               value: 'transaction:/api/bar',
             },

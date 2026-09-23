@@ -148,18 +148,22 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert data["settings"] == test_settings
 
     def test_no_integrations(self) -> None:
-        with self.feature("organizations:incidents"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         assert response.data == [build_action_response(self.email)]
+
+    def test_deprecated_api_disabled(self) -> None:
+        with self.feature({"organizations:legacy-alerts-api": False}):
+            response = self.get_error_response(self.organization.slug, status_code=410)
+
+        assert response.data == {"detail": "This API no longer exists."}
 
     def test_simple(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(external_id="1", provider="slack")
             integration.add_organization(self.organization)
 
-        with self.feature("organizations:incidents"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 2
         assert build_action_response(self.email) in response.data
@@ -183,8 +187,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             )
             other_integration.add_organization(self.organization)
 
-        with self.feature("organizations:incidents"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 3
         assert build_action_response(self.email) in response.data
@@ -205,15 +208,10 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             in response.data
         )
 
-    def test_no_feature(self) -> None:
-        self.create_team(organization=self.organization, members=[self.user])
-        self.get_error_response(self.organization.slug, status_code=404)
-
     def test_sentry_apps(self) -> None:
         installation = self.install_new_sentry_app("foo")
 
-        with self.feature("organizations:incidents"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 2
         assert build_action_response(self.email) in response.data
@@ -229,8 +227,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         # Should show up in available actions.
         installation = self.install_new_sentry_app("published", published=True)
 
-        with self.feature("organizations:incidents"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 2
         assert (
@@ -246,7 +243,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             integration = self.create_provider_integration(external_id="1", provider="jira")
             integration.add_organization(self.organization)
 
-        with self.feature(["organizations:incidents", "organizations:integrations-ticket-rules"]):
+        with self.feature("organizations:integrations-ticket-rules"):
             response = self.get_success_response(self.organization.slug)
 
         # There should be no ticket actions for Metric Alerts.
@@ -260,8 +257,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             )
             integration.add_organization(self.organization)
 
-        with self.feature("organizations:incidents"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 1
         assert build_action_response(self.email) in response.data
@@ -273,8 +269,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration.update(status=ObjectStatus.DISABLED)
 
-        with self.feature("organizations:incidents"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 1
         assert build_action_response(self.email) in response.data

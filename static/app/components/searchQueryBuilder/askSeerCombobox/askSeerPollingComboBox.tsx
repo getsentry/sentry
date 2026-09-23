@@ -1,7 +1,4 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-import {type AriaComboBoxProps} from '@react-aria/combobox';
-
-import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -10,8 +7,6 @@ import {
   type AskSeerComboBoxProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerLoadingStatus} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerLoadingStatus';
-import {AskSeerProgressBlocks} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerProgressBlocks';
-import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {BaseAskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/baseAskSeerComboBox';
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useAskSeerPolling} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useAskSeerPolling';
@@ -20,11 +15,9 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 
-interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
-  AriaComboBoxProps<unknown>,
-  'children'
-> {
+interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> {
   applySeerSearchQuery: (item: T, runId?: number | string) => void;
   initialQuery: string;
   projectIds: number[];
@@ -60,7 +53,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
   const hasTrackedFetchErrorRef = useRef(false);
-  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
   const [searchQuery, setSearchQuery] = useState(() =>
     formatQueryToNaturalLanguage(initialQuery)
   );
@@ -127,13 +119,8 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     );
   }
 
-  const loadingContent = hasAskSeerUxRework ? (
+  const loadingContent = (
     <AskSeerLoadingStatus completedSteps={completedSteps} currentStep={currentStep} />
-  ) : (
-    <Stack flex="1">
-      <AskSeerSearchHeader title={t("I'm on it...")} loading />
-      <AskSeerProgressBlocks completedSteps={completedSteps} currentStep={currentStep} />
-    </Stack>
   );
 
   return (
@@ -150,6 +137,13 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       loadingContent={loadingContent}
       errorTitle={t('Seer failed to process your search. Please try again.')}
       emptyTitle={t("Describe what you're looking for")}
+      additionalFeedbackTags={
+        runId
+          ? {
+              conversation_url: getConversationsUrlForExternalUse('sentry', runId),
+            }
+          : undefined
+      }
       onReset={reset}
     />
   );

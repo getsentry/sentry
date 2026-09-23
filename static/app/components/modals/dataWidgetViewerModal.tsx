@@ -13,14 +13,11 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Select, SelectOption} from '@sentry/scraps/select';
+import {Select, SelectOption, components} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
-import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
@@ -43,13 +40,7 @@ import {
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
-import {
-  createOnDemandFilterWarning,
-  shouldDisplayOnDemandWidgetWarning,
-} from 'sentry/utils/onDemandMetrics';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   decodeInteger,
   decodeList,
@@ -99,7 +90,6 @@ import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
 } from 'sentry/views/dashboards/widgetCard';
-import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
@@ -121,7 +111,6 @@ import {
   getDiscoverDeprecation,
   getTargetForTransactionSummaryLink,
 } from 'sentry/views/discover/utils';
-import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 
@@ -163,29 +152,6 @@ const MemoizedWidgetCardChartContainer = memo(
   WidgetCardChartContainer,
   shouldWidgetCardChartMemo
 );
-
-async function fetchDiscoverTotal(
-  api: Client,
-  organization: Organization,
-  location: Location,
-  eventView: EventView
-): Promise<string | undefined> {
-  if (!eventView.isValid()) {
-    return undefined;
-  }
-
-  try {
-    const total = await fetchTotalCount(
-      api,
-      organization.slug,
-      eventView.getEventsAPIPayload(location)
-    );
-    return total.toLocaleString();
-  } catch (err) {
-    Sentry.captureException(err);
-    return undefined;
-  }
-}
 
 function DataWidgetViewerModal(props: Props) {
   const {
@@ -256,6 +222,7 @@ function DataWidgetViewerModal(props: Props) {
   // We need to use useEffect to prevent infinite looping rerenders due to the setModalSelection call
   useEffect(() => {
     if (location.action === 'POP') {
+      // oxlint-disable-next-line react/set-state-in-effect -- Synchronize modal state with browser back navigation.
       setModalSelection(locationPageFilter);
     }
   }, [location, locationPageFilter]);
@@ -351,8 +318,8 @@ function DataWidgetViewerModal(props: Props) {
       DisplayType.BIG_NUMBER,
       DisplayType.BAR,
     ].includes(widget.displayType) &&
-    widget.widgetType &&
-    [WidgetType.DISCOVER, WidgetType.RELEASE].includes(widget.widgetType) &&
+    widget.widgetType !== undefined &&
+    [WidgetType.ERRORS, WidgetType.RELEASE].includes(widget.widgetType) &&
     !hasGroupBy;
 
   // Updates fields by adding any individual terms from equation fields as a column
@@ -376,21 +343,16 @@ function DataWidgetViewerModal(props: Props) {
   });
 
   if (shouldReplaceTableColumns) {
-    switch (widget.widgetType) {
-      case WidgetType.DISCOVER:
-        if (fields.length === 1) {
-          tableWidget.queries[0]!.orderby =
-            tableWidget.queries[0]!.orderby || `-${fields[0]}`;
-        }
-        fields.unshift('title');
-        columns.unshift('title');
-        break;
-      case WidgetType.RELEASE:
-        fields.unshift('release');
-        columns.unshift('release');
-        break;
-      default:
-        break;
+    if (widget.widgetType === WidgetType.ERRORS) {
+      if (fields.length === 1) {
+        tableWidget.queries[0]!.orderby =
+          tableWidget.queries[0]!.orderby || `-${fields[0]}`;
+      }
+      fields.unshift('title');
+      columns.unshift('title');
+    } else {
+      fields.unshift('release');
+      columns.unshift('release');
     }
   }
 
@@ -398,12 +360,6 @@ function DataWidgetViewerModal(props: Props) {
     tableWidget.title,
     tableWidget.queries[0]!,
     modalSelection
-  );
-
-  const getOnDemandFilterWarning = createOnDemandFilterWarning(
-    t(
-      'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
-    )
   );
 
   const queryOptions = sortedQueries.map((query, index) => {
@@ -420,18 +376,7 @@ function DataWidgetViewerModal(props: Props) {
       const queryString = `${conditions} ${dashboardFiltersString}`.trim();
       return !name && !!queryString ? (
         <HighlightContainer {...highlightedContainerProps}>
-          <ProvidedFormattedQuery
-            query={queryString}
-            getFilterTokenWarning={
-              shouldDisplayOnDemandWidgetWarning(
-                query,
-                widget.widgetType ?? WidgetType.DISCOVER,
-                organization
-              )
-                ? getOnDemandFilterWarning
-                : undefined
-            }
-          />
+          <ProvidedFormattedQuery query={queryString} />
         </HighlightContainer>
       ) : null;
     };
@@ -443,24 +388,11 @@ function DataWidgetViewerModal(props: Props) {
     };
   });
 
-  // Get discover result totals
-  useEffect(() => {
-    const getDiscoverTotals = async () => {
-      if (widget.widgetType === WidgetType.DISCOVER) {
-        setTotalResults(await fetchDiscoverTotal(api, organization, location, eventView));
-      }
-    };
-    getDiscoverTotals();
-    // Disabling this for now since this effect should only run on initial load and query index changes
-    // Including all exhaustive deps would cause fetchDiscoverTotal on nearly every update
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedQueryIndex]);
-
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
     widgetLegendState.setWidgetSelectionState(selected, widget);
     trackAnalytics('dashboards_views.widget_viewer.toggle_legend', {
       organization,
-      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+      widget_type: widget.widgetType ?? WidgetType.ERRORS,
       display_type: widget.displayType,
     });
   }
@@ -539,7 +471,7 @@ function DataWidgetViewerModal(props: Props) {
     });
     trackAnalytics('dashboards_views.widget_viewer.zoom', {
       organization,
-      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+      widget_type: widget.widgetType ?? WidgetType.ERRORS,
       display_type: widget.displayType,
     });
   };
@@ -590,7 +522,6 @@ function DataWidgetViewerModal(props: Props) {
             {renderTable}
           </ReleaseWidgetQueries>
         );
-      case WidgetType.DISCOVER:
       default:
         return (
           <WidgetQueries
@@ -717,7 +648,7 @@ function DataWidgetViewerModal(props: Props) {
 
                 trackAnalytics('dashboards_views.widget_viewer.select_query', {
                   organization,
-                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                  widget_type: widget.widgetType ?? WidgetType.ERRORS,
                   display_type: widget.displayType,
                 });
               }}
@@ -792,85 +723,69 @@ function DataWidgetViewerModal(props: Props) {
 
   return (
     <Fragment>
-      <DashboardsMEPProvider>
-        <MetricsCardinalityProvider organization={organization} location={location}>
-          <MetricsDataSwitcher location={location}>
-            {metricsDataSide => (
-              <MEPSettingProvider
-                location={location}
-                forceTransactions={metricsDataSide.forceTransactionsOnly}
+      <Header closeButton>
+        <Stack gap="md">
+          <Flex align="center" gap="sm">
+            <h3>{widget.title}</h3>
+          </Flex>
+          {widget.description && (
+            <Tooltip
+              title={widget.description}
+              containerDisplayMode="grid"
+              showOnlyOnOverflow
+              position="bottom"
+            >
+              <WidgetDescription>{widget.description}</WidgetDescription>
+            </Tooltip>
+          )}
+        </Stack>
+      </Header>
+      <Body>{renderWidgetViewer()}</Body>
+      <Footer>
+        <Flex align="center" justify="between" gap="md" flex="1">
+          {renderTotalResults(totalResults, widget.widgetType)}
+          <Grid flow="column" align="center" gap="md">
+            {onEdit && widget.id && (
+              <Button
+                onClick={() => {
+                  closeModal();
+                  onEdit();
+                  trackAnalytics('dashboards_views.widget_viewer.edit', {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.ERRORS,
+                    display_type: widget.displayType,
+                  });
+                }}
+                disabled={!hasEditAccess}
+                tooltipProps={{
+                  title: hasEditAccess
+                    ? undefined
+                    : isPrebuiltDashboard
+                      ? tct('[label] dashboards cannot be edited', {
+                          label: PREBUILT_DASHBOARD_LABEL,
+                        })
+                      : t('You do not have permission to edit this widget'),
+                }}
               >
-                <Header closeButton>
-                  <Stack gap="md">
-                    <Flex align="center" gap="sm">
-                      <h3>{widget.title}</h3>
-                    </Flex>
-                    {widget.description && (
-                      <Tooltip
-                        title={widget.description}
-                        containerDisplayMode="grid"
-                        showOnlyOnOverflow
-                        isHoverable
-                        position="bottom"
-                      >
-                        <WidgetDescription>{widget.description}</WidgetDescription>
-                      </Tooltip>
-                    )}
-                  </Stack>
-                </Header>
-                <Body>{renderWidgetViewer()}</Body>
-                <Footer>
-                  <Flex align="center" justify="between" gap="md" flex="1">
-                    {renderTotalResults(totalResults, widget.widgetType)}
-                    <Grid flow="column" align="center" gap="md">
-                      {onEdit && widget.id && (
-                        <Button
-                          onClick={() => {
-                            closeModal();
-                            onEdit();
-                            trackAnalytics('dashboards_views.widget_viewer.edit', {
-                              organization,
-                              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                              display_type: widget.displayType,
-                            });
-                          }}
-                          disabled={!hasEditAccess}
-                          tooltipProps={{
-                            title: hasEditAccess
-                              ? undefined
-                              : isPrebuiltDashboard
-                                ? tct('[label] dashboards cannot be edited', {
-                                    label: PREBUILT_DASHBOARD_LABEL,
-                                  })
-                                : t('You do not have permission to edit this widget'),
-                          }}
-                        >
-                          {t('Edit Widget')}
-                        </Button>
-                      )}
-                      {widget.widgetType && (
-                        <OpenButton
-                          widget={primaryWidget}
-                          dashboardFilters={dashboardFilters}
-                          organization={organization}
-                          selection={modalSelection}
-                          selectedQueryIndex={selectedQueryIndex}
-                          disabled={isUsingPerformanceScore(widget)}
-                          disabledTooltip={
-                            isUsingPerformanceScore(widget)
-                              ? performanceScoreTooltip
-                              : undefined
-                          }
-                        />
-                      )}
-                    </Grid>
-                  </Flex>
-                </Footer>
-              </MEPSettingProvider>
+                {t('Edit Widget')}
+              </Button>
             )}
-          </MetricsDataSwitcher>
-        </MetricsCardinalityProvider>
-      </DashboardsMEPProvider>
+            {widget.widgetType && (
+              <OpenButton
+                widget={primaryWidget}
+                dashboardFilters={dashboardFilters}
+                organization={organization}
+                selection={modalSelection}
+                selectedQueryIndex={selectedQueryIndex}
+                disabled={isUsingPerformanceScore(widget)}
+                disabledTooltip={
+                  isUsingPerformanceScore(widget) ? performanceScoreTooltip : undefined
+                }
+              />
+            )}
+          </Grid>
+        </Flex>
+      </Footer>
     </Fragment>
   );
 }
@@ -932,7 +847,6 @@ function OpenButton({
     case WidgetType.PREPROD_APP_SIZE:
       // Mobile app size widgets are not integrated with Explore or Discover
       return null;
-    case WidgetType.DISCOVER:
     default:
       openLabel = getDiscoverDeprecation(organization)
         ? t('Open in Explore')
@@ -955,7 +869,7 @@ function OpenButton({
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
             organization,
-            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            widget_type: widget.widgetType ?? WidgetType.ERRORS,
             display_type: widget.displayType,
           });
         }}
@@ -977,15 +891,6 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
           {tct('[description:Total Issues:] [total]', {
             description: <strong />,
             total: totalResults === '1000' ? '1000+' : totalResults,
-          })}
-        </span>
-      );
-    case WidgetType.DISCOVER:
-      return (
-        <span>
-          {tct('[description:Sampled Events:] [total]', {
-            description: <strong />,
-            total: totalResults,
           })}
         </span>
       );
@@ -1087,7 +992,7 @@ function ViewerTableV2({
   function onChangeSort(newSort: Sort) {
     trackAnalytics('dashboards_views.widget_viewer.sort', {
       organization,
-      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+      widget_type: widget.widgetType ?? WidgetType.ERRORS,
       display_type: widget.displayType,
       column: newSort.field,
       order: newSort.kind,
@@ -1212,7 +1117,7 @@ function ViewerTableV2({
 
               trackAnalytics('dashboards_views.widget_viewer.paginate', {
                 organization,
-                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                widget_type: widget.widgetType ?? WidgetType.ERRORS,
                 display_type: widget.displayType,
               });
             }}

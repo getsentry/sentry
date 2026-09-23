@@ -2,9 +2,9 @@ import type {MouseEvent} from 'react';
 import {useEffect, useMemo} from 'react';
 import queryString from 'query-string';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -122,7 +122,7 @@ export function RequestHeadersSection({item}: SectionProps) {
         value: warn ? (
           <Flex align="center" gap="xs">
             {value}
-            <QuestionTooltip
+            <InfoTip
               size="xs"
               title={t('The content-type of the request does not match the response.')}
             />
@@ -158,7 +158,7 @@ export function ResponseHeadersSection({item}: SectionProps) {
         value: warn ? (
           <Flex align="center" gap="xs">
             {value}
-            <QuestionTooltip
+            <InfoTip
               size="xs"
               title={t('The content-type of the request does not match the response.')}
             />
@@ -223,7 +223,6 @@ export function RequestPayloadSection({item}: SectionProps) {
           <StructuredEventData
             data={body}
             forceDefaultExpand
-            maxDefaultDepth={2}
             showCopyButton
             config={config}
           />
@@ -262,7 +261,6 @@ export function ResponsePayloadSection({item}: SectionProps) {
           <StructuredEventData
             data={body}
             forceDefaultExpand
-            maxDefaultDepth={2}
             showCopyButton
             config={config}
           />

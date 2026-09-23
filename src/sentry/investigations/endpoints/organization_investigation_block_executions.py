@@ -7,9 +7,13 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.investigations.agent import start_execution_run
+from sentry.investigations.agent import (
+    cancel_investigation_executions_after_failure,
+    start_execution_run,
+)
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationBlockEndpoint,
+    organization_project_ids,
     require_authenticated_user,
     service_error,
 )
@@ -46,19 +50,19 @@ class OrganizationInvestigationBlockExecutionsEndpoint(OrganizationInvestigation
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        project_ids_for_user = request.access.accessible_project_ids
+        org_project_ids = organization_project_ids(organization)
         selected_project_ids = set(
             investigation.projects.order_by("id").values_list("id", flat=True)
         )
         if selected_project_ids:
-            if not selected_project_ids.issubset(project_ids_for_user):
+            if not selected_project_ids.issubset(org_project_ids):
                 return Response(
                     {"detail": "One or more investigation projects are inaccessible."},
                     status=status.HTTP_403_FORBIDDEN,
                 )
             project_ids = sorted(selected_project_ids)
         elif block.kind == InvestigationBlockKind.QUERY:
-            project_ids = sorted(project_ids_for_user)
+            project_ids = sorted(org_project_ids)
         else:
             project_ids = []
 
@@ -70,7 +74,7 @@ class OrganizationInvestigationBlockExecutionsEndpoint(OrganizationInvestigation
                 expected_block_version=validator.validated_data["version"],
                 user_id=actor_id,
                 project_ids=project_ids,
-                accessible_project_ids=project_ids_for_user,
+                accessible_project_ids=org_project_ids,
                 request_id=validator.validated_data.get("request_id"),
             )
         except Exception as execution_error:
@@ -92,7 +96,8 @@ class OrganizationInvestigationBlockExecutionsEndpoint(OrganizationInvestigation
                     tags={"executor": execution.executor},
                 )
             except Exception:
-                mark_block_execution_dispatch_failed(execution)
+                if mark_block_execution_dispatch_failed(execution):
+                    cancel_investigation_executions_after_failure(execution)
                 metrics.incr(f"{metric_namespace}.dispatch_failed")
                 raise
 

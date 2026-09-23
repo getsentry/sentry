@@ -1,10 +1,13 @@
 from datetime import timedelta
+from unittest.mock import call, patch
 
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer, SimpleGroupSerializer
 from sentry.integrations.types import ExternalProviderEnum
+from sentry.issues.derived.processing import PIPELINE
+from sentry.issues.derived.serialization import get_bulk_group_derived_data
 from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
@@ -330,7 +333,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSettingOption.objects.create_or_update(
+            NotificationSettingOption.objects.get_or_create(
                 scope_type=NotificationScopeEnum.USER.value,
                 scope_identifier=user.id,
                 type=NotificationSettingEnum.WORKFLOW.value,
@@ -351,7 +354,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSettingOption.objects.create_or_update(
+            NotificationSettingOption.objects.get_or_create(
                 scope_type=NotificationScopeEnum.PROJECT.value,
                 scope_identifier=group.project.id,
                 type=NotificationSettingEnum.WORKFLOW.value,
@@ -422,6 +425,44 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
 
 
 class GroupSerializerDerivedDataTest(TestCase):
+    @patch("sentry.issues.derived.serialization.metrics.incr")
+    def test_derived_data_served_metric(self, mock_metrics_incr) -> None:
+        fresh_group = self.create_group()
+        self.create_group_derived_data(
+            group=fresh_group,
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        stale_group = self.create_group(project=fresh_group.project)
+        self.create_group_derived_data(group=stale_group, pipeline_hash="stale")
+        invalidated_group = self.create_group(project=fresh_group.project)
+        self.create_group_derived_data(group=invalidated_group, pipeline_hash=None)
+
+        get_bulk_group_derived_data({fresh_group.id, stale_group.id, invalidated_group.id})
+
+        mock_metrics_incr.assert_has_calls(
+            [
+                call(
+                    "issues.derived.served",
+                    amount=1,
+                    sample_rate=1.0,
+                    tags={"status": "fresh"},
+                ),
+                call(
+                    "issues.derived.served",
+                    amount=1,
+                    sample_rate=1.0,
+                    tags={"status": "stale_hash"},
+                ),
+                call(
+                    "issues.derived.served",
+                    amount=1,
+                    sample_rate=1.0,
+                    tags={"status": "invalidated"},
+                ),
+            ],
+            any_order=True,
+        )
+
     def test_derived_data_included(self) -> None:
         group = self.create_group()
         last_progressed_at = timezone.now()

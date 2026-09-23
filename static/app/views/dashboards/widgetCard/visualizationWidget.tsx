@@ -29,6 +29,7 @@ import {
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -45,6 +46,7 @@ import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plott
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {navigationTypeSuppressesThresholds} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
@@ -76,7 +78,6 @@ interface VisualizationWidgetProps {
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
   showConfidenceWarning?: boolean;
-  showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
   tableItemLimit?: number;
   widgetInterval?: string;
 }
@@ -89,7 +90,6 @@ export function VisualizationWidget({
   onDataFetchStart,
   tableItemLimit,
   widgetInterval,
-  showReleaseAs = 'bubble',
   showConfidenceWarning,
   onZoom,
   legendSelection,
@@ -112,9 +112,7 @@ export function VisualizationWidget({
       }
     : undefined;
 
-  const {releases: releasesWithDate} = useReleaseStats(selection, {
-    enabled: showReleaseAs !== 'none',
-  });
+  const {releases: releasesWithDate} = useReleaseStats(selection);
 
   const releases =
     releasesWithDate?.map(({date, version}) => ({
@@ -158,7 +156,7 @@ export function VisualizationWidget({
             errorMessage={errorMessage}
             loading={loading}
             releases={releases}
-            showReleaseAs={showReleaseAs}
+            showReleaseAs="bubble"
             dashboardFilters={dashboardFilters}
             showConfidenceWarning={showConfidenceWarning}
             confidence={confidence}
@@ -333,7 +331,10 @@ function VisualizationWidgetContent({
             ],
             query: applyDashboardFilters({
               baseQuery: exploreQuery.formatString(),
-              dashboardFilters,
+              dashboardFilters: withGlobalFilterFallback(
+                dashboardFilters,
+                widget.queries[0]?.globalFilterFallback
+              ),
               widgetType: widget.widgetType,
             }),
           });
@@ -404,8 +405,9 @@ function VisualizationWidgetContent({
   );
 
   if (
-    defined(widget.thresholds?.max_values.max1) ||
-    defined(widget.thresholds?.max_values.max2)
+    !navigationTypeSuppressesThresholds(dashboardFilters, organization) &&
+    (defined(widget.thresholds?.max_values?.max1) ||
+      defined(widget.thresholds?.max_values?.max2))
   ) {
     plottables.push(
       new Thresholds({

@@ -119,13 +119,12 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter,
-  operator?: TermOperator
+  getFieldDefinition: FieldDefinitionGetter
 ) {
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key), operator)
+    getInitialFilterText(key, getFieldDefinition(key))
   );
 }
 
@@ -403,10 +402,9 @@ function SearchQueryBuilderInputInternal({
     updateSelectionIndex();
   }, [trimmedTokenValue, updateSelectionIndex]);
 
-  const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
-    useFilterKeyListBox({
-      filterValue,
-    });
+  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
+    filterValue,
+  });
   const {items: sortedFilteredItems, isLoading: isLoadingFilterKeys} =
     useSortedFilterKeyItems({
       filterValue,
@@ -439,6 +437,7 @@ function SearchQueryBuilderInputInternal({
       restoreFocusAfterBlurRef.current = false;
       inputRef.current.focus();
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [trimmedTokenValue]);
 
   useEffect(() => {
@@ -612,13 +611,6 @@ function SearchQueryBuilderInputInternal({
         isLoading={isLoadingFilterKeys}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={option => {
-          if (handleOptionSelected) {
-            handleOptionSelected(option);
-            if (option.type === 'ask-seer' || option.type === 'ask-seer-consent') {
-              return;
-            }
-          }
-
           if (option.type === 'recent-query') {
             dispatch({
               type: 'UPDATE_QUERY',

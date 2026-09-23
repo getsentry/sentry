@@ -6,14 +6,14 @@ import partial from 'lodash/partial';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoText} from '@sentry/scraps/info';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Duration} from 'sentry/components/duration';
 import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
 import {FileSize} from 'sentry/components/fileSize';
@@ -239,8 +239,6 @@ export const DURATION_UNITS = {
   week: 1000 * 60 * 60 * 24 * 7,
 };
 
-export const PERCENTAGE_UNITS = ['ratio', 'percent'];
-
 /**
  * A mapping of field types to their rendering function.
  * This mapping is used when a field is not defined in SPECIAL_FIELDS
@@ -252,7 +250,12 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     isSortable: true,
     renderFunc: (field, data) => {
-      const value = data[field] ? t('true') : t('false');
+      const fieldValue = data[field];
+      // Render empty values as "(no value)" instead of coercing them to false.
+      if (fieldValue === null || fieldValue === undefined || fieldValue === '') {
+        return <Container>{emptyValue}</Container>;
+      }
+      const value = fieldValue ? t('true') : t('false');
       return <Container>{value}</Container>;
     },
   },
@@ -716,7 +719,12 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       }
       return (
         <Container>
-          <Projects orgId={organization.slug} slugs={slugs} projectIds={projectIds}>
+          <Projects
+            key={data.project}
+            orgId={organization.slug}
+            slugs={slugs}
+            projectIds={projectIds}
+          >
             {({projects}) => {
               let project: Project | AvatarProject | undefined;
               if (typeof data.project === 'number') {
@@ -825,7 +833,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => {
       const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
       return data.adoption_stage && label ? (
-        <Tooltip title={label.tooltipTitle} isHoverable>
+        <Tooltip title={label.tooltipTitle}>
           <Tag variant={label.variant}>{label.name}</Tag>
         </Tooltip>
       ) : (
@@ -1150,7 +1158,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
 
       if (!(userMiseryField in data)) {
         return (
-          <Tooltip title={missingUserMisery} showUnderline isHoverable>
+          <Tooltip title={missingUserMisery} showUnderline>
             <NumberContainer>{emptyValue}</NumberContainer>
           </Tooltip>
         );
@@ -1159,7 +1167,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       const userMisery = data[userMiseryField];
       if (userMisery === null || isNaN(userMisery)) {
         return (
-          <Tooltip title={missingUserMisery} showUnderline isHoverable>
+          <Tooltip title={missingUserMisery} showUnderline>
             <NumberContainer>{emptyValue}</NumberContainer>
           </Tooltip>
         );

@@ -21,6 +21,7 @@ function makeAutofix(
     isLoading: false,
     isWaitingForRun: false,
     isPolling: false,
+    isProcessing: false,
   };
   return {...base, ...overrides};
 }

@@ -8,8 +8,10 @@ from pathlib import Path
 
 from PIL import Image
 
+from sentry.utils import metrics
+
 from .odiff import OdiffServer
-from .types import DiffResult
+from .types import DiffResult, ImageSize
 
 logger = logging.getLogger(__name__)
 
@@ -22,17 +24,26 @@ logger = logging.getLogger(__name__)
 ODIFF_SENSITIVITY_DIFF_THRESHOLD = 0.01
 DIFF_ALGORITHM_VERSION = 1
 
+# Maximum pixels in the aligned canvas for a single image comparison.
+MAX_DIFF_PIXELS = 40_000_000
 
-def _as_image(source: bytes | Image.Image) -> Image.Image:
+
+def _open_image(source: bytes | Image.Image) -> Image.Image:
     if isinstance(source, bytes):
-        img = Image.open(io.BytesIO(source))
-        try:
-            img.load()
-        except Exception:
-            img.close()
-            raise
-        return img
+        return Image.open(io.BytesIO(source))
     return source
+
+
+def read_image_size(source: bytes) -> ImageSize:
+    with Image.open(io.BytesIO(source)) as img:
+        return ImageSize(width=img.width, height=img.height)
+
+
+def get_comparison_size(first: ImageSize, second: ImageSize) -> ImageSize:
+    return ImageSize(
+        width=max(first.width, second.width),
+        height=max(first.height, second.height),
+    )
 
 
 def _pad_to(img: Image.Image, width: int, height: int) -> Image.Image:
@@ -107,15 +118,30 @@ def _compare_single_pair(
     after_padded: Image.Image | None = None
     diff_mask: Image.Image | None = None
     try:
-        before_img = _as_image(before)
-        after_img = _as_image(after)
-        bw, bh = before_img.size
-        aw, ah = after_img.size
-        max_w = max(bw, aw)
-        max_h = max(bh, ah)
+        before_img = _open_image(before)
+        after_img = _open_image(after)
+        before_size = ImageSize(width=before_img.width, height=before_img.height)
+        after_size = ImageSize(width=after_img.width, height=after_img.height)
+        comparison_size = get_comparison_size(before_size, after_size)
 
-        before_padded = _pad_to(before_img, max_w, max_h)
-        after_padded = _pad_to(after_img, max_w, max_h)
+        # Check the dimensions from the image files before decoding or padding them.
+        if comparison_size.pixel_count > MAX_DIFF_PIXELS:
+            metrics.incr("preprod.snapshots.image_diff.exceeds_pixel_limit")
+            logger.warning(
+                "preprod.snapshots.image_diff.exceeds_pixel_limit",
+                extra={
+                    "pair_index": idx,
+                    "width": comparison_size.width,
+                    "height": comparison_size.height,
+                },
+            )
+            return None
+
+        before_img.load()
+        after_img.load()
+
+        before_padded = _pad_to(before_img, comparison_size.width, comparison_size.height)
+        after_padded = _pad_to(after_img, comparison_size.width, comparison_size.height)
 
         before_path = tmpdir_path / f"before_{idx}.png"
         after_path = tmpdir_path / f"after_{idx}.png"
@@ -131,11 +157,9 @@ def _compare_single_pair(
             antialiasing=True,
             outputDiffMask=True,
         )
-        total_pixels = max_w * max_h
-
         if resp.match:
             changed_pixels = 0
-            diff_mask = Image.new("L", (max_w, max_h), 0)
+            diff_mask = Image.new("L", comparison_size, 0)
         elif not output_path.exists():
             raise RuntimeError(f"odiff did not produce output file: {output_path}")
         else:
@@ -147,12 +171,12 @@ def _compare_single_pair(
         return DiffResult(
             diff_mask_png=diff_mask_png,
             changed_pixels=changed_pixels,
-            total_pixels=total_pixels,
-            aligned_height=max_h,
-            before_width=bw,
-            before_height=bh,
-            after_width=aw,
-            after_height=ah,
+            total_pixels=comparison_size.pixel_count,
+            aligned_height=comparison_size.height,
+            before_width=before_size.width,
+            before_height=before_size.height,
+            after_width=after_size.width,
+            after_height=after_size.height,
         )
     except Exception:
         logger.exception("Failed to compare image pair %d", idx)

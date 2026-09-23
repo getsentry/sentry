@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
@@ -8,13 +9,18 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitSt
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
-from sentry.tasks.groupowner import PREFERRED_GROUP_OWNER_AGE, process_suspect_commits
+from sentry.tasks.groupowner import (
+    DEBOUNCE_CACHE_KEY,
+    PREFERRED_GROUP_OWNER_AGE,
+    process_suspect_commits,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import TaskRunner
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.cache import cache
 from sentry.utils.committers import get_frame_paths
 
 pytestmark = [requires_snuba]
@@ -444,6 +450,53 @@ class TestGroupOwners(TestCase):
         assert user3_owner.context["commitId"] == 3
 
     @patch("sentry.tasks.groupowner.get_event_file_committers")
+    def test_select_preferred_owners_by_score(self, patched_committers: MagicMock) -> None:
+        users = [self.create_user() for _ in range(4)]
+        scores = [2, 8, 9, 10]
+        patched_committers.return_value = [
+            {
+                "commits": [(MagicMock(id=index), score)],
+                "author": {"id": user.id},
+            }
+            for index, (user, score) in enumerate(zip(users, scores, strict=True))
+        ]
+
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=get_frame_paths(self.event),
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
+
+        owner_ids = set(
+            GroupOwner.objects.filter(group=self.event.group).values_list("user_id", flat=True)
+        )
+        assert owner_ids == {users[2].id, users[3].id}
+
+    def test_no_matching_commits_debounces_for_one_day(self) -> None:
+        self.set_release_commits(self.user.email)
+
+        with freeze_time() as frozen_time:
+            process_suspect_commits(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=[{"filename": "unrelated.py", "in_app": True}],
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            cache_key = DEBOUNCE_CACHE_KEY(self.event.group_id)
+            assert cache.get(cache_key) is True
+
+            frozen_time.shift(timedelta(hours=23))
+            assert cache.get(cache_key) is True
+
+            frozen_time.shift(timedelta(hours=1))
+            assert cache.get(cache_key) is None
+
+    @patch("sentry.tasks.groupowner.get_event_file_committers")
     def test_low_suspect_committer_score(self, patched_committers: MagicMock) -> None:
         self.user = self.create_user()
         mock_commit = MagicMock(id=1)
@@ -466,6 +519,7 @@ class TestGroupOwners(TestCase):
         )
 
         assert not GroupOwner.objects.filter(user_id=self.user.id).exists()
+        assert cache.get(DEBOUNCE_CACHE_KEY(self.event.group_id)) is True
 
     def test_owners_count(self) -> None:
         self.set_release_commits(self.user.email)

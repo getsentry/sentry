@@ -42,7 +42,7 @@ describe('EditConnectedMonitors', () => {
   });
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project, otherProject]);
 
@@ -323,5 +323,182 @@ describe('EditConnectedMonitors', () => {
     await waitFor(() => {
       expect(model.getValue('projectIds')).toEqual([otherProject.id]);
     });
+  });
+
+  it('only offers writable projects to a team admin', async () => {
+    const writableProject = ProjectFixture({
+      id: '3',
+      slug: 'writable-project',
+      access: ['project:read', 'alerts:write'],
+    });
+    ProjectsStore.loadInitialData([otherProject, writableProject]);
+
+    render(
+      <Form model={new FormModel()}>
+        <EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />
+      </Form>,
+      {
+        organization: OrganizationFixture({access: ['org:read', 'alerts:read']}),
+      }
+    );
+
+    await userEvent.click(await screen.findByText('Select projects'));
+
+    expect(await screen.findByText(writableProject.slug)).toBeInTheDocument();
+    expect(screen.queryByText(otherProject.slug)).not.toBeInTheDocument();
+  });
+
+  it('defaults to writable projects and disables connecting read-only monitors', async () => {
+    const selectedProjects = [1, 2];
+    const writableProject = ProjectFixture({
+      ...project,
+      access: ['project:read', 'alerts:write'],
+    });
+    const otherWritableProject = ProjectFixture({
+      id: '3',
+      slug: 'other-writable-project',
+      isMember: false,
+      access: ['project:read', 'alerts:write'],
+    });
+    ProjectsStore.loadInitialData([
+      writableProject,
+      {...otherProject, isMember: true},
+      otherWritableProject,
+    ]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: selectedProjects})
+    );
+    const detectorsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [detector1],
+    });
+
+    const {router} = render(
+      <EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />,
+      {
+        organization: OrganizationFixture({
+          access: ['org:read', 'alerts:read'],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/',
+            query: {project: selectedProjects.map(String)},
+          },
+        },
+      }
+    );
+
+    await userEvent.click(
+      await screen.findByRole('radio', {name: 'Alert on specific monitors'})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Connect Monitors'}));
+    const drawer = await screen.findByRole('complementary', {
+      name: 'Connect Monitors',
+    });
+
+    expect(await within(drawer).findByText(detector1.name)).toBeInTheDocument();
+    expect(within(drawer).queryByRole('alert')).not.toBeInTheDocument();
+    expect(router.location.query.project).toEqual(['3', '1']);
+    expect(detectorsRequest).toHaveBeenCalledTimes(1);
+    expect(detectorsRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: expect.objectContaining({project: [3, 1]})})
+    );
+    const readOnlyDetector = MetricDetectorFixture({
+      id: '2',
+      name: 'Read-only Monitor',
+      projectId: otherProject.id,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [detector1, readOnlyDetector],
+    });
+
+    await userEvent.click(within(drawer).getByTestId('page-filter-project-selector'));
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: `Select ${otherProject.slug}`})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    const readOnlyRow = await within(drawer).findByRole('row', {
+      name: /Read-only Monitor/,
+    });
+    const connectButton = within(readOnlyRow).getByRole('button', {name: 'Connect'});
+    expect(connectButton).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(connectButton);
+    expect(
+      await screen.findByText(
+        "You don't have permission to change this monitor's alert connections."
+      )
+    ).toBeInTheDocument();
+    await userEvent.unhover(connectButton);
+    expect(within(drawer).queryByRole('alert')).not.toBeInTheDocument();
+    const writableRow = within(drawer).getByRole('row', {name: /Metric Monitor 1/});
+    expect(within(writableRow).getByRole('button', {name: 'Connect'})).toBeEnabled();
+
+    await userEvent.click(within(drawer).getByRole('button', {name: 'Close Drawer'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Connect Monitors'}));
+    expect(router.location.query.project).toEqual(['3', '1']);
+  });
+
+  it('allows organization writers to select projects without project-level write access', async () => {
+    const writableProject = ProjectFixture({
+      ...project,
+      access: ['project:read', 'alerts:write'],
+    });
+    const readOnlyProject = ProjectFixture({
+      ...otherProject,
+      isMember: true,
+    });
+    const otherWritableProject = ProjectFixture({
+      id: '3',
+      slug: 'other-writable-project',
+      isMember: false,
+      access: ['project:read', 'alerts:write'],
+    });
+    ProjectsStore.loadInitialData([
+      writableProject,
+      readOnlyProject,
+      otherWritableProject,
+    ]);
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1, 2]}));
+    const detectorsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [detector1],
+    });
+
+    render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />, {
+      organization: OrganizationFixture({
+        access: ['org:read', 'alerts:write'],
+        features: ['open-membership'],
+      }),
+      initialRouterConfig: {
+        location: {pathname: '/', query: {project: ['1', '2']}},
+      },
+    });
+
+    await userEvent.click(
+      await screen.findByRole('radio', {name: 'Alert on specific monitors'})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Connect Monitors'}));
+    const drawer = await screen.findByRole('complementary', {
+      name: 'Connect Monitors',
+    });
+
+    expect(await within(drawer).findByText(detector1.name)).toBeInTheDocument();
+    expect(detectorsRequest).toHaveBeenCalledTimes(1);
+    expect(detectorsRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({project: [1, 2]}),
+      })
+    );
+
+    await userEvent.click(within(drawer).getByTestId('page-filter-project-selector'));
+    expect(screen.getByRole('row', {name: writableProject.slug})).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: otherWritableProject.slug})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: readOnlyProject.slug})).toBeInTheDocument();
   });
 });

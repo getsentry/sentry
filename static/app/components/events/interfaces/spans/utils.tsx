@@ -51,22 +51,6 @@ export type SpanGeneratedBoundsType =
       type: 'TIMESTAMPS_STABLE';
     };
 
-const normalizeTimestamps = (spanBounds: SpanBoundsType): SpanBoundsType => {
-  const {startTimestamp, endTimestamp} = spanBounds;
-
-  if (startTimestamp > endTimestamp) {
-    return {startTimestamp: endTimestamp, endTimestamp: startTimestamp};
-  }
-
-  return spanBounds;
-};
-
-enum TimestampStatus {
-  STABLE = 0,
-  REVERSED = 1,
-  EQUAL = 2,
-}
-
 export enum SpanSubTimingMark {
   SPAN_START = 0,
   SPAN_END = 1,
@@ -79,136 +63,6 @@ export enum SpanSubTimingName {
   REQUEST_TIME = 'Request Time',
   RESPONSE_TIME = 'Response Time',
 }
-
-const HTTP_DATA_KEYS = [
-  'http.request.redirect_start',
-  'http.request.fetch_start',
-  'http.request.domain_lookup_start',
-  'http.request.domain_lookup_end',
-  'http.request.connect_start',
-  'http.request.secure_connection_start',
-  'http.request.connection_end',
-  'http.request.request_start',
-  'http.request.response_start',
-  'http.request.response_end',
-];
-const INTERNAL_DATA_KEYS = ['sentry_tags'];
-const HIDDEN_DATA_KEYS = [...HTTP_DATA_KEYS, ...INTERNAL_DATA_KEYS];
-
-export const isHiddenDataKey = (key: string) => {
-  return HIDDEN_DATA_KEYS.includes(key);
-};
-
-const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
-  const startTimestamp = spanBounds.startTimestamp;
-  const endTimestamp = spanBounds.endTimestamp;
-
-  if (startTimestamp < endTimestamp) {
-    return TimestampStatus.STABLE;
-  }
-
-  if (startTimestamp === endTimestamp) {
-    return TimestampStatus.EQUAL;
-  }
-
-  return TimestampStatus.REVERSED;
-};
-
-// given the start and end trace timestamps, and the view window, we want to generate a function
-// that'll output the relative %'s for the width and placements relative to the left-hand side.
-//
-// The view window (viewStart and viewEnd) are percentage values (between 0% and 100%), they correspond to the window placement
-// between the start and end trace timestamps.
-export const boundsGenerator = (bounds: {
-  // unix timestamp
-  traceEndTimestamp: number;
-  traceStartTimestamp: number;
-  // in [0, 1]
-  viewEnd: number;
-  // unix timestamp
-  viewStart: number; // in [0, 1]
-}) => {
-  const {viewStart, viewEnd} = bounds;
-
-  const {startTimestamp: traceStartTimestamp, endTimestamp: traceEndTimestamp} =
-    normalizeTimestamps({
-      startTimestamp: bounds.traceStartTimestamp,
-      endTimestamp: bounds.traceEndTimestamp,
-    });
-
-  // viewStart and viewEnd are percentage values (%) of the view window relative to the left
-  // side of the trace view minimap
-
-  // invariant: viewStart <= viewEnd
-
-  // duration of the entire trace in seconds
-  const traceDuration = traceEndTimestamp - traceStartTimestamp;
-
-  const viewStartTimestamp = traceStartTimestamp + viewStart * traceDuration;
-  const viewEndTimestamp = traceEndTimestamp - (1 - viewEnd) * traceDuration;
-  const viewDuration = viewEndTimestamp - viewStartTimestamp;
-
-  return (spanBounds: SpanBoundsType): SpanGeneratedBoundsType => {
-    // TODO: alberto.... refactor so this is impossible 😠
-    if (traceDuration <= 0) {
-      return {
-        type: 'TRACE_TIMESTAMPS_EQUAL',
-        isSpanVisibleInView: true,
-      };
-    }
-
-    if (viewDuration <= 0) {
-      return {
-        type: 'INVALID_VIEW_WINDOW',
-        isSpanVisibleInView: true,
-      };
-    }
-
-    const {startTimestamp, endTimestamp} = normalizeTimestamps(spanBounds);
-
-    const timestampStatus = parseSpanTimestamps(spanBounds);
-
-    const start = (startTimestamp - viewStartTimestamp) / viewDuration;
-    const end = (endTimestamp - viewStartTimestamp) / viewDuration;
-
-    const isSpanVisibleInView = end > 0 && start < 1;
-
-    switch (timestampStatus) {
-      case TimestampStatus.EQUAL: {
-        return {
-          type: 'TIMESTAMPS_EQUAL',
-          start,
-          width: 1,
-          // a span bar is visible even if they're at the extreme ends of the view selection.
-          // these edge cases are:
-          // start == end == 0, and
-          // start == end == 1
-          isSpanVisibleInView: end >= 0 && start <= 1,
-        };
-      }
-      case TimestampStatus.REVERSED: {
-        return {
-          type: 'TIMESTAMPS_REVERSED',
-          start,
-          end,
-          isSpanVisibleInView,
-        };
-      }
-      case TimestampStatus.STABLE: {
-        return {
-          type: 'TIMESTAMPS_STABLE',
-          start,
-          end,
-          isSpanVisibleInView,
-        };
-      }
-      default: {
-        const _exhaustiveCheck: never = timestampStatus;
-        return _exhaustiveCheck;
-      }
-    }
-  };
-};
 
 export function generateRootSpan(
   trace: ParsedTraceType
@@ -278,9 +132,9 @@ export function isOrphanSpan(span: ProcessedSpanType): span is OrphanSpanType {
   return false;
 }
 
-export function getSpanID(span: ProcessedSpanType, defaultSpanID = ''): string {
+export function getSpanID(span: ProcessedSpanType): string {
   if (isGapSpan(span)) {
-    return defaultSpanID;
+    return '';
   }
 
   return span.span_id;
@@ -603,55 +457,6 @@ export function getSiblingGroupKey(span: SpanType, occurrence?: number): string 
   }
 
   return `${span.op}.${span.description}`;
-}
-
-/**
- * Formats start and end unix timestamps by inserting a leading and trailing zero if needed, so they can have the same length
- */
-export function getFormattedTimeRangeWithLeadingAndTrailingZero(
-  start: number,
-  end: number
-) {
-  const startStrings = String(start).split('.');
-  const endStrings = String(end).split('.');
-
-  if (startStrings.length !== 2 || endStrings.length !== 2) {
-    return {
-      start: String(start),
-      end: String(end),
-    };
-  }
-
-  const newTimestamps = startStrings.reduce<{
-    end: string[];
-    start: string[];
-  }>(
-    (acc, startString, index) => {
-      if (startString.length > endStrings[index]!.length) {
-        acc.start.push(startString);
-        acc.end.push(
-          index === 0
-            ? endStrings[index]!.padStart(startString.length, '0')
-            : endStrings[index]!.padEnd(startString.length, '0')
-        );
-        return acc;
-      }
-
-      acc.start.push(
-        index === 0
-          ? startString.padStart(endStrings[index]!.length, '0')
-          : startString.padEnd(endStrings[index]!.length, '0')
-      );
-      acc.end.push(endStrings[index]!);
-      return acc;
-    },
-    {start: [], end: []}
-  );
-
-  return {
-    start: newTimestamps.start.join('.'),
-    end: newTimestamps.end.join('.'),
-  };
 }
 
 export function groupShouldBeHidden(

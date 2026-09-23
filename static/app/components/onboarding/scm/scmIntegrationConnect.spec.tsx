@@ -1,10 +1,16 @@
 import {useState} from 'react';
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {Integration, Repository} from 'sentry/types/integrations';
+import * as pipelineModal from 'sentry/components/pipeline/modal';
+import type {
+  Integration,
+  OrganizationIntegration,
+  Repository,
+} from 'sentry/types/integrations';
 import * as analytics from 'sentry/utils/analytics';
 
 import {ScmIntegrationConnect} from './scmIntegrationConnect';
@@ -120,6 +126,41 @@ describe('ScmIntegrationConnect', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+  });
+
+  it('focuses the repo search once an install completes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: [GitHubIntegrationProviderFixture()]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/1/repos/`,
+      body: {repos: []},
+    });
+    let onComplete: ((data: OrganizationIntegration) => void) | undefined;
+    jest.spyOn(pipelineModal, 'openPipelineModal').mockImplementation((opts: any) => {
+      onComplete = opts.onComplete;
+    });
+
+    render(
+      <Harness
+        onClearDerivedState={jest.fn()}
+        onIntegrationChange={jest.fn()}
+        onRepositoryChange={jest.fn()}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(await screen.findByText('GitHub'));
+    act(() => onComplete?.(githubGetsentry));
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Search repositories'})
+    ).toHaveFocus();
   });
 
   it('fires scm_connect_integration_selected with source=default for the auto-selected integration', async () => {

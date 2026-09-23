@@ -18,6 +18,8 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
 import {
   type DatasetConfig,
   type SearchBarData,
@@ -28,7 +30,7 @@ import {
   getTableSortOptions,
   getTimeseriesSortOptions,
   transformEventsResponseToTable,
-} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+} from 'sentry/views/dashboards/datasetConfig/events';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
@@ -36,7 +38,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
   extractTraceMetricFromColumn,
-  getTraceMetricAggregateSource,
+  getTraceMetricDisplayFields,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {hasMultipleMetricsSelected} from 'sentry/views/dashboards/widgetBuilder/utils/hasMultipleMetricsSelected';
 import {
@@ -85,6 +87,8 @@ function TraceMetricsSearchBar({
   WidgetBuilderSearchBarProps,
   'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
 >) {
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const {
     selection: {projects},
   } = usePageFilters();
@@ -118,15 +122,26 @@ function TraceMetricsSearchBar({
       'boolean',
       HiddenTraceMetricSearchFields
     );
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useTraceMetricItemAttributes(
+      {
+        query: attributeQuery,
+        enabled: defined(traceMetrics[0]) && supportsArrays,
+      },
+      'array',
+      HiddenTraceMetricSearchFields
+    );
 
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
       itemType={TraceItemDataset.TRACEMETRICS}
+      arrayAttributes={supportsArrays ? arrayAttributes : {}}
       booleanAttributes={booleanAttributes}
       numberAttributes={numberAttributes}
       stringAttributes={stringAttributes}
+      arraySecondaryAliases={supportsArrays ? arraySecondaryAliases : {}}
       booleanSecondaryAliases={booleanSecondaryAliases}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
@@ -148,6 +163,8 @@ function useTraceMetricsSearchBarDataProvider(
   props: SearchBarDataProviderProps
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const {attributeQuery, traceMetrics} = useTraceMetricsSearchScope();
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
@@ -168,13 +185,21 @@ function useTraceMetricsSearchBarDataProvider(
       'boolean',
       HiddenTraceMetricSearchFields
     );
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useTraceMetricItemAttributes(
+      {query: attributeQuery, enabled: defined(traceMetrics[0]) && supportsArrays},
+      'array',
+      HiddenTraceMetricSearchFields
+    );
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.TRACEMETRICS,
+      arrayAttributes: supportsArrays ? arrayAttributes : {},
       booleanAttributes,
       numberAttributes,
       stringAttributes,
+      arraySecondaryAliases: supportsArrays ? arraySecondaryAliases : {},
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
@@ -196,13 +221,13 @@ function useTraceMetricsSearchScope() {
   const {state: widgetBuilderState} = useWidgetBuilderContext();
   const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
 
-  const aggregateSource = getTraceMetricAggregateSource(
+  const displayFields = getTraceMetricDisplayFields(
     widgetBuilderState.displayType,
     widgetBuilderState.yAxis,
     widgetBuilderState.fields
   );
   const traceMetrics =
-    aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
+    displayFields?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
   const hasMultipleMetrics = hasMultipleMetricsSelected(
     traceMetrics,
     hasMultiMetricSelection
@@ -218,16 +243,43 @@ function useTraceMetricsSearchScope() {
 export {formatTraceMetricsFunction};
 
 export function useGlobalFilterTraceMetricsSearchBarDataProvider(
-  props: Pick<SearchBarDataProviderProps, 'pageFilters'>
+  props: Pick<SearchBarDataProviderProps, 'filterKeySearch' | 'pageFilters'>
 ): SearchBarData {
-  const {pageFilters} = props;
+  const {filterKeySearch, pageFilters} = props;
+  const attributeOptions = {
+    search: filterKeySearch,
+    staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+  };
 
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceMetricItemAttributes({}, 'string', HiddenTraceMetricSearchFields);
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceMetricItemAttributes({}, 'number', HiddenTraceMetricSearchFields);
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceMetricItemAttributes({}, 'boolean', HiddenTraceMetricSearchFields);
+  const {
+    attributes: stringAttributes,
+    isLoading: stringAttributesLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useTraceMetricItemAttributes(
+    attributeOptions,
+    'string',
+    HiddenTraceMetricSearchFields
+  );
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useTraceMetricItemAttributes(
+    attributeOptions,
+    'number',
+    HiddenTraceMetricSearchFields
+  );
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useTraceMetricItemAttributes(
+    attributeOptions,
+    'boolean',
+    HiddenTraceMetricSearchFields
+  );
+  const isFetchingFilterKeys =
+    stringAttributesLoading || numberAttributesLoading || booleanAttributesLoading;
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
@@ -248,6 +300,7 @@ export function useGlobalFilterTraceMetricsSearchBarDataProvider(
     getFilterKeySections: () => filterKeySections,
     getFilterKeys: () => filterKeys,
     getTagValues,
+    isFetchingFilterKeys,
   };
 }
 
@@ -289,6 +342,7 @@ export const TraceMetricsConfig: DatasetConfig<
     DisplayType.CATEGORICAL_BAR,
     DisplayType.HEATMAP,
     DisplayType.LINE,
+    DisplayType.TABLE,
   ],
   useSeriesQuery: useTraceMetricsSeriesQuery,
   useTableQuery: useTraceMetricsTableQuery,
@@ -333,9 +387,7 @@ export const TraceMetricsConfig: DatasetConfig<
   getFieldHeaderMap: widgetQuery => {
     return (
       widgetQuery?.aggregates.reduce<Record<string, string>>((acc, aggregate) => {
-        acc[aggregate] = stripEquationPrefix(
-          formatTraceMetricsFunction(aggregate) as string
-        );
+        acc[aggregate] = stripEquationPrefix(formatTraceMetricsFunction(aggregate));
         return acc;
       }, {}) ?? {}
     );
@@ -377,16 +429,8 @@ function filterYAxisOptions() {
   };
 }
 
-function getGroupByFieldOptions(
-  organization: Organization,
-  tags?: TagCollection,
-  customMeasurements?: CustomMeasurementCollection
-) {
-  const primaryFieldOptions = getPrimaryFieldOptions(
-    organization,
-    tags,
-    customMeasurements
-  );
+function getGroupByFieldOptions(organization: Organization, tags?: TagCollection) {
+  const primaryFieldOptions = getPrimaryFieldOptions(organization, tags);
   const yAxisFilter = filterYAxisOptions();
   const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime, timedelta
+from functools import partial
 from typing import Any
 from uuid import UUID
 
 from django.db import router, transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -22,23 +25,57 @@ from sentry.investigations.models import (
 from sentry.investigations.services.investigations import (
     InvestigationConflictError,
     InvestigationValidationError,
+    investigation_filters,
+    investigation_source,
     lock_investigation,
 )
 from sentry.investigations.services.parameters import (
     ParameterValidationError,
     validate_parameter_value,
 )
+from sentry.investigations.telemetry import record_execution_cancelled
 from sentry.models.project import Project
 from sentry.utils import json
+from sentry.utils.dates import parse_stats_period
 
 MAX_CONTEXT_BLOCKS = 20
 MAX_CONTEXT_TEXT_CHARS = 50_000
 MAX_CONTEXT_BYTES = 512 * 1024
+DISPATCH_CLAIM_TIMEOUT = timedelta(minutes=5)
 
 
 def _fingerprint(snapshot: dict[str, Any]) -> str:
     serialized = json.dumps(snapshot, sort_keys=True)
     return hashlib.sha256(serialized.encode()).hexdigest()
+
+
+def freeze_query_time_range(params: dict[str, Any], *, reference_time: datetime) -> dict[str, Any]:
+    """Anchor relative windows to the execution that produced the saved data."""
+    frozen = dict(params)
+    if not (frozen.get("start") and frozen.get("end")):
+        period = frozen.get("stats_period") or frozen.get("statsPeriod")
+        if not isinstance(period, str) or frozen.get("start") or frozen.get("end"):
+            return frozen
+        duration = parse_stats_period(period)
+        if duration is None or duration <= timedelta():
+            return frozen
+        try:
+            start = reference_time - duration
+        except OverflowError:
+            return frozen
+        frozen.update(start=start.isoformat(), end=reference_time.isoformat())
+    frozen.pop("stats_period", None)
+    frozen.pop("statsPeriod", None)
+    return frozen
+
+
+def freeze_query_links(
+    links: list[dict[str, Any]], *, reference_time: datetime
+) -> list[dict[str, Any]]:
+    return [
+        {**link, "params": freeze_query_time_range(link["params"], reference_time=reference_time)}
+        for link in links
+    ]
 
 
 def _compact_query_context(
@@ -53,9 +90,39 @@ def _compact_query_context(
     return {
         "schemaVersion": validated["schemaVersion"],
         "tableMarkdown": validated["tableMarkdown"][:max_text_chars],
+        "chart": validated.get("chart"),
+        "preferredView": validated["preferredView"],
         "isEmpty": validated["isEmpty"],
+        "chartUnavailableReason": validated.get("chartUnavailableReason"),
         "queryLinks": validated["queryLinks"],
     }
+
+
+def _has_usable_query_data(result: Any) -> bool:
+    try:
+        validated = validate_query_result(result)
+    except ValidationError:
+        return False
+    return not validated["isEmpty"] and bool(
+        validated.get("chart") or validated["tableMarkdown"].strip()
+    )
+
+
+def _query_refinement_context_execution(
+    block: InvestigationBlock,
+) -> InvestigationBlockExecution | None:
+    current = block.result_execution
+    if current is not None and _has_usable_query_data(current.result):
+        return current
+
+    completed = block.executions.filter(status=InvestigationBlockExecutionStatus.COMPLETED)
+    if current is not None:
+        assert current.id is not None
+        completed = completed.exclude(id=current.id)
+    for execution in completed.order_by("-date_added")[:20]:
+        if _has_usable_query_data(execution.result):
+            return execution
+    return current
 
 
 def _materialize_dependency_context(
@@ -235,6 +302,8 @@ def build_block_execution_snapshot(
             raise InvestigationValidationError({"detail": "The template dataset hint is invalid."})
 
     prompt = (block.prompt or block.content).strip()
+    source = investigation_source(block.investigation)
+    filters = investigation_filters(block.investigation)
     parameters: dict[str, Any] = {}
     for link in block.parameter_links.select_related("parameter").order_by("parameter__key"):
         parameter = link.parameter
@@ -253,6 +322,8 @@ def build_block_execution_snapshot(
             except ParameterValidationError as error:
                 raise InvestigationValidationError({"parameters": {parameter.key: str(error)}})
         parameters[parameter.key] = value
+    query_context = {"source": source, "filters": filters, "parameters": parameters}
+    parameter_changes: dict[str, Any] = {}
     if block.kind == InvestigationBlockKind.TEXT:
         dependencies, context, context_project_ids = _materialize_notebook_context(
             block, accessible_project_ids=accessible_project_ids
@@ -261,9 +332,65 @@ def build_block_execution_snapshot(
         dependencies, context, context_project_ids = _materialize_dependency_context(
             block, accessible_project_ids=accessible_project_ids
         )
+        previous_execution = _query_refinement_context_execution(block)
+        if (
+            previous_execution is not None
+            and previous_execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        ):
+            previous_project_ids = set(
+                previous_execution.data_projects.values_list("id", flat=True)
+            )
+            if not previous_project_ids.issubset(accessible_project_ids):
+                raise InvestigationValidationError(
+                    {"context": "The previous query result uses inaccessible project data."}
+                )
+            reference_time = previous_execution.started_at or previous_execution.date_added
+            previous_input = previous_execution.input_snapshot
+            query_context = previous_input.get("queryContext") or {
+                "source": previous_input.get("source", {}),
+                "filters": previous_input.get("filters", {}),
+                "parameters": previous_input.get("parameters", {}),
+            }
+            previous_parameters = previous_input.get(
+                "parameters", query_context.get("parameters", {})
+            )
+            parameter_changes = {
+                key: value
+                for key, value in parameters.items()
+                if key not in previous_parameters or value != previous_parameters[key]
+            }
+            query_context = {
+                **query_context,
+                "filters": freeze_query_time_range(
+                    query_context.get("filters", {}), reference_time=reference_time
+                ),
+            }
+            previous_result = _compact_query_context(previous_execution.result)
+            previous_result["queryLinks"] = freeze_query_links(
+                previous_result["queryLinks"], reference_time=reference_time
+            )
+            context.insert(
+                0,
+                {
+                    "block_id": str(block.id),
+                    "kind": block.kind,
+                    "title": block.title,
+                    "currentBlock": True,
+                    "visibleExecutionId": str(previous_execution.id),
+                    "result": previous_result,
+                    "queryContext": query_context,
+                },
+            )
+            context_project_ids = sorted(set(context_project_ids).union(previous_project_ids))
+            if len(json.dumps(context).encode()) > MAX_CONTEXT_BYTES:
+                raise InvestigationValidationError(
+                    {"context": "The query context is too large to send to the agent."}
+                )
     snapshot: dict[str, Any] = {
         "prompt": prompt,
-        "filters": block.investigation.filters,
+        "organizationSlug": block.investigation.organization.slug,
+        "source": source,
+        "filters": filters,
         "parameters": parameters,
         "dependencies": dependencies,
         "context": context,
@@ -275,6 +402,12 @@ def build_block_execution_snapshot(
     }
     if dataset_hint is not None:
         snapshot["datasetHint"] = dataset_hint
+    if block.kind == InvestigationBlockKind.QUERY:
+        snapshot["parameterChanges"] = parameter_changes
+        snapshot["queryContext"] = {
+            **query_context,
+            "parameters": {**query_context.get("parameters", {}), **parameter_changes},
+        }
     return snapshot, _fingerprint(snapshot)
 
 
@@ -395,16 +528,67 @@ def create_block_execution(
 
 
 def mark_block_execution_dispatched(
-    execution: InvestigationBlockExecution, *, seer_run_id: int
+    execution: InvestigationBlockExecution,
+    *,
+    seer_run_id: int,
+    dispatch_claimed_at: datetime | None = None,
 ) -> bool:
-    updated = InvestigationBlockExecution.objects.filter(
-        id=execution.id, status=InvestigationBlockExecutionStatus.PENDING
-    ).update(
+    candidates = InvestigationBlockExecution.objects.filter(id=execution.id)
+    if dispatch_claimed_at is None:
+        candidates = candidates.filter(status=InvestigationBlockExecutionStatus.PENDING)
+    else:
+        candidates = candidates.filter(
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            seer_run_id__isnull=True,
+            started_at=dispatch_claimed_at,
+        )
+    updated = candidates.update(
         seer_run_id=seer_run_id,
         status=InvestigationBlockExecutionStatus.RUNNING,
-        started_at=timezone.now(),
+        started_at=dispatch_claimed_at or timezone.now(),
     )
     return updated == 1
+
+
+def mark_block_execution_dispatch_started(
+    execution: InvestigationBlockExecution,
+) -> datetime | None:
+    stale_before = timezone.now() - DISPATCH_CLAIM_TIMEOUT
+    claimed_at = timezone.now()
+    updated = (
+        InvestigationBlockExecution.objects.filter(id=execution.id)
+        .filter(
+            Q(status=InvestigationBlockExecutionStatus.PENDING)
+            | Q(
+                status=InvestigationBlockExecutionStatus.RUNNING,
+                seer_run_id__isnull=True,
+                started_at__lte=stale_before,
+            )
+            | Q(
+                status=InvestigationBlockExecutionStatus.RUNNING,
+                seer_run_id__isnull=True,
+                started_at__isnull=True,
+            )
+        )
+        .update(
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            started_at=claimed_at,
+        )
+    )
+    return claimed_at if updated == 1 else None
+
+
+def block_execution_needs_dispatch(execution: InvestigationBlockExecution) -> bool:
+    if execution.status == InvestigationBlockExecutionStatus.PENDING:
+        return True
+    return (
+        execution.status == InvestigationBlockExecutionStatus.RUNNING
+        and execution.seer_run_id is None
+        and (
+            execution.started_at is None
+            or execution.started_at <= timezone.now() - DISPATCH_CLAIM_TIMEOUT
+        )
+    )
 
 
 def mark_block_execution_resumed(execution: InvestigationBlockExecution) -> bool:
@@ -423,23 +607,41 @@ def mark_block_execution_stopping(execution: InvestigationBlockExecution) -> boo
     return updated == 1
 
 
-def mark_block_execution_cancelled(execution: InvestigationBlockExecution) -> bool:
+def mark_block_execution_cancelled(
+    execution: InvestigationBlockExecution, *, reason: str = "user_requested"
+) -> bool:
     updated = (
         InvestigationBlockExecution.objects.filter(id=execution.id)
         .exclude(status__in=TERMINAL_BLOCK_EXECUTION_STATUSES)
         .update(status=InvestigationBlockExecutionStatus.CANCELLED, completed_at=timezone.now())
     )
+    if updated:
+        transaction.on_commit(
+            partial(record_execution_cancelled, execution, reason=reason),
+            using=router.db_for_write(InvestigationBlockExecution),
+        )
     return updated == 1
 
 
-def mark_block_execution_dispatch_failed(execution: InvestigationBlockExecution) -> bool:
-    updated = InvestigationBlockExecution.objects.filter(
-        id=execution.id,
-        status__in=[
-            InvestigationBlockExecutionStatus.PENDING,
-            InvestigationBlockExecutionStatus.RUNNING,
-        ],
-    ).update(
+def mark_block_execution_dispatch_failed(
+    execution: InvestigationBlockExecution, *, dispatch_claimed_at: datetime | None = None
+) -> bool:
+    candidates = InvestigationBlockExecution.objects.filter(id=execution.id)
+    if dispatch_claimed_at is None:
+        candidates = candidates.filter(
+            status__in=[
+                InvestigationBlockExecutionStatus.PENDING,
+                InvestigationBlockExecutionStatus.RUNNING,
+            ],
+            seer_run_id__isnull=True,
+        )
+    else:
+        candidates = candidates.filter(
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            seer_run_id__isnull=True,
+            started_at=dispatch_claimed_at,
+        )
+    updated = candidates.update(
         status=InvestigationBlockExecutionStatus.FAILED,
         error={
             "code": "dispatch_failed",

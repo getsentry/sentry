@@ -39,7 +39,7 @@ SEER_POLL_STATE_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/sta
 class ReplaySummaryPermission(ProjectPermission):
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],
-        "POST": ["event:read", "event:write", "event:admin"],
+        "POST": ["event:write", "event:admin"],
         "PUT": [],
         "DELETE": [],
     }

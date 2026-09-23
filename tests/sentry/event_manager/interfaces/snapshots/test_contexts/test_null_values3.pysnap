@@ -1,10 +1,13 @@
 ---
-created: '2019-03-14T17:12:34.923056Z'
-creator: sentry
-source: tests/sentry/event_manager/interfaces/test_contexts.py
+source: tests/sentry/event_manager/interfaces/test_contexts.py::test_null_values3
 ---
 errors: null
 tags: []
 to_json:
   os:
     type: os
+  trace:
+    span_id: d718bb6c40be4ac9
+    status: unknown
+    trace_id: d718bb6c40be4ac9a0c55c4df1640130
+    type: trace

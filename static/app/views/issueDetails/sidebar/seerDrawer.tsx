@@ -1,4 +1,5 @@
-import {useCallback, useRef} from 'react';
+import {useCallback} from 'react';
+import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
@@ -10,21 +11,20 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 
-export const useOpenSeerDrawer = ({
-  group,
-  project,
-}: {
-  group: Group;
-  project: Project;
-  buttonRef?: React.RefObject<HTMLButtonElement | null>;
-}) => {
+export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Project}) => {
   const {openDrawer} = useDrawer();
+  const [{seerDrawer, seerDrawerAction}, setDrawerQuery] = useQueryStates(
+    {
+      seerDrawer: parseAsBoolean.withDefault(false),
+      seerDrawerAction: parseAsString,
+    },
+    {shallow: false}
+  );
+  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const locationRef = useRef(location); // prevents stale location in onClose
-  locationRef.current = location; // sync on every render
-  const organization = useOrganization();
 
   const openSeerDrawer = useCallback(() => {
     if (
@@ -34,13 +34,30 @@ export const useOpenSeerDrawer = ({
       return;
     }
 
+    // Autofix has its own tab behind the flag, so every entry point that used
+    // to open the drawer navigates there instead — including legacy
+    // `?seerDrawer=true` URLs, which land here and get forwarded.
+    if (hasAutofixPage(organization)) {
+      navigate(
+        makeSeerLocation({
+          organization,
+          groupId: group.id,
+          action: seerDrawerAction ?? undefined,
+          query: location.query,
+        }),
+        {replace: seerDrawer}
+      );
+      return;
+    }
+
     const issueBaseUrl = normalizeUrl(
       `/organizations/${organization.slug}/issues/${group.id}/`
     );
-
     openDrawer(() => <SeerDrawer group={group} project={project} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
+      drawerWidth: '80%',
+      drawerMaxWidth: '1600px',
       resizable: true,
       mode: 'passive',
       shouldCloseOnLocationChange: nextLocation => {
@@ -50,29 +67,27 @@ export const useOpenSeerDrawer = ({
         return !nextPath.startsWith(issueBaseUrl);
       },
       onClose: () => {
-        navigate(
-          {
-            pathname: locationRef.current.pathname,
-            query: {
-              ...locationRef.current.query,
-              seerDrawer: undefined,
-            },
-          },
-          {replace: true, preventScrollReset: true}
+        void setDrawerQuery(
+          {seerDrawer: null, seerDrawerAction: null},
+          {history: 'replace'}
         );
       },
     });
 
-    if (locationRef.current.query.seerDrawer !== 'true') {
-      navigate({
-        pathname: locationRef.current.pathname,
-        query: {
-          ...locationRef.current.query,
-          seerDrawer: true,
-        },
-      });
+    if (!seerDrawer) {
+      void setDrawerQuery({seerDrawer: true}, {history: 'push'});
     }
-  }, [openDrawer, group, project, navigate, organization]);
+  }, [
+    openDrawer,
+    group,
+    project,
+    seerDrawer,
+    seerDrawerAction,
+    setDrawerQuery,
+    organization,
+    navigate,
+    location.query,
+  ]);
 
   return {openSeerDrawer};
 };

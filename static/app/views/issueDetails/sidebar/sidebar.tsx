@@ -29,7 +29,6 @@ import {FirstLastSeenSection} from 'sentry/views/issueDetails/sidebar/firstLastS
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/sidebar/mergedSidebarSection';
 import {PeopleSection} from 'sentry/views/issueDetails/sidebar/peopleSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/sidebar/similarIssuesSidebarSection';
-import {SupergroupSection} from 'sentry/views/issueDetails/sidebar/supergroupSection';
 
 type Props = {group: Group; project: Project; event?: Event};
 
@@ -105,12 +104,7 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
             <ExternalIssueSidebarList group={group} event={event} />
           </ErrorBoundary>
           <ErrorBoundary mini>
-            <ActivitySection
-              group={group}
-              enableMentionComposer={organization.features.includes(
-                'issue-activity-mention-input'
-              )}
-            />
+            <ActivitySection group={group} />
           </ErrorBoundary>
           {showPeopleSection && (
             <PeopleSection
@@ -134,9 +128,6 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
           {issueTypeConfig.detector.enabled && (
             <DetectorSection group={group} project={project} />
           )}
-          <ErrorBoundary mini>
-            <SupergroupSection group={group} />
-          </ErrorBoundary>
         </Side>
       )}
     </SharedTourElement>

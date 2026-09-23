@@ -851,7 +851,14 @@ class BaseQueryBuilder:
 
             orderby = [orderby]
 
-        orderby_columns: list[str] = orderby if orderby else []
+        # An empty orderby means "no sort", not "sort by the column named ''". The str form is
+        # handled above, but endpoints pass the raw request value as a list, so `?orderby=`
+        # arrives here as [""].
+        orderby_columns: list[str] = [
+            orderby_column
+            for orderby_column in (orderby or [])
+            if orderby_column.lstrip("-").strip()
+        ]
 
         resolved_orderby: str | SelectType | None
         for orderby in orderby_columns:
@@ -1318,11 +1325,6 @@ class BaseQueryBuilder:
         if is_tag or is_attr:
             subscriptable = lhs.subscriptable
             if operator not in ["IN", "NOT IN"] and not isinstance(value, str):
-                sentry_sdk.set_tag("query.lhs", lhs)
-                sentry_sdk.set_attribute("query.lhs", lhs)
-                sentry_sdk.set_tag("query.rhs", value)
-                sentry_sdk.set_attribute("query.rhs", value)
-                sentry_sdk.capture_message("Tag value was not a string", level="error")
                 value = str(value)
             lhs = Function("ifNull", [lhs, ""])
         else:

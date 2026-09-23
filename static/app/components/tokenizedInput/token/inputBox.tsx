@@ -1,19 +1,19 @@
 import type {
   ChangeEventHandler,
-  ClipboardEventHandler,
   FocusEventHandler,
   KeyboardEventHandler,
   MouseEventHandler,
   Ref,
 } from 'react';
 import {useCallback, useRef} from 'react';
-import styled from '@emotion/styled';
 import {useTextField} from '@react-aria/textfield';
 import {mergeRefs} from '@react-aria/utils';
 import type {KeyboardEvent} from '@react-types/shared';
 
-import {Input, useAutosizeInput} from '@sentry/scraps/input';
+import {useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+
+import {UnstyledInput} from 'sentry/components/tokenizedInput/token/unstyledInput';
 
 interface InputBoxProps {
   inputLabel: string;
@@ -27,8 +27,6 @@ interface InputBoxProps {
   onInputFocus?: FocusEventHandler<HTMLInputElement>;
   onKeyDown?: (evt: KeyboardEvent) => void;
   onKeyDownCapture?: KeyboardEventHandler<HTMLInputElement>;
-  onPaste?: ClipboardEventHandler<HTMLInputElement>;
-  placeholder?: string;
   ref?: Ref<HTMLInputElement>;
   tabIndex?: number;
 }
@@ -44,9 +42,7 @@ export function InputBox({
   onInputFocus,
   onKeyDown,
   onKeyDownCapture,
-  onPaste,
   'data-test-id': dataTestId,
-  placeholder,
   ref,
   tabIndex,
 }: InputBoxProps) {
@@ -116,7 +112,6 @@ export function InputBox({
         size="md"
         ref={mergeRefs(ref, inputRef, autosizeInputRef)}
         type="text"
-        placeholder={placeholder}
         onBlur={handleInputBlur}
         onClick={handleInputClick}
         onKeyDown={handleInputKeyDown}
@@ -124,29 +119,9 @@ export function InputBox({
         value={inputValue}
         onChange={onInputChange ?? (() => {})}
         tabIndex={tabIndex}
-        onPaste={onPaste}
         disabled={false}
         data-test-id={dataTestId}
       />
     </Flex>
   );
 }
-
-const UnstyledInput = styled(Input)`
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  flex-grow: 1;
-  padding: 0;
-  height: auto;
-  min-height: auto;
-  resize: none;
-  min-width: 1px;
-  border-radius: 0;
-
-  &:focus {
-    outline: none;
-    border: none;
-    box-shadow: none;
-  }
-`;

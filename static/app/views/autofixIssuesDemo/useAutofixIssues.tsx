@@ -97,23 +97,7 @@ export interface AutofixIssue extends Issue {
 
 interface UseAutofixIssuesParams {
   cursor?: string;
-  // Gates the issues request; pass page-filters readiness so the initial
-  // fetch waits for the restored project selection. Defaults to true.
-  enabled?: boolean;
-  // Fetch exactly these group ids instead of searching the stream. The
-  // endpoint ignores every other query component in this mode, so a
-  // deep-linked issue resolves even outside the list's filters/pagination.
-  groupIds?: string[];
-  // Project ids to scope the issue stream to (page-filters selection: [] is
-  // "My Projects", [-1] is all). Defaults to all accessible projects.
-  projects?: number[];
   query?: string;
-  // One-shot questions asked about each run (repeatable `question` param,
-  // capped at 5 by the endpoint). Defaults to this page's demo set.
-  questions?: string[];
-  // Runs-endpoint filter to enrich issues with. Defaults to the explorer runs
-  // autofix creates; pass e.g. 'type:explorer' to include all trigger sources.
-  runsQuery?: string;
 }
 
 interface UseAutofixIssuesResult {
@@ -132,11 +116,6 @@ interface UseAutofixIssuesResult {
 export function useAutofixIssues({
   query,
   cursor,
-  enabled = true,
-  groupIds: pinnedGroupIds,
-  projects,
-  questions = DEMO_QUESTIONS,
-  runsQuery: runsQueryFilter = RUNS_QUERY,
 }: UseAutofixIssuesParams): UseAutofixIssuesResult {
   const organization = useOrganization();
 
@@ -147,10 +126,7 @@ export function useAutofixIssues({
       query: {
         query: withRequiredFilter(query ?? ''),
         cursor,
-        group: pinnedGroupIds,
-        // In group-id mode the page-filters project selection must not hide
-        // the deep-linked issue — the backend still enforces access.
-        project: pinnedGroupIds ? -1 : (projects ?? -1),
+        project: -1,
         statsPeriod: '90d',
         // Explicit endpoint default: last-seen desc selects the issues still
         // actively occurring as the candidate pool; callers order the loaded
@@ -160,7 +136,6 @@ export function useAutofixIssues({
       },
       staleTime: QUERY_STALE_TIME,
     }),
-    enabled,
     select: selectJsonWithHeaders,
   });
 
@@ -176,8 +151,8 @@ export function useAutofixIssues({
       apiOptions.as<SeerRun[]>()('/organizations/$organizationIdOrSlug/seer/runs/', {
         path: {organizationIdOrSlug: organization.slug},
         query: {
-          query: `${runsQueryFilter} group:${groupId}`,
-          question: questions,
+          query: `${RUNS_QUERY} group:${groupId}`,
+          question: DEMO_QUESTIONS,
           per_page: 1,
         },
         staleTime: QUERY_STALE_TIME,

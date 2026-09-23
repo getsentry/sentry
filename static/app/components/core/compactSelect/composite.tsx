@@ -5,8 +5,7 @@ import {Item} from '@react-stately/collections';
 import type {DistributedOmit} from 'type-fest';
 
 import {type ButtonProps} from '@sentry/scraps/button';
-
-import {t} from 'sentry/locale';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {ClearButton, Control} from './control';
 import type {ControlProps} from './control';
@@ -86,6 +85,7 @@ function CompositeSelect({
   size = 'md',
   ...controlProps
 }: CompositeSelectProps) {
+  const {t} = useTranslation();
   const items = useMemo(
     () =>
       Children.toArray(children).flatMap((child, regionIndex) => {
@@ -140,6 +140,8 @@ CompositeSelect.Region = function <Value extends SelectKey>(
 CompositeSelect.ClearButton = function CompositeSelectClearButton(
   props: DistributedOmit<ButtonProps, 'variant' | 'size' | 'children'>
 ) {
+  const {t} = useTranslation();
+
   return (
     <ClearButton size="zero" variant="transparent" {...props}>
       {t('Clear')}

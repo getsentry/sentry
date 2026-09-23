@@ -31,8 +31,8 @@ import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {BREAKDOWN_SLICES} from 'sentry/views/explore/hooks/useTraces';
 import type {SpanResult} from 'sentry/views/explore/tables/tracesTable/types';
 import type {SpanFields, SpanResponse} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 import type {Field} from './data';
 import {
@@ -520,13 +520,11 @@ interface TraceIdRendererProps {
   traceId: string;
   traceName: string | null;
   onClick?: React.ComponentProps<typeof Link>['onClick'];
-  transactionId?: string;
 }
 
 export function TraceIdRenderer({
   traceId,
   timestamp,
-  transactionId,
   location,
   onClick,
   traceName,
@@ -557,7 +555,6 @@ export function TraceIdRenderer({
     return (
       <Tooltip
         showUnderline
-        isHoverable
         title={
           <Text>
             {tct('Trace is older than 30 days. [similarTraces] in the past 24 hours.', {
@@ -594,7 +591,6 @@ export function TraceIdRenderer({
     traceSlug: traceId,
     dateSelection: normalizeDateTimeParams(selection.datetime),
     timestamp: timestamp / 1000,
-    eventId: transactionId,
     location,
     source: TraceViewSources.TRACES,
   });

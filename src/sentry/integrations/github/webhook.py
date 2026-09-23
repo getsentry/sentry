@@ -22,6 +22,9 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry import analytics, options
+from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationMissingPermissionsEvent,
+)
 from sentry.analytics.events.webhook_repository_created import WebHookRepositoryCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -52,6 +55,7 @@ from sentry.integrations.types import (
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.integrations.utils.scope import clear_organization_info
+from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import (
@@ -61,7 +65,7 @@ from sentry.issues.action_log import (
     resolve_action_actor,
 )
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequestLifecycleState
@@ -570,6 +574,24 @@ class InstallationEventWebhook(GitHubWebhook):
             },
         )
 
+        for organization_integration in result.organization_integrations:
+            try:
+                analytics.record(
+                    AiAutofixPrIterationMissingPermissionsEvent(
+                        action="permissions_accepted",
+                        organization_id=organization_integration.organization_id,
+                        integration_id=integration.id,
+                    )
+                )
+            except Exception:
+                logger.exception(
+                    "github.new-permissions-analytics-failed",
+                    extra={
+                        "organization_id": organization_integration.organization_id,
+                        "integration_id": integration.id,
+                    },
+                )
+
         # Eagerly refresh the token so it's valid immediately and the stored
         # permissions are confirmed against GitHub. Non-fatal: the token also
         # refreshes lazily on the next request if this fails.
@@ -754,9 +776,7 @@ class PushEventWebhook(GitHubWebhook):
                         if commit_author is not None:
                             authors[author_email] = commit_author
 
-            # TODO(dcramer): we need to deal with bad values here, but since
-            # its optional, lets just throw it out for now
-            if len(author_email) > 75:
+            if len(author_email) > COMMIT_AUTHOR_EMAIL_LENGTH:
                 author = None
             else:
                 if author_email not in authors:
@@ -938,7 +958,12 @@ class IssuesEventWebhook(GitHubWebhook):
             IssueEvenntWebhookActionType.CLOSED.value,
             IssueEvenntWebhookActionType.REOPENED.value,
         ]:
-            self._handle_status_change(integration, external_issue_key, action)
+            self._handle_status_change(
+                integration,
+                external_issue_key,
+                action,
+                event.get("issue", {}).get("updated_at"),
+            )
 
     def _handle_assignment(
         self,
@@ -952,7 +977,8 @@ class IssuesEventWebhook(GitHubWebhook):
 
         When switching assignees, GitHub sends two webhooks (assigned and unassigned) in
         non-deterministic order. To avoid race conditions, we sync based on the current
-        state in issue.assignees rather than the delta in the assignee field.
+        state in issue.assignees rather than the delta in the assignee field, and pass
+        `issue.updated_at` along so stale deliveries can be dropped.
 
         Args:
             integration: The GitHub integration
@@ -963,6 +989,7 @@ class IssuesEventWebhook(GitHubWebhook):
         # Use issue.assignees (current state) instead of assignee (delta) to avoid race conditions
         issue = event.get("issue", {})
         assignees = issue.get("assignees", [])
+        updated_at = issue.get("updated_at")
 
         # If there are no assignees, deassign
         if not assignees:
@@ -971,6 +998,7 @@ class IssuesEventWebhook(GitHubWebhook):
                 external_user_name="",  # Not used for deassignment
                 external_issue_key=external_issue_key,
                 assign=False,
+                provider_event_updated_at=updated_at,
             )
             logger.info(
                 "github.webhook.assignment.synced",
@@ -1007,6 +1035,7 @@ class IssuesEventWebhook(GitHubWebhook):
             external_user_name=assignee_name,
             external_issue_key=external_issue_key,
             assign=True,
+            provider_event_updated_at=updated_at,
         )
 
         logger.info(
@@ -1021,7 +1050,11 @@ class IssuesEventWebhook(GitHubWebhook):
         )
 
     def _handle_status_change(
-        self, integration: RpcIntegration, external_issue_key: str, action: str
+        self,
+        integration: RpcIntegration,
+        external_issue_key: str,
+        action: str,
+        updated_at: str | None,
     ) -> None:
         """
         Handle issue status changes (closed/reopened).
@@ -1030,6 +1063,7 @@ class IssuesEventWebhook(GitHubWebhook):
             integration: The GitHub integration
             external_issue_key: The formatted issue key
             action: The action type ('closed' or 'reopened')
+            updated_at: GitHub's own timestamp, used to order deliveries
         """
         org_integrations = integration_service.get_organization_integrations(
             integration_id=integration.id,
@@ -1041,7 +1075,10 @@ class IssuesEventWebhook(GitHubWebhook):
             installation = integration.get_installation(oi.organization_id)
 
             if hasattr(installation, "sync_status_inbound"):
-                installation.sync_status_inbound(external_issue_key, {"action": action})
+                installation.sync_status_inbound(
+                    external_issue_key,
+                    {"action": action, PROVIDER_EVENT_TIME_KEY: updated_at},
+                )
 
                 logger.info(
                     "github.webhook.status-change.synced",
@@ -1112,6 +1149,7 @@ class PullRequestEventWebhook(GitHubWebhook):
     ) -> None:
         pull_request = event["pull_request"]
         number = pull_request["number"]
+
         title = pull_request["title"]
         body = pull_request["body"]
         user = pull_request["user"]
@@ -1236,6 +1274,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                         "provider_updated_at": provider_updated_at,
                         "state": state,
                         "draft": draft,
+                        "external_id": pull_request["id"],
                     },
                     event_state=state,
                     event_updated_at=provider_updated_at,

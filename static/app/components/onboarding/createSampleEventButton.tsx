@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -22,8 +23,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 type CreateSampleEventButtonProps = ButtonProps & {
   source: string;
   hasScmOnboarding?: boolean;
-  onClick?: () => void;
-  onCreateSampleGroup?: () => void;
   project?: Project;
 };
 
@@ -33,8 +32,6 @@ const EVENT_POLL_INTERVAL = 1000;
 export function CreateSampleEventButton({
   source,
   hasScmOnboarding,
-  onClick,
-  onCreateSampleGroup,
   project,
   ...buttonProps
 }: CreateSampleEventButtonProps) {
@@ -61,7 +58,12 @@ export function CreateSampleEventButton({
 
   const {mutate: createSampleGroup, isPending} = useMutation({
     mutationFn: () => {
-      const url = `/projects/${organization.slug}/${project!.slug}/create-sample/`;
+      const url = getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/create-sample/',
+        {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project!.slug},
+        }
+      );
       return fetchMutation<{groupID: string}>({method: 'POST', url});
     },
     onMutate() {
@@ -69,9 +71,7 @@ export function CreateSampleEventButton({
         return;
       }
 
-      if (onCreateSampleGroup) {
-        onCreateSampleGroup();
-      } else if (hasScmOnboarding) {
+      if (hasScmOnboarding) {
         trackAnalytics('onboarding.scm_view_sample_event_clicked', {
           platform: project.platform,
           organization,
@@ -132,8 +132,6 @@ export function CreateSampleEventButton({
             duration: Math.ceil(performance.now() - t0),
             source,
           });
-
-          onClick?.();
 
           navigate(
             normalizeUrl(

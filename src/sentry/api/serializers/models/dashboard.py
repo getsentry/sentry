@@ -68,6 +68,7 @@ class DashboardWidgetQueryResponse(TypedDict):
 
 class ThresholdTypeOptional(TypedDict, total=False):
     preferredPolarity: str
+    timeWindow: str
 
 
 class ThresholdType(ThresholdTypeOptional):
@@ -86,6 +87,8 @@ def _convert_thresholds_to_camel_case(thresholds: dict[str, Any] | None) -> Thre
     }
     if thresholds.get("preferred_polarity") is not None:
         result["preferredPolarity"] = thresholds["preferred_polarity"]
+    if thresholds.get("time_window") is not None:
+        result["timeWindow"] = thresholds["time_window"]
     return result
 
 
@@ -682,9 +685,20 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             user=user,
         )
 
+        creator_ids = [d.created_by_id for d in item_list if d.created_by_id is not None]
+        serialized_creators = (
+            user_service.serialize_many(filter={"user_ids": creator_ids}) if creator_ids else []
+        )
+        serialized_users = {u["id"]: u for u in serialized_creators}
+
         for dashboard in item_list:
             dashboard_widgets = [w for w in widgets if w and w["dashboardId"] == str(dashboard.id)]
-            result[dashboard] = {"widgets": dashboard_widgets}
+            created_by = (
+                serialized_users.get(str(dashboard.created_by_id))
+                if dashboard.created_by_id is not None
+                else None
+            )
+            result[dashboard] = {"widgets": dashboard_widgets, "created_by": created_by}
 
         return result
 
@@ -695,11 +709,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": (
-                user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})[0]
-                if obj.created_by_id
-                else None
-            ),
+            "createdBy": attrs.get("created_by"),
             "widgets": attrs["widgets"],
             "filters": tag_filters,
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,

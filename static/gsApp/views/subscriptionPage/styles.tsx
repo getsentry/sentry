@@ -16,7 +16,7 @@ export const SubscriptionBody = styled(PanelBody)`
     font-weight: 400;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     grid-auto-flow: row;
     grid-auto-columns: 1fr;
     gap: ${p => p.theme.space.md};
@@ -71,10 +71,10 @@ export const PanelBodyWithTable = styled(PanelBody)`
   display: grid;
   gap: ${p => p.theme.space['2xl']};
 
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+  @container (min-width: ${p => p.theme.container['4xl']}) {
     grid-template-columns: repeat(2, 1fr);
   }
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+  @container (max-width: ${p => p.theme.container['4xl']}) {
     grid-auto-flow: row;
   }
 

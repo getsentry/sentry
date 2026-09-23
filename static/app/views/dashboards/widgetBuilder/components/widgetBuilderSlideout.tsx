@@ -23,14 +23,13 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
-import {t, tctCode} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
   DisplayType,
   WidgetType,
@@ -68,7 +67,6 @@ import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {useTraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
-import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {readableConditions} from 'sentry/views/dashboards/widgetCard/widgetLLMContext';
@@ -142,10 +140,6 @@ function WidgetBuilderSlideoutInner({
     useState(
       organization.features.includes('performance-transaction-deprecation-banner')
     );
-  const validatedWidgetResponse = useValidateWidgetQuery(
-    convertBuilderStateToWidget(state)
-  );
-
   const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState();
 
   // Tracks whether the user has entered the metrics equation mode since we
@@ -182,13 +176,20 @@ function WidgetBuilderSlideoutInner({
     !(state.dataset === WidgetType.TRACEMETRICS && isInEquationMode) &&
     !(state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType));
 
-  // Group By is used by time-series chart widgets to break down data by a field.
+  // Group By is used by time-series chart widgets and Trace Metrics equations
+  // to break down data by a field.
   // - Time-series widgets: show Group By to allow breaking down by fields
   // - Issue widgets: don't support Group By (issues have their own grouping)
   // - Categorical Bar widgets: group by is not supported yet, but may be in the future
   // - Text widgets: don't support Group By (no data visualization)
+  // - Trace Metrics equations with tables: no other way for selecting columns to group by
+  const isTraceMetricsEquationTable =
+    state.dataset === WidgetType.TRACEMETRICS &&
+    isInEquationMode &&
+    state.displayType === DisplayType.TABLE;
   const showGroupBySelector =
-    isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE) && !isTextWidget;
+    (isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE) && !isTextWidget) ||
+    isTraceMetricsEquationTable;
 
   // X-Axis selector is only for Categorical Bar widgets, other chart widgets
   // always use time as the X-axis
@@ -359,9 +360,10 @@ function WidgetBuilderSlideoutInner({
                     }
                   >
                     {disableTransactionWidget && isEditing
-                      ? tctCode(
+                      ? tct(
                           'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the [spans] dataset below with the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
                           {
+                            code: <code />,
                             spans: (
                               <Link
                                 // We need to do this otherwise the dashboard filters will change
@@ -389,9 +391,10 @@ function WidgetBuilderSlideoutInner({
                             ),
                           }
                         )
-                      : tctCode(
+                      : tct(
                           'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
                           {
+                            code: <code />,
                             FAQLink: (
                               <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
                             ),
@@ -497,7 +500,6 @@ function WidgetBuilderSlideoutInner({
                       <Section>
                         <WidgetBuilderQueryFilterBuilder
                           onQueryConditionChange={onQueryConditionChange}
-                          validatedWidgetResponse={validatedWidgetResponse}
                         />
                       </Section>
                     )}
@@ -514,7 +516,7 @@ function WidgetBuilderSlideoutInner({
                     {showGroupBySelector && (
                       <Section>
                         <WidgetBuilderGroupBySelector
-                          validatedWidgetResponse={validatedWidgetResponse}
+                          preserveAggregateFields={isTraceMetricsEquationTable}
                         />
                       </Section>
                     )}

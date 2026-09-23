@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -17,8 +18,6 @@ import {
   type SearchGroup,
   type SearchItem,
 } from 'sentry/components/searchBar/types';
-import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
-import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
@@ -75,6 +74,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -89,10 +89,11 @@ import {
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {fzf} from 'sentry/utils/search/fzf';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 type SearchQueryValueBuilderProps = {
+  editingCommittedValue: boolean;
   onCommit: () => void;
   onDelete: () => void;
   token: TokenResult<Token.FILTER>;
@@ -388,6 +389,9 @@ function useFilterSuggestions({
         token,
         fieldDefinition,
       }),
+    // React Compiler treats one of these dependencies as mutated later in the
+    // component, so it cannot prove the memoization is preserved.
+    // oxlint-disable-next-line react/preserve-manual-memoization
     [key, filterValue, token, fieldDefinition]
   );
   // Only keys that explicitly have predefined values should skip the fetch.
@@ -422,7 +426,9 @@ function useFilterSuggestions({
     () => ['search-query-builder-tag-values', queryParams] as const,
     [queryParams]
   );
-  const queryKey = useDebouncedValue(baseQueryKey);
+  const [queryKey] = useDebouncedValue(baseQueryKey, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const isDebouncing = baseQueryKey !== queryKey;
 
   const tagKeysBaseQueryKey = useMemo(
@@ -430,7 +436,9 @@ function useFilterSuggestions({
       ['search-query-builder-tag-keys', filterKeyRegistryQueryKey, filterValue] as const,
     [filterKeyRegistryQueryKey, filterValue]
   );
-  const tagKeysQueryKey = useDebouncedValue(tagKeysBaseQueryKey);
+  const [tagKeysQueryKey] = useDebouncedValue(tagKeysBaseQueryKey, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const isDebouncingTagKeys = tagKeysBaseQueryKey !== tagKeysQueryKey;
 
   // TODO(malwilley): Display error states
@@ -576,7 +584,6 @@ function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
     >
       <CheckWrap role="presentation">
         <Checkbox
-          size="sm"
           checked={selected}
           disabled={disabled}
           onChange={() => {
@@ -636,20 +643,15 @@ function ValueComboboxCustomMenu(
     );
   }
 
-  // Remove Ask Seer items from the value list box since they are not shown here.
-  const hiddenOptions = new Set(props.hiddenOptions);
-  hiddenOptions.delete(ASK_SEER_ITEM_KEY);
-  hiddenOptions.delete(ASK_SEER_CONSENT_ITEM_KEY);
-
   return (
     <ValueListBox
       {...props}
       portalTarget={
         canSelectMultipleValues
-          ? (props.portalTarget ?? wrapperRef.current)
+          ? // oxlint-disable-next-line react/refs
+            (props.portalTarget ?? wrapperRef.current)
           : props.portalTarget
       }
-      hiddenOptions={hiddenOptions}
       wrapperRef={wrapperRef}
       isMultiSelect={canSelectMultipleValues}
       items={items}
@@ -662,7 +664,8 @@ function ValueComboboxCustomMenu(
 
 export function getInitialInputValue(
   token: TokenResult<Token.FILTER>,
-  canSelectMultipleValues: boolean
+  canSelectMultipleValues: boolean,
+  editingCommittedValue?: boolean
 ) {
   if (isDateToken(token)) {
     return token.value.type === Token.VALUE_ISO_8601_DATE ? token.value.text : '';
@@ -673,6 +676,9 @@ export function getInitialInputValue(
   if (isNumericFilterToken(token)) {
     return token.value.text;
   }
+  if (token.filter === FilterType.HAS && editingCommittedValue) {
+    return prettifyTagKey(token.value.text);
+  }
   return '';
 }
 
@@ -681,6 +687,7 @@ export function SearchQueryBuilderValueCombobox({
   onDelete,
   onCommit,
   wrapperRef,
+  editingCommittedValue,
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -714,7 +721,9 @@ export function SearchQueryBuilderValueCombobox({
   // Multi-select renders committed values as chips, so the input starts empty
   // and only holds the value being typed.
   const [inputValue, setInputValue] = useState(() =>
-    canSelectMultipleValues ? '' : getInitialInputValue(token, canSelectMultipleValues)
+    canSelectMultipleValues
+      ? ''
+      : getInitialInputValue(token, canSelectMultipleValues, editingCommittedValue)
   );
   // Tracks where the input sits within the chip row. `value` is the lifted chip's
   // text (so it can be restored on Escape and reinserted where it was rather than
@@ -797,6 +806,7 @@ export function SearchQueryBuilderValueCombobox({
       }
       const newIndex = nearestOccurrence(liftedValue, oldIndex);
       if (newIndex === -1) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setEditingChip(null);
         setInputValue('');
       } else {
@@ -823,6 +833,7 @@ export function SearchQueryBuilderValueCombobox({
 
   const ctrlKeyPressed = useKeyPress(
     isMac() ? 'Meta' : 'Control',
+    // oxlint-disable-next-line react/refs
     topLevelWrapperRef.current
   );
   const selectedValueMap = useMemo(
@@ -876,6 +887,7 @@ export function SearchQueryBuilderValueCombobox({
     if (pendingCaret.pos === 0) {
       input.scrollLeft = 0;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputValue, scrollInputIntoView]);
 
   // While typing, surface the typed text as a custom option so results rank by
@@ -1007,11 +1019,6 @@ export function SearchQueryBuilderValueCombobox({
 
       // TODO(malwilley): Add visual feedback for invalid values
       if (cleanedValue === null) {
-        trackAnalytics('search.value_manual_submitted', {
-          ...analyticsData,
-          filter_value: value,
-          invalid: true,
-        });
         return false;
       }
 
@@ -1071,7 +1078,6 @@ export function SearchQueryBuilderValueCombobox({
       filterKeys,
       items,
       canSelectMultipleValues,
-      analyticsData,
       committedValues,
       editingChip,
       dispatch,
@@ -1215,7 +1221,9 @@ export function SearchQueryBuilderValueCombobox({
         return;
       }
 
-      const isUnchanged = value === getInitialInputValue(token, canSelectMultipleValues);
+      const isUnchanged =
+        value ===
+        getInitialInputValue(token, canSelectMultipleValues, editingCommittedValue);
 
       // If there's no user input and the token has no value, set a default one
       if (!value && !token.value.text) {
@@ -1233,11 +1241,11 @@ export function SearchQueryBuilderValueCombobox({
         return;
       }
 
-      const invalid = updateFilterValue(value);
+      const updated = updateFilterValue(value);
       trackAnalytics('search.value_manual_submitted', {
         ...analyticsData,
         filter_value: value,
-        invalid,
+        invalid: !updated,
       });
     },
     [
@@ -1245,6 +1253,7 @@ export function SearchQueryBuilderValueCombobox({
       addTypedValue,
       canSelectMultipleValues,
       dispatch,
+      editingCommittedValue,
       fieldDefinition,
       onCommit,
       token,

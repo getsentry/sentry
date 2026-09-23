@@ -10,7 +10,12 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition import (
 )
 from sentry.workflow_engine.endpoints.validators.utils import remove_items_by_api_input
 from sentry.workflow_engine.models import DataConditionGroup
-from sentry.workflow_engine.models.data_condition import TRIGGER_CONDITIONS, DataCondition
+from sentry.workflow_engine.models.data_condition import (
+    Condition,
+    DataCondition,
+    get_condition_handler,
+)
+from sentry.workflow_engine.types import DataConditionHandler
 
 
 class DataConditionGroupInput(TypedDict):
@@ -40,9 +45,19 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
         break upon updating.
         """
         for condition in condition_data:
-            if (condition.get("type") in TRIGGER_CONDITIONS) and (
-                logic_type != DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
-            ):
+            try:
+                condition_type = Condition(str(condition.get("type")))
+            except ValueError:
+                raise serializers.ValidationError(
+                    f"Invalid condition type, '{condition.get('type')}'"
+                )
+
+            condition_handler = get_condition_handler(condition_type)
+
+            if (
+                condition_handler is not None
+                and condition_handler.group == DataConditionHandler.Group.WORKFLOW_TRIGGER
+            ) and (logic_type != DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value):
                 raise serializers.ValidationError("Triggers' logic type must be 'any-short'")
 
     def update_or_create_condition(

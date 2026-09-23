@@ -1,7 +1,10 @@
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
+import {
+  defineSeerEmbed,
+  type EmbedOutput,
+} from 'sentry/components/seer/markdown/embeds/utils';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
@@ -47,112 +50,146 @@ function getSeriesLabel(series: {label: string} | {name: string}): string {
   return 'label' in series ? series.label : series.name;
 }
 
-export const Chart = defineSeerEmbed({
-  name: 'chart',
-  render({
-    title,
-    subtitle,
-    visualization,
-    x_axis: xAxis,
-    y_axis_unit: yAxisUnit,
-    series,
-  }) {
-    const metadata = UNIT_METADATA[yAxisUnit];
+export function ChartContent({
+  data: {title, subtitle, visualization, x_axis: xAxis, y_axis_unit: yAxisUnit, series},
+  showHeader = true,
+}: {
+  data: EmbedOutput<'chart'>;
+  showHeader?: boolean;
+}) {
+  const metadata = UNIT_METADATA[yAxisUnit];
 
-    const visualizationComponent =
-      xAxis === 'category' ? (
-        <CategoricalSeriesWidgetVisualization
-          plottables={series.map((item, index) => {
-            const categoricalSeries: CategoricalSeries = {
-              valueAxis: `seer-chart-series-${index}`,
-              meta: metadata,
-              values: item.data.map(point => ({
-                category: point.x,
+  const visualizationComponent =
+    xAxis === 'category' ? (
+      <CategoricalSeriesWidgetVisualization
+        plottables={series.map((item, index) => {
+          const categoricalSeries: CategoricalSeries = {
+            valueAxis: `seer-chart-series-${index}`,
+            meta: metadata,
+            values: item.data.map(point => ({
+              category: point.x,
+              value: normalizeValue(point.y, yAxisUnit),
+            })),
+          };
+          return new CategoricalBars(categoricalSeries, {
+            alias: getSeriesLabel(item),
+          });
+        })}
+      />
+    ) : (
+      <TimeSeriesWidgetVisualization
+        onZoom={() => {}}
+        pageFilters={{
+          datetime: {
+            start: new Date(
+              Math.min(
+                ...series.flatMap(item =>
+                  item.data.map(point => Date.parse(String(point.x)))
+                )
+              )
+            ).toISOString(),
+            end: new Date(
+              Math.max(
+                ...series.flatMap(item =>
+                  item.data.map(point => Date.parse(String(point.x)))
+                )
+              )
+            ).toISOString(),
+            period: null,
+            utc: true,
+          },
+          environments: [],
+          projects: [],
+        }}
+        plottables={series
+          .map((item, index) => {
+            const values = item.data
+              .map(point => ({
+                timestamp: Date.parse(String(point.x)),
                 value: normalizeValue(point.y, yAxisUnit),
-              })),
+              }))
+              .toSorted((left, right) => left.timestamp - right.timestamp);
+            const timeSeries: TimeSeries = {
+              yAxis: `seer-chart-series-${index}`,
+              meta: {
+                ...metadata,
+                interval: getInterval(values.map(point => point.timestamp)),
+              },
+              values,
             };
-            return new CategoricalBars(categoricalSeries, {
-              alias: getSeriesLabel(item),
-            });
-          })}
-        />
-      ) : (
-        <TimeSeriesWidgetVisualization
-          onZoom={() => {}}
-          pageFilters={{
-            datetime: {
-              start: new Date(
-                Math.min(
-                  ...series.flatMap(item =>
-                    item.data.map(point => Date.parse(String(point.x)))
-                  )
-                )
-              ).toISOString(),
-              end: new Date(
-                Math.max(
-                  ...series.flatMap(item =>
-                    item.data.map(point => Date.parse(String(point.x)))
-                  )
-                )
-              ).toISOString(),
-              period: null,
-              utc: true,
-            },
-            environments: [],
-            projects: [],
-          }}
-          plottables={series
-            .map((item, index) => {
-              const values = item.data
-                .map(point => ({
-                  timestamp: Date.parse(String(point.x)),
-                  value: normalizeValue(point.y, yAxisUnit),
-                }))
-                .toSorted((left, right) => left.timestamp - right.timestamp);
-              const timeSeries: TimeSeries = {
-                yAxis: `seer-chart-series-${index}`,
-                meta: {
-                  ...metadata,
-                  interval: getInterval(values.map(point => point.timestamp)),
-                },
-                values,
-              };
-              return createPlottableFromTimeSeries(
-                DISPLAY_TYPES[visualization],
-                timeSeries,
-                {
-                  alias: getSeriesLabel(item),
-                  name: `seer-chart-series-${index}`,
-                }
-              );
-            })
-            .filter((plottable): plottable is Plottable => plottable !== null)}
-          showReleaseAs="none"
-        />
-      );
+            return createPlottableFromTimeSeries(
+              DISPLAY_TYPES[visualization],
+              timeSeries,
+              {
+                alias: getSeriesLabel(item),
+                name: `seer-chart-series-${index}`,
+              }
+            );
+          })
+          .filter((plottable): plottable is Plottable => plottable !== null)}
+        showReleaseAs="none"
+        // An embed's chart is as wide as the card it sits in, which is narrow
+        // and clips. Left to size itself to a model-written series name, the
+        // legend's "+n more" menu grows past the card and is cut off.
+        truncateLegendMenuLabels
+      />
+    );
 
-    return (
-      <Container
-        as="section"
-        background="primary"
-        border="primary"
-        data-test-id="seer-chart-embed"
-        margin="lg 0"
-        padding="lg xl md"
-        radius="md"
-      >
+  return (
+    <Stack gap="0" width="100%">
+      {showHeader ? (
         <Stack gap="2xs" paddingBottom="sm">
           <Heading as="h3" size="md">
             {title}
           </Heading>
-          {subtitle && (
+          {subtitle ? (
             <Text size="sm" variant="muted">
               {subtitle}
             </Text>
-          )}
+          ) : null}
         </Stack>
-        <Container height="220px">{visualizationComponent}</Container>
+      ) : null}
+      {/*
+        Inline-size containment: without it a wide legend sets this box's
+        min-content width, which no ancestor can shrink below, and the chart
+        overflows its container. Containment computes the width as if the box
+        were empty, so the legend measures against the container instead of
+        dictating it.
+      */}
+      <Container
+        containerType="inline-size"
+        data-test-id="seer-chart-content"
+        height="220px"
+        width="100%"
+      >
+        {visualizationComponent}
       </Container>
-    );
+    </Stack>
+  );
+}
+
+export const Chart = defineSeerEmbed({
+  name: 'chart',
+  render(data, level) {
+    switch (level) {
+      case 'markdown':
+        // A plot has no text form; the heading names the data being cited.
+        return data.subtitle ? `${data.title}: ${data.subtitle}` : data.title;
+      case 'block':
+      case 'inline':
+        return (
+          <Container
+            as="section"
+            background="primary"
+            border="primary"
+            data-test-id="seer-chart-embed"
+            margin="lg 0"
+            padding="lg xl md"
+            radius="md"
+          >
+            <ChartContent data={data} />
+          </Container>
+        );
+    }
   },
 });

@@ -68,6 +68,24 @@ export function isMobilePlatform(platform: string | undefined) {
   return (mobile as string[]).includes(platform);
 }
 
+function startsWithPunctuation(name: string) {
+  return /^\p{P}/u.test(name);
+}
+
+/**
+ * Sort comparator for platform display names, matching the legacy platform
+ * picker's non-popular tabs: alphabetical, except names starting with
+ * punctuation (the .NET family) sort last instead of first.
+ */
+export function comparePlatformNames(a: string, b: string): number {
+  const aStartsWithPunctuation = startsWithPunctuation(a);
+  const bStartsWithPunctuation = startsWithPunctuation(b);
+  if (aStartsWithPunctuation !== bStartsWithPunctuation) {
+    return aStartsWithPunctuation ? 1 : -1;
+  }
+  return a.localeCompare(b);
+}
+
 export function isDisabledGamingPlatform({
   platform,
   enabledConsolePlatforms,

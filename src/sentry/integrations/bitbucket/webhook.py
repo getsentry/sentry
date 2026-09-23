@@ -14,6 +14,7 @@ from django.http import Http404, HttpRequest, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
@@ -28,7 +29,7 @@ from sentry.integrations.utils.metrics import IntegrationWebhookEvent, Integrati
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
@@ -135,7 +136,7 @@ class PushEventWebhook(BitbucketWebhook):
 
                 # TODO(dcramer): we need to deal with bad values here, but since
                 # its optional, lets just throw it out for now
-                if author_email is None or len(author_email) > 75:
+                if author_email is None or len(author_email) > COMMIT_AUTHOR_EMAIL_LENGTH:
                     author = None
                 elif author_email not in authors:
                     authors[author_email] = author = CommitAuthor.objects.get_or_create(
@@ -246,7 +247,10 @@ class BitbucketWebhookEndpoint(Endpoint):
         except Repository.DoesNotExist:
             raise Http404()
 
-        integration = integration_service.get_integration(integration_id=repo.integration_id)
+        integration = integration_service.get_integration(
+            integration_id=repo.integration_id,
+            using_replica=options.get("integration_service.get_integration.using_replica"),
+        )
         if integration and "webhook_secret" in integration.metadata:
             secret = integration.metadata["webhook_secret"]
             try:

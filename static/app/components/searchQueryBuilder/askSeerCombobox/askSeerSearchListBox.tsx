@@ -5,7 +5,6 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 interface SeerSearchListBoxProps extends AriaListBoxOptions<unknown> {
-  hasAskSeerUxRework: boolean;
   state: ListState<unknown>;
   listBoxRef?: React.RefObject<HTMLUListElement | null>;
 }
@@ -16,11 +15,7 @@ export function AskSeerSearchListBox(props: SeerSearchListBoxProps) {
   const {listBoxProps} = useListBox(props, state, listBoxRef);
 
   return (
-    <StyledUl
-      {...listBoxProps}
-      ref={listBoxRef}
-      $hasAskSeerUxRework={props.hasAskSeerUxRework}
-    >
+    <StyledUl {...listBoxProps} ref={listBoxRef}>
       {Array.from(state.collection, item => {
         return (
           <SeerSearchOption
@@ -52,11 +47,9 @@ function SeerSearchOption({item, state, label}: SeerSearchOptionProps) {
   );
 }
 
-const StyledUl = styled('ul')<{$hasAskSeerUxRework: boolean}>`
+const StyledUl = styled('ul')`
   --ask-seer-option-interaction-background: ${p =>
-    p.$hasAskSeerUxRework
-      ? p.theme.tokens.interactive.transparent.neutral.background.hover
-      : p.theme.tokens.background.transparent.accent.muted};
+    p.theme.tokens.interactive.transparent.neutral.background.hover};
 
   width: 100%;
   max-height: 18rem;
@@ -95,7 +88,6 @@ const StyledOption = styled('li')<{isFocused: boolean}>`
     background-color: var(--ask-seer-option-interaction-background);
   }
 
-  &[data-is-none-of-these],
   &[data-is-example] {
     padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
   }

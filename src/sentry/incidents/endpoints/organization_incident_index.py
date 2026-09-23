@@ -15,7 +15,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.incident import IncidentPermission
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -40,7 +39,7 @@ from sentry.utils import metrics
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.models import AlertRuleDetector, DataSourceDetector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
-from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 
 from .utils import parse_team_params
 
@@ -53,7 +52,6 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
     }
     permission_classes = (IncidentPermission,)
 
-    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-incident-index")
     @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def get(self, request: Request, organization: Organization) -> Response:
         """
@@ -63,9 +61,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
 
         :auth: required
         """
-        if not features.has("organizations:incidents", organization, actor=request.user):
-            raise ResourceDoesNotExist
-
+        enforce_alerts_api_deprecation(organization)
         # Parse query parameters (shared between both implementations)
         projects = self.get_projects(request, organization)
         envs = self.get_environments(request, organization)

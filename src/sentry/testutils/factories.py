@@ -32,8 +32,11 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.ai_monitoring.conversation_titles import (
+    clamp_conversation_id_for_storage,
+    conversation_id_hash,
+)
 from sentry.ai_monitoring.models import AIConversationMetadata
-from sentry.ai_monitoring.utils import clamp_conversation_id_for_storage, conversation_id_hash
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
@@ -87,6 +90,9 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionProject,
     InvestigationBlockParameter,
     InvestigationFavoriteUser,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationEvent,
+    InvestigationOrchestrationRun,
     InvestigationParameter,
     InvestigationProject,
 )
@@ -101,11 +107,12 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import CustomInboundFilter, CustomInboundFilterDataType
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -172,6 +179,7 @@ from sentry.preprod.models import (
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
+from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import (
     SeerAgentRun,
@@ -180,6 +188,7 @@ from sentry.seer.models.run import (
     SeerRunPullRequest,
     SeerRunType,
 )
+from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowRunExecution
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -246,7 +255,11 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ALL_PROJECTS_DETECTOR_NAME,
+    ActionInvocation,
+    WorkflowEventData,
+)
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from social_auth.models import UserSocialAuth
 
@@ -443,6 +456,25 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_orchestration_run(investigation, **kwargs):
+        return InvestigationOrchestrationRun.objects.create(investigation=investigation, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_orchestration_event(orchestration_run, **kwargs):
+        return InvestigationOrchestrationEvent.objects.create(
+            orchestration_run=orchestration_run, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_orchestration_command(orchestration_run, **kwargs):
+        return InvestigationOrchestrationCommand.objects.create(
+            orchestration_run=orchestration_run, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_investigation_block(investigation, position=0, kind="text", **kwargs):
         return InvestigationBlock.objects.create(
             investigation=investigation, position=position, kind=kind, **kwargs
@@ -522,6 +554,12 @@ class Factories:
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
         return org
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_organization_avatar(*args, **kwargs) -> OrganizationAvatar:
+        with outbox_runner():
+            return OrganizationAvatar.objects.create(*args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -813,7 +851,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_project_key(project):
+    def create_project_key(project, **kwargs):
+        if kwargs:
+            return project.key_set.create(**kwargs)
         return project.key_set.get_or_create()[0]
 
     @staticmethod
@@ -822,6 +862,7 @@ class Factories:
         project: Project,
         name: str = "Custom inbound filter",
         active: bool = True,
+        data_type: str = CustomInboundFilterDataType.ERROR,
         conditions: list[dict[str, object]] | None = None,
     ) -> CustomInboundFilter:
         if conditions is None:
@@ -831,6 +872,7 @@ class Factories:
             project=project,
             name=name,
             active=active,
+            data_type=data_type,
             conditions=conditions,
         )
 
@@ -2655,6 +2697,17 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_all_projects_detector(organization_id: int, **kwargs) -> Detector:
+        return Detector.objects.create(
+            name=ALL_PROJECTS_DETECTOR_NAME,
+            config={"organization_id": organization_id},
+            type=IssueStreamGroupType.slug,
+            project=None,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_detector_state(
         detector: Detector | None = None,
         **kwargs,
@@ -3192,6 +3245,18 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_autofix_issue_data(group: Group, **kwargs) -> SeerAutofixIssueData:
+        kwargs.setdefault("organization_id", group.project.organization_id)
+        kwargs.setdefault("project_id", group.project_id)
+        kwargs.setdefault("source", "night_shift")
+        kwargs.setdefault(
+            "raw_issue_data",
+            {"event_id": "a" * 32, "event": {}, "issue": {}, "status": "skip"},
+        )
+        return SeerAutofixIssueData.objects.create(group=group, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_seer_agent_write_grant(organization, user, session_id: str = "s1", **kwargs):
         return SeerAgentWriteGrant.objects.create(
             organization=organization,
@@ -3199,6 +3264,16 @@ class Factories:
             agent_session_id=session_id,
             **kwargs,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_run(organization, **kwargs) -> SeerWorkflowRun:
+        return SeerWorkflowRun.objects.create(organization=organization, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_run_execution(run, **kwargs) -> SeerWorkflowRunExecution:
+        return SeerWorkflowRunExecution.objects.create(run=run, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

@@ -3,11 +3,13 @@ import * as Sentry from '@sentry/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
+import {useTimezone} from '@sentry/scraps/datetime';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -22,11 +24,12 @@ import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {
-  Block,
-  RepoPRState,
-  SeerExplorerResponse,
-  SeerExplorerRunId,
+import {
+  normalizeBlocks,
+  type Block,
+  type RepoPRState,
+  type SeerExplorerResponse,
+  type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,
@@ -50,7 +53,9 @@ type SeerExplorerUpdateResponse = {
  * prevent path traversal in the resulting same-origin POST.
  */
 const makeExplorerUpdateUrl = (orgSlug: string, runId: SeerExplorerRunId | null) =>
-  `/organizations/${orgSlug}/seer/explorer-update/${encodeURIComponent(String(runId))}/`;
+  getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
+    path: {organizationIdOrSlug: orgSlug, runId: String(runId)},
+  });
 
 /** Routes where the LLMContext tree provides structured page context. */
 const STRUCTURED_CONTEXT_ROUTES = new Set([
@@ -78,26 +83,19 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/issues/:groupId/attachments/',
   '/issues/:groupId/distributions/',
   '/issues/:groupId/distributions/:tagKey/',
+  '/monitors/',
+  '/monitors/:detectorId/',
+  '/monitors/:detectorId/edit/',
+  '/monitors/alerts/',
+  '/monitors/alerts/:automationId/',
+  '/monitors/alerts/:automationId/edit/',
+  '/monitors/crons/',
+  '/monitors/errors/',
+  '/monitors/metrics/',
+  '/monitors/mobile-builds/',
+  '/monitors/my-monitors/',
+  '/monitors/uptime/',
 ]);
-/** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();
-
-function supportsStructuredContext(
-  referrer: string,
-  organization: {features: string[]} | null | undefined
-): boolean {
-  if (STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
-    return (
-      organization?.features.includes('seer-explorer-structured-context-rollout') === true
-    );
-  }
-  if (NEW_STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
-    return (
-      organization?.features.includes('context-engine-structured-page-context') === true
-    );
-  }
-  return false;
-}
 
 const getOptimisticAssistantTexts = () => [
   t('Looking around...'),
@@ -213,6 +211,7 @@ export const useSeerExplorer = () => {
                 ...prev,
                 session: {
                   ...prev.session,
+                  failure_reason: null,
                   status: 'processing',
                   updated_at: new Date().toISOString(),
                 },
@@ -292,6 +291,7 @@ export const useSeerExplorer = () => {
                   ...prev,
                   session: {
                     ...prev.session,
+                    failure_reason: null,
                     status: 'processing',
                     updated_at: new Date().toISOString(),
                   },
@@ -354,6 +354,7 @@ export const useSeerExplorer = () => {
                   ...prev,
                   session: {
                     ...prev.session,
+                    failure_reason: null,
                     status: 'processing',
                     updated_at: new Date().toISOString(),
                   },
@@ -486,13 +487,13 @@ export const useSeerExplorer = () => {
         Sentry.captureException(e);
       }
 
-      // Send structured LLMContext JSON on supported pages when the feature flag
-      // is enabled; fall back to a coarse ASCII screenshot otherwise.
+      // Send structured LLMContext JSON on allowlisted pages; fall back to a
+      // coarse ASCII screenshot everywhere else.
       let screenshot: string | undefined;
       if (
         snapshot &&
         overrideCtxEngEnable &&
-        supportsStructuredContext(getPageReferrer(), organization)
+        STRUCTURED_CONTEXT_ROUTES.has(getPageReferrer())
       ) {
         try {
           screenshot = JSON.stringify(snapshot);
@@ -631,7 +632,13 @@ export const useSeerExplorer = () => {
     previousPRStatesRef.current = currentPRStates;
   }, [apiData?.session?.repo_pr_states]);
 
-  const rawSessionData = apiData?.session ?? null;
+  const rawSessionData = useMemo(() => {
+    const session = apiData?.session ?? null;
+    if (!session) {
+      return null;
+    }
+    return {...session, blocks: normalizeBlocks(session.blocks ?? [])};
+  }, [apiData?.session]);
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {

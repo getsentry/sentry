@@ -85,17 +85,18 @@ def _merge_rust_enhancements(
     This will merge the parsed enhancements together with the `bases`.
     It pretty much concatenates all the rules in `bases` (in order) together
     with all the rules in the incoming `rust_enhancements`.
+
+    Note: Assumes all of the passed bases are valid.
     """
     merged_rust_enhancements = RustEnhancements.empty()
     for base_id in bases:
-        base = ENHANCEMENT_BASES.get(base_id)
-        if base:
-            base_rust_enhancements = (
-                base.classifier_rust_enhancements
-                if type == "classifier"
-                else base.contributes_rust_enhancements
-            )
-            merged_rust_enhancements.extend_from(base_rust_enhancements)
+        base = ENHANCEMENT_BASES[base_id]
+        base_rust_enhancements = (
+            base.classifier_rust_enhancements
+            if type == "classifier"
+            else base.contributes_rust_enhancements
+        )
+        merged_rust_enhancements.extend_from(base_rust_enhancements)
     merged_rust_enhancements.extend_from(rust_enhancements)
     return merged_rust_enhancements
 
@@ -403,7 +404,8 @@ class EnhancementsConfig:
         self.id = id
         self.rules = rules
         self.version = version or DEFAULT_ENHANCEMENTS_VERSION
-        self.bases = bases or []
+        # To be safe, filter out invalid base ids (shouldn't ever happen in practice, though)
+        self.bases = [base_id for base_id in (bases or []) if base_id in ENHANCEMENT_BASES]
 
         classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 

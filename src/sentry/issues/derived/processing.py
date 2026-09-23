@@ -13,6 +13,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry.db.postgres.transactions import enforce_constraints
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.framework import Pipeline, State
 from sentry.issues.derived.store import GroupDerivedDataStore
@@ -28,6 +29,7 @@ PIPELINE: Pipeline[GroupActionLogEntry] = Pipeline(AGGREGATORS)
 
 DEFAULT_BATCH_SIZE = 1000
 INLINE_BATCH_SIZE = 100
+_VERY_STALE_ENTRY_AGE_THRESHOLD_SECONDS = timedelta(hours=2).total_seconds()
 
 
 class GenerationId(NamedTuple):
@@ -51,6 +53,15 @@ class DerivedMetrics:
     mode: ProcessingStrategy
     incremental: bool
 
+    def as_not_incremental(self) -> DerivedMetrics:
+        """Disable incremental-only metrics.
+
+        An incremental path can discover in context that the row requires initial or replay processing.
+        """
+        if not self.incremental:
+            return self
+        return DerivedMetrics(mode=self.mode, incremental=False)
+
     def report_batch_processed(
         self,
         entries: Sequence[GroupActionLogEntry],
@@ -61,6 +72,15 @@ class DerivedMetrics:
             tags = {"mode": self.mode.value}
             for entry in entries:
                 age_seconds = (now - entry.date_added).total_seconds()
+                if age_seconds > _VERY_STALE_ENTRY_AGE_THRESHOLD_SECONDS:
+                    logger.info(
+                        "issues.derived.incremental_processing_very_stale",
+                        extra={
+                            "group_id": entry.group_id,
+                            "log_entry_id": entry.id,
+                            "age_seconds": age_seconds,
+                        },
+                    )
                 metrics.distribution(
                     "issues.derived.incremental_processing_latency",
                     age_seconds,
@@ -75,19 +95,23 @@ class DerivedMetrics:
             )
 
 
-def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
+def _ensure_derived(group_id: int, pipeline_hash: str) -> tuple[GroupDerivedData, bool]:
     """Get or create the GroupDerivedData row for a group.
 
+    Returns the row and whether processing from it is expected to be incremental
+    based on row existence and pipeline hash. This is best-effort: a concurrently
+    initialized row may still have historical entries left to process.
     Raises Group.DoesNotExist if the group has been deleted.
     """
     try:
-        return GroupDerivedData.objects.get(group_id=group_id)
+        derived = GroupDerivedData.objects.get(group_id=group_id)
+        return derived, derived.pipeline_hash == pipeline_hash
     except GroupDerivedData.DoesNotExist:
         pass
 
     try:
         # Contain a possible database error so an enclosing transaction remains usable.
-        with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
+        with enforce_constraints(transaction.atomic(using=router.db_for_write(GroupDerivedData))):
             derived, _created = GroupDerivedData.objects.get_or_create(
                 group_id=group_id,
                 defaults={
@@ -103,7 +127,7 @@ def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
         # therefore not the group_id uniqueness race, but another constraint. With
         # this model's current constraints, that is a missing Group foreign key.
         raise Group.DoesNotExist(f"Group {group_id} does not exist")
-    return derived
+    return derived, False
 
 
 def _entries_after_cursor(
@@ -174,17 +198,19 @@ def _process_batch(
         GroupDerivedDataStore.apply_to_instance(derived, state_update)
         return len(entries) == batch_size
 
+    now = timezone.now()
     updated = GroupDerivedData.objects.filter(
         Q(id=derived.id, generated_at=derived.generated_at)
         & (Q(cursor_date__lt=last_date) | Q(cursor_date=last_date, cursor_id__lte=last_id))
         & (Q(pipeline_hash=derived.pipeline_hash) | Q(pipeline_hash__isnull=True))
-    ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
+    ).update(cursor_date=last_date, cursor_id=last_id, date_updated=now, **state_update)
 
     if updated:
         if derived_metrics is not None:
             derived_metrics.report_batch_processed(entries, result)
         derived.cursor_date = last_date
         derived.cursor_id = last_id
+        derived.date_updated = now
         GroupDerivedDataStore.apply_to_instance(derived, state_update)
         logger.info(
             "issues.derived.processed",
@@ -270,7 +296,9 @@ def process_group_log(
     """
     p = pipeline or PIPELINE
 
-    derived = _ensure_derived(group_id, p.pipeline_hash)
+    derived, expected_incremental = _ensure_derived(group_id, p.pipeline_hash)
+    if derived_metrics is not None and not expected_incremental:
+        derived_metrics = derived_metrics.as_not_incremental()
 
     if timeout is not None:
         drained = _drain_log(
@@ -316,7 +344,7 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
 
     with metrics.timer("issues.derived.inline_processing"):
         try:
-            derived = _ensure_derived(group_id, pipeline.pipeline_hash)
+            derived, expected_incremental = _ensure_derived(group_id, pipeline.pipeline_hash)
         except ObjectDoesNotExist:
             return
 
@@ -324,13 +352,16 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
             pipeline,
             derived,
             INLINE_BATCH_SIZE,
-            derived_metrics=DerivedMetrics(mode=strategy, incremental=True),
+            derived_metrics=DerivedMetrics(
+                mode=strategy,
+                incremental=expected_incremental,
+            ),
         )
     if has_more:
         # Derived data will be stale for any code running between now and
         # when the task completes.
         metrics.incr("issues.derived.inline_fallback_to_async")
-        process_group_log_task.delay(group_id, incremental=True)
+        process_group_log_task.delay(group_id, incremental=expected_incremental)
 
 
 # ---------------------------------------------------------------------------
@@ -384,7 +415,9 @@ def invalidate_group_derived_data(
         # Bumping ``generated_at`` reuses ``promote_to_live``'s SUPERSEDED
         # CAS path — pre-invalidation snapshots can't win over the null-hash
         # row.
-        affected = qs.update(pipeline_hash=None, generated_at=timezone.now())
+        affected = qs.update(
+            pipeline_hash=None, generated_at=timezone.now(), date_updated=timezone.now()
+        )
     else:
         affected, _ = qs.delete()
 

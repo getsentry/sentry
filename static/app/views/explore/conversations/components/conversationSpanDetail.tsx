@@ -27,22 +27,22 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 import {
   getDurationComparison,
   MIN_PCT_DURATION_DIFFERENCE,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/durationComparison';
-import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
-import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
-import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/durationComparison';
+import {getHighlightedSpanAttributes} from 'sentry/views/performance/traceDetails/traceDrawer/details/highlightedAttributes';
+import {IssueList} from 'sentry/views/performance/traceDetails/traceDrawer/details/issues/issues';
+import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {
   getAIInputMessages,
   getAIToolInput,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {
   getAIOutputData,
   getAIToolOutput,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import {AttributesContent} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
-import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
+import {AttributesContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
+import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
+import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
 
 const AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH = 3;
 const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
@@ -99,6 +99,7 @@ export function ConversationSpanDetail({
 
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({top: 0});
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [scrollResetKey]);
 
   // Full attributes (tool inputs/results, the complete attribute list) aren't
@@ -133,23 +134,29 @@ export function ConversationSpanDetail({
 
   return (
     <SpanDetailCard ref={scrollContainerRef} embedded={embedded}>
-      <Flex align="center" gap="lg" flexShrink={0}>
-        <Flex flex="1" minWidth="0" align="center" gap="md">
-          <AiSpanStatusIcon node={node} />
-          <InfoText title={title} mode="overflowOnly" size="lg" bold>
-            {title}
-          </InfoText>
+      <Container flexShrink={0}>
+        <Flex align="center" gap="lg">
+          <Flex flex="1" minWidth="0" align="center" gap="md">
+            <AiSpanStatusIcon node={node} />
+            <InfoText title={title} mode="overflowOnly" size="lg" bold>
+              {title}
+            </InfoText>
+          </Flex>
+          {onClose ? (
+            <Button
+              size="sm"
+              variant="transparent"
+              icon={<IconClose />}
+              aria-label={t('Close')}
+              onClick={onClose}
+            />
+          ) : null}
         </Flex>
-        {onClose ? (
-          <Button
-            size="sm"
-            variant="transparent"
-            icon={<IconClose />}
-            aria-label={t('Close')}
-            onClick={onClose}
-          />
-        ) : null}
-      </Flex>
+        <TraceDrawerComponents.SubtitleWithCopyButton
+          subTitle={`ID: ${node.id}`}
+          clipboardText={node.id}
+        />
+      </Container>
 
       <Stack gap="lg" flexShrink={0}>
         <Flex align="center" gap="sm" wrap="wrap">
@@ -186,18 +193,12 @@ export function ConversationSpanDetail({
       ) : isError ? (
         <EmptyTab message={t('Failed to load span details')} />
       ) : (
-        <TabStateProvider<DetailTab>
-          value={activeTab}
-          onChange={onTabChange}
-          disableOverflow
-        >
-          <Flex flexShrink={0}>
-            <TabList>
-              <TabList.Item key="input">{t('Input')}</TabList.Item>
-              <TabList.Item key="output">{t('Output')}</TabList.Item>
-              <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
-            </TabList>
-          </Flex>
+        <TabStateProvider<DetailTab> value={activeTab} onChange={onTabChange}>
+          <TabList>
+            <TabList.Item key="input">{t('Input')}</TabList.Item>
+            <TabList.Item key="output">{t('Output')}</TabList.Item>
+            <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
+          </TabList>
 
           <Container
             flex="0 0 auto"
@@ -489,10 +490,13 @@ function EmptyTab({message}: {message: string}) {
 function SpanDetailSkeleton({embedded}: {embedded?: boolean}) {
   return (
     <SpanDetailCard embedded={embedded}>
-      <Flex align="center" gap="lg" flexShrink={0}>
-        <Placeholder height="16px" width="16px" />
-        <Placeholder height="16px" width="180px" />
-      </Flex>
+      <Container flexShrink={0}>
+        <Flex align="center" gap="lg">
+          <Placeholder height="16px" width="16px" />
+          <Placeholder height="16px" width="180px" />
+        </Flex>
+        <Placeholder height="14px" width="160px" />
+      </Container>
       <Stack gap="md" flexShrink={0}>
         <Placeholder height="16px" width="60px" />
         <SpanMetadataSkeleton />

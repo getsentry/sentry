@@ -1,10 +1,12 @@
 import re
+from copy import copy
 
 from django.db.models import prefetch_related_objects
 from sentry_sdk import capture_exception
 
 from sentry import audit_log
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.audit_log.metadata import AGENT_DELEGATION_DATA_KEY, SEER_AGENT_DELEGATION
 from sentry.models.auditlogentry import AuditLogEntry
 
 
@@ -64,12 +66,22 @@ class AuditLogEntrySerializer(Serializer):
 
     def serialize(self, obj, attrs, user, **kwargs):
         audit_log_event = audit_log.get(obj.event)
+        agent_delegation = obj.data.get(AGENT_DELEGATION_DATA_KEY)
+        render_obj = obj
+        if agent_delegation is not None:
+            render_obj = copy(obj)
+            render_obj.data = {
+                key: value for key, value in obj.data.items() if key != AGENT_DELEGATION_DATA_KEY
+            }
 
         try:
-            note = audit_log_event.render(obj)
+            note = audit_log_event.render(render_obj)
         except KeyError as exc:
             note = ""
             capture_exception(exc)
+
+        if agent_delegation == SEER_AGENT_DELEGATION:
+            note = f"{note} (via Seer agent)" if note else "Performed via Seer agent"
 
         return {
             "id": str(obj.id),
@@ -80,5 +92,6 @@ class AuditLogEntrySerializer(Serializer):
             "targetObject": obj.target_object,
             "targetUser": attrs["targetUser"],
             "data": fix(obj.data),
+            "agentDelegation": agent_delegation,
             "dateCreated": obj.datetime,
         }

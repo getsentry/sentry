@@ -13,6 +13,7 @@ import {
 import {API_ACCESS_SCOPE_DETAILS, type ApiAccessScope} from 'sentry/constants/scopes';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
@@ -62,10 +63,27 @@ export function AgentWriteApprovalProvider({
   );
 }
 
+const APPROVAL_STATUS_LABELS: Record<
+  EmbedOutput<'agentWriteApproval'>['status'],
+  string
+> = {
+  pending: t('pending'),
+  approved: t('approved'),
+  rejected: t('rejected'),
+};
+
 export const AgentWriteApprovalEmbed = defineSeerEmbed({
   name: 'agentWriteApproval',
-  render(props) {
-    return <AgentWriteApprovalContent {...props} />;
+  render(props, level) {
+    switch (level) {
+      case 'markdown':
+        // An approval prompt is an action, not content: record only that it
+        // was asked and how it was answered.
+        return t('Seer permission request (%s)', APPROVAL_STATUS_LABELS[props.status]);
+      case 'block':
+      case 'inline':
+        return <AgentWriteApprovalContent {...props} />;
+    }
   },
 });
 
@@ -101,7 +119,9 @@ function AgentWriteApprovalContent({
       const response = requestApproval
         ? await requestApproval(pendingApproval.sessionId, pendingApproval.requiredScopes)
         : await fetchMutation<AgentApprovalResponse>({
-            url: `/organizations/${organization.slug}/agent/approve/`,
+            url: getApiUrl('/organizations/$organizationIdOrSlug/agent/approve/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
             method: 'POST',
             data: {
               sessionId: pendingApproval.sessionId,

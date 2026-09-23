@@ -5,7 +5,8 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {ListState} from '@react-stately/list';
 import type {Node, Selection} from '@react-types/shared';
 
-import {t} from 'sentry/locale';
+import {useTranslation} from '@sentry/scraps/translationContext';
+
 import {defined} from 'sentry/utils/defined';
 import {fzf} from 'sentry/utils/search/fzf';
 
@@ -324,6 +325,7 @@ interface SectionToggleProps {
  * also: `HiddenSectionToggle`.
  */
 export function SectionToggle({item, listState}: SectionToggleProps) {
+  const {t} = useTranslation();
   const allOptionsSelected = useMemo(
     () => [...item.childNodes].every(n => listState.selectionManager.isSelected(n.key)),
     [item, listState.selectionManager]
@@ -376,6 +378,7 @@ export function HiddenSectionToggle({
   listId = '',
   ...props
 }: SectionToggleProps) {
+  const {t} = useTranslation();
   // Highlight this toggle's visible counterpart (rendered inside the list box) on focus
   const {focusProps} = useFocus({
     onFocus: () => {

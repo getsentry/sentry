@@ -42,7 +42,6 @@ export const AlwaysPresentTraceMetricFields: TraceMetricFieldKey[] = [
  */
 export const HiddenTraceMetricDetailFields: TraceMetricFieldKey[] = [
   ...AlwaysHiddenTraceMetricFields,
-  TraceMetricKnownFieldKey.SPAN_ID,
 
   // deprecated/otel fields that clutter the UI
   TraceMetricKnownFieldKey.TIMESTAMP_NANOS,
@@ -202,6 +201,14 @@ export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
       value: 'avg',
     },
     {
+      label: 'sum',
+      value: 'sum',
+    },
+    {
+      label: 'count',
+      value: 'count',
+    },
+    {
       label: 'per_second',
       value: 'per_second',
     },
@@ -271,6 +278,20 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
           label: 'avg',
           value: 'avg',
           trailingItems: <Text size="xs">{t('Default')}</Text>,
+        },
+      ],
+    },
+    {
+      key: 'math',
+      label: t('Math'),
+      options: [
+        {
+          label: 'sum',
+          value: 'sum',
+        },
+        {
+          label: 'count',
+          value: 'count',
         },
       ],
     },

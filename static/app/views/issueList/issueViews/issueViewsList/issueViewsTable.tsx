@@ -1,7 +1,5 @@
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
-
 import {useModal} from '@sentry/scraps/modal';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
@@ -48,39 +46,25 @@ export function IssueViewsTable({
   const hasIssueViews = useHasIssueViews();
 
   return (
-    <SavedEntityTableWithColumns
-      hideCreatedBy={hideCreatedBy}
+    <SavedEntityTable
+      columns={issueViewColumns(hideCreatedBy)}
       data-test-id={`table-${type}`}
       header={
         <SavedEntityTable.Header>
-          <SavedEntityTable.HeaderCell data-column="star" />
-          <SavedEntityTable.HeaderCell data-column="name" divider={false}>
+          <SavedEntityTable.HeaderCell />
+          <SavedEntityTable.HeaderCell divider={false}>
             {t('Name')}
           </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell data-column="project">
-            {t('Project')}
-          </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell data-column="envs">
-            {t('Environments')}
-          </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell data-column="query">
-            {t('Query')}
-          </SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell>{t('Project')}</SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell>{t('Environments')}</SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell>{t('Query')}</SavedEntityTable.HeaderCell>
           {!hideCreatedBy && (
-            <SavedEntityTable.HeaderCell data-column="creator">
-              {t('Creator')}
-            </SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell>{t('Creator')}</SavedEntityTable.HeaderCell>
           )}
-          <SavedEntityTable.HeaderCell data-column="last-visited">
-            {t('Last Viewed')}
-          </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell data-column="created">
-            {t('Created')}
-          </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell data-column="stars">
-            {t('Stars')}
-          </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell data-column="actions" />
+          <SavedEntityTable.HeaderCell>{t('Last Viewed')}</SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell>{t('Created')}</SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell>{t('Stars')}</SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell />
         </SavedEntityTable.Header>
       }
       isLoading={isPending}
@@ -97,7 +81,7 @@ export function IssueViewsTable({
             isFirst={index === 0}
             data-test-id={`table-${type}-row-${index}`}
           >
-            <SavedEntityTable.Cell data-column="star" hasButton>
+            <SavedEntityTable.Cell hasButton>
               <SavedEntityTable.CellStar
                 isStarred={view.starred}
                 onClick={() => {
@@ -112,39 +96,39 @@ export function IssueViewsTable({
                 }}
               />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="name">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellName
                 to={`/organizations/${organization.slug}/issues/views/${view.id}/`}
               >
                 {view.name}
               </SavedEntityTable.CellName>
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="project">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellProjects projects={view.projects} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="envs">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellEnvironments environments={view.environments} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="query">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellQuery query={view.query} />
             </SavedEntityTable.Cell>
             {!hideCreatedBy && (
-              <SavedEntityTable.Cell data-column="creator">
+              <SavedEntityTable.Cell>
                 <SavedEntityTable.CellUser user={view.createdBy} />
               </SavedEntityTable.Cell>
             )}
-            <SavedEntityTable.Cell data-column="last-visited">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellTimeSince date={view.lastVisited} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="created">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellTimeSince date={view.dateCreated} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="stars">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellTextContent>
                 {view.stars.toLocaleString()}
               </SavedEntityTable.CellTextContent>
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="actions" hasButton>
+            <SavedEntityTable.Cell hasButton>
               <SavedEntityTable.CellActions
                 items={[
                   {
@@ -205,55 +189,29 @@ export function IssueViewsTable({
           </SavedEntityTable.Row>
         );
       })}
-    </SavedEntityTableWithColumns>
+    </SavedEntityTable>
   );
 }
 
-const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: boolean}>`
-  grid-template-areas: 'star name project envs query creator last-visited created stars actions';
-  grid-template-columns:
-    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
-    auto auto auto minmax(80px, max-content) 48px;
-
-  ${p =>
-    p.hideCreatedBy &&
-    css`
-      grid-template-areas: 'star name project envs query last-visited created stars actions';
-      grid-template-columns:
-        40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
-        auto auto minmax(80px, max-content) 48px;
-    `}
-
-  @container (max-width: ${p => p.theme.container['3xl']}) {
-    grid-template-areas: 'star name project query creator actions';
-    grid-template-columns: 40px 20% minmax(auto, 120px) minmax(0, 1fr) auto 48px;
-
-    ${p =>
-      p.hideCreatedBy &&
-      css`
-        grid-template-areas: 'star name project query actions';
-        grid-template-columns: 40px 20% minmax(auto, 120px) minmax(0, 1fr) 48px;
-      `}
-
-    div[data-column='envs'],
-    div[data-column='last-visited'],
-    div[data-column='created'],
-    div[data-column='stars'] {
-      display: none;
-    }
-  }
-
-  @container (max-width: ${p => p.theme.container.xl}) {
-    grid-template-areas: 'star name query actions';
-    grid-template-columns: 40px 30% minmax(0, 1fr) 48px;
-
-    div[data-column='envs'],
-    div[data-column='last-visited'],
-    div[data-column='created'],
-    div[data-column='stars'],
-    div[data-column='creator'],
-    div[data-column='project'] {
-      display: none;
-    }
-  }
-`;
+function issueViewColumns(hideCreatedBy: boolean): TableColumnConfig[] {
+  return [
+    {key: 'star', width: '40px'},
+    {key: 'name', width: {zero: '30%', xl: '20%'}},
+    {key: 'project', visible: {xl: true}, width: 'minmax(auto, 120px)'},
+    {key: 'envs', visible: {'3xl': true}, width: 'minmax(auto, 120px)'},
+    {key: 'query', width: 'minmax(0, 1fr)'},
+    ...(hideCreatedBy
+      ? []
+      : [
+          {
+            key: 'creator',
+            visible: {xl: true},
+            width: 'auto',
+          } satisfies TableColumnConfig,
+        ]),
+    {key: 'last-visited', visible: {'3xl': true}, width: 'auto'},
+    {key: 'created', visible: {'3xl': true}, width: 'auto'},
+    {key: 'stars', visible: {'3xl': true}, width: 'minmax(80px, max-content)'},
+    {key: 'actions', width: '48px'},
+  ];
+}

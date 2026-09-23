@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, type StackProps} from '@sentry/scraps/layout';
@@ -124,8 +124,13 @@ export function ScmIntegrationConnect({
     organization,
   ]);
 
+  // An install swaps the provider pills for the repo selector, which unmounts
+  // the pill that had focus. The selector takes focus on mount instead.
+  const [focusRepoSelectorOnMount, setFocusRepoSelectorOnMount] = useState(false);
+
   const handleInstall = useCallback(
     (data: Integration) => {
+      setFocusRepoSelectorOnMount(true);
       onIntegrationChange(data);
       onRepositoryChange(undefined);
       refetchIntegrations();
@@ -165,7 +170,12 @@ export function ScmIntegrationConnect({
 
   if (isPending) {
     return (
-      <Flex justify="center" align="center">
+      <Flex
+        justify="center"
+        align="center"
+        role="status"
+        aria-label={t('Loading integrations')}
+      >
         <LoadingIndicator mini />
       </Flex>
     );
@@ -173,7 +183,7 @@ export function ScmIntegrationConnect({
 
   if (isError) {
     return (
-      <Stack gap="lg" align="center">
+      <Stack gap="lg" align="center" role="alert">
         <Text variant="muted">{t('Failed to load integrations.')}</Text>
         <Button onClick={() => refetch()}>{t('Retry')}</Button>
       </Stack>
@@ -198,10 +208,10 @@ export function ScmIntegrationConnect({
         </Text>
       )}
       <Flex
-        direction={{'screen:sm': 'column-reverse', 'screen:md': 'row'}}
+        direction={{zero: 'column-reverse', '3xl': 'row'}}
         width="100%"
         gap="md"
-        align={{'screen:sm': 'start', 'screen:md': 'center'}}
+        align={{zero: 'start', '3xl': 'center'}}
       >
         <ScmRepoSelector
           analyticsFlow={analyticsFlow}
@@ -209,6 +219,7 @@ export function ScmIntegrationConnect({
           selectedRepository={selectedRepository}
           onRepositoryChange={onRepositoryChange}
           onClearDerivedState={onClearDerivedState}
+          autoFocus={focusRepoSelectorOnMount}
         />
         {allowIntegrationSwitching ? (
           <ScmIntegrationSelect

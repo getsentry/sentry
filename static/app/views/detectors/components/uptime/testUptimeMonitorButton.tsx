@@ -4,6 +4,7 @@ import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -39,12 +40,6 @@ interface TestUptimeMonitorButtonProps {
    */
   label?: string;
   /**
-   * Called when the preview check returns a validation error (e.g. assertion
-   * compilation errors). Receives the parsed response JSON so callers can
-   * surface the errors on form fields.
-   */
-  onValidationError?: (responseJson: any) => void;
-  /**
    * Button size
    */
   size?: ButtonProps['size'];
@@ -53,7 +48,6 @@ interface TestUptimeMonitorButtonProps {
 export function TestUptimeMonitorButton({
   getFormData,
   label,
-  onValidationError,
   size,
 }: TestUptimeMonitorButtonProps) {
   const organization = useOrganization();
@@ -66,7 +60,9 @@ export function TestUptimeMonitorButton({
   >({
     mutationFn: (payload: PreviewCheckPayload) =>
       fetchMutation<PreviewCheckResult>({
-        url: `/organizations/${organization.slug}/uptime-preview-check/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/uptime-preview-check/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data: {...payload},
       }),
@@ -85,14 +81,10 @@ export function TestUptimeMonitorButton({
       const extractedError = extractPreviewCheckError(error.responseJSON);
       previewCheckResult?.setPreviewCheckError(extractedError);
 
-      if (onValidationError && error.status === 400 && error.responseJSON) {
-        onValidationError(error.responseJSON);
-      } else {
-        const trailingMessage = mapPreviewCheckErrorToMessage(extractedError);
-        addErrorMessage(
-          t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : '')
-        );
-      }
+      const trailingMessage = mapPreviewCheckErrorToMessage(extractedError);
+      addErrorMessage(
+        t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : '')
+      );
     },
   });
 

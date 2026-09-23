@@ -1,15 +1,15 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {PanelTable} from 'sentry/components/panels/panelTable';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
@@ -27,6 +27,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
+
+const MAPPING_COLUMNS: TableColumnConfig[] = [
+  {key: 'externalName', width: '1fr'},
+  {key: 'arrow', width: 'max-content'},
+  {key: 'sentryName', width: '1fr'},
+  {key: 'actions', width: 'max-content'},
+];
 
 type CodeOwnersAssociationMappings = Record<
   string,
@@ -52,6 +59,71 @@ type Props = Pick<
 type LocationQuery = {
   cursor?: string;
 };
+
+function MappingName({
+  defaultOptions,
+  getBaseFormEndpoint,
+  integration,
+  mapping,
+  onSubmitSuccess,
+  type,
+}: Pick<Props, 'defaultOptions' | 'getBaseFormEndpoint'> & {
+  integration: Integration;
+  mapping: ExternalActorMappingOrSuggestion;
+  onSubmitSuccess: (newMapping: ExternalActorMapping) => Promise<void>;
+  type: Props['type'];
+}) {
+  return (
+    <IntegrationExternalMappingForm
+      type={type}
+      integration={integration}
+      getBaseFormEndpoint={getBaseFormEndpoint}
+      mapping={mapping}
+      onSubmitSuccess={onSubmitSuccess}
+      isInline
+      defaultOptions={defaultOptions}
+    />
+  );
+}
+
+function MappingActions({
+  canDelete,
+  mapping,
+  onDelete,
+  type,
+}: {
+  canDelete: boolean;
+  mapping: ExternalActorMappingOrSuggestion;
+  onDelete: (mapping: ExternalActorMapping) => void;
+  type: Props['type'];
+}) {
+  return isExternalActorMapping(mapping) ? (
+    <Confirm
+      disabled={!canDelete}
+      onConfirm={() => onDelete(mapping)}
+      message={t('Are you sure you want to remove this external %s mapping?', type)}
+    >
+      <Button
+        variant="transparent"
+        size="sm"
+        icon={<IconDelete size="sm" />}
+        aria-label={t('Remove user mapping')}
+        tooltipProps={{
+          title: canDelete
+            ? t('Remove user mapping')
+            : t(
+                'You must be an organization owner, manager or admin to delete an external user mapping.'
+              ),
+        }}
+      />
+    </Confirm>
+  ) : (
+    <InfoTip
+      title={t('This %s mapping suggestion was generated from a CODEOWNERS file', type)}
+      size="sm"
+    />
+  );
+}
 
 export function IntegrationExternalMappings(props: Props) {
   const {
@@ -125,124 +197,98 @@ export function IntegrationExternalMappings(props: Props) {
     return [...inlineMappings, ...mappings];
   };
 
-  const renderMappingName = (mapping: ExternalActorMappingOrSuggestion) => {
-    return (
-      <IntegrationExternalMappingForm
-        type={type}
-        integration={integration}
-        getBaseFormEndpoint={getBaseFormEndpoint}
-        mapping={mapping}
-        onSubmitSuccess={async (newMapping: ExternalActorMapping) => {
-          setNewlyAssociatedMappings([
-            ...newlyAssociatedMappings.filter(
-              map => map.externalName !== newMapping.externalName
-            ),
-            newMapping,
-          ]);
-          await onSubmitSuccess?.();
-        }}
-        isInline
-        defaultOptions={defaultOptions}
-      />
-    );
+  const handleMappingSubmitSuccess = async (newMapping: ExternalActorMapping) => {
+    setNewlyAssociatedMappings([
+      ...newlyAssociatedMappings.filter(
+        map => map.externalName !== newMapping.externalName
+      ),
+      newMapping,
+    ]);
+    await onSubmitSuccess?.();
   };
 
-  const renderMappingActions = (mapping: ExternalActorMappingOrSuggestion) => {
-    const canDelete = organization.access.includes('org:integrations');
-    return isExternalActorMapping(mapping) ? (
-      <Confirm
-        disabled={!canDelete}
-        onConfirm={() => onDelete(mapping)}
-        message={t('Are you sure you want to remove this external %s mapping?', type)}
-      >
-        <Button
-          variant="transparent"
-          size="sm"
-          icon={<IconDelete size="sm" />}
-          aria-label={t('Remove user mapping')}
-          tooltipProps={{
-            title: canDelete
-              ? t('Remove user mapping')
-              : t(
-                  'You must be an organization owner, manager or admin to delete an external user mapping.'
-                ),
-          }}
-        />
-      </Confirm>
-    ) : (
-      <QuestionTooltip
-        title={t('This %s mapping suggestion was generated from a CODEOWNERS file', type)}
-        size="sm"
-      />
-    );
-  };
+  const canDelete = organization.access.includes('org:integrations');
 
   return (
     <Fragment>
       <MappingTable
+        columns={MAPPING_COLUMNS}
         data-test-id="mapping-table"
-        isEmpty={!allMappings().length}
-        emptyMessage={tct('Set up External [type] Mappings.', {type: capitalize(type)})}
-        headers={[
-          tct('External [type]', {type}),
-          <IconArrow key="arrow" direction="right" size="sm" />,
-          tct('Sentry [type]', {type}),
-          <AddButton
-            key="delete-button"
-            data-test-id="add-mapping-button"
-            onClick={() => onCreate()}
-            size="xs"
-            icon={<IconAdd />}
-          >
-            {tct('Add [type] Mapping', {type})}
-          </AddButton>,
-        ]}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>
+              {tct('External [type]', {type})}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <IconArrow direction="right" size="sm" />
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              {tct('Sentry [type]', {type})}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <Button
+                data-test-id="add-mapping-button"
+                onClick={() => onCreate()}
+                size="xs"
+                icon={<IconAdd />}
+              >
+                {tct('Add [type] Mapping', {type})}
+              </Button>
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
       >
-        {allMappings().map((mapping, index) => (
-          <Fragment key={index}>
-            <ExternalNameColumn>
-              <StyledPluginIcon pluginId={integration.provider.key} size={19} />
-              <span>{mapping.externalName}</span>
-            </ExternalNameColumn>
-            <div>
-              <IconArrow direction="right" size="sm" variant="muted" />
-            </div>
-            <ExternalForm>{renderMappingName(mapping)}</ExternalForm>
-            <div>{renderMappingActions(mapping)}</div>
-          </Fragment>
-        ))}
+        {allMappings().length ? (
+          allMappings().map((mapping, index) => (
+            <SimpleTable.Row key={index}>
+              <ExternalNameColumn>
+                <StyledPluginIcon pluginId={integration.provider.key} size={19} />
+                <span>{mapping.externalName}</span>
+              </ExternalNameColumn>
+              <SimpleTable.RowCell>
+                <IconArrow direction="right" size="sm" variant="muted" />
+              </SimpleTable.RowCell>
+              <ExternalForm>
+                <MappingName
+                  defaultOptions={defaultOptions}
+                  getBaseFormEndpoint={getBaseFormEndpoint}
+                  integration={integration}
+                  mapping={mapping}
+                  onSubmitSuccess={handleMappingSubmitSuccess}
+                  type={type}
+                />
+              </ExternalForm>
+              <SimpleTable.RowCell justify="center">
+                <MappingActions
+                  canDelete={canDelete}
+                  mapping={mapping}
+                  onDelete={onDelete}
+                  type={type}
+                />
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
+          ))
+        ) : (
+          <SimpleTable.Empty>
+            {tct('Set up External [type] Mappings.', {type: capitalize(type)})}
+          </SimpleTable.Empty>
+        )}
       </MappingTable>
       <Pagination pageLinks={pageLinks} />
     </Fragment>
   );
 }
 
-const MappingTable = styled(PanelTable)`
+const MappingTable = styled(SimpleTable)`
   overflow: visible;
-  grid-template-columns: 1fr max-content 1fr 66px;
 
-  ${p =>
-    p.isEmpty
-      ? css`
-          > :not(:nth-child(n + 5)) {
-            padding: ${p.theme.space.md} ${p.theme.space.xl};
-          }
-        `
-      : css`
-          > :nth-child(n + 5) {
-            display: flex;
-            align-items: center;
-            padding: ${p.theme.space.lg} ${p.theme.space.xl};
-          }
+  [role='columnheader'] {
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  }
 
-          > * {
-            padding: ${p.theme.space.md} ${p.theme.space.xl};
-          }
-        `}
-
-  > :nth-child(4n) {
+  [role='columnheader']:nth-child(4),
+  [role='cell']:nth-child(4) {
     padding-right: ${p => p.theme.space.md};
-    justify-content: end;
   }
 `;
 
@@ -251,14 +297,10 @@ const StyledPluginIcon = styled(PluginIcon)`
   margin-right: ${p => p.theme.space.xl};
 `;
 
-const ExternalNameColumn = styled('div')`
+const ExternalNameColumn = styled(SimpleTable.RowCell)`
   font-family: ${p => p.theme.font.family.mono};
 `;
 
-const AddButton = styled(Button)`
-  align-self: end;
-`;
-
-const ExternalForm = styled('div')`
+const ExternalForm = styled(SimpleTable.RowCell)`
   width: 100%;
 `;

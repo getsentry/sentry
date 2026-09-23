@@ -1,9 +1,10 @@
-import {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
+import {useEffect} from 'react';
 
 import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Image} from '@sentry/scraps/image';
 
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {Panel} from 'sentry/components/panels/panel';
@@ -22,79 +23,37 @@ export function FeedbackSetupPanel() {
   }, [organization]);
 
   return (
-    <NoMarginPanel>
-      <Container>
-        <IlloBox>
-          <img src={feedbackOnboardingImg} alt="" />
-        </IlloBox>
-        <StyledBox>
-          <Fragment>
-            <h3>{t('Set Up User Feedback')}</h3>
-            <p>
-              {t(
-                'Allow your users to create bug reports so they can let you know about these sneaky issues right away. Every report will automatically include related replays, tags, and errors, making fixing the issue dead simple.'
-              )}
-            </p>
-            <Button
-              onClick={activateSidebar}
-              variant="primary"
-              analyticsEventName="Clicked Feedback Onboarding Setup - Feedback Index"
-              analyticsEventKey="feedback.index-click-onboarding-setup"
-            >
-              {t('Set Up Now')}
-            </Button>
-          </Fragment>
-        </StyledBox>
-      </Container>
-    </NoMarginPanel>
+    <Panel style={{margin: 0}}>
+      <EmptyState
+        padding="3xl"
+        align="center"
+        justify="center"
+        illustration={
+          <Image
+            width="auto"
+            height={{zero: '150px', lg: '185px'}}
+            loading="eager"
+            src={feedbackOnboardingImg}
+            alt={t(
+              'Illustration of a purple character pushing a wheelbarrow filled with feedback speech bubbles'
+            )}
+          />
+        }
+        title={t('Set Up User Feedback')}
+        description={t(
+          'Allow your users to create bug reports so they can let you know about these sneaky issues right away. Every report will automatically include related replays, tags, and errors, making fixing the issue dead simple.'
+        )}
+        action={
+          <Button
+            onClick={activateSidebar}
+            variant="primary"
+            analyticsEventName="Clicked Feedback Onboarding Setup - Feedback Index"
+            analyticsEventKey="feedback.index-click-onboarding-setup"
+          >
+            {t('Set Up Now')}
+          </Button>
+        }
+      />
+    </Panel>
   );
 }
-
-const NoMarginPanel = styled(Panel)`
-  max-height: 100%;
-  overflow: hidden;
-  margin: 0;
-`;
-
-const Container = styled('div')`
-  padding: ${p => p.theme.space['2xl']};
-  position: relative;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-    justify-content: center;
-    flex-wrap: wrap;
-    min-height: 300px;
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    min-height: 350px;
-  }
-`;
-
-const StyledBox = styled('div')`
-  min-width: 0;
-  z-index: 1;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 2;
-  }
-`;
-
-const IlloBox = styled(StyledBox)`
-  position: relative;
-  min-height: 100px;
-  max-width: 300px;
-  min-width: 150px;
-  margin: ${p => p.theme.space.xl} auto;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 1;
-    margin: ${p => p.theme.space['2xl']};
-    max-width: auto;
-  }
-`;

@@ -26,6 +26,7 @@ import {t} from 'sentry/locale';
 interface TokenizedQueryGridProps {
   actionBarWidth: number;
   autoFocus: boolean;
+  hideSearchIcon?: boolean;
   label?: string;
 }
 
@@ -34,6 +35,7 @@ interface GridProps extends AriaGridListOptions<ParseResultToken> {
   autoFocus: boolean;
   children: CollectionChildren<ParseResultToken>;
   items: ParseResultToken[];
+  hideSearchIcon?: boolean;
 }
 
 function useAutoFocus(autoFocus: boolean, state: ListState<ParseResultToken>) {
@@ -48,6 +50,7 @@ function useAutoFocus(autoFocus: boolean, state: ListState<ParseResultToken>) {
     state.selectionManager.setFocused(true);
     state.selectionManager.setFocusedKey(state.collection.getLastKey());
     autoFocused.current = true;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [dispatch, state.collection, state.selectionManager]);
 }
 
@@ -68,11 +71,11 @@ function useApplyFocusOverride(state: ListState<ParseResultToken>) {
   }, [dispatch, focusOverride, state.collection, state.selectionManager]);
 }
 
-function Grid(props: GridProps) {
+function Grid({hideSearchIcon, ...props}: GridProps) {
   const ref = useRef<HTMLDivElement>(null);
   const selectionKeyHandlerRef = useRef<HTMLInputElement>(null);
   const {dispatch} = useSearchQueryBuilderState();
-  const {size} = useSearchQueryBuilderLayout();
+  const {size, menuPresentation} = useSearchQueryBuilderLayout();
   const state = useListState<ParseResultToken>({
     ...props,
     selectionBehavior: 'replace',
@@ -102,6 +105,8 @@ function Grid(props: GridProps) {
     <SearchQueryGridWrapper
       {...gridProps}
       ref={ref}
+      $hideSearchIcon={hideSearchIcon}
+      $menuPresentation={menuPresentation}
       style={size === 'small' ? undefined : {paddingRight: props.actionBarWidth + 12}}
       onBlur={e => {
         if (ref.current?.contains(e.relatedTarget)) {
@@ -171,6 +176,7 @@ export function TokenizedQueryGrid({
   autoFocus,
   label,
   actionBarWidth,
+  hideSearchIcon,
 }: TokenizedQueryGridProps) {
   const {parsedQuery} = useSearchQueryBuilderState();
 
@@ -187,6 +193,7 @@ export function TokenizedQueryGrid({
         items={parsedQuery}
         selectionMode="multiple"
         actionBarWidth={actionBarWidth}
+        hideSearchIcon={hideSearchIcon}
       >
         {item => (
           <Item key={makeTokenKey(item, parsedQuery)}>
@@ -198,11 +205,31 @@ export function TokenizedQueryGrid({
   );
 }
 
-const SearchQueryGridWrapper = styled('div')`
+function getGridPaddingLeft(
+  hideSearchIcon: boolean | undefined,
+  menuPresentation: 'floating' | 'panel' | undefined,
+  space: {lg: string; sm: string}
+) {
+  if (!hideSearchIcon) {
+    return '32px';
+  }
+  if (menuPresentation === 'panel') {
+    return `calc(${space.lg} - 1px)`;
+  }
+  return space.sm;
+}
+
+const SearchQueryGridWrapper = styled('div')<{
+  $hideSearchIcon?: boolean;
+  $menuPresentation?: 'floating' | 'panel';
+}>`
   /* calc + 1px to account for the border */
   padding-top: calc(${p => p.theme.space.xs} + 1px);
   padding-bottom: calc(${p => p.theme.space.xs} + 1px);
-  padding-left: 32px;
+  /* Reserves room for the leading search icon unless it is hidden. Panel mode
+   * matches suggestion offset (space.lg minus this field's 1px border). */
+  padding-left: ${p =>
+    getGridPaddingLeft(p.$hideSearchIcon, p.$menuPresentation, p.theme.space)};
   padding-right: ${p => p.theme.space.sm};
   display: flex;
   align-items: stretch;

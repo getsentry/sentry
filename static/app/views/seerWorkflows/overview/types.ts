@@ -111,7 +111,7 @@ export interface OverviewIssue {
   owners?: Group['owners'];
 }
 
-export type OverviewSort = 'seer' | 'issue' | 'events' | 'users';
+export type OverviewSort = 'recommended' | 'seer' | 'issue' | 'events' | 'users';
 
 // The milestone a run reached, as keyed in the endpoint's `runsByMilestone`.
 export type MilestoneKey =
@@ -146,6 +146,11 @@ export interface OverviewPullRequestFile {
   path: string;
 }
 
+interface FailedCheckDetail {
+  name: string;
+  url: string | null;
+}
+
 export interface OverviewPullRequest {
   checksStatus: PullRequestChecksStatus | null;
   files: OverviewPullRequestFile[];
@@ -154,7 +159,7 @@ export interface OverviewPullRequest {
   reviewStatus: PullRequestReviewStatus | null;
   status: PullRequestStatus | null;
   url: string | null;
-  failedChecks?: string[];
+  failedCheckDetails?: FailedCheckDetail[];
   repoName?: string | null;
 }
 
@@ -187,8 +192,6 @@ export interface OverviewRunIssue {
   project: {
     id: string;
     slug: string;
-    hasNonGithubRepo?: boolean;
-    hasReposConnected?: boolean;
     platform?: PlatformKey;
   };
   substatus: string | null;
@@ -201,7 +204,7 @@ export interface OverviewRun {
   lastTriggeredAt: string;
   proposedFix: {oneLineSummary: string | null} | null;
   pullRequests: OverviewPullRequest[];
-  rootCause: {oneLineDescription: string | null} | null;
+  rootCause: {headline: string | null; oneLineDescription: string | null} | null;
   seerRunId: string;
   shortId: string;
   status: RunStatus | null;
@@ -213,6 +216,7 @@ export interface ProjectConfig {
   hasReposConnected: boolean;
   id: string;
   slug: string;
+  hasNonGithubRepo?: boolean;
 }
 
 export interface AutofixOverviewResponse {
@@ -220,3 +224,11 @@ export interface AutofixOverviewResponse {
   projectConfig?: ProjectConfig[];
   truncatedMilestones?: MilestoneKey[];
 }
+
+export interface AutofixScmInfoResponse {
+  scmInfoByRunId: Record<string, {pullRequests: OverviewPullRequest[]}>;
+}
+
+// PR-bearing runs are partitioned by render order into windows of this size; a
+// card scrolling into view fetches its whole window and prefetches the next.
+export const SCM_WINDOW_SIZE = 5;

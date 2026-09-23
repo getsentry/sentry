@@ -64,6 +64,10 @@ class EvaluationContext:
         """
         return self.__id
 
+    @property
+    def identity_fields(self) -> frozenset[str]:
+        return frozenset(self.__identity_fields)
+
     def get(self, key: str) -> Any:
         return self.__data.get(key)
 

@@ -105,17 +105,7 @@ function useModalStore() {
   };
 }
 
-type Props = {
-  /**
-   * Note this is the callback for the main App container and NOT the calling
-   * component. GlobalModal is never used directly, but is controlled via
-   * stores. To access the onClose callback from the component, you must
-   * specify it when using the action creator.
-   */
-  onClose?: () => void;
-};
-
-export function GlobalModal({onClose}: Props) {
+export function GlobalModal() {
   const {renderer, options, visible, triggerElement} = useModalStore();
   const location = useLocation();
   const theme = useTheme();
@@ -128,11 +118,8 @@ export function GlobalModal({onClose}: Props) {
 
       // actually closes the modal
       ModalStore.closeModal();
-
-      // GlobalModal onClose prop callback
-      onClose?.();
     },
-    [options, onClose]
+    [options]
   );
 
   const handleEscapeClose = useCallback(
@@ -163,6 +150,7 @@ export function GlobalModal({onClose}: Props) {
   const focusTrap = useRef<FocusTrap | null>(null);
   // SentryApp might be missing on tests
   if (window.SentryApp) {
+    // oxlint-disable-next-line react/immutability
     window.SentryApp.modalFocusTrap = focusTrap;
   }
 
@@ -198,6 +186,7 @@ export function GlobalModal({onClose}: Props) {
     }
 
     return reset;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [portal, handleEscapeClose, visible, scrollLock, triggerElement]);
 
   // Close the modal when the browser history changes.
@@ -224,6 +213,7 @@ export function GlobalModal({onClose}: Props) {
 
   const onCloseButtonClick = useCallback(() => closeModal('close-button'), [closeModal]);
 
+  // oxlint-disable-next-line react/refs
   const renderedChild = renderer?.({
     CloseButton: makeCloseButton(onCloseButtonClick),
     Header: makeClosableHeader(onCloseButtonClick),

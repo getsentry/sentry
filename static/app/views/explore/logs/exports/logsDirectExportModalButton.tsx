@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
+import {formatExportSort} from 'sentry/views/explore/components/exports/formatExportSort';
 import {
-  formatExportSort,
   LogsExportModalButton,
   useLogsQueryInfo,
 } from 'sentry/views/explore/logs/exports/logsExportModalButton';
@@ -14,6 +14,7 @@ import {
 type LogsDirectExportModalButtonProps = {
   isLoading: boolean;
   tableData: OurLogsResponseItem[];
+  timeseriesIngestDelay: bigint;
   error?: Error | null;
 };
 
@@ -21,6 +22,7 @@ export function LogsDirectExportModalButton({
   error,
   isLoading,
   tableData,
+  timeseriesIngestDelay,
 }: LogsDirectExportModalButtonProps) {
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
@@ -29,7 +31,10 @@ export function LogsDirectExportModalButton({
     field: [...fields],
     sort: sortBys.map(formatExportSort),
   });
-  const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length);
+  const estimatedRowCount = useLogsExportEstimatedRowCount(
+    tableData.length,
+    timeseriesIngestDelay
+  );
 
   return (
     <LogsExportModalButton
@@ -38,6 +43,7 @@ export function LogsDirectExportModalButton({
       isLoading={isLoading}
       queryInfo={queryInfo}
       supportsAllColumns
+      supportsLocalDownload={false}
       tableData={tableData}
       title={t('Logs Export')}
     />

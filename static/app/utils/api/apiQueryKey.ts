@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
-export type RequestMethod = 'DELETE' | 'GET' | 'POST' | 'PUT';
+export type RequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
 
 type ApiUrl = ReturnType<typeof getApiUrl>;
 

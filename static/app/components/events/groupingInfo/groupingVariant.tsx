@@ -1,8 +1,11 @@
 import styled from '@emotion/styled';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex} from '@sentry/scraps/layout';
+
+import {getSpanHash} from 'sentry/components/events/interfaces/performance/utils';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
@@ -34,7 +37,7 @@ function addFingerprintInfo(
       t('Fingerprint rule'),
       <TextWithQuestionTooltip key="type">
         {variant.matched_rule}
-        <QuestionTooltip
+        <InfoTip
           size="xs"
           position="top"
           title={t('The server-side fingerprinting rule that produced the fingerprint.')}
@@ -73,26 +76,16 @@ export function GroupingVariant({
   variant,
   showNonContributing,
 }: GroupingVariantProps) {
-  const getVariantData = (): [VariantData, EventGroupComponent | undefined] => {
+  const getVariantData = (): VariantData => {
     const data: VariantData = [];
     let component: EventGroupComponent | undefined;
 
     if (!showNonContributing && !variant.contributes) {
-      return [data, component];
+      return data;
     }
 
     if (variant.hash !== null) {
-      data.push([
-        t('Hash'),
-        <TextWithQuestionTooltip key="hash">
-          <Hash>{variant.hash}</Hash>
-          <QuestionTooltip
-            size="xs"
-            position="top"
-            title={t('Events with the same hash are grouped together')}
-          />
-        </TextWithQuestionTooltip>,
-      ]);
+      data.push([t('Hash'), <Hash key="hash">{variant.hash}</Hash>]);
     }
 
     if (variant.hashMismatch) {
@@ -117,7 +110,7 @@ export function GroupingVariant({
         const spansToHashes = Object.fromEntries(
           event.entries
             .find((c): c is EntrySpans => c.type === 'spans')
-            ?.data?.map((span: RawSpanType) => [span.span_id, span.hash]) ?? []
+            ?.data?.map((span: RawSpanType) => [span.span_id, getSpanHash(span)]) ?? []
         );
 
         data.push(
@@ -154,36 +147,42 @@ export function GroupingVariant({
       ]);
     }
 
-    return [data, component];
+    return data;
   };
 
-  const renderTitle = () => {
-    const isContributing = variant.contributes;
+  const title = (
+    <VariantTitle>
+      <ContributionIcon isContributing={variant.contributes} />
+      {variant.description
+        ?.split(' ')
+        .map(i => capitalize(i))
+        .join(' ') ?? t('Nothing')}
+      <VariantHint>{variant.hint && t('(%s)', variant.hint)}</VariantHint>
+    </VariantTitle>
+  );
 
-    const hint = variant.hint;
-
-    return (
-      <VariantTitle>
-        <ContributionIcon isContributing={isContributing} />
-        {variant.description
-          ?.split(' ')
-          .map(i => capitalize(i))
-          .join(' ') ?? t('Nothing')}
-        <VariantHint>{hint && t('(%s)', hint)}</VariantHint>
-      </VariantTitle>
-    );
-  };
-
-  const [data] = getVariantData();
+  const data = getVariantData();
   return (
     <VariantWrapper>
-      <Header>{renderTitle()}</Header>
+      <Header>{title}</Header>
 
-      <KeyValueList
-        data={data.map(d => ({
-          key: d[0],
-          subject: d[0],
-          value: d[1],
+      <KeyValueTableDataList
+        margin
+        data={data.map(([subject, value]) => ({
+          key: subject,
+          subject,
+          subjectNode:
+            subject === t('Hash') ? (
+              <Flex align="center" gap="xs">
+                {subject}
+                <InfoTip
+                  size="xs"
+                  position="top"
+                  title={t('Events with the same hash are grouped together')}
+                />
+              </Flex>
+            ) : undefined,
+          value,
         }))}
         isContextData
         shouldSort={false}
@@ -220,12 +219,13 @@ const VariantHint = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const ContributionIcon = styled(({isContributing, ...p}: any) =>
-  isContributing ? (
-    <IconCheckmark size="sm" variant="success" {...p} />
-  ) : (
-    <IconClose size="sm" variant="danger" {...p} />
-  )
+const ContributionIcon = styled(
+  ({isContributing, ...p}: {isContributing: boolean; className?: string}) =>
+    isContributing ? (
+      <IconCheckmark size="sm" variant="success" {...p} />
+    ) : (
+      <IconClose size="sm" variant="danger" {...p} />
+    )
 )`
   margin-right: ${p => p.theme.space.md};
 `;

@@ -10,7 +10,8 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     REVIEW_REQUESTS_EXTRA,
     CheckRunsSweep,
     CheckSuiteAutofixRun,
-    bootstrap_green_check_suite,
+    confirm_green_check_suite,
+    resolve_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
@@ -19,6 +20,7 @@ from sentry.seer.autofix.pr_iteration.reviewer_candidates import (
     SOURCE_TRIGGERING_USER,
     ReviewerCandidate,
 )
+from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import TestCase
 
@@ -85,7 +87,15 @@ def _pull_request_result(
 
 
 def _request_review(event: CheckSuiteEvent | None = None) -> None:
-    ctx = bootstrap_green_check_suite(event or _green_event())
+    resolved = resolve_green_check_suite(event or _green_event())
+    if resolved is None:
+        return
+    if (
+        get_run_marker(resolved.seer_run, READY_FOR_REVIEW_EXTRA, resolved.repo_name) is not None
+        and get_run_marker(resolved.seer_run, REVIEW_REQUESTS_EXTRA, resolved.repo_name) is not None
+    ):
+        return
+    ctx = confirm_green_check_suite(resolved)
     if ctx is None:
         return
     request_review_from_context(ctx)

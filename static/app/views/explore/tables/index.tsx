@@ -53,6 +53,7 @@ export function ExploreTables(props: ExploreTablesProps) {
       boolean: validatedBooleanTags,
       number: validatedNumberTags,
       string: validatedStringTags,
+      array: validatedArrayTags,
     },
     fieldTypes: validatedFieldTypes,
     fields: validatedFields,
@@ -69,6 +70,7 @@ export function ExploreTables(props: ExploreTablesProps) {
           stringTags={validatedStringTags}
           numberTags={validatedNumberTags}
           booleanTags={validatedBooleanTags}
+          arrayTags={validatedArrayTags}
           requiredTags={['id']}
           validatedFieldTypes={validatedFieldTypes}
         />
@@ -102,12 +104,7 @@ export function ExploreTables(props: ExploreTablesProps) {
   return (
     <Fragment>
       <Flex justify="between" marginBottom="md" gap="md" wrap="wrap">
-        <Tabs
-          value={tab}
-          onChange={newTab => setTab(newTab, 'click')}
-          size="sm"
-          disableOverflow
-        >
+        <Tabs value={tab} onChange={newTab => setTab(newTab, 'click')} size="sm">
           <TabList variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item

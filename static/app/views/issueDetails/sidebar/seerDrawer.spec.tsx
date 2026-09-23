@@ -173,7 +173,7 @@ describe('SeerDrawer', () => {
       name: 'Start a new analysis from scratch',
     });
     expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeEnabled();
+    expect(resetButton).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('shows copy button disabled when no autofix run exists', async () => {
@@ -194,7 +194,7 @@ describe('SeerDrawer', () => {
       name: 'Copy analysis as Markdown',
     });
     expect(copyButton).toBeInTheDocument();
-    expect(copyButton).toBeDisabled();
+    expect(copyButton).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('shows copy button enabled when autofix run exists', async () => {
@@ -217,7 +217,7 @@ describe('SeerDrawer', () => {
       name: 'Copy analysis as Markdown',
     });
     expect(copyButton).toBeInTheDocument();
-    expect(copyButton).toBeEnabled();
+    expect(copyButton).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('renders reset button enabled with autofix data', async () => {
@@ -240,7 +240,7 @@ describe('SeerDrawer', () => {
       name: 'Start a new analysis from scratch',
     });
     expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeEnabled();
+    expect(resetButton).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('clicking reset triggers a new root cause analysis', async () => {
@@ -303,7 +303,6 @@ describe('SeerDrawer', () => {
               ],
             }),
           ],
-          status: 'completed',
         }),
       },
     });
@@ -321,6 +320,48 @@ describe('SeerDrawer', () => {
     ).toBeInTheDocument();
   });
 
+  describe('autoscroll', () => {
+    let scrollToSpy!: jest.Mock;
+
+    beforeEach(() => {
+      scrollToSpy = jest.fn();
+      // jsdom does not implement Element.prototype.scrollTo
+      Object.defineProperty(Element.prototype, 'scrollTo', {
+        value: scrollToSpy,
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    afterEach(() => {
+      // @ts-expect-error removing the jsdom stub added above
+      delete Element.prototype.scrollTo;
+    });
+
+    it('scrolls the drawer body to the bottom on open for a completed run', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {
+          autofix: makeExplorerAutofixData({}),
+        },
+      });
+
+      render(<SeerDrawer group={mockGroup} project={mockProject} />, {
+        organization,
+      });
+
+      await waitForElementToBeRemoved(() =>
+        screen.queryByTestId('ai-setup-loading-indicator')
+      );
+
+      // Guards the wiring between the drawer body and useAutoScroll: the body
+      // is the scroll container, so it must receive the hook's ref.
+      await waitFor(() => {
+        expect(scrollToSpy).toHaveBeenCalled();
+      });
+    });
+  });
+
   describe('PR polling', () => {
     const autofixUrl = `/organizations/${DetailedProjectFixture().organization.slug}/issues/${GroupFixture().id}/autofix/`;
 
@@ -329,7 +370,7 @@ describe('SeerDrawer', () => {
         url: autofixUrl,
         body: {
           autofix: {
-            ...makeExplorerAutofixData({status: 'completed'}),
+            ...makeExplorerAutofixData({}),
             repo_pr_states: {
               'org/repo': {pr_creation_status: 'completed'},
             },

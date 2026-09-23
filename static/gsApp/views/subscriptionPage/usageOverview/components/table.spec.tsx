@@ -1,3 +1,4 @@
+import type {ReactElement} from 'react';
 import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -6,7 +7,14 @@ import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render as renderWithoutContainer,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -14,6 +22,12 @@ import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {UsageOverviewTable} from 'getsentry/views/subscriptionPage/usageOverview/components/table';
+
+function render(ui: ReactElement) {
+  jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1400);
+
+  return renderWithoutContainer(<Container containerType="inline-size">{ui}</Container>);
+}
 
 describe('UsageOverviewTable', () => {
   const organization = OrganizationFixture();
@@ -596,5 +610,49 @@ describe('UsageOverviewTable', () => {
 
     // All disabled rows must appear after all enabled rows
     expect(lastEnabledIndex).toBeLessThan(firstDisabledIndex);
+  });
+
+  it('renders a line item keyed by uid rather than a data category', async () => {
+    const seerUsageUid = '0604d551-984d-408e-9bcd-4d490cf7dfc5';
+    const sub = SubscriptionFixture({organization, plan: 'am3_business'});
+    (sub.categories as Record<string, any>)[seerUsageUid] = {
+      category: seerUsageUid,
+      reserved: 0,
+      prepaid: 0,
+      free: 0,
+      usage: 0,
+      onDemandBudget: 0,
+      onDemandQuantity: 0,
+      onDemandSpendUsed: 0,
+      customPrice: null,
+      paygCpe: null,
+      softCapType: null,
+      usageExceeded: false,
+      order: 1000,
+      isDisabled: false,
+    };
+    sub.planDetails.categoryDisplayNames = {
+      ...sub.planDetails.categoryDisplayNames,
+      [seerUsageUid]: {plural: 'seer usage', singular: 'seer usage'},
+    };
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    const row = screen.getByTestId(`product-row-${seerUsageUid}`);
+    expect(within(row).getByText('Seer Usage')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`product-row-disabled-${seerUsageUid}`)
+    ).not.toBeInTheDocument();
   });
 });

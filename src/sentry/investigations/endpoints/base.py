@@ -11,7 +11,11 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.investigations.models import Investigation, InvestigationBlock
+from sentry.constants import ObjectStatus
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationBlock,
+)
 from sentry.investigations.services import (
     InvestigationConflictError,
     InvestigationSourceNotFound,
@@ -24,10 +28,6 @@ FEATURE = "organizations:investigations"
 
 
 def feature_enabled(request: Request, organization: Organization) -> bool:
-    """
-    Investigations are organization-visible with no per-investigation access
-    control, so for now they are limited to organizations with open membership.
-    """
     return (
         features.has(FEATURE, organization, actor=request.user)
         and request.access.has_open_membership
@@ -44,22 +44,12 @@ def service_error(error: Exception) -> Response | None:
     return None
 
 
-def required_investigation_project_ids(investigation: Investigation) -> set[int]:
-    selected = set(investigation.projects.values_list("id", flat=True))
-    visible_execution_ids: set[int] = set()
-    for result_execution_id, content_execution_id in InvestigationBlock.objects.filter(
-        investigation=investigation, deleted_at__isnull=True
-    ).values_list("result_execution_id", "content_execution_id"):
-        if result_execution_id is not None:
-            visible_execution_ids.add(result_execution_id)
-        if content_execution_id is not None:
-            visible_execution_ids.add(content_execution_id)
-    represented = set(
-        Project.objects.filter(
-            investigationblockexecutionproject__execution_id__in=visible_execution_ids,
-        ).values_list("id", flat=True)
+def organization_project_ids(organization: Organization) -> set[int]:
+    return set(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values_list(
+            "id", flat=True
+        )
     )
-    return selected | represented
 
 
 def user_id(request: Request) -> int:
@@ -69,18 +59,21 @@ def user_id(request: Request) -> int:
     return resolved
 
 
+def can_request_actor_create_investigation(request: Request) -> bool:
+    return request.user.is_authenticated and not request.user.is_sentry_app
+
+
 def require_authenticated_user(request: Request) -> int:
-    if not request.user.is_authenticated or request.user.is_sentry_app:
+    if not can_request_actor_create_investigation(request):
         raise PermissionDenied
     return user_id(request)
 
 
 class InvestigationPermission(OrganizationPermission):
     """
-    Any organization member may read and edit investigations.
-
-    There is no per-investigation access control in this pass, so mutations
-    require only ``org:read`` rather than the default ``org:write``.
+    Members of open-membership organizations can read and manage investigations
+    across all projects.
+    Mutations require ``org:read`` rather than the default ``org:write``.
     """
 
     scope_map = {
@@ -131,10 +124,6 @@ class OrganizationInvestigationEndpoint(OrganizationInvestigationsBaseEndpoint):
         except (Investigation.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
         kwargs["investigation"] = investigation
-        if not required_investigation_project_ids(investigation).issubset(
-            request.access.accessible_project_ids
-        ):
-            raise PermissionDenied("You do not have access to every project in this investigation.")
         return args, kwargs
 
 

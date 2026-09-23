@@ -151,6 +151,7 @@ export default function SentryAppDetailedView() {
       organization,
       integration_tab: 'overview',
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [sentryApp?.status, installationStatus, organization, integrationSlug]);
 
   const redirectUser = useCallback(
@@ -344,7 +345,15 @@ export default function SentryAppDetailedView() {
         integrationSlug.charAt(0).toUpperCase() + integrationSlug.slice(1);
       if (install?.status === 'pending_deletion') {
         return (
-          <Button size="sm" disabled>
+          <Button
+            size="sm"
+            disabled
+            tooltipProps={{
+              title: t('Deletion is in progress. This may take a few minutes.'),
+              position: 'top',
+            }}
+            data-test-id="pending-deletion-button"
+          >
             {t('Pending Deletion')}
           </Button>
         );

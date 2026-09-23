@@ -20,6 +20,20 @@ from ipaddress import ip_address, ip_interface, ip_network
 # getsentry/sentry-mcp). Used to attribute requests originating from the MCP.
 MCP_USER_AGENT_PREFIX = "sentry-mcp/"
 
+MCP_CLIENT_FAMILY_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_FAMILY"
+
+# Standardized client families the MCP buckets its callers into and forwards via
+# X-Sentry-MCP-Client-Family (source of truth: client-family.ts in getsentry/sentry-mcp).
+KNOWN_MCP_CLIENT_FAMILIES = frozenset(
+    {"claude-code", "cursor", "copilot", "opencode", "claude-desktop", "codex"}
+)
+MCP_CATCHALL_CLIENT_FAMILIES = frozenset({"other", "unknown"})
+
+# Header Seer sets on the API calls it makes on a user's behalf. Shared so that
+# every caller-attribution site keys off the same signal (see `sentry.api.client_kind`
+# and `sentry.issues.action_log`).
+SEER_REFERRER_HEADER = "HTTP_X_SEER_REFERRER"
+
 
 class ParsedUriMatch(NamedTuple):
     scheme: str
@@ -225,6 +239,21 @@ def is_mcp_request(request: HttpRequest | Request) -> bool:
     by its `sentry-mcp/` user-agent prefix.
     """
     return request.META.get("HTTP_USER_AGENT", "").startswith(MCP_USER_AGENT_PREFIX)
+
+
+def get_mcp_client_family(request: HttpRequest | Request) -> str | None:
+    """The client family (`claude-code`, `cursor`, ...) the MCP server declares for its caller.
+
+    Returns None when the header is absent or the MCP bucketed the caller into a catch-all.
+    A value outside `KNOWN_MCP_CLIENT_FAMILIES` is still returned: this set can lag
+    client-family.ts upstream, so callers decide whether to log the unrecognized value.
+
+    Declared by the client, so untrusted -- unlike `is_mcp_request`, which is derived.
+    """
+    family = request.META.get(MCP_CLIENT_FAMILY_HEADER, "").strip().lower()
+    if not family or family in MCP_CATCHALL_CLIENT_FAMILIES:
+        return None
+    return family
 
 
 def percent_encode(val: str) -> str:

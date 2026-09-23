@@ -4,7 +4,6 @@ import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {DataSection} from 'sentry/components/events/styles';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
 
 interface EventDataSectionProps {
@@ -22,26 +21,7 @@ interface EventDataSectionProps {
    */
   actions?: React.ReactNode;
   className?: string;
-  /**
-   * A description shown in a QuestionTooltip
-   */
-  help?: React.ReactNode;
-  /**
-   * If true, user is able to hover overlay without it disappearing. (nice if
-   * you want the overlay to be interactive)
-   */
-  isHelpHoverable?: boolean;
   ref?: React.Ref<HTMLDivElement>;
-  /**
-   * Should the permalink be enabled for this section?
-   *
-   * @default true
-   */
-  showPermalink?: boolean;
-  /**
-   * Should the title be wrapped in a h3?
-   */
-  wrapTitle?: boolean;
 }
 
 function scrollToSection(element: HTMLDivElement) {
@@ -69,33 +49,22 @@ export function EventDataSection({
   className,
   type,
   title,
-  help,
   actions,
-  wrapTitle = true,
-  showPermalink = true,
-  isHelpHoverable = false,
   ...props
 }: EventDataSectionProps) {
-  const titleNode = wrapTitle ? <h3>{title}</h3> : title;
+  const titleNode = <h3>{title}</h3>;
 
   return (
     <DataSection ref={scrollToSection} className={className || ''} {...props}>
       <SectionHeader id={type} data-test-id={`event-section-${type}`}>
         {title && (
           <Title>
-            {showPermalink ? (
-              <Container as="span" width="100%" position="relative" className="permalink">
-                <PermalinkAnchor href={`#${type}`} openInNewTab={false}>
-                  <StyledIconLink size="xs" variant="muted" />
-                </PermalinkAnchor>
-                {titleNode}
-              </Container>
-            ) : (
-              titleNode
-            )}
-            {help && (
-              <QuestionTooltip size="xs" title={help} isHoverable={isHelpHoverable} />
-            )}
+            <Container as="span" width="100%" position="relative" className="permalink">
+              <PermalinkAnchor href={`#${type}`} openInNewTab={false}>
+                <StyledIconLink size="xs" variant="muted" />
+              </PermalinkAnchor>
+              {titleNode}
+            </Container>
           </Title>
         )}
         {actions && (

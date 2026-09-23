@@ -113,7 +113,9 @@ function ApiApplicationsDetails() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const apiApplicationEndpoint = `/api-applications/${appId}/`;
+  const apiApplicationEndpoint = getApiUrl('/api-applications/$appId/', {
+    path: {appId},
+  });
 
   const onSaveError = () => addErrorMessage(t('Unable to save change'));
   const onSaveSuccess = (updated: ApiApplication) => {

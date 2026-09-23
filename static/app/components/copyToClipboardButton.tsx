@@ -10,12 +10,10 @@ interface CopyToClipboardButtonProps extends Omit<
   text: string;
   children?: never;
   onCopy?: undefined | ((copiedText: string) => void);
-  onError?: undefined | ((error: Error) => void);
 }
 
 export function CopyToClipboardButton({
   onCopy,
-  onError,
   onClick,
   text,
   icon,
@@ -28,9 +26,7 @@ export function CopyToClipboardButton({
       {...props}
       onClick={e => {
         copy(text).then(result => {
-          if (result === undefined) {
-            onError?.(new Error('Failed to copy to clipboard'));
-          } else {
+          if (result !== undefined) {
             onCopy?.(result);
           }
         });

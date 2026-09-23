@@ -7,8 +7,7 @@ from django.db import models
 from sentry import features, roles
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BoundedAutoField,
-    BoundedBigIntegerField,
+    BoundedBigAutoField,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -29,10 +28,7 @@ class OrganizationMemberTeam(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    id = BoundedAutoField(primary_key=True)
-    # Shadow column for the in-progress widening of `id` to int8; swapped into the
-    # primary key once backfilled. Nothing reads or writes it yet.
-    new_id = BoundedBigIntegerField(null=True)
+    id = BoundedBigAutoField(primary_key=True)
     team = FlexibleForeignKey("sentry.Team")
     organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
     # an inactive membership simply removes the team from the default list

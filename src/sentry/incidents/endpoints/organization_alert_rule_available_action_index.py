@@ -8,12 +8,10 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY
 from sentry.incidents.logic import (
@@ -27,6 +25,7 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.silo.base import cell_silo_function
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 
 
 @cell_silo_function
@@ -100,8 +99,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
         """
         Fetches actions that an alert rule can perform for an organization
         """
-        if not features.has("organizations:incidents", organization, actor=request.user):
-            raise ResourceDoesNotExist
+        enforce_alerts_api_deprecation(organization)
 
         actions = []
 

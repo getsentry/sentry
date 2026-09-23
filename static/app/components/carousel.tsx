@@ -10,26 +10,16 @@ import {useRefChildrenVisibility} from 'sentry/utils/useRefChildrenVisibility';
 
 interface CarouselProps {
   children?: React.ReactNode;
-  /**
-   * This number determines what percentage of an element must be within the
-   * visible scroll region for it to be considered 'visible'. If it is visible
-   * but slightly off screen it will be skipped when scrolling
-   *
-   * For example, if set to 0.8, and 10% of the element is out of the scroll
-   * area to the right, pressing the right arrow will skip over scrolling to
-   * this element, and will scroll to the next invisible one.
-   *
-   * @default 0.8
-   */
-  visibleRatio?: number;
 }
 
-export function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
+const VISIBLE_RATIO = 0.8;
+
+export function Carousel({children}: CarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const {visibility, childrenEls} = useRefChildrenVisibility({
     children,
     scrollContainerRef,
-    visibleRatio,
+    visibleRatio: VISIBLE_RATIO,
   });
 
   const isAtStart = visibility[0];

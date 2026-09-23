@@ -28,6 +28,20 @@ CACHE_CONTROL = (
     "public, max-age=3600, s-maxage=60, stale-while-revalidate=315360000, stale-if-error=315360000"
 )
 
+# The SDK APIs that the loader exposes as stubs, so that calls made before the actual
+# SDK bundle is loaded can be queued up and replayed afterwards. Since these stubs have
+# to match the API surface of the SDK version we serve, APIs that only exist in some
+# versions are added conditionally in `_get_queueable_apis`.
+QUEUEABLE_SDK_APIS = (
+    "init",
+    "addBreadcrumb",
+    "captureMessage",
+    "captureException",
+    "captureEvent",
+    "withScope",
+    "showReportDialog",
+)
+
 
 class SdkConfig(TypedDict):
     dsn: str
@@ -58,6 +72,7 @@ class LoaderContext(TypedDict):
     config: NotRequired[SdkConfig]
     jsSdkUrl: NotRequired[str]
     publicKey: NotRequired[str | None]
+    queueableApis: NotRequired[list[str]]
 
 
 class SdkPublicKeyResolver(CellRequestResolver):
@@ -211,6 +226,16 @@ class JavaScriptSdkLoader(View):
             "userEnabledLogsAndMetrics": user_enabled_logs_and_metrics,
         }
 
+    def _get_queueable_apis(self, sdk_version: Version) -> list[str]:
+        """Returns the names of the APIs the loader should stub out for this SDK version"""
+        apis = list(QUEUEABLE_SDK_APIS)
+
+        # `configureScope` was removed in v8 in favour of `getCurrentScope()`
+        if sdk_version < Version("8.0.0"):
+            apis.append("configureScope")
+
+        return apis
+
     def _get_context(
         self,
         key: ProjectKey | None,
@@ -218,7 +243,7 @@ class JavaScriptSdkLoader(View):
         loader_config: LoaderInternalConfig,
     ) -> tuple[LoaderContext, str | None]:
         """Sets context information needed to render the loader"""
-        if not key:
+        if not key or not sdk_version:
             return (
                 {
                     "isLazy": True,
@@ -269,6 +294,7 @@ class JavaScriptSdkLoader(View):
                 "jsSdkUrl": sdk_url,
                 "publicKey": key.public_key,
                 "isLazy": loader_config["isLazy"],
+                "queueableApis": self._get_queueable_apis(sdk_version),
             },
             sdk_url,
         )

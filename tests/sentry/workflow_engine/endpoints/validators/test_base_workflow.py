@@ -337,6 +337,7 @@ class TestWorkflowValidatorCreate(TestCase):
         self.context = {
             "organization": self.organization,
             "request": self.make_request(user=self.user),
+            "access": SystemAccess(),
         }
 
         self.integration, self.org_integration = self.create_provider_integration_for(
@@ -378,6 +379,15 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.id is not None
         assert workflow.name == "test"
         assert workflow.config == {}
+
+    def test_create__without_triggers(self) -> None:
+        del self.valid_data["triggers"]
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+        workflow = validator.create(validator.validated_data)
+
+        assert workflow.when_condition_group is not None
+        assert workflow.when_condition_group.conditions.count() == 0
 
     def test_create__without_action_filters(self) -> None:
         data_without_action_filters = {
@@ -696,9 +706,11 @@ class TestWorkflowValidatorCreate(TestCase):
 )
 class TestWorkflowValidatorUpdate(TestCase):
     def setUp(self) -> None:
+        request = self.make_request()
+        request.access = SystemAccess()
         self.context = {
             "organization": self.organization,
-            "request": self.make_request(),
+            "request": request,
         }
 
         self.integration, self.org_integration = self.create_provider_integration_for(

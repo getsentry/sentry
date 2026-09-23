@@ -700,6 +700,7 @@ class PullRequestEventWebhook(APITestCase):
         pr = prs[0]
 
         assert pr.key == "1"
+        assert pr.external_id == 34778301
         assert pr.message == "This is a pretty simple change that we need to pull into master."
         assert pr.title == "Update the README with new information"
         assert pr.author is not None
@@ -907,6 +908,7 @@ class IssuesEventWebhookTest(APITestCase):
             external_user_name="@octocat",
             external_issue_key="baxterthehacker/public-repo#2",
             assign=True,
+            provider_event_updated_at="2015-05-05T23:40:28Z",
         )
 
         assert_success_metric(mock_record)
@@ -947,6 +949,7 @@ class IssuesEventWebhookTest(APITestCase):
             external_user_name="",
             external_issue_key="baxterthehacker/public-repo#2",
             assign=False,
+            provider_event_updated_at="2015-05-05T23:40:28Z",
         )
 
         assert_success_metric(mock_record)

@@ -104,6 +104,7 @@ class EventsMeta(TypedDict, total=False):
     discoverSplitDecision: Any
     dataScanned: str
     bytesScanned: int
+    routingHint: str
     debug_info: Any
 
 
@@ -169,6 +170,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
             GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.REFERRER,
             OrganizationParams.PROJECT,
             GlobalParams.START,
             GlobalParams.STATS_PERIOD,
@@ -201,6 +203,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         The `field` query parameter determines what fields will be selected in the `data` and `meta` keys of the endpoint response.
         - The `data` key contains a list of results row by row that match the `query` made
         - The `meta` key contains information about the response, including the unit or type of the fields requested
+        - EAP table results may include `meta.routingHint`. Pass this opaque value unchanged as
+          `routing_hint` when fetching item details for a row in this response. It identifies how
+          the table query was routed and is omitted when no hint is available.
         """
         if not self.has_feature(organization, request):
             return Response(
@@ -712,7 +717,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         paginator, cursor_cls = paginator_factory(dataset)
 
-        max_per_page = 9999 if dataset in (OurLogs, TraceMetrics) else None
+        max_per_page = 9999 if dataset in RPC_DATASETS else None
 
         def _handle_results(results):
             # Apply error upsampling for regular Events API

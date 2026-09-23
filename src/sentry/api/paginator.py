@@ -536,6 +536,9 @@ class GenericOffsetPaginator:
     def get_result(self, limit, cursor=None):
         assert limit > 0
         offset = cursor.offset if cursor is not None else 0
+        if offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+
         # Request 1 more than limit so we can tell if there is another page
         data = self.data_fn(offset=offset, limit=limit + 1)
 

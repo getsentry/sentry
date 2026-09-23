@@ -6,6 +6,7 @@ action_log.types — safe to import from models and other dependency-sensitive c
 from __future__ import annotations
 
 import logging
+import secrets
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -34,7 +35,7 @@ _publish_callbacks: ContextVar[tuple[_PublishCallback, ...]] = ContextVar(
 
 # Group Action Log — tracks who did what to an issue and how.
 #
-# publish_action() writes a CellOutbox entry; the outbox receiver creates the
+# publish_action() writes an outbox entry; the outbox receiver creates the
 # GroupActionLogEntry on the (eventually separate) grouplog database and kicks
 # off derived-data processing.
 #
@@ -53,6 +54,13 @@ class ActionContext:
 
 
 _action_context: ContextVar[ActionContext | None] = ContextVar("action_context", default=None)
+
+
+def _get_outbox_identifier() -> int:
+    # This only needs to be unique among currently stored outboxes for the same group,
+    # typically one or two rows. Even with 10k rows, the collision probability for
+    # positive signed bigint is about 1 in 184 billion.
+    return secrets.randbelow(2**63 - 1) + 1
 
 
 @contextmanager
@@ -103,8 +111,9 @@ def publish_action(
     from django.db import router, transaction
 
     from sentry import features
-    from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+    from sentry.hybridcloud.models.outbox import outbox_context
     from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+    from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
     from sentry.utils import metrics
 
     for callback in _publish_callbacks.get():
@@ -155,16 +164,24 @@ def publish_action(
     if idempotency_key is not None:
         payload["idempotency_key"] = idempotency_key
 
-    outbox = CellOutbox(
-        shard_scope=OutboxScope.GROUP_SCOPE,
-        shard_identifier=group_id,
-        category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
-        object_identifier=CellOutbox.next_object_identifier(),
-        payload=payload,
-    )
     # Flush on commit by default; callers can wrap in outbox_context(flush=False) to defer.
-    with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
-        outbox.save()
+    with outbox_context(transaction.atomic(router.db_for_write(GroupActionLogOutbox))):
+        with metrics.timer(
+            "issues.action_log.enqueue.duration",
+            tags={
+                "action": action_name,
+                "source": source,
+                "derived_strategy": "async" if force_async_derived else "inline",
+            },
+        ):
+            outbox = GroupActionLogOutbox(
+                shard_scope=OutboxScope.GROUP_SCOPE,
+                shard_identifier=group_id,
+                category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
+                object_identifier=_get_outbox_identifier(),
+                payload=payload,
+            )
+            outbox.save()
 
 
 def publish_action_from_context(

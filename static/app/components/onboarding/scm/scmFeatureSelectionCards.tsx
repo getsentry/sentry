@@ -1,3 +1,5 @@
+import {useId} from 'react';
+
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -16,6 +18,11 @@ interface ScmFeatureSelectionCardsProps {
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
   isVolumeLoading?: boolean;
+  /**
+   * Names the card group outside onboarding, which renders no heading of its
+   * own.
+   */
+  labelledBy?: string;
 }
 
 export function ScmFeatureSelectionCards({
@@ -26,12 +33,15 @@ export function ScmFeatureSelectionCards({
   featureMeta,
   isVolumeLoading,
   isOnboarding,
+  labelledBy,
 }: ScmFeatureSelectionCardsProps) {
+  const headingId = useId();
+
   return (
     <Stack gap="lg" width="100%" justify="center">
       {isOnboarding ? (
         <Flex justify="between" align="center" gap="md">
-          <Heading as="h4" ellipsis>
+          <Heading as="h4" ellipsis id={headingId}>
             {t('What do you want to instrument?')}
           </Heading>
           {availableFeatures.length > 1 ? (
@@ -44,7 +54,11 @@ export function ScmFeatureSelectionCards({
         </Flex>
       ) : null}
 
-      <Stack gap="md">
+      <Stack
+        gap="md"
+        role="group"
+        aria-labelledby={isOnboarding ? headingId : labelledBy}
+      >
         {availableFeatures.map(feature => {
           const meta = featureMeta[feature];
           const disabledProduct = disabledProducts[feature];

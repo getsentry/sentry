@@ -11,6 +11,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import type {AccessRequest} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = {
@@ -61,7 +62,10 @@ function AccessRequestItem({
     mutationFn: ({isApproved}: {isApproved: boolean}) => {
       return fetchMutation({
         method: 'PUT',
-        url: `/organizations/${orgSlug}/access-requests/${id}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/access-requests/$requestId/',
+          {path: {organizationIdOrSlug: orgSlug, requestId: id}}
+        ),
         data: {isApproved},
       });
     },

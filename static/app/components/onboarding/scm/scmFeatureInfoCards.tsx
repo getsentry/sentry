@@ -56,7 +56,7 @@ export function ScmFeatureInfoCards({
 
       <Grid
         gap="2xl"
-        columns={{'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}}
+        columns={{zero: '1fr', xl: '1fr 1fr'}}
         border="secondary"
         radius="lg"
         padding="2xl"
@@ -89,6 +89,7 @@ export function ScmFeatureInfoCards({
                       {...containerProps}
                       size="md"
                       variant={isDisabled ? 'muted' : undefined}
+                      aria-hidden
                     />
                   )}
                 </Container>

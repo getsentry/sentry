@@ -1,4 +1,9 @@
-from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
+from sentry.seer.autofix.pr_iteration.run_markers import (
+    get_run_extra,
+    get_run_marker,
+    record_run_extras,
+    record_run_marker,
+)
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import TestCase
 
@@ -67,6 +72,27 @@ class RunMarkersTest(TestCase):
 
         # The caller's instance reflects the write without a refresh, so marker
         # re-checks against it see the fresh state.
+        assert get_run_marker(self.seer_run, "review_requests", REPO_NAME) == {
+            "reviewers": ["octocat"]
+        }
+
+
+class RunExtrasTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=1, user_id=self.user.id
+        )
+
+    def test_run_level_and_per_repo_writes_coexist(self) -> None:
+        stale = SeerRun.objects.get(id=self.seer_run.id)
+        with record_run_extras(self.seer_run) as extras:
+            extras["pr_iteration_paused"] = {"paused_at": "now"}
+
+        record_run_marker(stale, "review_requests", REPO_NAME, {"reviewers": ["octocat"]})
+
+        self.seer_run.refresh_from_db()
+        assert get_run_extra(self.seer_run, "pr_iteration_paused") == {"paused_at": "now"}
         assert get_run_marker(self.seer_run, "review_requests", REPO_NAME) == {
             "reviewers": ["octocat"]
         }

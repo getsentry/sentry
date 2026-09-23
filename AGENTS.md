@@ -35,6 +35,8 @@ devservices up  # bring up services
 
 That is all that is required to run `pytest`. `devservices serve` starts the development server. For full environment setup/troubleshooting, use the **`setup-dev`** skill.
 
+To bump an existing Python dependency, use the **`bump-sentry-dependency`** skill.
+
 When the devserver runs, its full console output is teed to `.artifacts/dev.log` (ANSI-stripped, gitignored, truncated per process start; override with `SENTRY_DEV_LOG_FILE`). Agents can't see the devserver terminal — `tail`/`grep` this file to inspect startup, reloads, request logs, and tracebacks. Dev-only.
 
 #### Linting
@@ -102,10 +104,6 @@ Use the right AGENTS.md for the area you're working in:
 
 Workflow steering (commit, pre-commit, hybrid cloud, etc.) lives in **skills** (`.agents/skills/`). Attach or read the area `AGENTS.md` when working in that tree. Add or update guidance in the appropriate AGENTS.md or skill—do not duplicate long guidance in editor-specific rule files.
 
-## Viewer/Organization Context
-
-- Viewer identity is wired through the app via the `ViewerContext` contextvar; use `sentry.viewer_context.get_viewer_context()` instead of explicitly threading org/user identity when the current viewer is in scope.
-
 ## Agent Skills
 
 Skills under `.agents/skills/` should follow the same current-practice conventions as the rest of the repo:
@@ -116,7 +114,7 @@ Skills under `.agents/skills/` should follow the same current-practice conventio
 
 ## Feature Flags (FlagPole)
 
-New features should be gated behind a flag: register in `src/sentry/features/temporary.py`, check with `features.has(...)` (Python) or `organization.features.includes(...)` (frontend). For the full workflow (registration, `api_expose`, tests, rollout) → use the **`feature-flags`** skill, or see https://develop.sentry.dev/feature-flags/.
+New features should be gated behind a flag: register in `src/sentry/features/temporary.py`, check with `features.has(...)` (Python) or `organization.features.includes(...)` (frontend). For the full workflow (registration, `api_expose`, tests, rollout) → use the **`feature-flags`** skill, or see https://develop.sentry.dev/feature-flags/. Deleting a finished flag or option requires a fixed PR order across sentry and sentry-options-automator → use the **`remove-option-or-flag`** skill.
 
 ## Customer Information
 

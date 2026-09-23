@@ -2,7 +2,7 @@ import binascii
 import itertools
 import logging
 import uuid
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from hashlib import md5
@@ -11,27 +11,21 @@ from typing import Any, ContextManager, Generic, TypeVar
 import rb
 from django.utils import timezone
 from django.utils.encoding import force_bytes
-from redis.client import Script
 
 from sentry.tsdb.base import (
     BaseTSDB,
     IncrMultiOptions,
     SnubaCondition,
-    TSDBItem,
     TSDBKey,
     TSDBModel,
 )
 from sentry.utils.dates import to_datetime
-from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, load_redis_script
+from sentry.utils.redis import check_cluster_versions, get_cluster_from_options
 from sentry.utils.versioning import Version
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
-
-SketchParameters = namedtuple("SketchParameters", "depth width capacity")
-
-CountMinScript = load_redis_script("tsdb/cmsketch.lua")
 
 
 def _crc32(data: bytes) -> int:
@@ -74,7 +68,6 @@ class RedisTSDB(BaseTSDB):
 
         * simple counters
         * distinct counters (number of unique elements seen)
-        * frequency tables (a set of items ranked by most frequently observed)
 
     The backend also supports virtual nodes (``vnodes``) which controls shard
     distribution. This value should be set to the anticipated maximum number of
@@ -102,38 +95,18 @@ class RedisTSDB(BaseTSDB):
             "<model>:<epoch>:<key>": value,
             ...
         }
-
-    Frequency tables are modeled using two data structures:
-
-        * top-N index: a sorted set containing the most frequently observed items,
-        * estimation matrix: a hash table containing counters, used in a Count-Min sketch
-
-    Member scores are 100% accurate until the index is filled (and no memory is
-    used for the estimation matrix until this point), after which the data
-    structure switches to a probabilistic implementation and accuracy begins to
-    degrade for less frequently observed items, but remains accurate for more
-    frequently observed items.
-
-    Frequency tables are especially useful when paired with a (non-distinct)
-    counter of the total number of observations so that scores of items of the
-    frequency table can be displayed as percentages of the whole data set.
-    (Additional documentation and the bulk of the logic for implementing the
-    frequency table API can be found in the ``cmsketch.lua`` script.)
     """
-
-    DEFAULT_SKETCH_PARAMETERS = SketchParameters(3, 128, 50)
 
     def __init__(self, prefix: str = "ts:", vnodes: int = 64, **options: Any):
         cluster, options = get_cluster_from_options("SENTRY_TSDB_OPTIONS", options)
         self.cluster = cluster
         self.prefix = prefix
         self.vnodes = vnodes
-        self.enable_frequency_sketches = options.pop("enable_frequency_sketches", False)
         super().__init__(**options)
 
     def validate(self) -> None:
         logger.debug("Validating Redis version...")
-        version = Version((2, 8, 18)) if self.enable_frequency_sketches else Version((2, 8, 9))
+        version = Version((2, 8, 9))
         check_cluster_versions(self.cluster, version, recommended=Version((2, 8, 18)), label="TSDB")
 
     def get_cluster(self, environment_id: int | None) -> tuple[rb.Cluster, bool]:
@@ -171,8 +144,7 @@ class RedisTSDB(BaseTSDB):
         environment_id: int | None,
     ) -> str | int:
         """
-        Make a key that is used for distinct counter and frequency table
-        values.
+        Make a key that is used for distinct counter values.
         """
         return self.add_environment_parameter(
             f"{self.prefix}{model.value}:{self.normalize_ts_to_rollup(timestamp, rollup)}:{self.get_model_key(key)}",
@@ -669,232 +641,3 @@ class RedisTSDB(BaseTSDB):
                                             environment_id,
                                         )
                                     )
-
-    def make_frequency_table_keys(
-        self,
-        model: TSDBModel,
-        rollup: int,
-        timestamp: float,
-        key: int | str,
-        environment_id: int | None,
-    ) -> list[str]:
-        prefix = self.make_key(model, rollup, timestamp, key, environment_id)
-        return [f"{prefix}:i", f"{prefix}:e"]
-
-    def record_frequency_multi(
-        self,
-        requests: Sequence[tuple[TSDBModel, Mapping[str, Mapping[str, int | float]]]],
-        timestamp: datetime | None = None,
-        environment_id: int | None = None,
-    ) -> None:
-        self.validate_arguments([model for model, request in requests], [environment_id])
-
-        if not self.enable_frequency_sketches:
-            return
-
-        if timestamp is None:
-            timestamp = timezone.now()
-
-        ts = int(timestamp.timestamp())  # ``timestamp`` is not actually a timestamp :(
-
-        for (cluster, durable), environment_ids in self.get_cluster_groups({None, environment_id}):
-            commands: dict[str, list] = {}
-
-            for model, request in requests:
-                for key, items in request.items():
-                    keys = []
-                    expirations = {}
-
-                    # Figure out all of the keys we need to be incrementing, as
-                    # well as their expiration policies.
-                    for rollup, max_values in self.rollups.items():
-                        chunk = []
-                        for environment_id in environment_ids:
-                            chunk = self.make_frequency_table_keys(
-                                model, rollup, ts, key, environment_id
-                            )
-                            keys.extend(chunk)
-
-                        expiry = self.calculate_expiry(rollup, max_values, timestamp)
-                        for k in chunk:
-                            expirations[k] = expiry
-
-                    arguments = ["INCR"] + list(self.DEFAULT_SKETCH_PARAMETERS)
-                    for member, score in items.items():
-                        arguments.extend((score, member))
-
-                    # Since we're essentially merging dictionaries, we need to
-                    # append this to any value that already exists at the key.
-                    cmds = commands.setdefault(key, [])
-                    cmds.append((CountMinScript, keys, arguments))
-                    for k, t in expirations.items():
-                        cmds.append(("EXPIREAT", k, t))
-
-            try:
-                cluster.execute_commands(commands)
-            except Exception:
-                if durable:
-                    raise
-
-    def get_frequency_series(
-        self,
-        model: TSDBModel,
-        items: Mapping[TSDBKey, Sequence[TSDBItem]],
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        environment_id: int | None = None,
-        tenant_ids: dict[str, str | int] | None = None,
-        project_ids: Sequence[int] | None = None,
-    ) -> dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]]:
-        self.validate_arguments([model], [environment_id])
-
-        if not self.enable_frequency_sketches:
-            raise NotImplementedError("Frequency sketches are disabled.")
-
-        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
-
-        # Here we freeze ordering of the members, since we'll be passing these
-        # as positional arguments to the Redis script and later associating the
-        # results (which are returned in the same order that the arguments were
-        # provided) with the original input values to compose the result.
-        items = {k: list(members) for k, members in items.items()}
-
-        commands: dict[TSDBKey, list[tuple[Script, list[str], list[str | int]]]] = {}
-
-        arguments = ["ESTIMATE"] + list(self.DEFAULT_SKETCH_PARAMETERS)
-        for item_key, members in items.items():
-            ks: list[str] = []
-            for timestamp in series:
-                ks.extend(
-                    self.make_frequency_table_keys(
-                        model, rollup, timestamp, item_key, environment_id
-                    )
-                )
-
-            commands[item_key] = [(CountMinScript, ks, arguments + list(members))]
-
-        results: dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]] = {}
-
-        cluster, _ = self.get_cluster(environment_id)
-        for _key, responses in cluster.execute_commands(commands).items():
-            _members = items[_key]
-
-            chunk = results[_key] = []
-            for _timestamp, scores in zip(series, responses[0].value):
-                chunk.append((_timestamp, dict(zip(_members, (float(score) for score in scores)))))
-
-        return results
-
-    def merge_frequencies(
-        self,
-        model: TSDBModel,
-        destination: str,
-        sources: Sequence[TSDBKey],
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        ids = (set(environment_ids) if environment_ids is not None else set()).union([None])
-
-        self.validate_arguments([model], ids)
-
-        if not self.enable_frequency_sketches:
-            return
-
-        rollups: list[tuple[int, list[datetime]]] = []
-        for rollup, samples in self.rollups.items():
-            _, rollup_series = self.get_optimal_rollup_series(
-                to_datetime(self.get_earliest_timestamp(rollup, timestamp=timestamp)),
-                end=None,
-                rollup=rollup,
-            )
-            rollups.append((rollup, [to_datetime(item) for item in rollup_series]))
-
-        for (cluster, durable), _ids in self.get_cluster_groups(ids):
-            exports: dict[TSDBKey, list[tuple[Script, list[str], list[str]] | list[str]]]
-            exports = defaultdict(list)
-
-            for source in sources:
-                for rollup, series in rollups:
-                    for serie_timestamp in series:
-                        keys: list[str] = []
-                        for environment_id in _ids:
-                            keys.extend(
-                                self.make_frequency_table_keys(
-                                    model,
-                                    rollup,
-                                    serie_timestamp.timestamp(),
-                                    source,
-                                    environment_id,
-                                )
-                            )
-                        arguments = ["EXPORT"] + list(self.DEFAULT_SKETCH_PARAMETERS)
-                        exports[source].extend([(CountMinScript, keys, arguments), ["DEL"] + keys])
-
-            try:
-                responses = cluster.execute_commands(exports)
-            except Exception:
-                if durable:
-                    raise
-                else:
-                    continue
-
-            imports = []
-
-            for source, results in responses.items():
-                results = iter(results)
-                for rollup, series in rollups:
-                    for _timestamp in series:
-                        for environment_id, payload in zip(_ids, next(results).value):
-                            imports.append(
-                                (
-                                    CountMinScript,
-                                    self.make_frequency_table_keys(
-                                        model,
-                                        rollup,
-                                        _timestamp.timestamp(),
-                                        destination,
-                                        environment_id,
-                                    ),
-                                    ["IMPORT"] + list(self.DEFAULT_SKETCH_PARAMETERS) + [payload],
-                                )
-                            )
-                        next(results)  # pop off the result of DEL
-
-            try:
-                cluster.execute_commands({destination: imports})
-            except Exception:
-                if durable:
-                    raise
-
-    def delete_frequencies(
-        self,
-        models: list[TSDBModel],
-        keys: Iterable[str],
-        start: datetime | None = None,
-        end: datetime | None = None,
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        ids = (set(environment_ids) if environment_ids is not None else set()).union([None])
-
-        self.validate_arguments(models, ids)
-
-        rollups = self.get_active_series(start, end, timestamp)
-
-        for (cluster, durable), _environment_ids in self.get_cluster_groups(ids):
-            manager = cluster.fanout()
-            if not durable:
-                manager = SuppressionWrapper(manager)
-
-            with manager as client:
-                for rollup, series in rollups.items():
-                    for timestamp in series:
-                        for model in models:
-                            for key in keys:
-                                c = client.target_key(key)
-                                for environment_id in _environment_ids:
-                                    for k in self.make_frequency_table_keys(
-                                        model, rollup, timestamp.timestamp(), key, environment_id
-                                    ):
-                                        c.delete(k)

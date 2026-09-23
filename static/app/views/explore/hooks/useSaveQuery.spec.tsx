@@ -4,13 +4,9 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
-
-const mockUsePageFilters = jest.mocked(usePageFilters);
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -20,11 +16,8 @@ describe('useSpansSaveQuery', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: PageFiltersFixture({
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
         projects: [1],
         environments: ['production'],
         datetime: {
@@ -33,11 +26,12 @@ describe('useSpansSaveQuery', () => {
           period: '1h',
           utc: false,
         },
-      }),
-    });
+      })
+    );
   });
 
   afterEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 
@@ -68,7 +62,7 @@ describe('useSpansSaveQuery', () => {
       },
     });
 
-    await result.current.saveQuery('New Query', true);
+    await result.current.saveQuery({name: 'New Query', starred: true});
 
     expect(saveQueryMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/explore/saved/`,

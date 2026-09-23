@@ -1,4 +1,4 @@
-import type {ComponentProps, PropsWithChildren} from 'react';
+import type {PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -8,22 +8,6 @@ import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 describe('FeatureTourModal', () => {
   const onCloseModal = jest.fn();
   const styledWrapper = styled((c: PropsWithChildren) => c.children);
-  const renderComponent = (
-    props: Partial<ComponentProps<typeof FeatureDisabledModal>> = {}
-  ) =>
-    render(
-      <FeatureDisabledModal
-        Body={styledWrapper()}
-        Footer={styledWrapper()}
-        Header={() => <span>Header</span>}
-        closeModal={onCloseModal}
-        CloseButton={() => <button>Close</button>}
-        featureName="Default Feature"
-        features="organization:test-feature"
-        {...props}
-      />
-    );
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -32,10 +16,17 @@ describe('FeatureTourModal', () => {
     const featureName = 'Custom Feature';
     const features = ['organization:custom-feature'];
 
-    renderComponent({
-      featureName,
-      features,
-    });
+    render(
+      <FeatureDisabledModal
+        Body={styledWrapper()}
+        Footer={styledWrapper()}
+        Header={() => <span>Header</span>}
+        closeModal={onCloseModal}
+        CloseButton={() => <button>Close</button>}
+        featureName={featureName}
+        features={features}
+      />
+    );
 
     expect(
       screen.getByText('This feature is not enabled on your Sentry installation.')
@@ -45,15 +36,5 @@ describe('FeatureTourModal', () => {
     expect(
       screen.getByText(/SENTRY_FEATURES\['organization:custom-feature'\] = True/)
     ).toBeInTheDocument();
-  });
-
-  it('renders with custom message', () => {
-    const message = 'custom message';
-
-    renderComponent({
-      message,
-    });
-
-    expect(screen.getByText(message)).toBeInTheDocument();
   });
 });

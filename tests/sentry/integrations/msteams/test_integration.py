@@ -16,7 +16,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
-from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
@@ -211,10 +211,7 @@ class MsTeamsIntegrationSendNotificationTest(TestCase):
             }
         )
 
-        mock_send_card.side_effect = ApiError(
-            text=error_payload,
-            code=400,
-        )
+        mock_send_card.side_effect = IntegrationConfigurationError(error_payload)
         payload: AdaptiveCard = {
             "type": "AdaptiveCard",
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -226,3 +223,23 @@ class MsTeamsIntegrationSendNotificationTest(TestCase):
             self.installation.send_notification(target=self.target, payload=payload)
 
         assert str(e.value) == error_payload
+
+
+@control_silo_test
+class MsTeamsIntegrationConfigTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_provider_integration(
+            provider="msteams", name="Microsoft Teams", metadata={}
+        )
+        self.installation = MsTeamsIntegration(self.integration, self.organization.id)
+
+    def test_config_data_team(self) -> None:
+        self.integration.metadata["installation_type"] = "team"
+        assert self.installation.get_config_data()["installationType"] == "team"
+
+    def test_config_data_tenant(self) -> None:
+        self.integration.metadata["installation_type"] = "tenant"
+        assert self.installation.get_config_data()["installationType"] == "tenant"
+
+    def test_config_data_missing(self) -> None:
+        assert self.installation.get_config_data()["installationType"] == ""

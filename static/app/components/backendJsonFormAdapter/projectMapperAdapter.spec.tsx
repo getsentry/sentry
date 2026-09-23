@@ -213,6 +213,27 @@ describe('ProjectMapperAdapter', () => {
     ).toBeInTheDocument();
   });
 
+  it('opens project creation in a new tab', async () => {
+    const openSpy = jest.spyOn(window, 'open').mockReturnValue(null);
+    render(
+      <BackendJsonAutoSaveForm
+        field={makeConfig()}
+        initialValue={[]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
+
+    await userEvent.click(screen.getByText('Sentry project…'));
+    await userEvent.click(screen.getByText('Create a Project'));
+
+    expect(openSpy).toHaveBeenCalledWith(
+      `/organizations/${org.slug}/insights/projects/new/`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  });
+
   it('Add button disabled until both selections are made', async () => {
     render(
       <BackendJsonAutoSaveForm

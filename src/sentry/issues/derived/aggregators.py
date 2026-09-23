@@ -35,6 +35,7 @@ from sentry.issues.derived.features import (
     IS_ASSIGNED,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
+    NO_CHANGE_RECONCILE_IDS,
     PROGRESS,
     STATUS,
     VIEW_COUNT,
@@ -58,8 +59,11 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
     return emit(VIEW_COUNT.value(state[VIEW_COUNT] + 1))
 
 
+_MAX_NO_CHANGE_RECONCILE_IDS = 20
+
+
 @aggregator(
-    (STATUS,),
+    (STATUS, NO_CHANGE_RECONCILE_IDS),
     scope=(
         ResolveAction,
         SetResolvedInReleaseAction,
@@ -73,6 +77,11 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
     ),
 )
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    # A merge preserves the destination group's status. Ignore actions migrated
+    # from source groups so their history cannot overwrite that status.
+    if entry.original_group_id is not None:
+        return None
+
     current = state[STATUS]
 
     match entry.action:
@@ -80,6 +89,10 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
             new_status = IssueStatus(raw_status)
             if new_status != current:
                 return emit(STATUS.value(new_status))
+            reconcile_ids = state[NO_CHANGE_RECONCILE_IDS]
+            if len(reconcile_ids) < _MAX_NO_CHANGE_RECONCILE_IDS:
+                return emit(NO_CHANGE_RECONCILE_IDS.value([*reconcile_ids, entry.id]))
+            return None
         case (
             ResolveAction()
             | SetResolvedInReleaseAction()
@@ -197,9 +210,15 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
 
     if state[STATUS] != IssueStatus.OPEN:
         new_progress = None
-    elif (
+    elif entry.type == PullRequestMergedAction.get_type() or (
         current_progress == IssueProgressState.FIX_APPLIED
-        or entry.type == PullRequestMergedAction.get_type()
+        and entry.type
+        # Usually an issue will first close before it regresses, but there are cases where a regression action
+        #  is seen without a resolution action. This handles that case and clears the FIX_APPLIED progress.
+        not in (
+            UnresolveAction.get_type(),
+            SetRegressedAction.get_type(),
+        )
     ):
         new_progress = IssueProgressState.FIX_APPLIED
     elif state[HAS_OPEN_FIX_PR]:

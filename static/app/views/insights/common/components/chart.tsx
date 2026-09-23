@@ -2,13 +2,11 @@ import type {RefObject} from 'react';
 import {createContext, useContext, useEffect, useMemo, useReducer, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
   XAXisOption,
-  YAXisOption,
 } from 'echarts/types/dist/shared';
 import max from 'lodash/max';
 import min from 'lodash/min';
@@ -22,8 +20,7 @@ import type {FormatterOptions} from 'sentry/components/charts/components/tooltip
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import {lineSeries} from 'sentry/components/charts/series/lineSeries';
-import {ScatterSeries} from 'sentry/components/charts/series/scatterSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {isChartHovered} from 'sentry/components/charts/utils';
@@ -34,22 +31,13 @@ import {
 } from 'sentry/components/metrics/chart/chart';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconWarning} from 'sentry/icons';
-import type {
-  EChartClickHandler,
-  EChartDataZoomHandler,
-  EChartEventHandler,
-  EChartHighlightHandler,
-  EChartMouseOutHandler,
-  EChartMouseOverHandler,
-  ReactEchartsRef,
-  Series,
-} from 'sentry/types/echarts';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
@@ -80,70 +68,171 @@ type Props = {
   type: ChartType;
   aggregateOutputFormat?: AggregationOutputType;
   chartColors?: string[] | readonly string[];
-  chartGroup?: string;
   dataMax?: number;
-  definedAxisTicks?: number;
   disableXAxis?: boolean;
-  durationUnit?: number;
   error?: Error | null;
   grid?: AreaChartProps['grid'];
   height?: number;
   hideYAxisSplitLine?: boolean;
-  legendFormatter?: (name: string) => string;
-  legendOptions?: LegendComponentOption;
-  log?: boolean;
-  onClick?: EChartClickHandler;
-  onDataZoom?: EChartDataZoomHandler;
-  onHighlight?: EChartHighlightHandler;
-  onLegendSelectChanged?: EChartEventHandler<{
-    name: string;
-    selected: Record<string, boolean>;
-    type: 'legendselectchanged';
-  }>;
-  onMouseOut?: EChartMouseOutHandler;
-  onMouseOver?: EChartMouseOverHandler;
-  previousData?: Series[];
-  rateUnit?: RateUnit;
   ref?: RefObject<ReactEchartsRef>;
-  scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
-  throughput?: Array<{count: number; interval: string}>;
   tooltipFormatterOptions?: FormatterOptions;
 };
+
+function ChartWithSeries({
+  aggregateOutputFormat,
+  areaChartProps,
+  chartRef,
+  colors,
+  data,
+  dataMax,
+  grid,
+  height,
+  incompleteSeries,
+  legend,
+  releaseSeries,
+  series,
+  stacked,
+  theme,
+  type,
+  xAxis,
+  zoomRenderProps,
+}: {
+  areaChartProps: Omit<AreaChartProps, 'series'>;
+  chartRef: RefObject<ReactEchartsRef | null>;
+  colors: string[] | readonly string[];
+  data: Series[];
+  incompleteSeries: Series[];
+  series: Series[];
+  theme: ReturnType<typeof useTheme>;
+  type: ChartType;
+  xAxis: XAXisOption;
+  zoomRenderProps: ZoomRenderProps;
+  aggregateOutputFormat?: AggregationOutputType;
+  dataMax?: number;
+  grid?: AreaChartProps['grid'];
+  height?: number;
+  legend?: AreaChartProps['legend'];
+  releaseSeries?: Series[];
+  stacked?: boolean;
+}) {
+  if (type === ChartType.LINE) {
+    return (
+      <BaseChart
+        {...zoomRenderProps}
+        ref={chartRef}
+        height={height}
+        xAxis={xAxis}
+        yAxes={areaChartProps.yAxes}
+        tooltip={areaChartProps.tooltip}
+        colors={colors}
+        grid={grid}
+        legend={legend}
+        series={[
+          ...series.map(({seriesName, data: seriesData, ...options}) =>
+            createLineSeries({
+              ...options,
+              name: seriesName,
+              data: seriesData?.map(({value, name}) => [name, value]),
+              animation: false,
+              animationThreshold: 1,
+              animationDuration: 0,
+            })
+          ),
+          ...incompleteSeries.map(({seriesName, data: seriesData, ...options}) =>
+            createLineSeries({
+              ...options,
+              name: seriesName,
+              data: seriesData?.map(({value, name}) => [name, value]),
+              animation: false,
+              animationThreshold: 1,
+              animationDuration: 0,
+            })
+          ),
+          ...(releaseSeries ?? []).map(({seriesName, data: seriesData, ...options}) =>
+            createLineSeries({
+              ...options,
+              name: seriesName,
+              data: seriesData?.map(({value, name}) => [name, value]),
+              animation: false,
+              animationThreshold: 1,
+              animationDuration: 0,
+            })
+          ),
+        ]}
+      />
+    );
+  }
+
+  if (type === ChartType.BAR) {
+    return (
+      <BarChart
+        {...zoomRenderProps}
+        height={height}
+        series={series}
+        xAxis={xAxis}
+        yAxis={{
+          minInterval: getDurationUnit(data),
+          max: dataMax,
+          axisLabel: {
+            color: theme.tokens.content.secondary,
+            formatter(value: number) {
+              return axisLabelFormatter(
+                value,
+                aggregateOutputFormat ?? aggregateOutputType(data[0]!.seriesName),
+                true,
+                getDurationUnit(data)
+              );
+            },
+          },
+        }}
+        tooltip={{
+          valueFormatter: (value, seriesName) => {
+            return tooltipFormatter(
+              value,
+              aggregateOutputFormat ??
+                aggregateOutputType(data?.length ? data[0]!.seriesName : seriesName)
+            );
+          },
+        }}
+        colors={colors}
+        grid={grid}
+        legend={legend}
+      />
+    );
+  }
+
+  return (
+    <AreaChart
+      ref={chartRef}
+      height={height}
+      {...zoomRenderProps}
+      series={[...series, ...incompleteSeries, ...(releaseSeries ?? [])]}
+      xAxis={xAxis}
+      stacked={stacked}
+      colors={colors}
+      {...areaChartProps}
+    />
+  );
+}
 
 export function Chart({
   data,
   dataMax,
-  previousData,
   loading,
   height: chartHeight,
   grid,
   disableXAxis,
-  definedAxisTicks,
-  durationUnit,
-  rateUnit,
   chartColors,
   type,
   stacked,
-  log,
   hideYAxisSplitLine,
   showLegend,
-  scatterPlot,
-  throughput,
   aggregateOutputFormat,
-  onClick,
-  onMouseOver,
-  onMouseOut,
-  onHighlight,
   ref,
-  chartGroup,
   tooltipFormatterOptions = {},
   error,
-  onLegendSelectChanged,
-  onDataZoom,
-  legendOptions,
-  legendFormatter,
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -158,9 +247,10 @@ export function Chart({
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = ref || defaultRef;
 
+  // oxlint-disable-next-line react/refs
   const echartsInstance = chartRef?.current?.getEchartsInstance?.();
   if (echartsInstance && !echartsInstance.group) {
-    echartsInstance.group = chartGroup ?? STARFISH_CHART_GROUP;
+    echartsInstance.group = STARFISH_CHART_GROUP;
   }
 
   const colors = chartColors ?? theme.chart.getColorPalette(4);
@@ -174,47 +264,14 @@ export function Chart({
 
   if (!dataMax) {
     dataMax = durationOnly
-      ? computeAxisMax(
-          [...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])],
-          stacked
-        )
+      ? computeAxisMax(data, stacked)
       : percentOnly
-        ? computeMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
+        ? computeMax(data)
         : undefined;
     // Fix an issue where max == 1 for duration charts would look funky cause we round
     if (dataMax === 1 && durationOnly) {
       dataMax += 1;
     }
-  }
-
-  let transformedThroughput: LineSeriesOption[] | undefined;
-  const additionalAxis: YAXisOption[] = [];
-
-  if (throughput && throughput.length > 1) {
-    transformedThroughput = [
-      lineSeries({
-        name: 'Throughput',
-        data: throughput.map(({interval, count}) => [interval, count]),
-        yAxisIndex: 1,
-        lineStyle: {type: 'dashed', width: 1, opacity: 0.5},
-        animation: false,
-        animationThreshold: 1,
-        animationDuration: 0,
-      }),
-    ];
-    additionalAxis.push({
-      minInterval: durationUnit ?? getDurationUnit(data),
-      splitNumber: definedAxisTicks,
-      max: dataMax,
-      type: 'value',
-      axisLabel: {
-        color: theme.tokens.content.secondary,
-        formatter(value: number) {
-          return axisLabelFormatter(value, 'number', true);
-        },
-      },
-      splitLine: hideYAxisSplitLine ? {show: false} : undefined,
-    });
   }
 
   let series: Series[] = data.map((values, index) => ({
@@ -237,6 +294,9 @@ export function Chart({
       return 1;
     }
     return getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp);
+    // React Compiler treats one of these dependencies as mutated later in the
+    // component, so it cannot prove the memoization is preserved.
+    // oxlint-disable-next-line react/preserve-manual-memoization
   }, [bucketSize, lastBucketTimestamp]);
 
   // TODO: Support bar charts
@@ -271,10 +331,9 @@ export function Chart({
 
   const yAxes = [
     {
-      minInterval: durationUnit ?? getDurationUnit(data),
-      splitNumber: definedAxisTicks,
+      minInterval: getDurationUnit(data),
       max: dataMax,
-      type: log ? 'log' : 'value',
+      type: 'value',
       axisLabel: {
         color: theme.tokens.content.secondary,
         formatter(value: number) {
@@ -282,14 +341,12 @@ export function Chart({
             value,
             aggregateOutputFormat ?? aggregateOutputType(data[0]!.seriesName),
             true,
-            durationUnit ?? getDurationUnit(data),
-            rateUnit
+            getDurationUnit(data)
           );
         },
       },
       splitLine: hideYAxisSplitLine ? {show: false} : undefined,
     },
-    ...additionalAxis,
   ];
 
   const xAxis: XAXisOption = disableXAxis
@@ -349,8 +406,6 @@ export function Chart({
         top: 0,
         right: 10,
         truncate: true,
-        formatter: legendFormatter,
-        ...legendOptions,
       }
     : undefined;
 
@@ -384,186 +439,62 @@ export function Chart({
     },
   } as Omit<AreaChartProps, 'series'>;
 
-  function getChartWithSeries(
-    zoomRenderProps: ZoomRenderProps,
-    releaseSeries?: Series[]
-  ) {
-    if (error) {
-      return (
-        <ErrorPanel height={`${height}px`} data-test-id="chart-error-panel">
-          <IconWarning variant="muted" size="lg" />
-        </ErrorPanel>
-      );
-    }
-
-    if (type === ChartType.LINE) {
-      return (
-        <BaseChart
-          {...zoomRenderProps}
-          ref={chartRef}
-          height={height}
-          previousPeriod={previousData}
-          additionalSeries={transformedThroughput}
-          xAxis={xAxis}
-          yAxes={areaChartProps.yAxes}
-          tooltip={areaChartProps.tooltip}
-          colors={colors}
-          grid={grid}
-          legend={legend}
-          onClick={onClick}
-          onMouseOut={onMouseOut}
-          onMouseOver={onMouseOver}
-          onHighlight={onHighlight}
-          series={[
-            ...series.map(({seriesName, data: seriesData, ...options}) =>
-              lineSeries({
-                ...options,
-                name: seriesName,
-                data: seriesData?.map(({value, name}) => [name, value]),
-                animation: false,
-                animationThreshold: 1,
-                animationDuration: 0,
-              })
-            ),
-            ...(scatterPlot ?? []).map(({seriesName, data: seriesData, ...options}) =>
-              ScatterSeries({
-                ...options,
-                name: seriesName,
-                data: seriesData?.map(({value, name}) => [name, value]),
-                animation: false,
-              })
-            ),
-            ...incompleteSeries.map(({seriesName, data: seriesData, ...options}) =>
-              lineSeries({
-                ...options,
-                name: seriesName,
-                data: seriesData?.map(({value, name}) => [name, value]),
-                animation: false,
-                animationThreshold: 1,
-                animationDuration: 0,
-              })
-            ),
-            ...(releaseSeries ?? []).map(({seriesName, data: seriesData, ...options}) =>
-              lineSeries({
-                ...options,
-                name: seriesName,
-                data: seriesData?.map(({value, name}) => [name, value]),
-                animation: false,
-                animationThreshold: 1,
-                animationDuration: 0,
-              })
-            ),
-          ]}
-        />
-      );
-    }
-
-    if (type === ChartType.BAR) {
-      return (
-        <BarChart
-          {...zoomRenderProps}
-          height={height}
-          series={series}
-          xAxis={xAxis}
-          yAxis={{
-            minInterval: durationUnit ?? getDurationUnit(data),
-            splitNumber: definedAxisTicks,
-            max: dataMax,
-            axisLabel: {
-              color: theme.tokens.content.secondary,
-              formatter(value: number) {
-                return axisLabelFormatter(
-                  value,
-                  aggregateOutputFormat ?? aggregateOutputType(data[0]!.seriesName),
-                  true,
-                  durationUnit ?? getDurationUnit(data),
-                  rateUnit
-                );
-              },
-            },
-          }}
-          tooltip={{
-            valueFormatter: (value, seriesName) => {
-              return tooltipFormatter(
-                value,
-                aggregateOutputFormat ??
-                  aggregateOutputType(data?.length ? data[0]!.seriesName : seriesName)
-              );
-            },
-          }}
-          colors={colors}
-          grid={grid}
-          legend={legend}
-          onClick={onClick}
-        />
-      );
-    }
-
-    return (
-      <AreaChart
-        ref={chartRef}
-        height={height}
-        {...zoomRenderProps}
-        series={[...series, ...incompleteSeries, ...(releaseSeries ?? [])]}
-        previousPeriod={previousData}
-        additionalSeries={transformedThroughput}
-        xAxis={xAxis}
-        stacked={stacked}
-        colors={colors}
-        onClick={onClick}
-        {...areaChartProps}
-        onLegendSelectChanged={onLegendSelectChanged}
-      />
-    );
+  // add top-padding to the chart in full screen so that the legend
+  // and graph do not overlap
+  if (renderingContext?.isFullscreen) {
+    grid = {...grid, top: '20px'};
   }
 
-  function getChart() {
-    if (error) {
-      return (
-        <ErrorPanel height={`${height}px`} data-test-id="chart-error-panel">
-          <IconWarning variant="muted" size="lg" />
-        </ErrorPanel>
-      );
-    }
+  const chartWithSeriesProps = {
+    aggregateOutputFormat,
+    areaChartProps,
+    chartRef,
+    colors,
+    data,
+    dataMax,
+    grid,
+    height,
+    incompleteSeries,
+    legend,
+    series,
+    stacked,
+    theme,
+    type,
+    xAxis,
+  };
 
-    // add top-padding to the chart in full screen so that the legend
-    // and graph do not overlap
-    if (renderingContext?.isFullscreen) {
-      grid = {...grid, top: '20px'};
-    }
-
-    // overlay additional series data such as releases and issues on top of the original insights chart
-    return (
-      <ChartZoom
-        saveOnZoom
-        period={period}
-        start={start}
-        end={end}
-        utc={utc}
-        onDataZoom={onDataZoom}
-      >
-        {zoomRenderProps =>
-          renderingContext?.isFullscreen ? (
-            <ReleaseSeries
-              start={start}
-              end={end}
-              queryExtra={undefined}
-              period={period}
-              utc={utc}
-              projects={projects}
-              environments={environments}
-            >
-              {({releaseSeries}) => {
-                return getChartWithSeries(zoomRenderProps, releaseSeries);
-              }}
-            </ReleaseSeries>
-          ) : (
-            getChartWithSeries(zoomRenderProps)
-          )
-        }
-      </ChartZoom>
-    );
-  }
+  // Overlay additional series data such as releases and issues on top of the original insights chart.
+  const chart = error ? (
+    <ErrorPanel height={`${height}px`} data-test-id="chart-error-panel">
+      <IconWarning variant="muted" size="lg" />
+    </ErrorPanel>
+  ) : (
+    <ChartZoom saveOnZoom period={period} start={start} end={end} utc={utc}>
+      {zoomRenderProps =>
+        renderingContext?.isFullscreen ? (
+          <ReleaseSeries
+            start={start}
+            end={end}
+            queryExtra={undefined}
+            period={period}
+            utc={utc}
+            projects={projects}
+            environments={environments}
+          >
+            {({releaseSeries}) => (
+              <ChartWithSeries
+                {...chartWithSeriesProps}
+                releaseSeries={releaseSeries}
+                zoomRenderProps={zoomRenderProps}
+              />
+            )}
+          </ReleaseSeries>
+        ) : (
+          <ChartWithSeries {...chartWithSeriesProps} zoomRenderProps={zoomRenderProps} />
+        )
+      }
+    </ChartZoom>
+  );
 
   return (
     <TransitionChart
@@ -572,7 +503,7 @@ export function Chart({
       height={height ? `${height}px` : undefined}
     >
       <LoadingScreen loading={loading} />
-      {getChart()}
+      {chart}
     </TransitionChart>
   );
 }

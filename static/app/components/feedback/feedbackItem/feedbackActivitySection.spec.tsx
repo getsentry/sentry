@@ -15,6 +15,13 @@ import {FeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptio
 import {GroupActivityType, IssueCategory} from 'sentry/types/group';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 
+function getCommentEditor(name = 'Add a comment') {
+  const editor = screen.getByRole('combobox', {name});
+  // user-event does not yet recognize contenteditable="plaintext-only".
+  editor.setAttribute('contenteditable', 'true');
+  return editor;
+}
+
 describe('FeedbackActivitySection', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
@@ -35,6 +42,7 @@ describe('FeedbackActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: 'Existing feedback note'},
           dateCreated: '2020-01-01T00:00:00',
           user,
@@ -52,17 +60,18 @@ describe('FeedbackActivitySection', () => {
       {organization}
     );
 
-    const commentInput = screen.getByPlaceholderText(
-      /Add details or updates to this feedback/
-    );
+    const commentEditor = getCommentEditor();
 
-    expect(commentInput).toBeInTheDocument();
+    expect(commentEditor).toHaveAttribute(
+      'data-placeholder',
+      expect.stringContaining('Add details or updates to this feedback')
+    );
     expect(screen.getByText('Existing feedback note')).toBeInTheDocument();
     expect(screen.getByTestId('activity-timeline')).not.toContainElement(
       screen.getByTestId('activity-input-frame')
     );
 
-    await userEvent.click(commentInput);
+    await userEvent.click(commentEditor);
 
     expect(screen.getByRole('radio', {name: 'Write'})).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Preview'})).toBeInTheDocument();
@@ -81,6 +90,7 @@ describe('FeedbackActivitySection', () => {
       method: 'POST',
       body: {
         id: 'note-2',
+        commentId: 'note-2',
         user,
         type: 'note',
         data: {text: comment},
@@ -97,7 +107,7 @@ describe('FeedbackActivitySection', () => {
       {organization}
     );
 
-    await userEvent.type(screen.getByRole('textbox'), comment);
+    await userEvent.type(getCommentEditor(), comment);
     await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
 
     expect(postMock).toHaveBeenCalledWith(
@@ -119,6 +129,7 @@ describe('FeedbackActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: 'Existing feedback note'},
           dateCreated: '2020-01-01T00:00:00',
           user,
@@ -140,7 +151,8 @@ describe('FeedbackActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
-    const editInput = screen.getByDisplayValue('Existing feedback note');
+    const editInput = getCommentEditor('Edit comment');
+    expect(editInput).toHaveTextContent('Existing feedback note');
     const editFrame = screen
       .getAllByTestId('activity-input-frame')
       .find(frame => frame.contains(editInput));

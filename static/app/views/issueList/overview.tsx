@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
@@ -14,7 +13,7 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
-import type {GroupListColumn} from 'sentry/components/issues/groupList';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
@@ -29,6 +28,7 @@ import type {PageFilterDatetime} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
@@ -54,12 +54,14 @@ import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
-import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergroupDrawer';
-import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
 import {IssueListFilters} from './filters';
@@ -85,11 +87,9 @@ const MAX_ISSUES_COUNT = 100;
 interface Props {
   headerActions?: ReactNode;
   initialQuery?: string;
-  initialSort?: IssueSortOptions;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
-  withColumns?: GroupListColumn[];
 }
 
 interface EndpointParams extends Partial<PageFilterDatetime> {
@@ -134,12 +134,10 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
 
 function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
-  initialSort = DEFAULT_ISSUE_STREAM_SORT,
   shouldFetchOnMount = true,
   title = t('Issues'),
   titleDescription,
   headerActions,
-  withColumns,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -186,11 +184,6 @@ function IssueListOverviewInner({
 
   useIssuesINPObserver();
 
-  const {data: supergroupLookup, isLoading: supergroupsLoading} =
-    useSuperGroups(groupIds);
-
-  useSupergroupDrawer({lookup: supergroupLookup, memberList});
-
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
       // Note: We do not update state with cursors from polling,
@@ -220,18 +213,14 @@ function IssueListOverviewInner({
   const hasRecommendedSortDefault = organization.features.includes(
     'issue-stream-recommended-sort-default'
   );
-  const hasIssueStreamProgressUI = organization.features.includes(
-    'issue-stream-progress-ui'
-  );
+  const hasIssueInbox = organization.features.includes('issue-inbox');
   // The stored sort is the user's preferred sort for the unsaved feed.
   // Saved views persist their own sort, so they neither read nor write it.
   const defaultSort = urlParams.viewId
     ? (groupSearchView?.querySort ?? DEFAULT_ISSUE_STREAM_SORT)
-    : initialSort === DEFAULT_ISSUE_STREAM_SORT
-      ? hasRecommendedSortDefault
-        ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
-        : DEFAULT_ISSUE_STREAM_SORT
-      : initialSort;
+    : hasRecommendedSortDefault
+      ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
+      : DEFAULT_ISSUE_STREAM_SORT;
   const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
@@ -294,15 +283,11 @@ function IssueListOverviewInner({
       params.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
-    params.expand = [
-      'owners',
-      'inbox',
-      ...(hasIssueStreamProgressUI ? ['derivedData'] : []),
-    ];
+    params.expand = ['owners', 'inbox', ...(hasIssueInbox ? ['derivedData'] : [])];
     params.collapse = ['stats', 'unhandled'];
 
     return params;
-  }, [getEndpointParams, location.query, hasIssueStreamProgressUI]);
+  }, [getEndpointParams, location.query, hasIssueInbox]);
 
   const loadFromCache = useCallback((): boolean => {
     const cache = IssueListCacheStore.getFromCache(requestParams);
@@ -356,7 +341,9 @@ function IssueListOverviewInner({
 
       try {
         const data = await api.requestPromise(
-          `/organizations/${organization.slug}/issues-stats/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/issues-stats/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
           {
             method: 'GET',
             data: qs.stringify(statsRequestParams),
@@ -374,7 +361,10 @@ function IssueListOverviewInner({
         // Other transactions include stacktrace preview request
         const currentSpan = Sentry.getActiveSpan();
         const rootSpan = currentSpan ? Sentry.getRootSpan(currentSpan) : undefined;
-        if (rootSpan && Sentry.spanToJSON(rootSpan).op === 'navigation') {
+        if (
+          rootSpan &&
+          Sentry.spanToJSON(rootSpan).attributes['sentry.op'] === 'navigation'
+        ) {
           rootSpan.end();
         }
       }
@@ -423,7 +413,9 @@ function IssueListOverviewInner({
 
     try {
       const [data, _, resp] = await api.requestPromise(
-        `/organizations/${organization.slug}/issues/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET',
           data: qs.stringify(requestParams),
@@ -559,16 +551,11 @@ function IssueListOverviewInner({
   useDisableRouteAnalytics(issuesLoading);
   useRouteAnalyticsEventNames('issues.viewed', 'Issues: Viewed');
   useRouteAnalyticsParams({
-    page: parsePageQueryParam(location, 0),
+    page: parsePageQueryParam(location),
     query,
     num_issues: groups.length,
     group_ids: groups.map(group => group.id),
     total_issues_count: queryCount,
-    total_issue_group_count: new Set(
-      Object.values(supergroupLookup)
-        .filter(sg => sg !== null)
-        .map(sg => sg.id)
-    ).size,
     sort,
     realtime_active: realtimeActive,
     is_view: urlParams.viewId ? true : false,
@@ -642,7 +629,7 @@ function IssueListOverviewInner({
 
   const getPageCounts = useCallback(() => {
     const links = parseLinkHeader(pageLinks);
-    const queryPageInt = parsePageQueryParam(location, 0);
+    const queryPageInt = parsePageQueryParam(location);
     // Cursor must be present for the page number to be used
     const page = location.query.cursor ? queryPageInt : 0;
 
@@ -710,11 +697,7 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
-    if (
-      hasRecommendedSortDefault &&
-      !urlParams.viewId &&
-      initialSort === DEFAULT_ISSUE_STREAM_SORT
-    ) {
+    if (hasRecommendedSortDefault && !urlParams.viewId) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});
@@ -740,7 +723,7 @@ function IssueListOverviewInner({
   const onSelectStatsPeriod = (period: string) => {
     if (period !== getGroupStatsPeriod()) {
       const cursor = decodeScalar(location.query.cursor);
-      const queryPageInt = parsePageQueryParam(location, 0);
+      const queryPageInt = parsePageQueryParam(location);
       const page = cursor ? queryPageInt : 0;
       transitionTo({cursor, page, groupStatsPeriod: period});
     }
@@ -925,6 +908,10 @@ function IssueListOverviewInner({
   // Derive from query (URL state) not initialQuery (prop) so the hint
   // stays accurate if the user edits the search bar.
   const isTaxonomyView = query.includes('issue.category:');
+  const selectedProjects = useSelectedProjectsForLLMContext();
+  // Visible rows may span a subset of the page-filter selection; keep those
+  // separate from the hard selected project filter the agent should scope to.
+  const displayedProjectSlugs = [...new Set(groups.map(g => g.project.slug))];
 
   useLLMContext({
     contextHint:
@@ -936,13 +923,17 @@ function IssueListOverviewInner({
       'query is the current search filter (Sentry search syntax). ' +
       'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
       'issueCount is the total matching issues — there may be more than what is displayed. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction. ' +
+      'displayedProjectSlugs are only the projects represented by currently visible rows. ' +
       'You can get issue details for aggregate stats, get event details for a specific error event, ' +
       'and search live telemetry for related spans/errors/logs/metrics.',
     viewName: groupSearchView?.name,
     query,
     sort,
     issueCount: queryCount,
-    projectSlugs: [...new Set(groups.map(g => g.project.slug))],
+    ...toLLMContextProjectFields(selectedProjects),
+    displayedProjectSlugs,
     environments: selection.environments,
     dateRange: selection.datetime,
     displayedIssues: [
@@ -976,57 +967,57 @@ function IssueListOverviewInner({
           onRealtimeChange={onRealtimeChange}
           headerActions={headerActions}
         />
-        <StyledBody>
-          <Grid area="content" padding={{'screen:sm': 'md lg', 'screen:md': 'lg xl'}}>
-            <IssuesDataConsentBanner source="issues" />
-            <IssueListFilters
-              query={query}
-              sort={sort}
-              onSortChange={onSortChange}
-              onSearch={onSearch}
-            />
-            <IssueListTable
-              selection={selection}
-              query={query}
-              queryCount={modifiedQueryCount}
-              onSelectStatsPeriod={onSelectStatsPeriod}
-              onActionTaken={onActionTaken}
-              onDelete={onDelete}
-              statsPeriod={getGroupStatsPeriod()}
-              groupIds={groupIds}
-              allResultsVisible={allResultsVisible()}
-              displayReprocessingActions={displayReprocessingActions}
-              memberList={memberList}
-              issuesLoading={issuesLoading || supergroupsLoading}
-              statsLoading={statsLoading}
-              supergroupLookup={supergroupLookup}
-              error={error}
-              refetchGroups={fetchData}
-              withColumns={withColumns}
-              paginationCaption={
-                !issuesLoading && modifiedQueryCount > 0
-                  ? tct('[start]-[end] of [total]', {
-                      start: numPreviousIssues + 1,
-                      end: numPreviousIssues + numIssuesOnPage,
-                      total: (
-                        <QueryCount
-                          hideParens
-                          hideIfEmpty={false}
-                          count={modifiedQueryCount}
-                          max={queryMaxCount || 100}
-                        />
-                      ),
-                    })
-                  : null
-              }
-              pageLinks={pageLinks}
-              onCursor={onCursorChange}
-              paginationAnalyticsEvent={paginationAnalyticsEvent}
-              issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
-              pageSize={MAX_ITEMS}
-            />
-          </Grid>
-        </StyledBody>
+        <Layout.Body>
+          <Layout.Main width="full">
+            <Grid>
+              <IssuesDataConsentBanner source="issues" />
+              <IssueListFilters
+                query={query}
+                sort={sort}
+                onSortChange={onSortChange}
+                onSearch={onSearch}
+              />
+              <IssueListTable
+                selection={selection}
+                query={query}
+                queryCount={modifiedQueryCount}
+                onSelectStatsPeriod={onSelectStatsPeriod}
+                onActionTaken={onActionTaken}
+                onDelete={onDelete}
+                statsPeriod={getGroupStatsPeriod()}
+                groupIds={groupIds}
+                allResultsVisible={allResultsVisible()}
+                displayReprocessingActions={displayReprocessingActions}
+                memberList={memberList}
+                issuesLoading={issuesLoading}
+                statsLoading={statsLoading}
+                error={error}
+                refetchGroups={fetchData}
+                paginationCaption={
+                  !issuesLoading && modifiedQueryCount > 0
+                    ? tct('[start]-[end] of [total]', {
+                        start: numPreviousIssues + 1,
+                        end: numPreviousIssues + numIssuesOnPage,
+                        total: (
+                          <QueryCount
+                            hideParens
+                            hideIfEmpty={false}
+                            count={modifiedQueryCount}
+                            max={queryMaxCount || 100}
+                          />
+                        ),
+                      })
+                    : null
+                }
+                pageLinks={pageLinks}
+                onCursor={onCursorChange}
+                paginationAnalyticsEvent={paginationAnalyticsEvent}
+                issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
+                pageSize={MAX_ITEMS}
+              />
+            </Grid>
+          </Layout.Main>
+        </Layout.Body>
       </Stack>
     </IssueSelectionProvider>
   );
@@ -1035,8 +1026,3 @@ function IssueListOverviewInner({
 const IssueListOverview = registerLLMContext('issue-list', IssueListOverviewInner);
 
 export default Sentry.withProfiler(IssueListOverview);
-
-const StyledBody = styled('div')`
-  background-color: ${p => p.theme.tokens.background.primary};
-  flex: 1;
-`;

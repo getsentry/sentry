@@ -1,10 +1,9 @@
+import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
 
 interface BreadcrumbMenuLinkItem {
   key: string;
@@ -24,6 +23,8 @@ interface BreadcrumbItemMenuBreadcrumbsProps {
 export function BreadcrumbItemMenuBreadcrumbs({
   items,
 }: BreadcrumbItemMenuBreadcrumbsProps) {
+  const {t} = useTranslation();
+
   return (
     <Flex as="span" align="center" height="32px" flexShrink={0}>
       <DropdownMenu

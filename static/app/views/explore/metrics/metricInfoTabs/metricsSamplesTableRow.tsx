@@ -1,11 +1,11 @@
-import {useRef, useState, type ReactNode} from 'react';
+import {Fragment, useRef, useState, type ReactNode, type RefObject} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -24,16 +24,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/cellActions';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {
-  ExpandedRowContainer,
   NumericSimpleTableRowCell,
   StickyTableRow,
   StyledSimpleTableRowCell,
-  TableRowContainer,
   WrappingText,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {StyledTimestampWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/styles';
@@ -60,9 +58,9 @@ import {
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 
 const VALUE_COLUMN_MIN_WIDTH = '50px';
 const VIEW_CONNECTED_TRACES_REFERRER = 'trace-metrics-samples-table-connected-traces';
@@ -169,7 +167,8 @@ interface SampleTableRowProps {
   columns: SampleTableColumnKey[];
   meta: EventsMetaType;
   row: TraceMetricEventsResponseItem;
-  ref?: (element: HTMLElement | null) => void;
+  ref?: RefObject<HTMLTableRowElement | null>;
+  routingHint?: string;
   source?: MetricsSamplesTableSource;
 }
 
@@ -208,7 +207,76 @@ function FieldCellWrapper({
   );
 }
 
+function MetricTimestampCell({
+  timestamp,
+}: {
+  timestamp: React.ComponentProps<typeof TimeSince>['date'] | undefined;
+}) {
+  if (timestamp === undefined) {
+    return null;
+  }
+
+  return (
+    <StyledTimestampWrapper>
+      <TimeSince date={timestamp} unitStyle="short" tooltipShowSeconds />
+    </StyledTimestampWrapper>
+  );
+}
+
+function MetricDefaultCell({
+  field,
+  meta,
+  organization,
+  row,
+  selection,
+  source,
+}: {
+  field: SampleTableColumnKey;
+  meta: EventsMetaType;
+  organization: Organization;
+  row: TraceMetricEventsResponseItem;
+  selection: PageFilters;
+  source: MetricsSamplesTableSource;
+}) {
+  // For the metric value column, keep column.type as 'number' so that
+  // CellAction/updateQuery adds the raw numeric value to the filter
+  // instead of converting it with a duration assumption. The renderer
+  // still picks up the correct formatter via meta.fields/meta.units.
+  const isMetricValue = field === TraceMetricKnownFieldKey.METRIC_VALUE;
+  const shouldRemoveAddFilter = source === 'issueDetails';
+  const discoverColumn: TableColumn<keyof TableDataRow> = {
+    column: {
+      field,
+      kind: 'field',
+    },
+    name: field,
+    key: field,
+    isSortable: true,
+    type: isMetricValue
+      ? 'number'
+      : ((meta?.fields?.[field] as ColumnValueType) ?? FieldValueType.STRING),
+  };
+
+  return (
+    <FieldRenderer
+      column={discoverColumn}
+      data={row}
+      unit={meta?.units?.[field]}
+      meta={meta}
+      extraMenuItems={getExtraMenuItems({
+        field,
+        organization,
+        row,
+        selection,
+        source,
+      })}
+      allowActions={shouldRemoveAddFilter ? ISSUE_DETAILS_CELL_ACTIONS : undefined}
+    />
+  );
+}
+
 export function SampleTableRow({
+  routingHint,
   row,
   columns,
   meta,
@@ -269,56 +337,6 @@ export function SampleTableRow({
     );
   };
 
-  const renderTimestampCell = (field: string) => {
-    const timestamp = row[field];
-    if (timestamp === undefined) {
-      return null;
-    }
-
-    return (
-      <StyledTimestampWrapper>
-        <TimeSince date={timestamp} unitStyle="short" tooltipShowSeconds />
-      </StyledTimestampWrapper>
-    );
-  };
-
-  const renderDefaultCell = (field: string) => {
-    // For the metric value column, keep column.type as 'number' so that
-    // CellAction/updateQuery adds the raw numeric value to the filter
-    // instead of converting it with a duration assumption. The renderer
-    // still picks up the correct formatter via meta.fields/meta.units.
-    const isMetricValue = field === TraceMetricKnownFieldKey.METRIC_VALUE;
-    const shouldRemoveAddFilter = source === 'issueDetails';
-    const discoverColumn: TableColumn<keyof TableDataRow> = {
-      column: {
-        field,
-        kind: 'field',
-      },
-      name: field,
-      key: field,
-      isSortable: true,
-      type: isMetricValue
-        ? 'number'
-        : ((meta?.fields?.[field] as ColumnValueType) ?? FieldValueType.STRING),
-    };
-    return (
-      <FieldRenderer
-        column={discoverColumn}
-        data={row}
-        unit={meta?.units?.[field]}
-        meta={meta}
-        extraMenuItems={getExtraMenuItems({
-          field,
-          organization,
-          row,
-          selection,
-          source,
-        })}
-        allowActions={shouldRemoveAddFilter ? ISSUE_DETAILS_CELL_ACTIONS : undefined}
-      />
-    );
-  };
-
   const renderMetricTypeCell = () => {
     return <MetricTypeBadge metricType={row[TraceMetricKnownFieldKey.METRIC_TYPE]} />;
   };
@@ -338,19 +356,34 @@ export function SampleTableRow({
   const renderMap: Record<SampleTableColumnKey, () => ReactNode> = {
     [VirtualTableSampleColumnKey.EXPAND_ROW]: renderExpandRowCell,
     [TraceMetricKnownFieldKey.TRACE]: renderTraceCell,
-    [TraceMetricKnownFieldKey.TIMESTAMP]: () =>
-      renderTimestampCell(TraceMetricKnownFieldKey.TIMESTAMP),
+    [TraceMetricKnownFieldKey.TIMESTAMP]: () => (
+      <MetricTimestampCell timestamp={row[TraceMetricKnownFieldKey.TIMESTAMP]} />
+    ),
     [VirtualTableSampleColumnKey.PROJECT_BADGE]: renderProjectCell,
     [TraceMetricKnownFieldKey.METRIC_TYPE]: renderMetricTypeCell,
   };
 
   const renderFieldCell = (field: SampleTableColumnKey) => {
-    return renderMap[field]?.() ?? renderDefaultCell(field);
+    const renderCell = renderMap[field];
+    if (renderCell) {
+      return renderCell();
+    }
+
+    return (
+      <MetricDefaultCell
+        field={field}
+        meta={meta}
+        organization={organization}
+        row={row}
+        selection={selection}
+        source={source}
+      />
+    );
   };
 
   return (
-    <TableRowContainer ref={ref}>
-      <StickyTableRow sticky={isExpanded ? true : undefined}>
+    <Fragment>
+      <StickyTableRow ref={ref} sticky={isExpanded ? true : undefined}>
         {columns.map((field, i) => {
           const isValueColumn = field === TraceMetricKnownFieldKey.METRIC_VALUE;
           const cellContent = renderFieldCell(field);
@@ -372,14 +405,13 @@ export function SampleTableRow({
         })}
       </StickyTableRow>
       {isExpanded && (
-        <ExpandedRowContainer>
-          <MetricDetails
-            dataRow={row}
-            ref={measureRef}
-            showTelemetry={source === 'metricsPage'}
-          />
-        </ExpandedRowContainer>
+        <MetricDetails
+          dataRow={row}
+          routingHint={routingHint}
+          ref={measureRef}
+          showTelemetry={source === 'metricsPage'}
+        />
       )}
-    </TableRowContainer>
+    </Fragment>
   );
 }

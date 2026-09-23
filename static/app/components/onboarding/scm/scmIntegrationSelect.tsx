@@ -43,7 +43,6 @@ export function ScmIntegrationSelect({
 
   return (
     <CompactSelect
-      size="md"
       value={selectedIntegration.id}
       options={options}
       onChange={option => {
@@ -55,6 +54,9 @@ export function ScmIntegrationSelect({
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
+          // The visible label is only the account name, which does not say
+          // what the control picks.
+          aria-label={t('Integration: %s', selectedIntegration.name)}
           icon={getIntegrationIcon(selectedIntegration.provider.key, 'sm')}
         >
           {selectedIntegration.name}
