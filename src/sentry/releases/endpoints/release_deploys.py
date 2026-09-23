@@ -121,7 +121,10 @@ def create_deploy(
     # XXX(dcramer): this has a race for most recent deploy, but
     # should be unlikely to hit in the real world
     Release.objects.filter(id=release.id).update(
-        total_deploys=F("total_deploys") + 1, last_deploy_id=deploy.id
+        total_deploys=F("total_deploys") + 1,
+        last_deploy_id=deploy.id,
+        # `new_last_deploy_id` is the narrow leftover of the widening; drop this write with it.
+        new_last_deploy_id=deploy.id,
     )
 
     for project in projects:

@@ -78,12 +78,7 @@ class PerOrgEndToEndTest(TestCase, SnubaTestCase, SpanTestCase):
         return rules[RESERVED_IDS[rule_type]]
 
     @with_feature("organizations:dynamic-sampling")
-    @override_options(
-        {
-            "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
-        }
-    )
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     @patch("sentry.quotas.backend.get_blended_sample_rate", return_value=BLENDED_SAMPLE_RATE)
     def test_stored_segments_end_up_as_project_rules(self, get_blended_sample_rate) -> None:
         project_a = self.create_project_with_segments(9)
@@ -95,7 +90,7 @@ class PerOrgEndToEndTest(TestCase, SnubaTestCase, SpanTestCase):
             assert run_calculations_per_org_task(self.old_organization.id) is None
 
         # The org rate of 25% is spread over the projects so that the low-volume ones keep
-        # more of their traffic. These are the values the legacy pipeline produced as well.
+        # more of their traffic.
         for project, expected_rate in (
             (project_a, 0.14814814814814817),
             (project_b, 0.1904761904761905),

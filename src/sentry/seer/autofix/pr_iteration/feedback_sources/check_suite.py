@@ -9,7 +9,6 @@ from pydantic import Field, PrivateAttr, root_validator
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.pr_iteration.check_suites import (
     CheckSuiteAutofixRun,
-    CheckSuiteHeadMatch,
     GithubCheckSuiteEvent,
     LivePullRequestHead,
     check_suite_head_match,
@@ -24,7 +23,9 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     FeedbackSourceBase,
     TriggerDecision,
 )
+from sentry.seer.autofix.pr_iteration.project_setting import pr_iteration_enabled_for_group
 from sentry.utils import metrics
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -135,9 +136,6 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     def is_automated(self) -> bool:
         return True
 
-    def _matches_current_head(self, run_state: SeerRunState) -> CheckSuiteHeadMatch:
-        return check_suite_head_match(self.event, run_state)
-
     def log_fields(self, run_state: SeerRunState) -> dict[str, Any]:
         """Which suite this is, and both sides of the head comparison."""
         repo_name = self.event.repository.full_name
@@ -155,8 +153,19 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     def should_queue(self, run_state: SeerRunState) -> Decision:
         from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
 
-        if not self._matches_current_head(run_state).matched:
+        try:
+            autofix_run = self.autofix_run
+        except MissingCheckSuiteAutofixRun:
+            return Decision(ok=False, reason="no_autofix_run")
+
+        # Only automated iteration answers to the project setting; feedback a
+        # person sends goes through sources that never read it.
+        if not pr_iteration_enabled_for_group(autofix_run.group_id):
+            return Decision(ok=False, reason="project_disabled")
+
+        if not check_suite_head_match(self.event, run_state).matched:
             return Decision(ok=False, reason="stale_head")
+
         # Hard cap also blocks enqueue so failed suites don't pile up in Redis
         # with no check-suite consume path to drain them.
         if automated_iteration_cap_reached(run_state):
@@ -177,8 +186,9 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             )
             return LivePullRequestHead("unexpected_error")
 
+    @trace
     def should_consume(self, run_state: SeerRunState) -> Decision:
-        head_sha, repo_name, matched = self._matches_current_head(run_state)
+        head_sha, repo_name, matched = check_suite_head_match(self.event, run_state)
         attempt_key = self.check_suite_attempt_key()
         already_processed = attempt_key in _processed_check_suite_attempts(run_state)
         live_head = self._live_head(run_state) if matched and not already_processed else None
@@ -212,6 +222,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             return Decision(ok=False, reason="live_head_mismatch")
         return Decision(ok=True, reason="head_matches")
 
+    @trace
     def should_trigger(self, run_state: SeerRunState) -> TriggerDecision:
         from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
 

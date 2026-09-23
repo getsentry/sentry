@@ -1,9 +1,9 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/javascript/agentMonitoring';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/featureFlag';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 import {tct} from 'sentry/locale';
 
 import {crashReport} from './crashReport';
@@ -30,7 +30,7 @@ export const docs: Docs = {
       {
         type: 'text',
         text: tct(
-          'In Next.js you can configure document response headers via the headers option in [code:next.config.js]:',
+          'In Next.js you can configure document response headers via the headers option in [code:next.config.(js|mjs|ts)]. Import [code:withSentryConfig] from [code:@sentry/nextjs/config]:',
           {
             code: <code />,
           }
@@ -42,38 +42,42 @@ export const docs: Docs = {
           {
             label: 'ESM',
             language: 'javascript',
-            filename: 'next.config.js',
+            filename: 'next.config.mjs',
             code: `
-  export default withSentryConfig({
-    async headers() {
-      return [{
-        source: "/:path*",
-        headers: [{
-          key: "Document-Policy",
-          value: "js-profiling",
-        }],
-      }];
-    },
-    // ... other Next.js config options
-  });`,
+import { withSentryConfig } from "@sentry/nextjs/config";
+
+export default withSentryConfig({
+  async headers() {
+    return [{
+      source: "/:path*",
+      headers: [{
+        key: "Document-Policy",
+        value: "js-profiling",
+      }],
+    }];
+  },
+  // ... other Next.js config options
+});`,
           },
           {
             label: 'CJS',
             language: 'javascript',
             filename: 'next.config.js',
             code: `
-  module.exports = withSentryConfig({
-    async headers() {
-      return [{
-        source: "/:path*",
-        headers: [{
-          key: "Document-Policy",
-          value: "js-profiling",
-        }],
-      }];
-    },
-    // ... other Next.js config options
-  });`,
+const { withSentryConfig } = require("@sentry/nextjs/config");
+
+module.exports = withSentryConfig({
+  async headers() {
+    return [{
+      source: "/:path*",
+      headers: [{
+        key: "Document-Policy",
+        value: "js-profiling",
+      }],
+    }];
+  },
+  // ... other Next.js config options
+});`,
           },
         ],
       },
@@ -89,8 +93,7 @@ export const docs: Docs = {
   }),
   agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/nextjs',
-    clientConfigFileName: 'instrumentation-client.ts',
-    serverConfigFileName: 'sentry.server.config.(ts|js)',
+    configFileName: 'sentry.server.config.(ts|js)',
   }),
   mcpOnboarding: mcp,
 };

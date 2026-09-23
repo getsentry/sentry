@@ -17,6 +17,7 @@ export type ConversationsEventParameters = {
   'conversations.onboarding.interaction': {
     action:
       | 'collapse_prompt'
+      | 'copy_agent_prompt'
       | 'expand_prompt'
       | 'next_step'
       | 'previous_step'

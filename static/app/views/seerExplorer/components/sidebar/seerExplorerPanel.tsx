@@ -1,4 +1,5 @@
 import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
+import {SeerExplorerErrorBoundary} from 'sentry/views/seerExplorer/components/seerExplorerErrorBoundary';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
@@ -19,17 +20,20 @@ export function SeerExplorerPanel() {
   } = useSeerExplorerContext();
 
   return (
+    // The boundary keeps a Seer render error from unmounting the routed app.
     // Remount on each forwarded query so a re-forwarded query auto-submits again
     // (the content's submit guard resets on mount), mirroring how the drawer
     // remounts per open.
-    <SeerExplorerContent
-      key={sidebarKey}
-      getPageReferrer={getPageReferrer}
-      initialQuery={sidebarInitialQuery}
-      appendInitialQuery={sidebarAppendInitialQuery}
-      onClose={closeSeerExplorer}
-      sidebarPosition={sidebarPosition}
-      onSidebarPositionChange={setSidebarPosition}
-    />
+    <SeerExplorerErrorBoundary>
+      <SeerExplorerContent
+        key={sidebarKey}
+        getPageReferrer={getPageReferrer}
+        initialQuery={sidebarInitialQuery}
+        appendInitialQuery={sidebarAppendInitialQuery}
+        onClose={closeSeerExplorer}
+        sidebarPosition={sidebarPosition}
+        onSidebarPositionChange={setSidebarPosition}
+      />
+    </SeerExplorerErrorBoundary>
   );
 }

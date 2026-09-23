@@ -192,7 +192,7 @@ describe('OrganizationMemberRow', () => {
         />
       );
 
-      expect(removeButton()).toBeDisabled();
+      expect(removeButton()).toHaveAttribute('aria-disabled', 'true');
     });
   });
 
@@ -284,7 +284,7 @@ describe('OrganizationMemberRow', () => {
     it('has disabled button to leave organization and no button to remove when member can not leave', () => {
       render(<OrganizationMemberRow {...props} memberCanLeave={false} />);
 
-      expect(leaveButton()).toBeDisabled();
+      expect(leaveButton()).toHaveAttribute('aria-disabled', 'true');
       expect(removeButton()).not.toBeInTheDocument();
     });
   });
@@ -304,13 +304,13 @@ describe('OrganizationMemberRow', () => {
         />
       );
 
-      expect(leaveButton()).toBeDisabled();
+      expect(leaveButton()).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('cannot remove member if member is idp:provisioned', () => {
       render(<OrganizationMemberRow {...defaultProps} />);
 
-      expect(removeButton()).toBeDisabled();
+      expect(removeButton()).toHaveAttribute('aria-disabled', 'true');
     });
   });
 
@@ -330,7 +330,7 @@ describe('OrganizationMemberRow', () => {
 
       render(<OrganizationMemberRow {...props} />);
 
-      expect(removeButton()).toBeDisabled();
+      expect(removeButton()).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('has Remove button when `canRemoveMembers` is true', () => {

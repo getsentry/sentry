@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
-from sentry.constants import SAMPLING_MODE_DEFAULT
+from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.organization import Organization
 from sentry.users.models.user import User
@@ -43,3 +43,27 @@ def is_organization_mode_sampling(organization: Organization | None) -> bool:
         and organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
         == DynamicSamplingMode.ORGANIZATION
     )
+
+
+def get_org_sample_rate(
+    org_id: int, default_sample_rate: float | None
+) -> tuple[float | None, bool]:
+    """
+    Returns the organization sample rate for dynamic sampling and whether it was configured by
+    the organization. With custom dynamic sampling this is the target_sample_rate organization
+    option. Without it, or when the option is unset, the default is returned.
+    """
+    try:
+        org = Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
+        org = None
+
+    if org is None or not has_custom_dynamic_sampling(org):
+        return default_sample_rate, False
+
+    sample_rate = org.get_option("sentry:target_sample_rate")
+    if sample_rate is not None:
+        return float(sample_rate), True
+    if default_sample_rate is not None:
+        return default_sample_rate, False
+    return TARGET_SAMPLE_RATE_DEFAULT, False

@@ -75,6 +75,31 @@ function SecretList({
   );
 }
 
+function AddNewProvider({
+  hasAccess,
+  organizationSlug,
+}: {
+  hasAccess: boolean;
+  organizationSlug: string;
+}) {
+  return (
+    <Tooltip
+      title={t('You must be an organization member to add a provider.')}
+      disabled={hasAccess}
+    >
+      <LinkButton
+        variant="primary"
+        size="sm"
+        to={`/settings/${organizationSlug}/feature-flags/change-tracking/new-provider/`}
+        data-test-id="create-new-provider"
+        disabled={!hasAccess}
+      >
+        {t('Add New Provider')}
+      </LinkButton>
+    </Tooltip>
+  );
+}
+
 function OrganizationFeatureFlagsChangeTracking() {
   const organization = useOrganization();
   const api = useApi();
@@ -128,23 +153,6 @@ function OrganizationFeatureFlagsChangeTracking() {
     },
   });
 
-  const addNewProvider = (hasAccess: any) => (
-    <Tooltip
-      title={t('You must be an organization member to add a provider.')}
-      disabled={hasAccess}
-    >
-      <LinkButton
-        variant="primary"
-        size="sm"
-        to={`/settings/${organization.slug}/feature-flags/change-tracking/new-provider/`}
-        data-test-id="create-new-provider"
-        disabled={!hasAccess}
-      >
-        {t('Add New Provider')}
-      </LinkButton>
-    </Tooltip>
-  );
-
   const canRead = hasEveryAccess(['org:read'], {organization});
   const canWrite = hasEveryAccess(['org:write'], {organization});
   const canAdmin = hasEveryAccess(['org:admin'], {organization});
@@ -168,7 +176,7 @@ function OrganizationFeatureFlagsChangeTracking() {
 
       <Flex justify="between">
         <h5>{t('Providers')}</h5>
-        {addNewProvider(hasAccess)}
+        <AddNewProvider hasAccess={hasAccess} organizationSlug={organization.slug} />
       </Flex>
 
       <TextBlock>
@@ -181,16 +189,10 @@ function OrganizationFeatureFlagsChangeTracking() {
         data-test-id="secrets-table"
         header={
           <SimpleTable.HeaderRow>
-            <SimpleTable.HeaderCell columnKey="provider">
-              {t('Provider')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell columnKey="created">
-              {t('Created')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell columnKey="createdBy">
-              {t('Created by')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell columnKey="actions" />
+            <SimpleTable.HeaderCell>{t('Provider')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Created by')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell />
           </SimpleTable.HeaderRow>
         }
       >

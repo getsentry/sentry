@@ -91,7 +91,9 @@ import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 type SearchQueryValueBuilderProps = {
+  editingCommittedValue: boolean;
   onCommit: () => void;
   onDelete: () => void;
   token: TokenResult<Token.FILTER>;
@@ -646,7 +648,8 @@ function ValueComboboxCustomMenu(
       {...props}
       portalTarget={
         canSelectMultipleValues
-          ? (props.portalTarget ?? wrapperRef.current)
+          ? // oxlint-disable-next-line react/refs
+            (props.portalTarget ?? wrapperRef.current)
           : props.portalTarget
       }
       wrapperRef={wrapperRef}
@@ -661,7 +664,8 @@ function ValueComboboxCustomMenu(
 
 export function getInitialInputValue(
   token: TokenResult<Token.FILTER>,
-  canSelectMultipleValues: boolean
+  canSelectMultipleValues: boolean,
+  editingCommittedValue?: boolean
 ) {
   if (isDateToken(token)) {
     return token.value.type === Token.VALUE_ISO_8601_DATE ? token.value.text : '';
@@ -672,6 +676,9 @@ export function getInitialInputValue(
   if (isNumericFilterToken(token)) {
     return token.value.text;
   }
+  if (token.filter === FilterType.HAS && editingCommittedValue) {
+    return prettifyTagKey(token.value.text);
+  }
   return '';
 }
 
@@ -680,6 +687,7 @@ export function SearchQueryBuilderValueCombobox({
   onDelete,
   onCommit,
   wrapperRef,
+  editingCommittedValue,
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -713,7 +721,9 @@ export function SearchQueryBuilderValueCombobox({
   // Multi-select renders committed values as chips, so the input starts empty
   // and only holds the value being typed.
   const [inputValue, setInputValue] = useState(() =>
-    canSelectMultipleValues ? '' : getInitialInputValue(token, canSelectMultipleValues)
+    canSelectMultipleValues
+      ? ''
+      : getInitialInputValue(token, canSelectMultipleValues, editingCommittedValue)
   );
   // Tracks where the input sits within the chip row. `value` is the lifted chip's
   // text (so it can be restored on Escape and reinserted where it was rather than
@@ -823,6 +833,7 @@ export function SearchQueryBuilderValueCombobox({
 
   const ctrlKeyPressed = useKeyPress(
     isMac() ? 'Meta' : 'Control',
+    // oxlint-disable-next-line react/refs
     topLevelWrapperRef.current
   );
   const selectedValueMap = useMemo(
@@ -876,6 +887,7 @@ export function SearchQueryBuilderValueCombobox({
     if (pendingCaret.pos === 0) {
       input.scrollLeft = 0;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputValue, scrollInputIntoView]);
 
   // While typing, surface the typed text as a custom option so results rank by
@@ -1007,11 +1019,6 @@ export function SearchQueryBuilderValueCombobox({
 
       // TODO(malwilley): Add visual feedback for invalid values
       if (cleanedValue === null) {
-        trackAnalytics('search.value_manual_submitted', {
-          ...analyticsData,
-          filter_value: value,
-          invalid: true,
-        });
         return false;
       }
 
@@ -1071,7 +1078,6 @@ export function SearchQueryBuilderValueCombobox({
       filterKeys,
       items,
       canSelectMultipleValues,
-      analyticsData,
       committedValues,
       editingChip,
       dispatch,
@@ -1215,7 +1221,9 @@ export function SearchQueryBuilderValueCombobox({
         return;
       }
 
-      const isUnchanged = value === getInitialInputValue(token, canSelectMultipleValues);
+      const isUnchanged =
+        value ===
+        getInitialInputValue(token, canSelectMultipleValues, editingCommittedValue);
 
       // If there's no user input and the token has no value, set a default one
       if (!value && !token.value.text) {
@@ -1233,11 +1241,11 @@ export function SearchQueryBuilderValueCombobox({
         return;
       }
 
-      const invalid = updateFilterValue(value);
+      const updated = updateFilterValue(value);
       trackAnalytics('search.value_manual_submitted', {
         ...analyticsData,
         filter_value: value,
-        invalid,
+        invalid: !updated,
       });
     },
     [
@@ -1245,6 +1253,7 @@ export function SearchQueryBuilderValueCombobox({
       addTypedValue,
       canSelectMultipleValues,
       dispatch,
+      editingCommittedValue,
       fieldDefinition,
       onCommit,
       token,

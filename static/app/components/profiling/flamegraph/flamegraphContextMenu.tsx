@@ -585,6 +585,7 @@ function ProfileIdsSubMenu(props: {
   const {projects} = useProjects();
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // oxlint-disable-next-line react/refs
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
     placement: 'right-start',
     modifiers: [
@@ -635,6 +636,7 @@ function ProfileIdsSubMenu(props: {
     <Fragment>
       <ProfilingContextMenuItemButton
         icon={<IconProfiling size="xs" />}
+        // oxlint-disable-next-line react/refs
         {...props.contextMenu.getMenuItemProps({
           onClick: () => {
             setIsOpen(true);

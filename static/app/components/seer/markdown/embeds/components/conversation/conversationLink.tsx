@@ -1,4 +1,7 @@
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -51,7 +54,7 @@ export function getConversationHref(
   return normalizeUrl(`${basePath}?${params.toString()}`);
 }
 
-interface ConversationLinkProps {
+interface ConversationLinkProps extends ResourceLinkFormatProps {
   data: ConversationData;
   /**
    * Overrides the tag's title. The block passes the API-provided title once it
@@ -60,11 +63,12 @@ interface ConversationLinkProps {
   title?: string | null;
 }
 
-export function ConversationLink({data, title}: ConversationLinkProps) {
+export function ConversationLink({data, format, title}: ConversationLinkProps) {
   const organization = useOrganization();
 
   return (
     <ResourceLink
+      format={format}
       icon={IconChat}
       href={getConversationHref(data, organization.slug)}
       title={title ?? data.title ?? t('Conversation %s', data.id)}

@@ -32,7 +32,7 @@ export function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Pr
 
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell justify="center" align="start">
+      <SimpleTable.RowCell align="start">
         <Name>{debugId || uuid || `(${t('empty')})`}</Name>
         <TimeWrapper>
           <IconClock size="sm" />

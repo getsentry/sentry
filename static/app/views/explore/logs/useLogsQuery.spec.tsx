@@ -16,6 +16,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {LogsFrozenContextProviderProps} from 'sentry/views/explore/logs/logsFrozenContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
@@ -86,6 +87,103 @@ describe('useInfiniteLogsQuery', () => {
 
     expect(result.current.isPending).toBe(true);
     expect(result.current.data).toHaveLength(0);
+  });
+
+  it('keeps the surviving row paired with its page hint across pagination and refresh', async () => {
+    const first = createMockLogsData([
+      {id: '3', timestamp_precise: '300', timestamp: '300'},
+      {id: '2', timestamp_precise: '200', timestamp: '200'},
+    ]);
+    const second = createMockLogsData([
+      {id: '2', timestamp_precise: '200', timestamp: '200'},
+      {id: '1', timestamp_precise: '100', timestamp: '100'},
+    ]);
+    first.meta!.routingHint = 'first-page';
+    second.meta!.routingHint = 'second-page';
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: first,
+      headers: linkHeaders,
+    });
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      organization,
+      additionalWrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.data).toHaveLength(2));
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: second,
+      headers: linkHeaders,
+    });
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+    await waitFor(() => expect(result.current.data).toHaveLength(3));
+    const hints = () =>
+      result.current.data.map(row => [row.id, result.current.routingHintsByRow.get(row)]);
+    expect(hints()).toEqual([
+      ['3', 'first-page'],
+      ['2', 'first-page'],
+      ['1', 'second-page'],
+    ]);
+
+    // Replace responses without changing row values or the number of pages.
+    act(() => {
+      queryClient.setQueryData(result.current.queryKey, previous => {
+        if (!previous) {
+          throw new Error('Expected cached log pages');
+        }
+        return {
+          ...previous,
+          pages: previous.pages.map((page, index) => ({
+            ...page,
+            json: {
+              ...page.json,
+              meta: {
+                ...page.json.meta!,
+                routingHint: index === 0 ? 'refreshed-page' : undefined,
+              },
+            },
+          })),
+        };
+      });
+    });
+    await waitFor(() =>
+      expect(hints()).toEqual([
+        ['3', 'refreshed-page'],
+        ['2', 'refreshed-page'],
+        ['1', undefined],
+      ])
+    );
+    expect(result.current.data.every(row => !('routingHint' in row))).toBe(true);
+  });
+
+  it('reads the routing hint from trace log responses', async () => {
+    const body = createMockLogsData([
+      {id: '1', timestamp_precise: '100', timestamp: '100'},
+    ]);
+    body.meta!.routingHint = 'trace-log-hint';
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-logs/`,
+      body,
+    });
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      organization,
+      additionalWrapper: ({children}) => (
+        <LogsQueryParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+          source="state"
+          freeze={{traceId: '00000000000000000000000000000000'}}
+        >
+          {children}
+        </LogsQueryParamsProvider>
+      ),
+    });
+    await waitFor(() => expect(result.current.data).toHaveLength(1));
+    expect(result.current.routingHintsByRow.get(result.current.data[0]!)).toBe(
+      'trace-log-hint'
+    );
   });
 
   test.each([
@@ -412,7 +510,7 @@ describe('useInfiniteLogsQuery', () => {
       });
     }
 
-    function createTraceWrapper(freeze: {traceId: string; traceTimestamp?: number}) {
+    function createTraceWrapper(freeze: LogsFrozenContextProviderProps) {
       return function ({children}: {children?: React.ReactNode}) {
         return (
           <QueryClientProvider client={queryClient}>
@@ -477,6 +575,26 @@ describe('useInfiniteLogsQuery', () => {
           query: expect.objectContaining({
             start: '2025-04-03T00:00:00.000',
             end: '2025-04-03T00:10:00.000',
+          }),
+        })
+      );
+    });
+
+    it('matches both span id attributes when frozen to a span', async () => {
+      const mockRequest = mockTraceLogsRequest();
+      const spanId = 'b'.repeat(16);
+
+      renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createTraceWrapper({span: {traceId, spanId}}),
+        organization,
+      });
+
+      await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+      expect(mockRequest).toHaveBeenCalledWith(
+        traceLogsEndpoint,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: `trace:${traceId} ( span_id:${spanId} OR trace.parent_span_id:${spanId} )`,
           }),
         })
       );

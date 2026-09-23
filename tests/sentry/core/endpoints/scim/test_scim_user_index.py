@@ -83,6 +83,16 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
             tags={"organization": self.organization},
         )
 
+    @patch("sentry.core.endpoints.scim.members.member_invited")
+    def test_post_users_does_not_send_invite_email(self, mock_member_invited: MagicMock) -> None:
+        url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
+        with outbox_runner():
+            with patch.object(OrganizationMember, "send_invite_email") as mock_send:
+                response = self.client.post(url, post_data())
+        assert response.status_code == 201, response.content
+        mock_send.assert_not_called()
+        mock_member_invited.send_robust.assert_not_called()
+
     @patch("sentry.core.endpoints.scim.members.metrics")
     def test_update_role_metric_called_when_role_specified(self, mock_metrics: MagicMock) -> None:
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])

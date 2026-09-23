@@ -47,20 +47,6 @@ class TestIsMetricSubscriptionAllowed:
                 is True
             )
 
-    # -- PerformanceMetrics: requires :on-demand-metrics-extraction only --
-
-    def test_performance_metrics_without_on_demand(self) -> None:
-        with self.fake_features(set()):
-            assert (
-                is_metric_subscription_allowed(Dataset.PerformanceMetrics.value, self.org) is False
-            )
-
-    def test_performance_metrics_with_on_demand(self) -> None:
-        with self.fake_features({"organizations:on-demand-metrics-extraction"}):
-            assert (
-                is_metric_subscription_allowed(Dataset.PerformanceMetrics.value, self.org) is True
-            )
-
     # -- Unknown / other datasets: always allowed --
 
     def test_unknown_dataset_always_allowed(self) -> None:

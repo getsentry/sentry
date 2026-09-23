@@ -1,6 +1,7 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -8,6 +9,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -56,7 +58,6 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
-import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
@@ -71,13 +72,16 @@ import {
   getHasAiSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
-import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import {
+  FilterUrlParams,
+  TableUrlParams,
+} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 
 interface TableData {
   agents: string[];
@@ -103,7 +107,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
   {key: 'totalTokens', name: t('Total Tokens'), width: 120},
   {key: 'totalCost', name: t('Total Cost'), width: 120},
-  {key: 'timestamp', name: t('Timestamp'), width: 100},
+  {key: 'age', name: t('Age'), width: 110},
 ];
 
 const rightAlignColumns = new Set([
@@ -113,12 +117,15 @@ const rightAlignColumns = new Set([
   'totalTokens',
   'toolCalls',
   'totalCost',
-  'timestamp',
+  'age',
 ]);
 
 const DEFAULT_LIMIT = 10;
 
+type AgentFilterMode = 'dashboard-global' | 'page-agent';
+
 interface TracesTableProps {
+  agentFilterMode: AgentFilterMode;
   dashboardFilters?: DashboardFilters;
   frameless?: boolean;
   limit?: number;
@@ -126,6 +133,7 @@ interface TracesTableProps {
 }
 
 export function TracesTable({
+  agentFilterMode,
   frameless,
   dashboardFilters,
   limit = DEFAULT_LIMIT,
@@ -289,7 +297,7 @@ export function TracesTable({
     return (
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
-        {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
+        {column.key === 'age' && <IconArrow direction="down" size="xs" />}
         {column.key === 'agents' && <CellExpander />}
       </HeadCell>
     );
@@ -297,9 +305,16 @@ export function TracesTable({
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
-      return <BodyCell column={column} dataRow={dataRow} query={combinedQuery} />;
+      return (
+        <BodyCell
+          agentFilterMode={agentFilterMode}
+          column={column}
+          dataRow={dataRow}
+          query={combinedQuery}
+        />
+      );
     },
-    [combinedQuery]
+    [agentFilterMode, combinedQuery]
   );
 
   const additionalGridProps = frameless
@@ -341,10 +356,12 @@ export function TracesTable({
 }
 
 const BodyCell = memo(function BodyCellImpl({
+  agentFilterMode,
   column,
   dataRow,
   query,
 }: {
+  agentFilterMode: AgentFilterMode;
   column: GridColumnHeader<string>;
   dataRow: TableData;
   query: string;
@@ -374,7 +391,7 @@ const BodyCell = memo(function BodyCellImpl({
         return <Placeholder width="100%" height="16px" />;
       }
       return dataRow.agents.length > 0 ? (
-        <AgentTags agents={dataRow.agents} />
+        <AgentTags agents={dataRow.agents} filterMode={agentFilterMode} />
       ) : (
         <Container paddingLeft="xs">
           <InfoText title={dataRow.transaction} maxWidth={500} mode="overflowOnly">
@@ -386,16 +403,18 @@ const BodyCell = memo(function BodyCellImpl({
       return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':
       return (
-        <ErrorCell
-          value={dataRow.errors}
-          target={getExploreUrl({
-            query: `${query} span.status:[internal_error,error] trace:[${dataRow.traceId}]`,
-            organization,
-            selection,
-            referrer: Referrer.TRACES_TABLE,
-          })}
-          isLoading={dataRow.isSpanDataLoading}
-        />
+        <Flex justify="end" width="100%">
+          <ErrorCell
+            value={dataRow.errors}
+            target={getExploreUrl({
+              query: `${query} span.status:[internal_error,error] trace:[${dataRow.traceId}]`,
+              organization,
+              selection,
+              referrer: Referrer.TRACES_TABLE,
+            })}
+            isLoading={dataRow.isSpanDataLoading}
+          />
+        </Flex>
       );
     case 'llmCalls':
     case 'toolCalls':
@@ -409,63 +428,70 @@ const BodyCell = memo(function BodyCellImpl({
         return <NumberPlaceholder />;
       }
       return <CurrencyCell value={dataRow.totalCost} />;
-    case 'timestamp':
+    case 'age':
       return (
-        <TextAlignRight>
+        <Text align="right" variant="muted">
           <TimeSince unitStyle="short" date={new Date(dataRow.timestamp)} />
-        </TextAlignRight>
+        </Text>
       );
     default:
       return null;
   }
 });
 
-function AgentTags({agents}: {agents: string[]}) {
+function AgentTags({
+  agents,
+  filterMode,
+}: {
+  agents: string[];
+  filterMode: AgentFilterMode;
+}) {
   const [showAll, setShowAll] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const parsedGlobalFilters = useMemo(
-    () => getDashboardFiltersFromURL(location)?.globalFilter ?? [],
-    [location]
+  const [{agent: urlAgents}, setPageFilterQueryStates] = useQueryStates(
+    {
+      [FilterUrlParams.AGENT]: parseAsArrayOf(parseAsString),
+      [TableUrlParams.CURSOR]: parseAsString,
+    },
+    {history: 'replace'}
   );
+  const parsedGlobalFilters =
+    filterMode === 'dashboard-global'
+      ? (getDashboardFiltersFromURL(location)?.globalFilter ?? [])
+      : [];
+  const pageAgentFilterValues = filterMode === 'page-agent' ? (urlAgents ?? []) : [];
 
   const [showToggle, setShowToggle] = useState(false);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const agentGlobalFilter = useMemo(
-    () =>
-      parsedGlobalFilters.find(
-        filter =>
-          filter.dataset === WidgetType.SPANS &&
-          filter.tag.key === SpanFields.GEN_AI_AGENT_NAME
-      ),
-    [parsedGlobalFilters]
+  const agentGlobalFilter = parsedGlobalFilters.find(
+    filter =>
+      filter.dataset === WidgetType.SPANS &&
+      filter.tag.key === SpanFields.GEN_AI_AGENT_NAME
   );
 
-  const agentFilterValues = useMemo(
-    // this logic is borrowed from the global filter selector
-    // to account for array filter values
-    () => {
-      if (!agentGlobalFilter) {
-        return [];
-      }
-      const fieldDefinition = getFieldDefinitionForDataset(
-        agentGlobalFilter.tag,
-        agentGlobalFilter.dataset
-      );
-      const filterToken = getFilterToken(agentGlobalFilter, fieldDefinition);
-      if (!filterToken) {
-        return [];
-      }
+  // This logic is borrowed from the global filter selector to account for
+  // array filter values.
+  let dashboardAgentFilterValues: string[] = [];
+  if (agentGlobalFilter) {
+    const fieldDefinition = getFieldDefinitionForDataset(
+      agentGlobalFilter.tag,
+      agentGlobalFilter.dataset
+    );
+    const filterToken = getFilterToken(agentGlobalFilter, fieldDefinition);
+    if (filterToken) {
       const filterValueString = agentGlobalFilter.value
         ? getInitialInputValue(filterToken, true)
         : '';
-      const filterValueItems = getSelectedValuesFromText(filterValueString);
-      return filterValueItems.map(item => item.value);
-    },
-    [agentGlobalFilter]
-  );
+      dashboardAgentFilterValues = getSelectedValuesFromText(filterValueString).map(
+        item => item.value
+      );
+    }
+  }
+  const agentFilterValues =
+    filterMode === 'page-agent' ? pageAgentFilterValues : dashboardAgentFilterValues;
 
   // this logic is borrowed from the global filter selector
   // to correctly build array filter values and escape characters
@@ -487,21 +513,33 @@ function AgentTags({agents}: {agents: string[]}) {
 
   const handleAgentClick = (agent: string) => {
     const isAgentInUrl = agentFilterValues.includes(agent);
+    const newAgentFilterValues = isAgentInUrl
+      ? agentFilterValues.filter(value => value !== agent)
+      : [...agentFilterValues, agent];
+
+    if (filterMode === 'page-agent') {
+      setPageFilterQueryStates({
+        [FilterUrlParams.AGENT]:
+          newAgentFilterValues.length > 0 ? newAgentFilterValues : null,
+        [TableUrlParams.CURSOR]: null,
+      });
+      return;
+    }
+
     let newFilters: GlobalFilter[];
 
     // if agent global filter exists, update the filter value
     // to either add or remove the selected agent from the filter
     if (agentGlobalFilter) {
-      const newValues = isAgentInUrl
-        ? agentFilterValues.filter(v => v !== agent)
-        : [...agentFilterValues, agent];
-
       newFilters = parsedGlobalFilters.map(filter => {
         if (
           filter.dataset === WidgetType.SPANS &&
           filter.tag.key === SpanFields.GEN_AI_AGENT_NAME
         ) {
-          return {...filter, value: buildGlobalFilterValue(filter, newValues)};
+          return {
+            ...filter,
+            value: buildGlobalFilterValue(filter, newAgentFilterValues),
+          };
         }
         return filter;
       });
