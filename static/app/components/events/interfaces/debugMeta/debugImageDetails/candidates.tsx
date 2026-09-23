@@ -316,7 +316,7 @@ export class Candidates extends Component<Props, State> {
     const {emptyMessage, emptyAction} = this.getEmptyMessage();
 
     return (
-      <Grid gap="lg" containerType="inline-size">
+      <Grid gap="lg">
         <Flex
           direction={{zero: 'column', xl: 'row'}}
           gap={{zero: 'sm', xl: '0'}}
