@@ -11,6 +11,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -29,6 +30,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   canUseMetricsStatsBytesUI,
   canUseMetricsStatsUI,
@@ -162,13 +164,18 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
     return decodeScalar(this.props.location?.query?.cursor);
   }
 
-  // Project selection from GlobalSelectionHeader
   get projectIds(): number[] {
-    return this.props.selection.projects;
+    const {selection, projects} = this.props;
+    // stats_v2 treats an empty project filter as organization-wide unless grouped
+    // by project, so resolve My Projects explicitly for every stats query.
+    return selection.projects.length === 0
+      ? projects.filter(p => p.isMember && p.hasAccess).map(p => Number(p.id))
+      : selection.projects;
   }
 
   get isSingleProject(): boolean {
-    return this.projectIds.length === 1 && !this.projectIds.includes(-1);
+    const {projects} = this.props.selection;
+    return projects.length === 1 && !projects.includes(-1);
   }
 
   getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
@@ -375,22 +382,27 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
                   {this.renderProjectPageControl()}
                 </Flex>
                 {showProfilingBanner && <OverrideOrgStatsProfilingBanner />}
-                <div>
-                  <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
-                </div>
-                <ErrorBoundary mini>
-                  <UsageStatsProjects
-                    dataCategory={this.dataCategoryInfo}
-                    isSingleProject={this.isSingleProject}
-                    projectIds={this.projectIds}
-                    dataDatetime={this.dataDatetime}
-                    tableSort={this.tableSort}
-                    tableQuery={this.tableQuery}
-                    tableCursor={this.tableCursor}
-                    handleChangeState={this.setStateOnUrl}
-                    getNextLocations={this.getNextLocations}
-                  />
-                </ErrorBoundary>
+                <NoProjectMessage
+                  organization={organization}
+                  requireProjectMembership={this.props.selection.projects.length === 0}
+                >
+                  <div>
+                    <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
+                  </div>
+                  <ErrorBoundary mini>
+                    <UsageStatsProjects
+                      dataCategory={this.dataCategoryInfo}
+                      isSingleProject={this.isSingleProject}
+                      projectIds={this.projectIds}
+                      dataDatetime={this.dataDatetime}
+                      tableSort={this.tableSort}
+                      tableQuery={this.tableQuery}
+                      tableCursor={this.tableCursor}
+                      handleChangeState={this.setStateOnUrl}
+                      getNextLocations={this.getNextLocations}
+                    />
+                  </ErrorBoundary>
+                </NoProjectMessage>
               </Layout.Main>
             </div>
           </PageFiltersContainer>
@@ -410,12 +422,19 @@ export default function OrganizationStats() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
+  const {projects, initiallyLoaded} = useProjects();
+
+  if (!initiallyLoaded) {
+    return <LoadingIndicator />;
+  }
+
   return (
     <OverrideOrgStats
       location={location}
       navigate={navigate}
       organization={organization}
       selection={pageFilters.selection}
+      projects={projects}
     />
   );
 }

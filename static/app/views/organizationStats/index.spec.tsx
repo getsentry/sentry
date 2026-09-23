@@ -286,6 +286,76 @@ describe('OrganizationStats', () => {
   /**
    * Project Selection
    */
+  it.each([{memberIds: [1]}, {memberIds: [1, 2]}])(
+    'scopes every My Projects query to member projects $memberIds',
+    async ({memberIds}) => {
+      ProjectsStore.loadInitialData([
+        ...projects.map(project => ({
+          ...project,
+          isMember: memberIds.includes(Number(project.id)),
+        })),
+        ProjectFixture({id: '4', slug: 'inaccessible', isMember: true, hasAccess: false}),
+      ]);
+
+      render(<OrganizationStats />, {organization});
+
+      expect(await screen.findByText('My Projects')).toBeInTheDocument();
+      expect(await screen.findByText('6 in last min')).toBeInTheDocument();
+      expect(mockRequest).toHaveBeenCalledTimes(3);
+      for (const [, {query}] of mockRequest.mock.calls) {
+        expect(query.project).toEqual(memberIds);
+      }
+      // One member project must not trigger the explicit single-project mode,
+      // which deliberately shows all accessible projects in the table.
+      expect(screen.queryByTestId('proj-3')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('inaccessible')).not.toBeInTheDocument();
+    }
+  );
+
+  it('does not request organization totals while projects load', async () => {
+    ProjectsStore.reset();
+    render(<OrganizationStats />, {organization});
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(mockRequest).not.toHaveBeenCalled();
+
+    act(() => ProjectsStore.loadInitialData(projects));
+
+    expect(await screen.findByText('6 in last min')).toBeInTheDocument();
+    expect(mockRequest).toHaveBeenCalledTimes(3);
+    for (const [, {query}] of mockRequest.mock.calls) {
+      expect(query.project).toEqual([1, 2, 3]);
+    }
+  });
+
+  it('does not request organization totals without member projects', async () => {
+    render(<OrganizationStats />, {organization});
+    expect(await screen.findByText('6 in last min')).toBeInTheDocument();
+    mockRequest.mockClear();
+
+    act(() => {
+      ProjectsStore.loadInitialData(
+        projects.map(project => ({...project, isMember: false}))
+      );
+    });
+
+    expect(
+      await screen.findByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
+    expect(mockRequest).not.toHaveBeenCalled();
+
+    // Keep the picker available so users with access but no memberships can
+    // still select a project explicitly.
+    act(() => PageFiltersStore.updateProjects([1], []));
+    expect(await screen.findByText('6 in last min')).toBeInTheDocument();
+    expect(mockRequest).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        query: expect.objectContaining({project: [1], groupBy: ['outcome', 'reason']}),
+      })
+    );
+  });
+
   it('renders default projects', async () => {
     const newOrg = OrganizationFixture({features: ['team-insights']});
     OrganizationStore.onUpdate(newOrg, {replace: true});
