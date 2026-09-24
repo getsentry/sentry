@@ -634,19 +634,22 @@ class MsTeamsWebhookEndpoint(Endpoint):
             rules = tuple(Rule.objects.filter(id__in=payload["rules"]))
 
             # pull the event based off our payload
-            event = eventstore.backend.get_event_by_id(group.project_id, payload["eventId"])
-            if event is None:
-                logger.info(
-                    "msteams.action.event-missing",
-                    extra={
-                        "team_id": team_id,
-                        "integration_id": integration.id,
-                        "organization_id": group.organization.id,
-                        "event_id": payload["eventId"],
-                        "project_id": group.project_id,
-                    },
-                )
-                return self.respond(status=404)
+            event = None
+            event_id = payload.get("eventId")
+            if event_id:
+                event = eventstore.backend.get_event_by_id(group.project_id, event_id)
+                if event is None:
+                    logger.info(
+                        "msteams.action.event-missing",
+                        extra={
+                            "team_id": team_id,
+                            "integration_id": integration.id,
+                            "organization_id": group.organization.id,
+                            "event_id": event_id,
+                            "project_id": group.project_id,
+                        },
+                    )
+                    return self.respond(status=404)
 
             # refresh issue and update card
             group.refresh_from_db()

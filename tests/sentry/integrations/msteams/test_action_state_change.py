@@ -86,6 +86,7 @@ class StatusActionTest(APITestCase):
         archive_input: str | None = None,
         assign_input: str | None = None,
         include_integration_id: bool = True,
+        include_event_id: bool = True,
     ) -> Response:
         replyToId = "12345"
 
@@ -106,7 +107,7 @@ class StatusActionTest(APITestCase):
 
         action_payload: dict[str, Any] = {
             "groupId": group_id or self.group1.id,
-            "eventId": self.event1.event_id,
+            "eventId": self.event1.event_id if include_event_id else None,
             "actionType": action_type,
             "rules": [],
         }
@@ -440,6 +441,20 @@ class StatusActionTest(APITestCase):
 
         assert resp.status_code == 200, resp.content
         assert self.group1.get_status() == GroupStatus.RESOLVED
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_resolve_issue_without_event_id(self, verify: MagicMock) -> None:
+        resp = self.post_webhook(
+            action_type=ACTION_TYPE.RESOLVE,
+            resolve_input="resolved",
+            include_event_id=False,
+        )
+        self.group1 = Group.objects.get(id=self.group1.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group1.get_status() == GroupStatus.RESOLVED
+        assert b"Unresolve" in responses.calls[0].request.body
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
