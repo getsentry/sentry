@@ -717,6 +717,7 @@ from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_organization_config import AuthOrganizationConfigEndpoint
 from .endpoints.auth_organization_demo_login import AuthDemoLoginEndpoint
 from .endpoints.auth_recovery import AuthRecoveryConfirmEndpoint, AuthRecoveryEndpoint
+from .endpoints.auth_register import AuthRegisterEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
@@ -1073,6 +1074,11 @@ AUTH_URLS = [
         r"^login/$",
         AuthLoginEndpoint.as_view(),
         name="sentry-api-0-auth-login",
+    ),
+    re_path(
+        r"^register/$",
+        AuthRegisterEndpoint.as_view(),
+        name="sentry-api-0-auth-register",
     ),
     re_path(
         r"^organizations/(?P<organization_id_or_slug>[^/]+)/demo/$",
