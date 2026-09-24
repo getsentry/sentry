@@ -190,7 +190,9 @@ export function InvestigationCell({
         position="bottom-end"
         usePortal
         triggerProps={{
-          size: 'xs',
+          // A query cell's header is SeerEmbedBlock's band, which is sized to its
+          // `zero` toggle; an `xs` trigger would make it taller than an embed's.
+          size: block.kind === 'query' ? 'zero' : 'xs',
           variant: 'transparent',
           showChevron: false,
           icon: <IconEllipsis size="xs" />,
