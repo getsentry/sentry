@@ -4,6 +4,7 @@ import {t} from 'sentry/locale';
 import type {
   PendingUserInput,
   ReauthMonitoringProviderData,
+  RespondToUserInputOptions,
 } from 'sentry/views/seerExplorer/types';
 
 interface PendingFilePatch {
@@ -34,7 +35,8 @@ interface UsePendingUserInputProps {
   pendingInput: PendingUserInput | null | undefined;
   respondToUserInput: (
     inputId: string,
-    data?: {decisions: boolean[]} | {answers: string[]}
+    data?: {decisions: boolean[]} | {answers: string[]},
+    options?: RespondToUserInputOptions
   ) => void;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   userScrolledUpRef: React.MutableRefObject<boolean>;
@@ -109,9 +111,17 @@ export function usePendingUserInput({
       if (nextIndex >= fileApprovalTotalPatches) {
         // All patches reviewed - submit to backend
         if (pendingInputId) {
-          respondToUserInput(pendingInputId, {
-            decisions: newDecisions,
-          });
+          respondToUserInput(
+            pendingInputId,
+            {decisions: newDecisions},
+            {
+              // Step back to the last patch so the decision can be made again.
+              onError: () => {
+                setFileApprovalDecisions(fileApprovalDecisions);
+                setFileApprovalIndex(fileApprovalIndex);
+              },
+            }
+          );
         }
       }
     },

@@ -373,7 +373,7 @@ describe('useSeerExplorer', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.sendMessageError).toEqual({query: 'Second question'});
+        expect(result.current.requestError).toEqual({query: 'Second question'});
       });
       expect(postMock).toHaveBeenCalled();
       expect(result.current.sessionData?.status).toBe('completed');
@@ -382,10 +382,78 @@ describe('useSeerExplorer', () => {
         'First answer',
       ]);
 
-      act(() => {
-        result.current.dismissSendMessageError();
+      // The error stays up until a later request succeeds.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        body: {run_id: 1},
       });
-      expect(result.current.sendMessageError).toBeNull();
+      act(() => {
+        result.current.sendMessage('Second question');
+      });
+      expect(result.current.requestError).toEqual({query: 'Second question'});
+      await waitFor(() => {
+        expect(result.current.requestError).toBeNull();
+      });
+    });
+
+    it('keeps the chat and pending question when answering fails', async () => {
+      const runId = 'run-with-question';
+      const pendingInput = {
+        id: 'input-1',
+        input_type: 'ask_user_question' as const,
+        data: {questions: [{question: 'Which one?', options: [{label: 'A'}]}]},
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [
+              {
+                id: 'user-1',
+                message: {role: 'user', content: 'First question'},
+                timestamp: '2024-01-01T00:00:00Z',
+                loading: false,
+              },
+            ],
+            status: 'awaiting_user_input',
+            pending_user_input: pendingInput,
+          },
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-update/${runId}/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Server error'},
+      });
+      const onError = jest.fn();
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('awaiting_user_input');
+      });
+
+      act(() => {
+        result.current.respondToUserInput('input-1', {answers: ['A']}, {onError});
+      });
+
+      await waitFor(() => {
+        expect(result.current.requestError).toEqual({});
+      });
+      expect(onError).toHaveBeenCalled();
+      expect(result.current.sessionData?.status).toBe('awaiting_user_input');
+      expect(result.current.sessionData?.pending_user_input).toEqual(pendingInput);
+      expect(result.current.sessionData?.blocks.map(b => b.message.content)).toEqual([
+        'First question',
+      ]);
     });
   });
 

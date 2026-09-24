@@ -7,6 +7,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import type {
   Block,
   PendingUserInput,
+  RespondToUserInputOptions,
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 
@@ -24,7 +25,11 @@ interface BlockProps {
   pendingInput?: PendingUserInput | null;
   readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
-  respondToUserInput?: (inputId: string, responseData?: Record<string, unknown>) => void;
+  respondToUserInput?: (
+    inputId: string,
+    responseData?: Record<string, unknown>,
+    options?: RespondToUserInputOptions
+  ) => void;
   runId?: SeerExplorerRunId;
   showThinking?: boolean;
 }

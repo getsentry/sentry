@@ -30,8 +30,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
-  sendMessageError: null,
-  dismissSendMessageError: jest.fn(),
+  requestError: null,
   switchToRun: jest.fn(),
   startNewSession: jest.fn(),
   interruptRun: jest.fn(),
@@ -570,12 +569,10 @@ describe('SeerExplorerContent', () => {
       expect(textarea).toHaveValue('');
     });
 
-    it('shows a dismissable alert and restores the draft when sending fails', async () => {
-      const dismissSendMessageError = jest.fn();
+    it('shows an error alert and restores the draft when sending fails', async () => {
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
         ...defaultHookReturn,
-        sendMessageError: {query: 'Failed message'},
-        dismissSendMessageError,
+        requestError: {query: 'Failed message'},
       });
 
       render(
@@ -598,9 +595,35 @@ describe('SeerExplorerContent', () => {
         )
       ).toBeInTheDocument();
       expect(screen.getByTestId('seer-explorer-input')).toHaveValue('Failed message');
+      expect(screen.queryByRole('button', {name: 'Dismiss'})).not.toBeInTheDocument();
+    });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Dismiss'}));
-      expect(dismissSendMessageError).toHaveBeenCalled();
+    it('shows an error alert without touching the draft when a response fails', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        requestError: {},
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText(
+          'There was an error sending your message, wait and try again.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toHaveValue('');
     });
 
     it('calls sendMessage and clears input when Enter is pressed', async () => {

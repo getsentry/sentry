@@ -219,8 +219,7 @@ export function SeerExplorerContent({
     errorStatusCode,
     isTimedOut,
     sendMessage,
-    sendMessageError,
-    dismissSendMessageError,
+    requestError,
     startNewSession,
     switchToRun,
     respondToUserInput,
@@ -248,10 +247,11 @@ export function SeerExplorerContent({
   // Put a message that failed to send back in the composer, unless the user has
   // already started typing something else.
   useEffect(() => {
-    if (sendMessageError) {
-      setInputValue(current => (current.trim() ? current : sendMessageError.query));
+    const failedQuery = requestError?.query;
+    if (failedQuery) {
+      setInputValue(current => (current.trim() ? current : failedQuery));
     }
-  }, [sendMessageError, setInputValue]);
+  }, [requestError, setInputValue]);
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
@@ -765,20 +765,9 @@ export function SeerExplorerContent({
             </Alert>
           </Container>
         )}
-        {sendMessageError && (
+        {requestError && (
           <Container padding="0 xl">
-            <Alert
-              variant="danger"
-              trailingItems={
-                <Button
-                  size="zero"
-                  variant="transparent"
-                  icon={<IconClose />}
-                  aria-label={t('Dismiss')}
-                  onClick={dismissSendMessageError}
-                />
-              }
-            >
+            <Alert variant="danger">
               <Text>
                 {t('There was an error sending your message, wait and try again.')}
               </Text>
