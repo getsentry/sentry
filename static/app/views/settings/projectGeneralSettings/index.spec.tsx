@@ -590,6 +590,11 @@ describe('projectGeneralSettings', () => {
 
   it('renders connected repositories panel', async () => {
     const orgWithFlag = OrganizationFixture({features: ['code-mappings-refactor']});
+    MockApiClient.addMockResponse({
+      url: `/projects/${orgWithFlag.slug}/${project.slug}/repo/`,
+      method: 'GET',
+      body: [],
+    });
 
     render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization: orgWithFlag,
