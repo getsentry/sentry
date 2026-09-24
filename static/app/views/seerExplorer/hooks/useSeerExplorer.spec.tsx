@@ -671,6 +671,79 @@ describe('useSeerExplorer', () => {
       expect(result.current.requestError).toEqual({query: 'Second question'});
     });
 
+    // TanStack only calls per-call `mutate` callbacks for an observer's latest mutation, so
+    // a caller's rollback (e.g. showing an approval prompt again) never runs for a stale answer.
+    it('skips the caller rollback when an older answer fails after a newer one', async () => {
+      const runId = 'run-two-answers';
+      const updateUrl = `/organizations/${organization.slug}/seer/explorer-update/${runId}/`;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'awaiting_user_input'}},
+      });
+      const onOlderAnswerError = jest.fn();
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      const olderAnswerMock = MockApiClient.addMockResponse({
+        url: updateUrl,
+        method: 'POST',
+        statusCode: 500,
+        // The user answers again while the older request is in flight, before it fails.
+        body: () => {
+          result.current.respondToUserInput('input-2', {decision: 'reject'});
+          return {detail: 'Server error'};
+        },
+        match: [
+          MockApiClient.matchData({
+            payload: {
+              type: 'user_input_response',
+              input_id: 'input-1',
+              response_data: {decision: 'approve'},
+            },
+          }),
+        ],
+      });
+      // The newer answer stays in flight for the rest of the test.
+      MockApiClient.addMockResponse({
+        url: updateUrl,
+        method: 'POST',
+        body: {run_id: 1},
+        asyncDelay: new Promise<void>(() => {}),
+        match: [
+          MockApiClient.matchData({
+            payload: {
+              type: 'user_input_response',
+              input_id: 'input-2',
+              response_data: {decision: 'reject'},
+            },
+          }),
+        ],
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('awaiting_user_input');
+      });
+
+      await act(async () => {
+        result.current.respondToUserInput(
+          'input-1',
+          {decision: 'approve'},
+          {onError: onOlderAnswerError}
+        );
+        for (let i = 0; i < 5; i++) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      });
+
+      expect(olderAnswerMock).toHaveBeenCalled();
+      expect(onOlderAnswerError).not.toHaveBeenCalled();
+    });
+
     it('clears the request error when switching conversations', async () => {
       const runId = 'run-a';
       MockApiClient.addMockResponse({
