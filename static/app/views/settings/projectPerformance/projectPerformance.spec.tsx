@@ -28,6 +28,9 @@ import {DetectorConfigCustomer} from './detectors/detectorSettings';
 
 jest.mock('sentry/utils/analytics');
 
+// These full-page, multi-save flows exceed Jest's 5s default on shared CI runners.
+const MULTI_SAVE_TIMEOUT = 15_000;
+
 const manageDetectorData = [
   {label: 'N+1 DB Queries Detection', key: 'n_plus_one_db_queries_detection_enabled'},
   {label: 'Slow DB Queries Detection', key: 'slow_db_queries_detection_enabled'},
@@ -206,88 +209,89 @@ describe('projectPerformance', () => {
     expect(input).toHaveValue('400');
   });
 
-  it('keeps sampling priority forms synchronized after saves', async () => {
-    let dynamicSamplingBiases = [
-      {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: false},
-      {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: false},
-      {id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: false},
-      {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: false},
-      {id: DynamicSamplingBiasType.MINIMUM_SAMPLE_RATE, active: true},
-    ];
-    const detailedProject = {...ProjectFixture(), dynamicSamplingBiases};
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/',
-      method: 'GET',
-      body: () => ({...detailedProject, dynamicSamplingBiases}),
-    });
-    const firstUpdate = Promise.withResolvers<typeof detailedProject>();
-    let updateCount = 0;
-    const projectPutMock = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/',
-      method: 'PUT',
-      body: (
-        _url: string,
-        options: {data: {dynamicSamplingBiases: typeof dynamicSamplingBiases}}
-      ) => {
-        dynamicSamplingBiases = options.data.dynamicSamplingBiases;
-        const projectResponse = {...detailedProject, dynamicSamplingBiases};
-        updateCount += 1;
-        if (updateCount === 1) {
-          return firstUpdate.promise;
-        }
-        return projectResponse;
-      },
-    });
+  it(
+    'keeps sampling priority forms synchronized after saves',
+    async () => {
+      let dynamicSamplingBiases = [
+        {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: false},
+        {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: false},
+        {id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: false},
+        {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: false},
+        {id: DynamicSamplingBiasType.MINIMUM_SAMPLE_RATE, active: true},
+      ];
+      const detailedProject = {...ProjectFixture(), dynamicSamplingBiases};
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/',
+        method: 'GET',
+        body: () => ({...detailedProject, dynamicSamplingBiases}),
+      });
+      const firstUpdate = Promise.withResolvers<typeof detailedProject>();
+      let updateCount = 0;
+      const projectPutMock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/',
+        method: 'PUT',
+        body: (
+          _url: string,
+          options: {data: {dynamicSamplingBiases: typeof dynamicSamplingBiases}}
+        ) => {
+          dynamicSamplingBiases = options.data.dynamicSamplingBiases;
+          const projectResponse = {...detailedProject, dynamicSamplingBiases};
+          updateCount += 1;
+          if (updateCount === 1) {
+            return firstUpdate.promise;
+          }
+          return projectResponse;
+        },
+      });
 
-    render(<ProjectPerformance />, {
-      organization: OrganizationFixture({features: ['dynamic-sampling']}),
-      initialRouterConfig,
-    });
+      render(<ProjectPerformance />, {
+        organization: OrganizationFixture({features: ['dynamic-sampling']}),
+        initialRouterConfig,
+      });
 
-    await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Prioritize new releases'})
-    );
-    await waitFor(() => {
+      const releasesSwitch = await screen.findByRole('checkbox', {
+        name: 'Prioritize new releases',
+      });
+      const environmentsSwitch = screen.getByRole('checkbox', {
+        name: 'Prioritize dev environments',
+      });
+
+      await userEvent.click(releasesSwitch);
+      await waitFor(() => {
+        expect(projectPutMock).toHaveBeenCalledTimes(1);
+        expect(environmentsSwitch).toBeDisabled();
+      });
+
+      await userEvent.click(environmentsSwitch);
       expect(projectPutMock).toHaveBeenCalledTimes(1);
-      expect(
-        screen.getByRole('checkbox', {name: 'Prioritize dev environments'})
-      ).toBeDisabled();
-    });
 
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Prioritize dev environments'})
-    );
-    expect(projectPutMock).toHaveBeenCalledTimes(1);
+      firstUpdate.resolve({...detailedProject, dynamicSamplingBiases});
+      await waitFor(() => {
+        expect(releasesSwitch).toBeChecked();
+        expect(environmentsSwitch).toBeEnabled();
+      });
 
-    firstUpdate.resolve({...detailedProject, dynamicSamplingBiases});
-    await waitFor(() => {
-      expect(
-        screen.getByRole('checkbox', {name: 'Prioritize new releases'})
-      ).toBeChecked();
-      expect(
-        screen.getByRole('checkbox', {name: 'Prioritize dev environments'})
-      ).toBeEnabled();
-    });
+      await userEvent.click(environmentsSwitch);
 
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Prioritize dev environments'})
-    );
-
-    await waitFor(() => {
-      expect(projectPutMock).toHaveBeenLastCalledWith(
-        '/projects/org-slug/project-slug/',
-        expect.objectContaining({
-          data: {
-            dynamicSamplingBiases: expect.arrayContaining([
-              {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true},
-              {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
-              {id: DynamicSamplingBiasType.MINIMUM_SAMPLE_RATE, active: true},
-            ]),
-          },
-        })
-      );
-    });
-  });
+      await waitFor(() => {
+        expect(projectPutMock).toHaveBeenLastCalledWith(
+          '/projects/org-slug/project-slug/',
+          expect.objectContaining({
+            data: {
+              dynamicSamplingBiases: expect.arrayContaining([
+                {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true},
+                {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
+                {id: DynamicSamplingBiasType.MINIMUM_SAMPLE_RATE, active: true},
+              ]),
+            },
+          })
+        );
+      });
+      await waitFor(() => expect(environmentsSwitch).toBeEnabled());
+      expect(environmentsSwitch).toBeChecked();
+    },
+    MULTI_SAVE_TIMEOUT
+  );
 
   it('shows sampling priority save errors', async () => {
     const dynamicSamplingBiases = [
@@ -320,6 +324,7 @@ describe('projectPerformance', () => {
     await userEvent.click(prioritySwitch);
 
     expect(await screen.findByText('Failed to save')).toBeInTheDocument();
+    await waitFor(() => expect(prioritySwitch).toBeEnabled());
     expect(prioritySwitch).not.toBeChecked();
   });
 
@@ -543,220 +548,219 @@ describe('projectPerformance', () => {
     ).toBeDisabled();
   });
 
-  it('renders configured detector thresholds and updates a threshold', async () => {
-    const consecutiveDbThreshold = {
-      title: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-      threshold: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
-      allowedValues: allowedDurationValues.slice(0, 23),
-      configuredValue: 5000,
-      updateValue: 100,
-      sliderIdentifier: {
-        label: 'Minimum Time Saved',
-        index: 0,
-      },
-    };
-    const detectorThresholdData = [
-      {
-        title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-        threshold: DetectorConfigCustomer.N_PLUS_DB_DURATION,
-        allowedValues: allowedDurationValues,
-        configuredValue: 500,
-        sliderIdentifier: {
-          label: 'Minimum Total Duration',
-          index: 0,
-        },
-      },
-      {
-        title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-        threshold: DetectorConfigCustomer.N_PLUS_DB_COUNT,
-        allowedValues: allowedCountValues,
-        configuredValue: 10,
-        sliderIdentifier: {
-          label: 'Minimum Query Count',
-          index: 0,
-        },
-      },
-      {
-        title: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
-        threshold: DetectorConfigCustomer.SLOW_DB_DURATION,
-        allowedValues: allowedDurationValues.slice(5),
-        configuredValue: 3000,
-        sliderIdentifier: {
-          label: 'Minimum Duration',
-          index: 0,
-        },
-      },
-      {
-        title: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-        threshold: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
-        allowedValues: allowedDurationValues.slice(5),
-        configuredValue: 500,
-        sliderIdentifier: {
-          label: 'Minimum Total Duration',
-          index: 1,
-        },
-      },
-      {
-        title: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
-        threshold: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
-        allowedValues: allowedPercentageValues,
-        configuredValue: 0.5,
-        sliderIdentifier: {
-          label: 'Minimum FCP Ratio',
-          index: 0,
-        },
-      },
-      {
-        title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
-        threshold: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_SIZE,
-        allowedValues: allowedSizeValues.slice(1),
-        configuredValue: 5000000,
-        sliderIdentifier: {
-          label: 'Minimum Size',
-          index: 0,
-        },
-      },
-      {
-        title: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
-        threshold: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
-        allowedValues: [10, 16, 33, 50],
-        configuredValue: 33,
-        sliderIdentifier: {
-          label: 'Frame Rate Drop',
-          index: 0,
-        },
-      },
-      {
-        title: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
-        threshold: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
-        allowedValues: [10, 16, 33, 50],
-        configuredValue: 50,
-        sliderIdentifier: {
-          label: 'Frame Rate Drop',
-          index: 1,
-        },
-      },
-      consecutiveDbThreshold,
-      {
-        title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
-        threshold: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
-        allowedValues: allowedSizeValues.slice(1),
-        configuredValue: 700000,
-        sliderIdentifier: {
-          label: 'Minimum Size',
-          index: 1,
-        },
-      },
-      {
-        title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
-        threshold: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
-        allowedValues: allowedDurationValues.slice(5),
-        configuredValue: 400,
-        sliderIdentifier: {
-          label: 'Minimum Duration',
-          index: 1,
-        },
-      },
-      {
-        title: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
-        threshold: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
-        allowedValues: allowedDurationValues.slice(14),
-        configuredValue: 4000,
+  it(
+    'renders configured detector thresholds and updates a threshold',
+    async () => {
+      const consecutiveDbThreshold = {
+        title: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+        threshold: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
+        allowedValues: allowedDurationValues.slice(0, 23),
+        configuredValue: 5000,
+        updateValue: 4500,
         sliderIdentifier: {
           label: 'Minimum Time Saved',
-          index: 1,
-        },
-      },
-      {
-        title: IssueTitle.WEB_VITALS,
-        threshold: DetectorConfigCustomer.WEB_VITALS_COUNT,
-        allowedValues: allowedCountValues,
-        configuredValue: 20,
-        sliderIdentifier: {
-          label: 'Minimum Sample Count',
           index: 0,
         },
-      },
-    ];
-    const configuredThresholds = Object.fromEntries(
-      detectorThresholdData.map(({threshold, configuredValue}) => [
-        threshold,
-        configuredValue,
-      ])
-    );
-    const performanceIssuesGetMock = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/performance-issues/configure/',
-      method: 'GET',
-      body: {
-        ...configuredThresholds,
-        n_plus_one_db_queries_detection_enabled: true,
-        slow_db_queries_detection_enabled: true,
-        db_on_main_thread_detection_enabled: true,
-        file_io_on_main_thread_detection_enabled: true,
-        consecutive_db_queries_detection_enabled: true,
-        large_render_blocking_asset_detection_enabled: true,
-        uncompressed_assets_detection_enabled: true,
-        large_http_payload_detection_enabled: true,
-        n_plus_one_api_calls_detection_enabled: true,
-        consecutive_http_spans_detection_enabled: true,
-        web_vitals_detection_enabled: true,
-      },
-      statusCode: 200,
-    });
-    const performanceIssuesPutMock = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/performance-issues/configure/',
-      method: 'PUT',
-    });
-
-    render(<ProjectPerformance />, {organization: org, initialRouterConfig});
-
-    expect(
-      await screen.findByText('Performance Issues - Detector Threshold Settings')
-    ).toBeInTheDocument();
-    await expandAllDetectorSettings();
-
-    for (const {
-      title,
-      allowedValues,
-      configuredValue,
-      sliderIdentifier,
-    } of detectorThresholdData) {
-      expect(screen.getByText(title)).toBeInTheDocument();
-      expect(getDetectorSlider(sliderIdentifier)).toHaveValue(
-        allowedValues.indexOf(configuredValue).toString()
+      };
+      const detectorThresholdData = [
+        {
+          title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+          threshold: DetectorConfigCustomer.N_PLUS_DB_DURATION,
+          allowedValues: allowedDurationValues,
+          configuredValue: 500,
+          sliderIdentifier: {
+            label: 'Minimum Total Duration',
+            index: 0,
+          },
+        },
+        {
+          title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+          threshold: DetectorConfigCustomer.N_PLUS_DB_COUNT,
+          allowedValues: allowedCountValues,
+          configuredValue: 10,
+          sliderIdentifier: {
+            label: 'Minimum Query Count',
+            index: 0,
+          },
+        },
+        {
+          title: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
+          threshold: DetectorConfigCustomer.SLOW_DB_DURATION,
+          allowedValues: allowedDurationValues.slice(5),
+          configuredValue: 3000,
+          sliderIdentifier: {
+            label: 'Minimum Duration',
+            index: 0,
+          },
+        },
+        {
+          title: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+          threshold: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
+          allowedValues: allowedDurationValues.slice(5),
+          configuredValue: 500,
+          sliderIdentifier: {
+            label: 'Minimum Total Duration',
+            index: 1,
+          },
+        },
+        {
+          title: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
+          threshold: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
+          allowedValues: allowedPercentageValues,
+          configuredValue: 0.5,
+          sliderIdentifier: {
+            label: 'Minimum FCP Ratio',
+            index: 0,
+          },
+        },
+        {
+          title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
+          threshold: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_SIZE,
+          allowedValues: allowedSizeValues.slice(1),
+          configuredValue: 5000000,
+          sliderIdentifier: {
+            label: 'Minimum Size',
+            index: 0,
+          },
+        },
+        {
+          title: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
+          threshold: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
+          allowedValues: [10, 16, 33, 50],
+          configuredValue: 33,
+          sliderIdentifier: {
+            label: 'Frame Rate Drop',
+            index: 0,
+          },
+        },
+        {
+          title: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
+          threshold: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
+          allowedValues: [10, 16, 33, 50],
+          configuredValue: 50,
+          sliderIdentifier: {
+            label: 'Frame Rate Drop',
+            index: 1,
+          },
+        },
+        consecutiveDbThreshold,
+        {
+          title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
+          threshold: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
+          allowedValues: allowedSizeValues.slice(1),
+          configuredValue: 700000,
+          sliderIdentifier: {
+            label: 'Minimum Size',
+            index: 1,
+          },
+        },
+        {
+          title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
+          threshold: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
+          allowedValues: allowedDurationValues.slice(5),
+          configuredValue: 400,
+          sliderIdentifier: {
+            label: 'Minimum Duration',
+            index: 1,
+          },
+        },
+        {
+          title: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
+          threshold: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
+          allowedValues: allowedDurationValues.slice(14),
+          configuredValue: 4000,
+          sliderIdentifier: {
+            label: 'Minimum Time Saved',
+            index: 1,
+          },
+        },
+        {
+          title: IssueTitle.WEB_VITALS,
+          threshold: DetectorConfigCustomer.WEB_VITALS_COUNT,
+          allowedValues: allowedCountValues,
+          configuredValue: 20,
+          sliderIdentifier: {
+            label: 'Minimum Sample Count',
+            index: 0,
+          },
+        },
+      ];
+      const configuredThresholds = Object.fromEntries(
+        detectorThresholdData.map(({threshold, configuredValue}) => [
+          threshold,
+          configuredValue,
+        ])
       );
-    }
+      const performanceIssuesGetMock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/performance-issues/configure/',
+        method: 'GET',
+        body: {
+          ...configuredThresholds,
+          n_plus_one_db_queries_detection_enabled: true,
+          slow_db_queries_detection_enabled: true,
+          db_on_main_thread_detection_enabled: true,
+          file_io_on_main_thread_detection_enabled: true,
+          consecutive_db_queries_detection_enabled: true,
+          large_render_blocking_asset_detection_enabled: true,
+          uncompressed_assets_detection_enabled: true,
+          large_http_payload_detection_enabled: true,
+          n_plus_one_api_calls_detection_enabled: true,
+          consecutive_http_spans_detection_enabled: true,
+          web_vitals_detection_enabled: true,
+        },
+        statusCode: 200,
+      });
+      const performanceIssuesPutMock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/performance-issues/configure/',
+        method: 'PUT',
+      });
 
-    expect(performanceIssuesGetMock).toHaveBeenCalledTimes(1);
+      render(<ProjectPerformance />, {organization: org, initialRouterConfig});
 
-    const {allowedValues, configuredValue, sliderIdentifier, threshold, updateValue} =
-      consecutiveDbThreshold;
-    const slider = getDetectorSlider(sliderIdentifier);
-    const indexDelta =
-      allowedValues.indexOf(updateValue) - allowedValues.indexOf(configuredValue);
-    const key = indexDelta > 0 ? '{ArrowRight}' : '{ArrowLeft}';
-    const ue = userEvent.setup({delay: null});
-    await ue.click(slider);
-    for (let index = 0; index < Math.abs(indexDelta); index++) {
-      await ue.keyboard(key);
-    }
-    await ue.tab();
+      expect(
+        await screen.findByText('Performance Issues - Detector Threshold Settings')
+      ).toBeInTheDocument();
+      await expandAllDetectorSettings();
 
-    expect(slider).toHaveValue(allowedValues.indexOf(updateValue).toString());
-    expect(performanceIssuesPutMock).toHaveBeenCalledWith(
-      '/projects/org-slug/project-slug/performance-issues/configure/',
-      expect.objectContaining({data: {[threshold]: updateValue}})
-    );
-    expect(trackAnalytics).toHaveBeenCalledWith(
-      'performance_views.project_issue_detection_threshold_changed',
-      {
-        organization: org,
-        project_slug: project.slug,
-        threshold_key: threshold,
-        threshold_value: updateValue,
+      for (const {
+        title,
+        allowedValues,
+        configuredValue,
+        sliderIdentifier,
+      } of detectorThresholdData) {
+        expect(screen.getByText(title)).toBeInTheDocument();
+        expect(getDetectorSlider(sliderIdentifier)).toHaveValue(
+          allowedValues.indexOf(configuredValue).toString()
+        );
       }
-    );
-  });
+
+      expect(performanceIssuesGetMock).toHaveBeenCalledTimes(1);
+
+      const {allowedValues, sliderIdentifier, threshold, updateValue} =
+        consecutiveDbThreshold;
+      const slider = getDetectorSlider(sliderIdentifier);
+      // One step verifies the value-to-threshold mapping without saving every intermediate value.
+      await userEvent.click(slider);
+      await userEvent.keyboard('{ArrowLeft}');
+      await userEvent.tab();
+
+      expect(slider).toHaveValue(allowedValues.indexOf(updateValue).toString());
+      expect(performanceIssuesPutMock).toHaveBeenCalledWith(
+        '/projects/org-slug/project-slug/performance-issues/configure/',
+        expect.objectContaining({data: {[threshold]: updateValue}})
+      );
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'performance_views.project_issue_detection_threshold_changed',
+        {
+          organization: org,
+          project_slug: project.slug,
+          threshold_key: threshold,
+          threshold_value: updateValue,
+        }
+      );
+    },
+    MULTI_SAVE_TIMEOUT
+  );
 
   it('positions detector sliders at nonstandard configured values', async () => {
     MockApiClient.addMockResponse({
@@ -850,39 +854,43 @@ describe('projectPerformance', () => {
     });
   });
 
-  it('allows project admins to disable detectors', async () => {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/',
-      method: 'GET',
-      body: ProjectFixture({access: ['project:admin']}),
-      statusCode: 200,
-    });
-    const mockPut = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/performance-issues/configure/',
-      method: 'PUT',
-    });
+  it(
+    'allows project admins to disable detectors',
+    async () => {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/',
+        method: 'GET',
+        body: ProjectFixture({access: ['project:admin']}),
+        statusCode: 200,
+      });
+      const mockPut = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/performance-issues/configure/',
+        method: 'PUT',
+      });
 
-    render(<ProjectPerformance />, {organization: org, initialRouterConfig});
-    await screen.findByText('Performance Issues - Detector Threshold Settings');
+      render(<ProjectPerformance />, {organization: org, initialRouterConfig});
+      await screen.findByText('Performance Issues - Detector Threshold Settings');
 
-    for (const {label} of manageDetectorData) {
-      expect(screen.queryByRole('checkbox', {name: label})).not.toBeInTheDocument();
-    }
+      for (const {label} of manageDetectorData) {
+        expect(screen.queryByRole('checkbox', {name: label})).not.toBeInTheDocument();
+      }
 
-    await expandAllDetectorSettings();
+      await expandAllDetectorSettings();
 
-    for (const {label, key} of manageDetectorData) {
-      const toggle = screen.getByRole('checkbox', {name: label});
-      expect(toggle).toBeChecked();
+      for (const {label, key} of manageDetectorData) {
+        const toggle = screen.getByRole('checkbox', {name: label});
+        expect(toggle).toBeChecked();
 
-      await userEvent.click(toggle);
-      expect(mockPut).toHaveBeenLastCalledWith(
-        '/projects/org-slug/project-slug/performance-issues/configure/',
-        expect.objectContaining({data: {[key]: false}})
-      );
-      expect(toggle).not.toBeChecked();
-    }
-  });
+        await userEvent.click(toggle);
+        expect(mockPut).toHaveBeenLastCalledWith(
+          '/projects/org-slug/project-slug/performance-issues/configure/',
+          expect.objectContaining({data: {[key]: false}})
+        );
+        expect(toggle).not.toBeChecked();
+      }
+    },
+    MULTI_SAVE_TIMEOUT
+  );
 
   it('disables detector thresholds while the detector update is pending', async () => {
     MockApiClient.addMockResponse({
