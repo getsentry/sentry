@@ -210,8 +210,18 @@ class DashboardDetail extends Component<Props, State> {
     seerRunId: null,
   };
 
+  isUnmounted = false;
+
   componentDidMount() {
-    this.checkIfShouldMountWidgetViewerModal();
+    // `navigate` comes from `useNavigate()` in the parent, which react-router
+    // only enables in the parent's layout effect. That runs after this
+    // componentDidMount, so a redirect made here would be dropped. Wait for the
+    // commit to finish first.
+    queueMicrotask(() => {
+      if (!this.isUnmounted) {
+        this.checkIfShouldMountWidgetViewerModal();
+      }
+    });
     if (this.isWidgetBuilder()) {
       const {location} = this.props;
       const shouldOpenTemplates = decodeBoolean(location.query.openWidgetTemplates);
@@ -286,6 +296,7 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   componentWillUnmount(): void {
+    this.isUnmounted = true;
     window.removeEventListener('beforeunload', this.handleBeforeUnload);
   }
 

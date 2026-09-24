@@ -360,13 +360,15 @@ describe('WidgetBuilderSlideout', () => {
 
     await userEvent.click(await screen.findByText('Table'));
     await userEvent.click(await screen.findByText('Area'));
-    await userEvent.click(await screen.findByText('Area'));
+    // Switching to a chart re-renders most of the builder, which can take
+    // longer than the default findBy timeout on a loaded CI runner.
+    await userEvent.click(await screen.findByText('Area', {}, {timeout: 5_000}));
     await userEvent.click(await screen.findByText('Table'));
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('');
     });
-  }, 10_000);
+  }, 15_000);
 
   it('only renders thresholds for big number widgets', async () => {
     render(
