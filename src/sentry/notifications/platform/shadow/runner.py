@@ -74,24 +74,17 @@ def _is_test_notification(invocation: ActionInvocation) -> bool:
     )
 
 
-def _sampled_provider(
-    invocation: ActionInvocation, source: NotificationSource
-) -> NotificationProviderKey | None:
+def _should_shadow(invocation: ActionInvocation, source: NotificationSource) -> bool:
     try:
-        if is_collecting() or source not in SHADOW_SOURCES:
-            return None
-        provider = SHADOW_PROVIDERS.get(invocation.action.type)
-        if provider is None or _is_test_notification(invocation):
-            return None
+        if is_collecting() or source not in SHADOW_SOURCES or _is_test_notification(invocation):
+            return False
         if source.value in options.get(KILLSWITCH_OPTION_KEY):
-            return None
+            return False
         rate = options.get(SAMPLE_RATES_OPTION_KEY).get(source.value, 0.0)
-        if random.random() >= float(rate):
-            return None
-        return provider
+        return random.random() < float(rate)
     except Exception:
         logger.exception("notifications.platform.shadow.sample_failed", extra={"source": source})
-        return None
+        return False
 
 
 def _has_platform_renderer(
@@ -233,8 +226,8 @@ def shadow_read(invocation: ActionInvocation, source: NotificationSource) -> Gen
     The shadow never raises into the send, and an exception from the send propagates unchanged.
     Nested shadow reads are no-ops, so an alert is compared at most once.
     """
-    provider_key = _sampled_provider(invocation, source)
-    if provider_key is None:
+    provider_key = SHADOW_PROVIDERS.get(invocation.action.type)
+    if provider_key is None or not _should_shadow(invocation, source):
         yield
         return
 
