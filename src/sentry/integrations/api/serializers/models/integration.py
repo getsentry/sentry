@@ -130,7 +130,7 @@ class IntegrationSerializer(Serializer):
                         {
                             "key": "seer_mentions",
                             "description": (
-                                "Mention @Sentry in Slack to ask questions and investigate issues with Seer."
+                                "Mention @Sentry in Slack to ask any questions and investigate issues."
                             ),
                         }
                     )
