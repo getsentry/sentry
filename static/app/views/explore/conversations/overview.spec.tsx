@@ -203,7 +203,7 @@ describe('ConversationsOverviewPage', () => {
     expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
     expect(screen.queryByText('Tool calls')).not.toBeInTheDocument();
     expect(
-      costChartTitle.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING
+      banner.compareDocumentPosition(costChartTitle) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(
       screen.queryByRole('button', {name: 'Dismiss banner'})

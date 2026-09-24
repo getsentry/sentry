@@ -167,6 +167,7 @@ export function AgentsCharts() {
   return (
     <Container containerType="inline-size">
       <Stack gap="sm">
+        <AgentsChartsBanner show={showMissingAgentDataBanner} />
         {isChartDataPending ? (
           <Flex align="center" justify="center" minHeight="240px">
             <LoadingIndicator />
@@ -198,7 +199,6 @@ export function AgentsCharts() {
             ))}
           </Grid>
         )}
-        <AgentsChartsBanner show={showMissingAgentDataBanner} />
       </Stack>
     </Container>
   );
