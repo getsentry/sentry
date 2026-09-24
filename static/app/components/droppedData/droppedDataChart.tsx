@@ -96,14 +96,14 @@ function ChartLegend({
 }
 
 interface DroppedDataChartProps {
-  annotations: Annotation[];
+  droppedDataAnnotations: Annotation[];
 }
 
-export function DroppedDataChart({annotations}: DroppedDataChartProps) {
+export function DroppedDataChart({droppedDataAnnotations}: DroppedDataChartProps) {
   const theme = useTheme();
 
   const {outcomes, colors, plottables} = useMemo(() => {
-    const series = annotationsToSeries(annotations);
+    const series = annotationsToSeries(droppedDataAnnotations);
     const orderedOutcomes = orderOutcomes(Object.keys(series));
     const outcomeColors = getOutcomeColors(orderedOutcomes, theme);
 
@@ -119,9 +119,9 @@ export function DroppedDataChart({annotations}: DroppedDataChartProps) {
           })
       ),
     };
-  }, [annotations, theme]);
+  }, [droppedDataAnnotations, theme]);
 
-  const totalDropped = annotations.reduce(
+  const totalDropped = droppedDataAnnotations.reduce(
     (sum, annotation) => sum + annotation.eventCount,
     0
   );

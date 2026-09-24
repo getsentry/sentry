@@ -27,7 +27,7 @@ export function DroppedDataDrawer({
       </DrawerHeader>
       <DrawerBody>
         <Stack gap="xl">
-          <DroppedDataChart annotations={droppedDataAnnotations} />
+          <DroppedDataChart droppedDataAnnotations={droppedDataAnnotations} />
           <DroppedDataCategoryList
             droppedDataAnnotations={droppedDataAnnotations}
             acceptedDataAnnotations={acceptedDataAnnotations}

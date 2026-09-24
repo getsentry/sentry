@@ -14,13 +14,14 @@ export function useDroppedData(meta: EventsTimeSeriesResponse['meta']) {
   const {openDrawer} = useDrawer();
   const [showDroppedData, setShowDroppedData] = useState(true);
 
-  const dropped = hasAnnotations ? meta?.droppedAnnotations : undefined;
-  const accepted = hasAnnotations ? meta?.acceptedAnnotations : undefined;
-  const hasDroppedData = defined(dropped) && dropped.length > 0;
+  const droppedDataAnnotations = hasAnnotations ? meta?.droppedAnnotations : undefined;
+  const acceptedDataAnnotations = hasAnnotations ? meta?.acceptedAnnotations : undefined;
+  const hasDroppedData =
+    defined(droppedDataAnnotations) && droppedDataAnnotations.length > 0;
 
   const chartProps: DroppedData = {
-    dropped,
-    accepted,
+    dropped: droppedDataAnnotations,
+    accepted: acceptedDataAnnotations,
     visible: showDroppedData,
     onClick: () => {
       if (!hasDroppedData) {
@@ -29,8 +30,8 @@ export function useDroppedData(meta: EventsTimeSeriesResponse['meta']) {
       openDrawer(
         () => (
           <DroppedDataDrawer
-            droppedDataAnnotations={dropped}
-            acceptedDataAnnotations={accepted ?? []}
+            droppedDataAnnotations={droppedDataAnnotations}
+            acceptedDataAnnotations={acceptedDataAnnotations ?? []}
           />
         ),
         {
