@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
@@ -331,6 +332,88 @@ class TransferRepositoryToIntegrationTest(TestCase):
         self.code_mapping.refresh_from_db()
         assert self.code_mapping.integration_id == self.old_integration.id
         assert self.code_mapping.organization_integration_id == self.old_org_integration.id
+
+
+@cell_silo_test
+class UpdateRepositoryConfigTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_integration(
+            organization=self.organization, external_id="1", provider="gitlab"
+        )
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:gitlab",
+            integration_id=self.integration.id,
+        )
+        self.repo.update(config={"project_id": 1, "webhook_id": 10})
+
+    def _update(self, **kwargs: Any) -> bool:
+        return repository_service.update_repository_config(
+            organization_id=self.organization.id,
+            id=self.repo.id,
+            config_updates={"webhook_id": 20},
+            **kwargs,
+        )
+
+    def test_merges_only_the_given_keys(self) -> None:
+        # Written after the caller's snapshot; a full-row write would drop it.
+        self.repo.update(name="renamed", config={**self.repo.config, "sync_comments": True})
+
+        assert self._update(
+            expected_integration_id=self.integration.id, expected_config={"webhook_id": 10}
+        )
+
+        self.repo.refresh_from_db()
+        assert self.repo.name == "renamed"
+        assert self.repo.config == {"project_id": 1, "webhook_id": 20, "sync_comments": True}
+
+    def test_refuses_inactive_repository(self) -> None:
+        for status in (ObjectStatus.DISABLED, ObjectStatus.PENDING_DELETION):
+            self.repo.update(status=status)
+
+            assert self._update() is False
+
+            self.repo.refresh_from_db()
+            assert self.repo.status == status
+            assert self.repo.config["webhook_id"] == 10
+
+    def test_refuses_repository_moved_to_another_integration(self) -> None:
+        other = self.create_integration(
+            organization=self.organization, external_id="2", provider="gitlab"
+        )
+        self.repo.update(integration_id=other.id)
+
+        assert self._update(expected_integration_id=self.integration.id) is False
+
+        self.repo.refresh_from_db()
+        assert self.repo.integration_id == other.id
+        assert self.repo.config["webhook_id"] == 10
+
+    def test_refuses_changed_expected_config(self) -> None:
+        assert self._update(expected_config={"webhook_id": 9}) is False
+        assert self._update(expected_config={"webhook_id": None}) is False
+
+        self.repo.refresh_from_db()
+        assert self.repo.config["webhook_id"] == 10
+
+    def test_none_expects_an_unset_key(self) -> None:
+        assert self._update(expected_config={"missing": None}) is True
+
+        self.repo.refresh_from_db()
+        assert self.repo.config["webhook_id"] == 20
+
+    def test_refuses_repository_in_other_organization(self) -> None:
+        other_org = self.create_organization()
+
+        assert (
+            repository_service.update_repository_config(
+                organization_id=other_org.id, id=self.repo.id, config_updates={"webhook_id": 20}
+            )
+            is False
+        )
+
+        self.repo.refresh_from_db()
+        assert self.repo.config["webhook_id"] == 10
 
 
 @cell_silo_test
