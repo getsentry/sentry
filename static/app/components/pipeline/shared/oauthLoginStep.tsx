@@ -18,7 +18,7 @@ interface OAuthLoginStepProps {
   onOAuthCallback: (data: OAuthCallbackData) => void;
   serviceName: string;
   /** Overrides the default intro copy */
-  description?: React.ReactNode;
+  description?: string;
   isLoading?: boolean;
   oauthUrl?: string;
   popup?: PopupOptions;
@@ -49,19 +49,13 @@ export function OAuthLoginStep({
   return (
     <Stack gap="lg" align="start">
       <Stack gap="sm">
-        {description === null ||
-        description === undefined ||
-        typeof description === 'string' ? (
-          <Text>
-            {description ??
-              tct(
-                'Authorize your [service] account with Sentry to complete the integration setup.',
-                {service: serviceName}
-              )}
-          </Text>
-        ) : (
-          description
-        )}
+        <Text>
+          {description ??
+            tct(
+              'Authorize your [service] account with Sentry to complete the integration setup.',
+              {service: serviceName}
+            )}
+        </Text>
         {popupStatus === 'popup-open' && (
           <Text variant="muted" size="sm">
             {tct('A popup should have opened to authorize with [service].', {

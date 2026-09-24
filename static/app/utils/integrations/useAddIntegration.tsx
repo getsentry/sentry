@@ -34,7 +34,7 @@ export interface AddIntegrationParams {
    * `openPipelineModal`; this hook does not read them.
    */
   modalParams?: {
-    description?: React.ReactNode;
+    description?: string;
     title?: string;
   };
   onCancel?: () => void;

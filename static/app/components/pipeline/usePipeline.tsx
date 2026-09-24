@@ -69,7 +69,7 @@ interface UsePipelineOptions<
   /**
    * Copy override forwarded to step components that render descriptive intro text.
    */
-  description?: React.ReactNode;
+  description?: string;
   /**
    * Data that will be passed through to the initialization call.
    */
