@@ -23,8 +23,8 @@ class ScopeAdmissionTest(APITestCase):
         data = self.span_data_for(url)
 
         # The owner holds every scope the endpoint accepts for GET.
-        assert data["scopes_satisfying_test"] == "org:admin,org:read,org:write"
-        assert data["scopes_allowed_test"] == "org:admin,org:read,org:write"
+        assert data["scopes_satisfying"] == "org:admin,org:read,org:write"
+        assert data["scopes_allowed"] == "org:admin,org:read,org:write"
 
     def test_token_request_records_only_the_scopes_the_token_held(self) -> None:
         token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
@@ -33,8 +33,8 @@ class ScopeAdmissionTest(APITestCase):
         data = self.span_data_for(url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
         # This is the request that would break if org:read left the scope map.
-        assert data["scopes_satisfying_test"] == "org:read"
-        assert data["scopes_allowed_test"] == "org:admin,org:read,org:write"
+        assert data["scopes_satisfying"] == "org:read"
+        assert data["scopes_allowed"] == "org:admin,org:read,org:write"
 
     def test_project_endpoint_records_project_scopes(self) -> None:
         self.login_as(self.user)
@@ -42,7 +42,7 @@ class ScopeAdmissionTest(APITestCase):
 
         data = self.span_data_for(url)
 
-        assert "project:read" in data["scopes_satisfying_test"]
+        assert "project:read" in data["scopes_satisfying"]
 
     def test_nothing_recorded_without_the_attribution_span(self) -> None:
         self.login_as(self.user)

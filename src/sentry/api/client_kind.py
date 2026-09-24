@@ -238,8 +238,8 @@ def _record_attribution_span(
         if admission is not None:
             # Which of the endpoint's scopes this caller actually held, so a scope
             # can be removed from the map once no request depends on it alone.
-            set_span_data(span, "scopes_satisfying_test", ",".join(admission.satisfying))
-            set_span_data(span, "scopes_allowed_test", ",".join(admission.allowed))
+            set_span_data(span, "scopes_satisfying", ",".join(admission.satisfying))
+            set_span_data(span, "scopes_allowed", ",".join(admission.allowed))
 
 
 def get_user_agent(request: Request) -> str | None:
