@@ -47,7 +47,8 @@ def enqueue_autofix_feedback(
     Nothing is filtered here: feedback that turns out to be stale or over the
     cap is still queued, so that every item reaches ``should_trigger`` and the
     reason it went nowhere is written down rather than dropped on arrival.
-    ``should_consume`` keeps such items out of the agent at drain time.
+    ``should_consume`` and ``automated_iteration_allowed`` keep such items out
+    of the agent at drain time.
     """
     item = QueuedAutofixFeedback(
         organization_id=organization_id,

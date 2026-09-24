@@ -1336,9 +1336,8 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
-        # consume no longer enforces the cap; a queued comment past the old limit
-        # still triggers an iteration. Automatic loops are bounded upstream (the
-        # review trigger and the check-suite hard cap), not here.
+        # The cap only holds back automated feedback, so a person's comment past
+        # it still triggers an iteration.
         mock_fetch.return_value = self._state(
             blocks=[self._iteration_block(1), self._iteration_block(2)]
         )
@@ -1707,6 +1706,200 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         assert _step_feedback_kinds(mock_metrics) == ["mixed", "mixed"]
 
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_automated_feedback_at_the_hard_cap_is_dropped(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # The completion hook schedules this drain without the automated-iteration
+        # check, so the drain has to hold the cap itself.
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_bot_review_at_the_hard_cap_is_dropped(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        mock_pop.return_value = [self._queued(self._bot_review_feedback(1, "review-bot[bot]"))]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.assign_user_for_exhausted_cap")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_dropping_ci_at_the_hard_cap_hands_the_pr_to_a_person(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_assign: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        older = self._check_suite_feedback(updated_at="2024-01-01T00:00:00Z")
+        newer = self._check_suite_feedback(updated_at="2024-01-01T01:00:00Z")
+        assert isinstance(newer.source, CheckSuiteFeedbackSource)
+        mock_pop.return_value = [self._queued(older), self._queued(newer)]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_assign.assert_called_once_with(newer.source.event, newer.source.autofix_run)
+
+    @patch(f"{TASK_PATH}.assign_user_for_exhausted_cap", side_effect=RuntimeError("github down"))
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_failed_handoff_does_not_fail_the_drain(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        _mock_assign: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.assign_user_for_exhausted_cap")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_no_handoff_when_a_person_is_in_the_batch_at_the_hard_cap(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_assign: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        mock_pop.return_value = [
+            self._queued(self._check_suite_feedback()),
+            self._queued(self._review_feedback(777)),
+        ]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_assign.assert_not_called()
+
+    @patch(f"{TASK_PATH}.assign_user_for_exhausted_cap")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_no_handoff_when_ci_is_dropped_because_the_project_turned_pr_iteration_off(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_assign: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        self._call()
+
+        mock_assign.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_automated_feedback_at_the_hard_cap_rides_along_with_a_person(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        check_suite = self._check_suite_feedback()
+        review = self._review_feedback(777)
+        mock_pop.return_value = [self._queued(check_suite), self._queued(review)]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_trigger.assert_called_once()
+        _, kwargs = mock_trigger.call_args
+        assert [f.feedback_id for f in kwargs["feedback"]] == [
+            check_suite.feedback_id,
+            review.feedback_id,
+        ]
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_automated_feedback_is_dropped_when_the_project_turned_pr_iteration_off(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_fetch.return_value = self._state_on_head()
+        review = self._review_feedback(777)
+        mock_pop.return_value = [
+            self._queued(self._check_suite_feedback()),
+            self._queued(review),
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        _, kwargs = mock_trigger.call_args
+        assert [f.feedback_id for f in kwargs["feedback"]] == [review.feedback_id]
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_nothing_runs_when_the_project_turned_pr_iteration_off_and_only_ci_is_queued(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        self._call()
+
+        mock_trigger.assert_not_called()
+
     @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=RuntimeError("seer is down"))
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -2024,6 +2217,16 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     def _feedback(self) -> Feedback:
         return Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
 
+    def _bot_feedback(self) -> Feedback:
+        return Feedback(
+            source=GithubPrReviewBodyFeedbackSource(
+                review_id=1,
+                body="fix it",
+                user={"id": 1, "login": "review-bot[bot]"},
+                author_is_bot=True,
+            )
+        )
+
     def _state(self) -> SeerRunState:
         return SeerRunState(
             run_id=67890,
@@ -2038,8 +2241,9 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         decision: TriggerDecision | None = None,
         delay: int | None = None,
         source: str = ConsumeTriggerSource.FEEDBACK,
+        feedback: Feedback | None = None,
     ) -> TriggerDecision:
-        feedback = self._feedback()
+        feedback = feedback or self._feedback()
         ctx: AbstractContextManager[Any] = (
             patch.object(type(feedback.source), "should_trigger", return_value=decision)
             if decision is not None
@@ -2191,27 +2395,42 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         assert mock_apply.call_args.kwargs["countdown"] is None
 
     @patch(
-        f"{TASK_PATH}.should_trigger_run",
+        f"{TASK_PATH}.automated_iteration_allowed",
         return_value=Decision(ok=False, reason="hard_cap_reached"),
     )
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_bypass_still_answers_to_the_run_gate(
         self, mock_apply: MagicMock, _mock_run_gate: MagicMock
     ) -> None:
-        decision = self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
+        decision = self._trigger(
+            feedback=self._bot_feedback(), source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER
+        )
 
         mock_apply.assert_not_called()
         assert decision == TriggerDecision(task=None, reason="hard_cap_reached")
 
     @patch(
-        f"{TASK_PATH}.should_trigger_run",
+        f"{TASK_PATH}.automated_iteration_allowed",
+        return_value=Decision(ok=False, reason="hard_cap_reached"),
+    )
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_person_is_not_held_by_the_run_gate(
+        self, mock_apply: MagicMock, mock_run_gate: MagicMock
+    ) -> None:
+        self._trigger(source=ConsumeTriggerSource.UI_CONSUME)
+
+        mock_run_gate.assert_not_called()
+        mock_apply.assert_called_once()
+
+    @patch(
+        f"{TASK_PATH}.automated_iteration_allowed",
         return_value=Decision(ok=False, reason="project_disabled"),
     )
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_run_gate_runs_before_should_trigger(
         self, mock_apply: MagicMock, _mock_run_gate: MagicMock
     ) -> None:
-        feedback = self._feedback()
+        feedback = self._bot_feedback()
         with patch.object(type(feedback.source), "should_trigger") as mock_should_trigger:
             decision = trigger_consume_pr_iteration_feedback(
                 log_ctx=self._log_ctx(),

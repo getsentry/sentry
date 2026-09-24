@@ -155,16 +155,14 @@ def automated_iteration_cap_reached(run_state: SeerRunState) -> bool:
     return all(iteration_is_automated(iteration.blocks) for iteration in last_iterations)
 
 
-def should_trigger_run(feedback: Feedback, run_state: SeerRunState) -> Decision:
-    """Checks that apply to the whole run before we schedule an iteration.
+def automated_iteration_allowed(run_state: SeerRunState) -> Decision:
+    """Whether the run allows another automated iteration right now.
 
-    Blocks automated feedback (CI, bots) when the project has PR iteration
-    turned off or the run has hit the automated iteration cap. Feedback from a
-    person is never blocked here.
+    False when the project has PR iteration turned off or the run has hit the
+    automated iteration cap. Only automated feedback (CI, bots) is checked
+    against this: callers skip it for feedback from a person, which is never
+    held back by either.
     """
-    if not feedback.source.is_automated:
-        return Decision(ok=True, reason="not_automated")
-
     group_id = run_state.metadata.get("group_id") if run_state.metadata else None
     if group_id is not None and not pr_iteration_enabled_for_group(group_id):
         return Decision(ok=False, reason="project_disabled")

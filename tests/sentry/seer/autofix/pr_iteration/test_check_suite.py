@@ -31,8 +31,8 @@ from sentry.seer.autofix.pr_iteration.constants import (
 )
 from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
+    automated_iteration_allowed,
     serialize_feedback,
-    should_trigger_run,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
@@ -1353,7 +1353,7 @@ class CheckSuiteHardCapTest(TestCase):
         self.addCleanup(lambda: self._options_ctx.__exit__(None, None, None))
 
     def _gate(self, blocks: list[MemoryBlock]) -> Decision:
-        return should_trigger_run(_check_suite_feedback(), _run_state(blocks=blocks))
+        return automated_iteration_allowed(_run_state(blocks=blocks))
 
     def test_run_gate_rejects_when_cap_reached(self) -> None:
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP)]
@@ -1366,16 +1366,8 @@ class CheckSuiteHardCapTest(TestCase):
         run_state = _run_state(blocks=[])
         run_state.metadata = {"group_id": group.id}
 
-        assert should_trigger_run(_check_suite_feedback(), run_state) == Decision(
+        assert automated_iteration_allowed(run_state) == Decision(
             ok=False, reason="project_disabled"
-        )
-
-    def test_run_gate_lets_a_person_past_the_cap(self) -> None:
-        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP)]
-        human = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
-
-        assert should_trigger_run(human, _run_state(blocks=blocks)) == Decision(
-            ok=True, reason="not_automated"
         )
 
     def test_not_capped_when_fewer_than_cap_iterations(self) -> None:
