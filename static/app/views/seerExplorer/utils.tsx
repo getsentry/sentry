@@ -764,14 +764,13 @@ export function useSyncSeerExplorerRunIdToUrl(runId: SeerExplorerRunId | null) {
       return;
     }
 
+    // Push rather than replace, so the browser back button returns to the previous
+    // conversation (the deep link listener switches to it when the param changes).
     const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
-    navigate(
-      {
-        ...location,
-        query: runId === null ? restQuery : {...restQuery, [RUN_ID_QUERY_PARAM]: runId},
-      },
-      {replace: true}
-    );
+    navigate({
+      ...location,
+      query: runId === null ? restQuery : {...restQuery, [RUN_ID_QUERY_PARAM]: runId},
+    });
   }, [runId, location, navigate]);
 }
 

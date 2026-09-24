@@ -185,6 +185,31 @@ describe('useSyncSeerExplorerRunIdToUrl', () => {
     await waitFor(() => expect(router.location.query.explorerRunId).toBeUndefined());
   });
 
+  it('returns to the previous conversation on browser back', async () => {
+    // Both hooks together, as the provider and chat content wire them: the deep link
+    // listener switches runs when the param changes, and the sync writes the param.
+    const {result, router} = renderHookWithProviders(
+      () => {
+        const [runId, setRunId] = useState<SeerExplorerRunId | null>(UUID);
+        useSeerExplorerDeepLink({callback: setRunId});
+        useSyncSeerExplorerRunIdToUrl(runId);
+        return {runId, setRunId};
+      },
+      {
+        initialRouterConfig: {
+          location: {pathname: '/issues/', query: {explorerRunId: UUID}},
+        },
+      }
+    );
+
+    act(() => result.current.setRunId(OTHER_UUID));
+    await waitFor(() => expect(router.location.query.explorerRunId).toBe(OTHER_UUID));
+
+    act(() => router.navigate(-1));
+    await waitFor(() => expect(router.location.query.explorerRunId).toBe(UUID));
+    expect(result.current.runId).toBe(UUID);
+  });
+
   it('does not add the param when it was not in the URL', () => {
     const {router, switchRun} = renderSync(UUID, {query: 'foo'});
 
