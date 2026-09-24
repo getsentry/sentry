@@ -988,6 +988,55 @@ describe('ProjectFilters', () => {
     expect(await screen.findByText('Updated name')).toBeInTheDocument();
   });
 
+  it('keeps an IP address condition when the data type changes', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: CustomInboundFilterFixture({id: '10', name: 'Block the office'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Block the office');
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'IP Address'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Condition value'}),
+      '10.0.0.0/8'
+    );
+
+    // Every data type carries the client IP, so the row survives the switch the
+    // way a release row does, instead of collapsing to the default property.
+    await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Spans'}));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('IP Address')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Condition value'})).toHaveValue(
+      '10.0.0.0/8'
+    );
+
+    MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      body: [CustomInboundFilterFixture({id: '10', name: 'Block the office'})],
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        CUSTOM_INBOUND_FILTERS_URL,
+        expect.objectContaining({
+          data: {
+            name: 'Block the office',
+            dataType: 'span',
+            conditions: [{type: 'ip_address', value: ['10.0.0.0/8']}],
+          },
+        })
+      )
+    );
+  });
+
   it('keeps a gated data type selectable when editing', async () => {
     renderInboundFilters([
       CustomInboundFilterFixture({

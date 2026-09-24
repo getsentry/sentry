@@ -490,11 +490,14 @@ function CustomFilterModal({
                     onChange={value => {
                       dataTypeField.handleChange(value);
                       // Carry existing rows over to the new data type. A row
-                      // whose property the new data type does not read falls
-                      // back to the default one; release rows stay as they are.
+                      // whose property the new data type does not offer falls
+                      // back to the default one; the rest stay as they are.
+                      const offered = new Set(
+                        getPropertyOptions(value).map(option => option.value)
+                      );
                       form.setFieldValue('conditions', conditions =>
                         conditions.map(condition =>
-                          condition.property === 'release'
+                          offered.has(condition.property)
                             ? condition
                             : {
                                 ...condition,
