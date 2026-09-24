@@ -77,6 +77,7 @@ interface SearchQueryBuilderConfigContextData {
   namespace: string | undefined;
   onCaseInsensitiveClick: ((value: CaseInsensitive) => void) | undefined;
   placeholder: string | undefined;
+  prioritizedFilterKeys: string[] | undefined;
   recentSearches: SavedSearchType | undefined;
   replaceRawSearchKeys: string[] | undefined;
   searchSource: string;
@@ -201,6 +202,7 @@ export function SearchQueryBuilderProvider({
   searchSource,
   getFilterTokenWarning,
   portalTarget,
+  prioritizedFilterKeys,
   replaceRawSearchKeys,
   matchKeySuggestions,
   filterKeyAliases,
@@ -436,6 +438,7 @@ export function SearchQueryBuilderProvider({
       namespace,
       onCaseInsensitiveClick,
       placeholder,
+      prioritizedFilterKeys,
       recentSearches,
       replaceRawSearchKeys,
       searchSource,
@@ -460,6 +463,7 @@ export function SearchQueryBuilderProvider({
     namespace,
     onCaseInsensitiveClick,
     placeholder,
+    prioritizedFilterKeys,
     recentSearches,
     replaceRawSearchKeys,
     searchSource,
