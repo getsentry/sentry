@@ -1,202 +1,108 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import {SizeUnit} from 'sentry/utils/discover/fields';
+import type {WidgetSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {MobileAppSizeConfig} from './mobileAppSize';
+
+function makeTimeSeries(
+  yAxis: string,
+  values: Array<[number, number | null]>,
+  {groupBy, order}: {groupBy?: TimeSeries['groupBy']; order?: number} = {}
+): TimeSeries {
+  return TimeSeriesFixture({
+    yAxis,
+    groupBy,
+    meta: {valueType: 'size', valueUnit: SizeUnit.BYTE, interval: 86_400_000, order},
+    values: values.map(([timestamp, value]) => ({timestamp, value})),
+  });
+}
+
+const widgetQuery = {
+  conditions: '',
+  aggregates: ['max(install_size)'],
+  fields: ['max(install_size)'],
+  columns: [],
+  fieldAliases: [],
+  name: '',
+  orderby: '',
+};
 
 describe('MobileAppSizeConfig', () => {
   const organization = OrganizationFixture();
 
   describe('transformSeries', () => {
-    it('transforms API response to series data', () => {
-      const data = {
-        data: [
-          [1609459200, [{count: 1000000}]],
-          [1609545600, [{count: 1100000}]],
-          [1609632000, [{count: 1200000}]],
-        ],
-        start: 1609459200,
-        end: 1609632000,
-        meta: {fields: {}},
-      } as unknown as EventsStats;
-
-      const widgetQuery = {
-        conditions: 'app_id:com.example.app',
-        aggregates: ['max(install_size)'],
-        fields: ['max(install_size)'],
-        columns: [],
-        fieldAliases: [],
-        name: '',
-        orderby: '',
-      };
-
+    it('names a single series by its alias and skips empty buckets', () => {
       const result = MobileAppSizeConfig.transformSeries!(
-        data,
-        widgetQuery,
+        {
+          timeSeries: [
+            makeTimeSeries('max(install_size)', [
+              [1000, 1000000],
+              [2000, null],
+              [3000, 0],
+              [4000, 1200000],
+            ]),
+          ],
+        },
+        {...widgetQuery, name: 'Install Size'},
         organization
       );
 
       expect(result).toHaveLength(1);
-      expect(result[0]!.seriesName).toBe('max(install_size)');
-      expect(result[0]!.data).toHaveLength(3);
-      expect(result[0]!.data[0]).toEqual({
-        name: 1609459200000,
-        value: 1000000,
-      });
+      expect(result[0]!.seriesName).toBe('Install Size');
+      expect(result[0]!.data).toEqual([
+        {name: 1000, value: 1000000},
+        {name: 4000, value: 1200000},
+      ]);
+      expect(
+        (result[0] as WidgetSeries).timeSeries?.values.map(item => item.value)
+      ).toEqual([1000000, 1200000]);
     });
 
-    it('filters out null, undefined, and zero values', () => {
-      const data = {
-        data: [
-          [1609459200, [{count: 1000000}]],
-          [1609545600, [{count: null}]],
-          [1609632000, []],
-          [1609718400, [{count: 0}]],
-          [1609804800, [{count: 1200000}]],
-        ],
-        start: 1609459200,
-        end: 1609804800,
-        meta: {fields: {}},
-      } as unknown as EventsStats;
-
-      const widgetQuery = {
-        conditions: '',
-        aggregates: [],
-        fields: [],
-        columns: [],
-        fieldAliases: [],
-        name: '',
-        orderby: '',
-      };
-
+    it('names grouped series by group value, in order', () => {
       const result = MobileAppSizeConfig.transformSeries!(
-        data,
-        widgetQuery,
+        {
+          timeSeries: [
+            makeTimeSeries('max(install_size)', [[1000, 2000000]], {
+              groupBy: [{key: 'platform', value: 'android'}],
+              order: 1,
+            }),
+            makeTimeSeries('max(install_size)', [[1000, 1000000]], {
+              groupBy: [{key: 'platform', value: 'ios'}],
+              order: 0,
+            }),
+          ],
+        },
+        {...widgetQuery, columns: ['platform']},
         organization
       );
 
-      expect(result[0]!.data).toHaveLength(2);
-      expect(result[0]!.data[0]!.value).toBe(1000000);
-      expect(result[0]!.data[1]!.value).toBe(1200000);
-    });
-
-    it('transforms multi-series grouped response', () => {
-      // Multi-series response is keyed by group value
-      const data = {
-        ios: {
-          data: [
-            [1609459200, [{count: 1000000}]],
-            [1609545600, [{count: 1100000}]],
-          ],
-          start: 1609459200,
-          end: 1609545600,
-          meta: {fields: {}},
-          order: 0,
-        },
-        android: {
-          data: [
-            [1609459200, [{count: 2000000}]],
-            [1609545600, [{count: 2100000}]],
-          ],
-          start: 1609459200,
-          end: 1609545600,
-          meta: {fields: {}},
-          order: 1,
-        },
-      } as unknown as MultiSeriesEventsStats;
-
-      const widgetQuery = {
-        conditions: '',
-        aggregates: ['max(install_size)'],
-        fields: ['max(install_size)'],
-        columns: ['platform'],
-        fieldAliases: [],
-        name: '',
-        orderby: '',
-      };
-
-      const result = MobileAppSizeConfig.transformSeries!(
-        data,
-        widgetQuery,
-        organization
-      );
-
-      expect(result).toHaveLength(2);
-      // Should be sorted by order
-      expect(result[0]!.seriesName).toBe('ios');
-      expect(result[1]!.seriesName).toBe('android');
-      expect(result[0]!.data).toHaveLength(2);
-      expect(result[0]!.data[0]!.value).toBe(1000000);
+      expect(result.map(({seriesName}) => seriesName)).toEqual(['ios', 'android']);
     });
   });
 
-  describe('getSeriesResultType and getSeriesResultUnit', () => {
-    const singleSeriesData = {data: []} as EventsStats;
-    const multiSeriesData = {
-      'com.sentry.app,ios': {data: []},
-      'com.sentry.app,android': {data: []},
-    } as unknown as MultiSeriesEventsStats;
-
-    const singleSeriesQuery = {
-      conditions: '',
-      aggregates: ['max(install_size)'],
-      fields: ['max(install_size)'],
-      columns: [],
-      fieldAliases: [],
-      name: '',
-      orderby: '',
+  it('returns size type and byte unit for every aggregate', () => {
+    const data = {
+      timeSeries: [
+        makeTimeSeries('max(install_size)', []),
+        makeTimeSeries('max(download_size)', []),
+      ],
     };
-
-    const multiAggregateQuery = {
-      ...singleSeriesQuery,
+    const query = {
+      ...widgetQuery,
       aggregates: ['max(install_size)', 'max(download_size)'],
       fields: ['max(install_size)', 'max(download_size)'],
     };
 
-    const multiSeriesQuery = {
-      ...singleSeriesQuery,
-      columns: ['app_id', 'platform'],
-    };
-
-    it('returns size type for single-series aggregate', () => {
-      expect(
-        MobileAppSizeConfig.getSeriesResultType!(singleSeriesData, singleSeriesQuery)
-      ).toEqual({'max(install_size)': 'size'});
+    expect(MobileAppSizeConfig.getSeriesResultType!(data, query)).toEqual({
+      'max(install_size)': 'size',
+      'max(download_size)': 'size',
     });
-
-    it('returns size type for multiple aggregates', () => {
-      expect(
-        MobileAppSizeConfig.getSeriesResultType!(singleSeriesData, multiAggregateQuery)
-      ).toEqual({
-        'max(install_size)': 'size',
-        'max(download_size)': 'size',
-      });
-    });
-
-    it('returns size type for multi-series grouped data', () => {
-      expect(
-        MobileAppSizeConfig.getSeriesResultType!(multiSeriesData, multiSeriesQuery)
-      ).toEqual({
-        'max(install_size)': 'size',
-        'com.sentry.app,ios': 'size',
-        'com.sentry.app,android': 'size',
-      });
-    });
-
-    it('returns byte unit for single-series aggregate', () => {
-      expect(
-        MobileAppSizeConfig.getSeriesResultUnit!(singleSeriesData, singleSeriesQuery)
-      ).toEqual({'max(install_size)': 'byte'});
-    });
-
-    it('returns byte unit for multi-series grouped data', () => {
-      expect(
-        MobileAppSizeConfig.getSeriesResultUnit!(multiSeriesData, multiSeriesQuery)
-      ).toEqual({
-        'max(install_size)': 'byte',
-        'com.sentry.app,ios': 'byte',
-        'com.sentry.app,android': 'byte',
-      });
+    expect(MobileAppSizeConfig.getSeriesResultUnit!(data, query)).toEqual({
+      'max(install_size)': 'byte',
+      'max(download_size)': 'byte',
     });
   });
 });

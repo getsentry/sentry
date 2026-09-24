@@ -1,13 +1,8 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {
@@ -18,6 +13,7 @@ import type {
 } from 'sentry/utils/discover/fields';
 import {SizeUnit} from 'sentry/utils/discover/fields';
 import {AggregationKey, attributeTypeFromKind} from 'sentry/utils/fields';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {
   DatasetConfig,
   SearchBarData,
@@ -29,9 +25,9 @@ import {getTimeseriesSortOptions} from 'sentry/views/dashboards/datasetConfig/ev
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {
-  isEventsStats,
-  isMultiSeriesEventsStats,
-} from 'sentry/views/dashboards/utils/isEventsStats';
+  transformTimeSeriesResponseToSeries,
+  type WidgetSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {
   useMobileAppSizeSeriesQuery,
   useMobileAppSizeTableQuery,
@@ -224,7 +220,7 @@ function useMobileAppSizeSearchBarDataProvider(
 }
 
 function buildSeriesResultMap<T extends AggregationOutputType | DataUnit>(
-  data: EventsStats | MultiSeriesEventsStats,
+  data: EventsTimeSeriesResponse,
   widgetQuery: WidgetQuery,
   value: T
 ): Record<string, T> {
@@ -234,19 +230,14 @@ function buildSeriesResultMap<T extends AggregationOutputType | DataUnit>(
     result[aggregate] = value;
   }
 
-  if (isMultiSeriesEventsStats(data)) {
-    for (const seriesName of Object.keys(data)) {
-      result[seriesName] = value;
-    }
+  for (const timeSeries of data.timeSeries) {
+    result[timeSeries.yAxis] = value;
   }
 
   return result;
 }
 
-export const MobileAppSizeConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats,
-  TableData
-> = {
+export const MobileAppSizeConfig: DatasetConfig<EventsTimeSeriesResponse, TableData> = {
   axisRange: 'dataMin',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
@@ -271,66 +262,28 @@ export const MobileAppSizeConfig: DatasetConfig<
     return data;
   },
   transformSeries: (
-    data: EventsStats | MultiSeriesEventsStats,
+    data: EventsTimeSeriesResponse,
     widgetQuery: WidgetQuery,
     _organization: Organization
-  ): Series[] => {
+  ): WidgetSeries[] => {
     if (!data) {
       return [];
     }
 
     const aggregate =
       widgetQuery.aggregates?.[0] || widgetQuery.fields?.[0] || 'App Size';
+    const series = transformTimeSeriesResponseToSeries(data, widgetQuery);
 
-    if (isEventsStats(data)) {
-      const seriesData = data.data
-        .filter(
-          ([, values]) =>
-            values[0]?.count !== null &&
-            values[0]?.count !== undefined &&
-            values[0]?.count !== 0
-        )
-        .map(([timestamp, values]) => ({
-          name: timestamp * 1000,
-          value: values[0]!.count,
-        }));
+    return series.map(({seriesName, timeSeries}) => {
+      const values = (timeSeries?.values ?? []).filter(item => !!item.value);
+      const isSingleSeries = series.length === 1 && !timeSeries?.groupBy?.length;
 
-      const seriesName = widgetQuery.name || aggregate;
-
-      return [{seriesName, data: seriesData}];
-    }
-
-    const multiResponse = data;
-    const seriesWithOrder: Array<{order: number; series: Series}> = [];
-
-    for (const [groupName, groupData] of Object.entries(multiResponse)) {
-      if (!groupData?.data || !Array.isArray(groupData.data)) {
-        continue;
-      }
-
-      const seriesData = groupData.data
-        .filter(
-          ([, values]) =>
-            values[0]?.count !== null &&
-            values[0]?.count !== undefined &&
-            values[0]?.count !== 0
-        )
-        .map(([timestamp, values]) => ({
-          name: timestamp * 1000,
-          value: values[0]!.count,
-        }));
-
-      const seriesName = widgetQuery.name
-        ? `${widgetQuery.name} : ${groupName}`
-        : groupName;
-
-      seriesWithOrder.push({
-        order: groupData.order ?? 0,
-        series: {seriesName, data: seriesData},
-      });
-    }
-
-    return seriesWithOrder.sort((a, b) => a.order - b.order).map(item => item.series);
+      return {
+        seriesName: isSingleSeries ? widgetQuery.name || aggregate : seriesName,
+        data: values.map(item => ({name: item.timestamp, value: item.value!})),
+        timeSeries: timeSeries ? {...timeSeries, values} : undefined,
+      };
+    });
   },
   getSeriesResultType: (data, widgetQuery) =>
     buildSeriesResultMap(data, widgetQuery, 'size'),

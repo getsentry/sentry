@@ -1,17 +1,17 @@
 import {useMemo, useRef} from 'react';
-import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
+import {useQueries} from '@tanstack/react-query';
 
 import type {Series} from 'sentry/types/echarts';
-import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
-import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getUtcDateString} from 'sentry/utils/dates';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {MobileAppSizeConfig} from 'sentry/views/dashboards/datasetConfig/mobileAppSize';
-import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {
+  getSeriesRequestData,
+  getTimeseriesQueryParams,
+} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
@@ -19,10 +19,9 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 
-type MobileAppSizeSeriesResponse = EventsStats | MultiSeriesEventsStats;
+type MobileAppSizeSeriesResponse = EventsTimeSeriesResponse;
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -52,7 +51,6 @@ export function useMobileAppSizeSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  // Check if organization has the async queue feature
   const queryResults = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
@@ -69,53 +67,12 @@ export function useMobileAppSizeSeriesQuery(
         requestData.sampling = samplingMode;
       }
 
-      const {
-        organization: _org,
-        includeAllArgs: _includeAllArgs,
-        includePrevious: _includePrevious,
-        generatePathname: _generatePathname,
-        period,
-        ...restParams
-      } = requestData;
-
-      const queryParams = {
-        ...restParams,
-        ...(period ? {statsPeriod: period} : {}),
-      };
-
-      if (queryParams.start) {
-        queryParams.start = getUtcDateString(queryParams.start);
-      }
-      if (queryParams.end) {
-        queryParams.end = getUtcDateString(queryParams.end);
-      }
-
-      return queryOptions({
-        ...apiOptions.as<MobileAppSizeSeriesResponse>()(
-          '/organizations/$organizationIdOrSlug/events-stats/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            method: 'GET' as const,
-            query: queryParams,
-            staleTime: getWidgetStaleTime(pageFilters),
-          }
-        ),
-        queryFn: (context): Promise<ApiResponse<MobileAppSizeSeriesResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<MobileAppSizeSeriesResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<MobileAppSizeSeriesResponse>(context);
-        },
+      return getTimeseriesWidgetQueryOptions({
+        organization,
+        pageFilters,
+        queue,
         enabled,
-        retry: false,
-        retryDelay: getRetryDelay,
-        placeholderData: keepPreviousData,
+        query: getTimeseriesQueryParams(requestData),
       });
     }),
   });
