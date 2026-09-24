@@ -176,7 +176,7 @@ export type Plan = {
   trialPlan: string | null;
   userSelectable: boolean;
   categoryDisplayNames?: Partial<
-    Record<DataCategory, {plural: string; singular: string}>
+    Record<DataCategory | string, {plural: string; singular: string}>
   >;
 };
 
@@ -720,6 +720,7 @@ export type BillingMetricHistory = {
   softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null;
   usage: number;
   usageExceeded: boolean;
+  isDisabled?: boolean;
   retention?: {downsampled: number | null; standard: number | null};
 };
 

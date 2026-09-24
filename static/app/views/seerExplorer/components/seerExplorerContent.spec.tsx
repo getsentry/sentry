@@ -50,6 +50,7 @@ describe('SeerExplorerContent', () => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
     jest.clearAllMocks();
+    ConfigStore.set('user', UserFixture());
 
     // The header collapses its actions into an overflow menu on narrow
     // containers (resolved via `useContainerBreakpoint`, which measures
@@ -977,6 +978,15 @@ describe('SeerExplorerContent', () => {
         'gen-ai-features',
         'seer-explorer-context-engine-fe-override-ui-flag',
       ],
+    });
+
+    beforeEach(() => {
+      ConfigStore.set(
+        'user',
+        UserFixture({
+          emails: [{email: 'employee@sentry.io', is_verified: true, id: '1'}],
+        })
+      );
     });
 
     it('does not show the debug menu without any debug feature flag', async () => {

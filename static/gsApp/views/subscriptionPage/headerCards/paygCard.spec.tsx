@@ -189,7 +189,10 @@ describe('PaygCard', () => {
       paymentSource: null,
     });
     render(<PaygCard organization={organization} subscription={subscription} />);
-    expect(screen.getByRole('button', {name: 'Set limit'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Set limit'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('enables edit button for self-serve partner accounts', () => {

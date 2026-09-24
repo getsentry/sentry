@@ -15,6 +15,7 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -41,8 +42,62 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
+
+
+@cell_silo_test
+class OrganizationDetectorWorkflowAccessTest(APITestCase, ProjectAccessTestMixin):
+    endpoint = "sentry-api-0-organization-detector-details"
+    method = "PUT"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.setup_project_access_test_data()
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.login_as(self.limited_user)
+        self.detector = self.create_detector(
+            project=self.user_project, type=MonitorIncidentType.slug
+        )
+        self.connection = self.create_detector_workflow(
+            detector=self.detector, workflow=self.user_workflow
+        )
+
+    def test_workflow_attachment_permissions(self) -> None:
+        workflow_url = (
+            f"/api/0/organizations/{self.organization.slug}/workflows/{self.other_workflow.id}/"
+        )
+        assert self.client.get(workflow_url).status_code == 403
+        original_name = self.detector.name
+
+        self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            name="Unauthorized change",
+            workflowIds=[self.unattached_workflow.id, self.other_workflow.id],
+            status_code=403,
+        )
+
+        self.detector.refresh_from_db()
+        assert self.detector.name == original_name
+        assert list(
+            DetectorWorkflow.objects.filter(detector=self.detector).values_list("id", flat=True)
+        ) == [self.connection.id]
+        assert self.client.get(workflow_url).status_code == 403
+
+        # An authorized replacement still succeeds after the rejected update.
+        self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            workflowIds=[self.unattached_workflow.id],
+        )
+
+        assert list(
+            DetectorWorkflow.objects.filter(detector=self.detector).values_list(
+                "workflow_id", flat=True
+            )
+        ) == [self.unattached_workflow.id]
 
 
 @pytest.mark.snuba_ci

@@ -60,6 +60,7 @@ class AuthRecoveryEndpoint(Endpoint):
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.FOUNDATIONS
     permission_classes = ()
+    csrf_protect = True
 
     @extend_schema(
         operation_id="Request account password recovery",
@@ -98,6 +99,7 @@ class AuthRecoveryConfirmEndpoint(Endpoint):
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.FOUNDATIONS
     permission_classes = ()
+    csrf_protect = True
 
     @extend_schema(
         operation_id="Complete account password recovery",

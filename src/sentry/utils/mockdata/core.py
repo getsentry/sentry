@@ -561,7 +561,6 @@ def populate_release(
             last_commit_id=commit.id,
             total_deploys=Deploy.objects.filter(release=release).count(),
             last_deploy_id=deploy.id,
-            new_last_deploy_id=deploy.id,
             authors=[str(a.id) for a in authors],
         )
 

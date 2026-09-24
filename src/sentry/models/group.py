@@ -789,7 +789,6 @@ class GroupManager(BaseManager["Group"]):
                     group=group,
                     new_status=GroupStatus.RESOLVED,
                     resolution_time=activity.datetime,
-                    resolution_activity=activity,
                 )
             elif is_status_unresolved and should_reopen_open_period[group.id]:
                 update_group_open_period(

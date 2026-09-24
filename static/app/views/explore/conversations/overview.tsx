@@ -44,6 +44,7 @@ import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {
@@ -74,6 +75,11 @@ const CONVERSATION_FILTER_KEYS: TagCollection = Object.fromEntries(
   ])
 );
 
+// Conversation fields mirror the columns of the conversations table, so they
+// are surfaced above raw span attributes that happen to match the input more
+// literally (e.g. `toolca` matching `ai.toolCall.args`).
+const CONVERSATION_PRIORITIZED_FILTER_KEYS = Object.keys(CONVERSATION_FILTER_KEYS);
+
 const SPANS_CURSOR_URL_PARAM = 'cursor';
 const agentsTableTabParser = parseAsStringLiteral(AGENTS_TABLE_TABS);
 
@@ -91,11 +97,12 @@ function ConversationsOverviewPage() {
     isLoading: isOnboardingLoading,
     refetch: refetchOnboarding,
   } = useShowConversationOnboarding();
+  const conversationsResult = useConversations();
   const {
     data: conversations,
     isFetching: isConversationsFetching,
     error: conversationsError,
-  } = useConversations();
+  } = conversationsResult;
   const showMissingMessagesAlert =
     !isConversationsFetching &&
     !conversationsError &&
@@ -124,6 +131,10 @@ function ConversationsOverviewPage() {
     SPANS_CURSOR_URL_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
+
+  const [pageId] = useQueryState('id', parseAsString.withOptions({history: 'replace'}));
+  useVisitQuery(pageId ?? undefined);
+
   const {unsetCursor} = useTableCursor();
 
   const handleTabChange = useCallback(
@@ -219,10 +230,11 @@ function ConversationsOverviewPage() {
         {
           value: 'conversation',
           label: t('Conversation'),
-          children: Object.keys(CONVERSATION_FILTER_KEYS),
+          children: CONVERSATION_PRIORITIZED_FILTER_KEYS,
         },
         ...spanSearchQueryBuilderProviderProps.filterKeySections,
       ],
+      prioritizedFilterKeys: CONVERSATION_PRIORITIZED_FILTER_KEYS,
       fieldDefinitionGetter: (key: string, options?: {kind?: FieldKind}) =>
         CONVERSATION_FIELD_DEFINITIONS[key] ?? fieldDefinitionGetter(key, options),
       getTagValues: getTagValuesWithoutCounts,
@@ -239,11 +251,10 @@ function ConversationsOverviewPage() {
     content = (
       <Fragment>
         {hasAgenticSpans && <AgentsCharts />}
-        {isConversationsTab && showMissingMessagesAlert && (
-          <ConversationMissingMessagesAlert />
-        )}
+        {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
         <AgentsTable
           activeTab={activeTab}
+          conversations={conversationsResult}
           hasAgenticSpans={hasAgenticSpans}
           hasConversations={hasConversations}
           onConversationOnboardingDismiss={refetchOnboarding}
@@ -258,7 +269,7 @@ function ConversationsOverviewPage() {
       <Fragment>
         {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
         <ConversationsChart />
-        <ConversationsTable />
+        <ConversationsTable conversations={conversationsResult} />
       </Fragment>
     );
   }

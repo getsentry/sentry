@@ -460,6 +460,55 @@ describe('utils/tokenizeSearch', () => {
     }
   });
 
+  describe('regex filters', () => {
+    it('parses a regex filter with spaces and parens into a single token', () => {
+      const search = new MutableSearch('!message://(GET|POST) /api// level:error');
+
+      expect(search.tokens).toEqual([
+        {type: TokenType.REGEX_FILTER, key: '!message', value: '(GET|POST) /api'},
+        {type: TokenType.FILTER, key: 'level', value: 'error'},
+      ]);
+    });
+
+    it.each([
+      ['spaces and parens', 'message://(GET|POST) /api//'],
+      ['a negation', '!message://^ERROR \\d+//'],
+      ['an asterisk and quotes', 'message://^"a".*//'],
+      ['inner slashes', 'message://a//b//'],
+      ['a closing paren', 'message://(a b)// OR level:error'],
+    ])('round-trips a pattern with %s unchanged', (_name, query) => {
+      expect(new MutableSearch(query).formatString()).toBe(query);
+    });
+
+    it('splits a trailing paren group closer from the regex filter', () => {
+      const search = new MutableSearch('(message://a b//)');
+
+      expect(search.tokens).toEqual([
+        {type: TokenType.OPERATOR, value: '('},
+        {type: TokenType.REGEX_FILTER, key: 'message', value: 'a b'},
+        {type: TokenType.OPERATOR, value: ')'},
+      ]);
+    });
+
+    it('keeps a quoted literal that starts with the regex delimiter quoted', () => {
+      expect(new MutableSearch('url:"//a b//"').formatString()).toBe('url:"//a b//"');
+    });
+
+    it('quotes an added value that starts with the regex delimiter', () => {
+      const search = new MutableSearch('');
+      search.addFilterValue('url', '//a//');
+
+      expect(search.formatString()).toBe('url:"//a//"');
+    });
+
+    it('keeps a regex filter unescaped when another filter is added', () => {
+      const search = new MutableSearch('message://^ERROR.*//');
+      search.addFilterValue('level', 'error');
+
+      expect(search.formatString()).toBe('message://^ERROR.*// level:error');
+    });
+  });
+
   describe('QueryResults operations', () => {
     it('round-trips a bracketed list with whitespace between items unchanged', () => {
       const query =

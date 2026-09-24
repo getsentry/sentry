@@ -882,7 +882,7 @@ describe('Dashboards > Detail', () => {
       );
 
       const edit = await screen.findByRole('button', {name: 'Edit'});
-      expect(edit).toBeDisabled();
+      expect(edit).toHaveAttribute('aria-disabled', 'true');
       await userEvent.hover(edit);
       expect(await screen.findByText(UNSAVED_FILTERS_MESSAGE)).toBeVisible();
     });
@@ -1582,7 +1582,10 @@ describe('Dashboards > Detail', () => {
 
       expect(await screen.findByText('Save')).toBeInTheDocument();
       expect(screen.getByTestId('filter-bar-cancel')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Edit'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('ignores the order of selection of page filters to render unsaved filters', async () => {
@@ -2064,7 +2067,10 @@ describe('Dashboards > Detail', () => {
         await screen.findByRole('button', {name: 'Dashboard actions'})
       ).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Edit'})).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('disables widget edit, duplicate, and delete button when user does not have edit perms', async () => {
@@ -2119,7 +2125,10 @@ describe('Dashboards > Detail', () => {
         await screen.findByRole('button', {name: 'Dashboard actions'})
       ).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Edit'})).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
       await userEvent.click(await screen.findByLabelText('Widget actions'));
       expect(
         screen.getByRole('menuitemradio', {name: 'Duplicate Widget'})
