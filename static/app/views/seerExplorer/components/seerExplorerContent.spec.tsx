@@ -21,6 +21,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   sessionData: null,
   isPolling: false,
   isError: false,
+  hasSessionLoadError: false,
   errorStatusCode: undefined,
   isTimedOut: false,
   runId: null,
@@ -275,7 +276,7 @@ describe('SeerExplorerContent', () => {
       );
 
       expect(
-        await screen.findByText(/Error loading this session \(run_id=123\)./)
+        await screen.findByText('There was a problem loading the conversation.')
       ).toBeInTheDocument();
     });
 
@@ -330,9 +331,142 @@ describe('SeerExplorerContent', () => {
       );
 
       expect(
-        await screen.findByText(/Error loading this session \(run_id=123\)./)
+        await screen.findByText('There was a problem loading the conversation.')
       ).toBeInTheDocument();
       expect(screen.queryByText(/444/)).not.toBeInTheDocument();
+    });
+
+    it('shows a load failure when the session itself came back errored', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        sessionData: {
+          status: 'error',
+          updated_at: new Date().toISOString(),
+          blocks: [],
+        },
+        hasSessionLoadError: true,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText('There was a problem loading the conversation.')
+      ).toBeInTheDocument();
+      // The idle suggestions must not stand in for a failed load.
+      expect(
+        screen.queryByText('What are my slowest DB queries?')
+      ).not.toBeInTheDocument();
+      // Sending here would post into the failed run, so the composer is closed off.
+      expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
+    });
+
+    it('shows the failure, not a spinner, when a failed load is still polling', async () => {
+      // A 5xx load backs off and keeps polling for up to a minute. The composer is
+      // already disabled by then, so a spinner would leave no way out of the panel.
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
+        errorStatusCode: 500,
+        isPolling: true,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText('There was a problem loading the conversation.')
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Start a new chat'})).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
+    });
+
+    it('starts a new chat from the error state', async () => {
+      const startNewSession = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
+        hasSessionLoadError: true,
+        startNewSession,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Start a new chat'})
+      );
+
+      expect(startNewSession).toHaveBeenCalled();
+    });
+
+    it('sends a forwarded query to a new run when the open run failed to load', async () => {
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
+        hasSessionLoadError: true,
+        sendMessage,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+              initialQuery="why is this slow?"
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      // The explicit null run id is what forces a fresh run rather than a post
+      // into the run that just failed.
+      await waitFor(() => {
+        expect(sendMessage).toHaveBeenCalledWith('why is this slow?', 0, null);
+      });
     });
   });
 
