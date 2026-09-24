@@ -1,6 +1,7 @@
 import orjson
 
-from sentry.lang.native.sources import HIDDEN_SECRET, redact_source_secrets
+from sentry.lang.native.project_symbol_sources import redact_source_secrets
+from sentry.lang.native.source_schema import HIDDEN_SECRET
 from sentry.testutils.cases import APITestCase
 
 

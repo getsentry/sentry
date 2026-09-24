@@ -19,19 +19,19 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
-from sentry.lang.native.sources import (
-    REDACTED_SOURCE_SCHEMA,
-    REDACTED_SOURCES_SCHEMA,
-    SOURCE_KINDS,
-    Field,
+from sentry.lang.native.project_symbol_sources import (
     InvalidSourcesError,
     ProjectSymbolSources,
     Source,
-    SourceKind,
     UnknownSourceId,
-    choice,
-    object_schema,
 )
+from sentry.lang.native.source_kinds import (
+    REDACTED_SOURCE_SCHEMA,
+    REDACTED_SOURCES_SCHEMA,
+    SOURCE_KINDS,
+    SourceKind,
+)
+from sentry.lang.native.source_schema import Field, choice, object_schema
 from sentry.models.project import Project
 
 
@@ -50,9 +50,7 @@ def _request_schema(kinds: Sequence[SourceKind]) -> dict[str, Any]:
     merged. A field that only some kinds use says so in its description.
     Validation still uses the per-kind schemas.
     """
-    fields = {
-        "type": choice("The type of the source.", {k.type: k.label for k in kinds}, required=True)
-    }
+    fields = {"type": choice("The type of the source.", [k.type for k in kinds], required=True)}
     for kind in kinds:
         for name, field in kind.request_fields.items():
             assert fields.setdefault(name, field) == field, f"kinds disagree on {name}"

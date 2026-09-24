@@ -50,7 +50,7 @@ from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightContextField
-from sentry.lang.native.sources import (
+from sentry.lang.native.project_symbol_sources import (
     InvalidSourcesError,
     parse_backfill_sources,
     parse_sources,

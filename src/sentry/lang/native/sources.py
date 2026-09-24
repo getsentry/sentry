@@ -3,16 +3,10 @@ from __future__ import annotations
 import base64
 import logging
 import os
-from collections.abc import Mapping
 from copy import deepcopy
-from dataclasses import dataclass, replace
-from functools import cached_property
-from typing import Any, TypeAlias
-from uuid import uuid4
+from typing import Any
 
 import google.auth
-import jsonschema
-import orjson
 import sentry_sdk
 from cachetools.func import ttl_cache
 from django.conf import settings
@@ -23,6 +17,11 @@ from sentry_redis_tools.clients import RedisCluster
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
+from sentry.lang.native.project_symbol_sources import (
+    InvalidSourcesError,
+    is_internal_source_id,
+    parse_sources,
+)
 from sentry.models.project import Project
 from sentry.utils import redis
 from sentry.utils.dates import deprecated_utcnow
@@ -32,256 +31,11 @@ logger = logging.getLogger(__name__)
 
 INTERNAL_SOURCE_NAME = "sentry:project"
 
-Source: TypeAlias = dict[str, Any]
-"""A symbol source as stored in the project option. Its key set depends on the kind."""
-
 # The header in which to send the project ID to custom symbol sources.
 PROJECT_ID_HEADER = "x-sentry-project-id"
 
 # The header in which to send the event ID to custom symbol sources.
 EVENT_ID_HEADER = "x-sentry-event-id"
-
-HIDDEN_SECRET = {"hidden-secret": True}
-HIDDEN_SECRET_SCHEMA = {
-    "type": "object",
-    "properties": {"hidden-secret": {"type": "boolean", "enum": [True]}},
-}
-
-
-@dataclass(frozen=True)
-class Field:
-    """
-    One property of a symbol source.
-
-    `schema` is the JSON schema of the value. `description` is shown in the
-    API docs; a field without one is accepted but not documented.
-    """
-
-    schema: Mapping[str, Any]
-    description: str | None = None
-    required: bool = False
-    secret: bool = False
-
-    def json_schema(self, *, redacted: bool = False) -> dict[str, Any]:
-        schema = dict(HIDDEN_SECRET_SCHEMA if redacted and self.secret else self.schema)
-        if self.description:
-            schema["description"] = self.description
-        return schema
-
-
-def string(description: str | None, *, required: bool = False, secret: bool = False) -> Field:
-    return Field({"type": "string"}, description, required, secret)
-
-
-def boolean(description: str | None) -> Field:
-    return Field({"type": "boolean"}, description)
-
-
-def strings(description: str | None) -> Field:
-    return Field({"type": "array", "items": {"type": "string"}}, description)
-
-
-def choice(
-    description: str, options: Mapping[str, str], *, required: bool = False, many: bool = False
-) -> Field:
-    """`options` maps each allowed value to the label shown in the docs."""
-    schema: dict[str, Any] = {"type": "string", "enum": list(options)}
-    if many:
-        schema = {"type": "array", "items": schema}
-    listing = "\n".join(f"- `{value}` - {label}" for value, label in options.items())
-    return Field(schema, f"{description} The options are:\n{listing}", required)
-
-
-def nested(description: str, *, required: bool = False, **fields: Field) -> Field:
-    return Field(object_schema(fields), description, required)
-
-
-def object_schema(fields: Mapping[str, Field], *, redacted: bool = False) -> dict[str, Any]:
-    schema: dict[str, Any] = {
-        "type": "object",
-        "properties": {
-            name: field.json_schema(redacted=redacted) for name, field in fields.items()
-        },
-        "additionalProperties": False,
-    }
-    if required := [name for name, field in fields.items() if field.required]:
-        schema["required"] = required
-    return schema
-
-
-LAYOUTS = {
-    "native": "Platform-Specific (SymStore / GDB / LLVM)",
-    "symstore": "Microsoft SymStore",
-    "symstore_index2": "Microsoft SymStore (with index2.txt)",
-    "ssqp": "Microsoft SSQP",
-    "unified": "Unified Symbol Server Layout",
-    "debuginfod": "debuginfod",
-    "slashsymbols": "Slash Symbols",
-}
-
-CASINGS = {
-    "default": "Default (mixed case)",
-    "uppercase": "Uppercase",
-    "lowercase": "Lowercase",
-}
-
-FILE_TYPES = {
-    "pe": "Windows executable files",
-    "pdb": "Windows debug files",
-    "portablepdb": ".NET portable debug files",
-    "mach_code": "MacOS executable files",
-    "mach_debug": "MacOS debug files",
-    "elf_code": "ELF executable files",
-    "elf_debug": "ELF debug files",
-    "wasm_code": "WASM executable files",
-    "wasm_debug": "WASM debug files",
-    "breakpad": "Breakpad symbol files",
-    "sourcebundle": "Source code bundles",
-    "uuidmap": "Apple UUID mapping files",
-    "bcsymbolmap": "Apple bitcode symbol maps",
-    "il2cpp": "Unity IL2CPP mapping files",
-    "proguard": "ProGuard mapping files",
-    "dartsymbolmap": "Dart symbol mapping files",
-}
-
-COMMON_FIELDS = {
-    "id": Field(
-        {"type": "string", "minLength": 1},
-        "The internal ID of the source. Must be distinct from all other source IDs and cannot start with `sentry:`. If this is not provided, a new UUID will be generated.",
-        required=True,
-    ),
-    "name": string("The human-readable name of the source."),
-    "layout": nested(
-        "Layout settings for the source.",
-        required=True,
-        type=choice("The layout of the folder structure.", LAYOUTS, required=True),
-        casing=choice("The casing of the folder structure.", CASINGS),
-    ),
-    "filters": nested(
-        "Filter settings for the source.",
-        filetypes=choice(
-            "A list of file types that can be found on this source. If this is left empty, all file types will be enabled.",
-            FILE_TYPES,
-            many=True,
-        ),
-        path_patterns=strings(
-            "A list of glob patterns to check against the debug and code file paths of debug files. Only files that match one of these patterns will be requested from the source. If this is left empty, no path-based filtering takes place."
-        ),
-        requires_checksum=boolean(
-            "Whether this source requires a debug checksum to be sent with each request. Defaults to `false`."
-        ),
-    ),
-    # Set on builtin sources in settings. Stored custom sources may carry them
-    # too, so they stay accepted, but the API does not document them.
-    "is_public": boolean(None),
-    "has_index": boolean(None),
-    "platforms": strings(None),
-}
-
-
-class SourceKind:
-    """
-    One kind of symbol source, such as an HTTP symbol server or an S3 bucket.
-
-    A kind declares the fields that are specific to it on top of the common
-    ones. Validation, API docs, and secret redaction are derived from the
-    declarations. To add a kind, declare it here and add it to `SOURCE_KINDS`.
-    """
-
-    def __init__(self, type: str, label: str, **fields: Field) -> None:
-        self.type = type
-        self.label = label
-        self.fields: dict[str, Field] = {**COMMON_FIELDS, **fields}
-
-    def extend(self, **fields: Field) -> SourceKind:
-        return SourceKind(self.type, self.label, **{**self.fields, **fields})
-
-    @property
-    def secrets(self) -> list[str]:
-        return [name for name, field in self.fields.items() if field.secret]
-
-    def _fields_with_type(self, fields: Mapping[str, Field]) -> dict[str, Field]:
-        return {"type": Field({"type": "string", "enum": [self.type]}, required=True), **fields}
-
-    @cached_property
-    def schema(self) -> dict[str, Any]:
-        return object_schema(self._fields_with_type(self.fields))
-
-    @cached_property
-    def redacted_schema(self) -> dict[str, Any]:
-        return object_schema(self._fields_with_type(self.fields), redacted=True)
-
-    @cached_property
-    def request_fields(self) -> dict[str, Field]:
-        """The documented fields, as the API accepts them. The ID is assigned when absent."""
-        fields = {name: field for name, field in self.fields.items() if field.description}
-        fields["id"] = replace(fields["id"], required=False)
-        return fields
-
-    @cached_property
-    def request_schema(self) -> dict[str, Any]:
-        return object_schema(self._fields_with_type(self.request_fields))
-
-
-HTTP = SourceKind(
-    "http",
-    "SymbolServer (HTTP)",
-    url=string("The source's URL.", required=True),
-    username=string("The user name for accessing the source."),
-    password=string("The password for accessing the source.", secret=True),
-)
-
-S3 = SourceKind(
-    "s3",
-    "Amazon S3",
-    bucket=string("The bucket where the source resides.", required=True),
-    region=string(
-        "The source's [S3 region](https://docs.aws.amazon.com/general/latest/gr/s3.html).",
-        required=True,
-    ),
-    access_key=string(
-        "The [AWS Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys).",
-        required=True,
-    ),
-    secret_key=string(
-        "The [AWS Secret Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys).",
-        required=True,
-        secret=True,
-    ),
-    prefix=string("The path prefix inside the bucket."),
-)
-
-GCS = SourceKind(
-    "gcs",
-    "Google Cloud Storage",
-    bucket=string("The bucket where the source resides.", required=True),
-    client_email=string("The GCS email address for authentication.", required=True),
-    private_key=string("The GCS private key.", required=True, secret=True),
-    prefix=string("The path prefix inside the bucket."),
-)
-
-# Builtin HTTP sources from settings may carry headers. We don't want to expose
-# that functionality via the API.
-BUILTIN_HTTP = HTTP.extend(
-    headers=Field({"type": "object", "patternProperties": {".*": {"type": "string"}}}),
-    accept_invalid_certs=boolean(None),
-)
-
-SOURCE_KINDS = {kind.type: kind for kind in (HTTP, S3, GCS)}
-
-SECRET_FIELDS = frozenset(name for kind in SOURCE_KINDS.values() for name in kind.secrets)
-
-# Sentry no longer supports App Store Connect sources. Old project options may
-# still contain them; `parse_sources` drops them.
-LEGACY_SOURCE_TYPES = frozenset({"appStoreConnect"})
-
-SOURCE_SCHEMA = {"oneOf": [kind.schema for kind in SOURCE_KINDS.values()]}
-SOURCES_SCHEMA = {"type": "array", "items": SOURCE_SCHEMA}
-
-BUILTIN_SOURCE_SCHEMA = {"oneOf": [kind.schema for kind in (BUILTIN_HTTP, S3, GCS)]}
-
-REDACTED_SOURCE_SCHEMA = {"oneOf": [kind.redacted_schema for kind in SOURCE_KINDS.values()]}
-REDACTED_SOURCES_SCHEMA = {"type": "array", "items": REDACTED_SOURCE_SCHEMA}
 
 LAST_UPLOAD_TTL = 24 * 3600
 
@@ -304,10 +58,6 @@ def record_last_upload(project: Project):
 
 def get_last_upload(project_id: int):
     return _get_cluster().get(_last_upload_key(project_id))
-
-
-class InvalidSourcesError(Exception):
-    pass
 
 
 def get_internal_url_prefix() -> str:
@@ -413,14 +163,6 @@ def get_internal_artifact_lookup_source(project: Project):
     }
 
 
-def is_internal_source_id(source_id: str):
-    """Determines if a DIF object source identifier is reserved for internal sentry use.
-
-    This is trivial, but multiple functions in this file need to use the same definition.
-    """
-    return source_id.startswith("sentry")
-
-
 def normalize_user_source(source, project_id=None, event_id=None):
     """Sources supplied from the user frontend might not match the format that
     symbolicator expects.  For instance we currently do not permit headers to be
@@ -452,174 +194,6 @@ def normalize_user_source(source, project_id=None, event_id=None):
         if headers:
             source["headers"] = headers
     return source
-
-
-def validate_sources(sources, schema=SOURCES_SCHEMA):
-    """
-    Validates sources against the JSON schema and checks that
-    their IDs are ok.
-    """
-    try:
-        jsonschema.validate(sources, schema)
-    except jsonschema.ValidationError:
-        raise InvalidSourcesError(f"Failed to validate source {redact_source_secrets(sources)}")
-
-    ids = set()
-    for source in sources:
-        if is_internal_source_id(source["id"]):
-            raise InvalidSourcesError('Source ids must not start with "sentry:"')
-        if source["id"] in ids:
-            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
-        ids.add(source["id"])
-
-
-def parse_sources(config):
-    """
-    Parses the sources stored in a project option. Sources of a kind Sentry no
-    longer supports are dropped.
-    """
-
-    if not config:
-        return []
-
-    try:
-        sources = orjson.loads(config)
-    except Exception as e:
-        raise InvalidSourcesError("Sources are not valid serialised JSON") from e
-
-    sources = [src for src in sources if src.get("type") not in LEGACY_SOURCE_TYPES]
-    validate_sources(sources)
-
-    return sources
-
-
-def parse_backfill_sources(sources_json, original_sources):
-    """
-    Parses a json string of sources passed in from a client and backfills any redacted secrets by
-    finding their previous values stored in original_sources.
-    """
-
-    if not sources_json:
-        return []
-
-    try:
-        sources = orjson.loads(sources_json)
-    except Exception as e:
-        raise InvalidSourcesError("Sources are not valid serialised JSON") from e
-
-    orig_by_id = {src["id"]: src for src in original_sources}
-
-    for source in sources:
-        backfill_secrets(source, orig_by_id.get(source["id"]))
-
-    validate_sources(sources, schema=SOURCES_SCHEMA)
-
-    return sources
-
-
-def backfill_secrets(source: Source, previous: Source | None) -> None:
-    """
-    Replaces every `{"hidden-secret": true}` placeholder in `source` with the
-    real value from `previous`, the stored source it updates.
-    """
-    for field in SECRET_FIELDS:
-        if source.get(field) != HIDDEN_SECRET:
-            continue
-        value = previous.get(field) if previous else None
-        if value is None:
-            with sentry_sdk.isolation_scope():
-                sentry_sdk.set_tag("missing_secret", field)
-                sentry_sdk.set_tag("source_id", source.get("id"))
-                sentry_sdk.capture_message(
-                    "Obfuscated symbol source secret does not have a corresponding saved value in project options"
-                )
-            raise InvalidSourcesError("Hidden symbol source secret is missing a value")
-        source[field] = value
-
-
-def redact_source_secrets(config_sources: Any) -> Any:
-    """
-    Returns a json data with all of the secrets redacted from every source.
-
-    The original value is not mutated in the process; A clone is created
-    and returned by this function.
-    """
-
-    redacted_sources = deepcopy(config_sources)
-    for source in redacted_sources:
-        for field in SECRET_FIELDS:
-            if field in source:
-                source[field] = HIDDEN_SECRET
-
-    return redacted_sources
-
-
-class UnknownSourceId(Exception):
-    pass
-
-
-class ProjectSymbolSources:
-    """
-    The custom symbol sources of one project.
-
-    Hides the `sentry:symbol_sources` project option, its JSON encoding, and
-    secret handling. Every mutation validates the whole list and saves it, so
-    a caller cannot store an invalid list or forget to save. Every source that
-    leaves this class has its secrets redacted.
-    """
-
-    OPTION = "sentry:symbol_sources"
-
-    def __init__(self, project: Project, sources: list[Source]) -> None:
-        self._project = project
-        self._sources = sources
-
-    @classmethod
-    def load(cls, project: Project) -> ProjectSymbolSources:
-        config = project.get_option(cls.OPTION)
-        return cls(project, parse_sources(config))
-
-    def all(self) -> list[Source]:
-        return redact_source_secrets(self._sources)
-
-    def get(self, source_id: str | None) -> Source:
-        return redact_source_secrets([self._sources[self._index_of(source_id)]])[0]
-
-    def add(self, source: Source) -> Source:
-        source = {**source}
-        source.setdefault("id", str(uuid4()))
-        self._save([*self._sources, source])
-        return redact_source_secrets([source])[0]
-
-    def replace(self, source_id: str | None, source: Source) -> Source:
-        """
-        Replaces the source with `source_id` by `source`. The new source keeps
-        its own ID, or gets a fresh one when it has none. Hidden secrets in
-        `source` are backfilled from the source it replaces.
-        """
-        index = self._index_of(source_id)
-        source = {**source}
-        source.setdefault("id", str(uuid4()))
-        backfill_secrets(source, self._sources[index])
-        self._save([*self._sources[:index], source, *self._sources[index + 1 :]])
-        return redact_source_secrets([source])[0]
-
-    def remove(self, source_id: str | None) -> None:
-        index = self._index_of(source_id)
-        self._save([*self._sources[:index], *self._sources[index + 1 :]])
-
-    def _index_of(self, source_id: str | None) -> int:
-        if source_id is None:
-            raise UnknownSourceId("Missing source id")
-        for index, source in enumerate(self._sources):
-            if source["id"] == source_id:
-                return index
-        raise UnknownSourceId(f"Unknown source id: {source_id}")
-
-    def _save(self, sources: list[Source]) -> None:
-        validate_sources(sources)
-        self._project.update_option(self.OPTION, orjson.dumps(sources).decode())
-        self._sources = sources
 
 
 def get_sources_for_project(project, event_id=None):

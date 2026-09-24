@@ -29,7 +29,7 @@ from sentry.dynamic_sampling.utils import (
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
-from sentry.lang.native.sources import parse_sources, redact_source_secrets
+from sentry.lang.native.project_symbol_sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
