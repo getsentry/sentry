@@ -314,8 +314,8 @@ function IssueListOverviewInner({
 
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(pageLinks);
-    if (links && !links.previous?.results && realtimeActive) {
-      pollerRef.current?.setEndpoint(links?.previous?.href);
+    if (links?.previous && !links.previous.results && realtimeActive) {
+      pollerRef.current?.setEndpoint(links.previous.href);
       pollerRef.current?.enable();
     }
   }, [pageLinks, realtimeActive]);
