@@ -1,4 +1,5 @@
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -30,31 +31,35 @@ describe('logsWidgetQueries', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [
-          [1, [{count: 10}]],
-          [2, [{count: 20}]],
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count(message)',
+            meta: {
+              valueType: 'integer',
+              valueUnit: null,
+              interval: 1000,
+              dataScanned: 'partial',
+            },
+            values: [
+              {
+                timestamp: 1000,
+                value: 10,
+                confidence: 'low',
+                sampleCount: 10,
+                sampleRate: 0.5,
+              },
+              {
+                timestamp: 2000,
+                value: 20,
+                confidence: 'low',
+                sampleCount: 20,
+                sampleRate: 0.5,
+              },
+            ],
+          }),
         ],
-        meta: {
-          dataScanned: 'partial',
-          fields: {'count(message)': 'integer'},
-          units: {'count(message)': null},
-          accuracy: {
-            confidence: [
-              {timestamp: 1, value: 'low'},
-              {timestamp: 2, value: 'low'},
-            ],
-            sampleCount: [
-              {timestamp: 1, value: 10},
-              {timestamp: 2, value: 20},
-            ],
-            samplingRate: [
-              {timestamp: 1, value: 0.5},
-              {timestamp: 2, value: 0.5},
-            ],
-          },
-        },
       },
       match: [MockApiClient.matchQuery({sampling: 'NORMAL', dataset: 'ourlogs'})],
     });

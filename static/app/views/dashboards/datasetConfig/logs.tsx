@@ -2,17 +2,13 @@ import pickBy from 'lodash/pickBy';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {AggregationKey, attributeTypeFromKind} from 'sentry/utils/fields';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
 import {
@@ -28,7 +24,11 @@ import {
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/events';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
-import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {
+  getTimeSeriesResultTypes,
+  getTimeSeriesResultUnits,
+  transformTimeSeriesResponseToSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {
   useLogsSeriesQuery,
   useLogsTableQuery,
@@ -221,7 +221,7 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
 }
 
 export const LogsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  EventsTimeSeriesResponse,
   TableData | EventsTableData
 > = {
   defaultCategoryField: 'severity',
@@ -251,7 +251,9 @@ export const LogsConfig: DatasetConfig<
   useSeriesQuery: useLogsSeriesQuery,
   useTableQuery: useLogsTableQuery,
   transformTable: transformEventsResponseToTable,
-  transformSeries: transformEventsResponseToSeries,
+  transformSeries: transformTimeSeriesResponseToSeries,
+  getSeriesResultType: getTimeSeriesResultTypes,
+  getSeriesResultUnit: getTimeSeriesResultUnits,
   filterAggregateParams,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);

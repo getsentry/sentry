@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -23,7 +24,7 @@ describe('useLogsSeriesQuery', () => {
     PageFiltersStore.onInitializeUrlState(pageFilters);
   });
 
-  it('makes a request to the events-stats endpoint', async () => {
+  it('makes a request to the events-timeseries endpoint', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
       queries: [
@@ -39,9 +40,9 @@ describe('useLogsSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
     });
 
@@ -56,7 +57,7 @@ describe('useLogsSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: ['count()'],
@@ -83,9 +84,9 @@ describe('useLogsSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
     });
 
@@ -103,7 +104,7 @@ describe('useLogsSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             query: expect.stringContaining('release:"1.0.0"'),
