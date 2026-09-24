@@ -1,5 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
@@ -10,9 +11,6 @@ import type {AuditLog} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getDateWithTimezoneInUtc, getUserTimezone} from 'sentry/utils/dates';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
@@ -24,18 +22,28 @@ type AuditLogResponse = {
 };
 
 function OrganizationAuditLog() {
-  const location = useLocation();
-  const navigate = useNavigate();
   const organization = useOrganization();
 
   const hasPermission = organization.access.includes('org:write') || isActiveSuperuser();
 
-  const cursor = decodeScalar(location.query.cursor);
-  const eventType = decodeScalar(location.query.event);
-  const start = decodeScalar(location.query.start);
-  const end = decodeScalar(location.query.end);
-  const statsPeriod = decodeScalar(location.query.statsPeriod);
-  const utc = decodeScalar(location.query.utc) === 'true' || getUserTimezone() === 'UTC';
+  const [queryParams, setQueryParams] = useQueryStates(
+    {
+      cursor: parseAsString,
+      event: parseAsString,
+      start: parseAsString,
+      end: parseAsString,
+      statsPeriod: parseAsString,
+      utc: parseAsBoolean,
+    },
+    // Each filter or page change is a step the back button should undo
+    {history: 'push'}
+  );
+  const cursor = queryParams.cursor ?? undefined;
+  const eventType = queryParams.event ?? undefined;
+  const start = queryParams.start ?? undefined;
+  const end = queryParams.end ?? undefined;
+  const statsPeriod = queryParams.statsPeriod ?? undefined;
+  const utc = queryParams.utc === true || getUserTimezone() === 'UTC';
 
   const {data, isPending, isError} = useQuery({
     ...apiOptions.as<AuditLogResponse>()(
@@ -57,52 +65,36 @@ function OrganizationAuditLog() {
   }, [isError]);
 
   const handleCursor: CursorHandler = resultsCursor => {
-    navigate({
-      query: {...location.query, cursor: resultsCursor},
-    });
+    setQueryParams({cursor: resultsCursor ?? null});
   };
 
   const handleEventSelect = (value: string) => {
-    navigate({
-      query: {...location.query, event: value, cursor: undefined},
-    });
+    setQueryParams({event: value, cursor: null});
   };
 
   const handleDateSelect = (changeData: ChangeData) => {
-    let formattedStart: string | undefined;
-    let formattedEnd: string | undefined;
+    let formattedStart: string | null = null;
+    let formattedEnd: string | null = null;
 
     if (changeData.start && changeData.end) {
       // Convert to UTC because endpoint only takes in UTC timestamps
       const startUtc = getDateWithTimezoneInUtc(changeData.start, changeData.utc);
       const endUtc = getDateWithTimezoneInUtc(changeData.end, changeData.utc);
-      formattedStart = normalizeDateTimeString(startUtc);
-      formattedEnd = normalizeDateTimeString(endUtc);
-    } else {
-      // start and end must both be defined to pass to endpoint
-      formattedStart = undefined;
-      formattedEnd = undefined;
+      formattedStart = normalizeDateTimeString(startUtc) ?? null;
+      formattedEnd = normalizeDateTimeString(endUtc) ?? null;
     }
 
     const formattedStatsPeriod =
       changeData.relative === 'allTime' ? null : changeData.relative;
 
-    // Always update URL when there are changes; reset cursor to avoid stale pagination
-    const newQuery: Record<string, string | undefined | null> = {
-      ...location.query,
+    // Reset cursor to avoid stale pagination. Only include UTC if it's been
+    // explicitly set; nuqs would write an undefined value as the string "undefined".
+    setQueryParams({
       start: formattedStart,
       end: formattedEnd,
-      statsPeriod: formattedStatsPeriod,
-      cursor: undefined,
-    };
-
-    // Only include UTC in query if it's been explicitly set
-    if (changeData.utc !== undefined) {
-      newQuery.utc = changeData.utc ? 'true' : 'false';
-    }
-
-    navigate({
-      query: newQuery,
+      statsPeriod: formattedStatsPeriod ?? null,
+      cursor: null,
+      ...(changeData.utc === undefined ? {} : {utc: Boolean(changeData.utc)}),
     });
   };
 
