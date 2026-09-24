@@ -1,4 +1,5 @@
 import {Fragment, type MouseEvent, type ReactNode} from 'react';
+import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -90,6 +91,19 @@ interface ToolCallProps {
 // pinned to this width so detail (input chips, notifications, children) aligns
 // under the headline rather than under the glyph.
 const GLYPH_SLOT_WIDTH = '16px';
+
+// The reference button is `inline-flex`, whose baseline is its first item's —
+// the icon's bottom edge — so on the title's baseline it rides a few pixels
+// high, and `vertical-align: middle` (baseline + half x-height) overshoots low.
+// Instead, make the wrapper exactly one line tall, pin it to the top of the
+// line box, and center the button inside it. No layout primitive exposes
+// `vertical-align`, hence the styled wrapper.
+const InlineReference = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  height: 1lh;
+  vertical-align: top;
+`;
 
 // `inherit` so the text takes the link button's accent color rather than
 // resetting to the default content color.
@@ -265,7 +279,9 @@ export function ToolCall({
             {reference ? (
               <Fragment>
                 {' '}
-                <ReferenceLink reference={reference} />
+                <InlineReference>
+                  <ReferenceLink reference={reference} />
+                </InlineReference>
               </Fragment>
             ) : null}
           </Text>
