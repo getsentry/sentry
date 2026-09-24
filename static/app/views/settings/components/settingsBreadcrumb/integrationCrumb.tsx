@@ -69,7 +69,7 @@ export function IntegrationCrumb({route, routes}: SettingsBreadcrumbProps) {
     return null;
   }
 
-  const providers = data?.providers ?? [];
+  const providers = (data?.providers ?? []).filter(Boolean);
   const activeProvider = providers.find(
     provider => provider.key === activeProviderKey || provider.slug === activeProviderKey
   );
