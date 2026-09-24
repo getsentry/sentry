@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sentry.integrations.msteams.card_builder.block import ActionType
 from sentry.notifications.platform.provider import (
     NotificationProvider,
     NotificationProviderError,
@@ -201,6 +200,8 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
         echoes a submit action's payload back to the webhook, which routes the request to a cell
         by that id.
         """
+        from sentry.integrations.msteams.card_builder.block import ActionType
+
         if isinstance(node, list):
             for item in node:
                 cls._add_integration_id(item, integration_id=integration_id)
