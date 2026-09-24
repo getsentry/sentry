@@ -10,9 +10,8 @@ import sentry_sdk
 from slack_sdk.errors import SlackApiError, SlackRequestError
 from slack_sdk.webhook import WebhookClient
 
-from sentry import features
 from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
-from sentry.incidents.charts import build_metric_alert_chart
+from sentry.incidents.charts import build_metric_alert_notification_chart
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -41,6 +40,8 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
@@ -122,29 +123,19 @@ def _build_new_notification_message_payload(
     return new_notification_message_object
 
 
-def _build_notification_payload(
+def build_metric_alert_payload(
     organization: Organization,
     alert_context: AlertContext,
     metric_issue_context: MetricIssueContext,
     open_period_context: OpenPeriodContext,
-    detector_serialized_response: DetectorSerializerResponse | None,
+    chart_url: str | None,
     notification_uuid: str | None,
     notes: str | None = None,
 ) -> tuple[str, str]:
-    chart_url = None
-    if features.has("organizations:metric-alert-chartcuterie", organization):
-        try:
-            chart_url = build_metric_alert_chart(
-                organization=organization,
-                snuba_query=metric_issue_context.snuba_query,
-                alert_context=alert_context,
-                open_period_context=open_period_context,
-                subscription=metric_issue_context.subscription,
-                detector_serialized_response=detector_serialized_response,
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-
+    """
+    Returns the JSON-encoded `attachments` and the fallback `text` for a metric
+    alert `chat.postMessage` call.
+    """
     attachment: SlackBlock = SlackIncidentsMessageBuilder(
         alert_context=alert_context,
         metric_issue_context=metric_issue_context,
@@ -300,15 +291,23 @@ def send_incident_alert_notification(
         sentry_sdk.capture_message("Channel is None", level="error")
         return False
 
-    attachments, text = _build_notification_payload(
+    chart_url = build_metric_alert_notification_chart(
         organization=organization,
         alert_context=alert_context,
         metric_issue_context=metric_issue_context,
         open_period_context=open_period_context,
-        notification_uuid=notification_uuid,
         detector_serialized_response=detector_serialized_response,
+    )
+    attachments, text = build_metric_alert_payload(
+        organization=organization,
+        alert_context=alert_context,
+        metric_issue_context=metric_issue_context,
+        open_period_context=open_period_context,
+        chart_url=chart_url,
+        notification_uuid=notification_uuid,
         notes=notification_context.notes,
     )
+    record_legacy_render(NotificationProviderKey.SLACK, (attachments, text), chart_url=chart_url)
     return _handle_workflow_engine_notification(
         organization=organization,
         notification_context=notification_context,
