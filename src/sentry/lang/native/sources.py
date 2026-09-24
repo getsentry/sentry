@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import logging
 import os
-from collections.abc import Iterable
+from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from functools import cached_property
@@ -41,126 +41,6 @@ PROJECT_ID_HEADER = "x-sentry-project-id"
 # The header in which to send the event ID to custom symbol sources.
 EVENT_ID_HEADER = "x-sentry-event-id"
 
-VALID_LAYOUTS = (
-    "native",
-    "symstore",
-    "symstore_index2",
-    "ssqp",
-    "unified",
-    "debuginfod",
-    "slashsymbols",
-)
-
-VALID_FILE_TYPES = (
-    "pe",
-    "pdb",
-    "portablepdb",
-    "mach_debug",
-    "mach_code",
-    "elf_debug",
-    "elf_code",
-    "wasm_debug",
-    "wasm_code",
-    "breakpad",
-    "sourcebundle",
-    "uuidmap",
-    "bcsymbolmap",
-    "il2cpp",
-    "proguard",
-    "dartsymbolmap",
-)
-
-VALID_CASINGS = ("lowercase", "uppercase", "default")
-
-# The `description` keys in the schemas below are ignored by jsonschema and
-# rendered by the OpenAPI docs. Keep them next to the rules they describe.
-
-LAYOUT_SCHEMA = {
-    "type": "object",
-    "description": "Layout settings for the source.",
-    "properties": {
-        "type": {
-            "type": "string",
-            "enum": list(VALID_LAYOUTS),
-            "description": """The layout of the folder structure. The options are:
-- `native` - Platform-Specific (SymStore / GDB / LLVM)
-- `symstore` - Microsoft SymStore
-- `symstore_index2` - Microsoft SymStore (with index2.txt)
-- `ssqp` - Microsoft SSQP
-- `unified` - Unified Symbol Server Layout
-- `debuginfod` - debuginfod
-- `slashsymbols` - Slash Symbols""",
-        },
-        "casing": {
-            "type": "string",
-            "enum": list(VALID_CASINGS),
-            "description": """The casing of the folder structure. The options are:
-- `default` - Default (mixed case)
-- `uppercase` - Uppercase
-- `lowercase` - Lowercase""",
-        },
-    },
-    "required": ["type"],
-    "additionalProperties": False,
-}
-
-FILTERS_SCHEMA = {
-    "type": "object",
-    "description": "Filter settings for the source. This is optional for all sources.",
-    "properties": {
-        "filetypes": {
-            "type": "array",
-            "items": {"type": "string", "enum": list(VALID_FILE_TYPES)},
-            "description": """A list of file types that can be found on this source. If this is left empty, all file types will be enabled. The options are:
-- `pe` - Windows executable files
-- `pdb` - Windows debug files
-- `portablepdb` - .NET portable debug files
-- `mach_code` - MacOS executable files
-- `mach_debug` - MacOS debug files
-- `elf_code` - ELF executable files
-- `elf_debug` - ELF debug files
-- `wasm_code` - WASM executable files
-- `wasm_debug` - WASM debug files
-- `breakpad` - Breakpad symbol files
-- `sourcebundle` - Source code bundles
-- `uuidmap` - Apple UUID mapping files
-- `bcsymbolmap` - Apple bitcode symbol maps
-- `il2cpp` - Unity IL2CPP mapping files
-- `proguard` - ProGuard mapping files
-- `dartsymbolmap` - Dart symbol mapping files""",
-        },
-        "path_patterns": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "A list of glob patterns to check against the debug and code file paths of debug files. Only files that match one of these patterns will be requested from the source. If this is left empty, no path-based filtering takes place.",
-        },
-        "requires_checksum": {
-            "type": "boolean",
-            "description": "Whether this source requires a debug checksum to be sent with each request. Defaults to `false`.",
-        },
-    },
-    "additionalProperties": False,
-}
-
-COMMON_SOURCE_PROPERTIES = {
-    "id": {
-        "type": "string",
-        "minLength": 1,
-        "description": "The internal ID of the source. Must be distinct from all other source IDs and cannot start with `sentry:`. If this is not provided, a new UUID will be generated.",
-    },
-    "name": {"type": "string", "description": "The human-readable name of the source."},
-    "layout": LAYOUT_SCHEMA,
-    "filters": FILTERS_SCHEMA,
-}
-
-# Set on builtin sources in settings. Stored custom sources may carry them too,
-# so validation accepts them, but the API does not document them.
-UNDOCUMENTED_SOURCE_PROPERTIES = {
-    "is_public": {"type": "boolean"},
-    "has_index": {"type": "boolean"},
-    "platforms": {"type": "array", "items": {"type": "string"}},
-}
-
 HIDDEN_SECRET = {"hidden-secret": True}
 HIDDEN_SECRET_SCHEMA = {
     "type": "object",
@@ -168,184 +48,239 @@ HIDDEN_SECRET_SCHEMA = {
 }
 
 
-def _redact_schema(schema: dict, keys_to_redact: list[str]) -> dict:
-    """
-    Returns a deepcopy of the input schema, overriding any keys in keys_to_redact
-    with HIDDEN_SECRET_SCHEMA. Works on nested dictionaries.
-    """
-
-    def override_key(schema: dict, keys_to_redact: list[str]) -> None:
-        for key, value in schema.items():
-            if key in keys_to_redact:
-                schema[key] = HIDDEN_SECRET_SCHEMA
-            elif isinstance(value, dict):
-                override_key(value, keys_to_redact)
-
-    copy = deepcopy(schema)
-    override_key(copy, keys_to_redact)
-    return copy
-
-
 @dataclass(frozen=True)
+class Field:
+    """
+    One property of a symbol source.
+
+    `schema` is the JSON schema of the value. `description` is shown in the
+    API docs; a field without one is accepted but not documented.
+    """
+
+    schema: Mapping[str, Any]
+    description: str | None = None
+    required: bool = False
+    secret: bool = False
+
+    def json_schema(self, *, redacted: bool = False) -> dict[str, Any]:
+        schema = dict(HIDDEN_SECRET_SCHEMA if redacted and self.secret else self.schema)
+        if self.description:
+            schema["description"] = self.description
+        return schema
+
+
+def string(description: str | None, *, required: bool = False, secret: bool = False) -> Field:
+    return Field({"type": "string"}, description, required, secret)
+
+
+def boolean(description: str | None) -> Field:
+    return Field({"type": "boolean"}, description)
+
+
+def strings(description: str | None) -> Field:
+    return Field({"type": "array", "items": {"type": "string"}}, description)
+
+
+def choice(
+    description: str, options: Mapping[str, str], *, required: bool = False, many: bool = False
+) -> Field:
+    """`options` maps each allowed value to the label shown in the docs."""
+    schema: dict[str, Any] = {"type": "string", "enum": list(options)}
+    if many:
+        schema = {"type": "array", "items": schema}
+    listing = "\n".join(f"- `{value}` - {label}" for value, label in options.items())
+    return Field(schema, f"{description} The options are:\n{listing}", required)
+
+
+def nested(description: str, *, required: bool = False, **fields: Field) -> Field:
+    return Field(object_schema(fields), description, required)
+
+
+def object_schema(fields: Mapping[str, Field], *, redacted: bool = False) -> dict[str, Any]:
+    schema: dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            name: field.json_schema(redacted=redacted) for name, field in fields.items()
+        },
+        "additionalProperties": False,
+    }
+    if required := [name for name, field in fields.items() if field.required]:
+        schema["required"] = required
+    return schema
+
+
+LAYOUTS = {
+    "native": "Platform-Specific (SymStore / GDB / LLVM)",
+    "symstore": "Microsoft SymStore",
+    "symstore_index2": "Microsoft SymStore (with index2.txt)",
+    "ssqp": "Microsoft SSQP",
+    "unified": "Unified Symbol Server Layout",
+    "debuginfod": "debuginfod",
+    "slashsymbols": "Slash Symbols",
+}
+
+CASINGS = {
+    "default": "Default (mixed case)",
+    "uppercase": "Uppercase",
+    "lowercase": "Lowercase",
+}
+
+FILE_TYPES = {
+    "pe": "Windows executable files",
+    "pdb": "Windows debug files",
+    "portablepdb": ".NET portable debug files",
+    "mach_code": "MacOS executable files",
+    "mach_debug": "MacOS debug files",
+    "elf_code": "ELF executable files",
+    "elf_debug": "ELF debug files",
+    "wasm_code": "WASM executable files",
+    "wasm_debug": "WASM debug files",
+    "breakpad": "Breakpad symbol files",
+    "sourcebundle": "Source code bundles",
+    "uuidmap": "Apple UUID mapping files",
+    "bcsymbolmap": "Apple bitcode symbol maps",
+    "il2cpp": "Unity IL2CPP mapping files",
+    "proguard": "ProGuard mapping files",
+    "dartsymbolmap": "Dart symbol mapping files",
+}
+
+COMMON_FIELDS = {
+    "id": Field(
+        {"type": "string", "minLength": 1},
+        "The internal ID of the source. Must be distinct from all other source IDs and cannot start with `sentry:`. If this is not provided, a new UUID will be generated.",
+        required=True,
+    ),
+    "name": string("The human-readable name of the source."),
+    "layout": nested(
+        "Layout settings for the source.",
+        required=True,
+        type=choice("The layout of the folder structure.", LAYOUTS, required=True),
+        casing=choice("The casing of the folder structure.", CASINGS),
+    ),
+    "filters": nested(
+        "Filter settings for the source.",
+        filetypes=choice(
+            "A list of file types that can be found on this source. If this is left empty, all file types will be enabled.",
+            FILE_TYPES,
+            many=True,
+        ),
+        path_patterns=strings(
+            "A list of glob patterns to check against the debug and code file paths of debug files. Only files that match one of these patterns will be requested from the source. If this is left empty, no path-based filtering takes place."
+        ),
+        requires_checksum=boolean(
+            "Whether this source requires a debug checksum to be sent with each request. Defaults to `false`."
+        ),
+    ),
+    # Set on builtin sources in settings. Stored custom sources may carry them
+    # too, so they stay accepted, but the API does not document them.
+    "is_public": boolean(None),
+    "has_index": boolean(None),
+    "platforms": strings(None),
+}
+
+
 class SourceKind:
     """
     One kind of symbol source, such as an HTTP symbol server or an S3 bucket.
 
-    A kind declares the fields that are specific to it, which of those are
-    required, and which hold secrets. Validation, API documentation, and secret
-    redaction are all derived from these declarations. To add a kind, add one
-    instance to `SOURCE_KINDS`.
+    A kind declares the fields that are specific to it on top of the common
+    ones. Validation, API docs, and secret redaction are derived from the
+    declarations. To add a kind, declare it here and add it to `SOURCE_KINDS`.
     """
 
-    type: str
-    label: str
-    fields: dict[str, dict[str, Any]]
-    required: tuple[str, ...]
-    """Required fields on top of `type` and `id`."""
-    secrets: tuple[str, ...] = ()
+    def __init__(self, type: str, label: str, **fields: Field) -> None:
+        self.type = type
+        self.label = label
+        self.fields: dict[str, Field] = {**COMMON_FIELDS, **fields}
+
+    def extend(self, **fields: Field) -> SourceKind:
+        return SourceKind(self.type, self.label, **{**self.fields, **fields})
+
+    @property
+    def secrets(self) -> list[str]:
+        return [name for name, field in self.fields.items() if field.secret]
+
+    def _fields_with_type(self, fields: Mapping[str, Field]) -> dict[str, Field]:
+        return {"type": Field({"type": "string", "enum": [self.type]}, required=True), **fields}
 
     @cached_property
     def schema(self) -> dict[str, Any]:
-        return {
-            "type": "object",
-            "properties": {
-                "type": {"type": "string", "enum": [self.type]},
-                **COMMON_SOURCE_PROPERTIES,
-                **UNDOCUMENTED_SOURCE_PROPERTIES,
-                **self.fields,
-            },
-            "required": ["type", "id", *self.required],
-            "additionalProperties": False,
-        }
-
-    @cached_property
-    def request_schema(self) -> dict[str, Any]:
-        """The schema of a source as the API documents it. The ID is assigned when absent."""
-        schema = deepcopy(self.schema)
-        schema["required"].remove("id")
-        for name in UNDOCUMENTED_SOURCE_PROPERTIES:
-            del schema["properties"][name]
-        return schema
+        return object_schema(self._fields_with_type(self.fields))
 
     @cached_property
     def redacted_schema(self) -> dict[str, Any]:
-        return _redact_schema(self.schema, list(self.secrets))
+        return object_schema(self._fields_with_type(self.fields), redacted=True)
+
+    @cached_property
+    def request_fields(self) -> dict[str, Field]:
+        """The documented fields, as the API accepts them. The ID is assigned when absent."""
+        fields = {name: field for name, field in self.fields.items() if field.description}
+        fields["id"] = replace(fields["id"], required=False)
+        return fields
+
+    @cached_property
+    def request_schema(self) -> dict[str, Any]:
+        return object_schema(self._fields_with_type(self.request_fields))
 
 
 HTTP = SourceKind(
-    type="http",
-    label="SymbolServer (HTTP)",
-    fields={
-        "url": {"type": "string", "description": "The source's URL."},
-        "username": {
-            "type": "string",
-            "description": "The user name for accessing the source.",
-        },
-        "password": {"type": "string", "description": "The password for accessing the source."},
-    },
-    required=("url", "layout"),
-    secrets=("password",),
-)
-
-# Builtin HTTP sources may carry headers. We don't want to expose that
-# functionality via the API.
-BUILTIN_HTTP = replace(
-    HTTP,
-    fields={
-        **HTTP.fields,
-        "headers": {"type": "object", "patternProperties": {".*": {"type": "string"}}},
-        "accept_invalid_certs": {"type": "boolean"},
-    },
+    "http",
+    "SymbolServer (HTTP)",
+    url=string("The source's URL.", required=True),
+    username=string("The user name for accessing the source."),
+    password=string("The password for accessing the source.", secret=True),
 )
 
 S3 = SourceKind(
-    type="s3",
-    label="Amazon S3",
-    fields={
-        "bucket": {"type": "string", "description": "The bucket where the source resides."},
-        "region": {
-            "type": "string",
-            "description": "The source's [S3 region](https://docs.aws.amazon.com/general/latest/gr/s3.html).",
-        },
-        "access_key": {
-            "type": "string",
-            "description": "The [AWS Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys).",
-        },
-        "secret_key": {
-            "type": "string",
-            "description": "The [AWS Secret Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys).",
-        },
-        "prefix": {"type": "string", "description": "The path prefix inside the bucket."},
-    },
-    required=("bucket", "region", "access_key", "secret_key", "layout"),
-    secrets=("secret_key",),
+    "s3",
+    "Amazon S3",
+    bucket=string("The bucket where the source resides.", required=True),
+    region=string(
+        "The source's [S3 region](https://docs.aws.amazon.com/general/latest/gr/s3.html).",
+        required=True,
+    ),
+    access_key=string(
+        "The [AWS Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys).",
+        required=True,
+    ),
+    secret_key=string(
+        "The [AWS Secret Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys).",
+        required=True,
+        secret=True,
+    ),
+    prefix=string("The path prefix inside the bucket."),
 )
 
 GCS = SourceKind(
-    type="gcs",
-    label="Google Cloud Storage",
-    fields={
-        "bucket": {"type": "string", "description": "The bucket where the source resides."},
-        "client_email": {
-            "type": "string",
-            "description": "The GCS email address for authentication.",
-        },
-        "private_key": {"type": "string", "description": "The GCS private key."},
-        "prefix": {"type": "string", "description": "The path prefix inside the bucket."},
-    },
-    required=("bucket", "client_email", "private_key", "layout"),
-    secrets=("private_key",),
+    "gcs",
+    "Google Cloud Storage",
+    bucket=string("The bucket where the source resides.", required=True),
+    client_email=string("The GCS email address for authentication.", required=True),
+    private_key=string("The GCS private key.", required=True, secret=True),
+    prefix=string("The path prefix inside the bucket."),
 )
 
-# App Store Connect sources can no longer be created, but old project options
-# may still contain them.
-APP_STORE_CONNECT = SourceKind(
-    type="appStoreConnect",
-    label="App Store Connect",
-    fields={
-        "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
-        "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
-        "appconnectPrivateKey": {"type": "string"},
-        "appName": {"type": "string", "minLength": 1, "maxLength": 512},
-        "appId": {"type": "string", "minLength": 1},
-        "bundleId": {"type": "string", "minLength": 1},
-    },
-    required=(
-        "name",
-        "appconnectIssuer",
-        "appconnectKey",
-        "appconnectPrivateKey",
-        "appName",
-        "appId",
-        "bundleId",
-    ),
-    secrets=("appconnectPrivateKey",),
+# Builtin HTTP sources from settings may carry headers. We don't want to expose
+# that functionality via the API.
+BUILTIN_HTTP = HTTP.extend(
+    headers=Field({"type": "object", "patternProperties": {".*": {"type": "string"}}}),
+    accept_invalid_certs=boolean(None),
 )
 
-CUSTOM_SOURCE_KINDS = {kind.type: kind for kind in (HTTP, S3, GCS)}
-"""The kinds a user may configure through the API."""
+SOURCE_KINDS = {kind.type: kind for kind in (HTTP, S3, GCS)}
 
-SOURCE_KINDS = {**CUSTOM_SOURCE_KINDS, APP_STORE_CONNECT.type: APP_STORE_CONNECT}
-"""Every kind that may appear in a stored project option."""
+SECRET_FIELDS = frozenset(name for kind in SOURCE_KINDS.values() for name in kind.secrets)
 
-SECRET_FIELDS = frozenset(field for kind in SOURCE_KINDS.values() for field in kind.secrets)
+# Sentry no longer supports App Store Connect sources. Old project options may
+# still contain them; `parse_sources` drops them.
+LEGACY_SOURCE_TYPES = frozenset({"appStoreConnect"})
 
-
-def _one_of(schemas: Iterable[dict[str, Any]]) -> dict[str, Any]:
-    return {"oneOf": list(schemas)}
-
-
-SOURCE_SCHEMA = _one_of(kind.schema for kind in SOURCE_KINDS.values())
+SOURCE_SCHEMA = {"oneOf": [kind.schema for kind in SOURCE_KINDS.values()]}
 SOURCES_SCHEMA = {"type": "array", "items": SOURCE_SCHEMA}
 
-CUSTOM_SOURCES_SCHEMA = {
-    "type": "array",
-    "items": _one_of(kind.schema for kind in CUSTOM_SOURCE_KINDS.values()),
-}
+BUILTIN_SOURCE_SCHEMA = {"oneOf": [kind.schema for kind in (BUILTIN_HTTP, S3, GCS)]}
 
-BUILTIN_SOURCE_SCHEMA = _one_of(kind.schema for kind in (BUILTIN_HTTP, S3, GCS, APP_STORE_CONNECT))
-
-REDACTED_SOURCE_SCHEMA = _one_of(kind.redacted_schema for kind in SOURCE_KINDS.values())
+REDACTED_SOURCE_SCHEMA = {"oneOf": [kind.redacted_schema for kind in SOURCE_KINDS.values()]}
 REDACTED_SOURCES_SCHEMA = {"type": "array", "items": REDACTED_SOURCE_SCHEMA}
 
 LAST_UPLOAD_TTL = 24 * 3600
@@ -519,7 +454,7 @@ def normalize_user_source(source, project_id=None, event_id=None):
     return source
 
 
-def validate_sources(sources, schema=CUSTOM_SOURCES_SCHEMA):
+def validate_sources(sources, schema=SOURCES_SCHEMA):
     """
     Validates sources against the JSON schema and checks that
     their IDs are ok.
@@ -538,9 +473,10 @@ def validate_sources(sources, schema=CUSTOM_SOURCES_SCHEMA):
         ids.add(source["id"])
 
 
-def parse_sources(config, filter_appconnect):
+def parse_sources(config):
     """
-    Parses the given sources in the config string (from JSON).
+    Parses the sources stored in a project option. Sources of a kind Sentry no
+    longer supports are dropped.
     """
 
     if not config:
@@ -551,10 +487,7 @@ def parse_sources(config, filter_appconnect):
     except Exception as e:
         raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
-    # remove App Store Connect sources (we don't need them in Symbolicator)
-    if filter_appconnect:
-        sources = [src for src in sources if src.get("type") != APP_STORE_CONNECT.type]
-
+    sources = [src for src in sources if src.get("type") not in LEGACY_SOURCE_TYPES]
     validate_sources(sources)
 
     return sources
@@ -644,7 +577,7 @@ class ProjectSymbolSources:
     @classmethod
     def load(cls, project: Project) -> ProjectSymbolSources:
         config = project.get_option(cls.OPTION)
-        return cls(project, parse_sources(config, filter_appconnect=False))
+        return cls(project, parse_sources(config))
 
     def all(self) -> list[Source]:
         return redact_source_secrets(self._sources)
@@ -711,11 +644,9 @@ def get_sources_for_project(project, event_id=None):
 
     if sources_config:
         try:
-            custom_sources = parse_sources(sources_config, filter_appconnect=True)
+            custom_sources = parse_sources(sources_config)
             sources.extend(
-                normalize_user_source(source, project.id, event_id)
-                for source in custom_sources
-                if source["type"] != "appStoreConnect"
+                normalize_user_source(source, project.id, event_id) for source in custom_sources
             )
         except InvalidSourcesError:
             # Source configs should be validated when they are saved. If this

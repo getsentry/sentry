@@ -1,5 +1,5 @@
-from collections.abc import Iterable, Mapping
-from copy import deepcopy
+from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -20,79 +20,50 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.lang.native.sources import (
-    CUSTOM_SOURCE_KINDS,
     REDACTED_SOURCE_SCHEMA,
     REDACTED_SOURCES_SCHEMA,
+    SOURCE_KINDS,
+    Field,
     InvalidSourcesError,
     ProjectSymbolSources,
     Source,
     SourceKind,
     UnknownSourceId,
+    choice,
+    object_schema,
 )
 from sentry.models.project import Project
 
 
-def _kind_list(kinds: Iterable[SourceKind]) -> str:
-    names = [f"`{kind.type}`" for kind in kinds]
-    if len(names) <= 2:
-        return " and ".join(names)
-    return ", ".join(names[:-1]) + f", and {names[-1]}"
+def _only_for(field: Field, kinds: Sequence[SourceKind]) -> Field:
+    names = " and ".join(f"`{kind.type}`" for kind in kinds)
+    word = "Required" if field.required else "Optional"
+    note = f"{word} for {names} sources, invalid for all others."
+    return replace(field, description=f"{field.description} {note}", required=False)
 
 
-def _availability(field: str, kinds: list[SourceKind]) -> str | None:
+def _request_schema(kinds: Sequence[SourceKind]) -> dict[str, Any]:
     """
-    A sentence that says which kinds require, accept, or reject `field`, or
-    None when every kind treats it the same way.
+    One object that documents the request body for every kind.
+
+    The API docs render a request body as one flat object, so the kinds are
+    merged. A field that only some kinds use says so in its description.
+    Validation still uses the per-kind schemas.
     """
-    required = [k for k in kinds if field in k.request_schema["required"]]
-    optional = [k for k in kinds if field in k.request_schema["properties"] and k not in required]
-    invalid = [k for k in kinds if field not in k.request_schema["properties"]]
-    if len(required) == len(kinds) or len(optional) == len(kinds):
-        return None
-    clauses = [
-        f"{word} for {_kind_list(group)} sources"
-        for word, group in (("required", required), ("optional", optional), ("invalid", invalid))
-        if group
-    ]
-    sentence = ", ".join(clauses) + "."
-    return sentence[0].upper() + sentence[1:]
-
-
-def _flat_request_schema(kinds: Iterable[SourceKind]) -> dict[str, Any]:
-    """
-    Merges the request schemas of all `kinds` into one object.
-
-    The API docs render one flat object per request body and cannot show a
-    `oneOf`, so the per-kind schemas are merged. Each field's description says
-    which kinds require, accept, or reject it. Validation still uses the
-    per-kind schemas.
-    """
-    kinds = list(kinds)
-    fields: dict[str, dict[str, Any]] = {}
-    for kind in kinds:
-        for name, field in kind.request_schema["properties"].items():
-            if name != "type":
-                assert fields.setdefault(name, field) == field, f"kinds disagree on {name}"
-
-    type_options = "\n".join(f"- `{kind.type}` - {kind.label}" for kind in kinds)
-    properties: dict[str, Any] = {
-        "type": {
-            "type": "string",
-            "enum": [kind.type for kind in kinds],
-            "description": f"The type of the source. The options are:\n{type_options}",
-        }
+    fields = {
+        "type": choice("The type of the source.", {k.type: k.label for k in kinds}, required=True)
     }
-    required = ["type"]
+    for kind in kinds:
+        for name, field in kind.request_fields.items():
+            assert fields.setdefault(name, field) == field, f"kinds disagree on {name}"
     for name, field in fields.items():
-        properties[name] = deepcopy(field)
-        if all(name in k.request_schema["required"] for k in kinds):
-            required.append(name)
-        elif note := _availability(name, kinds):
-            properties[name]["description"] = f"{field['description']} {note}"
-    return {"type": "object", "properties": properties, "required": required}
+        owners = [kind for kind in kinds if name in kind.fields]
+        if 0 < len(owners) < len(kinds):
+            fields[name] = _only_for(field, owners)
+    return object_schema(fields)
 
 
-SOURCE_REQUEST = {"application/json": _flat_request_schema(CUSTOM_SOURCE_KINDS.values())}
+SOURCE_REQUEST = {"application/json": _request_schema(list(SOURCE_KINDS.values()))}
 
 
 class SymbolSourceErrorResponse(TypedDict):

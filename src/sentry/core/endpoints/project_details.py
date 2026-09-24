@@ -485,8 +485,7 @@ E.g. `['release', 'environment']`""",
             # We should really only grab and parse if there are sources in sources_json whose
             # secrets are set to {"hidden-secret":true}
             orig_sources = parse_sources(
-                self.context["project"].get_option("sentry:symbol_sources"),
-                filter_appconnect=True,
+                self.context["project"].get_option("sentry:symbol_sources")
             )
             sources = parse_backfill_sources(sources_json.strip(), orig_sources)
         except InvalidSourcesError as e:
@@ -891,7 +890,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 # Redact secrets so they don't get logged directly to the Audit Log
                 sources_json = result["symbolSources"] or None
                 try:
-                    sources = parse_sources(sources_json, filter_appconnect=True)
+                    sources = parse_sources(sources_json)
                 except Exception:
                     sources = []
                 redacted_sources = redact_source_secrets(sources)

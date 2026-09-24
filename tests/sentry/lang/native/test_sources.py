@@ -8,8 +8,8 @@ from django.test import override_settings
 
 from sentry.lang.native.sources import (
     BUILTIN_SOURCE_SCHEMA,
-    CUSTOM_SOURCE_KINDS,
     HIDDEN_SECRET,
+    SOURCE_KINDS,
     InvalidSourcesError,
     backfill_secrets,
     filter_ignored_sources,
@@ -294,9 +294,9 @@ CUSTOM_SOURCE_SAMPLES = {
 }
 
 
-@pytest.mark.parametrize("source_type", sorted(CUSTOM_SOURCE_KINDS))
+@pytest.mark.parametrize("source_type", sorted(SOURCE_KINDS))
 def test_source_kind_schemas_and_redaction(source_type: str) -> None:
-    kind = CUSTOM_SOURCE_KINDS[source_type]
+    kind = SOURCE_KINDS[source_type]
     source = CUSTOM_SOURCE_SAMPLES[source_type]
     jsonschema.validate(source, kind.schema)
     validate_sources([source])
