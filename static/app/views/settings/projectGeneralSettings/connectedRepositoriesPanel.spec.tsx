@@ -1,18 +1,14 @@
-import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RepositoryFixture} from 'sentry-fixture/repository';
-import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
 
 describe('ConnectedRepositoriesPanel', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
-  const integration = GitHubIntegrationFixture();
-  const repo = RepositoryFixture({integrationId: integration.id});
+  const repoUrl = `/projects/${organization.slug}/${project.slug}/repo/`;
 
   function renderPanel() {
     return render(<ConnectedRepositoriesPanel project={project} />, {organization});
@@ -28,7 +24,7 @@ describe('ConnectedRepositoriesPanel', () => {
 
   it('shows a loading spinner while the request is in flight', () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/code-mappings/`,
+      url: repoUrl,
       method: 'GET',
       body: [],
     });
@@ -40,7 +36,7 @@ describe('ConnectedRepositoriesPanel', () => {
 
   it('shows empty state when no repositories are connected', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/code-mappings/`,
+      url: repoUrl,
       method: 'GET',
       body: [],
     });
@@ -51,98 +47,90 @@ describe('ConnectedRepositoriesPanel', () => {
   });
 
   it('renders a row with the repo name and mapping count', async () => {
-    const mapping = RepositoryProjectPathConfigFixture({project, repo, integration});
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/code-mappings/`,
+      url: repoUrl,
       method: 'GET',
-      body: [mapping],
+      body: [
+        {
+          id: '1',
+          projectId: project.id,
+          repositoryId: '10',
+          repoName: 'getsentry/sentry',
+          source: 'manual',
+          providerKey: 'github',
+          mappingCount: 1,
+        },
+      ],
     });
 
     renderPanel();
 
-    expect(await screen.findByText(repo.name)).toBeInTheDocument();
+    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
     expect(screen.getByText('1 mapping')).toBeInTheDocument();
   });
 
-  it('collapses multiple mappings for the same repo into one row', async () => {
-    const mappingA = RepositoryProjectPathConfigFixture({
-      project,
-      repo,
-      integration,
-      id: '1',
-      stackRoot: '/a',
-    });
-    const mappingB = RepositoryProjectPathConfigFixture({
-      project,
-      repo,
-      integration,
-      id: '2',
-      stackRoot: '/b',
-    });
+  it('renders one row per ProjectRepository even when count is from the API', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/code-mappings/`,
+      url: repoUrl,
       method: 'GET',
-      body: [mappingA, mappingB],
+      body: [
+        {
+          id: '1',
+          projectId: project.id,
+          repositoryId: '10',
+          repoName: 'getsentry/sentry',
+          source: 'manual',
+          providerKey: 'github',
+          mappingCount: 2,
+        },
+      ],
     });
 
     renderPanel();
 
-    expect(await screen.findByText(repo.name)).toBeInTheDocument();
+    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
     expect(screen.getByText('2 mappings')).toBeInTheDocument();
-    expect(screen.getAllByText(repo.name)).toHaveLength(1);
+    expect(screen.getAllByText('getsentry/sentry')).toHaveLength(1);
   });
 
-  it('waits for every page before rendering repository counts', async () => {
-    const url = `/organizations/${organization.slug}/code-mappings/`;
-    const mappingA = RepositoryProjectPathConfigFixture({
-      project,
-      repo,
-      integration,
-      id: '1',
-      stackRoot: '/a',
-    });
-    const mappingB = RepositoryProjectPathConfigFixture({
-      project,
-      repo,
-      integration,
-      id: '2',
-      stackRoot: '/b',
-    });
+  it('renders a row for a repo with zero mappings', async () => {
     MockApiClient.addMockResponse({
-      url,
+      url: repoUrl,
       method: 'GET',
-      body: [mappingA],
-      headers: {
-        Link: `<${url}?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"`,
-      },
-    });
-    const nextPage = Promise.withResolvers<void>();
-    const nextPageRequest = MockApiClient.addMockResponse({
-      url,
-      method: 'GET',
-      body: [mappingB],
-      asyncDelay: nextPage.promise,
-      match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+      body: [
+        {
+          id: '1',
+          projectId: project.id,
+          repositoryId: '10',
+          repoName: 'getsentry/relay',
+          source: 'scm_onboarding',
+          providerKey: 'github',
+          mappingCount: 0,
+        },
+      ],
     });
 
     renderPanel();
 
-    await waitFor(() => expect(nextPageRequest).toHaveBeenCalled());
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-    expect(screen.queryByText(repo.name)).not.toBeInTheDocument();
-
-    act(() => nextPage.resolve());
-
-    expect(await screen.findByText(repo.name)).toBeInTheDocument();
-    expect(screen.getByText('2 mappings')).toBeInTheDocument();
+    expect(await screen.findByText('getsentry/relay')).toBeInTheDocument();
+    expect(screen.getByText('0 mappings')).toBeInTheDocument();
   });
 
   it('opens overflow menu with disabled Edit and Disconnect items', async () => {
-    const mapping = RepositoryProjectPathConfigFixture({project, repo, integration});
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/code-mappings/`,
+      url: repoUrl,
       method: 'GET',
-      body: [mapping],
+      body: [
+        {
+          id: '1',
+          projectId: project.id,
+          repositoryId: '10',
+          repoName: 'getsentry/sentry',
+          source: 'manual',
+          providerKey: 'github',
+          mappingCount: 1,
+        },
+      ],
     });
 
     renderPanel();

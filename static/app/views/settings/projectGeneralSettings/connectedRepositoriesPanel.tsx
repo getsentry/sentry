@@ -1,6 +1,4 @@
-import {useMemo} from 'react';
-import {useInfiniteQuery} from '@tanstack/react-query';
-import groupBy from 'lodash/groupBy';
+import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -16,18 +14,19 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type ConnectedRepo = {
+type ProjectRepoListItem = {
+  id: string;
   mappingCount: number;
-  provider: RepositoryProjectPathConfig['provider'];
-  repoId: string;
+  projectId: string;
+  providerKey: string | null;
   repoName: string;
+  repositoryId: string;
+  source: string;
 };
 
 // TODO Abdullah Khan: Add edit and disconnect actions.
@@ -41,38 +40,29 @@ const OVERFLOW_ITEMS: MenuItemProps[] = [
   },
 ];
 
-function projectCodeMappingsInfiniteOptions({
+function projectRepoQueryOptions({
   orgSlug,
-  projectId,
+  projectSlug,
 }: {
   orgSlug: string;
-  projectId: string;
+  projectSlug: string;
 }) {
-  return apiOptions.asInfinite<RepositoryProjectPathConfig[]>()(
-    '/organizations/$organizationIdOrSlug/code-mappings/',
+  return apiOptions.as<ProjectRepoListItem[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo/',
     {
-      path: {organizationIdOrSlug: orgSlug},
-      query: {project: projectId, per_page: 100},
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+      query: {includeMappingCount: '1', per_page: 100},
       staleTime: 10_000,
     }
   );
 }
 
-function groupMappingsByRepo(mappings: RepositoryProjectPathConfig[]): ConnectedRepo[] {
-  return Object.values(groupBy(mappings, m => m.repoId)).map(group => ({
-    repoId: group[0]!.repoId,
-    repoName: group[0]!.repoName,
-    provider: group[0]!.provider,
-    mappingCount: group.length,
-  }));
-}
-
-function ConnectedRepositoryRow({repo}: {repo: ConnectedRepo}) {
+function ConnectedRepositoryRow({repo}: {repo: ProjectRepoListItem}) {
   return (
     <PanelItem center>
       <Flex justify="between" align="center" style={{flex: 1}}>
         <Flex align="center" gap="md">
-          {getIntegrationIcon(repo.provider?.key, 'sm')}
+          {getIntegrationIcon(repo.providerKey ?? undefined, 'sm')}
           <Text>{repo.repoName}</Text>
         </Flex>
         <Flex align="center" gap="md">
@@ -103,25 +93,15 @@ function ConnectedRepositoryRow({repo}: {repo: ConnectedRepo}) {
 export function ConnectedRepositoriesPanel({project}: {project: Project}) {
   const organization = useOrganization();
 
-  const query = useInfiniteQuery(
-    projectCodeMappingsInfiniteOptions({
+  const query = useQuery(
+    projectRepoQueryOptions({
       orgSlug: organization.slug,
-      projectId: project.id,
+      projectSlug: project.slug,
     })
   );
-  useFetchAllPages({result: query});
-
-  // Wait for every page so repository mapping counts are complete.
-  const isLoadingAllPages =
-    !query.isError && (query.isPending || query.isFetchingNextPage || query.hasNextPage);
-
-  const connectedRepos = useMemo(() => {
-    const mappings = query.data?.pages.flatMap(p => p.json) ?? [];
-    return groupMappingsByRepo(mappings);
-  }, [query.data]);
 
   function renderBody() {
-    if (isLoadingAllPages) {
+    if (query.isPending) {
       return (
         <Flex justify="center" align="center" padding="xl">
           <LoadingIndicator mini />
@@ -131,16 +111,14 @@ export function ConnectedRepositoriesPanel({project}: {project: Project}) {
     if (query.isError) {
       return <LoadingError message={t('Failed to load connected repositories.')} />;
     }
-    if (connectedRepos.length === 0) {
+    if (query.data.length === 0) {
       return (
         <Flex padding="xl">
           <Text variant="muted">{t('No repositories connected')}</Text>
         </Flex>
       );
     }
-    return connectedRepos.map(repo => (
-      <ConnectedRepositoryRow key={repo.repoId} repo={repo} />
-    ));
+    return query.data.map(repo => <ConnectedRepositoryRow key={repo.id} repo={repo} />);
   }
 
   return (
