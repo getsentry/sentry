@@ -3,8 +3,12 @@ from __future__ import annotations
 import base64
 import logging
 import os
+from collections.abc import Iterable
 from copy import deepcopy
-from typing import Any
+from dataclasses import dataclass, replace
+from functools import cached_property
+from typing import Any, TypeAlias
+from uuid import uuid4
 
 import google.auth
 import jsonschema
@@ -20,13 +24,22 @@ from sentry_redis_tools.clients import RedisCluster
 from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.models.project import Project
-from sentry.utils import redis, safe
+from sentry.utils import redis
 from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.http import get_origins
 
 logger = logging.getLogger(__name__)
 
 INTERNAL_SOURCE_NAME = "sentry:project"
+
+Source: TypeAlias = dict[str, Any]
+"""A symbol source as stored in the project option. Its key set depends on the kind."""
+
+# The header in which to send the project ID to custom symbol sources.
+PROJECT_ID_HEADER = "x-sentry-project-id"
+
+# The header in which to send the event ID to custom symbol sources.
+EVENT_ID_HEADER = "x-sentry-event-id"
 
 VALID_LAYOUTS = (
     "native",
@@ -59,11 +72,33 @@ VALID_FILE_TYPES = (
 
 VALID_CASINGS = ("lowercase", "uppercase", "default")
 
+# The `description` keys in the schemas below are ignored by jsonschema and
+# rendered by the OpenAPI docs. Keep them next to the rules they describe.
+
 LAYOUT_SCHEMA = {
     "type": "object",
+    "description": "Layout settings for the source.",
     "properties": {
-        "type": {"type": "string", "enum": list(VALID_LAYOUTS)},
-        "casing": {"type": "string", "enum": list(VALID_CASINGS)},
+        "type": {
+            "type": "string",
+            "enum": list(VALID_LAYOUTS),
+            "description": """The layout of the folder structure. The options are:
+- `native` - Platform-Specific (SymStore / GDB / LLVM)
+- `symstore` - Microsoft SymStore
+- `symstore_index2` - Microsoft SymStore (with index2.txt)
+- `ssqp` - Microsoft SSQP
+- `unified` - Unified Symbol Server Layout
+- `debuginfod` - debuginfod
+- `slashsymbols` - Slash Symbols""",
+        },
+        "casing": {
+            "type": "string",
+            "enum": list(VALID_CASINGS),
+            "description": """The casing of the folder structure. The options are:
+- `default` - Default (mixed case)
+- `uppercase` - Uppercase
+- `lowercase` - Lowercase""",
+        },
     },
     "required": ["type"],
     "additionalProperties": False,
@@ -71,157 +106,66 @@ LAYOUT_SCHEMA = {
 
 FILTERS_SCHEMA = {
     "type": "object",
+    "description": "Filter settings for the source. This is optional for all sources.",
     "properties": {
-        "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
-        "path_patterns": {"type": "array", "items": {"type": "string"}},
-        "requires_checksum": {"type": "boolean"},
+        "filetypes": {
+            "type": "array",
+            "items": {"type": "string", "enum": list(VALID_FILE_TYPES)},
+            "description": """A list of file types that can be found on this source. If this is left empty, all file types will be enabled. The options are:
+- `pe` - Windows executable files
+- `pdb` - Windows debug files
+- `portablepdb` - .NET portable debug files
+- `mach_code` - MacOS executable files
+- `mach_debug` - MacOS debug files
+- `elf_code` - ELF executable files
+- `elf_debug` - ELF debug files
+- `wasm_code` - WASM executable files
+- `wasm_debug` - WASM debug files
+- `breakpad` - Breakpad symbol files
+- `sourcebundle` - Source code bundles
+- `uuidmap` - Apple UUID mapping files
+- `bcsymbolmap` - Apple bitcode symbol maps
+- `il2cpp` - Unity IL2CPP mapping files
+- `proguard` - ProGuard mapping files
+- `dartsymbolmap` - Dart symbol mapping files""",
+        },
+        "path_patterns": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "A list of glob patterns to check against the debug and code file paths of debug files. Only files that match one of these patterns will be requested from the source. If this is left empty, no path-based filtering takes place.",
+        },
+        "requires_checksum": {
+            "type": "boolean",
+            "description": "Whether this source requires a debug checksum to be sent with each request. Defaults to `false`.",
+        },
     },
     "additionalProperties": False,
 }
 
 COMMON_SOURCE_PROPERTIES = {
-    "id": {"type": "string", "minLength": 1},
-    "name": {"type": "string"},
+    "id": {
+        "type": "string",
+        "minLength": 1,
+        "description": "The internal ID of the source. Must be distinct from all other source IDs and cannot start with `sentry:`. If this is not provided, a new UUID will be generated.",
+    },
+    "name": {"type": "string", "description": "The human-readable name of the source."},
     "layout": LAYOUT_SCHEMA,
     "filters": FILTERS_SCHEMA,
+}
+
+# Set on builtin sources in settings. Stored custom sources may carry them too,
+# so validation accepts them, but the API does not document them.
+UNDOCUMENTED_SOURCE_PROPERTIES = {
     "is_public": {"type": "boolean"},
     "has_index": {"type": "boolean"},
     "platforms": {"type": "array", "items": {"type": "string"}},
 }
 
-APP_STORE_CONNECT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "type": {"type": "string", "enum": ["appStoreConnect"]},
-        "id": {"type": "string", "minLength": 1},
-        "name": {"type": "string"},
-        "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
-        "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
-        "appconnectPrivateKey": {"type": "string"},
-        "appName": {"type": "string", "minLength": 1, "maxLength": 512},
-        "appId": {"type": "string", "minLength": 1},
-        "bundleId": {"type": "string", "minLength": 1},
-    },
-    "required": [
-        "type",
-        "id",
-        "name",
-        "appconnectIssuer",
-        "appconnectKey",
-        "appconnectPrivateKey",
-        "appName",
-        "appId",
-        "bundleId",
-    ],
-    "additionalProperties": False,
-}
-
-# Abstract out commonalities between HTTP_SOURCE_SCHEMA
-# and BUILTIN_HTTP_SOURCE_SCHEMA
-HTTP_SOURCE_SCHEMA_INNER = {
-    "type": {"type": "string", "enum": ["http"]},
-    "url": {"type": "string"},
-    "username": {"type": "string"},
-    "password": {"type": "string"},
-    **COMMON_SOURCE_PROPERTIES,
-}
-
-HTTP_SOURCE_SCHEMA = {
-    "type": "object",
-    "properties": HTTP_SOURCE_SCHEMA_INNER,
-    "required": ["type", "id", "url", "layout"],
-    "additionalProperties": False,
-}
-
-# Like HTTP_SOURCE_SCHEMA, but also allows a map of headers.
-# We don't want to expose that functionality via the API.
-BUILTIN_HTTP_SOURCE_SCHEMA = {
-    "type": "object",
-    "properties": dict(
-        headers={"type": "object", "patternProperties": {".*": {"type": "string"}}},
-        accept_invalid_certs={"type": "boolean"},
-        **HTTP_SOURCE_SCHEMA_INNER,
-    ),
-    "required": ["type", "id", "url", "layout"],
-    "additionalProperties": False,
-}
-
-S3_SOURCE_SCHEMA = {
-    "type": "object",
-    "properties": dict(
-        type={"type": "string", "enum": ["s3"]},
-        bucket={"type": "string"},
-        region={"type": "string"},
-        access_key={"type": "string"},
-        secret_key={"type": "string"},
-        prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES,
-    ),
-    "required": ["type", "id", "bucket", "region", "access_key", "secret_key", "layout"],
-    "additionalProperties": False,
-}
-
-GCS_SOURCE_SCHEMA = {
-    "type": "object",
-    "properties": dict(
-        type={"type": "string", "enum": ["gcs"]},
-        bucket={"type": "string"},
-        client_email={"type": "string"},
-        private_key={"type": "string"},
-        prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES,
-    ),
-    "required": ["type", "id", "bucket", "client_email", "private_key", "layout"],
-    "additionalProperties": False,
-}
-
-SOURCE_SCHEMA = {
-    "oneOf": [
-        HTTP_SOURCE_SCHEMA,
-        S3_SOURCE_SCHEMA,
-        GCS_SOURCE_SCHEMA,
-        APP_STORE_CONNECT_SCHEMA,
-    ]
-}
-
-BUILTIN_SOURCE_SCHEMA = {
-    "oneOf": [
-        BUILTIN_HTTP_SOURCE_SCHEMA,
-        S3_SOURCE_SCHEMA,
-        GCS_SOURCE_SCHEMA,
-        APP_STORE_CONNECT_SCHEMA,
-    ]
-}
-
-SOURCES_SCHEMA = {
-    "type": "array",
-    "items": SOURCE_SCHEMA,
-}
-
-SOURCES_WITHOUT_APPSTORE_CONNECT = {
-    "type": "array",
-    "items": {
-        "oneOf": [
-            HTTP_SOURCE_SCHEMA,
-            S3_SOURCE_SCHEMA,
-            GCS_SOURCE_SCHEMA,
-        ]
-    },
-}
-
-
-# Schemas for sources with redacted secrets
+HIDDEN_SECRET = {"hidden-secret": True}
 HIDDEN_SECRET_SCHEMA = {
     "type": "object",
     "properties": {"hidden-secret": {"type": "boolean", "enum": [True]}},
 }
-
-
-# The header in which to send the project ID to custom symbol sources.
-PROJECT_ID_HEADER = "x-sentry-project-id"
-
-# The header in which to send the event ID to custom symbol sources.
-EVENT_ID_HEADER = "x-sentry-event-id"
 
 
 def _redact_schema(schema: dict, keys_to_redact: list[str]) -> dict:
@@ -242,26 +186,167 @@ def _redact_schema(schema: dict, keys_to_redact: list[str]) -> dict:
     return copy
 
 
-REDACTED_APP_STORE_CONNECT_SCHEMA = _redact_schema(
-    APP_STORE_CONNECT_SCHEMA, ["appConnectPrivateKey"]
+@dataclass(frozen=True)
+class SourceKind:
+    """
+    One kind of symbol source, such as an HTTP symbol server or an S3 bucket.
+
+    A kind declares the fields that are specific to it, which of those are
+    required, and which hold secrets. Validation, API documentation, and secret
+    redaction are all derived from these declarations. To add a kind, add one
+    instance to `SOURCE_KINDS`.
+    """
+
+    type: str
+    label: str
+    fields: dict[str, dict[str, Any]]
+    required: tuple[str, ...]
+    """Required fields on top of `type` and `id`."""
+    secrets: tuple[str, ...] = ()
+
+    @cached_property
+    def schema(self) -> dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "type": {"type": "string", "enum": [self.type]},
+                **COMMON_SOURCE_PROPERTIES,
+                **UNDOCUMENTED_SOURCE_PROPERTIES,
+                **self.fields,
+            },
+            "required": ["type", "id", *self.required],
+            "additionalProperties": False,
+        }
+
+    @cached_property
+    def request_schema(self) -> dict[str, Any]:
+        """The schema of a source as the API documents it. The ID is assigned when absent."""
+        schema = deepcopy(self.schema)
+        schema["required"].remove("id")
+        for name in UNDOCUMENTED_SOURCE_PROPERTIES:
+            del schema["properties"][name]
+        return schema
+
+    @cached_property
+    def redacted_schema(self) -> dict[str, Any]:
+        return _redact_schema(self.schema, list(self.secrets))
+
+
+HTTP = SourceKind(
+    type="http",
+    label="SymbolServer (HTTP)",
+    fields={
+        "url": {"type": "string", "description": "The source's URL."},
+        "username": {
+            "type": "string",
+            "description": "The user name for accessing the source.",
+        },
+        "password": {"type": "string", "description": "The password for accessing the source."},
+    },
+    required=("url", "layout"),
+    secrets=("password",),
 )
-REDACTED_HTTP_SOURCE_SCHEMA = _redact_schema(HTTP_SOURCE_SCHEMA, ["password"])
-REDACTED_S3_SOURCE_SCHEMA = _redact_schema(S3_SOURCE_SCHEMA, ["secret_key"])
-REDACTED_GCS_SOURCE_SCHEMA = _redact_schema(GCS_SOURCE_SCHEMA, ["private_key"])
 
-REDACTED_SOURCE_SCHEMA = {
-    "oneOf": [
-        REDACTED_HTTP_SOURCE_SCHEMA,
-        REDACTED_S3_SOURCE_SCHEMA,
-        REDACTED_GCS_SOURCE_SCHEMA,
-        REDACTED_APP_STORE_CONNECT_SCHEMA,
-    ]
-}
+# Builtin HTTP sources may carry headers. We don't want to expose that
+# functionality via the API.
+BUILTIN_HTTP = replace(
+    HTTP,
+    fields={
+        **HTTP.fields,
+        "headers": {"type": "object", "patternProperties": {".*": {"type": "string"}}},
+        "accept_invalid_certs": {"type": "boolean"},
+    },
+)
 
-REDACTED_SOURCES_SCHEMA = {
+S3 = SourceKind(
+    type="s3",
+    label="Amazon S3",
+    fields={
+        "bucket": {"type": "string", "description": "The bucket where the source resides."},
+        "region": {
+            "type": "string",
+            "description": "The source's [S3 region](https://docs.aws.amazon.com/general/latest/gr/s3.html).",
+        },
+        "access_key": {
+            "type": "string",
+            "description": "The [AWS Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys).",
+        },
+        "secret_key": {
+            "type": "string",
+            "description": "The [AWS Secret Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys).",
+        },
+        "prefix": {"type": "string", "description": "The path prefix inside the bucket."},
+    },
+    required=("bucket", "region", "access_key", "secret_key", "layout"),
+    secrets=("secret_key",),
+)
+
+GCS = SourceKind(
+    type="gcs",
+    label="Google Cloud Storage",
+    fields={
+        "bucket": {"type": "string", "description": "The bucket where the source resides."},
+        "client_email": {
+            "type": "string",
+            "description": "The GCS email address for authentication.",
+        },
+        "private_key": {"type": "string", "description": "The GCS private key."},
+        "prefix": {"type": "string", "description": "The path prefix inside the bucket."},
+    },
+    required=("bucket", "client_email", "private_key", "layout"),
+    secrets=("private_key",),
+)
+
+# App Store Connect sources can no longer be created, but old project options
+# may still contain them.
+APP_STORE_CONNECT = SourceKind(
+    type="appStoreConnect",
+    label="App Store Connect",
+    fields={
+        "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
+        "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
+        "appconnectPrivateKey": {"type": "string"},
+        "appName": {"type": "string", "minLength": 1, "maxLength": 512},
+        "appId": {"type": "string", "minLength": 1},
+        "bundleId": {"type": "string", "minLength": 1},
+    },
+    required=(
+        "name",
+        "appconnectIssuer",
+        "appconnectKey",
+        "appconnectPrivateKey",
+        "appName",
+        "appId",
+        "bundleId",
+    ),
+    secrets=("appconnectPrivateKey",),
+)
+
+CUSTOM_SOURCE_KINDS = {kind.type: kind for kind in (HTTP, S3, GCS)}
+"""The kinds a user may configure through the API."""
+
+SOURCE_KINDS = {**CUSTOM_SOURCE_KINDS, APP_STORE_CONNECT.type: APP_STORE_CONNECT}
+"""Every kind that may appear in a stored project option."""
+
+SECRET_FIELDS = frozenset(field for kind in SOURCE_KINDS.values() for field in kind.secrets)
+
+
+def _one_of(schemas: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    return {"oneOf": list(schemas)}
+
+
+SOURCE_SCHEMA = _one_of(kind.schema for kind in SOURCE_KINDS.values())
+SOURCES_SCHEMA = {"type": "array", "items": SOURCE_SCHEMA}
+
+CUSTOM_SOURCES_SCHEMA = {
     "type": "array",
-    "items": REDACTED_SOURCE_SCHEMA,
+    "items": _one_of(kind.schema for kind in CUSTOM_SOURCE_KINDS.values()),
 }
+
+BUILTIN_SOURCE_SCHEMA = _one_of(kind.schema for kind in (BUILTIN_HTTP, S3, GCS, APP_STORE_CONNECT))
+
+REDACTED_SOURCE_SCHEMA = _one_of(kind.redacted_schema for kind in SOURCE_KINDS.values())
+REDACTED_SOURCES_SCHEMA = {"type": "array", "items": REDACTED_SOURCE_SCHEMA}
 
 LAST_UPLOAD_TTL = 24 * 3600
 
@@ -434,22 +519,7 @@ def normalize_user_source(source, project_id=None, event_id=None):
     return source
 
 
-def secret_fields(source_type):
-    """
-    Returns a string list of all of the fields that contain a secret in a given source.
-    """
-    if source_type == "appStoreConnect":
-        yield from ["appconnectPrivateKey"]
-    elif source_type == "http":
-        yield "password"
-    elif source_type == "s3":
-        yield "secret_key"
-    elif source_type == "gcs":
-        yield "private_key"
-    yield from []
-
-
-def validate_sources(sources, schema=SOURCES_WITHOUT_APPSTORE_CONNECT):
+def validate_sources(sources, schema=CUSTOM_SOURCES_SCHEMA):
     """
     Validates sources against the JSON schema and checks that
     their IDs are ok.
@@ -483,7 +553,7 @@ def parse_sources(config, filter_appconnect):
 
     # remove App Store Connect sources (we don't need them in Symbolicator)
     if filter_appconnect:
-        sources = [src for src in sources if src.get("type") != "appStoreConnect"]
+        sources = [src for src in sources if src.get("type") != APP_STORE_CONNECT.type]
 
     validate_sources(sources)
 
@@ -507,31 +577,31 @@ def parse_backfill_sources(sources_json, original_sources):
     orig_by_id = {src["id"]: src for src in original_sources}
 
     for source in sources:
-        backfill_source(source, orig_by_id)
+        backfill_secrets(source, orig_by_id.get(source["id"]))
 
     validate_sources(sources, schema=SOURCES_SCHEMA)
 
     return sources
 
 
-def backfill_source(source, original_sources_by_id):
+def backfill_secrets(source: Source, previous: Source | None) -> None:
     """
-    Backfills redacted secrets in a source by
-    finding their previous values stored in original_sources_by_id.
+    Replaces every `{"hidden-secret": true}` placeholder in `source` with the
+    real value from `previous`, the stored source it updates.
     """
-    for secret in secret_fields(source["type"]):
-        if secret in source and source[secret] == {"hidden-secret": True}:
-            secret_value = safe.get_path(original_sources_by_id, source["id"], secret)
-            if secret_value is None:
-                with sentry_sdk.isolation_scope():
-                    sentry_sdk.set_tag("missing_secret", secret)
-                    sentry_sdk.set_tag("source_id", source["id"])
-                    sentry_sdk.capture_message(
-                        "Obfuscated symbol source secret does not have a corresponding saved value in project options"
-                    )
-                raise InvalidSourcesError("Hidden symbol source secret is missing a value")
-            else:
-                source[secret] = secret_value
+    for field in SECRET_FIELDS:
+        if source.get(field) != HIDDEN_SECRET:
+            continue
+        value = previous.get(field) if previous else None
+        if value is None:
+            with sentry_sdk.isolation_scope():
+                sentry_sdk.set_tag("missing_secret", field)
+                sentry_sdk.set_tag("source_id", source.get("id"))
+                sentry_sdk.capture_message(
+                    "Obfuscated symbol source secret does not have a corresponding saved value in project options"
+                )
+            raise InvalidSourcesError("Hidden symbol source secret is missing a value")
+        source[field] = value
 
 
 def redact_source_secrets(config_sources: Any) -> Any:
@@ -544,11 +614,79 @@ def redact_source_secrets(config_sources: Any) -> Any:
 
     redacted_sources = deepcopy(config_sources)
     for source in redacted_sources:
-        for secret in secret_fields(source["type"]):
-            if secret in source:
-                source[secret] = {"hidden-secret": True}
+        for field in SECRET_FIELDS:
+            if field in source:
+                source[field] = HIDDEN_SECRET
 
     return redacted_sources
+
+
+class UnknownSourceId(Exception):
+    pass
+
+
+class ProjectSymbolSources:
+    """
+    The custom symbol sources of one project.
+
+    Hides the `sentry:symbol_sources` project option, its JSON encoding, and
+    secret handling. Every mutation validates the whole list and saves it, so
+    a caller cannot store an invalid list or forget to save. Every source that
+    leaves this class has its secrets redacted.
+    """
+
+    OPTION = "sentry:symbol_sources"
+
+    def __init__(self, project: Project, sources: list[Source]) -> None:
+        self._project = project
+        self._sources = sources
+
+    @classmethod
+    def load(cls, project: Project) -> ProjectSymbolSources:
+        config = project.get_option(cls.OPTION)
+        return cls(project, parse_sources(config, filter_appconnect=False))
+
+    def all(self) -> list[Source]:
+        return redact_source_secrets(self._sources)
+
+    def get(self, source_id: str | None) -> Source:
+        return redact_source_secrets([self._sources[self._index_of(source_id)]])[0]
+
+    def add(self, source: Source) -> Source:
+        source = {**source}
+        source.setdefault("id", str(uuid4()))
+        self._save([*self._sources, source])
+        return redact_source_secrets([source])[0]
+
+    def replace(self, source_id: str | None, source: Source) -> Source:
+        """
+        Replaces the source with `source_id` by `source`. The new source keeps
+        its own ID, or gets a fresh one when it has none. Hidden secrets in
+        `source` are backfilled from the source it replaces.
+        """
+        index = self._index_of(source_id)
+        source = {**source}
+        source.setdefault("id", str(uuid4()))
+        backfill_secrets(source, self._sources[index])
+        self._save([*self._sources[:index], source, *self._sources[index + 1 :]])
+        return redact_source_secrets([source])[0]
+
+    def remove(self, source_id: str | None) -> None:
+        index = self._index_of(source_id)
+        self._save([*self._sources[:index], *self._sources[index + 1 :]])
+
+    def _index_of(self, source_id: str | None) -> int:
+        if source_id is None:
+            raise UnknownSourceId("Missing source id")
+        for index, source in enumerate(self._sources):
+            if source["id"] == source_id:
+                return index
+        raise UnknownSourceId(f"Unknown source id: {source_id}")
+
+    def _save(self, sources: list[Source]) -> None:
+        validate_sources(sources)
+        self._project.update_option(self.OPTION, orjson.dumps(sources).decode())
+        self._sources = sources
 
 
 def get_sources_for_project(project, event_id=None):

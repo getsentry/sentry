@@ -1,339 +1,211 @@
 import orjson
 
-from sentry.lang.native.sources import redact_source_secrets
+from sentry.lang.native.sources import HIDDEN_SECRET, redact_source_secrets
 from sentry.testutils.cases import APITestCase
 
 
-class ProjectSymbolSourcesTest(APITestCase):
+def http_source(source_id: str, password: str = "beepbeep") -> dict:
+    return {
+        "id": source_id,
+        "name": f"{source_id} source",
+        "layout": {"type": "native"},
+        "type": "http",
+        "url": "http://honk.beep",
+        "username": "honkhonk",
+        "password": password,
+    }
+
+
+class SymbolSourcesTestCase(APITestCase):
     endpoint = "sentry-api-0-project-symbol-sources"
 
-    def test_get_successful(self) -> None:
-        config = {
-            "id": "honk",
-            "name": "honk source",
-            "layout": {
-                "type": "native",
-            },
-            "type": "http",
-            "url": "http://honk.beep",
-            "username": "honkhonk",
-            "password": "beepbeep",
-        }
-        project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
+    def setUp(self) -> None:
+        super().setUp()
         self.login_as(user=self.user)
 
+    def store(self, *sources: dict) -> None:
+        self.project.update_option("sentry:symbol_sources", orjson.dumps(list(sources)).decode())
+
+    def stored(self) -> list[dict]:
+        return orjson.loads(self.project.get_option("sentry:symbol_sources"))
+
+
+class ProjectSymbolSourcesGetTest(SymbolSourcesTestCase):
+    def test_list_and_lookup_redact_secrets(self) -> None:
+        config = http_source("honk")
+        self.store(config)
         expected = redact_source_secrets([config])
 
-        response = self.get_success_response(project.organization.slug, project.slug)
+        response = self.get_success_response(self.organization.slug, self.project.slug)
         assert response.data == expected
 
         response = self.get_success_response(
-            project.organization.slug, project.slug, qs_params={"id": "honk"}
+            self.organization.slug, self.project.slug, qs_params={"id": "honk"}
         )
         assert response.data == expected
 
-    def test_get_unsuccessful(self) -> None:
-        config = {
-            "id": "honk",
-            "name": "honk source",
-            "layout": {
-                "type": "native",
-            },
-            "type": "http",
-            "url": "http://honk.beep",
-            "username": "honkhonk",
-            "password": "beepbeep",
-        }
-        project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
-        self.login_as(user=self.user)
+    def test_unknown_id(self) -> None:
+        self.store(http_source("honk"))
 
-        self.get_error_response(
-            project.organization.slug, project.slug, qs_params={"id": "hank"}, status_code=404
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, qs_params={"id": "hank"}, status_code=404
         )
+        assert response.data == {"error": "Unknown source id: hank"}
 
 
-class ProjectSymbolSourcesDeleteTest(APITestCase):
-    endpoint = "sentry-api-0-project-symbol-sources"
+class ProjectSymbolSourcesDeleteTest(SymbolSourcesTestCase):
     method = "delete"
 
-    def test_delete_successful(self) -> None:
-        config = {
-            "id": "honk",
-            "name": "honk source",
-            "layout": {
-                "type": "native",
-            },
-            "type": "http",
-            "url": "http://honk.beep",
-            "username": "honkhonk",
-            "password": "beepbeep",
-        }
-
-        project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
-        self.login_as(user=self.user)
+    def test_delete(self) -> None:
+        self.store(http_source("honk"), http_source("beep"))
 
         self.get_success_response(
-            project.organization.slug, project.slug, qs_params={"id": "honk"}, status=204
+            self.organization.slug, self.project.slug, qs_params={"id": "honk"}, status_code=204
         )
 
-        assert project.get_option("sentry:symbol_sources") == "[]"
+        assert [source["id"] for source in self.stored()] == ["beep"]
 
-    def test_delete_unsuccessful(self) -> None:
-        config = {
-            "id": "honk",
-            "name": "honk source",
-            "layout": {
-                "type": "native",
-            },
-            "type": "http",
-            "url": "http://honk.beep",
-            "username": "honkhonk",
-            "password": "beepbeep",
-        }
+    def test_missing_or_unknown_id(self) -> None:
+        self.store(http_source("honk"))
 
-        project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
-        self.login_as(user=self.user)
-
-        self.get_error_response(project.organization.slug, project.slug, status=404)
-
-        self.get_error_response(
-            project.organization.slug, project.slug, qs_params={"id": "hank"}, status=404
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, status_code=404
         )
+        assert response.data == {"error": "Missing source id"}
+
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, qs_params={"id": "hank"}, status_code=404
+        )
+        assert response.data == {"error": "Unknown source id: hank"}
+        assert [source["id"] for source in self.stored()] == ["honk"]
 
 
-class ProjectSymbolSourcesPostTest(APITestCase):
-    endpoint = "sentry-api-0-project-symbol-sources"
+class ProjectSymbolSourcesPostTest(SymbolSourcesTestCase):
     method = "post"
 
-    def test_submit_successful(self) -> None:
-        config = {
-            "id": "honk",
-            "name": "honk source",
-            "layout": {
-                "type": "native",
-            },
-            "type": "http",
-            "url": "http://honk.beep",
-            "username": "honkhonk",
-            "password": "beepbeep",
-        }
-
-        project = self.project  # force creation
-        self.login_as(user=self.user)
-
-        expected = redact_source_secrets([config])[0]
+    def test_add(self) -> None:
+        config = http_source("honk")
 
         response = self.get_success_response(
-            project.organization.slug, project.slug, raw_data=config
+            self.organization.slug, self.project.slug, raw_data=config, status_code=201
         )
-        assert response.data == expected
+        assert response.data == redact_source_secrets([config])[0]
+        assert self.stored() == [config]
 
+    def test_add_assigns_id(self) -> None:
+        config = http_source("honk")
         del config["id"]
 
         response = self.get_success_response(
-            project.organization.slug, project.slug, raw_data=config
+            self.organization.slug, self.project.slug, raw_data=config, status_code=201
         )
-        assert "id" in response.data
+        assert response.data["id"]
+        assert self.stored()[0]["id"] == response.data["id"]
 
-    def test_submit_duplicate(self) -> None:
-        config = {
-            "id": "honk",
-            "name": "honk source",
-            "layout": {
-                "type": "native",
-            },
-            "type": "http",
-            "url": "http://honk.beep",
-            "username": "honkhonk",
-            "password": "beepbeep",
-        }
+    def test_duplicate_id(self) -> None:
+        self.store(http_source("honk"))
 
-        project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
-        self.login_as(user=self.user)
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, raw_data=http_source("honk"), status_code=400
+        )
+        assert response.data == {"error": "Duplicate source id: honk"}
 
-        self.get_error_response(project.organization.slug, project.slug, raw_data=config)
+    def test_internal_id(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            raw_data=http_source("sentry:project"),
+            status_code=400,
+        )
+        assert response.data == {"error": 'Source ids must not start with "sentry:"'}
 
-    def test_submit_invalid_id(self) -> None:
-        config = {
-            "id": "sentry:project",
-            "name": "honk source",
-            "layout": {
-                "type": "native",
-            },
-            "type": "http",
-            "url": "http://honk.beep",
-            "username": "honkhonk",
-            "password": "beepbeep",
-        }
+    def test_invalid_config(self) -> None:
+        config = http_source("honk")
+        del config["type"]
 
-        project = self.project  # force creation
-        self.login_as(user=self.user)
-
-        self.get_error_response(project.organization.slug, project.slug, raw_data=config)
-
-    def test_submit_invalid_config(self) -> None:
-        config = {
-            "id": "honk",
-            "name": "honk source",
-            "layout": {
-                "type": "native",
-            },
-            "url": "http://honk.beep",
-            "username": "honkhonk",
-            "password": "beepbeep",
-        }
-
-        project = self.project  # force creation
-        self.login_as(user=self.user)
-
-        self.get_error_response(project.organization.slug, project.slug, raw_data=config)
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, raw_data=config, status_code=400
+        )
+        assert response.data["error"].startswith("Failed to validate source")
+        assert "beepbeep" not in response.data["error"]
+        assert self.project.get_option("sentry:symbol_sources") is None
 
 
-class ProjectSymbolSourcesPutTest(APITestCase):
-    endpoint = "sentry-api-0-project-symbol-sources"
+class ProjectSymbolSourcesPutTest(SymbolSourcesTestCase):
     method = "put"
 
-    def test_update_successful(self) -> None:
-        config = [
-            {
-                "id": "honk",
-                "name": "honk source",
-                "layout": {
-                    "type": "native",
-                },
-                "type": "http",
-                "url": "http://honk.beep",
-                "username": "honkhonk",
-                "password": "beepbeep",
-            },
-            {
-                "id": "beep",
-                "name": "beep source",
-                "layout": {
-                    "type": "native",
-                },
-                "type": "http",
-                "url": "http://honk.beep",
-                "username": "honkhonk",
-                "password": "beepbeep",
-            },
-        ]
-
-        project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", orjson.dumps(config).decode())
-        self.login_as(user=self.user)
-
-        update_config = {
-            "id": "hank",
-            "name": "honk source",
-            "layout": {
-                "type": "native",
-            },
-            "type": "http",
-            "url": "http://honk.beep",
-            "username": "honkhonk",
-            "password": "beepboop",
-        }
+    def test_replace_and_rename(self) -> None:
+        self.store(http_source("honk"), http_source("beep"))
+        update = http_source("hank", password="beepboop")
 
         response = self.get_success_response(
-            project.organization.slug,
-            project.slug,
-            qs_params={"id": "honk"},
-            raw_data=update_config,
+            self.organization.slug, self.project.slug, qs_params={"id": "honk"}, raw_data=update
         )
-        assert response.data == redact_source_secrets([update_config])[0]
+        assert response.data == redact_source_secrets([update])[0]
+        assert self.stored() == [update, http_source("beep")]
 
-        update_config = {
-            "name": "beep source",
-            "layout": {
-                "type": "native",
-            },
-            "type": "http",
-            "url": "http://honk.beep",
-            "username": "honkhonk",
-            "password": "beepbeep",
-        }
+    def test_replace_assigns_id(self) -> None:
+        self.store(http_source("honk"), http_source("beep"))
+        update = http_source("beep")
+        del update["id"]
 
         response = self.get_success_response(
-            project.organization.slug,
-            project.slug,
-            qs_params={"id": "beep"},
-            raw_data=update_config,
+            self.organization.slug, self.project.slug, qs_params={"id": "beep"}, raw_data=update
         )
+        new_id = response.data.pop("id")
+        assert new_id and new_id != "beep"
+        assert response.data == redact_source_secrets([update])[0]
+        assert [source["id"] for source in self.stored()] == ["honk", new_id]
 
-        assert "id" in response.data
-        del response.data["id"]
-        assert response.data == redact_source_secrets([update_config])[0]
+    def test_hidden_secret_is_backfilled(self) -> None:
+        self.store(http_source("honk", password="original"))
+        update = http_source("honk", password="changed")
+        update["password"] = HIDDEN_SECRET
 
-        source_ids = {
-            src["id"] for src in orjson.loads(project.get_option("sentry:symbol_sources"))
-        }
+        self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"id": "honk"}, raw_data=update
+        )
+        assert self.stored() == [http_source("honk", password="original")]
 
-        assert "hank" in source_ids
-        assert "beep" not in source_ids
+    def test_hidden_secret_is_backfilled_across_rename(self) -> None:
+        self.store(http_source("honk", password="original"))
+        update = http_source("hank")
+        update["password"] = HIDDEN_SECRET
 
-    def test_update_unsuccessful(self) -> None:
-        config = [
-            {
-                "id": "honk",
-                "name": "honk source",
-                "layout": {
-                    "type": "native",
-                },
-                "type": "http",
-                "url": "http://honk.beep",
-                "username": "honkhonk",
-                "password": "beepbeep",
-            },
-            {
-                "id": "beep",
-                "name": "beep source",
-                "layout": {
-                    "type": "native",
-                },
-                "type": "http",
-                "url": "http://honk.beep",
-                "username": "honkhonk",
-                "password": "beepbeep",
-            },
-        ]
+        self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"id": "honk"}, raw_data=update
+        )
+        assert self.stored() == [http_source("hank", password="original")]
 
-        project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", orjson.dumps(config).decode())
-        self.login_as(user=self.user)
+    def test_missing_or_unknown_id(self) -> None:
+        self.store(http_source("honk"))
 
-        update_config = {
-            "id": "hank",
-            "name": "honk source",
-            "layout": {
-                "type": "native",
-            },
-            "url": "http://honk.beep",
-            "username": "honkhonk",
-            "password": "beepboop",
-        }
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, raw_data=http_source("hank"), status_code=404
+        )
+        assert response.data == {"error": "Missing source id"}
 
-        self.get_error_response(
-            project.organization.slug,
-            project.slug,
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
             qs_params={"id": "hank"},
-            raw_data=update_config,
-            status=404,
+            raw_data=http_source("hank"),
+            status_code=404,
         )
+        assert response.data == {"error": "Unknown source id: hank"}
+        assert self.stored() == [http_source("honk")]
 
-        self.get_error_response(
-            project.organization.slug, project.slug, raw_data=update_config, status=404
-        )
+    def test_invalid_config(self) -> None:
+        self.store(http_source("honk"))
+        update = http_source("honk")
+        del update["type"]
 
-        self.get_error_response(
-            project.organization.slug,
-            project.slug,
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
             qs_params={"id": "honk"},
-            raw_data=update_config,
-            status=400,
+            raw_data=update,
+            status_code=400,
         )
+        assert response.data["error"].startswith("Failed to validate source")
+        assert self.stored() == [http_source("honk")]
