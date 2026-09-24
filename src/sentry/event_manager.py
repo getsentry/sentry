@@ -125,7 +125,7 @@ from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.releases.auto_creation import should_auto_create_releases
-from sentry.reprocessing2 import is_reprocessed_event
+from sentry.reprocessing2 import delete_unprocessed_event, is_reprocessed_event
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.signals import (
@@ -555,6 +555,9 @@ class EventManager:
             raise
 
         if not group_info:
+            # Returning here skips the nodestore write below, so the event body never
+            # lands and its unprocessed copy can no longer be reached by reprocessing.
+            delete_unprocessed_event(job["event"].project_id, job["event"].event_id)
             return job["event"]
 
         # store a reference to the group id to guarantee validation of isolation
@@ -1087,7 +1090,8 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
         subkeys = {}
 
         event = job["event"]
-        # We only care about `unprocessed` for error events
+        # We only care about `unprocessed` for error events. Events whose unprocessed
+        # copy went straight to nodestore have nothing here and need no subkey.
         if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
             unprocessed = event_processing_store.get(
                 cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
