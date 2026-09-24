@@ -156,6 +156,60 @@ describe('Onboarding deployment target', () => {
     ).toBeInTheDocument();
   });
 
+  it.each([
+    ['node-mastra', 'Mastra', /@mastra\/observability/],
+    ['node-flue', 'Flue', /flue add tooling sentry/],
+    ['node-eve', 'Eve', /Install the Sentry Node SDK in your Eve project/],
+  ] as const)(
+    'uses the %s project integration without showing a selector',
+    async (platform, integration, setupCode) => {
+      const {organization} = setupProject(platform);
+
+      render(<Onboarding />, {organization});
+
+      expect(
+        (await screen.findAllByText(textWithMarkupMatcher(setupCode))).length
+      ).toBeGreaterThan(0);
+      expect(screen.queryByRole('button', {name: integration})).not.toBeInTheDocument();
+    }
+  );
+
+  it.each(['node-mastra', 'node-flue', 'node-eve'] as const)(
+    'hides generic Conversations guidance for %s projects',
+    async platform => {
+      const {organization} = setupProject(platform);
+
+      render(<Onboarding />, {organization});
+
+      expect(await screen.findByText('Install')).toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'Conversations'})).not.toBeInTheDocument();
+    }
+  );
+
+  it('ignores integration and deployment query overrides for framework projects', async () => {
+    const {organization} = setupProject('node-eve');
+
+    render(<Onboarding />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {integration: 'openai', deploymentTarget: 'cloudflare'},
+        },
+      },
+    });
+
+    expect(
+      (
+        await screen.findAllByText(
+          textWithMarkupMatcher(/Install the Sentry Node SDK in your Eve project/)
+        )
+      ).length
+    ).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', {name: 'OpenAI SDK'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
+  });
+
   it('pins Cloudflare Workers projects to the Cloudflare runtime with no Node toggle', async () => {
     const {organization} = setupProject('node-cloudflare-workers');
 

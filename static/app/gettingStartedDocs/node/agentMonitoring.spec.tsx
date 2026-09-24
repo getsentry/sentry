@@ -3,7 +3,10 @@ import type {
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {reactNodeToText} from 'sentry/components/onboarding/utils/stepsToMarkdown';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
+import {
+  agentMonitoring,
+  getMinRequiredVersion,
+} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
 function makeParams(platformOptions: Record<string, string> = {}): DocsParams {
   return {
@@ -56,6 +59,17 @@ function collectText(steps: OnboardingStep[]): string {
 
 describe('node agentMonitoring onboarding', () => {
   const config = agentMonitoring();
+
+  it.each([
+    ['11.0.0', 'eve'],
+    ['11.0.0', 'mastra'],
+    ['10.69.0', 'cloudflare_agents'],
+    ['10.67.0', 'openai'],
+  ])('requires SDK version %s for %s', (expectedVersion, integration) => {
+    expect(getMinRequiredVersion(makeParams({integration}), '10.67.0')).toBe(
+      expectedVersion
+    );
+  });
 
   describe('Node deployment target', () => {
     it('initializes the SDK with Sentry.init', () => {
@@ -241,25 +255,36 @@ describe('node agentMonitoring onboarding', () => {
     });
   });
 
-  describe('Eve', () => {
-    it('installs via the eve CLI instead of an npm package', () => {
-      const code = collectCode(config.install(makeParams({integration: 'eve'})));
+  describe('Mastra', () => {
+    it('installs the Node SDK and Mastra observability package', () => {
+      const code = collectCode(config.install(makeParams({integration: 'mastra'})));
 
-      expect(code).toContain('eve add instrumentation/sentry');
-      expect(code).not.toContain('npm install @sentry/node');
+      expect(code).toContain('npm install @sentry/node @mastra/observability');
+      expect(code).not.toContain('@mastra/sentry');
     });
 
-    it('configures the OTLP endpoint and public key from the DSN, without Sentry.init', () => {
+    it('preloads Sentry before Mastra starts', () => {
+      const code = collectCode(config.configure(makeParams({integration: 'mastra'})));
+
+      expect(code).toContain('Sentry.init({');
+      expect(code).toContain('mastra dev --custom-args=');
+      expect(code).toContain('--import=./instrument.mjs');
+    });
+  });
+
+  describe('Eve', () => {
+    it('installs the Node SDK', () => {
+      const code = collectCode(config.install(makeParams({integration: 'eve'})));
+
+      expect(code).toContain('npm install @sentry/node');
+    });
+
+    it('configures the Eve instrumentation provider with the project DSN', () => {
       const code = collectCode(config.configure(makeParams({integration: 'eve'})));
 
-      expect(code).toContain(
-        'SENTRY_OTLP_TRACES_ENDPOINT="https://o1.ingest.sentry.io/api/1/otlp/v1/traces"'
-      );
-      // The bare public key, not the full DSN
-      expect(code).toContain('SENTRY_PUBLIC_KEY="public"');
       expect(code).toContain('defineInstrumentation');
-      expect(code).not.toContain('Sentry.init(');
-      expect(code).not.toContain('Sentry.withSentry(');
+      expect(code).toContain('Sentry.eveInstrumentation({');
+      expect(code).toContain('dsn: "https://public@o1.ingest.sentry.io/1"');
     });
 
     it('verifies by running the Eve agent', () => {
