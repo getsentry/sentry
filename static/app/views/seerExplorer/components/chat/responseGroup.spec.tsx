@@ -187,7 +187,7 @@ describe('ResponseGroup', () => {
     ];
 
     const {container} = render(
-      <ResponseGroup group={group} blockIndex={1} blocks={group} />,
+      <ResponseGroup group={group} blockIndex={1} />,
       {organization}
     );
 
@@ -210,7 +210,7 @@ describe('ResponseGroup', () => {
     ];
 
     const {container} = render(
-      <ResponseGroup group={group} blockIndex={1} blocks={group} />,
+      <ResponseGroup group={group} blockIndex={1} />,
       {organization}
     );
 
