@@ -605,3 +605,31 @@ class TriggerSmartAssignmentTest(TestCase):
 
         assert self._mirrors() == []
         mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    @patch("sentry.seer.smart_assignment.trigger.in_rollout_group", return_value=True)
+    @patch(CLIENT_PATH)
+    def test_dispatch_selects_prefetch_cohort(
+        self, mock_client_cls: MagicMock, mock_rollout: MagicMock
+    ) -> None:
+        self._wire_client(mock_client_cls)
+        with self.feature(RUN_FEATURES):
+            trigger_smart_assignment(
+                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
+
+        run_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        assert run_kwargs["payload"]["is_prefetch_enabled"] is True
+
+    @patch("sentry.seer.smart_assignment.trigger.in_rollout_group", return_value=False)
+    @patch(CLIENT_PATH)
+    def test_dispatch_selects_control_cohort(
+        self, mock_client_cls: MagicMock, mock_rollout: MagicMock
+    ) -> None:
+        self._wire_client(mock_client_cls)
+        with self.feature(RUN_FEATURES):
+            trigger_smart_assignment(
+                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
+
+        run_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        assert run_kwargs["payload"]["is_prefetch_enabled"] is False
