@@ -44,21 +44,14 @@ class TestValidateWorkflowConnections(ProjectAccessTestMixin):
             )
         ) == [self.user_workflow.id]
 
-    def test_all_projects_requires_feature_and_org_write(self) -> None:
+    def test_all_projects_requires_org_write(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
         self.create_detector_workflow(workflow=self.user_workflow, detector=detector)
-        with self.feature("organizations:workflow-engine-all-projects-detector"):
-            with pytest.raises(PermissionDenied):
-                validate_workflow_connections(
-                    [self.user_workflow.id], self.organization, self.request
-                )
-
-            self.request.access = from_user(self.user, self.organization)
-            validate_workflow_connections([self.user_workflow.id], self.organization, self.request)
-
-        # Even an organization writer needs the all-projects feature enabled.
         with pytest.raises(PermissionDenied):
             validate_workflow_connections([self.user_workflow.id], self.organization, self.request)
+
+        self.request.access = from_user(self.user, self.organization)
+        validate_workflow_connections([self.user_workflow.id], self.organization, self.request)
 
     @with_feature("organizations:team-roles")
     def test_team_admin_shared_workflow_connections(self) -> None:
