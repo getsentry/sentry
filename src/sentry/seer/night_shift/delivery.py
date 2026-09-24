@@ -210,6 +210,7 @@ def deliver_night_shift_result(
         triage_response=triage_response,
         dry_run=dry_run,
         prompt_version=prompt_version,
+        enable_code_mode_tools=shard.extras.get("enable_code_mode_tools"),
         log_extra=log_extra,
     )
 
@@ -221,6 +222,7 @@ def _process_verdicts(
     triage_response: TriageResponse,
     dry_run: bool,
     prompt_version: str | None,
+    enable_code_mode_tools: str | None,
     log_extra: Mapping[str, object],
 ) -> None:
     """Mark SKIPs, fire autofix for fixable verdicts, and persist one result row
@@ -359,9 +361,11 @@ def _process_verdicts(
     rows: list[SeerNightShiftRunResult] = []
     for v in verdicts:
         extras: dict[str, Any] = {"action": str(v.action)}
-        # Denormalized onto each row so by-prompt-version analysis needs no join.
+        # Denormalized so analysis by mode and prompt version needs no shard join.
         if prompt_version:
             extras["prompt_version"] = prompt_version
+        if enable_code_mode_tools is not None:
+            extras["enable_code_mode_tools"] = enable_code_mode_tools
         if v.reason:
             extras["reason"] = v.reason[:REASON_MAX_CHARS]
         if v.action == TriageAction.SKIP and v.skip_reason:

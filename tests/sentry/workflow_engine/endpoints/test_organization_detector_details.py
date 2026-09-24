@@ -1160,6 +1160,22 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         assert self.detector.status == ObjectStatus.PENDING_DELETION
         mock_schedule_update_project_config.assert_called_once_with(self.detector)
 
+    def test_delete_denied_without_alert_write_access(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        self.get_error_response(self.organization.slug, self.detector.id, status_code=403)
+
+        self.detector.refresh_from_db()
+        assert self.detector.status != ObjectStatus.PENDING_DELETION
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.detector.id
+        ).exists()
+
     def test_delete_allowed_without_metric_subscription_feature(self) -> None:
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.detector.id)
