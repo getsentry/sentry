@@ -140,7 +140,6 @@ class AgentRunOptions(TypedDict):
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]
-    is_agentic_triage_sort: NotRequired[bool]
 
 
 class SeerFeatureRunRequest(TypedDict):
