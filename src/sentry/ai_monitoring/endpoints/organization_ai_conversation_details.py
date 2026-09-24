@@ -61,8 +61,8 @@ MAX_MODEL_USAGE_ROWS = 100
 MODEL_USAGE_COLUMNS = [
     "gen_ai.request.model",
     "gen_ai.response.model",
-    "sum_if(gen_ai.cost.input_tokens,gen_ai.operation.type,equals,ai_client) as input_cost",
-    "sum_if(gen_ai.cost.output_tokens,gen_ai.operation.type,equals,ai_client) as output_cost",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.input_tokens) as input_cost",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.output_tokens) as output_cost",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_read.input_tokens) as cache_read_tokens",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_creation.input_tokens) as cache_write_tokens",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.reasoning.output_tokens) as reasoning_tokens",
@@ -229,17 +229,15 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
                 "totalCost": 0,
             },
         )
-        input_tokens = usage["inputTokens"]
-        if input_tokens is not None and int(row.get("input_token_spans") or 0) == llm_calls:
-            usage["inputTokens"] = input_tokens + model_pair_stats["inputTokens"]
-        else:
+        if int(row.get("input_token_spans") or 0) != llm_calls:
             usage["inputTokens"] = None
+        elif usage["inputTokens"] is not None:
+            usage["inputTokens"] += model_pair_stats["inputTokens"]
 
-        output_tokens = usage["outputTokens"]
-        if output_tokens is not None and int(row.get("output_token_spans") or 0) == llm_calls:
-            usage["outputTokens"] = output_tokens + model_pair_stats["outputTokens"]
-        else:
+        if int(row.get("output_token_spans") or 0) != llm_calls:
             usage["outputTokens"] = None
+        elif usage["outputTokens"] is not None:
+            usage["outputTokens"] += model_pair_stats["outputTokens"]
         usage["totalTokens"] += model_pair_stats["totalTokens"]
         usage["cacheReadTokens"] += int(row.get("cache_read_tokens") or 0)
         usage["cacheWriteTokens"] += int(row.get("cache_write_tokens") or 0)
