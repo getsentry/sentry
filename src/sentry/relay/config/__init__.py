@@ -159,7 +159,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
             filter_settings["errorMessages"] = {"patterns": error_messages}
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
-    if blacklisted_ips and filter_features.legacy_lists:
+    if blacklisted_ips:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
 
     csp_disallowed_sources: list[str] = []

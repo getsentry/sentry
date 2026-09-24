@@ -1,10 +1,3 @@
-import pytest
-
-from sentry.ingest.inbound_filters import (
-    CUSTOM_INBOUND_FILTER_ID_PREFIX,
-    InboundFilterFeatures,
-    get_generic_filters,
-)
 from sentry.ingest.legacy_filter_lists import LegacyFilterList, get_legacy_lists, set_legacy_list
 from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.testutils.helpers.options import override_options
@@ -38,7 +31,7 @@ def test_before_the_switch_the_lists_stay_in_the_options(default_project) -> Non
 
     lists = get_legacy_lists([default_project], {default_project.id: {"sentry:releases": ["3.*"]}})
     assert lists[default_project.id][LegacyFilterList.RELEASES] == ["3.*"]
-    assert lists[default_project.id][LegacyFilterList.BLACKLISTED_IPS] == []
+    assert lists[default_project.id][LegacyFilterList.ERROR_MESSAGES] == []
 
 
 @django_db_all
@@ -46,28 +39,28 @@ def test_before_the_switch_the_lists_stay_in_the_options(default_project) -> Non
 def test_writes_active_and_comment_lines_to_two_named_rows(default_project) -> None:
     set_legacy_list(
         default_project,
-        LegacyFilterList.BLACKLISTED_IPS,
-        ["10.0.0.0/8", "10.0.0.0/8", "# 192.0.2.1", "#"],
+        LegacyFilterList.RELEASES,
+        ["1.*", "1.*", "# 2.*", "#"],
     )
 
-    assert default_project.get_option("sentry:blacklisted_ips") is None
+    assert default_project.get_option("sentry:releases") is None
     assert rows_of(default_project) == [
         {
-            "name": "IP Addresses",
+            "name": "Releases",
             "active": True,
             "data_type": "all",
-            "conditions": [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
+            "conditions": [{"type": "release", "value": ["1.*"]}],
         },
         {
-            "name": "IP Addresses (disabled)",
+            "name": "Releases (disabled)",
             "active": False,
             "data_type": "all",
-            "conditions": [{"type": "ip_address", "value": ["192.0.2.1"]}],
+            "conditions": [{"type": "release", "value": ["2.*"]}],
         },
     ]
-    assert legacy_list(default_project, LegacyFilterList.BLACKLISTED_IPS) == [
-        "10.0.0.0/8",
-        "# 192.0.2.1",
+    assert legacy_list(default_project, LegacyFilterList.RELEASES) == [
+        "1.*",
+        "# 2.*",
     ]
 
 
@@ -186,36 +179,3 @@ def test_reads_and_writes_agree_on_one_row_when_names_repeat(default_project, fa
     second.refresh_from_db()
     assert first.conditions == [{"type": "metric_name", "value": ["c.*"]}]
     assert second.conditions == [{"type": "metric_name", "value": ["b.*"]}]
-
-
-@django_db_all
-@pytest.mark.parametrize("legacy_lists", [True, False])
-def test_only_the_ip_row_goes_out_without_the_plan_feature(
-    default_project, factories, legacy_lists
-) -> None:
-    ip_row = factories.create_project_custom_inbound_filter(
-        default_project,
-        name="IP Addresses",
-        data_type="all",
-        conditions=[{"type": "ip_address", "value": ["10.0.0.0/8"]}],
-    )
-    factories.create_project_custom_inbound_filter(
-        default_project,
-        name="Releases",
-        data_type="all",
-        conditions=[{"type": "release", "value": ["1.*"]}],
-    )
-    for option in ("filters:react-hydration-errors", "filters:chunk-load-error"):
-        default_project.update_option(option, "0")
-
-    generic_filters = get_generic_filters(
-        default_project, InboundFilterFeatures(legacy_lists=legacy_lists)
-    )
-
-    if legacy_lists:
-        assert generic_filters is None
-    else:
-        assert generic_filters is not None
-        assert [f["id"] for f in generic_filters["filters"]] == [
-            f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{ip_row.id}"
-        ]

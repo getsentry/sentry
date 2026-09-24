@@ -1194,9 +1194,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     clean_newline_inputs(options["sentry:csp_ignored_sources"]),
                 )
             if "sentry:blacklisted_ips" in options:
-                set_legacy_list(
-                    project,
-                    LegacyFilterList.BLACKLISTED_IPS,
+                project.update_option(
+                    "sentry:blacklisted_ips",
                     clean_newline_inputs(options["sentry:blacklisted_ips"]),
                 )
             if "feedback:branding" in options:
@@ -1239,9 +1238,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "1" if bool(options["filters:chunk-load-error"]) else "0",
                 )
             if "filters:blacklisted_ips" in options:
-                set_legacy_list(
-                    project,
-                    LegacyFilterList.BLACKLISTED_IPS,
+                project.update_option(
+                    "sentry:blacklisted_ips",
                     clean_newline_inputs(options["filters:blacklisted_ips"]),
                 )
             if f"filters:{FilterTypes.RELEASES}" in options:

@@ -38,7 +38,6 @@ class LegacyFilterList(StrEnum):
     ERROR_MESSAGES = "error_messages"
     LOG_MESSAGES = "log_messages"
     TRACE_METRIC_NAMES = "trace_metric_names"
-    BLACKLISTED_IPS = "blacklisted_ips"
 
     @property
     def option_key(self) -> str:
@@ -56,8 +55,9 @@ class _Row:
         return self.name + DISABLED_SUFFIX
 
 
-# Relay's legacy release and IP filters read every item type, so their rows use the
-# catch-all data type.
+# Relay's legacy release filter reads the release of every item type, so its rows use
+# the catch-all data type. The legacy IP list is not one of these lists: it stays a
+# project option that every plan can use.
 _ROWS: Mapping[LegacyFilterList, _Row] = {
     LegacyFilterList.RELEASES: _Row("Releases", DataType.ALL, ConditionType.RELEASE),
     LegacyFilterList.ERROR_MESSAGES: _Row(
@@ -67,7 +67,6 @@ _ROWS: Mapping[LegacyFilterList, _Row] = {
     LegacyFilterList.TRACE_METRIC_NAMES: _Row(
         "Metric Names", DataType.METRIC, ConditionType.METRIC_NAME
     ),
-    LegacyFilterList.BLACKLISTED_IPS: _Row("IP Addresses", DataType.ALL, ConditionType.IP_ADDRESS),
 }
 
 

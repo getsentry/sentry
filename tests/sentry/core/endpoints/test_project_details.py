@@ -1463,12 +1463,12 @@ class ProjectUpdateTest(APITestCase):
             )
 
         assert self.project.get_option("sentry:releases") is None
-        assert self.project.get_option("sentry:blacklisted_ips") is None
+        # The IP list is not a row-backed list: it stays in the option.
+        assert self.project.get_option("sentry:blacklisted_ips") == ["10.0.0.0/8"]
         assert sorted(
             (f.name, f.active, f.conditions)
             for f in CustomInboundFilter.objects.filter(project_id=self.project.id)
         ) == [
-            ("IP Addresses", True, [{"type": "ip_address", "value": ["10.0.0.0/8"]}]),
             ("Log Messages", True, [{"type": "log_message", "value": ["*DEBUG*"]}]),
             ("Releases", True, [{"type": "release", "value": ["1.*"]}]),
             ("Releases (disabled)", False, [{"type": "release", "value": ["2.*"]}]),

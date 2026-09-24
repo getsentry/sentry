@@ -1216,7 +1216,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:csp_ignored_sources": "\n".join(
                 options.get("sentry:csp_ignored_sources", []) or []
             ),
-            "filters:blacklisted_ips": "\n".join(legacy_lists[LegacyFilterList.BLACKLISTED_IPS]),
+            "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
             # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
             # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
             # why the value true is determined by either "1" or True.
