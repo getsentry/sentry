@@ -64,18 +64,18 @@ function OrganizationAuditLog() {
 
   const handleEventSelect = (value: string) => {
     navigate({
-      query: {...location.query, event: value},
+      query: {...location.query, event: value, cursor: undefined},
     });
   };
 
-  const handleDateSelect = (data: ChangeData) => {
+  const handleDateSelect = (changeData: ChangeData) => {
     let formattedStart: string | undefined;
     let formattedEnd: string | undefined;
 
-    if (data.start && data.end) {
+    if (changeData.start && changeData.end) {
       // Convert to UTC because endpoint only takes in UTC timestamps
-      const startUtc = getDateWithTimezoneInUtc(data.start, data.utc);
-      const endUtc = getDateWithTimezoneInUtc(data.end, data.utc);
+      const startUtc = getDateWithTimezoneInUtc(changeData.start, changeData.utc);
+      const endUtc = getDateWithTimezoneInUtc(changeData.end, changeData.utc);
       formattedStart = normalizeDateTimeString(startUtc);
       formattedEnd = normalizeDateTimeString(endUtc);
     } else {
@@ -84,19 +84,21 @@ function OrganizationAuditLog() {
       formattedEnd = undefined;
     }
 
-    const formattedStatsPeriod = data.relative === 'allTime' ? null : data.relative;
+    const formattedStatsPeriod =
+      changeData.relative === 'allTime' ? null : changeData.relative;
 
-    // Always update URL when there are changes
+    // Always update URL when there are changes; reset cursor to avoid stale pagination
     const newQuery: Record<string, string | undefined | null> = {
       ...location.query,
       start: formattedStart,
       end: formattedEnd,
       statsPeriod: formattedStatsPeriod,
+      cursor: undefined,
     };
 
     // Only include UTC in query if it's been explicitly set
-    if (data.utc !== undefined) {
-      newQuery.utc = data.utc ? 'true' : 'false';
+    if (changeData.utc !== undefined) {
+      newQuery.utc = changeData.utc ? 'true' : 'false';
     }
 
     navigate({
