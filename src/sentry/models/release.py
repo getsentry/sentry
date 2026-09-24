@@ -245,6 +245,8 @@ class Release(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
+    # Shadow column for widening `id` to int8; swapped into the primary key once backfilled.
+    new_id = BoundedBigIntegerField(null=True)
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
         "sentry.Project", related_name="releases", through=ReleaseProject
