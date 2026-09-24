@@ -5,6 +5,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 // Imported from the module rather than the `text` barrel on purpose. That
 // barrel also re-exports `Prose`, which reaches `code` -> `codeBlock` ->
@@ -222,6 +223,8 @@ function TooltipHeader({children, leadingItems, trailingItems}: TooltipHeaderPro
   );
 }
 
+const TooltipDescriptionListContext = createContext(false);
+
 interface TooltipGridProps {
   children: React.ReactNode;
   /**
@@ -238,6 +241,15 @@ interface TooltipGridProps {
   /**
    * @default '2xs sm'
    */
+  /**
+   * Render the section as a description list, so each row's leading cell
+   * becomes its `dt` and the cells after it become that term's `dd`s. Only for
+   * rows that are labelled values: a row with no `leadingItems` has no term for
+   * its details to hang off.
+   *
+   * @default false
+   */
+  dl?: boolean;
   gap?: GridProps['gap'];
 }
 
@@ -249,22 +261,31 @@ interface TooltipGridProps {
  * the sentence case. A cell that wants otherwise, a value pinned to the right
  * edge say, sets that on itself.
  */
-function TooltipGrid({children, columns = '1fr', gap = '2xs sm'}: TooltipGridProps) {
+function TooltipGrid({
+  children,
+  columns = '1fr',
+  gap = '2xs sm',
+  dl = false,
+}: TooltipGridProps) {
   return (
-    <GridSection
-      columns={columns}
-      gap={gap}
-      align="center"
-      padding="md lg"
-      data-tooltip-section
-    >
-      {children}
-    </GridSection>
+    <TooltipDescriptionListContext value={dl}>
+      <GridSection
+        as={dl ? 'dl' : undefined}
+        columns={columns}
+        gap={gap}
+        align="center"
+        padding="md lg"
+        data-tooltip-section
+      >
+        {children}
+      </GridSection>
+    </TooltipDescriptionListContext>
   );
 }
 
 const GridSection = styled(Grid)`
   text-align: left;
+  margin: 0;
 `;
 
 interface TooltipRowProps {
@@ -290,8 +311,25 @@ interface TooltipRowProps {
  * layout box would align its columns only against itself, which is the whole
  * thing a shared grid is for. Rows in one grid should therefore fill the same
  * tracks as each other.
+ *
+ * In a `dl` grid the cells are a `dt` and its `dd`s instead, which already sit
+ * directly in the grid and so need no wrapper of their own.
  */
 function TooltipRow({children, leadingItems, trailingItems}: TooltipRowProps) {
+  const isDescriptionList = useContext(TooltipDescriptionListContext);
+
+  if (isDescriptionList) {
+    return (
+      <Fragment>
+        <DescriptionList.Term>{leadingItems}</DescriptionList.Term>
+        <DescriptionList.Details>{children}</DescriptionList.Details>
+        {defined(trailingItems) && (
+          <DescriptionList.Details>{trailingItems}</DescriptionList.Details>
+        )}
+      </Fragment>
+    );
+  }
+
   return (
     <Container display="contents">
       {leadingItems}
@@ -349,7 +387,7 @@ function TooltipFooter({children, leadingItems, trailingItems}: TooltipFooterPro
  *   title={
  *     <Fragment>
  *       <Tooltip.Header trailingItems="8mo ago">Last Seen</Tooltip.Header>
- *       <Tooltip.Grid columns="max-content 1fr max-content">
+ *       <Tooltip.Grid dl columns="max-content 1fr max-content">
  *         <Tooltip.Row leadingItems={<Tag>UTC</Tag>} trailingItems={time}>
  *           {date}
  *         </Tooltip.Row>
@@ -364,6 +402,9 @@ function TooltipFooter({children, leadingItems, trailingItems}: TooltipFooterPro
  * That holds wherever the sections are rendered from. A component that renders
  * them internally is covered too, because its sections are still the overlay's
  * own children in the DOM.
+ *
+ * Pass `dl` to a grid of labelled values so it renders as a description list,
+ * giving each row a `dt` for its label and `dd`s for the rest.
  *
  * Sections set their own text alignment, because a tooltip centers its content
  * by default — right for a sentence, wrong for a row of labelled values. Cells

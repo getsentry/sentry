@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -26,21 +24,17 @@ export function ReplayViewScale({isLoading}: Props) {
     <Tooltip
       skipWrapper
       title={
-        <ContentWidthDescriptionList gap="md 2xl">
+        <DescriptionList gap="md 2xl" nowrap>
           <DescriptionList.Term>{t('Original size')}</DescriptionList.Term>
           <DescriptionList.Details>
             {dimensions.width} &times; {dimensions.height}
           </DescriptionList.Details>
           <DescriptionList.Term>{t('Rendered size')}</DescriptionList.Term>
           <DescriptionList.Details>{toPercent(scale, 1)}</DescriptionList.Details>
-        </ContentWidthDescriptionList>
+        </DescriptionList>
       }
     >
       <IconRuler size="md" />
     </Tooltip>
   );
 }
-
-const ContentWidthDescriptionList = styled(DescriptionList)`
-  width: max-content;
-`;

@@ -49,13 +49,17 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
   }
 `;
 
-const Key = styled(DescriptionList.Term)<{type: Props['type']}>`
+const Key = styled(DescriptionList.Term, {
+  shouldForwardProp: prop => prop !== 'type',
+})<{type: Props['type']}>`
   ${commonStyles};
   display: flex;
   align-items: center;
 `;
 
-const Value = styled(DescriptionList.Details)<{type: Props['type']}>`
+const Value = styled(DescriptionList.Details, {
+  shouldForwardProp: prop => prop !== 'type',
+})<{type: Props['type']}>`
   ${commonStyles};
   text-align: right;
 `;

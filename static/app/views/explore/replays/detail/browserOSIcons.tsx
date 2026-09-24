@@ -36,7 +36,7 @@ export function BrowserOSIcons({
   return (
     <Tooltip
       title={
-        <ContentWidthDescriptionList gap="md 2xl">
+        <DescriptionList gap="md 2xl" nowrap>
           {showBrowser && (
             <Fragment>
               <DescriptionList.Term>{t('Browser')}</DescriptionList.Term>
@@ -49,7 +49,7 @@ export function BrowserOSIcons({
           <DescriptionList.Details>
             {replayRecord?.os.name ?? ''} {replayRecord?.os.version ?? ''}
           </DescriptionList.Details>
-        </ContentWidthDescriptionList>
+        </DescriptionList>
       }
     >
       <Flex>
@@ -75,10 +75,6 @@ export function BrowserOSIcons({
     </Tooltip>
   );
 }
-
-const ContentWidthDescriptionList = styled(DescriptionList)`
-  width: max-content;
-`;
 
 const Overlap = styled('div')`
   margin-right: -${p => p.theme.space.sm};

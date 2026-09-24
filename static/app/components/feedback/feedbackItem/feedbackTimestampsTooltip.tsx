@@ -24,7 +24,7 @@ export function FeedbackTimestampsTooltip({feedbackItem}: Props) {
   const dateResolved = resolvedActivity ? moment(resolvedActivity.dateCreated) : null;
 
   return (
-    <DescriptionList>
+    <DescriptionList nowrap>
       <DescriptionList.Term>{t('Created')}</DescriptionList.Term>
       <DescriptionList.Details>
         {dateFirstSeen ? (

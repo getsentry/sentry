@@ -484,5 +484,47 @@ describe('Tooltip', () => {
         referenceClassName
       );
     });
+
+    it('renders rows as a term and its details when the grid is a dl', async () => {
+      render(
+        <Tooltip
+          title={
+            <Tooltip.Grid dl columns="max-content 1fr max-content">
+              <Tooltip.Row leadingItems="UTC" trailingItems="11:42 AM">
+                Sep 23, 2026
+              </Tooltip.Row>
+            </Tooltip.Grid>
+          }
+        >
+          <button>My Button</button>
+        </Tooltip>
+      );
+
+      await userEvent.hover(screen.getByText('My Button'));
+
+      const definitions = await screen.findAllByRole('definition');
+      expect(screen.getByRole('term')).toHaveTextContent('UTC');
+      expect(definitions[0]).toHaveTextContent('Sep 23, 2026');
+      expect(definitions[1]).toHaveTextContent('11:42 AM');
+    });
+
+    it('renders rows without description list roles when the grid is not a dl', async () => {
+      render(
+        <Tooltip
+          title={
+            <Tooltip.Grid>
+              <Tooltip.Row>plain cell</Tooltip.Row>
+            </Tooltip.Grid>
+          }
+        >
+          <button>My Button</button>
+        </Tooltip>
+      );
+
+      await userEvent.hover(screen.getByText('My Button'));
+
+      expect(await screen.findByText('plain cell')).toBeInTheDocument();
+      expect(screen.queryByRole('term')).not.toBeInTheDocument();
+    });
   });
 });

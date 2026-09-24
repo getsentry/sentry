@@ -18,4 +18,15 @@ describe('KeyValueTable', () => {
     expect(terms[1]).toHaveTextContent('Milk');
     expect(definitions[1]).toHaveTextContent('White cold drink');
   });
+
+  it('does not forward the type prop to the DOM when a row sets one', () => {
+    render(
+      <KeyValueTable>
+        <KeyValueTableRow keyName="Status" value="Failing" type="error" />
+      </KeyValueTable>
+    );
+
+    expect(screen.getByRole('term')).not.toHaveAttribute('type');
+    expect(screen.getByRole('definition')).not.toHaveAttribute('type');
+  });
 });
