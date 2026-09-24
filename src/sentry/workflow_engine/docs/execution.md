@@ -54,10 +54,8 @@ same after detector selection.
 ### 3. Evaluate each detector
 
 `process_detectors` obtains `detector.detector_handler` from the `DetectorSettings`
-registered for the detector's type in
-[`detector_settings_registry`](../registry.py) and calls `_evaluate(packet)`. `DetectorHandler._evaluate`
-calls the handler's `evaluate` and records the `workflow_engine_detector.evaluation`
-metric.
+registered for the detector's type in the `detector_settings_registry`. Then, it calls the `_evaluate` method on the handler,
+which delegates to the default or overridden `evaluate` methods that contain most of the detector's logic.
 
 One packet can produce:
 
@@ -93,9 +91,6 @@ Important semantics:
 - Each packet is evaluated independently. There is no dedupe, threshold, or durable
   state.
 - `OK` produces no status-change message; the default path never resolves issues.
-
-The hooks and ID rules are documented in
-[Adding a Detector](adding-detectors.md#default-stateless-evaluation).
 
 #### Stateful
 

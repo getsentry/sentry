@@ -78,10 +78,10 @@ relocation.
 
 A [`Detector`](models/detector.py) describes what data to evaluate and can reference an
 optional trigger [`DataConditionGroup`](models/data_condition_group.py). Its `type` is the slug of an
-Issue Platform [`GroupType`](../issues/grouptype.py). The
-[`DetectorSettings`](types.py) subclass registered for that slug in
-[`detector_settings_registry`](registry.py) selects the runtime detector handler, API
-validator, configuration schema, and optional query filter.
+Issue Platform [`GroupType`](../issues/grouptype.py).
+
+The GroupType is connected to the DetectorHandler through the `DetectorSettings` subclass.
+This class lives in a registry and maps a GroupType slug to a corresponding DetectorSettings class.
 
 Detector implementations usually live in the product module that owns the issue type,
 not in this package. For example, uptime and metric issue handlers live in

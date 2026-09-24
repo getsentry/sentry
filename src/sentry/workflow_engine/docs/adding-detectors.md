@@ -209,8 +209,13 @@ def create_occurrence(
 
 Use an existing product implementation for the exact event shape. The snippet is
 illustrative and omits product-specific evidence. The returned dictionary must be
-mutable. Both evaluations supply defaults for `environment`, `platform`, `received`,
-and `tags`, and overwrite `timestamp` and `project_id`. They differ on `event_id`:
+mutable.
+
+The default evaluations supply defaults for `environment`, `platform`, `received`, and `tags`
+
+The default evaluations overwrite `timestamp` and `project_id`.
+
+Stateless and stateful handlers differ on the `event_id` field:
 
 - The default `DetectorHandler.evaluate` uses a random or derived `event_id` and then generates an occurrence ID from it.
 - `StatefulDetectorHandler` overwrites `event_id` with a random ID that is also used as
