@@ -54,11 +54,6 @@ export function QueryField({
   extraActions,
   renderTagOverride,
 }: QueryFieldProps) {
-  const selectedValue =
-    value.kind === FieldValueKind.FIELD || value.kind === 'calculatedField'
-      ? value.field
-      : '';
-
   // Group bys can only be columns, so functions are never offered. Options are
   // keyed by name, which is what gets stored on the widget's fields.
   const fieldValuesByName = useMemo(() => {
@@ -73,6 +68,8 @@ export function QueryField({
     }
     return result;
   }, [fieldOptions]);
+
+  const selectedValue = resolveSelectedValue(value, fieldValuesByName);
 
   const options = useMemo(() => {
     const result: Array<SelectOption<string>> = [];
@@ -162,6 +159,22 @@ function renderTag(fieldValue: FieldValue) {
       deprecatedFields={DEPRECATED_FIELDS}
     />
   );
+}
+
+function resolveSelectedValue(
+  value: QueryFieldValue,
+  fieldValuesByName: Map<string, SelectValue<FieldValue>>
+) {
+  if (value.kind !== FieldValueKind.FIELD && value.kind !== 'calculatedField') {
+    return '';
+  }
+  if (fieldValuesByName.has(value.field)) {
+    return value.field;
+  }
+  // Older saved queries may reference tags as `tags[name]`, which match the
+  // plain tag option.
+  const tagName = value.field.match(/^tags\[(.*?)\]$/)?.[1];
+  return tagName && fieldValuesByName.has(tagName) ? tagName : value.field;
 }
 
 const StyledDragReorderButton = styled(DragReorderButton)`
