@@ -296,7 +296,9 @@ class SearchResolver:
         return (
             self.definitions.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
             and organization is not None
-            and features.has("organizations:ourlogs-regex-searches", organization)
+            and features.has(
+                "organizations:ourlogs-regex-searches", organization, actor=self.params.user
+            )
         )
 
     def collect_terms(self, parsed_terms: Sequence[event_search.QueryToken]) -> list[str]:
