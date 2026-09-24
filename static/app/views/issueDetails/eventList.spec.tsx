@@ -4,8 +4,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, renderHook, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderHook,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
+import type {RequestOptions} from 'sentry/api';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {MOCK_EVENTS_TABLE_DATA} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
@@ -144,5 +151,98 @@ describe('EventList', () => {
       expect(mockEventList).toHaveBeenCalledWith(...expectedArgs);
     });
     expect(mockEventListMeta).toHaveBeenCalledWith(...expectedArgs);
+  });
+
+  it.each(['user.display', 'count()'])(
+    'shows and retries a failed %s request without clearing filters',
+    async field => {
+      const match = [
+        (_url: string, options: RequestOptions) => options.query?.field?.includes(field),
+      ];
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match,
+        statusCode: 500,
+        body: {detail: 'Unable to load events.'},
+      });
+      const query = {
+        query: 'release:1.0',
+        environment: 'production',
+        statsPeriod: '7d',
+        sort: 'timestamp',
+        cursor: '2:0:0',
+      };
+      const {router} = render(<EventList group={group} />, {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {...initialRouterConfig.location, query},
+        },
+      });
+
+      expect(await screen.findByText('Unable to load events.')).toBeInTheDocument();
+      expect(
+        screen.queryByText('No results found for your query')
+      ).not.toBeInTheDocument();
+      const retryRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match,
+        body: {
+          data: field === 'count()' ? [{'count()': totalCount}] : MOCK_EVENTS_TABLE_DATA,
+        },
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+      expect(
+        await screen.findByText(
+          `Showing 1-${MOCK_EVENTS_TABLE_DATA.length} of ${totalCount} matching events`
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+      expect(router.location.query).toEqual(query);
+      expect(retryRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: `${persistantQuery} release:1.0`,
+            environment: ['production'],
+            statsPeriod: '7d',
+            ...(field === 'user.display' ? {sort: 'timestamp', cursor: '2:0:0'} : {}),
+          }),
+        })
+      );
+    }
+  );
+
+  it.each(['user.display', 'count()'])(
+    'shows the HTTP error message when a failed %s request has no detail',
+    async field => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [(_url, options) => options.query?.field?.includes(field)],
+        statusCode: 503,
+        body: {},
+      });
+      render(<EventList group={group} />, {initialRouterConfig});
+
+      expect(
+        await screen.findByText(
+          'The server is temporarily unavailable. Please try again in a few moments.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    }
+  );
+
+  it('keeps the empty state for a successful query with no events', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    render(<EventList group={group} />, {initialRouterConfig});
+
+    expect(
+      await screen.findByText('No results found for your query')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
   });
 });
