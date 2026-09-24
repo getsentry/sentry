@@ -386,19 +386,31 @@ class TestRolloutBucketing:
     def test_keeps_identity_bucketing_for_features_created_before_epoch(self) -> None:
         # Organization 123 is bucket 56 on identity alone. Under the feature
         # name it would be 64 (see the test below), which rollout 56 excludes.
-        context = EvaluationContext({"organization_id": 123}, {"organization_id"})
-        assert context.id % 100 == 56
+        organization_context = EvaluationContext({"organization_id": 123}, {"organization_id"})
+        feature = self._feature(
+            name="organizations:performance-view", created_at="2024-01-01", rollout=56
+        )
+        lower_rollout_feature = self._feature(
+            name="organizations:performance-view", created_at="2024-01-01", rollout=55
+        )
 
-        assert self._feature("organizations:performance-view", "2024-01-01", 56).match(context)
-        assert not self._feature("organizations:performance-view", "2024-01-01", 55).match(context)
+        assert feature.match(organization_context)
+        assert not lower_rollout_feature.match(organization_context)
 
     def test_buckets_by_feature_for_features_created_after_epoch(self) -> None:
         # Organization 123 lands in a different bucket under each feature, so
         # the two features at the same rollout reach different populations.
-        context = EvaluationContext({"organization_id": 123}, {"organization_id"})
-        assert context.bucket_id("organizations:performance-view") % 100 == 64
-        assert context.bucket_id("organizations:dashboards-edit") % 100 == 75
+        organization_context = EvaluationContext({"organization_id": 123}, {"organization_id"})
+        performance_view = self._feature(
+            name="organizations:performance-view", created_at="2026-12-01", rollout=64
+        )
+        lower_rollout_performance_view = self._feature(
+            name="organizations:performance-view", created_at="2026-12-01", rollout=63
+        )
+        dashboards_edit = self._feature(
+            name="organizations:dashboards-edit", created_at="2026-12-01", rollout=64
+        )
 
-        assert self._feature("organizations:performance-view", "2026-12-01", 64).match(context)
-        assert not self._feature("organizations:performance-view", "2026-12-01", 63).match(context)
-        assert not self._feature("organizations:dashboards-edit", "2026-12-01", 64).match(context)
+        assert performance_view.match(organization_context)
+        assert not lower_rollout_performance_view.match(organization_context)
+        assert not dashboards_edit.match(organization_context)
