@@ -339,23 +339,25 @@ function QueryResult({
             trailingItems={
               <Flex align="center" gap="md">
                 {expanded ? (
-                  <Button
-                    size="xs"
-                    variant="link"
-                    icon={<IconCompass size="xs" />}
-                    disabled={queries.length === 0}
-                    tooltipProps={{
-                      title:
-                        queries.length === 0
-                          ? t('Query details are not available for this result.')
-                          : undefined,
-                    }}
-                    aria-expanded={showQuery}
-                    aria-controls={queryDetailsId}
-                    onClick={() => setShowQuery(value => !value)}
-                  >
-                    {showQuery ? t('Hide query') : t('Show query')}
-                  </Button>
+                  <CellActions>
+                    <Button
+                      size="xs"
+                      variant="link"
+                      icon={<IconCompass size="xs" />}
+                      disabled={queries.length === 0}
+                      tooltipProps={{
+                        title:
+                          queries.length === 0
+                            ? t('Query details are not available for this result.')
+                            : undefined,
+                      }}
+                      aria-expanded={showQuery}
+                      aria-controls={queryDetailsId}
+                      onClick={() => setShowQuery(value => !value)}
+                    >
+                      {showQuery ? t('Hide query') : t('Show query')}
+                    </Button>
+                  </CellActions>
                 ) : null}
                 {actions}
               </Flex>
