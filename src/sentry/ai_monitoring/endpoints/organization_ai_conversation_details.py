@@ -66,8 +66,6 @@ MODEL_USAGE_COLUMNS = [
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_read.input_tokens) as cache_read_tokens",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_creation.input_tokens) as cache_write_tokens",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.reasoning.output_tokens) as reasoning_tokens",
-    "count_if(`gen_ai.operation.type:ai_client has:gen_ai.usage.input_tokens`,span.duration) as input_token_spans",
-    "count_if(`gen_ai.operation.type:ai_client has:gen_ai.usage.output_tokens`,span.duration) as output_token_spans",
 ]
 
 _WIDENING_STEPS = [timedelta(days=7), timedelta(days=14), timedelta(days=MAX_RETENTION_DAYS)]
@@ -150,8 +148,8 @@ AI_CONVERSATION_ATTRIBUTES = [
 
 class AIConversationModelUsage(TypedDict):
     model: str | None
-    inputTokens: int | None
-    outputTokens: int | None
+    inputTokens: int
+    outputTokens: int
     totalTokens: int
     cacheReadTokens: int
     cacheWriteTokens: int
@@ -229,15 +227,8 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
                 "totalCost": 0,
             },
         )
-        if int(row.get("input_token_spans") or 0) != llm_calls:
-            usage["inputTokens"] = None
-        elif usage["inputTokens"] is not None:
-            usage["inputTokens"] += model_pair_stats["inputTokens"]
-
-        if int(row.get("output_token_spans") or 0) != llm_calls:
-            usage["outputTokens"] = None
-        elif usage["outputTokens"] is not None:
-            usage["outputTokens"] += model_pair_stats["outputTokens"]
+        usage["inputTokens"] += model_pair_stats["inputTokens"]
+        usage["outputTokens"] += model_pair_stats["outputTokens"]
         usage["totalTokens"] += model_pair_stats["totalTokens"]
         usage["cacheReadTokens"] += int(row.get("cache_read_tokens") or 0)
         usage["cacheWriteTokens"] += int(row.get("cache_write_tokens") or 0)

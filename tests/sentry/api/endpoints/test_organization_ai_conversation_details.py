@@ -9,7 +9,6 @@ from urllib3.exceptions import ReadTimeoutError
 from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import (
     PARENT_SPAN_ATTRIBUTES,
     OrganizationAIConversationDetailsEndpoint,
-    _parse_grouped_stats,
 )
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
@@ -21,25 +20,6 @@ from sentry.utils.samples import load_data
 from sentry.utils.snuba_rpc import SnubaRPCTimeout
 
 from .test_organization_ai_conversations_base import BaseAIConversationsTestCase
-
-
-def test_parse_grouped_stats_marks_incomplete_token_data() -> None:
-    stats = _parse_grouped_stats(
-        [
-            {
-                "gen_ai.response.model": "model-a",
-                "llm_calls": 1,
-                "input_tokens": 100,
-                "output_tokens": 0,
-                "total_tokens": 150,
-                "input_token_spans": 1,
-                "output_token_spans": 0,
-            }
-        ]
-    )
-
-    assert stats["usageByModel"][0]["inputTokens"] == 100
-    assert stats["usageByModel"][0]["outputTokens"] is None
 
 
 def test_parent_fetch_groups_span_ids_by_trace() -> None:
