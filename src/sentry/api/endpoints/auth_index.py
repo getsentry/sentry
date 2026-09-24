@@ -23,7 +23,7 @@ from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.providers.saml2.provider import handle_saml_single_logout
 from sentry.auth.services.auth.impl import promote_request_rpc_user
-from sentry.auth.superuser import SUPERUSER_ORG_ID
+from sentry.auth.superuser import SUPERUSER_ORG_ID, SuperuserAccessSerializer
 from sentry.demo_mode.utils import is_demo_user
 from sentry.organizations.services.organization import organization_service
 from sentry.ratelimits.config import RateLimitConfig
@@ -255,6 +255,34 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        if request.data.get("isSuperuserOrgAuth") and request.user.is_superuser:
+            su = getattr(request, "superuser", None)
+            if not su or not su.is_active:
+                return Response(
+                    {"detail": {"code": "superuser-required"}},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            org_slug = request.data.get("orgSlug")
+            if not org_slug:
+                return Response(
+                    {"detail": "orgSlug is required"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            if not organization_service.check_organization_by_slug(
+                slug=org_slug, only_visible=False
+            ):
+                return Response(
+                    {"detail": "Organization not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+            serializer = SuperuserAccessSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            su.authorize_org(
+                org_slug,
+                serializer.validated_data["superuserAccessCategory"],
+                serializer.validated_data["superuserReason"],
+            )
+            return Response(status=status.HTTP_200_OK)
+
         validator = AuthVerifyValidator(data=request.data)
 
         if not (request.user.is_superuser and request.data.get("isSuperuserModal")):
@@ -316,6 +344,15 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         if request.user.is_superuser and request.data.get("isSuperuserModal"):
             request.superuser.set_logged_in(request.user)
+            org_slug = request.data.get("superuserOrgSlug")
+            if org_slug:
+                serializer = SuperuserAccessSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                request.superuser.authorize_org(
+                    org_slug,
+                    serializer.validated_data["superuserAccessCategory"],
+                    serializer.validated_data["superuserReason"],
+                )
 
         request.user = request._request.user
 

@@ -560,6 +560,96 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
 
 @control_silo_test
+class AuthVerifyEndpointSuperuserOrgAuthTest(APITestCase):
+    path = "/api/0/auth/"
+
+    def test_org_auth_valid(self) -> None:
+        user = self.create_user("foo@example.com", is_superuser=True)
+        org = self.create_organization()
+        self.login_as(user, superuser=True)
+        response = self.client.put(
+            self.path,
+            data={
+                "isSuperuserOrgAuth": True,
+                "orgSlug": org.slug,
+                "superuserAccessCategory": "for_unit_test",
+                "superuserReason": "for testing",
+            },
+        )
+        assert response.status_code == 200
+
+    def test_org_auth_missing_slug(self) -> None:
+        user = self.create_user("foo@example.com", is_superuser=True)
+        self.login_as(user, superuser=True)
+        response = self.client.put(
+            self.path,
+            data={
+                "isSuperuserOrgAuth": True,
+                "superuserAccessCategory": "for_unit_test",
+                "superuserReason": "for testing",
+            },
+        )
+        assert response.status_code == 400
+
+    def test_org_auth_nonexistent_org(self) -> None:
+        user = self.create_user("foo@example.com", is_superuser=True)
+        self.login_as(user, superuser=True)
+        response = self.client.put(
+            self.path,
+            data={
+                "isSuperuserOrgAuth": True,
+                "orgSlug": "does-not-exist",
+                "superuserAccessCategory": "for_unit_test",
+                "superuserReason": "for testing",
+            },
+        )
+        assert response.status_code == 404
+
+    def test_org_auth_expired_session(self) -> None:
+        user = self.create_user("foo@example.com", is_superuser=True)
+        self.login_as(user)
+        response = self.client.put(
+            self.path,
+            data={
+                "isSuperuserOrgAuth": True,
+                "orgSlug": "some-org",
+                "superuserAccessCategory": "for_unit_test",
+                "superuserReason": "for testing",
+            },
+        )
+        assert response.status_code == 403
+        assert response.data["detail"]["code"] == "superuser-required"
+
+    def test_org_auth_missing_reason(self) -> None:
+        user = self.create_user("foo@example.com", is_superuser=True)
+        org = self.create_organization()
+        self.login_as(user, superuser=True)
+        response = self.client.put(
+            self.path,
+            data={
+                "isSuperuserOrgAuth": True,
+                "orgSlug": org.slug,
+            },
+        )
+        assert response.status_code == 400
+
+    def test_org_auth_non_superuser(self) -> None:
+        user = self.create_user("foo@example.com", is_superuser=False)
+        self.login_as(user)
+        response = self.client.put(
+            self.path,
+            data={
+                "isSuperuserOrgAuth": True,
+                "orgSlug": "some-org",
+                "superuserAccessCategory": "for_unit_test",
+                "superuserReason": "for testing",
+            },
+        )
+        # Falls through to normal auth flow which needs password/u2f
+        assert response.status_code == 400
+
+
+@control_silo_test
 class AuthLogoutEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
