@@ -115,39 +115,8 @@ describe('EventList', () => {
     }
   });
 
-  it('updates query from location param change', async () => {
-    const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
-    const locationQuery = {
-      query: {
-        query: `${tagKey}:${tagValue}`,
-      },
-    };
-    render(<EventList group={group} />, {
-      initialRouterConfig: {
-        ...initialRouterConfig,
-        location: {
-          ...initialRouterConfig.location,
-          query: locationQuery.query,
-        },
-      },
-    });
-
-    const expectedArgs = [
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: `${persistantQuery} (${locationQuery.query.query})`,
-        }),
-      }),
-    ];
-    await waitFor(() => {
-      expect(mockEventList).toHaveBeenCalledWith(...expectedArgs);
-    });
-    expect(mockEventListMeta).toHaveBeenCalledWith(...expectedArgs);
-  });
-
-  it.each(['tag_a:1 OR tag_b:2', 'tag_b:2 OR tag_a:1'])(
-    'keeps every branch of %s scoped to the issue',
+  it.each(['user.email:user@example.com', 'tag_a:1 OR tag_b:2', 'tag_b:2 OR tag_a:1'])(
+    'scopes the event and count queries to the issue for "%s"',
     async query => {
       render(<EventList group={group} />, {
         initialRouterConfig: {
