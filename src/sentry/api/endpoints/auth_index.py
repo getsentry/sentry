@@ -150,8 +150,8 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         limit_overrides={
             "PUT": {
                 RateLimitCategory.USER: RateLimit(
-                    limit=5, window=60 * 60
-                ),  # 5 PUT requests per hour per user
+                    limit=20, window=60 * 60
+                ),  # 20 PUT requests per hour per user
             }
         }
     )
