@@ -884,7 +884,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
 @cell_silo_test
 class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseTest):
-    """Tests that the all-projects detector is included when the feature flag is enabled."""
+    """Tests listing and filtering the all-projects detector."""
 
     def setUp(self) -> None:
         super().setUp()
@@ -897,13 +897,11 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
         detector_ids = {d["id"] for d in response.data}
         assert str(self.all_projects_detector.id) not in detector_ids
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_detector_included_with_all_projects_sentinel(self) -> None:
         response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
         detector_ids = {d["id"] for d in response.data}
         assert str(self.all_projects_detector.id) in detector_ids
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_detector_included_without_project_filter(self) -> None:
         response = self.get_success_response(self.organization.slug)
         detector_ids = {d["id"] for d in response.data}
@@ -913,13 +911,6 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
         response = self.get_success_response(self.organization.slug)
         all_proj = next(d for d in response.data if d["id"] == str(self.all_projects_detector.id))
         assert all_proj["projectId"] is None
-
-    def test_all_projects_detector_excluded_without_feature(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"project": self.project.id}
-        )
-        detector_ids = {d["id"] for d in response.data}
-        assert str(self.all_projects_detector.id) not in detector_ids
 
     def test_all_projects_detector_included_in_id_filter(self) -> None:
         response = self.get_success_response(

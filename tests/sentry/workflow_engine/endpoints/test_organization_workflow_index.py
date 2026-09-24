@@ -2403,13 +2403,13 @@ class OrganizationWorkflowPutProjectAccessTest(
         self.create_detector_workflow(workflow=self.user_workflow, detector=all_projects_detector)
         self.login_as(self.limited_user)
 
-        response = self.get_success_response(
+        self.get_error_response(
             self.organization.slug,
             qs_params={"id": str(self.user_workflow.id)},
             raw_data={"enabled": True},
+            status_code=403,
         )
 
-        assert "No workflows found" in response.data["detail"]
         self.user_workflow.refresh_from_db()
         assert self.user_workflow.enabled is False
 
@@ -2502,12 +2502,11 @@ class OrganizationWorkflowDeleteProjectAccessTest(
         self.create_detector_workflow(workflow=self.user_workflow, detector=all_projects_detector)
         self.login_as(self.limited_user)
 
-        response = self.get_success_response(
+        self.get_error_response(
             self.organization.slug,
             qs_params={"id": str(self.user_workflow.id)},
-            status_code=200,
+            status_code=403,
         )
 
-        assert "No workflows found" in response.data["detail"]
         self.user_workflow.refresh_from_db()
         assert self.user_workflow.status != ObjectStatus.PENDING_DELETION
