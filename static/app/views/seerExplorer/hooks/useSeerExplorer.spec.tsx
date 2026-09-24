@@ -456,6 +456,71 @@ describe('useSeerExplorer', () => {
       ]);
     });
 
+    it('keeps a newer send in another chat when an older send fails', async () => {
+      const runId = 'run-a';
+      let failOldSend!: () => void;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+      const oldSendMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Server error'},
+        asyncDelay: new Promise<void>(resolve => {
+          failOldSend = resolve;
+        }),
+      });
+      // The new chat's send stays in flight for the rest of the test.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 1},
+        asyncDelay: new Promise<void>(() => {}),
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('completed');
+      });
+
+      act(() => {
+        result.current.sendMessage('Old chat question');
+      });
+      act(() => {
+        result.current.startNewSession();
+      });
+      act(() => {
+        result.current.sendMessage('New chat question');
+      });
+      expect(result.current.sessionData?.blocks[0]?.message.content).toBe(
+        'New chat question'
+      );
+
+      // Let the old request fail and its error handling run to completion.
+      await act(async () => {
+        failOldSend();
+        for (let i = 0; i < 5; i++) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      });
+      expect(oldSendMock).toHaveBeenCalled();
+
+      // The old failure must not drop the new chat's optimistic blocks or show its error.
+      expect(result.current.sessionData?.blocks[0]?.message.content).toBe(
+        'New chat question'
+      );
+      expect(result.current.requestError).toBeNull();
+    });
+
     it('clears the request error when switching conversations', async () => {
       const runId = 'run-a';
       MockApiClient.addMockResponse({

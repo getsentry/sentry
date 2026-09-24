@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {uniqueId} from 'sentry/utils/guid';
 import {
   fetchMutation,
   getApiQueryData,
@@ -190,6 +191,8 @@ export const useSeerExplorer = () => {
     loadingPlaceholderContent: string;
     prevInsertIndexBlockId: string | undefined;
     query: string;
+    /** Identifies the send, so a failed request only clears its own optimistic blocks. */
+    sendId: string;
     sentAt: string;
   } | null>(null);
   const [hasSentInterrupt, setHasSentInterrupt] = useState(false);
@@ -265,6 +268,7 @@ export const useSeerExplorer = () => {
       query: string;
       runId: SeerExplorerRunId | null;
       screenshot: string | undefined;
+      sendId: string;
       sentAt: string[];
     },
     {previousData: SeerExplorerResponse | undefined}
@@ -310,7 +314,8 @@ export const useSeerExplorer = () => {
       // Keep the existing conversation: roll back the optimistic status and drop the
       // optimistic user/loading blocks. The UI surfaces the failure and restores the draft.
       restoreSessionData(params.orgSlug, params.runId, context?.previousData);
-      setLastSentMessage(null);
+      // A later send (possibly in another conversation) may own the optimistic blocks now.
+      setLastSentMessage(prev => (prev?.sendId === params.sendId ? null : prev));
       setRequestError({runId: params.runId, query: params.query});
     },
   });
@@ -568,7 +573,9 @@ export const useSeerExplorer = () => {
       const placeholderContent = texts[Math.floor(Math.random() * texts.length)]!;
 
       // Update lastSentMessage for optimistic UI
+      const sendId = uniqueId();
       setLastSentMessage({
+        sendId,
         query,
         insertIndex: newInsertIndex,
         prevInsertIndexBlockId: blocks[newInsertIndex]?.id,
@@ -579,6 +586,7 @@ export const useSeerExplorer = () => {
       // Send POST request
       sendMessageMutate({
         query,
+        sendId,
         insertIndex: newInsertIndex,
         runId: effectiveRunId,
         orgSlug,
