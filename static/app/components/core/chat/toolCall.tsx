@@ -106,22 +106,40 @@ const GlyphSlot = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
 `;
 
-// The title and its reference. In a narrow container this is a block, so the
-// reference flows inline right after the title text and wraps with it. From the
-// `sm` container width up it becomes a row, pushing the reference to the right
-// edge, pinned to the title's first line. The font size matches the title so
-// `1lh` measures one title line. Styled because `Flex` can't be `display: block`
-// below the breakpoint, which the inline flow needs.
-const TitleLine = styled('div')`
+// The title row: the title (with its reference) in the first column, the
+// failure chip in a trailing column. From the `sm` container width up,
+// `TitleFlow` dissolves so the title spans both rows and the reference takes the
+// trailing column's first row; the chip then auto-places into the next free row
+// of that column, stacking under the reference (or on the first row when there
+// is none). The font size matches the title so `1lh` measures one title line.
+const TitleGrid = styled('div')`
   flex: 1;
   min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
 
   @container (min-width: ${p => p.theme.container.sm}) {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: ${p => p.theme.space.md};
+    grid-template-rows: auto 1fr;
+  }
+`;
+
+// Below the breakpoint a block, so the reference flows inline right after the
+// title text and wraps with it. From the breakpoint up, `display: contents` lifts
+// the title (its first child) and the reference into `TitleGrid`'s cells.
+// Styled because no layout primitive can switch between block and contents.
+const TitleFlow = styled('div')`
+  grid-column: 1;
+
+  @container (min-width: ${p => p.theme.container.sm}) {
+    display: contents;
+
+    > :first-child {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+    }
   }
 `;
 
@@ -134,9 +152,14 @@ const TitleLine = styled('div')`
 const InlineReference = styled('span')`
   display: inline-flex;
   align-items: center;
-  flex-shrink: 0;
   height: 1lh;
   vertical-align: top;
+
+  @container (min-width: ${p => p.theme.container.sm}) {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
 `;
 
 // `inherit` so the text takes the link button's accent color rather than
@@ -157,7 +180,7 @@ function ChipContent({label, value}: {value: string; label?: string}) {
 }
 
 /**
- * The reference, rendered as a `link`-variant button. `TitleLine` places it: at
+ * The reference, rendered as a `link`-variant button. `TitleGrid` places it: at
  * the right edge in wide containers, inline after the title text in narrow ones.
  * A trailing column in a narrow container squeezed the title into many short
  * lines; inline, the title keeps the full width and the link wraps with it.
@@ -308,8 +331,8 @@ export function ToolCall({
         <GlyphSlot>
           <ToolCallIndicator status={status} aria-label={getStatusLabel(status, t)} />
         </GlyphSlot>
-        <Flex flex={1} minWidth={0} align="start" justify="between" gap="md">
-          <TitleLine>
+        <TitleGrid>
+          <TitleFlow>
             <Text size="sm" variant="secondary" monospace wordBreak="break-word">
               {title}
             </Text>
@@ -321,13 +344,18 @@ export function ToolCall({
                 </InlineReference>
               </Fragment>
             ) : null}
-          </TitleLine>
+          </TitleFlow>
           {isFailure ? (
-            <Flex flexShrink={0}>
+            <Flex
+              column="2"
+              justify="end"
+              // Stacked under the reference once it moves into this column.
+              paddingTop={reference ? {zero: '0', sm: 'xs'} : undefined}
+            >
               <FailureChip label={failureLabel ?? t('Failed')} />
             </Flex>
           ) : null}
-        </Flex>
+        </TitleGrid>
       </Flex>
 
       {hasDetail ? (
