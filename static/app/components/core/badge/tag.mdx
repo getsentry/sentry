@@ -17,6 +17,8 @@ import {Tag} from '@sentry/scraps/badge';
 import {IconCheckmark, IconCircle, IconRefresh, IconWarning} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
+export const documentation = import('!!type-loader!@sentry/scraps/badge/tag');
+
 The `Tag` component is a generic primitive for displaying status information. Depending on the `variant` prop, it can be used as an error/warning/success indicator and for various other use cases.
 
 ## Variants
@@ -95,4 +97,5 @@ Dismiss Tag
 
 ## See Also
 
-- [Badge](/scraps/core/badge/) - Related component for feature badges, alert badges, and deploy badges
+- [Badge](/scraps/core/badge/) - Project, alert, and deploy badges
+- [FeatureBadge](/scraps/core/featurebadge/) - Feature rollout stages

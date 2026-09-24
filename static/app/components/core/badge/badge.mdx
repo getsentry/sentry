@@ -1,6 +1,6 @@
 ---
 title: Badge
-description: Badges and Tags are highlighted text elements intended to provide quick, at-a-glance contextual information such as status.
+description: Badges are highlighted text elements intended to provide quick, at-a-glance contextual information such as status.
 category: status
 source: '@sentry/scraps/badge'
 resources:
@@ -10,27 +10,20 @@ resources:
     WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
 ---
 
-import {useState} from 'react';
-
-import {Button} from '@sentry/scraps/button';
-import {
-  AlertBadge,
-  DeployBadge,
-  FeatureBadge,
-  ProjectsBadge,
-  Tag,
-} from '@sentry/scraps/badge';
+import {AlertBadge, DeployBadge, ProjectsBadge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconCheckmark, IconCircle, IconRefresh, IconWarning} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 export const documentation = import('!!type-loader!@sentry/scraps/badge');
 
-Badges are a contextual highlighted text components that support specific use cases like
-`FeatureBadge`, `AlertBadge`, and `DeployBadge`.
+Badges are highlighted text components that support specific use cases like
+`ProjectsBadge`, `AlertBadge`, and `DeployBadge`.
+
+See [FeatureBadge](/scraps/core/featurebadge/) for feature rollout stages and
+[Tag](/scraps/core/tag/) for generic status indicators.
 
 ## ProjectsBadge
 
@@ -101,62 +94,6 @@ it sits beside.
 - Always pair `ProjectsBadge` with a visible text label. Never rely on the badge alone to
   convey which saved view, project, or item a crumb or link points to.
 
-## FeatureBadge
-
-The `FeatureBadge` component should be used to annotate new features as they move through the various stages of rollout. Each badge includes a tooltip with a standard message describing the rollout stage.
-
-<Storybook.Demo>
-  <FeatureBadge type="alpha" />
-  <FeatureBadge type="beta" />
-  <FeatureBadge type="new" />
-  <FeatureBadge type="experimental" />
-  <FeatureBadge type="debug" />
-</Storybook.Demo>
-```jsx import {FeatureBadge} from '@sentry/scraps/badge';
-
-<FeatureBadge type="alpha" />
-<FeatureBadge type="beta" />
-<FeatureBadge type="new" />
-<FeatureBadge type="experimental" />
-<FeatureBadge type="debug" />
-```
-
-### Nested interactive controls
-
-When a `FeatureBadge` is nested inside an interactive element such as a button, link, or menu item, it detects the parent and does not add a second tab stop. This keeps keyboard navigation on the parent control while still making the badge tooltip available.
-
-When the parent receives keyboard focus, the badge tooltip is shown after the standard tooltip open delay. Do not add a separate `tabIndex` to a nested `FeatureBadge`.
-
-<Storybook.Demo>
-  <Button>
-    <Flex gap="md" align="center">
-      Recommended
-      <FeatureBadge type="new" />
-    </Flex>
-  </Button>
-</Storybook.Demo>
-```jsx
-<Button>
-  Recommended
-  <FeatureBadge type="new" />
-</Button>
-```
-
-Generally, the default tooltip should suffice, but if your special feature requires additional context, you can customize the `tooltipProps`.
-
-<Storybook.Demo>
-  <FeatureBadge
-    type="new"
-    tooltipProps={{title: 'This very special new feature requires additional context!'}}
-  />
-</Storybook.Demo>
-```jsx
-<FeatureBadge
-  type="new"
-  tooltipProps={{title: 'This very special new feature requires additional context!'}}
-/>
-```
-
 ## AlertBadge
 
 The `AlertBadge` component displays an indicator for all Alert types that Sentry supports.
@@ -199,78 +136,4 @@ The text of each badge is derived from the `environment` passed to the `deploy` 
 ```jsx import {DeployBadge} from '@sentry/scraps/badge';
 
 <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" projectId={1} />
-```
-
-## Tag
-
-The `Tag` component is a generic primitive. Depending on the `type` prop, it can be used as an error/warning/success indicator and for various other use cases.
-
-<Storybook.Demo>
-  <Tag variant="muted">Default</Tag>
-  <Tag variant="success">Success</Tag>
-  <Tag variant="danger">Error</Tag>
-  <Tag variant="warning">Warning</Tag>
-  <Tag variant="info">Info</Tag>
-  <Tag variant="promotion">Promotion</Tag>
-</Storybook.Demo>
-```jsx
-<Tag variant="muted">Default</Tag>
-<Tag variant="success">Success</Tag>
-<Tag variant="danger">Error</Tag>
-<Tag variant="warning">Warning</Tag>
-<Tag variant="info">Info</Tag>
-<Tag variant="promotion">Promotion</Tag>
-```
-
-### Icons
-
-The `icon` prop accepts an `<Icon />` component to render a custom leading icon.
-
-<Storybook.Demo>
-  <Tag icon={<IconCheckmark />} variant="success">
-    Success
-  </Tag>
-  <Tag icon={<IconWarning />} variant="warning">
-    Warning
-  </Tag>
-  <Tag icon={<IconCircle />} variant="promotion">
-    Promotion
-  </Tag>
-</Storybook.Demo>
-```jsx
-<Tag icon={<IconCheckmark />} variant="success">
-  Success
-</Tag>
-<Tag icon={<IconWarning />} variant="warning">
-  Warning
-</Tag>
-<Tag icon={<IconCircle />} variant="promotion">
-  Promotion
-</Tag>
-```
-
-### Dismiss
-
-Pass a custom `onDismiss` callback to create a dismissable tag with a trailing close icon.
-
-export function DismissableTag() {
-  const [dismissed, setDismissed] = useState(false);
-
-if (dismissed) {
-return <Tag icon={<IconRefresh />} variant="muted" onClick={() => setDismissed(false)}>Reset Tag</Tag>
-}
-
-return <Tag variant="info" onDismiss={() => setDismissed(true)}>
-Dismiss Tag
-
-  </Tag>
-}
-
-<Storybook.Demo>
-  <DismissableTag />
-</Storybook.Demo>
-```jsx
-<Tag type="info" onDismiss={() => setDismissed(true)}>
-  Dismiss Tag
-</Tag>
 ```
