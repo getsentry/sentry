@@ -840,7 +840,7 @@ export function ResultGrid({
 
   useEffect(() => {
     if (useQueryString) {
-      // oxlint-disable-next-line react/set-state-in-effect
+      // oxlint-disable-next-line react/set-state-in-effect, react-you-might-not-need-an-effect/no-derived-state
       setQueryInput(request.query);
     }
   }, [useQueryString, request.query]);

@@ -1966,6 +1966,18 @@ SENTRY_TOKEN_ONLY_SCOPES = frozenset(
     ]
 )
 
+# Scopes that endpoints already accept, but that roles only grant once
+# `organizations:granular-permission-scopes` is enabled. Until that rollout finishes
+# they are not universally grantable, so they stay out of the public API schema and
+# out of the Seer agent token flow. Drop an entry when its rollout completes.
+GRANULAR_SCOPES = frozenset(
+    [
+        "dashboard:read",
+        "dashboard:write",
+        "dashboard:delete",
+    ]
+)
+
 SENTRY_SCOPE_SETS = (
     (
         ("org:admin", "Read, write, and admin access to organization details."),
