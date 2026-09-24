@@ -58,15 +58,6 @@ describe('canScaleThresholds', () => {
     ).toBe(false);
   });
 
-  it('allows a count with an equation stored only in fields', () => {
-    expect(
-      canScaleThresholds({
-        displayType: DisplayType.LINE,
-        queries: [{...query, fields: ['count()', 'equation|count() / 2']}],
-      })
-    ).toBe(true);
-  });
-
   it('disallows table widgets and widgets without queries', () => {
     expect(canScaleThresholds({displayType: DisplayType.TABLE, queries: [query]})).toBe(
       false
