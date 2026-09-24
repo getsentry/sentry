@@ -84,7 +84,8 @@ const ResultsChart = memo(
             ? AreaChart
             : undefined;
     const interval =
-      display === DisplayModes.BAR
+      eventView.interval ??
+      (display === DisplayModes.BAR
         ? getInterval(
             {
               start,
@@ -94,7 +95,7 @@ const ResultsChart = memo(
             },
             'low'
           )
-        : eventView.interval;
+        : undefined);
 
     const seriesLabels = yAxisValue.map(stripEquationPrefix);
     const disableableSeries = [
