@@ -76,9 +76,6 @@ export function BrowserOSIcons({
   );
 }
 
-// The tooltip is portalled into the replay video panel, so its overlay can only
-// shrink-to-fit the space left of that panel's edge. Sizing the list to its own
-// content makes the overlay grow to match instead of clipping the versions.
 const ContentWidthDescriptionList = styled(DescriptionList)`
   width: max-content;
 `;

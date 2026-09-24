@@ -2,16 +2,19 @@ import {Fragment} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
+
 type Props = {
   keyName: React.ReactNode;
   value: React.ReactNode;
   type?: undefined | 'error' | 'warning';
 };
 
-export const KeyValueTable = styled('dl')<{margin?: boolean}>`
-  display: grid;
+export const KeyValueTable = styled(DescriptionList)<{margin?: boolean}>`
   grid-template-columns: 50% 50%;
-  ${p => (p.margin ? null : 'margin-bottom: 0;')}
+  gap: 0;
+  align-items: stretch;
+  ${p => (p.margin ? 'margin-bottom: 20px;' : null)}
 `;
 
 export function KeyValueTableRow({keyName, value, type}: Props) {
@@ -46,15 +49,13 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
   }
 `;
 
-const Key = styled('dt')<{type: Props['type']}>`
+const Key = styled(DescriptionList.Term)<{type: Props['type']}>`
   ${commonStyles};
   display: flex;
   align-items: center;
-  color: ${p => p.theme.tokens.content.primary};
 `;
 
-const Value = styled('dd')<{type: Props['type']}>`
+const Value = styled(DescriptionList.Details)<{type: Props['type']}>`
   ${commonStyles};
-  color: ${p => p.theme.tokens.content.secondary};
   text-align: right;
 `;

@@ -1,22 +1,16 @@
 import styled from '@emotion/styled';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
+
 type Props = {
   maxLabelSize?: number;
 };
 
-export const DetailList = styled('dl')<Props>`
-  display: grid;
+export const DetailList = styled(DescriptionList)<Props>`
   gap: ${p => p.theme.space.md};
   grid-template-columns:
     minmax(${p => (p.maxLabelSize ? `${p.maxLabelSize}px` : '110px')}, max-content)
     minmax(0, 1fr);
-  margin-bottom: 0;
-
-  dt,
-  dd {
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
 
   /* Stack labels above values on small screens so long values and labels
      don't force horizontal overflow. */

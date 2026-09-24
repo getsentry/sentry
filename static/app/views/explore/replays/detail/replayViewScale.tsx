@@ -41,9 +41,6 @@ export function ReplayViewScale({isLoading}: Props) {
   );
 }
 
-// The tooltip is portalled into the replay video panel, so its overlay can only
-// shrink-to-fit the space left of that panel's edge. Sizing the list to its own
-// content makes the overlay grow to match instead of clipping the dimensions.
 const ContentWidthDescriptionList = styled(DescriptionList)`
   width: max-content;
 `;
