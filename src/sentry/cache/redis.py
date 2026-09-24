@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.exceptions import MissingTTL
 from sentry.utils import json
 from sentry.utils.redis import get_cluster_from_options, get_cluster_routing_client, redis_clusters
@@ -58,15 +60,30 @@ class CommonRedisCache(BaseCache):
         return result
 
 
+def _get_clients(options: dict[str, Any]) -> tuple[Any, Any, dict[str, Any]]:
+    if "hosts" not in options:
+        cluster_id = options.get("cluster", "default")
+        try:
+            client = redis_clusters.get(cluster_id)
+            raw_client = redis_clusters.get_binary(cluster_id)
+        except KeyError:
+            pass
+        else:
+            return client, raw_client, {k: v for k, v in options.items() if k != "cluster"}
+
+    cluster, options = get_cluster_from_options("SENTRY_CACHE_OPTIONS", options)
+    rb_client = get_cluster_routing_client(cluster, False)
+    # XXX: rb does not have a "raw" client -- use the default client
+    return rb_client, rb_client, options
+
+
 class RbCache(CommonRedisCache):
     def __init__(self, **options: object) -> None:
-        cluster, options = get_cluster_from_options("SENTRY_CACHE_OPTIONS", options)
-        client = get_cluster_routing_client(cluster, False)
-        # XXX: rb does not have a "raw" client -- use the default client
-        super().__init__(client=client, raw_client=client, **options)
+        client, raw_client, options = _get_clients(options)
+        super().__init__(client=client, raw_client=raw_client, **options)
 
 
-# Confusing legacy name for RbCache.  We don't actually have a pure redis cache
+# Legacy name for RbCache. Deploy configs refer to it by string.
 RedisCache = RbCache
 
 
