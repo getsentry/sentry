@@ -23,7 +23,6 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.notifications.platform.shadow.capture import shadow_read
 from sentry.notifications.platform.types import NotificationSource
 from sentry.notifications.types import (
@@ -41,7 +40,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.types.activity import ActivityType
-from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector, Workflow
+from sentry.workflow_engine.models import Action, Detector, Workflow
 from sentry.workflow_engine.types import (
     ActionInvocation,
     WorkflowEventData,
@@ -243,38 +242,20 @@ class BaseIssueAlertHandler(ABC):
     ) -> NotificationOrigin:
         environment_id = event_data.workflow_env.id if event_data.workflow_env else None
         label = detector.name
-        legacy_rule_id = None
+        is_test = workflow_id == TEST_NOTIFICATION_ID
 
-        if workflow_id != TEST_NOTIFICATION_ID:
+        if not is_test:
             try:
                 workflow = Workflow.objects.get(id=workflow_id)
                 label = workflow.name
             except Workflow.DoesNotExist:
                 pass
 
-            alert_rule_workflow = AlertRuleWorkflow.objects.filter(
-                workflow_id=workflow_id,
-                rule_id__isnull=False,
-            ).first()
-            if alert_rule_workflow:
-                if Rule.objects.filter(
-                    id=alert_rule_workflow.rule_id,
-                    project__organization_id=detector.linked_project.organization_id,
-                ).exists():
-                    legacy_rule_id = alert_rule_workflow.rule_id
-                else:
-                    logger.error(
-                        "Rule not found when querying for AlertRuleWorkflow",
-                        extra={"rule_id": alert_rule_workflow.rule_id},
-                    )
-
         return NotificationOrigin(
             label=label,
             environment_id=environment_id,
-            workflow_id=None if workflow_id == TEST_NOTIFICATION_ID else workflow_id,
-            legacy_rule_id=(
-                TEST_NOTIFICATION_ID if workflow_id == TEST_NOTIFICATION_ID else legacy_rule_id
-            ),
+            workflow_id=None if is_test else workflow_id,
+            legacy_rule_id=TEST_NOTIFICATION_ID if is_test else None,
         )
 
     @staticmethod
