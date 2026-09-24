@@ -1,6 +1,7 @@
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
+import pytest
 from scm.errors import ResourceNotFound
 
 from sentry.models.pullrequest import PullRequest
@@ -15,6 +16,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 from sentry.seer.autofix.pr_iteration.listeners.review import (
     handle_pull_request_review_for_autofix_iteration,
 )
+from sentry.seer.models import SeerUnavailableError
 from sentry.tasks.seer.pr_iteration import _REVIEW_PAGE_SIZE, trigger_pr_iteration_from_review
 from sentry.testutils.cases import TestCase
 
@@ -676,6 +678,14 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_actions.get_review_comments.assert_not_called()
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
+
+    def test_seer_unavailable_fails_the_task_so_it_is_retried(self) -> None:
+        self.mock_get_state.side_effect = SeerUnavailableError("Seer request failed", 503)
+
+        with pytest.raises(SeerUnavailableError):
+            self._run()
+
+        self.mock_enqueue.assert_not_called()
 
     def test_skips_bot_review_when_automated_streak_capped(self) -> None:
         # A bot review past the automated-iteration streak cap is dropped before

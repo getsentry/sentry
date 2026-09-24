@@ -1752,6 +1752,9 @@ def _trigger_pr_iteration_from_review(
 
     try:
         agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
+    except SeerUnavailableError:
+        # Seer is down: fail the task so its retry policy tries again later.
+        raise
     except SeerApiError as e:
         logger.warning(
             "autofix.pr_iteration.review_trigger.seer_api_error",
