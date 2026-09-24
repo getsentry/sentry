@@ -7,6 +7,7 @@ import responses
 from django.urls import reverse
 from rest_framework.serializers import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -400,4 +401,26 @@ class OpsgenieApiPipelineTest(APITestCase):
         assert integration.metadata == {
             "base_url": "https://api.atlassian.com/jsm/ops/integration/",
             "domain_name": "cool-name.atlassian.net",
+        }
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_reinstall_ignores_pending_deletion_when_refreshing_global_data(self) -> None:
+        self._install()
+        integration = Integration.objects.get(provider="opsgenie", external_id="cool-name")
+        org_integration = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+        org_integration.update(status=ObjectStatus.PENDING_DELETION)
+
+        self._install(base_url="https://api.eu.opsgenie.com/", api_key="replacement-key")
+
+        integration.refresh_from_db()
+        assert integration.metadata == {
+            "base_url": "https://api.eu.opsgenie.com/",
+            "domain_name": "cool-name.app.eu.opsgenie.com",
         }

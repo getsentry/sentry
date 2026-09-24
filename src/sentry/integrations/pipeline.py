@@ -258,6 +258,7 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
                     not OrganizationIntegration.objects.filter(
                         integration__provider=self.provider.integration_key,
                         integration__external_id=data["external_id"],
+                        status=ObjectStatus.ACTIVE,
                     )
                     .exclude(organization_id=self.organization.id)
                     .exists()
