@@ -7,6 +7,7 @@ import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {Form} from 'sentry/components/forms/form';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
 import type {Subscription} from 'getsentry/types';
@@ -151,7 +152,15 @@ function UpdateRetentionSettingsModal({
       closeModal();
       onSuccess();
     } catch (e) {
-      addErrorMessage(e?.responseJSON?.detail || 'Failed to update retention settings.');
+      const err = e instanceof RequestError ? e : undefined;
+      const detail = err?.responseJSON?.detail;
+      const message =
+        typeof detail === 'string'
+          ? detail
+          : typeof detail === 'object' && detail?.message
+            ? detail.message
+            : 'Failed to update retention settings.';
+      addErrorMessage(message);
     }
   };
 
