@@ -1,0 +1,37 @@
+name: Scraps package
+
+on:
+  pull_request:
+    paths:
+      - 'packages/scraps/**'
+      - 'static/app/components/core/**'
+      - 'static/app/utils/theme/scraps/**'
+      - 'static/app/utils/theme/types.tsx'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/scraps-package.yml'
+  push:
+    branches:
+      - master
+      - 'scraps-releases/**'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: scraps-package-verify
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: ./.github/actions/setup-node-pnpm
+      - run: pnpm --dir packages/scraps verify
+      - name: Pack release artifact
+        if: startsWith(github.ref, 'refs/heads/scraps-releases/')
+        working-directory: packages/scraps
+        run: mkdir -p .artifacts && npm pack --pack-destination .artifacts
+      - name: Upload release artifact
+        if: startsWith(github.ref, 'refs/heads/scraps-releases/')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scraps-tarball
+          path: packages/scraps/.artifacts/*.tgz
+          if-no-files-found: error
