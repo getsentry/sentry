@@ -262,6 +262,11 @@ interface TooltipGridProps {
    * @default false
    */
   nowrap?: boolean;
+  /**
+   * Only for a `dl` section: how its terms are set against their details.
+   * @default 'muted'
+   */
+  terms?: DescriptionListProps['terms'];
 }
 
 /**
@@ -278,6 +283,7 @@ function TooltipGrid({
   gap,
   align,
   nowrap,
+  terms,
   dl = false,
 }: TooltipGridProps) {
   if (dl) {
@@ -288,6 +294,7 @@ function TooltipGrid({
           gap={gap}
           align={align}
           nowrap={nowrap}
+          terms={terms}
           data-tooltip-section
         >
           {children}

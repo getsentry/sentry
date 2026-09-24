@@ -33,6 +33,18 @@ export interface DescriptionListProps extends React.HTMLAttributes<HTMLDListElem
    */
   nowrap?: boolean;
   ref?: React.Ref<HTMLDListElement>;
+  /**
+   * How terms are set against their details.
+   *
+   * - `muted` sets them in the secondary color at a regular weight, so the
+   *   details are what the eye lands on.
+   * - `strong` sets them in the primary color and bold, which is what a bare
+   *   `dt` inherits from the global rule in base.less. Lists that already read
+   *   that way keep it rather than being restyled.
+   *
+   * @default 'muted'
+   */
+  terms?: 'muted' | 'strong';
 }
 
 const List = styled('dl', {
@@ -41,6 +53,7 @@ const List = styled('dl', {
     prop !== 'nowrap' &&
     prop !== 'columns' &&
     prop !== 'align' &&
+    prop !== 'terms' &&
     isPropValid(prop),
 })<DescriptionListProps>`
   display: grid;
@@ -54,6 +67,21 @@ const List = styled('dl', {
     css`
       width: max-content;
       white-space: nowrap;
+    `}
+
+  /*
+   * Selects on the element so it beats Term's own class without every term
+   * restating it. 700 is not a scraps weight -- it is what these lists already
+   * inherit from the global dt rule in base.less, restated here because Term
+   * overrides that with the regular weight.
+   */
+  ${p =>
+    p.terms === 'strong' &&
+    css`
+      > dt {
+        color: ${p.theme.tokens.content.primary};
+        font-weight: 700;
+      }
     `}
 `;
 

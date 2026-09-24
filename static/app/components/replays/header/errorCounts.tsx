@@ -61,7 +61,7 @@ export function ErrorCounts({replayErrors}: Props) {
           <Tooltip
             key={projectSlug}
             title={
-              <Tooltip.Grid dl gap="md 2xl" nowrap>
+              <Tooltip.Grid dl gap="md 2xl" nowrap terms="strong">
                 <DescriptionList.Term>{projectSlug}</DescriptionList.Term>
                 <DescriptionList.Details>
                   {Object.entries(counts)
@@ -93,7 +93,7 @@ export function ErrorCounts({replayErrors}: Props) {
   return (
     <Tooltip
       title={
-        <Tooltip.Grid dl gap="md 2xl" nowrap>
+        <Tooltip.Grid dl gap="md 2xl" nowrap terms="strong">
           {Object.entries(countsPerProject).map(([projectSlug, counts]) => (
             <Fragment key={projectSlug}>
               <DescriptionList.Term>{projectSlug}</DescriptionList.Term>

@@ -24,7 +24,7 @@ function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
   const isUTCLocalTimezone = currentTimezone === 'UTC';
 
   return (
-    <Tooltip.Grid dl>
+    <Tooltip.Grid dl terms="strong">
       <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
       <DescriptionList.Details>
         <TimestampValues>

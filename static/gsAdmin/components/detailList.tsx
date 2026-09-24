@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {DescriptionList, type DescriptionListProps} from '@sentry/scraps/descriptionList';
 
 type Props = {
   maxLabelSize?: number;
 };
 
-export const DetailList = styled(DescriptionList)<Props>`
+const StyledDetailList = styled(DescriptionList)<Props>`
   gap: ${p => p.theme.space.md};
   grid-template-columns:
     minmax(${p => (p.maxLabelSize ? `${p.maxLabelSize}px` : '110px')}, max-content)
@@ -27,3 +27,7 @@ export const DetailList = styled(DescriptionList)<Props>`
     }
   }
 `;
+
+export function DetailList({terms = 'strong', ...props}: Props & DescriptionListProps) {
+  return <StyledDetailList terms={terms} {...props} />;
+}

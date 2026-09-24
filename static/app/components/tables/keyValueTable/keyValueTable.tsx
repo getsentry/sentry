@@ -55,6 +55,7 @@ const Key = styled(DescriptionList.Term, {
   ${commonStyles};
   display: flex;
   align-items: center;
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Value = styled(DescriptionList.Details, {
@@ -62,4 +63,5 @@ const Value = styled(DescriptionList.Details, {
 })<{type: Props['type']}>`
   ${commonStyles};
   text-align: right;
+  color: ${p => p.theme.tokens.content.secondary};
 `;

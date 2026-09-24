@@ -36,7 +36,7 @@ export function BrowserOSIcons({
   return (
     <Tooltip
       title={
-        <Tooltip.Grid dl gap="md 2xl" nowrap>
+        <Tooltip.Grid dl gap="md 2xl" nowrap terms="strong">
           {showBrowser && (
             <Fragment>
               <DescriptionList.Term>{t('Browser')}</DescriptionList.Term>

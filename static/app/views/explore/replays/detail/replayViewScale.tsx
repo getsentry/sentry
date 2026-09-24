@@ -24,7 +24,7 @@ export function ReplayViewScale({isLoading}: Props) {
     <Tooltip
       skipWrapper
       title={
-        <Tooltip.Grid dl gap="md 2xl" nowrap>
+        <Tooltip.Grid dl gap="md 2xl" nowrap terms="strong">
           <DescriptionList.Term>{t('Original size')}</DescriptionList.Term>
           <DescriptionList.Details>
             {dimensions.width} &times; {dimensions.height}
