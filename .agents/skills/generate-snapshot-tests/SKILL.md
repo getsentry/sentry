@@ -1,352 +1,125 @@
 ---
 name: generate-snapshot-tests
-description: Generate snapshot test files for Sentry frontend React components. Use when asked to "generate snapshot tests", "add snapshot tests", "create visual snapshots", "write snapshot tests", "add visual regression tests", or "snapshot this component". Accepts an optional component path or name via $ARGUMENTS.
+description: Generate or update Sentry visual snapshot tests (`*.snapshots.tsx`). Use when asked to snapshot a React component, add visual regression coverage, cover responsive or feature-flagged rendering, or capture hover and active states.
 type: workflow-process
 ---
 
 # Generate Snapshot Tests
 
-Generate a `*.snapshots.tsx` file colocated with a Sentry React component, following the established pattern used by core design system components.
+Create a colocated `<component>.snapshots.tsx` that captures meaningful visual behavior with the snapshot framework already installed by `jest.config.snapshots.ts`.
 
-## Step 1: Locate the Component
+## Workflow
 
-If `$ARGUMENTS` is provided, treat it as a path or component name. Otherwise ask the user which component to snapshot.
+1. Read the component, its props, nearby tests/stories, and representative `*.snapshots.tsx` files. Identify what users see: default content, named states, visual prop variants, responsive changes, feature-gated output, and pointer feedback.
+2. Choose a small set of named scenarios. Prefer names such as `empty`, `loading`, `with long title`, and `disabled checked` over implementation details.
+3. Render real component behavior. Use fixtures and no-op required handlers; add only the providers or mocks the component actually needs under SSR.
+4. Write `it.snapshot` cases and use `it.snapshot.each` for one visual prop/state dimension. Do not create manual light/dark loops: every logical case automatically runs in both themes.
+5. Run `pnpm run snapshots path/to/component.snapshots.tsx` and the relevant JS lint/format checks. Inspect generated images when available; a passing render does not prove that the scenarios are useful.
 
-Search strategies:
-
-```
-static/app/components/core/<name>/<name>.tsx
-static/app/components/core/<name>/index.tsx
-static/app/components/<name>.tsx
-static/app/components/<name>/index.tsx
-```
-
-Use Glob or Grep to find the file if the exact path is unknown.
-
-Read the component source file to understand:
-
-- The component's name and its exported `Props` / `<ComponentName>Props` type
-- Union types and enum-like string literals on props (e.g., `variant`, `priority`, `size`)
-- Boolean toggle props (e.g., `disabled`, `checked`, `busy`)
-- Whether the component is interactive (needs `onChange={() => {}}` or similar no-op handlers)
-
-## Step 2: Determine the Import Path
-
-| Condition                                                                                       | Import style                                                                                                                                                                                                                          |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Component lives under `static/app/components/core/` AND is published as `@sentry/scraps/<name>` | `import {ComponentName, type ComponentNameProps} from '@sentry/scraps/<name>';`                                                                                                                                                       |
-| Component lives under `static/app/components/core/` but is NOT in `@sentry/scraps`              | `// eslint-disable-next-line @sentry/scraps/no-core-import -- SSR snapshot needs direct import to avoid barrel re-exports with heavy deps`<br>`import {ComponentName, type ComponentNameProps} from 'sentry/components/core/<path>';` |
-| All other components                                                                            | `import {ComponentName, type ComponentNameProps} from 'sentry/components/<path>';`                                                                                                                                                    |
-
-To check if a component is in `@sentry/scraps`, look for an existing import using `@sentry/scraps/<name>` in neighboring files, or check if other snapshot files in the same directory use `@sentry/scraps`.
-
-## Step 3: Identify Props to Snapshot
-
-Read the TypeScript props and classify them:
-
-| Prop type                                                 | Action                                       |
-| --------------------------------------------------------- | -------------------------------------------- |
-| Union of string literals (`'sm' \| 'md' \| 'lg'`)         | Snapshot each value with `it.snapshot.each`  |
-| Boolean toggle with visual impact (`disabled`, `checked`) | Snapshot `true` and `false` states           |
-| Boolean flag with no visual test value                    | Skip or add a single named snapshot          |
-| `children` / `className` / `style` / event handlers       | Skip — not visually interesting on their own |
-
-Prioritize props that change the component's visual appearance substantially. For interactive components (inputs, toggles), always include disabled/checked states.
-
-## Step 4: Write the Snapshot File
-
-Name the output file `<component-name>.snapshots.tsx`, colocated with the component source file.
-
-### Required imports (always include)
+## Current API
 
 ```tsx
-import {ThemeProvider} from '@emotion/react';
-
-import {ComponentName, type ComponentNameProps} from '@sentry/scraps/<name>'; // or appropriate path
-
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
-
-const themes = {light: lightTheme, dark: darkTheme};
-```
-
-### Core structure
-
-Always wrap in light/dark theme loop:
-
-```tsx
-describe('ComponentName', () => {
-  describe.each(['light', 'dark'] as const)('%s', themeName => {
-    // ... snapshot cases here
-  });
+it.snapshot('scenario name', context => <Component />, {
+  containers: ['xs', '3xl'],
+  features: ['feature-name'],
+  interaction: {
+    state: 'hover',
+    target: snapshotLocator.role('button', 'Save'),
+  },
 });
 ```
 
-### `it.snapshot.each` — for union prop variants
+- The render callback may ignore `context` or use `{theme, container, containerWidth, features}` when rendering truly differs by scenario.
+- Light and dark themes are automatic.
+- The default container is `3xl` (1024 px). Omit `containers` unless container-query behavior changes. When it does, list the smallest meaningful boundary set, such as `['xs', '3xl']`, rather than every size.
+- The framework adds an 8 px capture gutter. Render the component directly; do not add a padding wrapper to protect shadows, outlines, or focus rings.
+- `features` becomes the fixture organization's exact, sorted feature set. Use exact production flag names. Omit it for no features; write separately named off/on cases only when both outputs matter.
+- Use `viewport` only for behavior driven by the browser viewport. Do not use a viewport or a width wrapper to imitate container-query breakpoints.
+- Interaction targets must resolve to exactly one element inside the snapshot root. Prefer semantic `snapshotLocator.role`, `label`, or `text`; these are exact by default. Name hover and active cases separately.
+- Framework metadata for theme, container, features, and interaction is automatic. Add `tags` only when the owning area already relies on them, not to identify the scenario.
 
-Use when iterating over multiple values of a single prop:
-
-```tsx
-it.snapshot.each<ComponentProps['variant']>(['info', 'warning', 'success', 'danger'])(
-  '%s',
-  variant => (
-    <ThemeProvider theme={themes[themeName]}>
-      <div style={{padding: 8}}>
-        <Component variant={variant}>Label</Component>
-      </div>
-    </ThemeProvider>
-  ),
-  variant => ({theme: themeName, variant: String(variant)})
-);
-```
-
-The third argument to `it.snapshot.each` is the metadata function — include all props that vary in the snapshot. This metadata is used for snapshot naming and diffing.
-
-### `it.snapshot` — for single named snapshots
-
-Use for one-off states (disabled, checked combinations, etc.):
+## Happy Path
 
 ```tsx
-it.snapshot('disabled-unchecked', () => (
-  <ThemeProvider theme={themes[themeName]}>
-    <div style={{padding: 8}}>
-      <Component disabled onChange={() => {}} />
-    </div>
-  </ThemeProvider>
-));
-```
+import {Alert, type AlertProps} from '@sentry/scraps/alert';
 
-Pass metadata as a third argument when it adds useful snapshot context:
-
-```tsx
-it.snapshot(
-  'bold',
-  () => (
-    <ThemeProvider theme={themes[themeName]}>
-      <div style={{padding: 8}}>
-        <Component bold>Bold text</Component>
-      </div>
-    </ThemeProvider>
-  ),
-  {theme: themeName}
-);
-```
-
-### Sizing the container
-
-Match container sizing to what makes the component readable:
-
-| Situation                      | Wrapper                                  |
-| ------------------------------ | ---------------------------------------- |
-| Default                        | `<div style={{padding: 8}}>`             |
-| Width-sensitive (alerts, text) | `<div style={{padding: 8, width: 400}}>` |
-| Narrow (icons, small controls) | `<div style={{padding: 8}}>`             |
-
-### Interactive components
-
-For components that require event handlers (inputs, checkboxes, radios, switches), pass no-op handlers to satisfy required props:
-
-```tsx
-<Component onChange={() => {}} />
-<Component checked onChange={() => {}} />
-```
-
-## Step 5: Ordering snapshots within the theme loop
-
-Order cases from most impactful to least:
-
-1. Primary variant/priority prop (the most visible visual differentiator)
-2. Secondary variant props
-3. Size variants
-4. State combinations (disabled+unchecked, disabled+checked)
-5. Boolean modifiers (bold, italic, etc.)
-6. Edge cases and combined props
-
-## Examples
-
-### Simple variant component (Button-style)
-
-```tsx
-import {ThemeProvider} from '@emotion/react';
-
-import {Button, type ButtonProps} from '@sentry/scraps/button';
-
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
-
-const themes = {light: lightTheme, dark: darkTheme};
-
-describe('Button', () => {
-  describe.each(['light', 'dark'] as const)('%s', themeName => {
-    it.snapshot.each<ButtonProps['priority']>([
-      'default',
-      'primary',
-      'danger',
-      'warning',
-      'link',
-      'transparent',
-    ])(
-      '%s',
-      priority => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8}}>
-            <Button priority={priority}>{priority}</Button>
-          </div>
-        </ThemeProvider>
-      ),
-      priority => ({theme: themeName, priority: String(priority)})
-    );
-  });
-});
-```
-
-### Interactive component with state combinations (Switch-style)
-
-```tsx
-import {ThemeProvider} from '@emotion/react';
-
-import {Switch, type SwitchProps} from '@sentry/scraps/switch';
-
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
-
-const themes = {light: lightTheme, dark: darkTheme};
-
-describe('Switch', () => {
-  describe.each(['light', 'dark'] as const)('theme-%s', themeName => {
-    it.snapshot.each<SwitchProps['size']>(['sm', 'lg'])('size-%s-unchecked', size => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Switch size={size} onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
-
-    it.snapshot.each<SwitchProps['size']>(['sm', 'lg'])('size-%s-checked', size => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Switch checked size={size} onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
-
-    it.snapshot('disabled-unchecked', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Switch disabled onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
-
-    it.snapshot('disabled-checked', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Switch checked disabled onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
-  });
-});
-```
-
-### Component with multiple independent variant props (Alert-style)
-
-When a component has multiple meaningful boolean or variant props that combine independently, add separate `it.snapshot.each` blocks per combination:
-
-```tsx
 describe('Alert', () => {
-  describe.each(['light', 'dark'] as const)('%s', themeName => {
-    // Primary variants
-    it.snapshot.each<AlertProps['variant']>([
-      'info',
-      'warning',
-      'success',
-      'danger',
-      'muted',
-    ])(
-      '%s',
-      variant => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8, width: 400}}>
-            <Alert variant={variant}>This is a {variant} alert</Alert>
-          </div>
-        </ThemeProvider>
-      ),
-      variant => ({theme: themeName, variant: String(variant)})
-    );
-
-    // Modifier combination: same variants but with showIcon={false}
-    it.snapshot.each<AlertProps['variant']>([
-      'info',
-      'warning',
-      'success',
-      'danger',
-      'muted',
-    ])(
-      '%s-no-icon',
-      variant => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8, width: 400}}>
-            <Alert variant={variant} showIcon={false}>
-              This is a {variant} alert without icon
-            </Alert>
-          </div>
-        </ThemeProvider>
-      ),
-      variant => ({theme: themeName, variant: String(variant), showIcon: 'false'})
-    );
-  });
+  it.snapshot.each<AlertProps['variant']>(['info', 'warning', 'success', 'danger'])(
+    '%s',
+    variant => <Alert variant={variant}>Deployment status</Alert>
+  );
 });
 ```
 
-## Anti-Patterns
+Use `.each` for a finite prop dimension. Do not produce a Cartesian product unless each combination represents a distinct visual contract.
+
+## Context, Responsive, And Interaction
 
 ```tsx
-// ❌ Don't import theme from the barrel re-export
-import {theme} from 'sentry/utils/theme';
+import {MemoryRouter} from 'react-router-dom';
 
-// ✅ Import directly and suppress the lint warning
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+import {snapshotLocator} from 'sentry-test/snapshots/snapshotLocator';
+
+describe('ProjectActions', () => {
+  it.snapshot(
+    'responsive with replay enabled',
+    ({container}) => (
+      <MemoryRouter>
+        <ProjectActions compact={container === 'xs'} />
+      </MemoryRouter>
+    ),
+    {containers: ['xs', '3xl'], features: ['session-replay']}
+  );
+
+  it.snapshot.each(['hover', 'active'] as const)(
+    'save %s',
+    () => (
+      <MemoryRouter>
+        <ProjectActions />
+      </MemoryRouter>
+    ),
+    state => ({
+      features: ['session-replay'],
+      interaction: {
+        state,
+        target: snapshotLocator.role('button', 'Save'),
+      },
+    })
+  );
+});
 ```
+
+Theme and `OrganizationContext` are already provided. Add `MemoryRouter` or another real provider only when the component consumes that context. Prefer a provider over mocking its public behavior.
+
+## SSR Boundary
+
+Snapshots call `renderToString`, load that static HTML in Playwright, and do not hydrate it.
+
+- Effects, ref callbacks, event handlers, client-side state transitions, lazy browser measurements, and hydration-only content do not run.
+- Hover and active interactions apply CSS pointer states to the server-rendered DOM; they do not click handlers or update React state.
+- There is no `document` during render. Portals cannot render normally; Tooltip is mocked globally.
+- Global shims cover a small `window`, storage, media, and `CSS.escape` surface. If another browser-only dependency crashes, mock only that boundary with stable visible output. Do not mock the component behavior being tested.
+- Use the smallest deterministic mock for data hooks, clocks, charts, or browser APIs. If the component cannot produce its meaningful UI without hydration, use a regular browser/component test instead of forcing a snapshot.
+
+## Anti-Pattern Correction
 
 ```tsx
-// ❌ Don't omit the metadata argument — snapshot names become ambiguous
-it.snapshot.each<Props['variant']>(['a', 'b'])('%s', variant => (
-  <Component variant={variant} />
-));
+// Wrong: duplicate tests per theme, manual capture padding, a fixed-width
+// wrapper standing in for a container scenario, and a generated class target.
 
-// ✅ Include metadata that reflects all varying props
-it.snapshot.each<Props['variant']>(['a', 'b'])(
-  '%s',
-  variant => <Component variant={variant} />,
-  variant => ({theme: themeName, variant: String(variant)})
-);
+// Right: one logical test expands across themes and targets stable semantics.
+it.snapshot('compact save hover', () => <ProjectActions />, {
+  containers: ['xs'],
+  interaction: {
+    state: 'hover',
+    target: snapshotLocator.role('button', 'Save'),
+  },
+});
 ```
 
-```tsx
-// ❌ Don't snapshot implementation-detail props like className or style
-it.snapshot('custom-class', () => <Component className="foo" />);
-```
+## Finish
 
-```tsx
-// ❌ Don't use @sentry/scraps barrel import for components not in the scraps package
-import {Badge} from '@sentry/scraps/badge'; // if Badge isn't published there
-
-// ✅ Use the direct path with the no-core-import suppression comment
-// eslint-disable-next-line @sentry/scraps/no-core-import -- SSR snapshot needs direct import to avoid barrel re-exports with heavy deps
-import {Badge} from 'sentry/components/core/badge/badge';
-```
-
-## Checklist
-
-Before finishing:
-
-- [ ] File is named `<component-name>.snapshots.tsx` and colocated with the component
-- [ ] Both `light` and `dark` themes are covered via `describe.each`
-- [ ] All primary variant/priority props are snapshotted
-- [ ] Interactive components include disabled and checked/unchecked states
-- [ ] `no-restricted-imports` ESLint suppression comment is present on the theme import
-- [ ] Metadata argument is provided to `it.snapshot.each` calls
-- [ ] No-op handlers (`onChange={() => {}}`) provided for required event props
-- [ ] Import path uses `@sentry/scraps/<name>` if available, otherwise the direct `sentry/components/...` path with the `no-core-import` suppression
+- Keep the file colocated and focused on visual contracts, not exhaustive prop permutations.
+- Use the component's supported import path; follow neighboring suppressions for unpublished core imports.
+- Confirm scenario names and semantic locators are stable and unique.
+- Confirm mocks are SSR-specific, deterministic, and minimal.
