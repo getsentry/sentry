@@ -27,6 +27,7 @@ Log names are passed full and literal so production names grep directly here.
 from __future__ import annotations
 
 import logging
+import sys
 from enum import Enum
 from typing import Any, TypedDict
 
@@ -35,6 +36,7 @@ from sentry.seer.autofix.pr_iteration.current_iteration import (
     triggered_iteration_id,
     untriggered_iteration_id,
 )
+from sentry.seer.autofix.pr_iteration.errors import raised_pr_iteration_error
 
 
 class LogCtxIteration(Enum):
@@ -158,8 +160,15 @@ class PrIterationLogContext:
 
         Error not warning so every broken iteration is one query for errors under
         ``autofix.pr_iteration`` rather than a list of names known in advance.
+
+        When there is no exception being handled, a ``PrIterationError`` named
+        after the log line is attached instead, so the Sentry event still has a
+        stack trace for a ``stack.module:*pr_iteration*`` search to find.
         """
-        self._logger.error(name, extra={**self._identity, **fields}, exc_info=exc_info)
+        reported: bool | BaseException = exc_info
+        if not exc_info or sys.exc_info()[1] is None:
+            reported = raised_pr_iteration_error(name)
+        self._logger.error(name, extra={**self._identity, **fields}, exc_info=reported)
 
 
 def _iteration_id(
