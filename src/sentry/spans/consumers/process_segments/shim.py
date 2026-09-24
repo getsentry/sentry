@@ -66,6 +66,11 @@ GEO_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.USER_GEO_SUBDIVISION: "subdivision",
 }
 
+SDK_FIELDS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.SENTRY_SDK_NAME: "name",
+    ATTRIBUTE_NAMES.SENTRY_SDK_VERSION: "version",
+}
+
 SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_NORMALIZED_DESCRIPTION: "description",
     ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT: "environment",
@@ -80,6 +85,7 @@ KNOWN_NON_TAG_ATTRIBUTES = frozenset().union(
     TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     USER_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     GEO_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    SDK_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     *(inner_dict.keys() for inner_dict in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.values()),
 )
@@ -261,5 +267,9 @@ def build_shim_event_data(
     user_data = _get_event_user(segment_span)
     if user_data:
         event["user"] = user_data
+
+    sdk_data = _extract_attribute_values(segment_span, SDK_FIELDS_BY_ATTRIBUTE_NAME)
+    if sdk_data:
+        event["sdk"] = sdk_data
 
     return event
