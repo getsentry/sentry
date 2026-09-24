@@ -4,6 +4,7 @@ import unittest
 from collections.abc import MutableMapping
 from functools import partial
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -273,6 +274,204 @@ class StrictTrimTest(unittest.TestCase):
         # `trim` still only counts it as 1 character, making the final result way too big
         assert get_json_bytes(un_strict_trimmed) > limit * 2
         assert get_json_bytes(strict_trimmed) <= limit
+
+
+class StrictTrimAsDictEntriesTest(unittest.TestCase):
+    def test_keeps_each_pair_whole_or_drops_it_entirely(self) -> None:
+        orig = [["dog", "charlie"], ["cat", "piper"]]
+
+        smallest_valid_two_tag_result = [["dog", "charlie"], ["cat", "p..."]]
+        invalid_two_tag_result = [["dog", "charlie"], ["cat"]]
+        valid_one_tag_result = [["dog", "charlie"]]
+
+        assert get_json_bytes(smallest_valid_two_tag_result) == 34
+        assert get_json_bytes(invalid_two_tag_result) == 27
+        assert get_json_bytes(valid_one_tag_result) == 19
+
+        # At a 34-byte limit, we get that smallest valid two-tag result, but if we go one lower, the
+        # entire second tag is dropped, even though we can see from the sizes above that if we only
+        # kept the second key, it'd fit
+        assert (
+            strict_trim(orig, max_bytes=34, treat_as_dict_entries=True)
+            == smallest_valid_two_tag_result
+        )
+        assert strict_trim(orig, max_bytes=33, treat_as_dict_entries=True) == valid_one_tag_result
+        # Without the option, we can see that we would in fact get that invalid result
+        assert strict_trim(orig, max_bytes=33) == invalid_two_tag_result
+
+    def test_never_truncates_pair_keys(self) -> None:
+        orig = [
+            ["dog", "maisey"],
+            [
+                "very_long_key_with_lots_of_characters_in_it_btw_dogs_are_great",
+                "adopt don't shop",
+            ],
+        ]
+
+        smallest_valid_two_tag_result = [
+            ["dog", "maisey"],
+            [
+                "very_long_key_with_lots_of_characters_in_it_btw_dogs_are_great",
+                "a...",
+            ],
+        ]
+        invalid_two_tag_result_full_key = [
+            ["dog", "maisey"],
+            ["very_long_key_with_lots_of_characters_in_it_btw_dogs_are_great"],
+        ]
+        invalid_two_tag_result_trimmed_key = [["dog", "maisey"], ["very_lo..."]]
+        valid_one_tag_result = [["dog", "maisey"]]
+
+        assert get_json_bytes(orig) == 104
+        assert get_json_bytes(smallest_valid_two_tag_result) == 92
+        assert get_json_bytes(invalid_two_tag_result_full_key) == 85
+        assert get_json_bytes(invalid_two_tag_result_trimmed_key) == 33
+        assert get_json_bytes(valid_one_tag_result) == 18
+
+        # With a 92-byte limit, the option doesn't change the result
+        assert (
+            strict_trim(orig, max_bytes=92, treat_as_dict_entries=True)
+            == smallest_valid_two_tag_result
+        )
+        assert strict_trim(orig, max_bytes=92) == smallest_valid_two_tag_result
+
+        # But with lower limits, having the option set means the second tag is only included if its
+        # whole key fits alongside at least a bit of its value, whereas if it's not set, the key is
+        # either stranded without its value, or, worse, truncated into one which never existed in
+        # the original data
+        assert strict_trim(orig, max_bytes=91, treat_as_dict_entries=True) == valid_one_tag_result
+        assert strict_trim(orig, max_bytes=91) == invalid_two_tag_result_full_key
+        assert strict_trim(orig, max_bytes=33, treat_as_dict_entries=True) == valid_one_tag_result
+        assert strict_trim(orig, max_bytes=33) == invalid_two_tag_result_trimmed_key
+
+    def test_does_truncate_pair_values(self) -> None:
+        limit = 60
+        orig = [["dog", "charlie"], ["adopt_dont_shop", "shelter dogs are great"]]
+
+        trimmed = strict_trim(orig, max_bytes=limit, treat_as_dict_entries=True)
+
+        assert get_json_bytes(orig) > limit
+        assert trimmed == [["dog", "charlie"], ["adopt_dont_shop", "shelter dogs ar..."]]
+        assert get_json_bytes(trimmed) <= limit
+
+    def test_accounts_for_non_string_keys(self) -> None:
+        orig = [[4, "dogs"], [15, "are great"]]
+
+        assert get_json_bytes(orig) == 29
+
+        # Unlike in a real dictionary, a list of dictionary entries doesn't have its keys
+        # stringified, so no quotes are added when it's JSONified
+        assert strict_trim(orig, max_bytes=29, treat_as_dict_entries=True) == orig
+        assert strict_trim(orig, max_bytes=28, treat_as_dict_entries=True) == [
+            [4, "dogs"],
+            [15, "are g..."],
+        ]
+
+    def test_preserves_pair_order_and_duplicate_keys(self) -> None:
+        # Unlike in a real dictionary, a list of dictionary entries can hold the same key more than
+        # once, and has a meaningful order, both of which survive trimming, whether or not values
+        # are shortened
+        orig_maisey_first = [["dog", "maisey"], ["dog", "charlie"]]
+        orig_charlie_first = [["dog", "charlie"], ["dog", "maisey"]]
+
+        assert get_json_bytes(orig_maisey_first) == get_json_bytes(orig_charlie_first) == 36
+
+        assert (
+            strict_trim(orig_maisey_first, max_bytes=36, treat_as_dict_entries=True)
+            == orig_maisey_first
+        )
+        assert (
+            strict_trim(orig_charlie_first, max_bytes=36, treat_as_dict_entries=True)
+            == orig_charlie_first
+        )
+        assert strict_trim(orig_maisey_first, max_bytes=35, treat_as_dict_entries=True) == [
+            ["dog", "maisey"],
+            ["dog", "cha..."],
+        ]
+        assert strict_trim(orig_charlie_first, max_bytes=35, treat_as_dict_entries=True) == [
+            ["dog", "charlie"],
+            ["dog", "ma..."],
+        ]
+
+    def test_preserves_pair_type(self) -> None:
+        orig_w_lists = [["dog", "maisey"], ["cat", "piper"]]
+        orig_w_tuples = [("dog", "maisey"), ("cat", "piper")]
+
+        assert get_json_bytes(orig_w_lists) == get_json_bytes(orig_w_tuples) == 34
+
+        assert strict_trim(orig_w_lists, max_bytes=34, treat_as_dict_entries=True) == orig_w_lists
+        assert strict_trim(orig_w_tuples, max_bytes=34, treat_as_dict_entries=True) == orig_w_tuples
+        assert strict_trim(orig_w_lists, max_bytes=30, treat_as_dict_entries=True) == [
+            ["dog", "maisey"]
+        ]
+        assert strict_trim(orig_w_tuples, max_bytes=30, treat_as_dict_entries=True) == [
+            ("dog", "maisey")
+        ]
+
+    @patch("sentry.utils.safe.logger.warning")
+    def test_skips_malformed_pairs(self, mock_logger_warning: MagicMock) -> None:
+        orig = [
+            "dogs_are_great",
+            ["adopt_dont_shop"],
+            ["dog", "charlie"],
+            ["cat", "piper"],
+            ["maisey", "the", "dog"],
+        ]
+
+        assert get_json_bytes(orig) == 95
+
+        # Even though 95 bytes is enough to preserve everything, only the correctly-formatted pairs
+        # survive, and we warn about the rest
+        assert strict_trim(orig, max_bytes=95, treat_as_dict_entries=True) == [
+            ["dog", "charlie"],
+            ["cat", "piper"],
+        ]
+        mock_logger_warning.assert_called_with(
+            "`strict_trim` option `treat_as_dict_entries` used with invalid entries",
+            extra={
+                "invalid_values": ["dogs_are_great", ["adopt_dont_shop"], ["maisey", "the", "dog"]]
+            },
+        )
+
+    def test_only_applies_to_the_top_level(self) -> None:
+        # Two-item lists/tuples nested inside of a pair's value are trimmed as ordinary lists
+        orig_w_lists = [["dogs", [["best", "maisey"], ["also_best", "charlie"]]]]
+        orig_w_tuples = [["dogs", [("best", "maisey"), ("also_best", "charlie")]]]
+
+        assert get_json_bytes(orig_w_lists) == get_json_bytes(orig_w_tuples) == 54
+
+        assert strict_trim(orig_w_lists, max_bytes=45, treat_as_dict_entries=True) == [
+            ["dogs", [["best", "maisey"], ["also_best"]]]
+        ]
+        assert strict_trim(orig_w_tuples, max_bytes=45, treat_as_dict_entries=True) == [
+            ["dogs", [("best", "maisey"), ("also_best",)]]
+        ]
+
+    def test_never_exceeds_the_limit(self) -> None:
+        orig = [
+            ["dog", "charlie"],
+            ["cat", "piper"],
+            ["dogs" * 9, " ".join(["are great"] * 8)],
+            ["trick", "𝜌ll over"],
+        ]
+        orig_keys = dict(orig).keys()
+
+        assert get_json_bytes(orig) == 190
+
+        # Two is the smallest a JSONified list can be, since it always has its brackets
+        for limit in range(2, 190):
+            trimmed = strict_trim(orig, max_bytes=limit, treat_as_dict_entries=True)
+
+            assert get_json_bytes(trimmed) <= limit
+
+            # Every pair which survived did so as a pair, with its key intact (values may still have
+            # been trimmed, but never all the way down to nothing)
+            for element in trimmed:
+                assert len(element) == 2
+                key, value = element
+
+                assert key in orig_keys
+                assert value != ""
 
 
 class SafeExecuteTest(TestCase):
