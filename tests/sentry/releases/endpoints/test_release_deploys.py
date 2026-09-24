@@ -515,7 +515,9 @@ class ReleaseDeploysCreateTest(APITestCase):
         for i in range(4):
             projects.append(self.create_project(organization=self.org, name=f"proj-{i}"))
 
-        release = Release.objects.create(organization_id=self.org.id, version="v-np1", total_deploys=0)
+        release = Release.objects.create(
+            organization_id=self.org.id, version="v-np1", total_deploys=0
+        )
         for p in projects:
             release.add_project(p)
 
@@ -543,7 +545,9 @@ class ReleaseDeploysCreateTest(APITestCase):
         # All ReleaseProjectEnvironment rows must exist with the correct deploy
         deploy = Deploy.objects.get(id=response.data["id"])
         for p in projects:
-            rpe = ReleaseProjectEnvironment.objects.get(project=p, release=release, environment=environment)
+            rpe = ReleaseProjectEnvironment.objects.get(
+                project=p, release=release, environment=environment
+            )
             assert rpe.last_deploy_id == deploy.id
 
         # Query count must not scale linearly with the number of projects.
