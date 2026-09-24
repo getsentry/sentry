@@ -1,6 +1,7 @@
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
-from drf_spectacular.utils import extend_schema, inline_serializer
+from django.db.models import Count
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.paginator import OffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import (
@@ -28,6 +30,43 @@ class _ProjectRepoLinkResponse(TypedDict):
     repositoryId: str
     source: str
     created: bool
+
+
+class _ProjectRepoListItemBase(TypedDict):
+    id: str
+    projectId: str
+    repositoryId: str
+    repoName: str
+    source: str
+    providerKey: str | None
+
+
+class _ProjectRepoListItemOptional(TypedDict, total=False):
+    mappingCount: NotRequired[int]
+
+
+class _ProjectRepoListItem(_ProjectRepoListItemBase, _ProjectRepoListItemOptional):
+    pass
+
+
+def _serialize_project_repo(
+    project_repo: ProjectRepository, *, mapping_count: int | None = None
+) -> _ProjectRepoListItem:
+    repository = project_repo.repository
+    provider = repository.provider
+    provider_key = provider.removeprefix("integrations:") if provider else None
+
+    item: _ProjectRepoListItem = {
+        "id": str(project_repo.id),
+        "projectId": str(project_repo.project_id),
+        "repositoryId": str(repository.id),
+        "repoName": repository.name,
+        "source": project_repo.get_source_display(),
+        "providerKey": provider_key,
+    }
+    if mapping_count is not None:
+        item["mappingCount"] = mapping_count
+    return item
 
 
 class ProjectRepoSerializer(serializers.Serializer[ProjectRepository]):
@@ -63,9 +102,82 @@ class ProjectRepoSerializer(serializers.Serializer[ProjectRepository]):
 class ProjectRepoEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectPermission,)
+
+    @extend_schema(
+        operation_id="listProjectRepositories",
+        summary="List Repositories Linked to a Project",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            OpenApiParameter(
+                name="includeMapsCount",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "When set to `1` or `true`, each row includes a `mappingCount` field "
+                    "with the number of code path mappings for that repository. "
+                    "Omitted by default to keep the response lightweight."
+                ),
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                "ProjectRepoListResponse",
+                fields={
+                    "id": serializers.CharField(),
+                    "projectId": serializers.CharField(),
+                    "repositoryId": serializers.CharField(),
+                    "repoName": serializers.CharField(),
+                    "source": serializers.CharField(),
+                    "providerKey": serializers.CharField(allow_null=True),
+                    "mappingCount": serializers.IntegerField(required=False),
+                },
+                many=True,
+            ),
+        },
+    )
+    def get(self, request: Request, project: Project) -> Response[list[_ProjectRepoListItem]]:
+        """
+        List all repositories linked to a project.
+
+        Pass `?includeMapsCount=1` to include the number of code path mappings
+        per repository. Omitting it keeps the query cheaper for callers that
+        only need the list of connections.
+        """
+        include_maps_count = request.GET.get("includeMapsCount") == "1"
+
+        qs = (
+            ProjectRepository.objects.filter(
+                project=project,
+                repository__status=ObjectStatus.ACTIVE,
+            )
+            .select_related("repository")
+            .order_by("repository__name", "id")
+        )
+
+        if include_maps_count:
+            qs = qs.annotate(mapping_count=Count("repositoryprojectpathconfig"))
+
+        def on_results(project_repos: list[ProjectRepository]) -> list[_ProjectRepoListItem]:
+            return [
+                _serialize_project_repo(
+                    pr,
+                    mapping_count=pr.mapping_count if include_maps_count else None,  # type: ignore[attr-defined]
+                )
+                for pr in project_repos
+            ]
+
+        return self.paginate(
+            request=request,
+            queryset=qs,
+            paginator_cls=OffsetPaginator,
+            on_results=on_results,
+        )
 
     @extend_schema(
         operation_id="linkProjectRepository",
