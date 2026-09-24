@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
@@ -29,7 +29,6 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
@@ -293,7 +292,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const visibleNotebookCells = notebookCells.filter(block =>
     shouldDisplayInvestigationBlock(block)
   );
-  const sourceLinks = getSourceLinks(investigation);
+  const source = getInvestigationSource(investigation);
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -386,35 +385,19 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             </Grid>
             <Flex align="center" justify="between" gap="md" wrap="wrap">
               <Flex align="center" gap="sm" wrap="wrap">
-                <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
-                {sourceLinks.monitor ? (
-                  <Fragment>
-                    <MetaDivider />
-                    <Link
-                      to={{
-                        pathname: makeMonitorDetailsPathname(
-                          organization.slug,
-                          sourceLinks.monitor.id
-                        ),
-                        query: sourceLinks.monitor.window ?? undefined,
-                      }}
-                    >
-                      {sourceLinks.monitor.name ?? t('View monitor')}
-                    </Link>
-                  </Fragment>
-                ) : null}
-                {sourceLinks.groupId ? (
-                  <Fragment>
-                    <MetaDivider />
-                    <Link
-                      to={normalizeUrl(
-                        `/organizations/${organization.slug}/issues/${sourceLinks.groupId}/`
-                      )}
-                    >
-                      {t('View issue')}
-                    </Link>
-                  </Fragment>
-                ) : null}
+                {source.groupId ? (
+                  <Link
+                    to={normalizeUrl(
+                      `/organizations/${organization.slug}/issues/${source.groupId}/`
+                    )}
+                  >
+                    {source.monitorName ?? t('View issue')}
+                  </Link>
+                ) : (
+                  <Text variant="muted">
+                    {formatSourceType(investigation.sourceType)}
+                  </Text>
+                )}
                 <MetaDivider />
                 <Text variant="muted">
                   {tct('Last update: [date]', {
@@ -521,17 +504,6 @@ function getInvestigationPath(organizationSlug: string, investigationId: string)
   );
 }
 
-type InvestigationSourceLinks = {
-  groupId: string | null;
-  monitor: {
-    id: string;
-    name: string | null;
-    // The window the investigation analyzed: the baseline before the breach
-    // through the end of the breach.
-    window: {end: string; start: string} | null;
-  } | null;
-};
-
 function getRecord(value: unknown, key: string): Record<string, unknown> | null {
   if (!value || typeof value !== 'object') {
     return null;
@@ -546,26 +518,13 @@ function getString(value: Record<string, unknown> | null, key: string): string |
 }
 
 // A breached metric investigation references the metric issue it was started
-// from, and snapshots that issue's monitor and the window it analyzed. Older
-// investigations may predate the snapshot, but still carry the issue reference.
-function getSourceLinks(investigation: InvestigationDetail): InvestigationSourceLinks {
+// from, and snapshots that issue's monitor. Older investigations may predate the
+// snapshot, but still carry the issue reference.
+function getInvestigationSource(investigation: InvestigationDetail) {
   const {source} = investigation;
-  const snapshot = getRecord(source, 'snapshot');
-  const monitor = getRecord(snapshot, 'monitor');
-  const analysisWindow = getRecord(snapshot, 'analysisWindow');
-  const monitorId = getString(monitor, 'id');
-  const windowStart = getString(analysisWindow, 'baselineStart');
-  const windowEnd = getString(analysisWindow, 'end');
-
   return {
     groupId: getString(getRecord(source, 'ref'), 'groupId'),
-    monitor: monitorId
-      ? {
-          id: monitorId,
-          name: getString(monitor, 'name'),
-          window: windowStart && windowEnd ? {start: windowStart, end: windowEnd} : null,
-        }
-      : null,
+    monitorName: getString(getRecord(getRecord(source, 'snapshot'), 'monitor'), 'name'),
   };
 }
 
