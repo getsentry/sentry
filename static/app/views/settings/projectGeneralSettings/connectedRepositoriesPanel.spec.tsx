@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
 
@@ -90,6 +90,51 @@ describe('ConnectedRepositoriesPanel', () => {
     expect(await screen.findByText(repo.name)).toBeInTheDocument();
     expect(screen.getByText('2 mappings')).toBeInTheDocument();
     expect(screen.getAllByText(repo.name)).toHaveLength(1);
+  });
+
+  it('waits for every page before rendering repository counts', async () => {
+    const url = `/organizations/${organization.slug}/code-mappings/`;
+    const mappingA = RepositoryProjectPathConfigFixture({
+      project,
+      repo,
+      integration,
+      id: '1',
+      stackRoot: '/a',
+    });
+    const mappingB = RepositoryProjectPathConfigFixture({
+      project,
+      repo,
+      integration,
+      id: '2',
+      stackRoot: '/b',
+    });
+    MockApiClient.addMockResponse({
+      url,
+      method: 'GET',
+      body: [mappingA],
+      headers: {
+        Link: `<${url}?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"`,
+      },
+    });
+    const nextPage = Promise.withResolvers<void>();
+    const nextPageRequest = MockApiClient.addMockResponse({
+      url,
+      method: 'GET',
+      body: [mappingB],
+      asyncDelay: nextPage.promise,
+      match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+    });
+
+    renderPanel();
+
+    await waitFor(() => expect(nextPageRequest).toHaveBeenCalled());
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.queryByText(repo.name)).not.toBeInTheDocument();
+
+    act(() => nextPage.resolve());
+
+    expect(await screen.findByText(repo.name)).toBeInTheDocument();
+    expect(screen.getByText('2 mappings')).toBeInTheDocument();
   });
 
   it('opens overflow menu with disabled Edit and Disconnect items', async () => {

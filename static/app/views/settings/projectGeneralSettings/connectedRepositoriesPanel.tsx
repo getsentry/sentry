@@ -111,13 +111,17 @@ export function ConnectedRepositoriesPanel({project}: {project: Project}) {
   );
   useFetchAllPages({result: query});
 
+  // Wait for every page so repository mapping counts are complete.
+  const isLoadingAllPages =
+    !query.isError && (query.isPending || query.isFetchingNextPage || query.hasNextPage);
+
   const connectedRepos = useMemo(() => {
     const mappings = query.data?.pages.flatMap(p => p.json) ?? [];
     return groupMappingsByRepo(mappings);
   }, [query.data]);
 
   function renderBody() {
-    if (query.isPending) {
+    if (isLoadingAllPages) {
       return (
         <Flex justify="center" align="center" padding="xl">
           <LoadingIndicator mini />
