@@ -1,7 +1,7 @@
 import orjson
 
 from sentry.lang.native.project_symbol_sources import redact_source_secrets
-from sentry.lang.native.source_schema import HIDDEN_SECRET
+from sentry.lang.native.source_kinds import HIDDEN_SECRET
 from sentry.testutils.cases import APITestCase
 
 
@@ -70,7 +70,7 @@ class ProjectSymbolSourcesDeleteTest(SymbolSourcesTestCase):
         self.store(http_source("honk"))
 
         response = self.get_error_response(
-            self.organization.slug, self.project.slug, status_code=404
+            self.organization.slug, self.project.slug, status_code=400
         )
         assert response.data == {"error": "Missing source id"}
 
@@ -127,8 +127,7 @@ class ProjectSymbolSourcesPostTest(SymbolSourcesTestCase):
         response = self.get_error_response(
             self.organization.slug, self.project.slug, raw_data=config, status_code=400
         )
-        assert response.data["error"].startswith("Failed to validate source")
-        assert "beepbeep" not in response.data["error"]
+        assert response.data == {"error": "Unknown source type: None"}
         assert self.project.get_option("sentry:symbol_sources") is None
 
 
@@ -182,7 +181,7 @@ class ProjectSymbolSourcesPutTest(SymbolSourcesTestCase):
         self.store(http_source("honk"))
 
         response = self.get_error_response(
-            self.organization.slug, self.project.slug, raw_data=http_source("hank"), status_code=404
+            self.organization.slug, self.project.slug, raw_data=http_source("hank"), status_code=400
         )
         assert response.data == {"error": "Missing source id"}
 
@@ -208,5 +207,5 @@ class ProjectSymbolSourcesPutTest(SymbolSourcesTestCase):
             raw_data=update,
             status_code=400,
         )
-        assert response.data["error"].startswith("Failed to validate source")
+        assert response.data == {"error": "Unknown source type: None"}
         assert self.stored() == [http_source("honk")]

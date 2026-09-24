@@ -1,25 +1,17 @@
 """
-The kinds of symbol source a project can configure, and the schemas derived
-from them.
+The kinds of symbol source a project can configure.
+
+Each kind is a serializer. It validates sources on their way into the project
+option and it documents the API, so the two cannot drift apart. `SecretField`
+marks the credentials that API responses hide.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import replace
 from enum import StrEnum
-from functools import cached_property
 from typing import Any
 
-from sentry.lang.native.source_schema import (
-    Field,
-    boolean,
-    choice,
-    nested,
-    object_schema,
-    string,
-    strings,
-)
+from rest_framework import serializers
 
 
 class SourceType(StrEnum):
@@ -63,140 +55,135 @@ class FileType(StrEnum):
     DARTSYMBOLMAP = "dartsymbolmap"
 
 
-COMMON_FIELDS = {
-    "id": Field(
-        {"type": "string", "minLength": 1},
-        "The internal ID of the source. Must be distinct from all other source IDs and cannot start with `sentry:`. If this is not provided, a new UUID will be generated.",
-        required=True,
-    ),
-    "name": string("The human-readable name of the source."),
-    "layout": nested(
-        "Layout settings for the source.",
-        required=True,
-        type=choice("The layout of the folder structure.", Layout, required=True),
-        casing=choice("The casing of the folder structure.", Casing),
-    ),
-    "filters": nested(
-        "Filter settings for the source.",
-        filetypes=choice(
-            "A list of file types that can be found on this source. If this is left empty, all file types will be enabled.",
-            FileType,
-            many=True,
-        ),
-        path_patterns=strings(
-            "A list of glob patterns to check against the debug and code file paths of debug files. Only files that match one of these patterns will be requested from the source. If this is left empty, no path-based filtering takes place."
-        ),
-        requires_checksum=boolean(
-            "Whether this source requires a debug checksum to be sent with each request. Defaults to `false`."
-        ),
-    ),
+HIDDEN_SECRET = {"hidden-secret": True}
+
+
+def is_internal_source_id(source_id: str) -> bool:
+    """Whether a source ID is reserved for Sentry's own sources."""
+    return source_id.startswith("sentry")
+
+
+class SecretField(serializers.CharField):
+    """A credential. API responses replace its value by `HIDDEN_SECRET`."""
+
+
+class StrictSerializer(serializers.Serializer):
+    """A serializer that rejects fields it does not declare."""
+
+    def to_internal_value(self, data: Any) -> Any:
+        if isinstance(data, dict) and (unknown := sorted(set(data) - set(self.fields))):
+            raise serializers.ValidationError({field: ["Unknown field."] for field in unknown})
+        return super().to_internal_value(data)
+
+
+class LayoutSerializer(StrictSerializer):
+    type = serializers.ChoiceField(
+        choices=list(Layout), help_text="The layout of the folder structure."
+    )
+    casing = serializers.ChoiceField(
+        choices=list(Casing), required=False, help_text="The casing of the folder structure."
+    )
+
+
+class FiltersSerializer(StrictSerializer):
+    filetypes = serializers.MultipleChoiceField(
+        choices=list(FileType),
+        required=False,
+        help_text="A list of file types that can be found on this source. If this is left empty, all file types will be enabled.",
+    )
+    path_patterns = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="A list of glob patterns to check against the debug and code file paths of debug files. Only files that match one of these patterns will be requested from the source. If this is left empty, no path-based filtering takes place.",
+    )
+    requires_checksum = serializers.BooleanField(
+        required=False,
+        help_text="Whether this source requires a debug checksum to be sent with each request. Defaults to `false`.",
+    )
+
+
+class SymbolSourceSerializer(StrictSerializer):
+    """The fields every kind of source has. A kind adds its own on top."""
+
+    id = serializers.CharField(
+        required=False,
+        min_length=1,
+        help_text="The internal ID of the source. Must be distinct from all other source IDs and cannot start with `sentry:`. If this is not provided, a new UUID will be generated.",
+    )
+    name = serializers.CharField(
+        required=False, allow_blank=True, help_text="The human-readable name of the source."
+    )
+    layout = LayoutSerializer(help_text="Layout settings for the source.")
+    filters = FiltersSerializer(required=False, help_text="Filter settings for the source.")
     # Set on builtin sources in settings. Stored custom sources may carry them
-    # too, so they stay accepted, but the API does not document them.
-    "is_public": boolean(None),
-    "has_index": boolean(None),
-    "platforms": strings(None),
+    # too, so they stay accepted. Without help text they stay out of the API docs.
+    is_public = serializers.BooleanField(required=False)
+    has_index = serializers.BooleanField(required=False)
+    platforms = serializers.ListField(child=serializers.CharField(), required=False)
+
+
+class HttpSourceSerializer(SymbolSourceSerializer):
+    type = serializers.ChoiceField(choices=[SourceType.HTTP])
+    url = serializers.CharField(help_text="The source's URL.")
+    username = serializers.CharField(
+        required=False, allow_blank=True, help_text="The user name for accessing the source."
+    )
+    password = SecretField(
+        required=False, allow_blank=True, help_text="The password for accessing the source."
+    )
+
+
+class S3SourceSerializer(SymbolSourceSerializer):
+    type = serializers.ChoiceField(choices=[SourceType.S3])
+    bucket = serializers.CharField(help_text="The bucket where the source resides.")
+    region = serializers.CharField(
+        help_text="The source's [S3 region](https://docs.aws.amazon.com/general/latest/gr/s3.html)."
+    )
+    access_key = serializers.CharField(
+        help_text="The [AWS Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys)."
+    )
+    secret_key = SecretField(
+        help_text="The [AWS Secret Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys)."
+    )
+    prefix = serializers.CharField(
+        required=False, allow_blank=True, help_text="The path prefix inside the bucket."
+    )
+
+
+class GcsSourceSerializer(SymbolSourceSerializer):
+    type = serializers.ChoiceField(choices=[SourceType.GCS])
+    bucket = serializers.CharField(help_text="The bucket where the source resides.")
+    client_email = serializers.CharField(help_text="The GCS email address for authentication.")
+    private_key = SecretField(help_text="The GCS private key.")
+    prefix = serializers.CharField(
+        required=False, allow_blank=True, help_text="The path prefix inside the bucket."
+    )
+
+
+class BuiltinHttpSourceSerializer(HttpSourceSerializer):
+    """Builtin HTTP sources from settings may carry headers. The API does not expose that."""
+
+    headers = serializers.DictField(child=serializers.CharField(), required=False)
+    accept_invalid_certs = serializers.BooleanField(required=False)
+
+
+SOURCE_SERIALIZERS: dict[str, type[SymbolSourceSerializer]] = {
+    SourceType.HTTP: HttpSourceSerializer,
+    SourceType.S3: S3SourceSerializer,
+    SourceType.GCS: GcsSourceSerializer,
 }
 
-
-class SourceKind:
-    """
-    One kind of symbol source, such as an HTTP symbol server or an S3 bucket.
-
-    A kind declares the fields that are specific to it on top of the common
-    ones. Validation, API docs, and secret redaction are derived from the
-    declarations. To add a kind, declare it here and add it to `SOURCE_KINDS`.
-    """
-
-    def __init__(self, type: SourceType, **fields: Field) -> None:
-        self.type = type
-        self.fields: dict[str, Field] = {**COMMON_FIELDS, **fields}
-
-    def extend(self, **fields: Field) -> SourceKind:
-        return SourceKind(self.type, **{**self.fields, **fields})
-
-    @property
-    def secrets(self) -> list[str]:
-        return [name for name, field in self.fields.items() if field.secret]
-
-    def _fields_with_type(self, fields: Mapping[str, Field]) -> dict[str, Field]:
-        return {
-            "type": Field({"type": "string", "enum": [self.type.value]}, required=True),
-            **fields,
-        }
-
-    @cached_property
-    def schema(self) -> dict[str, Any]:
-        return object_schema(self._fields_with_type(self.fields))
-
-    @cached_property
-    def redacted_schema(self) -> dict[str, Any]:
-        return object_schema(self._fields_with_type(self.fields), redacted=True)
-
-    @cached_property
-    def request_fields(self) -> dict[str, Field]:
-        """The documented fields, as the API accepts them. The ID is assigned when absent."""
-        fields = {name: field for name, field in self.fields.items() if field.description}
-        fields["id"] = replace(fields["id"], required=False)
-        return fields
-
-    @cached_property
-    def request_schema(self) -> dict[str, Any]:
-        return object_schema(self._fields_with_type(self.request_fields))
+BUILTIN_SOURCE_SERIALIZERS = {**SOURCE_SERIALIZERS, SourceType.HTTP: BuiltinHttpSourceSerializer}
 
 
-HTTP = SourceKind(
-    SourceType.HTTP,
-    url=string("The source's URL.", required=True),
-    username=string("The user name for accessing the source."),
-    password=string("The password for accessing the source.", secret=True),
+def secret_fields(serializer_class: type[serializers.Serializer]) -> list[str]:
+    return [
+        name for name, field in serializer_class().fields.items() if isinstance(field, SecretField)
+    ]
+
+
+SECRET_FIELDS = frozenset(
+    name
+    for serializer_class in SOURCE_SERIALIZERS.values()
+    for name in secret_fields(serializer_class)
 )
-
-S3 = SourceKind(
-    SourceType.S3,
-    bucket=string("The bucket where the source resides.", required=True),
-    region=string(
-        "The source's [S3 region](https://docs.aws.amazon.com/general/latest/gr/s3.html).",
-        required=True,
-    ),
-    access_key=string(
-        "The [AWS Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys).",
-        required=True,
-    ),
-    secret_key=string(
-        "The [AWS Secret Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys).",
-        required=True,
-        secret=True,
-    ),
-    prefix=string("The path prefix inside the bucket."),
-)
-
-GCS = SourceKind(
-    SourceType.GCS,
-    bucket=string("The bucket where the source resides.", required=True),
-    client_email=string("The GCS email address for authentication.", required=True),
-    private_key=string("The GCS private key.", required=True, secret=True),
-    prefix=string("The path prefix inside the bucket."),
-)
-
-# Builtin HTTP sources from settings may carry headers. We don't want to expose
-# that functionality via the API.
-BUILTIN_HTTP = HTTP.extend(
-    headers=Field({"type": "object", "patternProperties": {".*": {"type": "string"}}}),
-    accept_invalid_certs=boolean(None),
-)
-
-SOURCE_KINDS = {kind.type: kind for kind in (HTTP, S3, GCS)}
-
-SECRET_FIELDS = frozenset(name for kind in SOURCE_KINDS.values() for name in kind.secrets)
-
-# Sentry no longer supports App Store Connect sources. Old project options may
-# still contain them; `parse_sources` drops them.
-LEGACY_SOURCE_TYPES = frozenset({"appStoreConnect"})
-
-SOURCE_SCHEMA = {"oneOf": [kind.schema for kind in SOURCE_KINDS.values()]}
-SOURCES_SCHEMA = {"type": "array", "items": SOURCE_SCHEMA}
-
-BUILTIN_SOURCE_SCHEMA = {"oneOf": [kind.schema for kind in (BUILTIN_HTTP, S3, GCS)]}
-
-REDACTED_SOURCE_SCHEMA = {"oneOf": [kind.redacted_schema for kind in SOURCE_KINDS.values()]}
-REDACTED_SOURCES_SCHEMA = {"type": "array", "items": REDACTED_SOURCE_SCHEMA}

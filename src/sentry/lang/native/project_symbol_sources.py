@@ -4,53 +4,81 @@ The custom symbol sources stored in a project's `sentry:symbol_sources` option.
 
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping
 from copy import deepcopy
 from typing import Any, TypeAlias
 from uuid import uuid4
 
-import jsonschema
 import orjson
 import sentry_sdk
 
-from sentry.lang.native.source_kinds import LEGACY_SOURCE_TYPES, SECRET_FIELDS, SOURCES_SCHEMA
-from sentry.lang.native.source_schema import HIDDEN_SECRET
+from sentry.lang.native.source_kinds import (
+    HIDDEN_SECRET,
+    SECRET_FIELDS,
+    SOURCE_SERIALIZERS,
+    is_internal_source_id,
+)
 from sentry.models.project import Project
 
 Source: TypeAlias = dict[str, Any]
 """A symbol source as stored in the project option. Its key set depends on the kind."""
+
+# Sentry no longer supports App Store Connect sources. Old project options may
+# still contain them.
+LEGACY_SOURCE_TYPE = "appStoreConnect"
 
 
 class InvalidSourcesError(Exception):
     pass
 
 
-def is_internal_source_id(source_id: str) -> bool:
-    """Whether a source ID is reserved for Sentry's own sources."""
-    return source_id.startswith("sentry")
+class UnknownSourceId(Exception):
+    pass
 
 
 def validate_sources(sources: list[Source]) -> None:
-    """Checks the sources against the JSON schema and rejects reserved or duplicate IDs."""
-    try:
-        jsonschema.validate(sources, SOURCES_SCHEMA)
-    except jsonschema.ValidationError:
-        raise InvalidSourcesError(f"Failed to validate source {redact_source_secrets(sources)}")
-
-    ids = set()
+    """
+    Checks every source with the serializer of its kind and rejects sources
+    with a missing, reserved, or duplicate ID.
+    """
+    ids: set[str] = set()
     for source in sources:
-        if is_internal_source_id(source["id"]):
+        _validate_source(source)
+        source_id = source["id"]
+        if is_internal_source_id(source_id):
             raise InvalidSourcesError('Source ids must not start with "sentry:"')
-        if source["id"] in ids:
-            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
-        ids.add(source["id"])
+        if source_id in ids:
+            raise InvalidSourcesError(f"Duplicate source id: {source_id}")
+        ids.add(source_id)
 
 
-def parse_sources(config):
+def _validate_source(source: Source) -> None:
+    source_type = source.get("type")
+    serializer_class = SOURCE_SERIALIZERS.get(source_type) if isinstance(source_type, str) else None
+    if serializer_class is None:
+        raise InvalidSourcesError(f"Unknown source type: {source_type!r}")
+    serializer = serializer_class(data=source)
+    if not serializer.is_valid():
+        problems = "; ".join(_describe_errors(serializer.errors))
+        raise InvalidSourcesError(f"Invalid {source_type} source: {problems}")
+    if "id" not in source:
+        raise InvalidSourcesError("Source is missing an id")
+
+
+def _describe_errors(errors: Mapping[Any, Any], prefix: str = "") -> Iterator[str]:
+    for name, detail in errors.items():
+        path = f"{prefix}{name}"
+        if isinstance(detail, Mapping):
+            yield from _describe_errors(detail, f"{path}.")
+        else:
+            yield f"{path}: {' '.join(str(message) for message in detail)}"
+
+
+def parse_sources(config: str | None) -> list[Source]:
     """
     Parses the sources stored in a project option. Sources of a kind Sentry no
     longer supports are dropped.
     """
-
     if not config:
         return []
 
@@ -59,18 +87,16 @@ def parse_sources(config):
     except Exception as e:
         raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
-    sources = [src for src in sources if src.get("type") not in LEGACY_SOURCE_TYPES]
+    sources = [source for source in sources if source.get("type") != LEGACY_SOURCE_TYPE]
     validate_sources(sources)
-
     return sources
 
 
-def parse_backfill_sources(sources_json, original_sources):
+def parse_backfill_sources(sources_json: str, original_sources: list[Source]) -> list[Source]:
     """
     Parses a json string of sources passed in from a client and backfills any redacted secrets by
     finding their previous values stored in original_sources.
     """
-
     if not sources_json:
         return []
 
@@ -79,13 +105,11 @@ def parse_backfill_sources(sources_json, original_sources):
     except Exception as e:
         raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
-    orig_by_id = {src["id"]: src for src in original_sources}
-
+    orig_by_id = {source["id"]: source for source in original_sources}
     for source in sources:
         backfill_secrets(source, orig_by_id.get(source["id"]))
 
     validate_sources(sources)
-
     return sources
 
 
@@ -109,25 +133,17 @@ def backfill_secrets(source: Source, previous: Source | None) -> None:
         source[field] = value
 
 
-def redact_source_secrets(config_sources: Any) -> Any:
-    """
-    Returns a json data with all of the secrets redacted from every source.
-
-    The original value is not mutated in the process; A clone is created
-    and returned by this function.
-    """
-
-    redacted_sources = deepcopy(config_sources)
-    for source in redacted_sources:
-        for field in SECRET_FIELDS:
-            if field in source:
-                source[field] = HIDDEN_SECRET
-
-    return redacted_sources
+def redact_source(source: Source) -> Source:
+    """Returns a copy of the source with every secret replaced by the hidden-secret placeholder."""
+    redacted = deepcopy(source)
+    for field in SECRET_FIELDS:
+        if field in redacted:
+            redacted[field] = HIDDEN_SECRET
+    return redacted
 
 
-class UnknownSourceId(Exception):
-    pass
+def redact_source_secrets(sources: list[Source]) -> list[Source]:
+    return [redact_source(source) for source in sources]
 
 
 class ProjectSymbolSources:
@@ -142,28 +158,23 @@ class ProjectSymbolSources:
 
     OPTION = "sentry:symbol_sources"
 
-    def __init__(self, project: Project, sources: list[Source]) -> None:
+    def __init__(self, project: Project) -> None:
         self._project = project
-        self._sources = sources
-
-    @classmethod
-    def load(cls, project: Project) -> ProjectSymbolSources:
-        config = project.get_option(cls.OPTION)
-        return cls(project, parse_sources(config))
+        self._sources = parse_sources(project.get_option(self.OPTION))
 
     def all(self) -> list[Source]:
         return redact_source_secrets(self._sources)
 
-    def get(self, source_id: str | None) -> Source:
-        return redact_source_secrets([self._sources[self._index_of(source_id)]])[0]
+    def get(self, source_id: str) -> Source:
+        return redact_source(self._sources[self._index_of(source_id)])
 
     def add(self, source: Source) -> Source:
         source = {**source}
         source.setdefault("id", str(uuid4()))
         self._save([*self._sources, source])
-        return redact_source_secrets([source])[0]
+        return redact_source(source)
 
-    def replace(self, source_id: str | None, source: Source) -> Source:
+    def replace(self, source_id: str, source: Source) -> Source:
         """
         Replaces the source with `source_id` by `source`. The new source keeps
         its own ID, or gets a fresh one when it has none. Hidden secrets in
@@ -174,15 +185,13 @@ class ProjectSymbolSources:
         source.setdefault("id", str(uuid4()))
         backfill_secrets(source, self._sources[index])
         self._save([*self._sources[:index], source, *self._sources[index + 1 :]])
-        return redact_source_secrets([source])[0]
+        return redact_source(source)
 
-    def remove(self, source_id: str | None) -> None:
+    def remove(self, source_id: str) -> None:
         index = self._index_of(source_id)
         self._save([*self._sources[:index], *self._sources[index + 1 :]])
 
-    def _index_of(self, source_id: str | None) -> int:
-        if source_id is None:
-            raise UnknownSourceId("Missing source id")
+    def _index_of(self, source_id: str) -> int:
         for index, source in enumerate(self._sources):
             if source["id"] == source_id:
                 return index

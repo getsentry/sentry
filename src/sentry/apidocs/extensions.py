@@ -105,5 +105,22 @@ class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):
         return build_basic_type(OpenApiTypes.OBJECT)
 
 
+class SecretFieldExtension(OpenApiSerializerFieldExtension):
+    """
+    A symbol source credential is a string on the way in. Responses replace it
+    by `{"hidden-secret": true}`.
+    """
+
+    target_class = "sentry.lang.native.source_kinds.SecretField"
+
+    def map_serializer_field(self, auto_schema, direction):
+        if direction == "response":
+            return {
+                "type": "object",
+                "properties": {"hidden-secret": {"type": "boolean", "enum": [True]}},
+            }
+        return build_basic_type(OpenApiTypes.STR)
+
+
 # TODO: extension to do default error codes on responses.
 # https://github.com/tfranzel/drf-spectacular/issues/334

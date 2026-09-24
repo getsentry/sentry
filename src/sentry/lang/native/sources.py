@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import logging
 import os
-from copy import deepcopy
 from typing import Any
 
 import google.auth
@@ -17,11 +16,8 @@ from sentry_redis_tools.clients import RedisCluster
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
-from sentry.lang.native.project_symbol_sources import (
-    InvalidSourcesError,
-    is_internal_source_id,
-    parse_sources,
-)
+from sentry.lang.native.project_symbol_sources import InvalidSourcesError, parse_sources
+from sentry.lang.native.source_kinds import SourceType, is_internal_source_id
 from sentry.models.project import Project
 from sentry.utils import redis
 from sentry.utils.dates import deprecated_utcnow
@@ -102,12 +98,11 @@ def get_internal_source(project: Project):
         # to Symbolicator, and not depending on its internal cache TTL.
         sentry_source_url += f"?_last_upload={last_upload}"
 
-    return {
-        "type": "sentry",
-        "id": INTERNAL_SOURCE_NAME,
-        "url": sentry_source_url,
-        "token": get_system_token(),
-    }
+    return _internal_source(sentry_source_url)
+
+
+def _internal_source(url: str) -> dict[str, Any]:
+    return {"type": "sentry", "id": INTERNAL_SOURCE_NAME, "url": url, "token": get_system_token()}
 
 
 def get_internal_artifact_lookup_source_url(project: Project):
@@ -155,12 +150,7 @@ def get_internal_artifact_lookup_source(project: Project):
     """
     Returns the source configuration for the Sentry artifact-lookup API.
     """
-    return {
-        "type": "sentry",
-        "id": INTERNAL_SOURCE_NAME,
-        "url": get_internal_artifact_lookup_source_url(project),
-        "token": get_system_token(),
-    }
+    return _internal_source(get_internal_artifact_lookup_source_url(project))
 
 
 def normalize_user_source(source, project_id=None, event_id=None):
@@ -173,7 +163,7 @@ def normalize_user_source(source, project_id=None, event_id=None):
     Moreover, this inserts the project and event ID into the `x-sentry-project-id`
     and `x-sentry-event-id` headers, respectively.
     """
-    if source.get("type") == "http":
+    if source.get("type") == SourceType.HTTP:
         headers = {}
 
         # Auth
@@ -194,6 +184,33 @@ def normalize_user_source(source, project_id=None, event_id=None):
         if headers:
             source["headers"] = headers
     return source
+
+
+def _resolve_alias(source):
+    for key in source.get("sources") or ():
+        other_source = settings.SENTRY_BUILTIN_SOURCES.get(key)
+        if other_source:
+            if other_source.get("type") == "alias":
+                yield from _resolve_alias(other_source)
+            else:
+                yield _with_gcp_token(other_source)
+
+
+def _with_gcp_token(source):
+    """
+    Replaces the credentials of a builtin GCS source by an impersonation token
+    scoped for Symbolicator, unless the source carries its own private key.
+    """
+    if source.get("type") != SourceType.GCS:
+        return source
+    if "client_email" in source and "private_key" in source:
+        return source
+    token = get_gcp_token(source.get("client_email"))
+    if token is None:
+        return source
+    credentials = ("client_email", "private_key")
+    source = {key: value for key, value in source.items() if key not in credentials}
+    return {**source, "bearer_token": token}
 
 
 def get_sources_for_project(project, event_id=None):
@@ -228,37 +245,6 @@ def get_sources_for_project(project, event_id=None):
             # processing at this point.
             logger.exception("Invalid symbolicator source config")
 
-    def resolve_alias(source, organization):
-        for key in source.get("sources") or ():
-            other_source = settings.SENTRY_BUILTIN_SOURCES.get(key)
-            if other_source:
-                if other_source.get("type") == "alias":
-                    yield from resolve_alias(other_source, organization)
-                else:
-                    yield fetch_token_for_gcp_source_if_necessary(other_source, organization)
-
-    def fetch_token_for_gcp_source_if_necessary(source, organization):
-        if source.get("type") == "gcs":
-            if "client_email" in source and "private_key" in source:
-                return source
-            else:
-                client_email = source.get("client_email")
-                token = get_gcp_token(client_email)
-                # if target_credentials.token is None it means that the
-                # token could not be fetched successfully
-                if token is not None:
-                    # Create a new dict to avoid reference issues
-                    source = deepcopy(source)
-                    source["bearer_token"] = token
-
-                    # Remove other credentials if we have a token
-                    if "client_email" in source:
-                        del source["client_email"]
-                    if "private_key" in source:
-                        del source["private_key"]
-
-        return source
-
     # Add builtin sources last to ensure that custom sources have precedence
     # over our defaults.
     builtin_sources = project.get_option("sentry:builtin_symbol_sources")
@@ -270,9 +256,9 @@ def get_sources_for_project(project, event_id=None):
         # is used to make `apple` expand to `ios`/`macos` and other
         # sources if configured as such.
         if source.get("type") == "alias":
-            sources.extend(resolve_alias(source, organization))
+            sources.extend(_resolve_alias(source))
         else:
-            sources.append(fetch_token_for_gcp_source_if_necessary(source, organization))
+            sources.append(_with_gcp_token(source))
 
     return sources
 

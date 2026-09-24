@@ -1,8 +1,9 @@
-from collections.abc import Mapping, Sequence
-from dataclasses import replace
-from typing import Any, TypedDict
+from collections.abc import Mapping
+from copy import deepcopy
+from typing import Any
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
@@ -25,51 +26,60 @@ from sentry.lang.native.project_symbol_sources import (
     Source,
     UnknownSourceId,
 )
-from sentry.lang.native.source_kinds import (
-    REDACTED_SOURCE_SCHEMA,
-    REDACTED_SOURCES_SCHEMA,
-    SOURCE_KINDS,
-    SourceKind,
-)
-from sentry.lang.native.source_schema import Field, choice, object_schema
+from sentry.lang.native.source_kinds import SOURCE_SERIALIZERS, SourceType
 from sentry.models.project import Project
 
 
-def _only_for(field: Field, kinds: Sequence[SourceKind]) -> Field:
-    names = " and ".join(f"`{kind.type}`" for kind in kinds)
-    word = "Required" if field.required else "Optional"
-    note = f"{word} for {names} sources, invalid for all others."
-    return replace(field, description=f"{field.description} {note}", required=False)
-
-
-def _request_schema(kinds: Sequence[SourceKind]) -> dict[str, Any]:
+class SourceSerializer(serializers.Serializer):
     """
-    One object that documents the request body for every kind.
+    The request body for adding or updating a source.
 
-    The API docs render a request body as one flat object, so the kinds are
-    merged. A field that only some kinds use says so in its description.
-    Validation still uses the per-kind schemas.
+    The API docs render a request body as one flat object, so this merges the
+    documented fields of every kind. A field that only some kinds use says so
+    in its help text. Validation uses the serializer of the kind itself.
     """
-    fields = {"type": choice("The type of the source.", [k.type for k in kinds], required=True)}
-    for kind in kinds:
-        for name, field in kind.request_fields.items():
-            assert fields.setdefault(name, field) == field, f"kinds disagree on {name}"
-    for name, field in fields.items():
-        owners = [kind for kind in kinds if name in kind.fields]
-        if 0 < len(owners) < len(kinds):
-            fields[name] = _only_for(field, owners)
-    return object_schema(fields)
+
+    def get_fields(self) -> dict[str, serializers.Field]:
+        kind_fields = {kind: cls().fields for kind, cls in SOURCE_SERIALIZERS.items()}
+        fields: dict[str, serializers.Field] = {
+            "type": serializers.ChoiceField(
+                choices=list(SourceType), help_text="The type of the source."
+            )
+        }
+        for owner_fields in kind_fields.values():
+            for name, field in owner_fields.items():
+                if name != "type" and field.help_text:
+                    fields.setdefault(name, deepcopy(field))
+        for name, field in fields.items():
+            owners = [kind for kind, owner_fields in kind_fields.items() if name in owner_fields]
+            if 0 < len(owners) < len(kind_fields):
+                names = " and ".join(f"`{kind}`" for kind in owners)
+                word = "Required" if field.required else "Optional"
+                field.help_text = (
+                    f"{field.help_text} {word} for {names} sources, invalid for all others."
+                )
+                field.required = False
+        return fields
 
 
-SOURCE_REQUEST = {"application/json": _request_schema(list(SOURCE_KINDS.values()))}
+SOURCE_RESPONSE = PolymorphicProxySerializer(
+    component_name="SymbolSource",
+    serializers=list(SOURCE_SERIALIZERS.values()),
+    resource_type_field_name="type",
+)
+SOURCES_RESPONSE = PolymorphicProxySerializer(
+    component_name="SymbolSource",
+    serializers=list(SOURCE_SERIALIZERS.values()),
+    resource_type_field_name="type",
+    many=True,
+)
 
 
-class SymbolSourceErrorResponse(TypedDict):
-    """`{"error": "..."}` envelope used by symbol-source endpoints in place of
-    the DRF-standard `{"detail": ...}`. Retained for backward compatibility
-    with existing API consumers."""
-
-    error: str
+def _source_id(request: Request) -> str:
+    source_id = request.GET.get("id")
+    if not source_id:
+        raise InvalidSourcesError("Missing source id")
+    return source_id
 
 
 @extend_schema(tags=["Projects"])
@@ -90,6 +100,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         handler_context: Mapping[str, Any] | None = None,
         scope: Scope | None = None,
     ) -> Response:
+        # The `error` envelope predates this endpoint's rewrite and is kept for
+        # existing API consumers.
         if isinstance(exc, UnknownSourceId):
             return Response({"error": str(exc)}, status=404)
         if isinstance(exc, InvalidSourcesError):
@@ -108,19 +120,17 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             ),
         ],
         responses={
-            200: REDACTED_SOURCES_SCHEMA,
+            200: SOURCES_RESPONSE,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
         examples=ProjectExamples.GET_SYMBOL_SOURCES,
     )
-    def get(
-        self, request: Request, project: Project
-    ) -> Response[list[Source]] | Response[SymbolSourceErrorResponse]:
+    def get(self, request: Request, project: Project) -> Response[list[Source]]:
         """
         List custom symbol sources configured for a project.
         """
-        sources = ProjectSymbolSources.load(project)
+        sources = ProjectSymbolSources(project)
         source_id = request.GET.get("id")
         if source_id:
             return Response([sources.get(source_id)])
@@ -136,39 +146,36 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
         examples=ProjectExamples.DELETE_SYMBOL_SOURCE,
     )
-    def delete(
-        self, request: Request, project: Project
-    ) -> Response[None] | Response[SymbolSourceErrorResponse]:
+    def delete(self, request: Request, project: Project) -> Response[None]:
         """
         Delete a custom symbol source from a project.
         """
-        ProjectSymbolSources.load(project).remove(request.GET.get("id"))
+        ProjectSymbolSources(project).remove(_source_id(request))
         return Response(status=204)
 
     @extend_schema(
         operation_id="addProjectSymbolSource",
         summary="Add a Symbol Source to a Project",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
-        request=SOURCE_REQUEST,
+        request=SourceSerializer,
         responses={
-            201: REDACTED_SOURCE_SCHEMA,
+            201: SOURCE_RESPONSE,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
         examples=ProjectExamples.ADD_SYMBOL_SOURCE,
     )
-    def post(
-        self, request: Request, project: Project
-    ) -> Response[Source] | Response[SymbolSourceErrorResponse]:
+    def post(self, request: Request, project: Project) -> Response[Source]:
         """
         Add a custom symbol source to a project.
         """
-        source = ProjectSymbolSources.load(project).add(request.data)
+        source = ProjectSymbolSources(project).add(request.data)
         return Response(source, status=201)
 
     @extend_schema(
@@ -179,20 +186,18 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.source_id("The ID of the source to update.", True),
         ],
-        request=SOURCE_REQUEST,
+        request=SourceSerializer,
         responses={
-            200: REDACTED_SOURCE_SCHEMA,
+            200: SOURCE_RESPONSE,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
         examples=ProjectExamples.UPDATE_SYMBOL_SOURCE,
     )
-    def put(
-        self, request: Request, project: Project
-    ) -> Response[Source] | Response[SymbolSourceErrorResponse]:
+    def put(self, request: Request, project: Project) -> Response[Source]:
         """
         Update a custom symbol source in a project.
         """
-        source = ProjectSymbolSources.load(project).replace(request.GET.get("id"), request.data)
+        source = ProjectSymbolSources(project).replace(_source_id(request), request.data)
         return Response(source)

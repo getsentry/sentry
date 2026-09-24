@@ -1,12 +1,11 @@
 import copy
 from unittest.mock import patch
 
-import jsonschema
 import pytest
 from django.conf import settings
 from django.test import override_settings
 
-from sentry.lang.native.source_kinds import BUILTIN_SOURCE_SCHEMA
+from sentry.lang.native.source_kinds import BUILTIN_SOURCE_SERIALIZERS
 from sentry.lang.native.sources import filter_ignored_sources, get_sources_for_project
 from sentry.testutils.helpers import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -15,7 +14,8 @@ from sentry.testutils.pytest.fixtures import django_db_all
 @django_db_all
 def test_validate_builtin_sources() -> None:
     for source in settings.SENTRY_BUILTIN_SOURCES.values():
-        jsonschema.validate(source, BUILTIN_SOURCE_SCHEMA)
+        serializer = BUILTIN_SOURCE_SERIALIZERS[source["type"]](data=source)
+        assert serializer.is_valid(), serializer.errors
 
 
 SENTRY_BUILTIN_SOURCES_TEST = {
