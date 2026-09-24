@@ -30,9 +30,15 @@ type ConnectedRepo = {
   repoName: string;
 };
 
+// TODO Abdullah Khan: Add edit and disconnect actions.
 const OVERFLOW_ITEMS: MenuItemProps[] = [
-  {key: 'edit', label: t('Edit'), disabled: true, tooltip: t('Coming soon')},
-  {key: 'disconnect', label: t('Disconnect'), disabled: true, tooltip: t('Coming soon')},
+  {key: 'edit', label: t('Edit'), disabled: true, tooltip: t('TODO: Edit')},
+  {
+    key: 'disconnect',
+    label: t('Disconnect'),
+    disabled: true,
+    tooltip: t('TODO: Disconnect'),
+  },
 ];
 
 function projectCodeMappingsInfiniteOptions({
@@ -114,12 +120,12 @@ export function ConnectedRepositoriesPanel({project}: {project: Project}) {
     if (query.isPending) {
       return (
         <Flex justify="center" align="center" padding="xl">
-          <LoadingIndicator />
+          <LoadingIndicator mini />
         </Flex>
       );
     }
     if (query.isError) {
-      return <LoadingError />;
+      return <LoadingError message={t('Failed to load connected repositories.')} />;
     }
     if (connectedRepos.length === 0) {
       return (
