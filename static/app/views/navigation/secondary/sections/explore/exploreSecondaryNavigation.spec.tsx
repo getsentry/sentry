@@ -89,9 +89,11 @@ describe('ExploreSecondaryNavigation', () => {
       'href',
       '/organizations/org-slug/explore/investigations/'
     );
-    await userEvent.hover(screen.getByLabelText('beta'));
+    await userEvent.hover(screen.getByLabelText('experimental'));
     expect(
-      await screen.findByText('This feature is internal only right now')
+      await screen.findByText(
+        'This feature is experimental! Try it out and let us know what you think. No promises!'
+      )
     ).toBeInTheDocument();
   });
 

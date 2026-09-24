@@ -229,14 +229,7 @@ function ExploreSecondaryNavigationImpl() {
                     to={`${baseUrl}/investigations/`}
                     activeTo={`${baseUrl}/investigations/`}
                     analyticsItemName="explore_investigations"
-                    trailingItems={
-                      <FeatureBadge
-                        type="beta"
-                        tooltipProps={{
-                          title: t('This feature is internal only right now'),
-                        }}
-                      />
-                    }
+                    trailingItems={<FeatureBadge type="experimental" />}
                   >
                     {t('Investigations')}
                   </SecondaryNavigation.Link>
