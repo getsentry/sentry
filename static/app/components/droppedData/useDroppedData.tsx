@@ -26,9 +26,17 @@ export function useDroppedData(meta: EventsTimeSeriesResponse['meta']) {
       if (!hasDroppedData) {
         return;
       }
-      openDrawer(() => <DroppedDataDrawer droppedDataAnnotations={dropped} />, {
-        ariaLabel: t('Dropped Data'),
-      });
+      openDrawer(
+        () => (
+          <DroppedDataDrawer
+            droppedDataAnnotations={dropped}
+            acceptedDataAnnotations={accepted ?? []}
+          />
+        ),
+        {
+          ariaLabel: t('Dropped Data'),
+        }
+      );
     },
   };
 

@@ -26,7 +26,7 @@ const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
   [Outcome.CARDINALITY_LIMITED]: t('Cardinality limit'),
 };
 
-function outcomeLabel(outcome: string): string {
+export function outcomeLabel(outcome: string): string {
   return OUTCOME_LABELS[outcome as Outcome] ?? outcome;
 }
 
@@ -34,7 +34,10 @@ function orderOutcomes(outcomes: string[]): string[] {
   return [...outcomes].sort();
 }
 
-function getOutcomeColors(outcomes: string[], theme: Theme): Record<string, string> {
+export function getOutcomeColors(
+  outcomes: string[],
+  theme: Theme
+): Record<string, string> {
   const palette = theme.chart.getColorPalette(Math.max(outcomes.length - 1, 0));
 
   return outcomes.reduce<Record<string, string>>((acc, outcome, index) => {
