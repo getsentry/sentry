@@ -41,3 +41,4 @@ class ServerSdkConfig(SdkConfig):
     dsn: NotRequired[str]
     relay_dsn: NotRequired[str]
     sentry_mirror_dsn: NotRequired[str]
+    backend_dsn: NotRequired[str]
