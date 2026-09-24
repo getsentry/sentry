@@ -97,6 +97,7 @@ function ExampleStackTrace() {
 }
 
 describe('Core StackTrace', () => {
+  const longFilename = `/source/${'long directory with spaces/'.repeat(10)}runner.py`;
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
@@ -582,43 +583,18 @@ describe('Core StackTrace', () => {
     );
   });
 
-  it('shows a tooltip with absPath when hovering filename', async () => {
-    jest.useFakeTimers();
-    const {event, stacktrace} = makeStackTraceData();
-    const frameWithAbsolutePath = {
-      ...stacktrace.frames[stacktrace.frames.length - 1]!,
+  it.each([
+    {
       filename: 'raven/scripts/runner.py',
       absPath: '/home/ubuntu/raven/scripts/runner.py',
-      inApp: false,
-    };
-
-    render(
-      <TestStackTraceProvider
-        event={event}
-        stacktrace={{
-          ...stacktrace,
-          frames: [frameWithAbsolutePath],
-        }}
-      >
-        <DisplayOptions />
-        <StackTraceFrames frameContextComponent={FrameContent} />
-      </TestStackTraceProvider>
-    );
-
-    await userEvent.hover(screen.getByText('raven/scripts/runner.py'), {delay: null});
-    act(() => jest.advanceTimersByTime(2000));
-    expect(
-      await screen.findByText('/home/ubuntu/raven/scripts/runner.py')
-    ).toBeInTheDocument();
-    jest.useRealTimers();
-  });
-
-  it.each(['matching', 'missing'] as const)(
-    'shows the complete filename when the absolute path is %s',
-    async absolutePath => {
+    },
+    {filename: longFilename, absPath: longFilename},
+    {filename: longFilename, absPath: null},
+  ])(
+    'shows the full path in the filename tooltip (case %#)',
+    async ({filename, absPath}) => {
       jest.useFakeTimers();
       const {event, stacktrace} = makeStackTraceData();
-      const filename = `/source/${'long directory with spaces/'.repeat(10)}runner.py`;
 
       render(
         <TestStackTraceProvider
@@ -627,13 +603,15 @@ describe('Core StackTrace', () => {
             ...stacktrace,
             frames: [
               {
-                ...stacktrace.frames[0]!,
+                ...stacktrace.frames[stacktrace.frames.length - 1]!,
                 filename,
-                absPath: absolutePath === 'matching' ? filename : null,
+                absPath,
+                inApp: false,
               },
             ],
           }}
         >
+          <DisplayOptions />
           <StackTraceFrames frameContextComponent={FrameContent} />
         </TestStackTraceProvider>
       );
@@ -642,7 +620,7 @@ describe('Core StackTrace', () => {
       act(() => jest.advanceTimersByTime(2000));
 
       expect(
-        await screen.findByText(filename, {selector: '[data-tooltip] span'})
+        await screen.findByText(absPath ?? filename, {selector: '[data-tooltip] span'})
       ).toBeVisible();
       jest.useRealTimers();
     }
