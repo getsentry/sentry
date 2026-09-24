@@ -18,6 +18,7 @@ interface AddIntegrationButtonProps
       | 'organization'
       | 'analyticsParams'
       | 'suppressSuccessMessage'
+      | 'modalParams'
       | 'onCancel'
       | 'onError'
     > {
@@ -34,6 +35,7 @@ export function AddIntegrationButton({
   analyticsParams,
   installStatus,
   suppressSuccessMessage,
+  modalParams,
   onCancel,
   onError,
   ...buttonProps
@@ -76,6 +78,7 @@ export function AddIntegrationButton({
             onInstall: onAddIntegration,
             analyticsParams,
             suppressSuccessMessage,
+            modalParams,
             onCancel,
             onError,
           });

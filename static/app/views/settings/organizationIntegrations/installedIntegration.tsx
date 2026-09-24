@@ -17,6 +17,7 @@ import type {
   OrganizationIntegration,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
 import {openGithubPermissionsUpdateModal} from 'sentry/utils/integrations/useAutoOpenPermissionsModal';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -166,6 +167,11 @@ export class InstalledIntegration extends Component<Props> {
                           view: 'integrations_directory_integration_detail',
                           already_installed: true,
                         }}
+                        modalParams={
+                          provider.key === 'slack'
+                            ? getSlackUpgradeModalParams()
+                            : undefined
+                        }
                         buttonText={t('Update %s', provider.name)}
                         data-test-id="integration-upgrade-button"
                         disabled={disableAction}

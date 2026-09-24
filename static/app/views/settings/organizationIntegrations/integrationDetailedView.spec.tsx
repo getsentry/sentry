@@ -4,7 +4,7 @@ import {GitLabIntegrationFixture} from 'sentry-fixture/gitlabIntegration';
 import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as pipelineModal from 'sentry/components/pipeline/modal';
 import * as integrationUtil from 'sentry/utils/integrationUtil';
@@ -177,6 +177,9 @@ describe('IntegrationDetailedView', () => {
   });
 
   it('shows Update Now only for the outdated Slack workspace', async () => {
+    const openPipelineModalSpy = jest
+      .spyOn(pipelineModal, 'openPipelineModal')
+      .mockImplementation(() => {});
     const slackProvider = {
       aspects: {},
       canAdd: true,
@@ -220,6 +223,14 @@ describe('IntegrationDetailedView', () => {
     // Only the outdated workspace surfaces an Update Now button, not every row.
     expect(screen.getByTestId('integration-upgrade-button')).toBeInTheDocument();
     expect(screen.getAllByTestId('integration-upgrade-button')).toHaveLength(1);
+    await userEvent.click(screen.getByTestId('integration-upgrade-button'));
+    expect(openPipelineModalSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: 'slack',
+        title: 'Update Slack App Permissions',
+        description: expect.stringContaining('respond when you mention @Sentry'),
+      })
+    );
   });
 
   describe('overview upgrade button', () => {
@@ -242,7 +253,10 @@ describe('IntegrationDetailedView', () => {
       outOfDate: true,
     };
 
-    it('renders the reinstall button for a single outdated workspace with access', async () => {
+    it('explains the Slack permissions when updating from the overview', async () => {
+      const openPipelineModalSpy = jest
+        .spyOn(pipelineModal, 'openPipelineModal')
+        .mockImplementation(() => {});
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/`,
         match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
@@ -254,7 +268,14 @@ describe('IntegrationDetailedView', () => {
         organization,
       });
 
-      expect(await screen.findByTestId('integration-upgrade-button')).toBeInTheDocument();
+      await userEvent.click(await screen.findByTestId('integration-upgrade-button'));
+      expect(openPipelineModalSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: 'slack',
+          title: 'Update Slack App Permissions',
+          description: expect.stringContaining('respond when you mention @Sentry'),
+        })
+      );
     });
 
     it('disables the update button for members without integration access', async () => {
@@ -486,9 +507,9 @@ describe('IntegrationDetailedView', () => {
       expect(openPipelineModalSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           provider: 'slack',
-          title: 'Upgrade Slack Integration',
+          title: 'Update Slack App Permissions',
           description:
-            'Reauthorize the Sentry app in your Slack Workspace so you can chat with Seer directly.',
+            'Seer needs additional Slack app permissions to respond when you mention @Sentry and read conversation context to help investigate issues. Reauthorize the Sentry app in your Slack workspace and accept the updated permissions to ask questions and debug with Seer directly in Slack.',
         })
       );
     });

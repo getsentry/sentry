@@ -29,6 +29,7 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
 import {
   openGithubPermissionsUpdateModal,
   useAutoOpenPermissionsModal,
@@ -121,6 +122,7 @@ function IntegrationUpgradeButton({
       provider={provider}
       organization={organization}
       onAddIntegration={onInstall}
+      modalParams={provider.key === 'slack' ? getSlackUpgradeModalParams() : undefined}
       analyticsParams={{
         view: 'integrations_directory_integration_detail',
         already_installed: true,
