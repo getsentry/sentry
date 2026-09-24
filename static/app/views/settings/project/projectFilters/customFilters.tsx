@@ -239,60 +239,20 @@ function splitConditionValues(text: string): string[] {
     .filter(Boolean);
 }
 
-const IPV4_ADDRESS =
-  /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
-// Loose on purpose. The API validates strictly; this only catches glob patterns
-// and obvious typos before the request.
-const IPV6_ADDRESS = /^[0-9a-f:.]*:[0-9a-f:.]*$/i;
-
-function isIpAddressOrRange(value: string): boolean {
-  const [address, prefix, ...rest] = value.split('/');
-  if (rest.length > 0 || !address) {
-    return false;
-  }
-  const maxPrefix = IPV4_ADDRESS.test(address)
-    ? 32
-    : IPV6_ADDRESS.test(address)
-      ? 128
-      : null;
-  if (maxPrefix === null) {
-    return false;
-  }
-  return (
-    prefix === undefined || (/^\d{1,3}$/.test(prefix) && Number(prefix) <= maxPrefix)
-  );
-}
-
 const filterSchema = z.object({
   name: z.string().trim().min(1, t('Give the filter a name')),
   dataType: z.enum(FILTER_DATA_TYPES),
   conditions: z
     .array(
-      z
-        .object({
-          property: z.enum(CONDITION_TYPES),
-          value: z
-            .string()
-            .refine(
-              text => splitConditionValues(text).length > 0,
-              t('Enter a value to match')
-            ),
-        })
-        .superRefine((condition, ctx) => {
-          if (condition.property !== 'ip_address') {
-            return;
-          }
-          const invalid = splitConditionValues(condition.value).filter(
-            value => !isIpAddressOrRange(value)
-          );
-          if (invalid.length > 0) {
-            ctx.addIssue({
-              code: 'custom',
-              path: ['value'],
-              message: t('%s is not an IP address or CIDR range', invalid.join(', ')),
-            });
-          }
-        })
+      z.object({
+        property: z.enum(CONDITION_TYPES),
+        value: z
+          .string()
+          .refine(
+            text => splitConditionValues(text).length > 0,
+            t('Enter a value to match')
+          ),
+      })
     )
     .min(1),
 });

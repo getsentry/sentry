@@ -742,33 +742,6 @@ describe('ProjectFilters', () => {
     );
   });
 
-  it('rejects IP address lines that are not an address or a range', async () => {
-    renderInboundFilters([]);
-    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
-
-    const createMock = MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      method: 'POST',
-      body: CustomInboundFilterFixture({id: '10'}),
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
-    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
-    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Typo');
-    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'IP Address'}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Condition value'}),
-      '10.0.0.0/8{enter}10.0.0.*{enter}10.0.0.0/33'
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
-
-    expect(
-      await screen.findByText('10.0.0.*, 10.0.0.0/33 is not an IP address or CIDR range')
-    ).toBeInTheDocument();
-    expect(createMock).not.toHaveBeenCalled();
-  });
-
   it('keeps a condition type it does not know', async () => {
     // A newer deploy can store a condition type this bundle has no description
     // for. It has to stay visible and editable, not break the page or the modal.
