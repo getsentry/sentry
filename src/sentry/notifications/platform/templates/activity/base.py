@@ -288,7 +288,6 @@ def build_activity_notification_data(
                 assignee_url = f"mailto:{assignee_email}"
             
             # Check if this is an automated assignment from a Sentry App
-            is_automated = False
             if activity.user_id:
                 user = user_service.get_user(user_id=activity.user_id)
                 if user and user.is_sentry_app:
