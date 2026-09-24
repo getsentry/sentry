@@ -168,7 +168,7 @@ export const regexOperators = [
  * rejects longer patterns outright. fixtures/search-syntax/regex_operator.json pins the
  * two together.
  */
-export const MAX_REGEX_PATTERN_LENGTH = 64;
+const MAX_REGEX_PATTERN_LENGTH = 64;
 
 export type RegexOperator = (typeof regexOperators)[number];
 
