@@ -178,7 +178,7 @@ export const ResultsChartContainer = memo(
     yAxis,
   }: ContainerProps) {
     const api = useApi();
-    const customMeasurementsContext = useContext(CustomMeasurementsContext);
+    const {customMeasurements} = useContext(CustomMeasurementsContext);
 
     const yAxisOptions = useMemo(() => eventView.getYAxisOptions(), [eventView]);
 
@@ -224,7 +224,7 @@ export const ResultsChartContainer = memo(
             organization={organization}
             confirmedQuery={confirmedQuery}
             yAxisValue={yAxis}
-            customMeasurements={customMeasurementsContext?.customMeasurements}
+            customMeasurements={customMeasurements}
           />
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter
