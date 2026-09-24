@@ -1,6 +1,6 @@
 import {useState} from 'react';
-import omit from 'lodash/omit';
 import {useMutation} from '@tanstack/react-query';
+import omit from 'lodash/omit';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -241,8 +241,8 @@ function RelayUsageList({
       publicKey,
       currentRelays,
     }: {
-      publicKey: string;
       currentRelays: Relay[];
+      publicKey: string;
     }) => {
       const trustedRelays = currentRelays
         .filter(relay => relay.publicKey !== publicKey)

@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {List} from 'sentry/components/list';
 import {t, tct} from 'sentry/locale';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay} from 'sentry/types/relay';
 import {ModalManager} from 'sentry/views/settings/organizationRelay/modals/modalManager';
