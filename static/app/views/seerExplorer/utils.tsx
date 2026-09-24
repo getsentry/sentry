@@ -726,6 +726,22 @@ export function useSeerExplorerDeepLink({
 }
 
 /**
+ * Returns a callback that removes the run ID query param from the current URL, if it's there.
+ */
+export function useRemoveSeerExplorerRunIdParam() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  return useCallback(() => {
+    if (location.query?.[RUN_ID_QUERY_PARAM] === undefined) {
+      return;
+    }
+    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query;
+    navigate({...location, query: restQuery}, {replace: true});
+  }, [location, navigate]);
+}
+
+/**
  * Keeps the run ID query param in sync with the active run, but only when the param is already in
  * the URL (i.e. the page was opened from a chat link). Switching runs rewrites the param; starting
  * a new chat removes it, since there is no run to link to yet.

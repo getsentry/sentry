@@ -45,6 +45,7 @@ import {
   getSeerExplorerAnalyticsBrowserSize,
   useIsSeerExplorerSidebarEnabled,
   usePageReferrer,
+  useRemoveSeerExplorerRunIdParam,
   useSeerExplorerDeepLink,
   useSyncSeerExplorerRunIdToUrl,
 } from 'sentry/views/seerExplorer/utils';
@@ -173,6 +174,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   // was requested via `closeSeerExplorer`. Entering/leaving PiP is tracked as a
   // position change (`pip` on enter, restored dock preference on leave).
   const suppressRedockRef = useRef(false);
+  const isRedockingRef = useRef(false);
   const wasPoppedOutRef = useRef(false);
   useEffect(() => {
     const wasPoppedOut = wasPoppedOutRef.current;
@@ -193,6 +195,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         suppressRedockRef.current = false;
         return;
       }
+      isRedockingRef.current = true;
       if (isSidebarMode) {
         // oxlint-disable-next-line react/set-state-in-effect
         openSidebar();
@@ -208,6 +211,25 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     organization,
     sidebarPosition,
   ]);
+
+  // Closing the Explorer drops `explorerRunId`, so the URL stops linking to a chat that
+  // isn't showing. Redocking from the popped-out window leaves nothing open for one render
+  // before the surface reopens; that isn't a close. Must run after the redock effect above,
+  // which flags it.
+  const wasVisibleRef = useRef(false);
+  const removeRunIdParam = useRemoveSeerExplorerRunIdParam();
+  useEffect(() => {
+    const isVisible = isOpen || isPoppedOut;
+    const wasVisible = wasVisibleRef.current;
+    wasVisibleRef.current = isVisible;
+
+    const isRedocking = isRedockingRef.current;
+    isRedockingRef.current = false;
+
+    if (wasVisible && !isVisible && !isRedocking) {
+      removeRunIdParam();
+    }
+  }, [isOpen, isPoppedOut, removeRunIdParam]);
 
   const openSeerExplorer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
