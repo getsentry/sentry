@@ -1,10 +1,13 @@
+import {useQueryClient, type QueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {getApiQueryData} from 'sentry/utils/queryClient';
 import * as llmContextModule from 'sentry/views/seerExplorer/contexts/llmContext';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
 
 import {useSeerExplorer} from './useSeerExplorer';
@@ -481,10 +484,17 @@ describe('useSeerExplorer', () => {
         asyncDelay: new Promise<void>(() => {}),
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-        additionalWrapper: SeerExplorerChatStateProvider,
-      });
+      let queryClient!: QueryClient;
+      const {result} = renderHookWithProviders(
+        () => {
+          queryClient = useQueryClient();
+          return useSeerExplorer();
+        },
+        {
+          organization,
+          additionalWrapper: SeerExplorerChatStateProvider,
+        }
+      );
       act(() => {
         result.current.switchToRun(runId);
       });
@@ -519,6 +529,14 @@ describe('useSeerExplorer', () => {
         'New chat question'
       );
       expect(result.current.requestError).toBeNull();
+
+      // The old chat's optimistic "processing" status is rolled back in the background.
+      expect(
+        getApiQueryData<SeerExplorerResponse>(
+          queryClient,
+          seerExplorerUtils.makeSeerExplorerQueryKey(organization.slug, runId)
+        )?.session?.status
+      ).toBe('completed');
     });
 
     it('keeps the alert when an older send succeeds after a newer send failed', async () => {

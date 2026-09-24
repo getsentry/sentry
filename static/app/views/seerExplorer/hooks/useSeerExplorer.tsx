@@ -204,10 +204,22 @@ export const useSeerExplorer = () => {
     query?: string;
   } | null>(null);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
-  // The most recent chat message or user-input response. Only its outcome may change the
-  // error alert or roll back session data, so an older request settling late can't hide a
-  // newer failure or restore a stale snapshot.
-  const latestRequestIdRef = useRef<string | null>(null);
+  // The most recent chat message or user-input response per conversation. Only its outcome
+  // may roll back that conversation's session data, so an older request settling late can't
+  // restore a stale snapshot over a newer one.
+  const latestRequestIdByRunRef = useRef(new Map<SeerExplorerRunId | null, string>());
+  // The conversation on screen, read by request callbacks: only its requests may change
+  // the error alert, so a request settling in a background chat can't hide or replace it.
+  const currentRunIdRef = useRef(runId);
+  useEffect(() => {
+    currentRunIdRef.current = runId;
+  }, [runId]);
+  const isLatestRequest = (params: {
+    requestId: string;
+    runId: SeerExplorerRunId | null;
+  }) => latestRequestIdByRunRef.current.get(params.runId) === params.requestId;
+  const isCurrentRun = (requestRunId: SeerExplorerRunId | null) =>
+    currentRunIdRef.current === requestRunId;
 
   /**
    * Optimistically marks the session as processing (prevents isPolling flicker on a new
@@ -279,7 +291,7 @@ export const useSeerExplorer = () => {
   >({
     onMutate: params => {
       setHasSentInterrupt(false);
-      latestRequestIdRef.current = params.requestId;
+      latestRequestIdByRunRef.current.set(params.runId, params.requestId);
       return markSessionProcessing(params.orgSlug, params.runId);
     },
     mutationFn: async params => {
@@ -301,7 +313,7 @@ export const useSeerExplorer = () => {
       });
     },
     onSuccess: (response, params) => {
-      if (latestRequestIdRef.current === params.requestId) {
+      if (isLatestRequest(params) && isCurrentRun(params.runId)) {
         setRequestError(null);
       }
       if (params.runId === null) {
@@ -320,13 +332,15 @@ export const useSeerExplorer = () => {
     onError: (_e, params, context) => {
       // A later send (possibly in another conversation) may own the optimistic blocks now.
       setLastSentMessage(prev => (prev?.requestId === params.requestId ? null : prev));
-      if (latestRequestIdRef.current !== params.requestId) {
+      if (!isLatestRequest(params)) {
         return;
       }
       // Keep the existing conversation: roll back the optimistic status and drop the
       // optimistic user/loading blocks. The UI surfaces the failure and restores the draft.
       restoreSessionData(params.orgSlug, params.runId, context?.previousData);
-      setRequestError({runId: params.runId, query: params.query});
+      if (isCurrentRun(params.runId)) {
+        setRequestError({runId: params.runId, query: params.query});
+      }
     },
   });
 
@@ -344,7 +358,7 @@ export const useSeerExplorer = () => {
   >({
     onMutate: params => {
       setHasSentInterrupt(false);
-      latestRequestIdRef.current = params.requestId;
+      latestRequestIdByRunRef.current.set(params.runId, params.requestId);
       return markSessionProcessing(params.orgSlug, params.runId);
     },
     mutationFn: async params => {
@@ -361,7 +375,7 @@ export const useSeerExplorer = () => {
       });
     },
     onSuccess: (_, params) => {
-      if (latestRequestIdRef.current === params.requestId) {
+      if (isLatestRequest(params) && isCurrentRun(params.runId)) {
         setRequestError(null);
       }
       // invalidate the query so fresh data is fetched
@@ -370,12 +384,14 @@ export const useSeerExplorer = () => {
       });
     },
     onError: (_e, params, context) => {
-      if (latestRequestIdRef.current !== params.requestId) {
+      if (!isLatestRequest(params)) {
         return;
       }
       // Keep the existing conversation and pending input so the user can answer again.
       restoreSessionData(params.orgSlug, params.runId, context?.previousData);
-      setRequestError({runId: params.runId});
+      if (isCurrentRun(params.runId)) {
+        setRequestError({runId: params.runId});
+      }
     },
   });
 
