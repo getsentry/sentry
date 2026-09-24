@@ -14,15 +14,15 @@ describe('describeInvalidEmbed', () => {
   it('names the fields and the value that arrived', () => {
     const report = reportFor('spansQuery', {
       mode: 'aggregate',
-      start: '2026-09-22T18:02:00',
-      end: '2026-09-23T17:04:00',
+      start: '2026-09-22',
+      end: '2026-09-23',
     });
 
     expect(report.title).toBe('[SeerEmbed] spansQuery: invalid props (start, end)');
     expect(report.invalidFields).toBe('start,end');
     expect(report.failures).toEqual([
-      'start: expected datetime format, received "2026-09-22T18:02:00"',
-      'end: expected datetime format, received "2026-09-23T17:04:00"',
+      'start: expected datetime format, received "2026-09-22"',
+      'end: expected datetime format, received "2026-09-23"',
     ]);
     expect(report.unexpectedKeys).toEqual([]);
   });
