@@ -118,8 +118,10 @@ class PullRequestHead(OriginModel):
 
 
 class PullRequestUser(OriginModel):
+    id: str | None = None
     email: str = Field(min_length=1)
     display_name: str = Field(default="", alias="displayName")
+    handle: str | None = None
 
 
 class PullRequestApp(OriginModel):
@@ -137,6 +139,16 @@ class PullRequestAuthor(OriginModel):
     user: PullRequestUser | None = None
     app: PullRequestApp | None = None
     service_account: PullRequestServiceAccount | None = Field(default=None, alias="serviceAccount")
+
+    def contributor(self) -> tuple[str, str | None] | None:
+        if self.user is not None:
+            if not self.user.id:
+                return None
+            return self.user.id, self.user.handle or self.user.display_name or None
+        if self.app is not None:
+            return self.app.id, f"{self.app.display_name or self.app.id}[bot]"
+        assert self.service_account is not None
+        return self.service_account.id, f"{self.service_account.id}[bot]"
 
     def email_and_name(self) -> tuple[str, str]:
         if self.user is not None:

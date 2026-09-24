@@ -228,9 +228,9 @@ class CursorOriginWebhookEndpoint(Endpoint):
             },
         )
 
-        handler_cls = HANDLERS.get(event_type) if event_type else None
-        if handler_cls is None:
+        if not isinstance(event_type, str) or event_type not in HANDLERS:
             return HttpResponse(status=204)
+        handler_cls = HANDLERS[event_type]
 
         installation_id = envelope.get("installationId")
 
@@ -261,7 +261,7 @@ class CursorOriginWebhookEndpoint(Endpoint):
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                 provider_key=IntegrationProviderSlug.CURSOR_ORIGIN.value,
             ).capture():
-                handler_cls()(
+                handler_cls(event_type)(
                     payload,
                     delivery_id,
                     context.integration,

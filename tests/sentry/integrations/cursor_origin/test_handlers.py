@@ -64,7 +64,7 @@ class InstallationEventHandlerTest(TestCase):
             provider="cursor_origin", external_id=INSTALLATION_ID
         )
         assert context.integration is not None
-        HANDLERS[event_type]()(
+        HANDLERS[event_type](event_type)(
             payload if payload is not None else _installation(),
             DELIVERY_ID,
             context.integration,
@@ -208,7 +208,7 @@ class InstallationEventHandlerTest(TestCase):
             metadata={**stale.metadata, "access_token": "oit_refreshed"},
         )
 
-        HANDLERS["installation.updated"]()(
+        HANDLERS["installation.updated"]("installation.updated")(
             _installation(), DELIVERY_ID, stale, context.organization_integrations
         )
 
