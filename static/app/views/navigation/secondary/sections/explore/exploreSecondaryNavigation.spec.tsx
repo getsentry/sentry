@@ -88,7 +88,7 @@ describe('ExploreSecondaryNavigation', () => {
       'href',
       '/organizations/org-slug/explore/investigations/'
     );
-    expect(screen.getByLabelText('beta')).toBeInTheDocument();
+    expect(screen.getByLabelText('alpha')).toBeInTheDocument();
   });
 
   it('keeps Explore and Investigations active on investigation detail pages', () => {
