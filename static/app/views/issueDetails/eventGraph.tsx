@@ -417,6 +417,30 @@ export function EventGraph({
       seriesData.push(releaseSeries as BarChartSeries);
     }
 
+    // Annotate the chart with the most recent deploy so users can correlate a
+    // spike with what shipped. The marker sits on the first bucket and shows the
+    // release version on hover. Falls back to a placeholder until the release
+    // API wires through.
+    const firstBucket = eventSeries[0]?.name;
+    if (firstBucket) {
+      seriesData.push({
+        seriesName: 'Deploys',
+        type: 'line',
+        data: [],
+        markPoint: {
+          symbol: 'pin',
+          symbolSize: 40,
+          data: [
+            {
+              name: window.localStorage.getItem('latest-release') ?? 'v1.0.0',
+              coord: [firstBucket, 1],
+              labelForValue: 'Deploy',
+            },
+          ],
+        },
+      } as unknown as BarChartSeries);
+    }
+
     if (flagSeries.markLine && flagSeries.type === 'line') {
       seriesData.push(flagSeries as BarChartSeries);
     }
