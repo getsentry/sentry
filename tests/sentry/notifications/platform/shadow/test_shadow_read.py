@@ -365,7 +365,8 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
 
     @with_feature("organizations:metric-alert-chartcuterie")
     @mock.patch(
-        "sentry.incidents.charts.build_metric_alert_chart", return_value="https://chart.example"
+        "sentry.integrations.slack.utils.notifications.build_metric_alert_chart",
+        return_value="https://chart.example",
     )
     def test_slack_compares_with_the_chart_that_was_sent(self, mock_chart: mock.MagicMock) -> None:
         action = self.create_shadow_action("slack")
@@ -406,7 +407,7 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         action = self.create_shadow_action("slack")
 
         with mock.patch(
-            "sentry.integrations.slack.utils.notifications.build_metric_alert_payload"
+            "sentry.integrations.slack.utils.notifications._build_notification_payload"
         ) as mock_legacy_build:
             observation, client = self.send(self.invocation(action))
 

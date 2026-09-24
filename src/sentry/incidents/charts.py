@@ -3,21 +3,15 @@ from datetime import datetime, timedelta
 from functools import reduce
 from typing import Any
 
-import sentry_sdk
 from django.utils import timezone
 
-from sentry import features
 from sentry.api import client
 from sentry.api.base import logger
 from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.incidents.logic import translate_aggregate_field
-from sentry.incidents.typings.metric_detector import (
-    AlertContext,
-    MetricIssueContext,
-    OpenPeriodContext,
-)
+from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
@@ -295,31 +289,4 @@ def build_metric_alert_chart(
             exc,
             exc_info=True,
         )
-        return None
-
-
-def build_metric_alert_notification_chart(
-    organization: Organization,
-    alert_context: AlertContext,
-    metric_issue_context: MetricIssueContext,
-    open_period_context: OpenPeriodContext,
-    detector_serialized_response: DetectorSerializerResponse | None,
-) -> str | None:
-    """
-    Returns the chart URL for a metric alert notification, or None if the
-    organization doesn't have charts enabled or the chart fails to render.
-    """
-    if not features.has("organizations:metric-alert-chartcuterie", organization):
-        return None
-    try:
-        return build_metric_alert_chart(
-            organization=organization,
-            snuba_query=metric_issue_context.snuba_query,
-            alert_context=alert_context,
-            open_period_context=open_period_context,
-            subscription=metric_issue_context.subscription,
-            detector_serialized_response=detector_serialized_response,
-        )
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
         return None
