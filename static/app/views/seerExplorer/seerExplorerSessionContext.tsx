@@ -22,12 +22,10 @@ export function buildRunsSearchQuery(searchQuery?: string) {
 }
 
 export function useSeerExplorerSessionsQuery({
-  limit = 20,
   enabled = true,
   query: searchQuery,
 }: {
   enabled?: boolean;
-  limit?: number;
   query?: string;
 }) {
   const organization = useOrganization({allowNull: true});
@@ -42,7 +40,7 @@ export function useSeerExplorerSessionsQuery({
             ? {organizationIdOrSlug: organization.slug}
             : skipToken,
         query: {
-          per_page: limit,
+          per_page: 20,
           query: buildRunsSearchQuery(searchQuery),
         },
         staleTime: 0,
