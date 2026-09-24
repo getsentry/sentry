@@ -17,6 +17,7 @@ from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationFeedbackBatchBlockedEvent,
 )
+from sentry.seer.autofix.pr_iteration.details_store import remove_iteration
 from sentry.seer.autofix.pr_iteration.emit import (
     BLOCKED_OUTCOMES_DATA_KEY,
     FAILURE_REASON_DATA_KEY,
@@ -51,11 +52,17 @@ def sweep_stale_pr_iterations() -> SweepResult:
     stale = SeerRunPrIteration.objects.filter(date_updated__lt=cutoff)
     backlog = stale.count()
     rows = list(stale.order_by("date_updated")[:STALE_DETAILS_BATCH_SIZE])
+    discarded = 0
     emitted = 0
     for iteration in rows:
-        if iteration.data.get(BLOCKED_OUTCOMES_DATA_KEY):
+        event = None
+        if not iteration.data.get(BLOCKED_OUTCOMES_DATA_KEY):
+            event = _swept_event(iteration)
+        # If the delete finds nothing, the completion hook already deleted this
+        # row and sent its own event, so we skip it to avoid a second one.
+        if not remove_iteration(iteration):
             continue
-        event = _swept_event(iteration)
+        discarded += 1
         if event is None:
             continue
         try:
@@ -66,10 +73,6 @@ def sweep_stale_pr_iterations() -> SweepResult:
                 "autofix.pr_iteration.details.sweep_emit_failed",
                 extra={"iteration_id": iteration.id},
             )
-
-    discarded, _ = SeerRunPrIteration.objects.filter(
-        id__in=[iteration.id for iteration in rows]
-    ).delete()
     return SweepResult(discarded=discarded, emitted=emitted, backlog=backlog)
 
 

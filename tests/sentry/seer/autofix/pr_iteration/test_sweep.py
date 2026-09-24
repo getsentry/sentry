@@ -152,6 +152,27 @@ class SweepStalePrIterationsTest(TestCase):
 
         assert mock_record.call_args.args[0].outcome == "stale_head"
 
+    def test_a_refusal_before_the_trigger_does_not_hide_never_completed(self) -> None:
+        self._open()
+        self._fail("stale_head")
+        assert self._trigger() is not None
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._sweep()
+
+        assert mock_record.call_args.args[0].outcome == PrIterationOutcome.NEVER_COMPLETED.value
+
+    def test_a_row_the_completion_hook_claimed_first_is_not_reported_again(self) -> None:
+        self._open()
+
+        with (
+            patch("sentry.seer.autofix.pr_iteration.sweep.remove_iteration", return_value=False),
+            patch("sentry.analytics.record") as mock_record,
+        ):
+            assert self._sweep() == SweepResult(discarded=0, emitted=0, backlog=1)
+
+        assert not mock_record.called
+
     def test_a_row_that_already_reported_a_block_is_swept_quietly(self) -> None:
         self._open()
         record_pr_iteration_blocked(

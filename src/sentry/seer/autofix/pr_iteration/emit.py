@@ -232,6 +232,9 @@ def trigger_pr_iteration_details(
         if iteration is None:
             return None
 
+        # The batch is running now, so any earlier reason it was blocked is out
+        # of date. Clear it so the sweep doesn't report that old reason.
+        iteration.data.pop(FAILURE_REASON_DATA_KEY, None)
         update_iteration(iteration, trigger_source=trigger_source)
         set_pr_iteration_attributes(iteration_id=iteration.id)
         return iteration.id
