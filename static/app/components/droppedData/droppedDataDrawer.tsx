@@ -10,13 +10,13 @@ import {t} from 'sentry/locale';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 interface DroppedDataDrawerProps {
-  acceptedDataAnnotations: Annotation[];
-  droppedDataAnnotations: Annotation[];
+  acceptedAnnotations: Annotation[];
+  droppedAnnotations: Annotation[];
 }
 
 export function DroppedDataDrawer({
-  droppedDataAnnotations,
-  acceptedDataAnnotations,
+  droppedAnnotations,
+  acceptedAnnotations,
 }: DroppedDataDrawerProps) {
   return (
     <Fragment>
@@ -27,10 +27,10 @@ export function DroppedDataDrawer({
       </DrawerHeader>
       <DrawerBody>
         <Stack gap="xl">
-          <DroppedDataChart droppedDataAnnotations={droppedDataAnnotations} />
+          <DroppedDataChart droppedAnnotations={droppedAnnotations} />
           <DroppedDataCategoryList
-            droppedDataAnnotations={droppedDataAnnotations}
-            acceptedDataAnnotations={acceptedDataAnnotations}
+            droppedAnnotations={droppedAnnotations}
+            acceptedAnnotations={acceptedAnnotations}
           />
         </Stack>
       </DrawerBody>

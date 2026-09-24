@@ -114,13 +114,11 @@ describe('ExploreCharts', () => {
 
   describe('dropped data layer', () => {
     function renderCharts({
-      features = [],
       acceptedAnnotations,
       droppedAnnotations,
     }: {
       acceptedAnnotations?: Annotation[];
       droppedAnnotations?: Annotation[];
-      features?: string[];
     }) {
       const meta =
         droppedAnnotations || acceptedAnnotations
@@ -143,22 +141,19 @@ describe('ExploreCharts', () => {
             />
           </ChartSelectionProvider>
         </SpansQueryParamsProvider>,
-        {organization: OrganizationFixture({features})}
+        {organization: OrganizationFixture()}
       );
     }
 
-    it('hides the Layers control without the feature flag', async () => {
-      renderCharts({features: [], droppedAnnotations: [AnnotationFixture()]});
+    it('hides the Layers control when meta has no annotations', async () => {
+      renderCharts({});
 
       expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
       expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
     });
 
     it('hides the Layers control when there are no dropped annotations', async () => {
-      renderCharts({
-        features: ['explore-data-fidelity-annotations'],
-        droppedAnnotations: [],
-      });
+      renderCharts({droppedAnnotations: []});
 
       expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
       expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
@@ -166,7 +161,6 @@ describe('ExploreCharts', () => {
 
     it('hides the Layers control when only accepted annotations are present', async () => {
       renderCharts({
-        features: ['explore-data-fidelity-annotations'],
         droppedAnnotations: [],
         acceptedAnnotations: [AnnotationFixture({outcome: 'accepted', eventCount: 8000})],
       });
@@ -175,11 +169,19 @@ describe('ExploreCharts', () => {
       expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
     });
 
-    it('shows the Layers control and toggles the dropped-data layer', async () => {
+    it('hides the Layers control when every drop is configured', async () => {
       renderCharts({
-        features: ['explore-data-fidelity-annotations'],
-        droppedAnnotations: [AnnotationFixture()],
+        droppedAnnotations: [
+          AnnotationFixture({outcome: 'client_discard', reason: 'sample_rate'}),
+        ],
       });
+
+      expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+    });
+
+    it('shows the Layers control and toggles the dropped-data layer', async () => {
+      renderCharts({droppedAnnotations: [AnnotationFixture()]});
 
       await userEvent.click(await screen.findByLabelText('Chart layers'));
 

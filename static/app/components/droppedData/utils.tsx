@@ -1,3 +1,5 @@
+import type {Theme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
 import {Outcome} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
@@ -46,6 +48,27 @@ const REASON_TITLES: Record<string, string> = {
 
 export function reasonTitle(reason: string): string {
   return REASON_TITLES[reason] ?? reason;
+}
+
+export function hasDroppedData(
+  droppedAnnotations: Annotation[] | undefined
+): droppedAnnotations is Annotation[] {
+  return (
+    defined(droppedAnnotations) &&
+    droppedAnnotations.some(annotation => !isConfiguredDrop(annotation))
+  );
+}
+
+export function getOutcomeColors(
+  outcomes: string[],
+  theme: Theme
+): Record<string, string> {
+  const palette = theme.chart.getColorPalette(Math.max(outcomes.length - 1, 0));
+
+  return outcomes.reduce<Record<string, string>>((acc, outcome, index) => {
+    acc[outcome] = palette[index % palette.length]!;
+    return acc;
+  }, {});
 }
 
 // Shares run tiny (a reason can be a sliver of all traffic), so floor the
@@ -99,13 +122,6 @@ export interface AnnotationBucket {
   end: number;
   ratio: number;
   start: number;
-}
-
-export interface DroppedData {
-  accepted?: Annotation[];
-  dropped?: Annotation[];
-  onClick?: (bucket: AnnotationBucket) => void;
-  visible?: boolean;
 }
 
 interface VolumeDraft {

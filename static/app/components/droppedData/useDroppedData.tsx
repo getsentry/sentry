@@ -1,50 +1,24 @@
-import {useState} from 'react';
+import type {
+  Annotation,
+  EventsTimeSeriesResponse,
+} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
-import {useDrawer} from '@sentry/scraps/drawer';
+interface DroppedData {
+  acceptedAnnotations?: Annotation[];
+  droppedAnnotations?: Annotation[];
+}
 
-import {DroppedDataDrawer} from 'sentry/components/droppedData/droppedDataDrawer';
-import {useHasDroppedDataAnnotations} from 'sentry/components/droppedData/useHasDroppedDataAnnotations';
-import type {DroppedData} from 'sentry/components/droppedData/utils';
-import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
-import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-
-export function useDroppedData(meta: EventsTimeSeriesResponse['meta']) {
-  const hasAnnotations = useHasDroppedDataAnnotations();
-  const {openDrawer} = useDrawer();
-  const [showDroppedData, setShowDroppedData] = useState(true);
-
-  const droppedDataAnnotations = hasAnnotations ? meta?.droppedAnnotations : undefined;
-  const acceptedDataAnnotations = hasAnnotations ? meta?.acceptedAnnotations : undefined;
-  const hasDroppedData =
-    defined(droppedDataAnnotations) && droppedDataAnnotations.length > 0;
-
-  const chartProps: DroppedData = {
-    dropped: droppedDataAnnotations,
-    accepted: acceptedDataAnnotations,
-    visible: showDroppedData,
-    onClick: () => {
-      if (!hasDroppedData) {
-        return;
-      }
-      openDrawer(
-        () => (
-          <DroppedDataDrawer
-            droppedDataAnnotations={droppedDataAnnotations}
-            acceptedDataAnnotations={acceptedDataAnnotations ?? []}
-          />
-        ),
-        {
-          ariaLabel: t('Dropped Data'),
-        }
-      );
-    },
-  };
-
+// TODO: this hook atm is very simple and almost needless. This is forward thinking to
+// when we soon have a dedicated endpoint. The usage then should look something like
+// this:
+// function useDroppedData(params: {dataset; query; interval; enabled}): {
+//   acceptedAnnotations?: Annotation[];
+//   droppedAnnotations?: Annotation[];
+//   isPending: boolean;
+// };
+export function useDroppedData(meta: EventsTimeSeriesResponse['meta']): DroppedData {
   return {
-    chartProps,
-    hasDroppedData,
-    showDroppedData,
-    setShowDroppedData,
+    droppedAnnotations: meta?.droppedAnnotations,
+    acceptedAnnotations: meta?.acceptedAnnotations,
   };
 }
