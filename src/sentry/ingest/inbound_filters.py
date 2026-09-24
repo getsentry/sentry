@@ -452,7 +452,7 @@ def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]
     return [_generic_filter("trace-metric-name", condition)]
 
 
-def _blacklisted_ips_generic_filters(project: Project) -> list[GenericFilter]:
+def _ip_denylist_generic_filters(project: Project) -> list[GenericFilter]:
     """
     The legacy IP address list as a generic filter. It keeps the outcome reason of the
     native ``clientIps`` filter it replaces, so filter stats stay continuous.
@@ -497,7 +497,7 @@ def get_generic_filters(
 
     # First, as the native IP filter runs before the other native filters.
     if filter_features.generic_ip_filter:
-        generic_filters += _blacklisted_ips_generic_filters(project)
+        generic_filters += _ip_denylist_generic_filters(project)
 
     if filter_features.custom_inbound_filters:
         if filter_features.logs:

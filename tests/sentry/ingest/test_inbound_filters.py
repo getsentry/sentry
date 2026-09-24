@@ -682,7 +682,7 @@ def test_get_generic_filters_omits_gated_sources_without_configuration(default_p
 
 
 @django_db_all
-def test_blacklisted_ips_become_a_generic_filter_with_the_native_reason(default_project) -> None:
+def test_ip_denylist_becomes_a_generic_filter_with_the_native_reason(default_project) -> None:
     for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
         default_project.update_option(f"filters:{builtin_filter_id}", "0")
     default_project.update_option("sentry:blacklisted_ips", ["10.0.0.0/8", "2001:db8::1"])
