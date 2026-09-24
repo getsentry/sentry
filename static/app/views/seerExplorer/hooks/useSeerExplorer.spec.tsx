@@ -521,6 +521,66 @@ describe('useSeerExplorer', () => {
       expect(result.current.requestError).toBeNull();
     });
 
+    it('keeps the alert when an older send succeeds after a newer send failed', async () => {
+      const runId = 'run-stale';
+      let settleFirstSend!: () => void;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+      const firstSendMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        body: {run_id: 1},
+        asyncDelay: new Promise<void>(resolve => {
+          settleFirstSend = resolve;
+        }),
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('completed');
+      });
+
+      act(() => {
+        result.current.sendMessage('First question');
+      });
+      await waitFor(() => {
+        expect(firstSendMock).toHaveBeenCalled();
+      });
+
+      // Mocks are matched newest first, so only the second send gets the failure.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Server error'},
+      });
+      act(() => {
+        result.current.sendMessage('Second question');
+      });
+      await waitFor(() => {
+        expect(result.current.requestError).toEqual({query: 'Second question'});
+      });
+
+      // Let the first request succeed and its callbacks run to completion.
+      await act(async () => {
+        settleFirstSend();
+        for (let i = 0; i < 5; i++) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      });
+
+      expect(result.current.requestError).toEqual({query: 'Second question'});
+    });
+
     it('clears the request error when switching conversations', async () => {
       const runId = 'run-a';
       MockApiClient.addMockResponse({

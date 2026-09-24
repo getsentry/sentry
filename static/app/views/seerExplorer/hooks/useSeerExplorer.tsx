@@ -192,7 +192,7 @@ export const useSeerExplorer = () => {
     prevInsertIndexBlockId: string | undefined;
     query: string;
     /** Identifies the send, so a failed request only clears its own optimistic blocks. */
-    sendId: string;
+    requestId: string;
     sentAt: string;
   } | null>(null);
   const [hasSentInterrupt, setHasSentInterrupt] = useState(false);
@@ -204,6 +204,10 @@ export const useSeerExplorer = () => {
     query?: string;
   } | null>(null);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
+  // The most recent chat message or user-input response. Only its outcome may change the
+  // error alert or roll back session data, so an older request settling late can't hide a
+  // newer failure or restore a stale snapshot.
+  const latestRequestIdRef = useRef<string | null>(null);
 
   /**
    * Optimistically marks the session as processing (prevents isPolling flicker on a new
@@ -266,15 +270,16 @@ export const useSeerExplorer = () => {
       pageLocation: LLMContextLocation | undefined;
       pageName: string;
       query: string;
+      requestId: string;
       runId: SeerExplorerRunId | null;
       screenshot: string | undefined;
-      sendId: string;
       sentAt: string[];
     },
     {previousData: SeerExplorerResponse | undefined}
   >({
     onMutate: params => {
       setHasSentInterrupt(false);
+      latestRequestIdRef.current = params.requestId;
       return markSessionProcessing(params.orgSlug, params.runId);
     },
     mutationFn: async params => {
@@ -296,7 +301,9 @@ export const useSeerExplorer = () => {
       });
     },
     onSuccess: (response, params) => {
-      setRequestError(null);
+      if (latestRequestIdRef.current === params.requestId) {
+        setRequestError(null);
+      }
       if (params.runId === null) {
         // Prefer the UUID; fall back to the numeric run_id for legacy runs.
         dispatch({
@@ -311,11 +318,14 @@ export const useSeerExplorer = () => {
       }
     },
     onError: (_e, params, context) => {
+      // A later send (possibly in another conversation) may own the optimistic blocks now.
+      setLastSentMessage(prev => (prev?.requestId === params.requestId ? null : prev));
+      if (latestRequestIdRef.current !== params.requestId) {
+        return;
+      }
       // Keep the existing conversation: roll back the optimistic status and drop the
       // optimistic user/loading blocks. The UI surfaces the failure and restores the draft.
       restoreSessionData(params.orgSlug, params.runId, context?.previousData);
-      // A later send (possibly in another conversation) may own the optimistic blocks now.
-      setLastSentMessage(prev => (prev?.sendId === params.sendId ? null : prev));
       setRequestError({runId: params.runId, query: params.query});
     },
   });
@@ -326,6 +336,7 @@ export const useSeerExplorer = () => {
     {
       inputId: string;
       orgSlug: string;
+      requestId: string;
       runId: SeerExplorerRunId | null;
       responseData?: Record<string, unknown>;
     },
@@ -333,6 +344,7 @@ export const useSeerExplorer = () => {
   >({
     onMutate: params => {
       setHasSentInterrupt(false);
+      latestRequestIdRef.current = params.requestId;
       return markSessionProcessing(params.orgSlug, params.runId);
     },
     mutationFn: async params => {
@@ -349,13 +361,18 @@ export const useSeerExplorer = () => {
       });
     },
     onSuccess: (_, params) => {
-      setRequestError(null);
+      if (latestRequestIdRef.current === params.requestId) {
+        setRequestError(null);
+      }
       // invalidate the query so fresh data is fetched
       queryClient.invalidateQueries({
         queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
       });
     },
     onError: (_e, params, context) => {
+      if (latestRequestIdRef.current !== params.requestId) {
+        return;
+      }
       // Keep the existing conversation and pending input so the user can answer again.
       restoreSessionData(params.orgSlug, params.runId, context?.previousData);
       setRequestError({runId: params.runId});
@@ -573,9 +590,9 @@ export const useSeerExplorer = () => {
       const placeholderContent = texts[Math.floor(Math.random() * texts.length)]!;
 
       // Update lastSentMessage for optimistic UI
-      const sendId = uniqueId();
+      const requestId = uniqueId();
       setLastSentMessage({
-        sendId,
+        requestId,
         query,
         insertIndex: newInsertIndex,
         prevInsertIndexBlockId: blocks[newInsertIndex]?.id,
@@ -586,7 +603,7 @@ export const useSeerExplorer = () => {
       // Send POST request
       sendMessageMutate({
         query,
-        sendId,
+        requestId,
         insertIndex: newInsertIndex,
         runId: effectiveRunId,
         orgSlug,
@@ -644,7 +661,7 @@ export const useSeerExplorer = () => {
         return;
       }
       userInputMutate(
-        {inputId, responseData, orgSlug, runId},
+        {inputId, responseData, orgSlug, runId, requestId: uniqueId()},
         {onError: () => options?.onError?.()}
       );
     },
