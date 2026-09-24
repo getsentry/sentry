@@ -240,6 +240,8 @@ def _record_attribution_span(
             # can be removed from the map once no request depends on it alone.
             set_span_data(span, "scopes_satisfying", ",".join(admission.satisfying))
             set_span_data(span, "scopes_allowed", ",".join(admission.allowed))
+            if admission.least_permissive is not None:
+                set_span_data(span, "scopes_least_permissive", admission.least_permissive)
 
 
 def get_user_agent(request: Request) -> str | None:

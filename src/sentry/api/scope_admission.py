@@ -15,6 +15,7 @@ from __future__ import annotations
 from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 
+from django.conf import settings
 from django.http.request import HttpRequest
 from rest_framework.request import Request
 
@@ -27,6 +28,7 @@ class ScopeAdmission:
 
     satisfying: tuple[str, ...]
     allowed: tuple[str, ...]
+    least_permissive: str | None
 
 
 def record_scope_admission(
@@ -43,7 +45,11 @@ def record_scope_admission(
     satisfying = tuple(sorted(scope for scope in allowed_scopes if scope in granted))
     if not satisfying:
         return
-    record = ScopeAdmission(satisfying=satisfying, allowed=tuple(sorted(allowed_scopes)))
+    record = ScopeAdmission(
+        satisfying=satisfying,
+        allowed=tuple(sorted(allowed_scopes)),
+        least_permissive=least_permissive_scope(satisfying),
+    )
     setattr(_underlying(request), REQUEST_ATTR, record)
 
 
@@ -58,3 +64,24 @@ def _underlying(request: Request | HttpRequest) -> HttpRequest:
     clients, tests), which has no `_request` to unwrap.
     """
     return getattr(request, "_request", request)
+
+
+def least_permissive_scope(scopes: Collection[str]) -> str | None:
+    """The weakest of ``scopes``: the one none of the others sit above.
+
+    A token created with ``org:write`` stores ``org:read`` too, so the satisfying set
+    names a range rather than the bar the caller actually had to clear. `org:read` is
+    the answer for ``{org:read, org:write}``.
+
+    Scopes from different families (``org:read`` and ``dashboard:read``) sit above
+    nothing in common, so the tie is broken alphabetically to keep the value stable;
+    read it alongside ``satisfying``, which keeps both. Mirrors the rule in
+    ``sentry.api.permissions._least_privileged_scope``, without that one's exclusions.
+    """
+    if not scopes:
+        return None
+    for scope in sorted(scopes):
+        implied = set(settings.SENTRY_SCOPE_HIERARCHY_MAPPING.get(scope, (scope,)))
+        if not (implied - {scope}) & set(scopes):
+            return scope
+    return min(scopes)
