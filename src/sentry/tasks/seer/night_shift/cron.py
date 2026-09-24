@@ -6,7 +6,7 @@ import time
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from cronsim import CronSim
@@ -116,13 +116,9 @@ class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
 class NightShiftShardPlan:
     payload: dict[str, Any]
     title: str
-    code_mode_experiment_arm: Literal["control", "code_mode"] | None = None
 
     def to_extras(self) -> dict[str, object]:
-        extras: dict[str, object] = {"payload": self.payload, "title": self.title}
-        if self.code_mode_experiment_arm is not None:
-            extras["code_mode_experiment_arm"] = self.code_mode_experiment_arm
-        return extras
+        return {"payload": self.payload, "title": self.title}
 
     @classmethod
     def from_extras(cls, extras: Mapping[str, object]) -> NightShiftShardPlan | None:
@@ -130,10 +126,7 @@ class NightShiftShardPlan:
         title = extras.get("title")
         if not isinstance(payload, dict) or not isinstance(title, str):
             return None
-        arm = extras.get("code_mode_experiment_arm")
-        if arm is not None and arm != "control" and arm != "code_mode":
-            return None
-        return cls(payload=payload, title=title, code_mode_experiment_arm=arm)
+        return cls(payload=payload, title=title)
 
 
 class ShardDispatchStatus(StrEnum):
@@ -829,31 +822,12 @@ def _maybe_create_shard_plan(
         if locked_run.executions.exists():
             return
 
-        experiment_enabled = features.has(
-            "organizations:seer-night-shift-code-mode-experiment", locked_run.organization
-        )
         SeerWorkflowRunExecution.objects.bulk_create(
             [
-                SeerWorkflowRunExecution(
-                    run=locked_run,
-                    extras=dataclasses.replace(
-                        plan,
-                        code_mode_experiment_arm=(
-                            _code_mode_experiment_arm(locked_run.id, shard_index)
-                            if experiment_enabled
-                            else None
-                        ),
-                    ).to_extras(),
-                )
-                for shard_index, plan in enumerate(shard_plans)
+                SeerWorkflowRunExecution(run=locked_run, extras=plan.to_extras())
+                for plan in shard_plans
             ]
         )
-
-
-def _code_mode_experiment_arm(run_id: int, shard_index: int) -> Literal["control", "code_mode"]:
-    key = f"night-shift-code-mode-v1:{run_id}:{shard_index}"
-    arm_bucket = int(md5_text(f"{key}:arm").hexdigest(), 16) % 2
-    return "control" if arm_bucket == 0 else "code_mode"
 
 
 def _dispatch_pending_shards(
@@ -875,6 +849,13 @@ def _dispatch_pending_shards(
         return ShardDispatchStatus.NO_SEER_ACCESS
 
     using = router.db_for_write(SeerWorkflowRunExecution)
+    agent_run_options: AgentRunOptions = {
+        "enable_code_mode_tools": (
+            "only"
+            if features.has("organizations:seer-night-shift-code-mode", organization)
+            else "off"
+        )
+    }
     planned_shards = list(run.executions.order_by("id"))
     dispatched = 0
     for shard_index, planned_shard in enumerate(planned_shards):
@@ -901,18 +882,6 @@ def _dispatch_pending_shards(
                 shard.seer_run = created
                 shard.save(update_fields=["seer_run"])
 
-            agent_run_options: AgentRunOptions | None = None
-            experiment_extras = None
-            if shard_plan.code_mode_experiment_arm is not None:
-                agent_run_options = {
-                    "enable_code_mode_tools": (
-                        "only" if shard_plan.code_mode_experiment_arm == "code_mode" else "off"
-                    )
-                }
-                experiment_extras = {
-                    "code_mode_experiment_arm": shard_plan.code_mode_experiment_arm
-                }
-
             try:
                 client.start_feature_run(
                     feature_id="night_shift",
@@ -922,7 +891,6 @@ def _dispatch_pending_shards(
                     on_run_created=_link_shard,
                     referrer="night_shift",
                     agent_run_options=agent_run_options,
-                    extras=experiment_extras,
                 )
             except Exception:
                 logger.exception(

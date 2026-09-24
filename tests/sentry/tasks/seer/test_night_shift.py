@@ -1,5 +1,4 @@
 import time
-from collections import Counter
 from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
@@ -18,7 +17,7 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import SeerNightShiftRunErrorType, SeerNightShiftRunResult
-from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.models.workflow import (
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
@@ -27,12 +26,10 @@ from sentry.seer.models.workflow import (
 from sentry.tasks.seer.night_shift.cron import (
     NightShiftShardPlan,
     ShardDispatchStatus,
-    _code_mode_experiment_arm,
     _complete_run,
     _current_schedule_id,
     _dispatch_pending_shards,
     _get_eligible_projects,
-    _maybe_create_shard_plan,
     _night_shift_cron_expr,
     _record_run_error,
     _update_run_extras,
@@ -77,105 +74,31 @@ def _dispatched_feature_body(organization):
 
 
 @django_db_all
-class TestNightShiftCodeModeExperiment:
-    def test_assignment_is_stable_and_balanced_within_one_run(self) -> None:
-        arms = [_code_mode_experiment_arm(42, index) for index in range(1000)]
-        assert arms == [_code_mode_experiment_arm(42, index) for index in range(1000)]
-        counts = Counter(arms)
-        assert set(counts) == {"control", "code_mode"}
-        assert all(400 < count < 600 for count in counts.values())
-
-    def test_unenrolled_plan_keeps_existing_behavior(self, default_organization) -> None:
-        run = Factories.create_seer_workflow_run(organization=default_organization)
-        plan = NightShiftShardPlan(payload={"candidates": []}, title="Triage")
-        with with_feature({"organizations:seer-night-shift-code-mode-experiment": False}):
-            _maybe_create_shard_plan(run, [plan])
-        assert run.executions.get().extras == plan.to_extras()
-
-        with with_feature("organizations:gen-ai-features"):
-            status = _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
-        assert status == ShardDispatchStatus.COMPLETE
-        seer_run, body = _dispatched_feature_body(default_organization)
-        assert "enable_code_mode_tools" not in body["agent_run_options"]
-        assert "code_mode_experiment_arm" not in SeerAgentRun.objects.get(run=seer_run).extras
-
-    def test_assignment_is_persisted_once_for_each_shard(self, default_organization) -> None:
-        run = Factories.create_seer_workflow_run(organization=default_organization)
-        plans = [NightShiftShardPlan(payload={}, title=f"Triage {index}") for index in range(2)]
-        with with_feature("organizations:seer-night-shift-code-mode-experiment"):
-            _maybe_create_shard_plan(run, plans)
-        stored = list(run.executions.order_by("id").values_list("extras", flat=True))
-        assert len(stored) == 2
-        assert all(
-            extras["code_mode_experiment_arm"] in {"control", "code_mode"} for extras in stored
-        )
-
-        with with_feature({"organizations:seer-night-shift-code-mode-experiment": False}):
-            _maybe_create_shard_plan(run, plans)
-        assert list(run.executions.order_by("id").values_list("extras", flat=True)) == stored
-
-    @pytest.mark.parametrize("arm,mode", [("control", "off"), ("code_mode", "only")])
-    def test_failed_dispatch_reuses_saved_arm_after_experiment_disabled(
-        self, default_organization, arm, mode
-    ) -> None:
-        run = Factories.create_seer_workflow_run(organization=default_organization)
-        plan = NightShiftShardPlan(
-            payload={"candidates": []}, title="Triage", code_mode_experiment_arm=arm
-        )
-        shard = Factories.create_seer_workflow_run_execution(run=run, extras=plan.to_extras())
-        with (
-            with_feature("organizations:gen-ai-features"),
-            patch.object(SeerAgentClient, "start_feature_run", side_effect=RuntimeError("boom")),
-        ):
-            status = _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
-        assert status == ShardDispatchStatus.PARTIAL_FAILURE
-        shard.refresh_from_db()
-        assert shard.seer_run_id is None
-        assert shard.extras["code_mode_experiment_arm"] == arm
-
-        with with_feature(
-            {
-                "organizations:gen-ai-features": True,
-                "organizations:seer-night-shift-code-mode-experiment": False,
-            }
-        ):
-            status = _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
-            repeated = _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
-        assert status == repeated == ShardDispatchStatus.COMPLETE
-        seer_run, body = _dispatched_feature_body(default_organization)
-        assert body["agent_run_options"]["enable_code_mode_tools"] == mode
-        assert SeerAgentRun.objects.get(run=seer_run).extras["code_mode_experiment_arm"] == arm
-        shard.refresh_from_db()
-        assert shard.seer_run_id == seer_run.id
-        assert shard.extras == plan.to_extras()
-
-    def test_legacy_plan_is_not_enrolled_on_resume(self, default_organization) -> None:
-        run = Factories.create_seer_workflow_run(organization=default_organization)
-        plan = NightShiftShardPlan(payload={"candidates": []}, title="Triage")
+@pytest.mark.parametrize("enabled,mode", [(False, "off"), (True, "only")])
+def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, enabled, mode):
+    run = Factories.create_seer_workflow_run(organization=default_organization)
+    plan = NightShiftShardPlan(payload={"candidates": []}, title="Triage")
+    shards = [
         Factories.create_seer_workflow_run_execution(run=run, extras=plan.to_extras())
-        with with_feature(
-            [
-                "organizations:gen-ai-features",
-                "organizations:seer-night-shift-code-mode-experiment",
-            ]
-        ):
-            _maybe_create_shard_plan(run, [plan])
-            status = _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
-        assert status == ShardDispatchStatus.COMPLETE
-        _, body = _dispatched_feature_body(default_organization)
-        assert "enable_code_mode_tools" not in body["agent_run_options"]
-        assert run.executions.get().extras == plan.to_extras()
+        for _ in range(3)
+    ]
 
-    def test_invalid_arm_does_not_silently_dispatch_classic(self, default_organization) -> None:
-        run = Factories.create_seer_workflow_run(organization=default_organization)
-        Factories.create_seer_workflow_run_execution(
-            run=run,
-            extras={"payload": {}, "title": "Triage", "code_mode_experiment_arm": "unknown"},
+    with with_feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:seer-night-shift-code-mode": enabled,
+        }
+    ):
+        status = _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
+
+    assert status == ShardDispatchStatus.COMPLETE
+    for shard in shards:
+        shard.refresh_from_db()
+        outbox = CellOutbox.objects.get(
+            category=OutboxCategory.SEER_RUN_CREATE, object_identifier=shard.seer_run_id
         )
-        with with_feature("organizations:gen-ai-features"):
-            status = _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
-        assert status == ShardDispatchStatus.INVALID_SHARD_PLAN
-        assert not SeerRun.objects.filter(organization=default_organization).exists()
+        assert outbox.payload is not None
+        assert outbox.payload["body"]["agent_run_options"]["enable_code_mode_tools"] == mode
 
 
 class NightShiftFixtures(Fixtures):
