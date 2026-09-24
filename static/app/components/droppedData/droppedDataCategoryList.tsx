@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
-const COLUMNS = '1fr 84px 84px';
+const COLUMNS = '1fr 110px 96px';
 
 function ColorDot({color}: {color: string}) {
   return (

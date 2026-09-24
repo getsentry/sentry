@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DroppedDataCategoryList} from 'sentry/components/droppedData/droppedDataCategoryList';
@@ -25,11 +26,13 @@ export function DroppedDataDrawer({
         </Text>
       </DrawerHeader>
       <DrawerBody>
-        <DroppedDataChart annotations={droppedDataAnnotations} />
-        <DroppedDataCategoryList
-          droppedDataAnnotations={droppedDataAnnotations}
-          acceptedDataAnnotations={acceptedDataAnnotations}
-        />
+        <Stack gap="xl">
+          <DroppedDataChart annotations={droppedDataAnnotations} />
+          <DroppedDataCategoryList
+            droppedDataAnnotations={droppedDataAnnotations}
+            acceptedDataAnnotations={acceptedDataAnnotations}
+          />
+        </Stack>
       </DrawerBody>
     </Fragment>
   );
