@@ -1,5 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
-import {createPortal} from 'react-dom';
+import {Fragment} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
@@ -7,10 +6,13 @@ import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc
 import {useRegisteredTabSelection} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 import {useFormattedCode} from 'sentry/utils/useFormattedCode';
+import type {SyntaxHighlightLine} from 'sentry/utils/usePrismTokens';
+
+const AUTH_TOKEN = '___ORG_AUTH_TOKEN___';
 
 interface OnboardingCodeSnippetProps extends Omit<
   React.ComponentProps<typeof CodeBlock>,
-  'onAfterHighlight'
+  'renderToken'
 > {}
 
 const JAVASCRIPT_FORMAT_OPTIONS = {
@@ -20,19 +22,29 @@ const JAVASCRIPT_FORMAT_OPTIONS = {
 } as const;
 
 /**
- * Replaces tokens in a DOM element with a span element.
- * @param element DOM element in which the tokens will be replaced
- * @param tokens array of tokens to be replaced
- * @returns object with keys as tokens and values as array of HTMLSpanElement
+ * Renders a highlighted token, swapping the `___ORG_AUTH_TOKEN___` placeholder
+ * for an inline AuthTokenGenerator. The placeholder always lands inside a single
+ * token, so splitting that token's text is enough — no DOM post-processing.
  */
-export function replaceTokensWithSpan(element: HTMLElement) {
-  element.innerHTML = element.innerHTML.replace(
-    /(___ORG_AUTH_TOKEN___)/g,
-    '<span data-token="$1"></span>'
-  );
+function renderTokenWithAuthGenerator(token: SyntaxHighlightLine[number], key: number) {
+  if (!token.children.includes(AUTH_TOKEN)) {
+    return (
+      <span key={key} className={token.className}>
+        {token.children}
+      </span>
+    );
+  }
 
-  return Array.from<HTMLSpanElement>(
-    element.querySelectorAll('[data-token="___ORG_AUTH_TOKEN___"]')
+  const parts = token.children.split(AUTH_TOKEN);
+  return (
+    <span key={key} className={token.className}>
+      {parts.map((part, i) => (
+        <Fragment key={i}>
+          {part}
+          {i < parts.length - 1 && <AuthTokenGenerator />}
+        </Fragment>
+      ))}
+    </span>
   );
 }
 
@@ -44,16 +56,7 @@ export function OnboardingCodeSnippet({
   language,
   ...props
 }: OnboardingCodeSnippetProps) {
-  const [authTokenNodes, setAuthTokenNodes] = useState<HTMLSpanElement[]>([]);
-
-  const handleAfterHighlight = useCallback((element: HTMLElement) => {
-    setAuthTokenNodes(replaceTokensWithSpan(element));
-  }, []);
-
-  const partialLoading = useMemo(
-    () => children.includes(PACKAGE_LOADING_PLACEHOLDER),
-    [children]
-  );
+  const partialLoading = children.includes(PACKAGE_LOADING_PLACEHOLDER);
 
   const {formattedCode} = useFormattedCode({
     code: children,
@@ -62,19 +65,16 @@ export function OnboardingCodeSnippet({
   });
 
   return (
-    <Fragment>
-      <CodeBlock
-        dark
-        language={language}
-        hideCopyButton={partialLoading}
-        disableUserSelection={partialLoading}
-        {...props}
-        onAfterHighlight={handleAfterHighlight}
-      >
-        {formattedCode}
-      </CodeBlock>
-      {authTokenNodes.map(node => createPortal(<AuthTokenGenerator />, node))}
-    </Fragment>
+    <CodeBlock
+      dark
+      language={language}
+      hideCopyButton={partialLoading}
+      disableUserSelection={partialLoading}
+      {...props}
+      renderToken={renderTokenWithAuthGenerator}
+    >
+      {formattedCode}
+    </CodeBlock>
   );
 }
 

@@ -1,35 +1,30 @@
-import {replaceTokensWithSpan} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-describe('replaceTokenWithSpan', () => {
-  it('replaces __ORG_AUTH_TOKEN___ token', () => {
-    const element = document.createElement('div');
-    element.innerHTML =
-      '<span class="token assign-left variable">SENTRY_AUTH_TOKEN</span><span class="token operator">=</span>___ORG_AUTH_TOKEN___';
-    const tokenNodes = replaceTokensWithSpan(element);
+import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 
-    expect(element.innerHTML).toBe(
-      '<span class="token assign-left variable">SENTRY_AUTH_TOKEN</span><span class="token operator">=</span><span data-token="___ORG_AUTH_TOKEN___"></span>'
+describe('OnboardingCodeSnippet', () => {
+  it('renders the auth token generator inline in place of the placeholder', () => {
+    render(
+      <OnboardingCodeSnippet language="bash">
+        {'sentry-cli login --auth-token ___ORG_AUTH_TOKEN___'}
+      </OnboardingCodeSnippet>
     );
-    expect(tokenNodes).toHaveLength(1);
-    expect(element.contains(tokenNodes[0]!)).toBe(true);
+
+    // The raw placeholder is never shown to the user...
+    expect(
+      screen.queryByText('___ORG_AUTH_TOKEN___', {exact: false})
+    ).not.toBeInTheDocument();
+    // ...the generator is rendered in its place instead.
+    expect(screen.getByText('Click to generate token')).toBeInTheDocument();
   });
 
-  it('replaces multiple ___ORG_AUTH_TOKEN___ tokens', () => {
-    const element = document.createElement('div');
-    element.innerHTML = `
-const cdn = '___ORG_AUTH_TOKEN___';
-const assetUrl = '___ORG_AUTH_TOKEN___';
-`;
-    const tokenNodes = replaceTokensWithSpan(element);
-
-    expect(element.innerHTML).toBe(
-      `
-const cdn = '<span data-token="___ORG_AUTH_TOKEN___"></span>';
-const assetUrl = '<span data-token="___ORG_AUTH_TOKEN___"></span>';
-`
+  it('handles snippets without a placeholder', () => {
+    render(
+      <OnboardingCodeSnippet language="bash">
+        {'echo "hello world"'}
+      </OnboardingCodeSnippet>
     );
-    expect(tokenNodes).toHaveLength(2);
-    expect(element.contains(tokenNodes[0]!)).toBe(true);
-    expect(element.contains(tokenNodes[1]!)).toBe(true);
+
+    expect(screen.queryByText('Click to generate token')).not.toBeInTheDocument();
   });
 });
