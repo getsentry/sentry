@@ -84,6 +84,18 @@ def result_transformer(result):
             if token.get("invalid"):
                 raise InvalidSearchQuery(token["invalid"]["reason"])
 
+            # A regex filter carries its operator in the `//` delimiters rather than a
+            # leading operator, so the backend records it as a plain (in)equality against
+            # a pattern value
+            if token["operator"] == "//":
+                return SearchFilter(
+                    node_visitor(token["key"]),
+                    "!=" if token["negated"] else "=",
+                    SearchValue(
+                        raw_value=token["value"]["value"], use_raw_value=True, is_regex=True
+                    ),
+                )
+
             # Transform the operator to match for list values
             if token["value"]["type"] in ["valueTextList", "valueNumberList"]:
                 operator = "NOT IN" if token["negated"] else "IN"
@@ -191,6 +203,31 @@ def result_transformer(result):
     return [token for token in map(node_visitor, result) if token is not None]
 
 
+# Frontend SearchConfig option -> backend SearchConfig field. Only options whose two
+# implementations are meant to agree belong here; a fixture naming anything else has to
+# either be given a mapping or be listed in `shared_tests_skipped`.
+SHARED_CONFIG_OPTIONS = {
+    "allowRegex": "allow_regex",
+}
+
+
+def build_config(additional_config):
+    if not additional_config:
+        return default_config
+
+    unmapped = sorted(set(additional_config) - set(SHARED_CONFIG_OPTIONS))
+    if unmapped:
+        raise AssertionError(
+            f"No backend SearchConfig equivalent for {unmapped}. Add it to "
+            f"SHARED_CONFIG_OPTIONS, or skip the fixture in shared_tests_skipped."
+        )
+
+    return SearchConfig.create_from(
+        default_config,
+        **{SHARED_CONFIG_OPTIONS[key]: value for key, value in additional_config.items()},
+    )
+
+
 class ParseSearchQueryTest(SimpleTestCase):
     """
     All test cases in this class are dynamically defined via the test fixtures
@@ -204,6 +241,7 @@ class ParseSearchQueryTest(SimpleTestCase):
         expect_error = None
 
         query = case["query"]
+        config = build_config(case.get("additionalConfig"))
 
         # We include the path to the test data in the case of failure
         path = os.path.join(fixture_path, f"{name}.json")
@@ -266,10 +304,10 @@ class ParseSearchQueryTest(SimpleTestCase):
 
         if expect_error:
             with pytest.raises(InvalidSearchQuery):
-                parse_search_query(query)
+                parse_search_query(query, config=config)
             return
 
-        assert parse_search_query(query) == expected, failure_help
+        assert parse_search_query(query, config=config) == expected, failure_help
 
 
 # Shared test cases which should not be run. Usually because we have a test
@@ -286,6 +324,10 @@ shared_tests_skipped = [
     "invalid_aggregate_column_with_duration_filter",
     "invalid_numeric_aggregate_filter",
     "disallow_wildcard_filter",
+    # The frontend keeps `key:////` as an empty-pattern regex filter so the search bar can
+    # say the filter needs a value; the backend grammar requires at least one character and
+    # so reads `////` as a literal. See test_parses_an_empty_regex_pattern_as_a_literal below.
+    "regex_empty_pattern",
 ]
 
 register_fixture_tests(ParseSearchQueryTest, shared_tests_skipped)
@@ -1602,6 +1644,14 @@ def test_parses_a_regex_value_as_a_literal_when_the_config_does_not_allow_regex(
         SearchFilter(
             key=SearchKey(name="transaction"), operator="=", value=SearchValue("//api/users//")
         )
+    ]
+
+
+def test_parses_an_empty_regex_pattern_as_a_literal() -> None:
+    filters = parse_search_query("message:////", config=regex_config)
+
+    assert filters == [
+        SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("////"))
     ]
 
 

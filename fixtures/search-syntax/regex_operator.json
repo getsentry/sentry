@@ -1,0 +1,341 @@
+[
+  {
+    "desc": "Spaces and parens need no quoting inside a pattern",
+    "query": "message://GET (api) v2//",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "message",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "GET (api) v2",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": "//"
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "A leading ! negates the whole regex filter",
+    "query": "!message://^a.*b//",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "message",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "^a.*b",
+          "quoted": false
+        },
+        "negated": true,
+        "operator": "//"
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "The pattern runs to the first // that ends the value, so inner // are literal",
+    "query": "message://a//b//",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "message",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "a//b",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": "//"
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "A space after the closing // ends the pattern",
+    "query": "message://a// level:error",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "message",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "a",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": "//"
+      },
+      {
+        "type": "spaces",
+        "value": " "
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "level",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "error",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": ""
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "Array membership keys accept a pattern",
+    "query": "tags[csv_headers,array][*]://^a b//",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "arrayIncludes",
+        "key": {
+          "type": "keyArrayIncludes",
+          "key": {
+            "type": "keyExplicitArrayTag",
+            "prefix": "tags",
+            "key": {
+              "type": "keySimple",
+              "value": "csv_headers",
+              "quoted": false
+            }
+          },
+          "index": "*"
+        },
+        "value": {
+          "type": "valueText",
+          "value": "^a b",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": "//"
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "A quoted //...// stays a literal value",
+    "query": "message:\"//a//\"",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "message",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "//a//",
+          "quoted": true
+        },
+        "negated": false,
+        "operator": ""
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "Without a terminator after the closing //, the value stays literal",
+    "query": "message://a b//x",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "message",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "//a",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": ""
+      },
+      {
+        "type": "spaces",
+        "value": " "
+      },
+      {
+        "type": "freeText",
+        "value": "b//x",
+        "quoted": false,
+        "invalid": null
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "A pattern at the length limit is accepted",
+    "query": "message://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa//",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "message",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": "//"
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "A pattern over the length limit is rejected",
+    "query": "message://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa//",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "message",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": "//",
+        "invalid": {
+          "type": "regex-pattern-too-long",
+          "reason": "Regex patterns are limited to 64 characters. To search for a literal value that starts with //, quote it: \"//...\""
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  }
+]
