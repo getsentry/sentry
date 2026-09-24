@@ -55,18 +55,17 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
       priority: 'danger',
       modalSpecificContent:
         "Reconcile this organization's integrations with its current plan. Supported integrations will be enabled and their grace periods cleared.",
-      onConfirm: data => {
-        api.request(`/_admin/customers/${orgId}/integrations/reset/`, {
-          method: 'POST',
-          data,
-          success: () => {
-            addSuccessMessage('Integrations reset successfully.');
-            setRefreshKey(value => value + 1);
-          },
-          error: error => {
-            addErrorMessage(error.responseText || 'Failed to reset integrations.');
-          },
-        });
+      onConfirm: async data => {
+        try {
+          await api.requestPromise(`/_admin/customers/${orgId}/integrations/reset/`, {
+            method: 'POST',
+            data,
+          });
+          addSuccessMessage('Integrations reset successfully.');
+          setRefreshKey(value => value + 1);
+        } catch (error) {
+          addErrorMessage(error.responseText || 'Failed to reset integrations.');
+        }
       },
     });
   };
