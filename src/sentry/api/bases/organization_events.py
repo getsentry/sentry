@@ -8,7 +8,6 @@ from typing import Any, cast
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
-from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
@@ -36,10 +35,6 @@ from sentry.discover.models import (
     DiscoverSavedQueryTypes,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
-from sentry.models.dashboard_widget import (
-    DatasetSourcesTypes as DashboardDatasetSourcesTypes,
-)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -62,7 +57,6 @@ from sentry.snuba.utils import (
     PUBLIC_DATASET_LABELS,
     get_dataset,
 )
-from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
@@ -278,40 +272,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             on_demand_metric_type = MetricSpecType(on_demand_metric_type_value)
 
         return use_on_demand_metrics, on_demand_metric_type
-
-    def save_split_decision(
-        self,
-        widget: DashboardWidget,
-        has_errors: bool,
-        has_transactions_data: bool,
-        organization: Organization,
-        user: User | AnonymousUser,
-    ) -> int | None:
-        """This can be removed once the discover dataset has been fully split"""
-        source = DashboardDatasetSourcesTypes.INFERRED.value
-        if has_errors and not has_transactions_data:
-            decision = DashboardWidgetTypes.ERROR_EVENTS
-            sentry_sdk.set_tag("discover.split_reason", "query_result")
-            sentry_sdk.set_attribute("discover.split_reason", "query_result")
-        elif not has_errors and has_transactions_data:
-            decision = DashboardWidgetTypes.TRANSACTION_LIKE
-            sentry_sdk.set_tag("discover.split_reason", "query_result")
-            sentry_sdk.set_attribute("discover.split_reason", "query_result")
-        else:
-            # In the case that neither side has data, or both sides have data, default to errors.
-            decision = DashboardWidgetTypes.ERROR_EVENTS
-            source = DashboardDatasetSourcesTypes.FORCED.value
-            sentry_sdk.set_tag("discover.split_reason", "default")
-            sentry_sdk.set_attribute("discover.split_reason", "default")
-
-        sentry_sdk.set_tag("discover.split_decision", decision)
-        sentry_sdk.set_attribute("discover.split_decision", decision)
-        if decision is not None and widget.discover_widget_split != decision:
-            widget.discover_widget_split = decision
-            widget.dataset_source = source
-            widget.save()
-
-        return decision
 
     def save_discover_saved_query_split_decision(
         self,
