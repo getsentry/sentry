@@ -116,6 +116,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         date_field = "release_order" if use_finalized_order else "date_added"
         return (
             self.filter(projects=project, organization_id=project.organization_id)
+            .filter(Q(status=ReleaseStatus.OPEN) | Q(status__isnull=True))
             .alias(release_order=Coalesce("date_released", "date_added"))
             .filter(
                 Q(**{f"{date_field}__gt": current_date})

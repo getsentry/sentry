@@ -19,6 +19,7 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.helpers.group_index.delete import schedule_tasks_to_delete_groups
 from sentry.api.helpers.group_index.update import (
+    get_current_release_version_of_group,
     get_semver_releases,
     greatest_semver_release,
     handle_assigned_to,
@@ -52,9 +53,11 @@ from sentry.models.release import ReleaseStatus
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
@@ -62,6 +65,40 @@ from sentry.types.group import GroupSubStatus
 from sentry.workflow_engine.models import Detector
 
 pytestmark = [requires_snuba]
+
+
+@django_db_all
+@pytest.mark.parametrize("eligible_status", [ReleaseStatus.OPEN, None], ids=["open", "null"])
+def test_resolution_anchor_uses_latest_eligible_observation(
+    factories: Factories, default_group: Group, eligible_status: int | None
+) -> None:
+    now = datetime.now(UTC)
+    project = default_group.project
+    archived = factories.create_release(
+        project=project, version="archived", status=ReleaseStatus.ARCHIVED
+    )
+    factories.create_group_release(project=project, group=default_group, release=archived)
+    # An unobserved project release is not a replacement for the issue's anchor.
+    factories.create_release(project=project, version="unobserved")
+    assert get_current_release_version_of_group(default_group) is None
+
+    older_release = factories.create_release(
+        project=project, version="older", date_added=now - timedelta(days=3), status=eligible_status
+    )
+    newer_release = factories.create_release(
+        project=project, version="newer", date_added=now - timedelta(days=2)
+    )
+    factories.create_group_release(
+        project=project, group=default_group, release=older_release
+    ).update(last_seen=now - timedelta(hours=1))
+    factories.create_group_release(
+        project=project, group=default_group, release=newer_release
+    ).update(last_seen=now - timedelta(hours=2))
+
+    # Resolution anchors follow last-seen order, not release creation order.
+    assert get_current_release_version_of_group(default_group) == older_release.version
+    # General issue history continues to include archived releases.
+    assert default_group.get_last_release(use_cache=False) == archived.version
 
 
 class ValidateSearchFilterPermissionsTest(TestCase):
@@ -720,6 +757,39 @@ class UpdateGroupsTest(TestCase):
         assert resolution.release_id == next_release.id
         assert resolution.current_release_version == current.version
         assert resolution.status == GroupResolution.Status.resolved
+
+    def test_resolve_in_next_release_clears_ineligible_previous_anchor(self) -> None:
+        now = datetime.now(UTC)
+        archived = self.create_release(
+            version="app@999.9+999.9",
+            date_added=now - timedelta(days=2),
+            status=ReleaseStatus.ARCHIVED,
+        )
+        current = self.create_release(version="build-sha", date_added=now - timedelta(days=1))
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        self.create_group_release(group=group, release=archived)
+        resolution = self.create_group_resolution(
+            group=group,
+            release=archived,
+            current_release_version=archived.version,
+            type=GroupResolution.Type.in_next_release,
+            status=GroupResolution.Status.resolved,
+        )
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+
+        update_groups(request, group_list)
+
+        resolution.refresh_from_db()
+        assert resolution.release_id == current.id
+        assert resolution.current_release_version is None
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.status == GroupResolution.Status.pending
+        newer = self.create_release(version="new-build", date_added=now)
+        assert GroupResolution.has_resolution(group, current)
+        assert not GroupResolution.has_resolution(group, newer)
 
     def test_resolve_in_next_release(self) -> None:
         self.create_release(project=self.project, version="test@1.0.0.0")
