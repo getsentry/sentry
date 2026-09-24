@@ -2073,6 +2073,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                     endpoint.allowed_scopes
                     - agent_token.readonly_scopes()
                     - settings.SENTRY_TOKEN_ONLY_SCOPES
+                    # Roles only grant these once their rollout flag is on, so an owner
+                    # cannot approve them yet.
+                    - settings.GRANULAR_SCOPES
                 )
                 assert approved_scopes, endpoint
             elif authentication is MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN:
