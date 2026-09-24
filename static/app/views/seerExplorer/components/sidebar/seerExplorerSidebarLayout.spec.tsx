@@ -531,6 +531,29 @@ describe('SeerExplorerSidebarLayout', () => {
       expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument();
     });
 
+    it('keeps the closed and open states in browser history', async () => {
+      mockWideScreen(true);
+      const {router} = renderSidebar(orgWithSidebar, undefined, {explorerRunId: '99'});
+      expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Close Seer'}));
+      await waitFor(() => expect(router.location.query.explorerRunId).toBeUndefined());
+
+      act(() => router.navigate('/issues/?query=is%3Aresolved'));
+      await waitFor(() => expect(router.location.query.query).toBe('is:resolved'));
+
+      // Back lands on the page as it was after closing: no param, Seer closed.
+      act(() => router.navigate(-1));
+      await waitFor(() => expect(router.location.query.query).toBeUndefined());
+      expect(router.location.query.explorerRunId).toBeUndefined();
+      expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument();
+
+      // Back again returns to the link, which reopens the chat.
+      act(() => router.navigate(-1));
+      await waitFor(() => expect(router.location.query.explorerRunId).toBe('99'));
+      expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    });
+
     it('keeps the param when redocking from the popped-out window', async () => {
       let firePagehide = () => {};
       const pip = {

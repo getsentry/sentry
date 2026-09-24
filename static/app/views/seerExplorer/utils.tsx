@@ -727,6 +727,7 @@ export function useSeerExplorerDeepLink({
 
 /**
  * Returns a callback that removes the run ID query param from the current URL, if it's there.
+ * Pushes a history entry, so browser back returns to the URL with the chat open.
  */
 export function useRemoveSeerExplorerRunIdParam() {
   const location = useLocation();
@@ -737,7 +738,7 @@ export function useRemoveSeerExplorerRunIdParam() {
       return;
     }
     const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query;
-    navigate({...location, query: restQuery}, {replace: true});
+    navigate({...location, query: restQuery});
   }, [location, navigate]);
 }
 
