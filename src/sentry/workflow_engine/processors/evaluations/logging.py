@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 DETECTOR_EVALUATION_LOG_PREFIX = "workflow_engine.process_detectors.evaluation"
 WORKFLOW_EVALUATION_LOG_PREFIX = "workflow_engine.process_workflows.evaluation"
+ALLOWED_LOG_INPUT_TYPES = (bool, int, float, str)
 
 type WorkflowEngineResult = (
     ProcessDetectorsResult | ProcessWorkflowsResult | DelayedWorkflowEvaluationResult
@@ -53,7 +54,7 @@ def redact_pii_from_artifact(artifact: dict[str, object]) -> dict[str, object]:
 
     for key, value in artifact.items():
         if key == "input":
-            redacted_artifact[key] = value if isinstance(value, (bool, int, float, str)) else None
+            redacted_artifact[key] = value if isinstance(value, ALLOWED_LOG_INPUT_TYPES) else None
         else:
             redacted_artifact[key] = _redact_log_value(value)
 
