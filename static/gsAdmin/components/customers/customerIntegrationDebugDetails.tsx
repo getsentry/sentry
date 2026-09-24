@@ -7,9 +7,9 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconChevron} from 'sentry/icons';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
