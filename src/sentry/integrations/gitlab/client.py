@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
@@ -30,6 +31,12 @@ if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration
 
 logger = logging.getLogger("sentry.integrations.gitlab")
+
+
+class GitLabApiRequestType(StrEnum):
+    CREATE_PROJECT_WEBHOOK = "create_project_webhook"
+    UPDATE_PROJECT_WEBHOOK = "update_project_webhook"
+    DELETE_PROJECT_WEBHOOK = "delete_project_webhook"
 
 
 class GitLabSetupApiClient(IntegrationProxyClient):
@@ -543,7 +550,11 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         See https://docs.gitlab.com/ee/api/projects.html#add-project-hook
         """
         path = GitLabApiClientPath.project_hooks.format(project=safe_quote(project_id))
-        resp = self.post(path, data=self._project_webhook_data())
+        resp = self.post(
+            path,
+            data=self._project_webhook_data(),
+            api_request_type=GitLabApiRequestType.CREATE_PROJECT_WEBHOOK,
+        )
 
         return resp["id"]
 
@@ -563,7 +574,11 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.project_hook.format(
             project=safe_quote(project_id), hook_id=hook_id
         )
-        return self.put(path, data=self._project_webhook_data())
+        return self.put(
+            path,
+            data=self._project_webhook_data(),
+            api_request_type=GitLabApiRequestType.UPDATE_PROJECT_WEBHOOK,
+        )
 
     def ensure_project_webhook(self, project_id: int | str, hook_id: int | str | None) -> int | str:
         """Refresh a stored hook, creating a replacement only when necessary."""
@@ -609,7 +624,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.project_hook.format(
             project=safe_quote(project_id), hook_id=hook_id
         )
-        return self.delete(path)
+        return self.delete(path, api_request_type=GitLabApiRequestType.DELETE_PROJECT_WEBHOOK)
 
     def create_branch(self, project_id: str, branch: str, ref: str):
         """https://docs.gitlab.com/api/branches/#create-repository-branch"""
