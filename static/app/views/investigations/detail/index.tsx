@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
@@ -293,7 +293,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const visibleNotebookCells = notebookCells.filter(block =>
     shouldDisplayInvestigationBlock(block)
   );
-  const sourceMonitorId = getSourceMonitorId(investigation);
+  const sourceLinks = getSourceLinks(investigation);
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -386,17 +386,35 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             </Grid>
             <Flex align="center" justify="between" gap="md" wrap="wrap">
               <Flex align="center" gap="sm" wrap="wrap">
-                {sourceMonitorId ? (
-                  <Link
-                    to={makeMonitorDetailsPathname(organization.slug, sourceMonitorId)}
-                  >
-                    {formatSourceType(investigation.sourceType)}
-                  </Link>
-                ) : (
-                  <Text variant="muted">
-                    {formatSourceType(investigation.sourceType)}
-                  </Text>
-                )}
+                <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
+                {sourceLinks.monitor ? (
+                  <Fragment>
+                    <MetaDivider />
+                    <Link
+                      to={{
+                        pathname: makeMonitorDetailsPathname(
+                          organization.slug,
+                          sourceLinks.monitor.id
+                        ),
+                        query: sourceLinks.monitor.window ?? undefined,
+                      }}
+                    >
+                      {sourceLinks.monitor.name ?? t('View monitor')}
+                    </Link>
+                  </Fragment>
+                ) : null}
+                {sourceLinks.groupId ? (
+                  <Fragment>
+                    <MetaDivider />
+                    <Link
+                      to={normalizeUrl(
+                        `/organizations/${organization.slug}/issues/${sourceLinks.groupId}/`
+                      )}
+                    >
+                      {t('View issue')}
+                    </Link>
+                  </Fragment>
+                ) : null}
                 <MetaDivider />
                 <Text variant="muted">
                   {tct('Last update: [date]', {
@@ -503,18 +521,52 @@ function getInvestigationPath(organizationSlug: string, investigationId: string)
   );
 }
 
-// A breached metric investigation snapshots the monitor it was started from, so
-// the header can link back to it. Older investigations may predate the snapshot.
-function getSourceMonitorId(investigation: InvestigationDetail): string | null {
-  const snapshot = investigation.source?.snapshot;
-  if (!snapshot || typeof snapshot !== 'object' || !('monitor' in snapshot)) {
+type InvestigationSourceLinks = {
+  groupId: string | null;
+  monitor: {
+    id: string;
+    name: string | null;
+    // The window the investigation analyzed: the baseline before the breach
+    // through the end of the breach.
+    window: {end: string; start: string} | null;
+  } | null;
+};
+
+function getRecord(value: unknown, key: string): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') {
     return null;
   }
-  const {monitor} = snapshot;
-  if (!monitor || typeof monitor !== 'object' || !('id' in monitor)) {
-    return null;
-  }
-  return typeof monitor.id === 'string' && monitor.id ? monitor.id : null;
+  const field: unknown = (value as Record<string, unknown>)[key];
+  return field && typeof field === 'object' ? (field as Record<string, unknown>) : null;
+}
+
+function getString(value: Record<string, unknown> | null, key: string): string | null {
+  const field = value?.[key];
+  return typeof field === 'string' && field ? field : null;
+}
+
+// A breached metric investigation references the metric issue it was started
+// from, and snapshots that issue's monitor and the window it analyzed. Older
+// investigations may predate the snapshot, but still carry the issue reference.
+function getSourceLinks(investigation: InvestigationDetail): InvestigationSourceLinks {
+  const {source} = investigation;
+  const snapshot = getRecord(source, 'snapshot');
+  const monitor = getRecord(snapshot, 'monitor');
+  const analysisWindow = getRecord(snapshot, 'analysisWindow');
+  const monitorId = getString(monitor, 'id');
+  const windowStart = getString(analysisWindow, 'baselineStart');
+  const windowEnd = getString(analysisWindow, 'end');
+
+  return {
+    groupId: getString(getRecord(source, 'ref'), 'groupId'),
+    monitor: monitorId
+      ? {
+          id: monitorId,
+          name: getString(monitor, 'name'),
+          window: windowStart && windowEnd ? {start: windowStart, end: windowEnd} : null,
+        }
+      : null,
+  };
 }
 
 function formatSourceType(sourceType: string) {

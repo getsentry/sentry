@@ -213,7 +213,14 @@ export function InvestigationBreachedMetricDetailFixture(
       type: 'metric_open_period',
       ref: {groupId: '123', openPeriodId: '456'},
       revision: null,
-      snapshot: {monitor: {id: '789', name: 'Checkout error rate'}},
+      snapshot: {
+        monitor: {id: '789', name: 'Checkout error rate'},
+        analysisWindow: {
+          baselineStart: '2026-08-18T15:00:00+00:00',
+          breachStart: '2026-08-18T16:00:00+00:00',
+          end: '2026-08-18T17:00:00+00:00',
+        },
+      },
     },
     blocks: [
       InvestigationBlockFixture({
