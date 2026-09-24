@@ -1,4 +1,4 @@
-import {EventType, IncrementalSource, type Replayer} from '@sentry-internal/rrweb';
+import {EventType, IncrementalSource, type Replayer} from '@sentry/rrweb';
 
 import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
 
