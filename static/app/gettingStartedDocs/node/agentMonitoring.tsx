@@ -90,7 +90,8 @@ export function getAgentDataCollectionStep(params: DocsParams): OnboardingStep[]
   ];
 }
 
-const getCloudflareViteConfigSnippet = () => `import { cloudflare } from "@cloudflare/vite-plugin";
+const getCloudflareViteConfigSnippet =
+  () => `import { cloudflare } from "@cloudflare/vite-plugin";
 import { sentryCloudflareVitePlugin } from "@sentry/cloudflare/vite";
 import { defineConfig } from "vite";
 
@@ -926,7 +927,9 @@ Sentry.init({
                 type: 'code',
                 tabs: [
                   {
-                    label: isCloudflare ? 'vite.config.ts' : (configFileName ?? 'JavaScript'),
+                    label: isCloudflare
+                      ? 'vite.config.ts'
+                      : (configFileName ?? 'JavaScript'),
                     language: isCloudflare ? 'typescript' : 'javascript',
                     code: configureCode,
                   },
@@ -953,8 +956,7 @@ Sentry.init({
                     },
                   ]
                 : []),
-              ...(isCloudflare &&
-              integration === AgentIntegration.CLOUDFLARE_AGENTS
+              ...(isCloudflare && integration === AgentIntegration.CLOUDFLARE_AGENTS
                 ? [
                     {
                       type: 'text' as const,
