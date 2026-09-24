@@ -213,6 +213,172 @@ describe('SeerProjectTable', () => {
     );
   });
 
+  it('toggles PR iteration for all selected projects', async () => {
+    const otherProject = ProjectFixture({id: '3', slug: 'other-project'});
+    ProjectsStore.loadInitialData([project, otherProject]);
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+      body: {integrations: []},
+    });
+    const baseSetting = {
+      agent: 'seer',
+      integrationId: null,
+      stoppingPoint: 'root_cause',
+      autoCreatePr: null,
+      automationTuning: 'off',
+      scannerAutomation: false,
+      reposCount: 1,
+    };
+    // Stands in for the server, so the refetch after each save sees the update.
+    let settings = [
+      {...baseSetting, projectId: '2', projectSlug: 'project-slug', prIteration: true},
+      {...baseSetting, projectId: '3', projectSlug: 'other-project', prIteration: false},
+    ];
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/projects/`,
+      body: () => settings,
+    });
+    const bulkPut = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/projects/`,
+      method: 'PUT',
+      body: (_url: string, options: {data: {prIteration: boolean}}) => {
+        settings = settings.map(setting => ({
+          ...setting,
+          prIteration: options.data.prIteration,
+        }));
+        return {};
+      },
+    });
+
+    render(<ExampleSeerProjectTable />, {organization});
+
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'});
+    // The first checkbox in the table is the header's "select all".
+    await userEvent.click(screen.getAllByRole('checkbox')[0]!);
+
+    // One selected project has PR iteration on, so the bulk toggle reads as on.
+    const bulkToggle = await screen.findByRole('checkbox', {
+      name: 'Auto-iterate on PRs for selected projects',
+    });
+    expect(bulkToggle).toBeChecked();
+
+    await userEvent.click(bulkToggle);
+    await waitFor(() =>
+      expect(bulkPut).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: expect.objectContaining({prIteration: false})})
+      )
+    );
+    await waitFor(() => expect(bulkToggle).not.toBeChecked());
+    expect(
+      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'})
+    ).not.toBeChecked();
+
+    await userEvent.click(bulkToggle);
+    await waitFor(() =>
+      expect(bulkPut).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: expect.objectContaining({prIteration: true})})
+      )
+    );
+    await waitFor(() => expect(bulkToggle).toBeChecked());
+    expect(
+      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'})
+    ).toBeChecked();
+  });
+
+  it('updates a row switch that was already clicked when the bulk toggle is used', async () => {
+    const otherProject = ProjectFixture({id: '3', slug: 'other-project'});
+    ProjectsStore.loadInitialData([project, otherProject]);
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+      body: {integrations: []},
+    });
+    const baseSetting = {
+      agent: 'seer',
+      integrationId: null,
+      stoppingPoint: 'root_cause',
+      autoCreatePr: null,
+      automationTuning: 'off',
+      scannerAutomation: false,
+      reposCount: 1,
+    };
+    // Stands in for the server, so the refetch after each save sees the update.
+    let settings = [
+      {...baseSetting, projectId: '2', projectSlug: 'project-slug', prIteration: true},
+      {...baseSetting, projectId: '3', projectSlug: 'other-project', prIteration: false},
+    ];
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/projects/`,
+      body: () => settings,
+    });
+    const bulkPut = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/projects/`,
+      method: 'PUT',
+      body: (_url: string, options: {data: {prIteration: boolean}}) => {
+        settings = settings.map(setting => ({
+          ...setting,
+          prIteration: options.data.prIteration,
+        }));
+        return {};
+      },
+    });
+
+    render(<ExampleSeerProjectTable />, {organization});
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/other-project/seer/settings/`,
+      method: 'PUT',
+      body: (_url: string, options: {data: {prIteration: boolean}}) => {
+        settings = settings.map(setting =>
+          setting.projectSlug === 'other-project'
+            ? {...setting, prIteration: options.data.prIteration}
+            : setting
+        );
+        return {};
+      },
+    });
+    const rowToggle = await screen.findByRole('checkbox', {
+      name: 'Auto-iterate on PRs for other-project',
+    });
+    await userEvent.click(rowToggle);
+    await userEvent.click(rowToggle);
+    // The first checkbox in the table is the header's "select all".
+    await userEvent.click(screen.getAllByRole('checkbox')[0]!);
+
+    // One selected project has PR iteration on, so the bulk toggle reads as on.
+    const bulkToggle = await screen.findByRole('checkbox', {
+      name: 'Auto-iterate on PRs for selected projects',
+    });
+    expect(bulkToggle).toBeChecked();
+
+    await userEvent.click(bulkToggle);
+    await waitFor(() =>
+      expect(bulkPut).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: expect.objectContaining({prIteration: false})})
+      )
+    );
+    await waitFor(() => expect(bulkToggle).not.toBeChecked());
+    expect(
+      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'})
+    ).not.toBeChecked();
+
+    await userEvent.click(bulkToggle);
+    await waitFor(() =>
+      expect(bulkPut).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: expect.objectContaining({prIteration: true})})
+      )
+    );
+    await waitFor(() => expect(bulkToggle).toBeChecked());
+    expect(
+      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'})
+    ).toBeChecked();
+  });
+
   it('disables adding a project without organization write access', async () => {
     render(<ExampleSeerProjectTable />, {
       organization: OrganizationFixture({slug: organization.slug, access: []}),

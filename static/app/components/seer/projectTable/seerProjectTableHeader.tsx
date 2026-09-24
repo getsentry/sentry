@@ -5,6 +5,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
@@ -111,6 +112,17 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
       selectedIds === 'all' ? settings.map(setting => setting.projectId) : selectedIds,
     [settings, selectedIds]
   );
+
+  // The bulk toggle reads as "on" when any selected project has PR iteration
+  // enabled. Clicking it then turns PR iteration off for every selected project;
+  // clicking again turns it back on for all of them.
+  const selectedHavePrIteration = useMemo(() => {
+    const selectedSettings =
+      selectedIds === 'all'
+        ? settings
+        : settings.filter(setting => selectedIds.includes(setting.projectId));
+    return selectedSettings.some(setting => setting.prIteration);
+  }, [settings, selectedIds]);
 
   const projectsById = useProjectsById();
   const {data: knownAgents} = useQuery(
@@ -219,6 +231,48 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
                 );
               }}
             />
+            <Flex as="label" align="center" gap="sm">
+              <Switch
+                aria-label={t('Auto-iterate on PRs for selected projects')}
+                checked={selectedHavePrIteration}
+                disabled={!canWrite}
+                onChange={() => {
+                  const prIteration = !selectedHavePrIteration;
+                  mutate(
+                    {
+                      query: mutableSearch.formatString(),
+                      selectedIds,
+                      prIteration,
+                    },
+                    {
+                      onError: () =>
+                        addErrorMessage(
+                          tn(
+                            'Failed to update PR iteration for %s project',
+                            'Failed to update PR iteration for %s projects',
+                            projectIds.length
+                          )
+                        ),
+                      onSuccess: () =>
+                        addSuccessMessage(
+                          prIteration
+                            ? tn(
+                                'PR iteration enabled for %s project',
+                                'PR iteration enabled for %s projects',
+                                projectIds.length
+                              )
+                            : tn(
+                                'PR iteration disabled for %s project',
+                                'PR iteration disabled for %s projects',
+                                projectIds.length
+                              )
+                        ),
+                    }
+                  );
+                }}
+              />
+              {t('Auto-Iterate on PRs')}
+            </Flex>
           </InfiniteTable.HeaderCellRemaining>
         </InfiniteTable.Header>
       </ListItemSelectedState>
