@@ -45,7 +45,8 @@ describe('HTTPSnippet', () => {
     const codeElem = screen.getByText(/POST \/test\?query=value HTTP\/1\.1/);
 
     // Using toHaveTextContent would be nice here, but it loses the newlines.
-    expect(codeElem.innerHTML).toBe(expected);
+    // Highlighted output round-trips through HTML parsing, which normalizes CRLF.
+    expect(codeElem.innerHTML).toBe(expected.replace(/\r\n/g, '\n'));
   });
 
   it('renders cURL command when cURL tab is clicked', async () => {
