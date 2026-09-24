@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
@@ -24,6 +24,7 @@ describe('ExploreSecondaryNavigation', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/explore/saved/',
+      body: [],
     });
 
     MockApiClient.addMockResponse({
@@ -59,7 +60,7 @@ describe('ExploreSecondaryNavigation', () => {
     expect(screen.queryByText('Investigations')).not.toBeInTheDocument();
   });
 
-  it('shows Investigations when the feature is enabled', () => {
+  it('shows Investigations when the feature is enabled', async () => {
     const {organization: investigationsOrganization} = initializeOrg({
       organization: {
         features: ['performance-view', 'visibility-explore-view', 'investigations'],
@@ -88,7 +89,10 @@ describe('ExploreSecondaryNavigation', () => {
       'href',
       '/organizations/org-slug/explore/investigations/'
     );
-    expect(screen.getByLabelText('beta')).toBeInTheDocument();
+    await userEvent.hover(screen.getByLabelText('beta'));
+    expect(
+      await screen.findByText('This feature is internal only right now')
+    ).toBeInTheDocument();
   });
 
   it('keeps Explore and Investigations active on investigation detail pages', () => {
