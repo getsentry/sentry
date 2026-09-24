@@ -36,7 +36,7 @@ export function BrowserOSIcons({
   return (
     <Tooltip
       title={
-        <DescriptionList gap="md 2xl" nowrap>
+        <Tooltip.Grid dl gap="md 2xl" nowrap>
           {showBrowser && (
             <Fragment>
               <DescriptionList.Term>{t('Browser')}</DescriptionList.Term>
@@ -49,7 +49,7 @@ export function BrowserOSIcons({
           <DescriptionList.Details>
             {replayRecord?.os.name ?? ''} {replayRecord?.os.version ?? ''}
           </DescriptionList.Details>
-        </DescriptionList>
+        </Tooltip.Grid>
       }
     >
       <Flex>

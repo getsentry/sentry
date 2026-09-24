@@ -24,14 +24,14 @@ export function ReplayViewScale({isLoading}: Props) {
     <Tooltip
       skipWrapper
       title={
-        <DescriptionList gap="md 2xl" nowrap>
+        <Tooltip.Grid dl gap="md 2xl" nowrap>
           <DescriptionList.Term>{t('Original size')}</DescriptionList.Term>
           <DescriptionList.Details>
             {dimensions.width} &times; {dimensions.height}
           </DescriptionList.Details>
           <DescriptionList.Term>{t('Rendered size')}</DescriptionList.Term>
           <DescriptionList.Details>{toPercent(scale, 1)}</DescriptionList.Details>
-        </DescriptionList>
+        </Tooltip.Grid>
       }
     >
       <IconRuler size="md" />

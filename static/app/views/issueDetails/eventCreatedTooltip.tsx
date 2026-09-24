@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {t} from 'sentry/locale';
@@ -42,7 +43,7 @@ export function EventCreatedTooltip({event}: Props) {
   const dateReceived = event.dateReceived ? moment(event.dateReceived) : null;
 
   return (
-    <DescriptionList>
+    <Tooltip.Grid dl>
       <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
       <DescriptionList.Details>
         {dateCreated ? (
@@ -73,7 +74,7 @@ export function EventCreatedTooltip({event}: Props) {
           </DescriptionList.Details>
         </Fragment>
       )}
-    </DescriptionList>
+    </Tooltip.Grid>
   );
 }
 

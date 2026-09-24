@@ -301,6 +301,24 @@ describe('Tooltip', () => {
       expect(document.querySelector('[data-tooltip-section]')).not.toBeInTheDocument();
     });
 
+    it('re-applies the overlay padding on a dl section it pulled out', async () => {
+      // The seven description list tooltips depend on this netting out to the
+      // padding they had before they became sections: the overlay pulls the
+      // section to its edges, and the section insets its own content by the
+      // same amount.
+      await showTooltip(
+        <Tooltip.Grid dl>
+          <Tooltip.Row leadingItems="Occurred">Jan 1, 2026</Tooltip.Row>
+        </Tooltip.Grid>
+      );
+
+      const section = document.querySelector('[data-tooltip-section]');
+      expect(section).toBeInTheDocument();
+      expect(getEmotionRules(section as HTMLElement).join('')).toContain(
+        `padding: ${theme.space.md} ${theme.space.lg};`
+      );
+    });
+
     it('reads a grid from the left, undoing the overlay centring', async () => {
       // The overlay centres text for the sentence case. A card is a set of
       // rows, so the grid resets it and cells only state an alignment when

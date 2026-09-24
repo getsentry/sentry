@@ -5,7 +5,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {DescriptionList, type DescriptionListProps} from '@sentry/scraps/descriptionList';
 import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 // Imported from the module rather than the `text` barrel on purpose. That
 // barrel also re-exports `Prose`, which reaches `code` -> `codeBlock` ->
@@ -228,6 +228,11 @@ const TooltipDescriptionListContext = createContext(false);
 interface TooltipGridProps {
   children: React.ReactNode;
   /**
+   * Only for a `dl` section: how each row's term lines up against its details.
+   * @default 'baseline'
+   */
+  align?: DescriptionListProps['align'];
+  /**
    * The column tracks rows are laid out in. `Tooltip.Row` renders its cells
    * straight into these tracks, so a column stays aligned across every row even
    * when one row's cell is wider than the same cell in the row above.
@@ -251,6 +256,12 @@ interface TooltipGridProps {
    */
   dl?: boolean;
   gap?: GridProps['gap'];
+  /**
+   * Only for a `dl` section: keep every row on one line and size the section to
+   * its own content, so the overlay grows to fit rather than breaking a value.
+   * @default false
+   */
+  nowrap?: boolean;
 }
 
 /**
@@ -263,16 +274,33 @@ interface TooltipGridProps {
  */
 function TooltipGrid({
   children,
-  columns = '1fr',
-  gap = '2xs sm',
+  columns,
+  gap,
+  align,
+  nowrap,
   dl = false,
 }: TooltipGridProps) {
+  if (dl) {
+    return (
+      <TooltipDescriptionListContext value>
+        <DescriptionListSection
+          columns={columns}
+          gap={gap}
+          align={align}
+          nowrap={nowrap}
+          data-tooltip-section
+        >
+          {children}
+        </DescriptionListSection>
+      </TooltipDescriptionListContext>
+    );
+  }
+
   return (
-    <TooltipDescriptionListContext value={dl}>
+    <TooltipDescriptionListContext value={false}>
       <GridSection
-        as={dl ? 'dl' : undefined}
-        columns={columns}
-        gap={gap}
+        columns={columns ?? '1fr'}
+        gap={gap ?? '2xs sm'}
         align="center"
         padding="md lg"
         data-tooltip-section
@@ -285,7 +313,10 @@ function TooltipGrid({
 
 const GridSection = styled(Grid)`
   text-align: left;
-  margin: 0;
+`;
+
+const DescriptionListSection = styled(DescriptionList)`
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;
 
 interface TooltipRowProps {

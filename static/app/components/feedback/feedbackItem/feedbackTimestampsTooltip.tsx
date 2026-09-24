@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {t} from 'sentry/locale';
@@ -24,7 +25,7 @@ export function FeedbackTimestampsTooltip({feedbackItem}: Props) {
   const dateResolved = resolvedActivity ? moment(resolvedActivity.dateCreated) : null;
 
   return (
-    <DescriptionList nowrap>
+    <Tooltip.Grid dl nowrap>
       <DescriptionList.Term>{t('Created')}</DescriptionList.Term>
       <DescriptionList.Details>
         {dateFirstSeen ? (
@@ -45,7 +46,7 @@ export function FeedbackTimestampsTooltip({feedbackItem}: Props) {
           </DescriptionList.Details>
         </Fragment>
       )}
-    </DescriptionList>
+    </Tooltip.Grid>
   );
 }
 

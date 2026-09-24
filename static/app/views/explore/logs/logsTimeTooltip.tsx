@@ -53,7 +53,7 @@ function TimestampTooltipBody({
   const isUTCLocalTimezone = currentTimezone === 'UTC';
 
   return (
-    <DescriptionList>
+    <Tooltip.Grid dl>
       <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
       <DescriptionList.Details>
         <TimestampValues>
@@ -117,7 +117,7 @@ function TimestampTooltipBody({
           </DescriptionList.Details>
         </Fragment>
       )}
-    </DescriptionList>
+    </Tooltip.Grid>
   );
 }
 
