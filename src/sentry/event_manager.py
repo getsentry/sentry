@@ -135,6 +135,7 @@ from sentry.signals import (
     first_transaction_received,
     issue_unresolved,
 )
+from sentry.tasks import post_process
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
@@ -606,6 +607,9 @@ class EventManager:
                 old_primary_hash=reprocessing2.get_original_primary_hash(job["event"]),
                 current_primary_hash=job["event"].get_primary_hash(),
             )
+
+        if not raw:
+            post_process.create_post_process_token(job["event"].project_id, job["event"].event_id)
 
         _eventstream_insert_many(jobs)
 

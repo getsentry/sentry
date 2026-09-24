@@ -82,6 +82,7 @@ from sentry.signals import (
     first_transaction_received,
 )
 from sentry.spans.grouping.utils import hash_values
+from sentry.tasks import post_process
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import (
     PerformanceIssueTestCase,
@@ -2837,6 +2838,54 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.data.get("server_name") is None
         tags = dict(event.tags)
         assert tags["server_name"] == "foo.com"
+
+    def test_post_process_token_exists_before_publication(self) -> None:
+        event_id = "a" * 32
+        project_id = self.project.id
+        node_id = Event.generate_node_id(project_id, event_id)
+        create_token = post_process.create_post_process_token
+
+        def create_after_persistence(project_id: int, event_id: str) -> None:
+            assert nodestore.backend.get(node_id)
+            create_token(project_id, event_id)
+
+        def publish(**kwargs: Any) -> None:
+            assert post_process.consume_post_process_token(project_id, event_id)
+
+        manager = EventManager(make_event(event_id=event_id))
+        manager.normalize()
+        with (
+            mock.patch.object(
+                post_process, "create_post_process_token", side_effect=create_after_persistence
+            ),
+            mock.patch(
+                "sentry.event_manager.eventstream.backend.insert", side_effect=publish
+            ) as insert,
+        ):
+            manager.save(project_id)
+        insert.assert_called_once()
+
+    def test_raw_event_does_not_create_post_process_token(self) -> None:
+        manager = EventManager(make_event())
+        manager.normalize()
+        with mock.patch.object(post_process, "create_post_process_token") as create:
+            manager.save(self.project.id, raw=True)
+        create.assert_not_called()
+
+    def test_post_process_token_failure_prevents_publication(self) -> None:
+        manager = EventManager(make_event())
+        manager.normalize()
+        with (
+            mock.patch.object(
+                post_process,
+                "create_post_process_token",
+                side_effect=RuntimeError("Redis unavailable"),
+            ),
+            mock.patch("sentry.event_manager.eventstream.backend.insert") as insert,
+            pytest.raises(RuntimeError, match="Redis unavailable"),
+        ):
+            manager.save(self.project.id)
+        insert.assert_not_called()
 
     @freeze_time()
     def test_save_issueless_event(self) -> None:

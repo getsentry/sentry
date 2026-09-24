@@ -1641,6 +1641,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "post_process.require-pending-token",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "post_process.read-from-nodestore-sample-rate",
     type=Float,
     default=0.0,

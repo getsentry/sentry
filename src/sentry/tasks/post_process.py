@@ -39,6 +39,7 @@ from sentry.utils.event import track_event_since_received
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
+from sentry.utils.locking.backends.redis import BaseRedisLockBackend
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path, safe_execute
@@ -66,6 +67,35 @@ locks = LockManager(
         LockBackend, settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS
     )
 )
+
+
+POST_PROCESS_TOKEN_TTL = 24 * 60 * 60  # 1 day
+
+
+def _post_process_token_key(project_id: int, event_id: str) -> str:
+    return f"post-process-pending:{project_id}:{event_id}"
+
+
+def _get_post_process_token_client(key: str) -> Any:
+    assert isinstance(locks.backend, BaseRedisLockBackend)
+    # Tokens use their own namespace; route by the unprefixed token key.
+    return locks.backend.get_client(key, routing_key=key)
+
+
+def create_post_process_token(project_id: int, event_id: str) -> None:
+    """Allow one post-processing attempt, without extending an existing token's TTL.
+
+    A repeated upstream save can recreate a consumed token, just as it could
+    previously recreate the processing-store payload.
+    """
+    key = _post_process_token_key(project_id, event_id)
+    _get_post_process_token_client(key).set(key, "1", nx=True, ex=POST_PROCESS_TOKEN_TTL)
+
+
+def consume_post_process_token(project_id: int, event_id: str) -> bool:
+    """Claim an attempt atomically. Redis errors must propagate, not mean 'missing'."""
+    key = _post_process_token_key(project_id, event_id)
+    return _get_post_process_token_client(key).delete(key) == 1
 
 
 ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
@@ -572,7 +602,12 @@ def post_process_group(
 
         if occurrence_id is None:
             assert cache_key is not None
-            if in_random_rollout("post_process.read-from-nodestore-sample-rate") and event_id:
+            require_token = options.get("post_process.require-pending-token")
+            if (
+                require_token
+                and in_random_rollout("post_process.read-from-nodestore-sample-rate")
+                and event_id
+            ):
                 stored_event = Event(project_id=project_id, event_id=event_id)
                 if not stored_event.data:
                     logger.info(
@@ -581,25 +616,6 @@ def post_process_group(
                     )
                     return
 
-                # TODO: Find a better way to handle this. Post process forwarder
-                # might replay previously handled events. Before, once the
-                # payload was deleted from Redis, the task knew it can skip this
-                # event. Nodestore still has these events, however. We now need
-                # a mechanism to ensure that we do not process events multiple
-                # times.
-                # The lock is not a sufficient solution for this.
-                lock = locks.get(
-                    f"ppg:{project_id}:{event_id}-once",
-                    duration=600,
-                    name="post_process_event_once",
-                )
-                try:
-                    lock.acquire()
-                except UnableToAcquireLock:
-                    return
-                if not options.get("post_process.delete-processing-store-in-save-event"):
-                    with metrics.timer("tasks.post_process.delete_event_cache"):
-                        event_processing_store.delete_by_key(cache_key)
                 event = stored_event
                 event.group_id = group_id
             else:
@@ -612,10 +628,22 @@ def post_process_group(
                         extra={"cache_key": cache_key, "reason": "missing_cache"},
                     )
                     return
-                if not options.get("post_process.delete-processing-store-in-save-event"):
-                    with metrics.timer("tasks.post_process.delete_event_cache"):
-                        event_processing_store.delete_by_key(cache_key)
                 event = process_event(data, group_id)
+
+            # Consume on both payload paths, including during Redis-only warmup.
+            # Once required, absence means this attempt was consumed or expired;
+            # never bypass it by falling back to a different payload store.
+            consumed = consume_post_process_token(event.project_id, event.event_id)
+            if require_token and not consumed:
+                metrics.incr("post_process.skipped", tags={"reason": "missing_pending_token"})
+                logger.info(
+                    "post_process.skipped",
+                    extra={"cache_key": cache_key, "reason": "missing_pending_token"},
+                )
+                return
+            if not options.get("post_process.delete-processing-store-in-save-event"):
+                with metrics.timer("tasks.post_process.delete_event_cache"):
+                    event_processing_store.delete_by_key(cache_key)
             occurrence = None
         else:
             # Note: We attempt to acquire the lock here, but we don't release it and instead just
