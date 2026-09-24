@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0036_disable_autofix_issue_data_fk_constraints
 
-sentry: 1181_release_drop_new_last_deploy_id_pending
+sentry: 1182_release_drop_new_last_deploy_id
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
