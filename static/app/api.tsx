@@ -74,12 +74,20 @@ function csrfSafeMethod(method?: string): boolean {
  * requests usually go to a different (region) origin than the page, so
  * browsers strip the Referer down to the origin and `next` ends up pointing at
  * `/`. Replace it with the page the user is actually on. The login view still
- * validates `next` before redirecting.
+ * validates `next` before redirecting. A missing or unparseable login URL is
+ * returned unchanged.
  */
 export function withCurrentPageAsNext(loginUrl: string): string {
-  const url = new URL(loginUrl, window.location.origin);
-  url.searchParams.set('next', window.location.href);
-  return url.toString();
+  if (!loginUrl) {
+    return loginUrl;
+  }
+  try {
+    const url = new URL(loginUrl, window.location.origin);
+    url.searchParams.set('next', window.location.href);
+    return url.toString();
+  } catch {
+    return loginUrl;
+  }
 }
 
 /**

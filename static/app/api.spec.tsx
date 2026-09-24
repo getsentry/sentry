@@ -172,6 +172,12 @@ describe('api', () => {
       );
     });
 
+    it('returns a missing or unparseable login url unchanged', () => {
+      setWindowLocation('https://sentry.io/organizations/acme/issues/');
+      expect(withCurrentPageAsNext('')).toBe('');
+      expect(withCurrentPageAsNext('http://[bad')).toBe('http://[bad');
+    });
+
     it('keeps the origin of a customer-domain login url', () => {
       setWindowLocation('https://sentry.io/organizations/acme/issues/');
       expect(withCurrentPageAsNext('https://acme.sentry.io/auth/login/acme/')).toBe(
