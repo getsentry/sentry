@@ -1,10 +1,18 @@
 import {useState} from 'react';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderHookWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {
   parseRunIdParam,
+  SeerExplorerDeepLinkParamProvider,
   useSeerExplorerDeepLink,
   useSyncSeerExplorerRunIdToUrl,
 } from 'sentry/views/seerExplorer/utils';
@@ -103,6 +111,38 @@ describe('useSeerExplorerDeepLink', () => {
     // e.g. closing the drawer re-enables the provider's listener; the run was already handled.
     act(() => result.current(true));
     expect(callback).not.toHaveBeenCalled();
+  });
+
+  it('does not fire for a listener that mounts after the param was handled', async () => {
+    const providerCallback = jest.fn();
+    const contentCallback = jest.fn();
+
+    function Listener({callback}: {callback: (runId: SeerExplorerRunId) => void}) {
+      useSeerExplorerDeepLink({callback});
+      return null;
+    }
+
+    function Harness() {
+      const [showContent, setShowContent] = useState(false);
+      return (
+        <SeerExplorerDeepLinkParamProvider>
+          <Listener callback={providerCallback} />
+          {showContent && <Listener callback={contentCallback} />}
+          <button onClick={() => setShowContent(true)}>Mount content</button>
+        </SeerExplorerDeepLinkParamProvider>
+      );
+    }
+
+    render(<Harness />, {
+      initialRouterConfig: {
+        location: {pathname: '/issues/', query: {explorerRunId: UUID}},
+      },
+    });
+    await waitFor(() => expect(providerCallback).toHaveBeenCalledWith(UUID));
+
+    // e.g. the chat content remounting for a new chat while the old param is still in the URL.
+    await userEvent.click(screen.getByRole('button', {name: 'Mount content'}));
+    expect(contentCallback).not.toHaveBeenCalled();
   });
 });
 

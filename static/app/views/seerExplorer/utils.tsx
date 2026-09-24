@@ -1,4 +1,13 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
@@ -656,6 +665,25 @@ export function parseRunIdParam(value: string): SeerExplorerRunId | null {
   return isUUID(value) ? value : null;
 }
 
+const SeerExplorerDeepLinkParamContext = createContext<RefObject<
+  string | undefined
+> | null>(null);
+
+/**
+ * Holds the last run ID query param value seen by any `useSeerExplorerDeepLink` listener. The
+ * listeners mount and remount independently (the provider, the drawer, the sidebar, the popped-out
+ * window), so tracking it per listener would make a freshly mounted one treat an already-handled
+ * param as a new link, e.g. switching back to the linked run right after starting a new chat.
+ */
+export function SeerExplorerDeepLinkParamProvider({children}: {children: ReactNode}) {
+  const lastSeenParamRef = useRef<string | undefined>(undefined);
+  return (
+    <SeerExplorerDeepLinkParamContext.Provider value={lastSeenParamRef}>
+      {children}
+    </SeerExplorerDeepLinkParamContext.Provider>
+  );
+}
+
 /**
  * useEffect which listens for the run ID query param in the current location and runs a callback
  * whenever its value changes. The param is left in the URL so the link stays shareable and
@@ -672,7 +700,9 @@ export function useSeerExplorerDeepLink({
   enabled?: boolean;
 }) {
   const location = useLocation();
-  const lastSeenParamRef = useRef<string | undefined>(undefined);
+  const sharedLastSeenParamRef = useContext(SeerExplorerDeepLinkParamContext);
+  const ownLastSeenParamRef = useRef<string | undefined>(undefined);
+  const lastSeenParamRef = sharedLastSeenParamRef ?? ownLastSeenParamRef;
 
   useEffect(() => {
     const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
@@ -692,7 +722,7 @@ export function useSeerExplorerDeepLink({
     }
 
     callback(runId);
-  }, [location, callback, enabled]);
+  }, [location, callback, enabled, lastSeenParamRef]);
 }
 
 /**
