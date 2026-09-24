@@ -74,6 +74,7 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
 
     provider_name = repo.provider.removeprefix("integrations:")
     web_base_url: str | None = None
+    installation_id: str | None = None
     if provider_name == "github_enterprise":
         integration = integration_service.get_integration(
             integration_id=repo.integration_id,
@@ -84,6 +85,13 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             if domain_name:
                 base_host = domain_name.split("/", 1)[0]
                 web_base_url = f"https://{base_host}"
+    elif provider_name == "cursor_origin":
+        integration = integration_service.get_integration(
+            integration_id=repo.integration_id,
+            organization_id=organization_id,
+        )
+        if integration:
+            installation_id = integration.external_id
 
     return cast(
         Repository,
@@ -96,6 +104,7 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             "organization_id": repo.organization_id,
             "provider_name": provider_name,
             "web_base_url": web_base_url,
+            "installation_id": installation_id,
         },
     )
 

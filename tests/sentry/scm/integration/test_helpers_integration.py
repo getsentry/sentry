@@ -140,6 +140,28 @@ class TestFetchRepository(TestCase):
 
         assert result is not None
         assert result["web_base_url"] is None
+        assert result["installation_id"] is None
+
+    def test_fetch_cursor_origin_repo_populates_installation_id(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id="inst_01example",
+        )
+        RepositoryModel.objects.create(
+            organization_id=self.organization.id,
+            name="acme/rocket",
+            provider="integrations:cursor_origin",
+            external_id="r_01example",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = fetch_repository(self.organization.id, ("cursor_origin", "r_01example"))
+
+        assert result is not None
+        assert result["installation_id"] == "inst_01example"
 
 
 class TestFetchServiceProvider(TestCase):
@@ -160,6 +182,7 @@ class TestFetchServiceProvider(TestCase):
             "external_id": None,
             "provider_name": "github",
             "web_base_url": None,
+            "installation_id": None,
         }
         provider = fetch_service_provider(
             self.organization.id,
@@ -178,6 +201,7 @@ class TestFetchServiceProvider(TestCase):
             "external_id": None,
             "provider_name": "github",
             "web_base_url": None,
+            "installation_id": None,
         }
         result = fetch_service_provider(self.organization.id, repository)
         assert result is None
@@ -204,6 +228,7 @@ class TestFetchServiceProvider(TestCase):
             "external_id": "9001",
             "provider_name": "github_enterprise",
             "web_base_url": "https://github.acme.com",
+            "installation_id": None,
         }
         provider = fetch_service_provider(self.organization.id, repository)
 
@@ -219,6 +244,7 @@ class TestFetchServiceProvider(TestCase):
             "external_id": "9001",
             "provider_name": "github_enterprise",
             "web_base_url": "https://github.acme.com",
+            "installation_id": None,
         }
         assert fetch_service_provider(self.organization.id, repository) is None
 
@@ -247,6 +273,7 @@ class TestFetchServiceProvider(TestCase):
             "external_id": "9001",
             "provider_name": "github_enterprise",
             "web_base_url": "https://github.acme.com",
+            "installation_id": None,
         }
 
         with (
