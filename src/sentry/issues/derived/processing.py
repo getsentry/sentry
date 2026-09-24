@@ -116,6 +116,7 @@ def _ensure_derived(group_id: int, pipeline_hash: str) -> tuple[GroupDerivedData
             derived, _created = GroupDerivedData.objects.get_or_create(
                 group_id=group_id,
                 defaults={
+                    "generated_at": Now(),
                     "cursor_date": EPOCH,
                     "cursor_id": 0,
                     "data": {},

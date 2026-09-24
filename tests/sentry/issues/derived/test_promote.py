@@ -430,6 +430,25 @@ class PromoteToLiveTest(TestCase):
         derived = GroupDerivedData.objects.get(group_id=group.id)
         assert derived.generated_at == generation_id.generated_at
 
+    def test_build_and_promote_after_incremental_creation_with_clock_skew(self) -> None:
+        group = self.create_group()
+        before = Group.objects.filter(id=group.id).values_list(Now(), flat=True).get()
+
+        with time_machine.travel(before + timedelta(hours=1)):
+            derived = process_group_log(group.id)
+
+        after = Group.objects.filter(id=group.id).values_list(Now(), flat=True).get()
+        # The INSERT must return a concrete database timestamp for incremental CAS writes.
+        assert before <= derived.generated_at <= after
+        original_generated_at = derived.generated_at
+        GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash="old_hash")
+
+        build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
+
+        derived.refresh_from_db()
+        assert derived.generated_at > original_generated_at
+        assert derived.pipeline_hash == PIPELINE.pipeline_hash
+
     def test_build_and_promote_updates_existing_row(self) -> None:
         group = self.create_group()
         user = self.user
