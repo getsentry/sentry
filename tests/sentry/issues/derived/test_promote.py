@@ -37,6 +37,7 @@ from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 
@@ -98,6 +99,8 @@ class PromoteToLiveTest(TestCase):
     def test_build_and_promote_raises_for_deleted_group(self) -> None:
         nonexistent_group_id = 999999999
         with (
+            # Keep GroupManager's option lookup outside the query budget.
+            override_options({"groups.enable-post-update-signal": False}),
             patch("sentry.issues.derived.promote._drain_log") as drain,
             self.assertNumQueries(1),
             pytest.raises(Group.DoesNotExist),
