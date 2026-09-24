@@ -9,20 +9,18 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 # The legacy inbound filters store one newline list per project option. Each list
 # becomes one custom inbound filter with the matching condition type and the lines as
-# its values, on the data type that filter reads. Relay's legacy release and IP filters
-# read every item type, so releases and IPs go on the catch-all.
+# its values, on the data type that filter reads. Relay's legacy release filter reads
+# the release of every item type, so releases go on the catch-all.
 LEGACY_LISTS: dict[str, tuple[str, str, str]] = {
     "sentry:releases": ("Releases", "all", "release"),
     "sentry:error_messages": ("Error Messages", "error", "error_message"),
     "sentry:log_messages": ("Log Messages", "log", "log_message"),
     "sentry:trace_metric_names": ("Metric Names", "metric", "metric_name"),
-    "sentry:blacklisted_ips": ("IP Addresses", "all", "ip_address"),
 }
 
 # The legacy format has no comment syntax: Relay globs a line like this against real
-# data, or fails to parse it as an IP network, so it never matches. Such lines become
-# a second filter that is switched off, so the text survives without changing what
-# Relay drops.
+# data, where it never matches. Such lines become a second filter that is switched off,
+# so the text survives without changing what Relay drops.
 COMMENT_PREFIX = "#"
 DISABLED_SUFFIX = " (disabled)"
 
