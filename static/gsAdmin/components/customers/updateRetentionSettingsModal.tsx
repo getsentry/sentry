@@ -105,7 +105,7 @@ function UpdateRetentionSettingsModal({
     subscription.categories.spans?.retention?.downsampled ?? null
   );
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     const retentions: Partial<
       Record<DataCategory, {downsampled: number | null; standard: number | null}>
     > = {};
@@ -138,18 +138,21 @@ function UpdateRetentionSettingsModal({
 
     const data = {retentions, orgRetention};
 
-    api.request(`/_admin/customers/${organization.slug}/retention-settings/`, {
-      method: 'POST',
-      data,
-      success: () => {
-        addSuccessMessage('Retention settings updated successfully.');
-        closeModal();
-        onSuccess();
-      },
-      error: e => {
-        addErrorMessage(e.responseText || 'Failed to update retention settings.');
-      },
-    });
+    try {
+      await api.requestPromise(
+        `/_admin/customers/${organization.slug}/retention-settings/`,
+        {
+          method: 'POST',
+          data,
+          includeAllArgs: true,
+        }
+      );
+      addSuccessMessage('Retention settings updated successfully.');
+      closeModal();
+      onSuccess();
+    } catch (e) {
+      addErrorMessage(e?.responseJSON?.detail || 'Failed to update retention settings.');
+    }
   };
 
   return (
