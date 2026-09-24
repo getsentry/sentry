@@ -162,7 +162,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
 
         assert evaluation.outcome == WorkflowEvaluationOutcome.ERROR
 
-    def test_condition_artifact_includes_raw_input_data(self) -> None:
+    def test_condition_artifact_excludes_raw_input_data(self) -> None:
         condition = self.create_data_condition()
         condition.update(comparison={"value": 10, "interval": "1h"})
         evaluation = DataConditionEvaluation(
@@ -181,9 +181,10 @@ class TestWorkflowEvaluationArtifact(TestCase):
             "condition_id": condition.id,
             "condition_type": condition.type,
             "input_type": "dict",
-            "input": {"email": "user@example.com"},
+            "input": None,
             "result": True,
         }
+        assert "user@example.com" not in str(artifact)
 
     def test_logging_redacts_raw_input_data(self) -> None:
         artifact: dict[str, object] = {

@@ -7,6 +7,7 @@ from unittest import mock
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+from django.db.models import F
 from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
@@ -88,6 +89,13 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     def setUp(self) -> None:
         super().setUp()
 
+    def create_detector_from_cache(self, **kwargs: Any) -> Detector:
+        detector = self.create_detector(**kwargs)
+
+        return Detector.objects.annotate(
+            project_organization_id=F("project__organization_id"),
+        ).get(id=detector.id)
+
     def build_data_packet(self, **kwargs: Any) -> DataPacket[dict[str, Any]]:
         source_id = "1234"
         return DataPacket[dict[str, Any]](
@@ -110,7 +118,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         )
 
     def test_logs_canonical_evaluation_artifact(self) -> None:
-        detector = self.create_detector(type=self.handler_type.slug)
+        detector = self.create_detector_from_cache(type=self.handler_type.slug)
         data_packet = self.build_data_packet(secret="do-not-log")
 
         with (
@@ -152,7 +160,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         assert "do-not-log" not in str(mock_logger.info.call_args)
 
     def test_logs_detector_with_no_evaluation_results(self) -> None:
-        detector = self.create_detector(type=self.handler_type.slug)
+        detector = self.create_detector_from_cache(type=self.handler_type.slug)
         handler = detector.detector_handler
         assert handler is not None
 
@@ -262,17 +270,34 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             },
         )
 
-    def test_project_detector_uses_cached_project_organization_id(self) -> None:
-        detector = self.create_detector(type=self.handler_type.slug)
+    def test_project_detector_uses_cached_organization_id(self) -> None:
+        detector = self.create_detector_from_cache(type=self.handler_type.slug)
+
+        with (
+            mock.patch.object(
+                Detector,
+                "linked_project",
+                new_callable=mock.PropertyMock,
+                side_effect=AssertionError("project should not be fetched"),
+            ),
+            mock.patch("sentry.workflow_engine.processors.detector.emit_evaluations") as mock_emit,
+        ):
+            process_detectors(self.build_data_packet(), [detector])
+
+        assert mock_emit.call_args.kwargs["organization"] == self.organization
+
+    def test_project_detector_with_annotated_organization_id(self) -> None:
+        detector = self.create_detector_from_cache(type=self.handler_type.slug)
 
         with mock.patch("sentry.workflow_engine.processors.detector.emit_evaluations") as mock_emit:
             process_detectors(self.build_data_packet(), [detector])
 
         assert mock_emit.call_args.kwargs["organization"] == self.organization
 
-    def test_project_detector_without_cached_project_fetches_organization(self) -> None:
+    def test_all_projects_detector_uses_config_organization_id(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
-        detector = Detector.objects.get(id=detector.id)
+        detector.update(project=None, config={"organization_id": self.organization.id})
+        assert not hasattr(detector, "project_organization_id")
 
         with mock.patch("sentry.workflow_engine.processors.detector.emit_evaluations") as mock_emit:
             process_detectors(self.build_data_packet(), [detector])

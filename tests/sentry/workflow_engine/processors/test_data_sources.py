@@ -8,6 +8,7 @@ from sentry.workflow_engine.caches.detector import (
     _detectors_by_data_source,
 )
 from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_source import (
     bulk_fetch_enabled_detectors,
     process_data_source,
@@ -33,7 +34,7 @@ class TestProcessDataSources(BaseWorkflowTest):
 
         self.create_data_condition(
             condition_group=self.detector_one.workflow_condition_group,
-            type="eq",
+            type=Condition.EQUAL,
             comparison="bar",
             condition_result=True,
         )
@@ -229,6 +230,9 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
             cached_detectors = call_args[0][1]
             assert len(cached_detectors) == 2
             assert {d.id for d in cached_detectors} == {detector1.id, detector2.id}
+            assert all(
+                d.get("project_organization_id") == self.organization.id for d in cached_detectors
+            )
             assert call_args[0][2] == CACHE_TTL
 
     def test_get_detectors_by_data_source__cache_hit(self) -> None:
@@ -236,6 +240,8 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         detector2 = self.create_detector(project=self.project, name="Detector 2")
         self.create_data_source(source_id="12345", type="test")
         cached_detectors = [detector1, detector2]
+        for detector in cached_detectors:
+            detector.__dict__["project_organization_id"] = self.organization.id
 
         with patch("sentry.utils.cache.cache.get") as mock_cache_get:
             mock_cache_get.return_value = cached_detectors
@@ -247,13 +253,28 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
             expected_cache_key = _detectors_by_data_source.key(_DetectorCacheKey("12345", "test"))
             mock_cache_get.assert_called_once_with(expected_cache_key)
 
+    def test_get_detectors_by_data_source__refreshes_old_cache_entry(self) -> None:
+        detector = self.create_detector(project=self.project, name="Test Detector")
+        data_source = self.create_data_source(source_id="12345", type="test")
+        data_source.detectors.set([detector])
+
+        with (
+            patch("sentry.utils.cache.cache.get", return_value=[detector]),
+            patch("sentry.utils.cache.cache.set") as mock_cache_set,
+        ):
+            result = bulk_fetch_enabled_detectors("12345", "test")
+
+        assert len(result) == 1
+        assert result[0].get("project_organization_id") == self.organization.id
+        mock_cache_set.assert_called_once()
+
     def test_get_detectors_by_data_source__eager_loading_cached(self) -> None:
         detector = self.create_detector(project=self.project, name="Test Detector")
         detector.workflow_condition_group = self.create_data_condition_group()
         detector.save()
         self.create_data_condition(
             condition_group=detector.workflow_condition_group,
-            type="eq",
+            type=Condition.EQUAL,
             comparison="HIGH",
             condition_result=1,
         )
