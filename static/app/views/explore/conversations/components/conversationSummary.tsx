@@ -33,7 +33,7 @@ import {
 import {ConversationTraceLink} from 'sentry/views/explore/conversations/components/conversationTraceLink';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import type {
-  ConversationAggregates as ConversationApiAggregates,
+  ConversationStats as ConversationApiStats,
   ConversationModelUsage,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
@@ -58,9 +58,9 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface ConversationSummaryProps {
-  aggregates: ConversationApiAggregates | null;
   conversationId: string;
   nodes: AITraceSpanNode[];
+  stats: ConversationApiStats | null;
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
   /** Project the conversation belongs to; rendered beneath the title. */
@@ -82,7 +82,7 @@ const TAG_HEIGHT = '20px'; // `Tag`, and `ToolTag` with it
 const TRACE_LINK_HEIGHT = '24px';
 
 export function ConversationSummary({
-  aggregates,
+  stats,
   nodes,
   conversationId,
   title,
@@ -94,9 +94,9 @@ export function ConversationSummary({
   const {selection} = usePageFilters();
 
   const calculatedAggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
-  const aggregateValues = aggregates ?? calculatedAggregates;
-  const tokenBreakdowns = aggregates
-    ? getTokenBreakdowns(aggregates.usageByModel)
+  const aggregateValues = stats ?? calculatedAggregates;
+  const tokenBreakdowns = stats
+    ? getTokenBreakdowns(stats.usageByModel)
     : calculatedAggregates.tokenBreakdowns;
   const toolNames = orderToolNames(
     aggregateValues.toolNames,
@@ -430,11 +430,12 @@ function getTokenBreakdowns(
   usageByModel: ConversationModelUsage[]
 ): TokenBreakdownDetails[] {
   return usageByModel.map(usage => {
+    const isComplete = usage.inputTokens !== null && usage.outputTokens !== null;
     const breakdown = getTokenBreakdown({
-      inputTokens: usage.inputTokens,
+      inputTokens: usage.inputTokens ?? 0,
       cachedTokens: usage.cacheReadTokens,
       cacheWriteTokens: usage.cacheWriteTokens,
-      outputTokens: usage.outputTokens,
+      outputTokens: usage.outputTokens ?? 0,
       reasoningTokens: usage.reasoningTokens,
       totalTokens: usage.totalTokens,
     });
@@ -444,10 +445,10 @@ function getTokenBreakdowns(
       cacheRead: breakdown.cached,
       cacheWrite: breakdown.cacheWrite,
       input,
-      isComplete: usage.hasCompleteTokenData,
+      isComplete,
       output: breakdown.output,
       reasoning: usage.reasoningTokens,
-      total: usage.hasCompleteTokenData ? input + breakdown.output : usage.totalTokens,
+      total: isComplete ? input + breakdown.output : usage.totalTokens,
       inputCost: usage.inputCost,
       model: usage.model ?? t('Unknown model'),
       outputCost: usage.outputCost,
@@ -583,7 +584,7 @@ const AGGREGATES_BAR_VISIBLE_TOOL_COUNT = 4;
  * Used standalone in the trace AI tab.
  */
 export function ConversationAggregatesBar({
-  aggregates,
+  stats,
   nodes,
   conversationId,
   isLoading,
@@ -592,17 +593,17 @@ export function ConversationAggregatesBar({
 }: {
   conversationId: string;
   nodes: AITraceSpanNode[];
-  aggregates?: ConversationApiAggregates | null;
   isLoading?: boolean;
   lastMessageDate?: Date | null;
   onErrorsLinkClick?: () => void;
+  stats?: ConversationApiStats | null;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const calculatedAggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
-  const aggregateValues = aggregates ?? calculatedAggregates;
-  const tokenBreakdowns = aggregates
-    ? getTokenBreakdowns(aggregates.usageByModel)
+  const aggregateValues = stats ?? calculatedAggregates;
+  const tokenBreakdowns = stats
+    ? getTokenBreakdowns(stats.usageByModel)
     : calculatedAggregates.tokenBreakdowns;
   const toolNames = orderToolNames(
     aggregateValues.toolNames,

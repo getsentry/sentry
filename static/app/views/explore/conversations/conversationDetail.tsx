@@ -55,8 +55,7 @@ function ConversationDetailPage() {
     [conversationId, startTimestamp, endTimestamp]
   );
 
-  const {aggregates, nodes, nodeTraceMap, isLoading, title} =
-    useConversation(conversation);
+  const {stats, nodes, nodeTraceMap, isLoading, title} = useConversation(conversation);
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
@@ -96,7 +95,7 @@ function ConversationDetailPage() {
       <ConversationsBreadcrumbs conversationId={conversationId} />
       <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
         <ConversationSummary
-          aggregates={aggregates}
+          stats={stats}
           nodes={nodes}
           nodeTraceMap={nodeTraceMap}
           conversationId={conversationId}
