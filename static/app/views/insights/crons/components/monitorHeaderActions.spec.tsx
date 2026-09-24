@@ -23,7 +23,7 @@ describe('MonitorHeaderActions', () => {
     );
 
     const muteButton = screen.getByRole('button', {name: 'Mute'});
-    expect(muteButton).toBeDisabled();
+    expect(muteButton).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.hover(muteButton);
     expect(
@@ -52,7 +52,7 @@ describe('MonitorHeaderActions', () => {
     );
 
     const muteButton = screen.getByRole('button', {name: 'Mute'});
-    expect(muteButton).toBeEnabled();
+    expect(muteButton).not.toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.click(muteButton);
     expect(updateMock).toHaveBeenCalledWith(

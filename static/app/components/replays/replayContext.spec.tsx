@@ -1,4 +1,4 @@
-import {ReplayerEvents} from '@sentry-internal/rrweb';
+import {ReplayerEvents} from '@sentry/rrweb';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -17,8 +17,8 @@ const mockVideoPause = jest.fn();
 const mockVideoPlay = jest.fn();
 const mockReplayerHandlers = new Map<string, (arg: any) => void>();
 
-jest.mock('@sentry-internal/rrweb', () => {
-  const actual = jest.requireActual('@sentry-internal/rrweb');
+jest.mock('@sentry/rrweb', () => {
+  const actual = jest.requireActual('@sentry/rrweb');
   return {
     ...actual,
     Replayer: jest.fn().mockImplementation(() => ({

@@ -8,7 +8,6 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
 import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -23,6 +22,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconChevron,
@@ -559,7 +559,7 @@ function VirtualizedRepoList({
     [visibleRepos]
   );
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: visibleRepos.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ESTIMATED_REPO_ROW_HEIGHT,
@@ -586,9 +586,9 @@ function VirtualizedRepoList({
         column={outerColumn}
         columns={outerColumns}
         position="relative"
-        style={{height: virtualizer.getTotalSize()}}
+        style={{height: totalSize}}
       >
-        {virtualizer.getVirtualItems().map(virtualItem => {
+        {virtualItems.map(virtualItem => {
           const repo = visibleRepos[virtualItem.index]!;
           const nameMatch = repoMatches?.[repo.id]?.find(m => m.key === 'name');
           const isLast = virtualItem.index === visibleRepos.length - 1;

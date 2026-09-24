@@ -49,7 +49,7 @@ import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {getTraceMetricAggregates} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {hasUnresolvedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnresolvedTraceMetric';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
@@ -70,6 +70,7 @@ type WidgetBuilderV2Props = {
   onSave: ({index, widget}: {index: number | undefined; widget: Widget}) => void;
   openWidgetTemplates: boolean;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
+  widgetInterval?: string;
 };
 
 export function WidgetBuilderV2({
@@ -80,6 +81,7 @@ export function WidgetBuilderV2({
   dashboard,
   setOpenWidgetTemplates,
   openWidgetTemplates,
+  widgetInterval,
 }: WidgetBuilderV2Props) {
   const [queryConditionsValid, setQueryConditionsValid] = useState(true);
   const theme = useTheme();
@@ -196,6 +198,7 @@ export function WidgetBuilderV2({
                     onQueryConditionChange={setQueryConditionsValid}
                     dashboard={dashboard}
                     dashboardFilters={dashboardFilters}
+                    widgetInterval={widgetInterval}
                     setIsPreviewDraggable={setIsPreviewDraggable}
                     isQueryConditionInvalid={!queryConditionsValid}
                     openWidgetTemplates={openWidgetTemplates}
@@ -214,6 +217,7 @@ export function WidgetBuilderV2({
                       <WidgetPreviewContainer
                         dashboardFilters={dashboardFilters}
                         dashboard={dashboard}
+                        widgetInterval={widgetInterval}
                         dragPosition={translate}
                         isDraggable={isPreviewDraggable}
                         isQueryConditionInvalid={!queryConditionsValid}
@@ -240,6 +244,7 @@ export function WidgetPreviewContainer({
   isDraggable,
   onDataFetched,
   openWidgetTemplates,
+  widgetInterval,
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
@@ -248,6 +253,7 @@ export function WidgetPreviewContainer({
   isQueryConditionInvalid?: boolean;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   openWidgetTemplates?: boolean;
+  widgetInterval?: string;
 }) {
   const {state} = useWidgetBuilderContext();
 
@@ -278,7 +284,7 @@ export function WidgetPreviewContainer({
     widget.widgetType === WidgetType.TRACEMETRICS &&
     widget.queries.every(query => query.aggregates.length === 0) &&
     Boolean(
-      getTraceMetricAggregateSource(state.displayType, state.yAxis, state.fields)?.some(
+      getTraceMetricAggregates(state.displayType, state.yAxis, state.fields)?.some(
         aggregate =>
           aggregate.kind === FieldValueKind.EQUATION && aggregate.field.trim() === ''
       )
@@ -406,6 +412,7 @@ export function WidgetPreviewContainer({
             <WidgetPreview
               dashboardFilters={dashboardFilters}
               dashboard={dashboard}
+              widgetInterval={widgetInterval}
               previewStatus={previewStatus}
               onDataFetched={onDataFetched}
               shouldForceDescriptionTooltip={!isSmallScreen}

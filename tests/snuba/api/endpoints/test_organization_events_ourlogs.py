@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 from django.test import override_settings
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue
 
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import DataCategory
@@ -139,6 +140,181 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert data[0]["log.body"] == "foo"
 
         assert meta["dataset"] == self.dataset
+
+    def test_regex_filter(self) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "ERROR [42] disk full"},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "WARN [7] disk filling up"},
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": "message://^ERROR \\[\\d+\\]//",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+            features={"organizations:ourlogs-regex-searches": True},
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == ["ERROR [42] disk full"]
+
+    def test_regex_filter_negated(self) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "ERROR [42] disk full"},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "WARN [7] disk filling up"},
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": "!message://^ERROR \\[\\d+\\]//",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+            features={"organizations:ourlogs-regex-searches": True},
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == ["WARN [7] disk filling up"]
+
+    def test_regex_filter_on_an_attribute(self) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "first"},
+                attributes={"release": "1.2.3"},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "second"},
+                attributes={"release": "nightly"},
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": "tags[release,string]://^\\d+\\.\\d+//",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+            features={"organizations:ourlogs-regex-searches": True},
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == ["first"]
+
+    def test_regex_filter_on_an_array_attribute(self) -> None:
+        """Snuba applies OP_REGEXP to the string elements of a string array, so the array
+        membership form matches when any element does."""
+        logs = [
+            self.create_ourlog(
+                {"body": "first"},
+                attributes={
+                    "log_tags": {
+                        "array_value": ArrayValue(
+                            values=[
+                                AnyValue(string_value="alpha-01"),
+                                AnyValue(string_value="beta"),
+                            ]
+                        )
+                    }
+                },
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "second"},
+                attributes={
+                    "log_tags": {"array_value": ArrayValue(values=[AnyValue(string_value="gamma")])}
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": "tags[log_tags,array][*]://^alpha-\\d+$//",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+            features={"organizations:ourlogs-regex-searches": True},
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == ["first"]
+
+    def test_regex_filter_case_insensitive(self) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "Error: disk full"},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "0 problems"},
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": "message://^[A-Z]RROR\\D+//",
+                "caseInsensitive": "1",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+            features={"organizations:ourlogs-regex-searches": True},
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == ["Error: disk full"]
+
+    def test_regex_shaped_value_is_a_literal_without_the_feature(self) -> None:
+        logs = [
+            self.create_ourlog({"body": "//^ERROR//"}, timestamp=self.ten_mins_ago),
+            self.create_ourlog({"body": "ERROR [1] disk full"}, timestamp=self.nine_mins_ago),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": "message://^ERROR//",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == ["//^ERROR//"]
+
+    def test_regex_filter_rejects_an_invalid_pattern(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": "message://[a-//",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+            features={"organizations:ourlogs-regex-searches": True},
+        )
+
+        assert response.status_code == 400, response.content
+        assert "Invalid regex" in response.data["detail"]
 
     def test_pagination(self) -> None:
         logs = [

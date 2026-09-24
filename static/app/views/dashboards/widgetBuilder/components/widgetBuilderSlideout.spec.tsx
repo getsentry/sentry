@@ -358,10 +358,10 @@ describe('WidgetBuilderSlideout', () => {
     );
     expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('test alias again');
 
-    await userEvent.click(await screen.findByText('Table'));
-    await userEvent.click(await screen.findByText('Area'));
-    await userEvent.click(await screen.findByText('Area'));
-    await userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Table'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Area'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Area'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Table'}));
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('');
@@ -426,6 +426,95 @@ describe('WidgetBuilderSlideout', () => {
     await userEvent.click(await screen.findByText('Update Widget'));
 
     expect(onSave).toHaveBeenCalledWith({index: 1, widget: expect.any(Object)});
+  });
+
+  it('saves the selected threshold interval', async () => {
+    const onSave = jest.fn();
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
+          location: {
+            pathname: '/dashboards/1/',
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['count()'],
+              thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('textbox', {name: 'Interval'}));
+    await userEvent.click(screen.getByText('1 hour'));
+    await userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
+
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledWith({
+        index: 1,
+        widget: expect.objectContaining({
+          thresholds: expect.objectContaining({
+            timeWindow: '1h',
+          }),
+        }),
+      });
+    });
+  });
+
+  it('omits the threshold time window when Fixed is selected', async () => {
+    const onSave = jest.fn();
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
+          location: {
+            pathname: '/dashboards/1/',
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['count()'],
+              thresholds:
+                '{"max_values":{"max1":100,"max2":200},"unit":null,"timeWindow":"10m"}',
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('textbox', {name: 'Interval'}));
+    await userEvent.click(screen.getByText('Fixed'));
+    await userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0]?.[0].widget.thresholds).not.toHaveProperty('timeWindow');
   });
 
   it('passes undefined as the index for onSave if the index is not defined', async () => {
@@ -836,6 +925,42 @@ describe('WidgetBuilderSlideout', () => {
     await waitFor(() => {
       expect(screen.getByRole('radio', {name: 'Equation'})).toBeChecked();
     });
+  });
+
+  it('shows the optional group by selector for Trace Metrics equations', async () => {
+    render(
+      <WidgetBuilderSlideout
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{release: undefined}}
+        onClose={jest.fn()}
+        onQueryConditionChange={jest.fn()}
+        onSave={jest.fn()}
+        setIsPreviewDraggable={jest.fn()}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['tracemetrics-enabled'],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
+            query: {
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.TABLE,
+              field: [
+                'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
+              ],
+            },
+          },
+        },
+        additionalWrapper: WidgetBuilderProvider,
+      }
+    );
+
+    expect(await screen.findByText('Group by')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Group'})).toBeInTheDocument();
   });
 
   it('should not show the group by selector if the widget is an issue and a chart display type', async () => {

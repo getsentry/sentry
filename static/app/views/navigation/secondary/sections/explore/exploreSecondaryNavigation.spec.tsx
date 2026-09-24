@@ -88,7 +88,7 @@ describe('ExploreSecondaryNavigation', () => {
       'href',
       '/organizations/org-slug/explore/investigations/'
     );
-    expect(screen.getByLabelText('beta')).toBeInTheDocument();
+    expect(screen.getByLabelText('alpha')).toBeInTheDocument();
   });
 
   it('keeps Explore and Investigations active on investigation detail pages', () => {
@@ -209,5 +209,65 @@ describe('ExploreSecondaryNavigation', () => {
       'href',
       '/organizations/org-slug/explore/discover/homepage/'
     );
+  });
+
+  it('fetches the combined endpoint and lists both products when discover-queries-in-all-queries is on', async () => {
+    const {organization: combinedOrganization} = initializeOrg({
+      organization: {
+        features: [
+          'performance-view',
+          'visibility-explore-view',
+          'discover-queries-in-all-queries',
+        ],
+      },
+    });
+
+    const getQueriesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/explore/all-queries/',
+      body: [
+        {
+          id: 1,
+          queryType: 'explore',
+          name: 'Starred Explore Query',
+          dataset: 'spans',
+          projects: [],
+          starred: true,
+          position: 1,
+          query: [{query: '', fields: [], groupby: [], visualize: []}],
+        },
+        {
+          // Same id as the explore row above, from discover's own sequence.
+          id: 1,
+          queryType: 'discover',
+          name: 'Starred Discover Query',
+          queryDataset: 'error-events',
+          projects: [],
+          starred: true,
+          position: 2,
+          fields: ['title'],
+          query: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    render(
+      <PrimaryNavigationContextProvider>
+        <SecondaryNavigationContextProvider>
+          <Navigation />
+          <div id="main" />
+        </SecondaryNavigationContextProvider>
+      </PrimaryNavigationContextProvider>,
+      {
+        organization: combinedOrganization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/explore/traces/'},
+        },
+      }
+    );
+
+    expect(await screen.findByText('Starred Explore Query')).toBeInTheDocument();
+    expect(screen.getByText('Starred Discover Query')).toBeInTheDocument();
+    expect(getQueriesMock).toHaveBeenCalled();
   });
 });

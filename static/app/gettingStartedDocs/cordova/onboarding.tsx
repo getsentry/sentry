@@ -5,6 +5,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getDataCollectionStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 const getConfigureSnippet = (params: DocsParams) => `
@@ -53,6 +54,10 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/cordova/configuration/options/#dataCollection',
+    }),
   ],
   verify: () => [
     {

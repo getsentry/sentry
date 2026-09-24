@@ -14,7 +14,9 @@ resources:
 
 import {Fragment, useState} from 'react';
 
+import {Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
@@ -93,6 +95,36 @@ export function BasicDemo() {
     <TabPanels.Item key="three">Content 3</TabPanels.Item>
   </TabPanels>
 </Tabs>
+```
+
+## Sizes
+
+`<Tabs>` supports three sizes: `md` (default), `sm`, and `xs`. Set `size` on `<Tabs>` to apply it to all tabs in the list.
+
+<Storybook.Demo direction="column" align="stretch" gap="3xl">
+  {['md', 'sm', 'xs'].map(size => (
+    <Stack key={size} gap="md">
+      <Text>{size === 'md' ? 'md (default)' : size}</Text>
+      <Tabs size={size}>
+        <TabList aria-label={`${size} tabs`}>
+          <TabList.Item key="one">Tab 1</TabList.Item>
+          <TabList.Item key="two">Tab 2</TabList.Item>
+          <TabList.Item key="three">Tab 3</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="one">Content 1</TabPanels.Item>
+          <TabPanels.Item key="two">Content 2</TabPanels.Item>
+          <TabPanels.Item key="three">Content 3</TabPanels.Item>
+        </TabPanels>
+      </Tabs>
+    </Stack>
+  ))}
+</Storybook.Demo>
+
+```jsx
+<Tabs size="md">{/* tabs and panels */}</Tabs>
+<Tabs size="sm">{/* tabs and panels */}</Tabs>
+<Tabs size="xs">{/* tabs and panels */}</Tabs>
 ```
 
 ## Default Selection

@@ -108,6 +108,9 @@ describe('EventsSearchBar', () => {
     await userEvent.click(
       await screen.findByRole('button', {name: 'Edit value for filter: has'})
     );
+    await userEvent.clear(
+      await screen.findByRole('combobox', {name: 'Edit filter value'})
+    );
 
     // Assert we actually have has: dropdown options before checking exclusions.
     expect(await screen.findByRole('option', {name: 'environment'})).toBeInTheDocument();

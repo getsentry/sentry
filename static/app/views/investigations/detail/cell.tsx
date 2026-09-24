@@ -35,6 +35,7 @@ import {
   useStopInvestigationExecutionMutation,
   useUpdateInvestigationBlockPromptMutation,
 } from 'sentry/views/investigations/api';
+import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
 import type {
   InvestigationBlock,
   InvestigationBlockKind,
@@ -67,7 +68,15 @@ export function InvestigationCell({
     ? (block.currentExecution?.id ?? null)
     : null;
   const autoOpenedExecutionId = useRef(activeExecutionId);
-  const [panelOpen, setPanelOpen] = useState(Boolean(activeExecutionId));
+  const awaitingInput = block.currentExecution?.status === 'awaiting_input';
+  // A cell that has nothing in it yet is showing a placeholder, so opening the
+  // Seer panel over it would bury that. A cell waiting on an answer is the
+  // exception — the question lives in the panel. Runs started from this page
+  // still open it, through `openPanel` and the effects below.
+  const [panelOpen, setPanelOpen] = useState(
+    Boolean(activeExecutionId) && (hasRenderableContent(block) || awaitingInput)
+  );
+  const askedForInputId = useRef(awaitingInput ? activeExecutionId : null);
   const [traceExecutionId, setTraceExecutionId] = useState<string | null>(
     activeExecutionId
   );
@@ -115,10 +124,31 @@ export function InvestigationCell({
       return;
     }
     autoOpenedExecutionId.current = activeExecutionId;
+    // eslint-disable react-you-might-not-need-an-effect/no-derived-state
     setPanelOpen(true);
     setTraceExecutionId(activeExecutionId);
     setShowPrompt(false);
+    // eslint-enable react-you-might-not-need-an-effect/no-derived-state
   }, [activeExecutionId]);
+
+  // A cell that was already on screen can stop for a question part way through
+  // its run. The execution is the same one, so the effect above stays quiet and
+  // the question would sit unseen behind the placeholder. Opens once per
+  // execution, so closing the panel keeps it closed.
+  useEffect(() => {
+    if (!awaitingInput || !activeExecutionId) {
+      return;
+    }
+    if (askedForInputId.current === activeExecutionId) {
+      return;
+    }
+    askedForInputId.current = activeExecutionId;
+    // eslint-disable react-you-might-not-need-an-effect/no-derived-state
+    setPanelOpen(true);
+    setTraceExecutionId(activeExecutionId);
+    setShowPrompt(false);
+    // eslint-enable react-you-might-not-need-an-effect/no-derived-state
+  }, [awaitingInput, activeExecutionId]);
 
   function openPanel() {
     setPanelOpen(true);
@@ -255,6 +285,12 @@ function CellResult({
       <CellExecutionAlert block={block} />
       {markdown ? (
         <SeerMarkdown raw={markdown} />
+      ) : isBlockWorking(block) ? (
+        // The text this stands in for ends with the space below its last
+        // paragraph, so the placeholder has to carry that space itself.
+        <Container paddingBottom="xl">
+          <InvestigationCellPlaceholder title={block.title} />
+        </Container>
       ) : (
         <CellProgress state={progressState} />
       )}
@@ -388,6 +424,10 @@ function QueryResult({
                     raw={output.tableMarkdown}
                     components={{Table: FlushTable}}
                   />
+                ) : isBlockWorking(block) ? (
+                  // The result's own header lands here, not the cell title the
+                  // toolbar above already shows.
+                  <InvestigationCellPlaceholder />
                 ) : (
                   <CellProgress state={progressState} />
                 )}
@@ -482,6 +522,12 @@ function getCellProgressState(
 }
 
 export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
+  // Seer names a cell before it fills it, so a cell it has started can be shown
+  // right away. A cell that is only queued stays hidden — it may never produce
+  // anything.
+  if (isBlockWorking(block) && block.title.trim()) {
+    return true;
+  }
   if (block.kind === 'text') {
     return Boolean((getTextOutput(block.output) ?? block.content).trim());
   }
@@ -1091,6 +1137,24 @@ function getExecutionTitle(status: InvestigationExecutionStatus | undefined) {
     return t('Seer run cancelled');
   }
   return t('Analysis complete');
+}
+
+function hasRenderableContent(block: InvestigationBlock) {
+  return Boolean(block.output) || Boolean(block.content.trim());
+}
+
+/**
+ * Whether Seer has a run going for this cell — queued, working, paused on a
+ * question, or stopping. These are the four the server itself treats as live.
+ *
+ * `notRun` is the one unfinished state left out: nothing has been dispatched
+ * for the cell, and an auto-run cell whose dependency failed never will be.
+ */
+export function isBlockWorking(block: InvestigationBlock) {
+  return (
+    isExecutionActive(block.outputStatus) ||
+    isExecutionActive(block.currentExecution?.status)
+  );
 }
 
 function isExecutionActive(status: InvestigationExecutionStatus | undefined) {

@@ -101,7 +101,7 @@ describe('FieldRenderer tests', () => {
       expect(screen.getByText('spanId')).toBeInTheDocument();
       expect(screen.getByRole('link')).toHaveAttribute(
         'href',
-        '/organizations/org-slug/explore/traces/trace/traceId/?node=span-spanId&node=txn-transactionSpanId&source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900'
+        '/organizations/org-slug/explore/traces/trace/traceId/?node=span-spanId&source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900'
       );
     });
   });

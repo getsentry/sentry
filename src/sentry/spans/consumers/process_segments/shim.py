@@ -5,20 +5,61 @@ and thus cannot (yet) be refactored to use the new span schema.
 """
 
 import uuid
-from copy import deepcopy
-from typing import Any, cast
+from typing import Any
 
-import sentry_sdk
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.issue_detection.types import SentryTags as PerformanceIssuesSentryTags
 from sentry.spans.consumers.process_segments.types import (
     CompatibleSpan,
     attribute_value,
     get_span_op,
 )
 from sentry.utils.dates import to_datetime
+
+EMPTY_ATTRIBUTE_VALUES = frozenset({"", None})
+
+TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
+    ATTRIBUTE_NAMES.SENTRY_RELEASE: "release",
+    ATTRIBUTE_NAMES.SENTRY_DIST: "dist",
+    ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT: "environment",
+    ATTRIBUTE_NAMES.SENTRY_PLATFORM: "platform",
+}
+
+CONTEXT_FIELDS_BY_ATTRIBUTE_NAME: dict[str, dict[str, str]] = {
+    "browser": {
+        ATTRIBUTE_NAMES.BROWSER_NAME: "name",
+        ATTRIBUTE_NAMES.BROWSER_VERSION: "version",
+    },
+    "os": {
+        ATTRIBUTE_NAMES.OS_NAME: "name",
+        ATTRIBUTE_NAMES.OS_VERSION: "version",
+        ATTRIBUTE_NAMES.OS_ROOTED: "rooted",
+    },
+    "device": {
+        ATTRIBUTE_NAMES.DEVICE_FAMILY: "family",
+        ATTRIBUTE_NAMES.DEVICE_MODEL: "model",
+        ATTRIBUTE_NAMES.DEVICE_BRAND: "brand",
+        ATTRIBUTE_NAMES.DEVICE_NAME: "name",
+    },
+    "runtime": {
+        ATTRIBUTE_NAMES.PROCESS_RUNTIME_NAME: "name",
+        ATTRIBUTE_NAMES.PROCESS_RUNTIME_VERSION: "version",
+    },
+    "profile": {
+        ATTRIBUTE_NAMES.SENTRY_PROFILE_ID: "profile_id",
+    },
+}
+
+SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.SENTRY_NORMALIZED_DESCRIPTION: "description",
+    ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT: "environment",
+    ATTRIBUTE_NAMES.SENTRY_PLATFORM: "platform",
+    ATTRIBUTE_NAMES.SENTRY_RELEASE: "release",
+    ATTRIBUTE_NAMES.SENTRY_SDK_NAME: "sdk.name",
+    "sentry.system": "system",
+}
 
 
 def make_compatible(span: SpanEvent) -> CompatibleSpan:
@@ -29,9 +70,11 @@ def make_compatible(span: SpanEvent) -> CompatibleSpan:
     # compared to raw spans on the EAP topic. This function adds the missing
     # attributes to the spans to make them compatible with the event pipeline
     # logic.
+    sentry_tags = _extract_attribute_values(span, SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME)
+
     ret: CompatibleSpan = {
         **span,
-        "sentry_tags": _sentry_tags(span.get("attributes") or {}),
+        "sentry_tags": {key: str(value) for key, value in sentry_tags.items()},
         "op": get_span_op(span),
         "exclusive_time": attribute_value(span, "sentry.exclusive_time_ms"),
     }
@@ -39,25 +82,89 @@ def make_compatible(span: SpanEvent) -> CompatibleSpan:
     return ret
 
 
-def _sentry_tags(attributes: dict[str, Any]) -> dict[str, str]:
-    """Backfill sentry tags used in performance issue detection.
-
-    Once performance issue detection is only called from process_segments,
-    (not from event_manager), the performance issues code can be refactored to access
-    span attributes instead of sentry_tags.
+def _extract_attribute_values(
+    segment_span: CompatibleSpan | SpanEvent, attribute_to_field_map: dict[str, str]
+) -> dict[str, Any]:
     """
-    sentry_tags = {}
-    for tag_key in PerformanceIssuesSentryTags.__mutable_keys__:
-        attribute_key = (
-            "sentry.normalized_description" if tag_key == "description" else f"sentry.{tag_key}"
-        )
-        if attribute_key in attributes:
-            try:
-                sentry_tags[tag_key] = str((attributes[attribute_key] or {}).get("value"))
-            except Exception:
-                sentry_sdk.capture_exception()
+    Pull data from the segment span's attributes for every field in the given map.
 
-    return sentry_tags
+    Returns a dict of all non-null, non-empty values found, keyed by event field name.
+    """
+    values_by_field_name = {}
+
+    for attribute_name, field_name in attribute_to_field_map.items():
+        value = attribute_value(segment_span, attribute_name)
+        if value not in EMPTY_ATTRIBUTE_VALUES:
+            values_by_field_name[field_name] = value
+
+    return values_by_field_name
+
+
+def _get_event_tags(segment_span: CompatibleSpan) -> list[list[str]]:
+    tags = {"environment": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT)}
+
+    # Our processing pipeline expects tags to be a list of key-value pairs, each one itself
+    # formatted as a list (`[[<key1>, <value1>], [<key2>, <value2>], ...]`) rather than a dict.
+    return [[key, str(value)] for key, value in tags.items() if value is not None]
+
+
+def _get_event_contexts(segment_span: CompatibleSpan) -> dict[str, Any]:
+    """
+    Build the transaction event's `contexts` value from data in the segment span.
+    """
+    contexts = {}
+
+    # Reconstruct `contexts` entries we're missing
+    for context_name, sub_fields_by_attribute_name in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.items():
+        context = _extract_attribute_values(segment_span, sub_fields_by_attribute_name)
+        if context:
+            contexts[context_name] = {"type": context_name, **context}
+
+    # This is not included in the loop above because its values mostly come directly from the
+    # segment span rather than from attributes.
+    contexts["trace"] = {
+        "trace_id": segment_span["trace_id"],
+        "span_id": segment_span["span_id"],
+        "op": attribute_value(segment_span, "sentry.transaction.op"),
+        "hash": segment_span["hash"],
+        "type": "trace",
+    }
+
+    return contexts
+
+
+def _get_detector_compatible_spans(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
+    """
+    Return a shallow copy of the given span list, with the fields the legacy issue detectors need
+    added to each span.
+
+    Spans in the transaction event protocol carried top-level fields whose segment counterparts live
+    in `attributes`. Only the legacy detectors (and the occurrence evidence built from what they
+    find) still read the old shape, so this runs solely as part of building the fake transaction
+    event, rather than on every span the segment consumer handles.
+    """
+    event_spans: list[CompatibleSpan] = []
+
+    for span in spans:
+        attributes = span.get("attributes") or {}
+        # A shallow copy is sufficient here, since detectors don't mutate span data
+        event_span: CompatibleSpan = {**span}
+
+        event_span["description"] = attribute_value(span, ATTRIBUTE_NAMES.SENTRY_DESCRIPTION)
+        event_span["timestamp"] = span["end_timestamp"]
+        event_span["data"] = {}
+
+        for attribute_name in attributes:
+            if attribute_name == ATTRIBUTE_NAMES.SENTRY_DESCRIPTION:
+                continue  # already set above, at the top level of the span dict
+
+            value = attribute_value(span, attribute_name)
+            if value is not None:
+                event_span["data"][attribute_name] = value
+
+        event_spans.append(event_span)
+
+    return event_spans
 
 
 def build_shim_event_data(
@@ -68,52 +175,17 @@ def build_shim_event_data(
     event: dict[str, Any] = {
         "type": "transaction",
         "level": "info",
-        "contexts": {
-            "trace": {
-                "trace_id": segment_span["trace_id"],
-                "type": "trace",
-                "op": attribute_value(segment_span, "sentry.transaction.op"),
-                "span_id": segment_span["span_id"],
-                "hash": segment_span["hash"],
-            },
-        },
         "event_id": uuid.uuid4().hex,
         "project_id": segment_span["project_id"],
-        "transaction": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME),
-        "release": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_RELEASE),
-        "dist": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_DIST),
-        "environment": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT),
-        "platform": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_PLATFORM),
-        "tags": [
-            ["environment", attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT)]
-        ],
         "received": segment_span["received"],
         "timestamp": segment_span["end_timestamp"],
         "start_timestamp": segment_span["start_timestamp"],
         "datetime": to_datetime(segment_span["end_timestamp"]).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "spans": [],
+        **_extract_attribute_values(segment_span, TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME),
     }
 
-    if (profile_id := attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_PROFILE_ID)) is not None:
-        event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
-
-    # Add legacy span attributes required only by issue detectors. As opposed to
-    # real event payloads, this also adds the segment span so detectors can run
-    # topological sorting on the span tree.
-    #
-    # TODO: Remove this code once `organizations:performance-issues-spans` has graduated
-    # and performance issue detection runs 100% on spans.
-    for span in spans:
-        event_span = cast(dict[str, Any], deepcopy(span))
-        event_span["timestamp"] = span["end_timestamp"]
-        event_span["data"] = {}
-        for key, value in (span.get("attributes") or {}).items():
-            if (value := attribute_value(event_span, key)) is not None:
-                if key == ATTRIBUTE_NAMES.SENTRY_DESCRIPTION:
-                    event_span["description"] = value
-                else:
-                    event_span["data"][key] = value
-
-        event["spans"].append(event_span)
+    event["contexts"] = _get_event_contexts(segment_span)
+    event["tags"] = _get_event_tags(segment_span)
+    event["spans"] = _get_detector_compatible_spans(spans)
 
     return event

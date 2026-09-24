@@ -312,8 +312,6 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
 
 
 class Dsns(NamedTuple):
-    sentry4sentry: str | None
-    sentry_saas: str | None
     backend: str | None
 
 
@@ -334,12 +332,15 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
         transport_http2=options.get("sdk_http2_experiment.enabled"),
     )
 
+    # Remove legacy keys to avoid cross-deploy problems.
+    sdk_options.pop("dsn", None)
+    sdk_options.pop("relay_dsn", None)
+
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
-    dsns = Dsns(
-        sentry4sentry=sdk_options.pop("dsn", None),
-        sentry_saas=sdk_options.pop("relay_dsn", None),
-        backend=sdk_options.pop("sentry_mirror_dsn", None),
-    )
+    backend_dsn = sdk_options.pop("backend_dsn", None)
+    mirror_dsn = sdk_options.pop("sentry_mirror_dsn", None)
+
+    dsns = Dsns(backend=backend_dsn or mirror_dsn)
 
     return sdk_options, dsns
 

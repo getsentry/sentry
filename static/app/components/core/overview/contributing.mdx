@@ -107,6 +107,7 @@ All `.mdx` files should include frontmatter with metadata about the component. T
 ---
 title: My Button
 description: MyButton is a clickable element that triggers an action.
+category: buttons
 source: '@sentry/scraps/myButton'
 # Optionally include links to Figma, source code, accessibility resources, and further resources:
 resources:
@@ -124,6 +125,8 @@ resources:
 
 - `title`: The display name of the component or pattern
 - `description`: A brief description of what the component does
+
+Core component pages must also set `category`. Use one of `layout`, `typography`, `buttons`, `controls`, `forms`, `navigation`, `feedback`, `status`, `display`, `chat`, or `overlays`. Overview, principle, and pattern pages omit `category` because their directory determines their section.
 
 **Optional fields:**
 

@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Iterator
 
 import django.contrib.messages.storage.fallback
@@ -15,10 +16,14 @@ import sentry.notifications.services.impl  # NOQA
 import sentry.sentry_apps.services.app.impl  # NOQA
 import sentry.users.services.user.impl  # NOQA
 import sentry.users.services.user_option.impl  # NOQA
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
 
 
 def _iter_url_resolvers(resolver: URLResolver) -> Iterator[URLResolver]:
@@ -37,6 +42,9 @@ def _iter_url_resolvers(resolver: URLResolver) -> Iterator[URLResolver]:
 
 
 def _warm_up_url_resolver(languages: list[str]) -> None:
+    if not options.get("warmup.url_resolver.enabled"):
+        return
+
     with translation.override(settings.LANGUAGE_CODE):
         reverse("sentry-warmup")
         default_language = translation.get_language()
@@ -72,17 +80,20 @@ class WarmupEndpoint(Endpoint):
         languages = [lang for lang, _ in settings.LANGUAGES]
         languages.append(settings.LANGUAGE_CODE)
 
-        # Warm every language to avoid resolver lock contention on requests.
-        _warm_up_url_resolver(languages)
+        with metrics.timer("warmup.url_resolver.duration"):
+            # Warm every language to avoid resolver lock contention on requests.
+            _warm_up_url_resolver(languages)
 
-        # for each possible language we support, warm up the translations
-        # cache for faster access
-        for lang in languages:
-            try:
-                language = translation.get_supported_language_variant(lang)
-            except LookupError:
-                pass
-            else:
-                translation.activate(language)
+        with metrics.timer("warmup.translation.duration"):
+            # for each possible language we support, warm up the translations
+            # cache for faster access
+            for lang in languages:
+                try:
+                    language = translation.get_supported_language_variant(lang)
+                except LookupError:
+                    pass
+                else:
+                    translation.activate(language)
 
+        logger.info("warmup.request_complete")
         return Response(200)

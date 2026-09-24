@@ -53,15 +53,10 @@ export class SpanTreeModel {
   // An entry in this set indicates that all siblings with the op and description should be left ungrouped
   expandedSiblingGroups = new Set<string>();
 
-  constructor(
-    parentSpan: SpanType,
-    childSpans: SpanChildrenLookupType,
-    api: Client,
-    isRoot = false
-  ) {
+  constructor(parentSpan: SpanType, childSpans: SpanChildrenLookupType, api: Client) {
     this.api = api;
     this.span = parentSpan;
-    this.isRoot = isRoot;
+    this.isRoot = false;
     const spanID = getSpanID(parentSpan);
     const spanChildren = childSpans?.[spanID] ?? [];
 

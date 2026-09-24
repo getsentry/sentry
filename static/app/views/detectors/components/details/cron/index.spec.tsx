@@ -10,14 +10,24 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SentryDateTimeProvider} from 'sentry/scrapsProviders/datetime';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {CronDetectorDetails} from 'sentry/views/detectors/components/details/cron';
+import DetectorDetails from 'sentry/views/detectors/detail';
 
 describe('CronDetectorDetails - check-ins', () => {
-  const project = ProjectFixture();
+  const project = ProjectFixture({environments: ['production']});
   const cronDataSource = CronMonitorDataSourceFixture({
     queryObj: {
       ...CronMonitorDataSourceFixture().queryObj,
@@ -130,6 +140,82 @@ describe('CronDetectorDetails - check-ins', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Waiting for first Check-in')).toBeInTheDocument();
     expect(screen.queryByText('Recent Check-Ins')).not.toBeInTheDocument();
+  });
+
+  describe('project filters', () => {
+    beforeEach(() => {
+      const otherProject = ProjectFixture({id: '999', slug: 'other-project'});
+      ProjectsStore.loadInitialData([project, otherProject]);
+      PageFiltersStore.reset();
+      // Give the timeline a measurable width so its stats request is enabled.
+      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+      localStorageWrapper.setItem(
+        'global-selection:org-slug',
+        JSON.stringify({
+          projects: [999],
+          environments: [cronDataSource.queryObj.environments[0]!.name],
+          period: '2d',
+          pinnedFilters: ['projects', 'environments', 'datetime'],
+        })
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [project, otherProject],
+      });
+    });
+
+    afterEach(() => {
+      localStorageWrapper.removeItem('global-selection:org-slug');
+      PageFiltersStore.reset();
+      ProjectsStore.reset();
+      jest.restoreAllMocks();
+    });
+
+    it.each([false, true])(
+      'uses the monitor project instead of a stale filter (in URL: %s)',
+      async inUrl => {
+        const environment = cronDataSource.queryObj.environments[0]!.name;
+        const statsRequest = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/monitors-stats/',
+          body: {},
+        });
+        const {router} = render(<DetectorDetails />, {
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/monitors/1/',
+              query: inUrl ? {project: '999', environment, statsPeriod: '2d'} : {},
+            },
+            route: '/organizations/:orgId/monitors/:detectorId/',
+          },
+        });
+
+        await waitFor(() => {
+          expect(router.location.query).toEqual({
+            project: project.id,
+            environment,
+            statsPeriod: '2d',
+          });
+        });
+        await waitFor(() => {
+          expect(statsRequest).toHaveBeenCalledWith(
+            '/organizations/org-slug/monitors-stats/',
+            expect.objectContaining({
+              query: expect.objectContaining({
+                project: project.id,
+                environment,
+                monitor: [cronDataSource.queryObj.id],
+              }),
+            })
+          );
+        });
+        expect(PageFiltersStore.getState().selection.projects).toEqual([
+          Number(project.id),
+        ]);
+        expect(
+          JSON.parse(localStorageWrapper.getItem('global-selection:org-slug')!).projects
+        ).toEqual([999]);
+      }
+    );
   });
 
   describe('check-ins', () => {
