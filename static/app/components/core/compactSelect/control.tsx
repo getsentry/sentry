@@ -44,16 +44,10 @@ import {getDisabledOptions, getHiddenOptions, getSearchConfig} from './utils';
 
 // autoFocus react attribute is sync called on render, this causes
 // layout thrashing and is bad for performance. This thin wrapper function
-// will defer the focus call until the next frame, after the browser and react
+// will defer the focus call until the next tick, after the browser and react
 // have had a chance to update the DOM, splitting the perf cost across frames.
 function nextFrameCallback(cb: () => void) {
-  if ('requestAnimationFrame' in window) {
-    window.requestAnimationFrame(() => cb());
-  } else {
-    setTimeout(() => {
-      cb();
-    }, 1);
-  }
+  setTimeout(() => cb(), 0);
 }
 
 interface ControlContextValue {
