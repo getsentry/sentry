@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Query} from 'history';
 import memoize from 'lodash/memoize';
@@ -101,6 +101,97 @@ type ReleaseSeriesState = {
 
 type UseReleaseSeriesProps = Omit<ReleaseSeriesProps, 'children'>;
 
+function buildReleaseSeries({
+  releases,
+  emphasizeReleases,
+  color,
+  tooltip,
+  utc,
+  onReleaseClick,
+}: {
+  color: string;
+  onReleaseClick: (version: string) => void;
+  releases: ReleaseMetaBasic[];
+  emphasizeReleases?: string[];
+  tooltip?: ReleaseSeriesProps['tooltip'];
+  utc?: boolean | null;
+}): Series[] {
+  function makeOneSeries(items: ReleaseMetaBasic[], lineStyle = {}): Series {
+    const markLine = createMarkLine({
+      animation: false,
+      lineStyle: {
+        color,
+        opacity: 0.3,
+        type: 'solid',
+        ...lineStyle,
+      },
+      label: {
+        show: false,
+      },
+      data: items.map(release => ({
+        xAxis: +new Date(release.date),
+        name: formatVersion(release.version, true),
+        value: formatVersion(release.version, true),
+        onClick: () => onReleaseClick(release.version),
+        label: {
+          formatter: () => formatVersion(release.version, true),
+        },
+      })),
+      tooltip: tooltip || {
+        trigger: 'item',
+        formatter: ({data}: any) => {
+          // Should only happen when navigating pages
+          if (!data) {
+            return '';
+          }
+          const time = getFormattedDate(
+            data.value,
+            getFormat({timeZone: true, year: true}),
+            {local: !utc}
+          );
+          const version = escape(formatVersion(data.name, true));
+          return [
+            '<div class="tooltip-series">',
+            `<div><span class="tooltip-label"><strong>${t(
+              'Release'
+            )}</strong></span> ${version}</div>`,
+            '</div>',
+            '<div class="tooltip-footer">',
+            time,
+            '</div>',
+            '<div class="tooltip-arrow"></div>',
+          ].join('');
+        },
+      },
+    });
+
+    return {
+      id: 'release-lines',
+      seriesName: 'Releases',
+      color,
+      data: [],
+      markLine,
+    };
+  }
+
+  if (!emphasizeReleases?.length) {
+    return [makeOneSeries(releases)];
+  }
+
+  const [unemphasizedReleases, emphasizedReleases] = partition(
+    releases,
+    release => !emphasizeReleases.includes(release.version)
+  );
+  const releaseSeries: Series[] = [];
+  if (unemphasizedReleases.length) {
+    releaseSeries.push(makeOneSeries(unemphasizedReleases, {type: 'dotted'}));
+  }
+  if (emphasizedReleases.length) {
+    releaseSeries.push(makeOneSeries(emphasizedReleases, {opacity: 0.8}));
+  }
+  return releaseSeries;
+}
+
 /**
  * @deprecated use useReleaseBubbles instead
  */
@@ -126,16 +217,8 @@ export function useReleaseSeries({
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Tooltip formatters live inside echarts and are not re-created when utc changes
-  const utcRef = useRef(utc);
-  useEffect(() => {
-    utcRef.current = utc;
-  }, [utc]);
-
-  const [state, setState] = useState<ReleaseSeriesState>({
-    releases: null,
-    releaseSeries: [],
-  });
+  const [fetchedReleases, setFetchedReleases] = useState<ReleaseMetaBasic[] | null>(null);
+  const releases = propReleases ?? fetchedReleases;
 
   // Callers like Discover rebuild Date objects and arrays on every render, so
   // effect deps compare serialized values to avoid re-fetching unchanged data.
@@ -143,153 +226,69 @@ export function useReleaseSeries({
   const endKey = end ? getUtcDateString(end) : '';
   const projectsKey = [...projects].join(',');
   const environmentsKey = [...environments].join(',');
-  const emphasizeReleasesKey = emphasizeReleases?.join(',') ?? '';
 
-  // Stable refs for values used inside closures passed to echarts
-  const organizationRef = useRef(organization);
-  const locationRef = useRef(location);
-  const navigateRef = useRef(navigate);
-  const themeRef = useRef(theme);
-  const preserveQueryParamsRef = useRef(preserveQueryParams);
-  const queryExtraRef = useRef(queryExtra);
-  const tooltipRef = useRef(tooltip);
-  const environmentsRef = useRef(environments);
-  const startRef = useRef(start);
-  const endRef = useRef(end);
-  const periodRef = useRef(period);
-
+  // Read at click time so the memoized series doesn't rebuild whenever a
+  // caller passes freshly-allocated navigation params.
+  const clickContextRef = useRef({
+    environments,
+    end,
+    location,
+    navigate,
+    organization,
+    period,
+    preserveQueryParams,
+    queryExtra,
+    start,
+  });
   useEffect(() => {
-    organizationRef.current = organization;
-    locationRef.current = location;
-    navigateRef.current = navigate;
-    themeRef.current = theme;
-    preserveQueryParamsRef.current = preserveQueryParams;
-    queryExtraRef.current = queryExtra;
-    tooltipRef.current = tooltip;
-    environmentsRef.current = environments;
-    startRef.current = start;
-    endRef.current = end;
-    periodRef.current = period;
+    clickContextRef.current = {
+      environments,
+      end,
+      location,
+      navigate,
+      organization,
+      period,
+      preserveQueryParams,
+      queryExtra,
+      start,
+    };
   });
 
-  function buildReleaseSeries(releases: ReleaseMetaBasic[]): Series[] {
-    const releaseSeries: Series[] = [];
-
-    function makeOneSeries(items: ReleaseMetaBasic[], lineStyle = {}): Series {
-      const releaseColor = themeRef.current.tokens.dataviz.semantic.release;
-
-      const extraQuery: Query = {...queryExtraRef.current};
-      extraQuery.project = locationRef.current.query.project;
-      if (preserveQueryParamsRef.current) {
-        extraQuery.environment = [...environmentsRef.current];
-        extraQuery.start = startRef.current
-          ? getUtcDateString(startRef.current)
-          : undefined;
-        extraQuery.end = endRef.current ? getUtcDateString(endRef.current) : undefined;
-        extraQuery.statsPeriod = periodRef.current || undefined;
-      }
-
-      const markLine = createMarkLine({
-        animation: false,
-        lineStyle: {
-          color: releaseColor,
-          opacity: 0.3,
-          type: 'solid',
-          ...lineStyle,
-        },
-        label: {
-          show: false,
-        },
-        data: items.map((release: ReleaseMetaBasic) => ({
-          xAxis: +new Date(release.date),
-          name: formatVersion(release.version, true),
-          value: formatVersion(release.version, true),
-
-          onClick: () => {
-            navigateRef.current({
-              pathname: makeReleasesPathname({
-                organization: organizationRef.current,
-                path: `/${encodeURIComponent(release.version)}/`,
-              }),
-              query: extraQuery,
-            });
-          },
-
-          label: {
-            formatter: () => formatVersion(release.version, true),
-          },
-        })),
-        tooltip: tooltipRef.current || {
-          trigger: 'item',
-          formatter: ({data}: any) => {
-            // Should only happen when navigating pages
-            if (!data) {
-              return '';
-            }
-            const time = getFormattedDate(
-              data.value,
-              getFormat({timeZone: true, year: true}),
-              {
-                local: !utcRef.current,
-              }
-            );
-            const version = escape(formatVersion(data.name, true));
-            return [
-              '<div class="tooltip-series">',
-              `<div><span class="tooltip-label"><strong>${t(
-                'Release'
-              )}</strong></span> ${version}</div>`,
-              '</div>',
-              '<div class="tooltip-footer">',
-              time,
-              '</div>',
-              '<div class="tooltip-arrow"></div>',
-            ].join('');
-          },
-        },
-      });
-
-      return {
-        id: 'release-lines',
-        seriesName: 'Releases',
-        color: releaseColor,
-        data: [],
-        markLine,
-      };
+  const handleReleaseClick = useCallback((version: string) => {
+    const ctx = clickContextRef.current;
+    const extraQuery: Query = {...ctx.queryExtra, project: ctx.location.query.project};
+    if (ctx.preserveQueryParams) {
+      extraQuery.environment = [...ctx.environments];
+      extraQuery.start = ctx.start ? getUtcDateString(ctx.start) : undefined;
+      extraQuery.end = ctx.end ? getUtcDateString(ctx.end) : undefined;
+      extraQuery.statsPeriod = ctx.period || undefined;
     }
+    ctx.navigate({
+      pathname: makeReleasesPathname({
+        organization: ctx.organization,
+        path: `/${encodeURIComponent(version)}/`,
+      }),
+      query: extraQuery,
+    });
+  }, []);
 
-    if (emphasizeReleases?.length) {
-      const [unemphasizedReleases, emphasizedReleases] = partition(
-        releases,
-        release => !emphasizeReleases!.includes(release.version)
-      );
-      if (unemphasizedReleases.length) {
-        releaseSeries.push(makeOneSeries(unemphasizedReleases, {type: 'dotted'}));
-      }
-      if (emphasizedReleases.length) {
-        releaseSeries.push(
-          makeOneSeries(emphasizedReleases, {
-            opacity: 0.8,
+  const releaseSeries = useMemo(
+    () =>
+      releases
+        ? buildReleaseSeries({
+            releases,
+            emphasizeReleases,
+            color: theme.tokens.dataviz.semantic.release,
+            tooltip,
+            utc,
+            onReleaseClick: handleReleaseClick,
           })
-        );
-      }
-    } else {
-      releaseSeries.push(makeOneSeries(releases));
-    }
-
-    return releaseSeries;
-  }
+        : [],
+    [releases, emphasizeReleases, theme, tooltip, utc, handleReleaseClick]
+  );
 
   useEffect(() => {
-    if (propReleases) {
-      setState({
-        releases: propReleases,
-        releaseSeries: buildReleaseSeries(propReleases),
-      });
-      return;
-    }
-
-    if (!enabled) {
+    if (propReleases || !enabled) {
       return;
     }
 
@@ -306,19 +305,16 @@ export function useReleaseSeries({
       };
 
       let hasMore = true;
-      const releases: ReleaseMetaBasic[] = [];
+      const allReleases: ReleaseMetaBasic[] = [];
       while (hasMore) {
         try {
           const getReleases = memoized
             ? getOrganizationReleasesMemoized
             : getOrganizationReleases;
           const [newReleases, , resp] = await getReleases(api, organization, conditions);
-          releases.push(...newReleases);
+          allReleases.push(...newReleases);
           if (!cancelled) {
-            setState({
-              releases,
-              releaseSeries: buildReleaseSeries(releases),
-            });
+            setFetchedReleases([...allReleases]);
           }
 
           const pageLinks = resp?.getResponseHeader('Link');
@@ -355,25 +351,11 @@ export function useReleaseSeries({
     memoized,
   ]);
 
-  // Rebuild series when emphasizeReleases changes without re-fetching.
-  useEffect(() => {
-    setState(prev => {
-      if (prev.releases === null) {
-        return prev;
-      }
-      return {
-        ...prev,
-        releaseSeries: buildReleaseSeries(prev.releases),
-      };
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- serialized key stands in for emphasizeReleases
-  }, [emphasizeReleasesKey]);
-
   if (!enabled) {
     return {releases: [], releaseSeries: []};
   }
 
-  return state;
+  return {releases, releaseSeries};
 }
 
 /**
