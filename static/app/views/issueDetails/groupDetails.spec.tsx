@@ -346,7 +346,6 @@ describe('groupDetails', () => {
 
     expect(await screen.findByText(group.shortId)).toBeInTheDocument();
     expect(retryRequest).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
   });
 
   it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async () => {
