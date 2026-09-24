@@ -76,7 +76,7 @@ function ExploreSecondaryNavigationImpl() {
   if (organization.openMembership && organization.features.includes('investigations')) {
     navItems.push({
       label: 'Investigations',
-      badge: 'beta',
+      badge: 'alpha',
       to: `${baseUrl}/investigations/`,
     });
   }
