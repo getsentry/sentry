@@ -1,9 +1,9 @@
 import {useState} from 'react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Stack} from '@sentry/scraps/layout';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {WelcomeAgentSetup} from 'sentry/views/onboarding/components/welcomeAgentSetup';
@@ -131,6 +131,7 @@ function AgentConnectionStory() {
             onboardingCode="Lg1iSt2qeQ"
             onCopyCommand={() => {}}
             onRetry={() => setIsAgentConnected(false)}
+            onSelectSnippet={() => {}}
             onSetupInBrowser={() => {}}
             run={makeAgenticProgressRun({
               sequence: 3,

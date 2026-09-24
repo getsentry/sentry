@@ -324,16 +324,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return get_jwt()
 
     @control_silo_function
-    def refresh_access_token(self) -> AccessTokenData | None:
-        """Mint a new installation token and store what GitHub says it grants.
-
-        Public because re-reading an installation's permissions has no other
-        entrypoint: they arrive with the token and nowhere else. Callers outside
-        control silo go through ``integration_service.refresh_github_permissions``.
-
-        Unconditional -- ``get_access_token`` is the one that decides whether a
-        refresh is due.
-        """
+    def _refresh_access_token(self) -> AccessTokenData | None:
         integration = Integration.objects.filter(id=self.integration.id).first()
         if not integration:
             return None
@@ -352,11 +343,6 @@ class GithubProxyClient(IntegrationProxyClient):
         access_token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
         permissions = data.get("permissions")
-        # GitHub only reports permissions when it mints a token, so this is the
-        # only moment we learn them. Stamping when that happened alongside them
-        # is what lets a reader tell a current answer from a months-old one --
-        # debug_data has carried the same stamp for a while, but nothing outside
-        # control silo can see that field.
         last_refresh_at = deprecated_utcnow().isoformat()
         integration.metadata.update(
             {
@@ -448,7 +434,7 @@ class GithubProxyClient(IntegrationProxyClient):
         should_refresh = not access_token or not expires_at or close_to_expiry
 
         if should_refresh:
-            return self.refresh_access_token()
+            return self._refresh_access_token()
 
         if access_token:
             return {
@@ -512,6 +498,8 @@ class GitHubBaseClient(
 
     base_url = "https://api.github.com"
     integration_name = IntegrationProviderSlug.GITHUB.value
+    # /languages is precomputed and independent of the tree.
+    has_languages_endpoint = True
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
     page_number_limit = 200  # With a default of 100 per page -> 20,000 items
 
@@ -643,11 +631,12 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}", api_request_type=GitHubApiRequestType.GET_REPO)
 
-    def get_languages(self, repo: str) -> dict[str, int]:
+    def get_languages(self, repo: str, tree: list[dict[str, Any]] | None = None) -> dict[str, int]:
         """
         https://docs.github.com/en/rest/repos/repos#list-repository-languages
 
         :param repo: "owner/repo" format
+        :param tree: ignored; GitHub serves language byte counts directly.
         :returns: {"Python": 50000, "JavaScript": 30000, ...}
                   Keys are GitHub Linguist names, values are bytes of code.
         """
@@ -1186,6 +1175,14 @@ class GitHubBaseClient(
             page_number_limit=page_number_limit,
             api_request_type=GitHubApiRequestType.GET_LABELS,
         )
+
+    def get_contents(self, repo: str, path: str, ref: str | None = None) -> Any:
+        """
+        https://docs.github.com/en/rest/repos/contents#get-repository-content
+
+        :param repo: "owner/repo" format
+        """
+        return self.get(f"/repos/{repo}/contents/{path}", params={"ref": ref} if ref else {})
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(

@@ -3,6 +3,7 @@ from django.urls import reverse
 from sentry.discover.models import (
     DiscoverSavedQuery,
     DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryStarred,
     DiscoverSavedQueryTypes,
 )
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
@@ -333,6 +334,49 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.status_code == 200
         assert response.data[0]["lastVisited"] is None
 
+    def test_get_starred_query_serializes_starred_and_position(self) -> None:
+        test_query = DiscoverSavedQuery.objects.get(organization=self.org, name="Test query")
+
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=test_query,
+            position=3,
+            starred=True,
+        )
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["starred"] is True
+        assert response.data[0]["position"] == 3
+
+    def test_get_unstarred_query_serializes_false_and_null_position(self) -> None:
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["starred"] is False
+        assert response.data[0]["position"] is None
+        other_org = self.create_organization(owner=self.user)
+        test_query = DiscoverSavedQuery.objects.get(organization=self.org, name="Test query")
+
+        DiscoverSavedQueryStarred.objects.create(
+            organization=other_org,
+            user_id=self.user.id,
+            discover_saved_query=test_query,
+            position=1,
+            starred=True,
+        )
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["starred"] is False
+        assert response.data[0]["position"] is None
+
     def test_get_sortby_myqueries(self) -> None:
         uhoh_user = self.create_user(username="uhoh")
         self.create_member(organization=self.org, user=uhoh_user)
@@ -409,7 +453,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert len(response.data) == 1
         assert not any([query["name"] == "Homepage Test Query" for query in response.data])
 
-    def test_get_hides_transaction_queries_with_deprecation_flag(self) -> None:
+    def test_get_hides_transaction_queries(self) -> None:
         transaction_query = DiscoverSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,
@@ -422,7 +466,6 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
         with (
             self.feature(self.feature_name),
-            self.feature("organizations:deprecate-discover"),
         ):
             response = self.client.get(self.url)
 
@@ -430,24 +473,6 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         ids = [row["id"] for row in response.data]
         assert str(transaction_query.id) not in ids
         assert all(row["queryDataset"] != "transaction-like" for row in response.data)
-
-    def test_get_shows_transaction_queries_without_deprecation_flag(self) -> None:
-        transaction_query = DiscoverSavedQuery.objects.create(
-            organization=self.org,
-            created_by_id=self.user.id,
-            name="Transaction query",
-            query={"fields": ["test"], "conditions": [], "limit": 10},
-            version=1,
-            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
-        )
-        transaction_query.set_projects(self.project_ids)
-
-        with self.feature(self.feature_name):
-            response = self.client.get(self.url)
-
-        assert response.status_code == 200, response.content
-        ids = [row["id"] for row in response.data]
-        assert str(transaction_query.id) in ids
 
     def test_get_hides_queries_when_no_project_access(self) -> None:
         # Disable Open Membership so project-level access actually applies.
@@ -552,6 +577,34 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data["range"] == "24h"
         assert "start" not in response.data
         assert "end" not in response.data
+
+    def test_post_duplicated_query_keeps_starred_status(self) -> None:
+        """Duplicating a starred query re-posts the serialized row, starred flag and all,
+        so the copy has to come back starred for the user who duplicated it."""
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Test query (Copy)",
+                    "projects": self.project_ids,
+                    "fields": [],
+                    "range": "24h",
+                    "limit": 20,
+                    "conditions": [],
+                    "aggregations": [],
+                    "orderby": "-time",
+                    "starred": True,
+                },
+            )
+
+        assert response.status_code == 201, response.content
+        duplicate = DiscoverSavedQuery.objects.get(organization=self.org, name="Test query (Copy)")
+        assert DiscoverSavedQueryStarred.objects.filter(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=duplicate,
+            starred=True,
+        ).exists()
 
     def test_post_invalid_projects(self) -> None:
         with self.feature(self.feature_name):

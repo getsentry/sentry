@@ -116,12 +116,12 @@ S021_msg = (
     "Missing from the annotation: {}."
 )
 S022_missing_msg = (
-    "S022 PUBLIC endpoint methods must declare their response shape. This "
+    "S022 Published endpoint methods must declare their response shape. This "
     "method has no return annotation; use Response[YourTypedDict], a union of "
     "Response[T] arms, Response[None], or a non-DRF response type."
 )
 S022_bare_msg = (
-    "S022 PUBLIC endpoint methods must declare their response shape. Bare "
+    "S022 Published endpoint methods must declare their response shape. Bare "
     "`Response` opts the body out of type checking; use Response[YourTypedDict], "
     "a union of Response[T] arms, or Response[None]."
 )
@@ -137,6 +137,10 @@ S023_blank_reason_msg = (
 )
 S023_ghost_msg = (
     "S023 {}={!r} names no field on this class; it omits nothing and should be deleted."
+)
+S023_bad_path_msg = (
+    "S023 {}={!r} is not a usable path. Write 'field' or 'field.choice', "
+    "with no leading, trailing or doubled dots."
 )
 
 S024_msg = (
@@ -267,6 +271,9 @@ def _collect_eap_suite_class_names(tree: ast.AST) -> set[str]:
 
 
 HTTP_METHODS = frozenset({"get", "post", "put", "patch", "delete", "head", "options"})
+# ApiPublishStatus members whose `is_published` is true. Mirrored by name because this
+# plugin reads source with ast and must not import from src/sentry.
+PUBLISHED_STATUSES = frozenset({"PUBLIC", "PUBLIC_EXPERIMENTAL"})
 
 
 def publish_status(cls: ast.ClassDef) -> dict[str, str]:
@@ -918,7 +925,7 @@ class SentryVisitor(ast.NodeVisitor):
     def _check_S022(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         if not self._publish_status or node.name not in HTTP_METHODS:
             return
-        if self._publish_status.get(node.name.upper()) != "PUBLIC":
+        if self._publish_status.get(node.name.upper()) not in PUBLISHED_STATUSES:
             return
         if node.returns is None:
             self.errors.append((node.lineno, node.col_offset, S022_missing_msg))
@@ -950,31 +957,36 @@ class SentryVisitor(ast.NodeVisitor):
                                     S023_ghost_msg.format("exclude_fields", field),
                                 )
                             )
-                elif kw.arg == "omit_from_public_schema":
-                    if not isinstance(kw.value, ast.Dict):
-                        self.errors.append((dec.lineno, dec.col_offset, S023_not_mapping_msg))
-                        continue
-                    for k, v in zip(kw.value.keys, kw.value.values):
-                        if not isinstance(k, ast.Constant) or not isinstance(k.value, str):
-                            continue
-                        field = k.value
-                        reason = _joined_str(v)
-                        if reason is not None and not reason.strip():
-                            self.errors.append(
-                                (
-                                    dec.lineno,
-                                    dec.col_offset,
-                                    S023_blank_reason_msg.format(field),
-                                )
-                            )
-                        if not open_class and field not in fields:
-                            self.errors.append(
-                                (
-                                    dec.lineno,
-                                    dec.col_offset,
-                                    S023_ghost_msg.format("omit_from_public_schema", field),
-                                )
-                            )
+                elif kw.arg in ("omit_from_public_schema", "deprecate"):
+                    self._check_paths(dec, kw, fields, open_class)
+
+    def _check_paths(
+        self, dec: ast.Call, kw: ast.keyword, fields: set[str], open_class: bool
+    ) -> None:
+        """Reasons and grammar for a {path: reason} mapping.
+
+        Only the first segment is a field here; the schema build resolves the rest."""
+        if not isinstance(kw.value, ast.Dict):
+            self.errors.append((dec.lineno, dec.col_offset, S023_not_mapping_msg))
+            return
+        assert kw.arg is not None
+        for k, v in zip(kw.value.keys, kw.value.values):
+            if not isinstance(k, ast.Constant) or not isinstance(k.value, str):
+                continue
+            path = k.value
+            segments = path.split(".")
+            if any(not segment.strip() for segment in segments):
+                self.errors.append(
+                    (dec.lineno, dec.col_offset, S023_bad_path_msg.format(kw.arg, path))
+                )
+                continue
+            reason = _joined_str(v)
+            if reason is not None and not reason.strip():
+                self.errors.append((dec.lineno, dec.col_offset, S023_blank_reason_msg.format(path)))
+            if not open_class and segments[0] not in fields:
+                self.errors.append(
+                    (dec.lineno, dec.col_offset, S023_ghost_msg.format(kw.arg, segments[0]))
+                )
 
     def _s024_visit_call(self, node: ast.Call) -> None:
         func = node.func

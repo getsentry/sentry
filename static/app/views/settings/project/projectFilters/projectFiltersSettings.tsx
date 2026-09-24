@@ -41,6 +41,8 @@ import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {CustomFilters} from './customFilters';
+
 const filterDescriptions = {
   'browser-extensions': {
     label: t('Filter out errors known to be caused by browser extensions'),
@@ -656,6 +658,12 @@ export function ProjectFiltersSettings({project, params}: Props) {
 
   const updateProject = useUpdateProject(project);
 
+  // The API and Relay config follow `inbound-filters-v2`. The `-ui` flag rolls the
+  // table out on its own, so it only ever narrows where the table shows.
+  const showCustomFilters =
+    organization.features.includes('inbound-filters-v2') &&
+    organization.features.includes('inbound-filters-v2-ui');
+
   const getProjectBooleanMutationOptions = <TName extends ProjectBooleanFilterId>({
     name,
   }: {
@@ -873,6 +881,8 @@ export function ProjectFiltersSettings({project, params}: Props) {
             </FieldGroup>
 
             <CustomFiltersForm project={currentProject} disabled={!hasAccess} />
+
+            {showCustomFilters && <CustomFilters project={project} />}
           </Fragment>
         )}
       </Access>

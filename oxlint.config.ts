@@ -31,10 +31,32 @@ const restrictedThemeImportPattern = {
     "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
 };
 
+const CONVENTIONS_IMPORT_MESSAGE =
+  'Only @sentry/conventions/attributes/search imports are allowed in the frontend.';
+
+const restrictedConventionsImportPattern = {
+  group: [
+    '@sentry/conventions/**',
+    // Unignore the parent so that the search entry point can be allowed below.
+    // The attributes entry point itself is restricted by restrictedImportPaths.
+    '!@sentry/conventions/attributes',
+    '!@sentry/conventions/attributes/search',
+    '@sentry/conventions/attributes/search/**',
+  ],
+  message: CONVENTIONS_IMPORT_MESSAGE,
+};
+
+const restrictedImportPatterns = [
+  restrictedThemeImportPattern,
+  restrictedConventionsImportPattern,
+];
+
 const CSS_TYPES_MESSAGE =
   "Use the matching property from the CSS type exported by @sentry/scraps/cssTypes, for example CSS['width'].";
 
 const restrictedImportPaths = [
+  {name: '@sentry/conventions', message: CONVENTIONS_IMPORT_MESSAGE},
+  {name: '@sentry/conventions/attributes', message: CONVENTIONS_IMPORT_MESSAGE},
   {
     name: '@testing-library/react',
     message:
@@ -58,7 +80,7 @@ const restrictedImportPaths = [
   {
     name: 'marked',
     message:
-      "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output",
+      "Please import marked from '@sentry/scraps/markdown' so that we can ensure sanitation of marked output",
   },
   {
     name: 'lodash',
@@ -477,7 +499,7 @@ const config = defineConfig({
     'no-restricted-imports': [
       'error',
       {
-        patterns: [restrictedThemeImportPattern],
+        patterns: restrictedImportPatterns,
         paths: restrictedImportPaths,
       },
     ],
@@ -510,8 +532,12 @@ const config = defineConfig({
     'import/no-absolute-path': 'error',
     'import/no-amd': 'error',
     'import/no-anonymous-default-export': 'error',
+    'import/no-duplicates': 'error',
     'import/no-named-default': 'error',
     'import/no-nodejs-modules': 'error',
+    // Catches the parent-relative forms that `@sentry/no-relative-import-paths`
+    // lets through: dynamic `import()`, a bare `'..'`, and `'./../foo'`.
+    'import/no-relative-parent-imports': 'error',
     'import/no-webpack-loader-syntax': 'error',
     '@sentry/no-calling-components-as-functions': 'error',
     '@sentry/no-digits-in-tn': 'error',
@@ -526,9 +552,11 @@ const config = defineConfig({
     '@sentry/no-unnecessary-use-callback': 'error',
     '@sentry/scraps/no-core-import': 'error',
     '@sentry/scraps/no-double-dollar-interpolation': 'error',
+    '@sentry/scraps/no-restricted-module-mocks': 'error',
     '@sentry/scraps/no-token-import': 'error',
     '@sentry/scraps/prefer-info-text': 'error',
     '@sentry/scraps/prefer-stack-for-column-flex': 'error',
+    '@sentry/scraps/require-render-prop-spread': 'error',
     '@sentry/scraps/use-semantic-token': [
       'error',
       {
@@ -607,10 +635,10 @@ const config = defineConfig({
     '@tanstack/query/mutation-property-order': 'error',
     'react/capitalized-calls': 'error',
     'react/error-boundaries': 'error',
-    'react/exhaustive-effect-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/exhaustive-effect-dependencies': 'error',
     'react/function-component-definition': 'error',
     'react/globals': 'error',
-    'react/hooks': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/hooks': 'error',
     'react/immutability': 'error',
     'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/invariant': 'error',
@@ -635,22 +663,23 @@ const config = defineConfig({
     'react/no-is-mounted': 'error',
     'react/no-render-return-value': 'error',
     'react/no-string-refs': 'error',
+    'react/no-unstable-nested-components': ['error', {allowAsProps: true}],
     'react/no-unknown-property': [
       'error',
       {
         ignore: ['css'],
       },
     ],
-    'react/memo-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/no-deriving-state-in-effects': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/preserve-manual-memoization': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/purity': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/refs': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/memo-dependencies': 'error',
+    'react/no-deriving-state-in-effects': 'error',
+    'react/preserve-manual-memoization': 'error',
+    'react/purity': 'error',
+    'react/refs': 'error',
     'react/require-render-return': 'error',
     'react/rule-suppression': 'off',
-    'react/set-state-in-effect': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/set-state-in-effect': 'error',
     'react/set-state-in-render': 'error',
-    'react/static-components': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/static-components': 'error',
     'react/syntax': 'error',
     'react/todo': 'off',
     'react/unsupported-syntax': 'error',
@@ -761,8 +790,7 @@ const config = defineConfig({
     'unicorn/no-negation-in-equality-check': 'error',
     'unicorn/no-new-array': 'error',
     'unicorn/no-new-buffer': 'error',
-    // TODO(ryan953): Fix violations and promote this warning to an error.
-    'unicorn/no-single-promise-in-promise-methods': 'warn',
+    'unicorn/no-single-promise-in-promise-methods': 'error',
     'unicorn/no-typeof-undefined': 'error',
     'unicorn/no-unnecessary-await': 'error',
     'unicorn/no-unreadable-iife': 'error',
@@ -796,8 +824,7 @@ const config = defineConfig({
     'unicorn/prefer-native-coercion-functions': 'error',
     'unicorn/prefer-negative-index': 'error',
     'unicorn/prefer-node-protocol': 'error',
-    // TODO(ryan953): Fix violations and promote this warning to an error.
-    'unicorn/prefer-prototype-methods': 'warn',
+    'unicorn/prefer-prototype-methods': 'error',
     'unicorn/prefer-reflect-apply': 'error',
     'unicorn/prefer-response-static-json': 'error',
     'unicorn/prefer-set-size': 'error',
@@ -1347,18 +1374,6 @@ const config = defineConfig({
         message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
       },
       {
-        selector:
-          "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useProjects']",
-        message:
-          'Please do not mock useProjects. Use `ProjectsStore.loadInitialData([ProjectFixture()])` instead. It can be used before the component is mounted or in a beforeEach hook.',
-      },
-      {
-        selector:
-          "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useOrganization']",
-        message:
-          'Please do not mock useOrganization. Pass organization to the render options. `render(<Component />, {organization: OrganizationFixture({isSuperuser: true})})`',
-      },
-      {
         // Require an annotation for uninitialized let declarations, except in
         // for...of and for...in loops.
         selector:
@@ -1426,14 +1441,22 @@ const config = defineConfig({
       {
         terms: ['todo', 'fixme', 'xxx'],
         ignore: [],
-        ignoreDates: false,
-        ignoreDatesOnPullRequests: true,
+        // Dates are never enforced: a TODO quietly reaching its expiry should not
+        // be what breaks master for everyone else.
+        checkDates: false,
         allowWarningComments: true,
       },
     ],
-    'unicorn-js/no-array-push-push': ['error'],
     'unicorn-js/no-unnecessary-polyfills': ['error'],
-    'unicorn-js/prefer-simple-condition-first': ['error'],
+    // The successor to `no-array-push-push`, which unicorn 74 removed. Off for now:
+    // it also covers `unshift` and non-adjacent calls, so it flags 38 sites, and its
+    // fix folds long object literals into one argument list, which reads worse.
+    'unicorn-js/prefer-single-call': 'off',
+    // Off since unicorn 73 started treating `x == null` as a simple condition,
+    // which flags ~600 call sites here. Every one is the rule's "unsafe" variant:
+    // reordering the operands can change what the short-circuit guards against, so
+    // they need to be read individually rather than swept through.
+    'unicorn-js/prefer-simple-condition-first': 'off',
   },
   overrides: [
     {
@@ -1483,7 +1506,7 @@ const config = defineConfig({
         'no-restricted-imports': [
           'error',
           {
-            patterns: [restrictedThemeImportPattern],
+            patterns: restrictedImportPatterns,
             paths: restrictedImportPaths.filter(({name}) => name !== '@sentry/browser'),
           },
         ],
@@ -1497,7 +1520,7 @@ const config = defineConfig({
           'error',
           {
             patterns: [
-              restrictedThemeImportPattern,
+              ...restrictedImportPatterns,
               // Chartcuterie renders server-side. Browser-only application
               // hooks and stores are unavailable in the rendering service.
               {
@@ -1644,6 +1667,30 @@ const config = defineConfig({
         '@sentry/no-calling-components-as-functions': 'off',
       },
     },
+    // The lint plugins are standalone packages loaded by oxlint itself, so none
+    // of the `sentry/*` aliases resolve inside them.
+    {
+      files: ['static/oxlint/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+      },
+    },
+    // Scraps is its own component library rather than ordinary app code, and a
+    // handful of its internal imports are deliberately parent-relative.
+    {
+      files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+      },
+    },
+    // Build scripts run outside the app bundle and are kept as bare as
+    // possible, so they reach for source with a plain relative path.
+    {
+      files: ['scripts/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+      },
+    },
     {
       files: [
         'static/oxlint/**/*.js',
@@ -1683,6 +1730,7 @@ const config = defineConfig({
         'no-restricted-imports': [
           'error',
           {
+            patterns: [restrictedConventionsImportPattern],
             // Allow these implementations only through the public widgets in
             // the directory selected by this override.
             paths: restrictedImportPaths.filter(
@@ -1704,7 +1752,7 @@ const config = defineConfig({
           'error',
           {
             patterns: [
-              restrictedThemeImportPattern,
+              ...restrictedImportPatterns,
               {
                 group: ['csstype', 'csstype/*'],
                 message: CSS_TYPES_MESSAGE,
@@ -1722,6 +1770,7 @@ const config = defineConfig({
         'no-restricted-imports': [
           'error',
           {
+            patterns: [restrictedConventionsImportPattern],
             // Figma Code Connect is valid only in its generated integration files.
             paths: restrictedImportPaths.filter(
               ({name}) => name !== '@figma/code-connect'
@@ -1738,7 +1787,7 @@ const config = defineConfig({
         'no-restricted-imports': [
           'error',
           {
-            patterns: [restrictedThemeImportPattern],
+            patterns: restrictedImportPatterns,
             paths: [
               ...restrictedImportPaths,
               {
@@ -1799,7 +1848,7 @@ const config = defineConfig({
           'error',
           {
             patterns: [
-              restrictedThemeImportPattern,
+              ...restrictedImportPatterns,
               {
                 group: ['sentry/locale'],
                 message: 'Do not import locale into gsAdmin. No translations required.',

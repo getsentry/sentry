@@ -1,13 +1,19 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
+import {
+  mutationOptions,
+  type QueryClient,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
@@ -30,7 +36,6 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -123,6 +128,243 @@ function withJiraStatusMappingRemovals(
   };
 }
 
+function IntegrationAction({
+  integration,
+  onUpdateIntegration,
+  organization,
+  provider,
+}: {
+  integration: Integration;
+  onUpdateIntegration: () => void;
+  organization: Organization;
+  provider: IntegrationProvider;
+}) {
+  if (provider.key === 'pagerduty') {
+    return (
+      <PagerdutyAddServicesButton
+        provider={provider}
+        onInstall={onUpdateIntegration}
+        organization={organization}
+      />
+    );
+  }
+
+  if (provider.key === 'discord') {
+    return (
+      <LinkButton
+        aria-label={t('Open this server in the Discord app')}
+        size="sm"
+        href={`https://discord.com/channels/${integration.externalId}`}
+      >
+        {t('Open in Discord')}
+      </LinkButton>
+    );
+  }
+
+  return null;
+}
+
+function IntegrationMainTab({
+  gcpVerificationError,
+  integration,
+  integrationId,
+  isVerifyingGcp,
+  onGcpVerificationErrorChange,
+  onGcpVerificationStateChange,
+  organization,
+  provider,
+  queryClient,
+  usesExplicitMappingRemovals,
+}: {
+  gcpVerificationError: boolean;
+  integration: OrganizationIntegration;
+  integrationId: string;
+  isVerifyingGcp: boolean;
+  onGcpVerificationErrorChange: (value: boolean) => void;
+  onGcpVerificationStateChange: (value: boolean) => void;
+  organization: Organization;
+  provider: IntegrationProvider;
+  queryClient: QueryClient;
+  usesExplicitMappingRemovals: boolean;
+}) {
+  const instructions =
+    integration.dynamicDisplayInformation?.configure_integration?.instructions;
+
+  const integrationEndpoint = getApiUrl(
+    '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        integrationId: integration.id,
+      },
+    }
+  );
+
+  const integrationQueryOptions = organizationIntegrationApiOptions({
+    organizationSlug: organization.slug,
+    integrationId,
+  });
+
+  const verifyGcpConnection = async () => {
+    const savedConfig = queryClient.getQueryData(integrationQueryOptions.queryKey)?.json
+      .configData;
+    const payload = buildGcpVerifyPayload(savedConfig);
+    if (!payload) {
+      return;
+    }
+
+    await fetchMutation({
+      method: 'POST',
+      url: getApiUrl(
+        '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/',
+        {path: {organizationIdOrSlug: organization.slug}}
+      ),
+      data: payload,
+    });
+  };
+
+  const integrationMutationOptions = mutationOptions({
+    mutationFn: (data: Record<string, unknown>) => {
+      let requestData = data;
+      if (usesExplicitMappingRemovals) {
+        requestData = withJiraStatusMappingRemovals(
+          data,
+          integration.configData?.sync_status_forward
+        );
+      }
+
+      return fetchMutation({
+        method: 'POST',
+        url: integrationEndpoint,
+        data: requestData,
+      });
+    },
+    onSuccess: async () => {
+      const verifiesConnection = provider.key === 'gcp';
+      if (verifiesConnection) {
+        onGcpVerificationErrorChange(false);
+        onGcpVerificationStateChange(true);
+      }
+
+      try {
+        // it's important that we keep the mutation pending while the refetch is happening by awaiting it.
+        // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
+        // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
+        await queryClient.invalidateQueries(integrationQueryOptions);
+
+        if (verifiesConnection) {
+          try {
+            await verifyGcpConnection();
+            await queryClient.invalidateQueries(integrationQueryOptions);
+          } catch (error) {
+            // The save itself succeeded; the connection stays recorded as unverified
+            // and the customer can re-test, so don't report this as a failed save.
+            Sentry.captureException(error);
+            onGcpVerificationErrorChange(true);
+          }
+        }
+      } finally {
+        if (verifiesConnection) {
+          onGcpVerificationStateChange(false);
+        }
+      }
+    },
+  });
+
+  return (
+    <Fragment>
+      {provider.key === 'gcp' && (
+        <GcpConnectionStatus
+          configData={integration.configData}
+          organization={organization}
+          isVerifying={isVerifyingGcp}
+          verificationError={gcpVerificationError}
+          onVerificationStarted={() => onGcpVerificationErrorChange(false)}
+          onRetested={() => queryClient.invalidateQueries(integrationQueryOptions)}
+        />
+      )}
+
+      {(integration.configOrganization?.length ?? 0) > 0 && (
+        <FieldGroup
+          title={
+            integration.provider.aspects.configure_integration?.title ||
+            t('Organization Integration Settings')
+          }
+        >
+          {integration.configOrganization?.map(fieldConfig => (
+            <BackendJsonAutoSaveForm
+              key={fieldConfig.name}
+              field={fieldConfig}
+              initialValue={
+                integration.configData?.[fieldConfig.name] as FieldValue<
+                  typeof fieldConfig
+                >
+              }
+              mutationOptions={integrationMutationOptions}
+            />
+          ))}
+        </FieldGroup>
+      )}
+
+      {instructions && instructions.length > 0 && (
+        <Alert.Container>
+          <Alert variant="info" showIcon={false}>
+            {instructions.length === 1 ? (
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: singleLineRenderer(instructions[0]!),
+                }}
+              />
+            ) : (
+              <List symbol={<IconArrow size="xs" direction="right" />}>
+                {instructions.map((instruction, i) => (
+                  <ListItem key={i}>
+                    <span
+                      dangerouslySetInnerHTML={{
+                        __html: singleLineRenderer(instruction),
+                      }}
+                    />
+                  </ListItem>
+                )) ?? null}
+              </List>
+            )}
+          </Alert>
+        </Alert.Container>
+      )}
+
+      {provider.features.includes('alert-rule') && <IntegrationAlertRules />}
+
+      {provider.features.includes('serverless') && (
+        <IntegrationServerlessFunctions integration={integration} />
+      )}
+    </Fragment>
+  );
+}
+
+function IntegrationTabContent({
+  integration,
+  mainTab,
+  tab,
+}: {
+  integration: OrganizationIntegration;
+  mainTab: React.ReactNode;
+  tab: Tab;
+}) {
+  switch (tab) {
+    case 'codeMappings':
+      return <IntegrationCodeMappings integration={integration} />;
+    case 'settings':
+      return mainTab;
+    case 'userMappings':
+      return <IntegrationExternalUserMappings integration={integration} />;
+    case 'teamMappings':
+      return <IntegrationExternalTeamMappings integration={integration} />;
+    default:
+      unreachable(tab);
+      return mainTab;
+  }
+}
+
 function ConfigureIntegration() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -187,6 +429,7 @@ function ConfigureIntegration() {
   const {projects} = useProjects();
 
   const [isVerifyingGcp, setIsVerifyingGcp] = useState(false);
+  const [gcpVerificationError, setGcpVerificationError] = useState(false);
 
   useRouteAnalyticsEventNames(
     'integrations.details_viewed',
@@ -203,6 +446,7 @@ function ConfigureIntegration() {
 
   useEffect(() => {
     refetchIntegration();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [projects, refetchIntegration]);
 
   useEffect(() => {
@@ -321,225 +565,50 @@ function ConfigureIntegration() {
     refetchIntegration();
   };
 
-  const getAction = () => {
-    if (provider.key === 'pagerduty') {
-      return (
-        <PagerdutyAddServicesButton
-          provider={provider}
-          onInstall={onUpdateIntegration}
-          organization={organization}
-        />
-      );
-    }
-
-    if (provider.key === 'discord') {
-      return (
-        <LinkButton
-          aria-label={t('Open this server in the Discord app')}
-          size="sm"
-          href={`https://discord.com/channels/${integration.externalId}`}
-        >
-          {t('Open in Discord')}
-        </LinkButton>
-      );
-    }
-
-    return null;
-  };
-
-  // TODO(Steve): Refactor components into separate tabs and use more generic tab logic
-  function renderMainTab() {
-    if (!provider || !integration) {
-      return null;
-    }
-
-    const instructions =
-      integration.dynamicDisplayInformation?.configure_integration?.instructions;
-
-    const integrationEndpoint = getApiUrl(
-      '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
-      {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
-    );
-
-    const integrationQueryOptions = organizationIntegrationApiOptions({
-      organizationSlug: organization.slug,
-      integrationId,
-    });
-
-    const verifyGcpConnection = async () => {
-      const savedConfig = queryClient.getQueryData(integrationQueryOptions.queryKey)?.json
-        .configData;
-      const payload = buildGcpVerifyPayload(savedConfig);
-      if (!payload) {
-        return;
-      }
-
-      await fetchMutation({
-        method: 'POST',
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/',
-          {path: {organizationIdOrSlug: organization.slug}}
-        ),
-        data: payload,
-      });
-    };
-
-    const integrationMutationOptions = mutationOptions({
-      mutationFn: (data: Record<string, unknown>) => {
-        let requestData = data;
-        if (usesExplicitMappingRemovals) {
-          requestData = withJiraStatusMappingRemovals(
-            data,
-            integration.configData?.sync_status_forward
-          );
-        }
-
-        return fetchMutation({
-          method: 'POST',
-          url: integrationEndpoint,
-          data: requestData,
-        });
-      },
-      onSuccess: async () => {
-        const verifiesConnection = provider.key === 'gcp';
-        if (verifiesConnection) {
-          setIsVerifyingGcp(true);
-        }
-
-        try {
-          // it's important that we keep the mutation pending while the refetch is happening by awaiting it.
-          // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
-          // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
-          await queryClient.invalidateQueries(integrationQueryOptions);
-
-          if (verifiesConnection) {
-            try {
-              await verifyGcpConnection();
-              await queryClient.invalidateQueries(integrationQueryOptions);
-            } catch (error) {
-              // The save itself succeeded; the connection stays recorded as unverified
-              // and the customer can re-test, so don't report this as a failed save.
-              Sentry.captureException(error);
-            }
-          }
-        } finally {
-          if (verifiesConnection) {
-            setIsVerifyingGcp(false);
-          }
-        }
-      },
-    });
-
-    return (
-      <Fragment>
-        {provider.key === 'gcp' && (
-          <GcpConnectionStatus
-            configData={integration.configData}
-            organization={organization}
-            isVerifying={isVerifyingGcp}
-            onRetested={() => queryClient.invalidateQueries(integrationQueryOptions)}
-          />
-        )}
-
-        {(integration.configOrganization?.length ?? 0) > 0 && (
-          <FieldGroup
-            title={
-              integration.provider.aspects.configure_integration?.title ||
-              t('Organization Integration Settings')
-            }
-          >
-            {integration.configOrganization?.map(fieldConfig => (
-              <BackendJsonAutoSaveForm
-                key={fieldConfig.name}
-                field={fieldConfig}
-                initialValue={
-                  integration.configData?.[fieldConfig.name] as FieldValue<
-                    typeof fieldConfig
-                  >
-                }
-                mutationOptions={integrationMutationOptions}
-              />
-            ))}
-          </FieldGroup>
-        )}
-
-        {instructions && instructions.length > 0 && (
-          <Alert.Container>
-            <Alert variant="info" showIcon={false}>
-              {instructions.length === 1 ? (
-                <span
-                  dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0]!)}}
-                />
-              ) : (
-                <List symbol={<IconArrow size="xs" direction="right" />}>
-                  {instructions.map((instruction, i) => (
-                    <ListItem key={i}>
-                      <span
-                        dangerouslySetInnerHTML={{
-                          __html: singleLineRenderer(instruction),
-                        }}
-                      />
-                    </ListItem>
-                  )) ?? null}
-                </List>
-              )}
-            </Alert>
-          </Alert.Container>
-        )}
-
-        {provider.features.includes('alert-rule') && <IntegrationAlertRules />}
-
-        {provider.features.includes('serverless') && (
-          <IntegrationServerlessFunctions integration={integration} />
-        )}
-      </Fragment>
-    );
-  }
-
-  function renderTabContent() {
-    if (!integration) {
-      return null;
-    }
-    switch (tab) {
-      case 'codeMappings':
-        return <IntegrationCodeMappings integration={integration} />;
-      case 'settings':
-        return renderMainTab();
-      case 'userMappings':
-        return <IntegrationExternalUserMappings integration={integration} />;
-      case 'teamMappings':
-        return <IntegrationExternalTeamMappings integration={integration} />;
-      default:
-        unreachable(tab);
-        return renderMainTab();
-    }
-  }
-
-  function renderMainContent() {
-    if (allTabs.length === 0) {
-      return renderMainTab();
-    }
-
-    return (
-      <Fragment>
-        <TabsContainer>
-          <Tabs value={tab} onChange={onTabChange}>
-            <TabList>
-              {allTabs.map(tabTuple => (
-                <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
-              ))}
-            </TabList>
-          </Tabs>
-        </TabsContainer>
-        {renderTabContent()}
-      </Fragment>
-    );
-  }
+  const mainTab = (
+    <IntegrationMainTab
+      gcpVerificationError={gcpVerificationError}
+      integration={integration}
+      integrationId={integrationId}
+      isVerifyingGcp={isVerifyingGcp}
+      onGcpVerificationErrorChange={setGcpVerificationError}
+      onGcpVerificationStateChange={setIsVerifyingGcp}
+      organization={organization}
+      provider={provider}
+      queryClient={queryClient}
+      usesExplicitMappingRemovals={usesExplicitMappingRemovals}
+    />
+  );
 
   return (
     <Fragment>
-      <IntegrationNavigationHeader integration={integration} action={getAction()} />
-      {renderMainContent()}
+      <IntegrationNavigationHeader
+        integration={integration}
+        action={
+          <IntegrationAction
+            integration={integration}
+            onUpdateIntegration={onUpdateIntegration}
+            organization={organization}
+            provider={provider}
+          />
+        }
+      />
+      {allTabs.length === 0 ? (
+        mainTab
+      ) : (
+        <Fragment>
+          <TabsContainer>
+            <Tabs value={tab} onChange={onTabChange}>
+              <TabList>
+                {allTabs.map(tabTuple => (
+                  <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
+                ))}
+              </TabList>
+            </Tabs>
+          </TabsContainer>
+          <IntegrationTabContent integration={integration} mainTab={mainTab} tab={tab} />
+        </Fragment>
+      )}
     </Fragment>
   );
 }

@@ -1,14 +1,16 @@
 import {lazy} from 'react';
 import queryString from 'query-string';
 
-import {Container} from '@sentry/scraps/layout';
-
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayAccess} from 'sentry/components/replays/replayAccess';
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {
   defineSeerEmbed,
   type EmbedOutput,
@@ -28,25 +30,40 @@ const ReplayClipPreview = lazy(
   () => import('sentry/components/events/eventReplay/replayClipPreview')
 );
 
-function ReplayLink({id, eventTimestamp}: EmbedOutput<'replay'>) {
+/** Shared by the inline link and the block's header link, so the two cannot drift. */
+function useReplayHref({id, eventTimestamp}: EmbedOutput<'replay'>): string {
   const organization = useOrganization();
   const pathname = makeReplaysPathname({path: `/${id}/`, organization});
-  const href = eventTimestamp
+
+  return eventTimestamp
     ? queryString.stringifyUrl({url: pathname, query: {event_t: eventTimestamp}})
     : pathname;
+}
+
+function getReplayTitle(id: string): string {
+  return t('Replay %s', getShortEventId(id));
+}
+
+function ReplayLink({format, ...props}: EmbedOutput<'replay'> & ResourceLinkFormatProps) {
+  const href = useReplayHref(props);
 
   return (
     <ResourceLink
+      format={format}
       icon={IconPlay}
       href={href}
-      title={t('Replay %s', getShortEventId(id))}
+      title={getReplayTitle(props.id)}
     />
   );
 }
 
 function ReplayBlockPreview({id, eventTimestamp}: EmbedOutput<'replay'>) {
   const organization = useOrganization();
+  const href = useReplayHref({id, eventTimestamp});
 
+  // Without a timestamp there is no clip to frame, and a reader without replay
+  // access sees nothing in the panel either. Both fall back to the bare link:
+  // a card with nothing but its own link inside has nothing to collapse.
   if (!eventTimestamp) {
     return <ReplayLink id={id} eventTimestamp={eventTimestamp} />;
   }
@@ -55,12 +72,15 @@ function ReplayBlockPreview({id, eventTimestamp}: EmbedOutput<'replay'>) {
 
   return (
     <ReplayAccess fallback={<ReplayLink id={id} eventTimestamp={eventTimestamp} />}>
-      <Container
-        background="primary"
-        border="primary"
-        radius="md"
-        padding="md"
-        overflow="hidden"
+      {/* Left expanded, the card's default: the clip is the reason the block
+          was emitted, and collapsing it would not save the load -- the panel
+          keeps its contents mounted. */}
+      <SeerEmbedBlock
+        href={href}
+        icon={IconPlay}
+        linkLabel={t('View Replay')}
+        testId="seer-replay-embed"
+        title={getReplayTitle(id)}
       >
         <LazyLoad
           analyticsContext="seer_embed"
@@ -82,7 +102,7 @@ function ReplayBlockPreview({id, eventTimestamp}: EmbedOutput<'replay'>) {
           }
           LazyComponent={ReplayClipPreview}
         />
-      </Container>
+      </SeerEmbedBlock>
     </ReplayAccess>
   );
 }
@@ -90,9 +110,13 @@ function ReplayBlockPreview({id, eventTimestamp}: EmbedOutput<'replay'>) {
 export const Replay = defineSeerEmbed({
   name: 'replay',
   render(props, level) {
-    if (level === 'block') {
-      return <ReplayBlockPreview {...props} />;
+    switch (level) {
+      case 'block':
+        return <ReplayBlockPreview {...props} />;
+      case 'markdown':
+        return <ReplayLink {...props} format="markdown" />;
+      case 'inline':
+        return <ReplayLink {...props} />;
     }
-    return <ReplayLink {...props} />;
   },
 });

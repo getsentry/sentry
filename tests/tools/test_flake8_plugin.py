@@ -777,7 +777,34 @@ class F:
     )
 
 
-# --- S022: PUBLIC methods must declare a response shape ---
+# --- S022: published methods must declare a response shape ---
+
+
+def test_S022_public_experimental_bare_response_fires() -> None:
+    assert _resp("""\
+class E:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
+    def get(self) -> Response: ...
+""") == ["3:S022"]
+
+
+def test_S022_public_experimental_missing_annotation_fires() -> None:
+    assert _resp("""\
+class E:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
+    def get(self): ...
+""") == ["3:S022"]
+
+
+def test_S022_experimental_is_not_published_and_does_not_fire() -> None:
+    assert (
+        _resp("""\
+class E:
+    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
+    def get(self) -> Response: ...
+""")
+        == []
+    )
 
 
 def test_S022_public_bare_response_fires() -> None:
@@ -1610,3 +1637,62 @@ class E(Endpoint):
         return options.get("key", request.GET)
 """
     assert _run_input(src, SHAPED) == []
+
+
+def _run_s023(src: str) -> list[str]:
+    return [e for e in _run(src, filename="src/sentry/apidocs/t.py") if "S023" in e]
+
+
+def test_S023_a_deep_path_checks_only_its_first_segment() -> None:
+    src = """\
+@sentry_schema_serializer(
+    omit_from_public_schema={"data_source.discover": "Deprecated; use events."}
+)
+class S(serializers.Serializer):
+    data_source = serializers.ChoiceField(choices=("discover", "events"))
+"""
+    assert _run_s023(src) == []
+
+
+def test_S023_a_deep_path_on_an_unknown_field_is_still_a_ghost() -> None:
+    src = """\
+@sentry_schema_serializer(omit_from_public_schema={"nope.discover": "why"})
+class S(serializers.Serializer):
+    data_source = serializers.ChoiceField(choices=("discover",))
+"""
+    errors = _run_s023(src)
+    assert len(errors) == 1
+    assert "'nope'" in errors[0]
+
+
+def test_S023_a_malformed_path_is_reported() -> None:
+    src = """\
+@sentry_schema_serializer(omit_from_public_schema={"a..b": "why"})
+class S(serializers.Serializer):
+    a = serializers.CharField()
+"""
+    errors = _run_s023(src)
+    assert len(errors) == 1
+    assert "not a usable path" in errors[0]
+
+
+def test_S023_deprecate_needs_a_reason_too() -> None:
+    src = """\
+@sentry_schema_serializer(deprecate={"name": "   "})
+class S(serializers.Serializer):
+    name = serializers.CharField()
+"""
+    errors = _run_s023(src)
+    assert len(errors) == 1
+    assert "needs a reason" in errors[0]
+
+
+def test_S023_deprecate_reports_a_ghost() -> None:
+    src = """\
+@sentry_schema_serializer(deprecate={"gone": "Use slug."})
+class S(serializers.Serializer):
+    name = serializers.CharField()
+"""
+    errors = _run_s023(src)
+    assert len(errors) == 1
+    assert "deprecate='gone'" in errors[0]

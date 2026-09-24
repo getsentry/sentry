@@ -1437,19 +1437,17 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test_refresh_access_token(self, mock_jwt) -> None:
+    def test__refresh_access_token(self, mock_jwt) -> None:
         assert self.integration.metadata == {
             "access_token": None,
             "expires_at": None,
             "permissions": None,
         }
 
-        self.gh_client.refresh_access_token()
+        self.gh_client._refresh_access_token()
         assert mock_jwt.called
 
         self.integration.refresh_from_db()
-        # Stamped so a reader can tell whether the permissions beside it are
-        # current, and written from the same value debug_data records.
         assert (
             self.integration.metadata.pop("last_refresh_at")
             == self.integration.debug_data["last_refresh_at"]
@@ -1477,8 +1475,8 @@ class GithubProxyClientTest(TestCase):
         ).prepare()
 
         with mock.patch(
-            "sentry.integrations.github.client.GithubProxyClient.refresh_access_token",
-            wraps=self.gh_client.refresh_access_token,
+            "sentry.integrations.github.client.GithubProxyClient._refresh_access_token",
+            wraps=self.gh_client._refresh_access_token,
         ) as mock_refresh_token:
             # Regular API requests should use access tokens
             token = self.gh_client._get_token(prepared_request=access_token_request)

@@ -1,11 +1,16 @@
 import {Text} from '@sentry/scraps/text';
 
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
+import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummary';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 
-import {ConversationLink, type ConversationData} from './conversationLink';
+import {getConversationHref, type ConversationData} from './conversationLink';
+import {
+  ConversationMetricsBar,
+  getConversationMetricsFromNodes,
+} from './conversationMetrics';
 
 function toTimestampMs(isoTimestamp: string | undefined): number | undefined {
   if (!isoTimestamp) {
@@ -34,8 +39,13 @@ function toProjectIds(projects: ConversationData['projects']): number[] | undefi
  * embed is itself rendered inside an agent conversation, so a nested transcript
  * reads as part of the surrounding answer. The link goes to the full detail
  * view for anyone who wants the messages.
+ *
+ * The totals are the same fields the `conversationsQuery` embed tables, so one
+ * conversation reads the same whether the model named it on its own or it came
+ * back in a list.
  */
 export default function ConversationBlock({data}: {data: ConversationData}) {
+  const organization = useOrganization();
   const {nodes, isLoading, error, title} = useConversation({
     conversationId: data.id,
     projects: toProjectIds(data.projects),
@@ -45,17 +55,20 @@ export default function ConversationBlock({data}: {data: ConversationData}) {
 
   return (
     <QueryEmbedCard
-      link={<ConversationLink data={data} title={title ?? data.title} />}
+      href={getConversationHref(data, organization.slug)}
+      icon={IconChat}
+      linkLabel={t('View Conversation')}
       testId="seer-conversation-embed"
+      // Prefer the API's title over whatever the model wrote into the tag.
+      title={title ?? data.title ?? t('Conversation %s', data.id)}
     >
       {error ? (
         <Text variant="danger">{t('Unable to load conversation.')}</Text>
       ) : !isLoading && nodes.length === 0 ? (
         <Text variant="muted">{t('No messages in this conversation')}</Text>
       ) : (
-        <ConversationAggregatesBar
-          conversationId={data.id}
-          nodes={nodes}
+        <ConversationMetricsBar
+          metrics={getConversationMetricsFromNodes(nodes)}
           isLoading={isLoading}
         />
       )}

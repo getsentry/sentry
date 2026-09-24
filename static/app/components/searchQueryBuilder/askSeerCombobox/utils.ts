@@ -259,9 +259,50 @@ function formatWildcardToken(token: string, isNegated: boolean): string | null {
   return null;
 }
 
+/**
+ * Quotes a pattern that {@link tokenize} would otherwise read back as more than
+ * one word, so the humanized form stays invertible. Patterns are unquoted in
+ * query syntax, so {@link unquoteRegexPattern} undoes this on the way back.
+ *
+ * A pattern holding a `"` is quoted too, so that the wrapping is the only
+ * reason a humanized pattern ever starts and ends with one.
+ */
+function quoteRegexPattern(pattern: string): string {
+  if (!/[\s"]/.test(pattern) && !pattern.endsWith(',')) {
+    return pattern;
+  }
+
+  return `"${pattern.replaceAll('"', '\\"')}"`;
+}
+
+function unquoteRegexPattern(pattern: string): string {
+  return pattern.length > 1 && pattern.startsWith('"') && pattern.endsWith('"')
+    ? pattern.slice(1, -1).replaceAll('\\"', '"')
+    : pattern;
+}
+
+function formatRegexToken(token: string, isNegated: boolean): string | null {
+  const match = token.match(/^(\(*)(!?)([^:]+):\/\/(.*)\/\/(\)*)$/s);
+  if (!match) {
+    return null;
+  }
+
+  const [, openParens, negation, key, pattern = '', closeParens] = match;
+  const description =
+    OP_LABELS[isNegated || negation ? TermOperator.DOES_NOT_MATCH : TermOperator.MATCHES];
+
+  return `${openParens}${key} ${description} ${quoteRegexPattern(pattern)}${closeParens}`;
+}
+
 function formatToken(token: string): string {
   const isNegated = token.startsWith('!') && token.includes(':');
   const actualToken = isNegated ? token.slice(1) : token;
+  const regexToken = formatRegexToken(actualToken, isNegated);
+
+  if (regexToken) {
+    return regexToken;
+  }
+
   const wildcardToken = formatWildcardToken(actualToken, isNegated);
 
   if (wildcardToken) {
@@ -305,12 +346,17 @@ function formatToken(token: string): string {
 }
 
 /**
- * Splits a query on whitespace while keeping quoted phrases ("a b") and
- * bracketed lists ([a, b]) intact, so `key:"a b"` and `key:[a, b]` each stay a
- * single token even with internal spaces. Shared by the format/parse pair below.
+ * Splits a query on whitespace while keeping quoted phrases ("a b"), bracketed
+ * lists ([a, b]), and regex values (//a b//) intact, so `key:"a b"`, `key:[a, b]`,
+ * and `key://a b//` each stay a single token even with internal spaces. Shared
+ * by the format/parse pair below.
  */
 function tokenize(input: string): string[] {
-  return input.match(/(?:"[^"]*"|\[[^\]]*\]|[^\s"])+/g) ?? [];
+  return (
+    input.match(
+      /(?::\/\/(?:(?!\/\/(?:[\t\n )]|$))[^\n])*\/\/(?=[\t\n )]|$)|"[^"]*"|\[[^\]]*\]|[^\s"])+/g
+    ) ?? []
+  );
 }
 
 export function formatQueryToNaturalLanguage(query: string): string {
@@ -403,6 +449,11 @@ const FILTER_PHRASES: ReadonlyArray<{
     phrase: 'does not end with',
     esq: (k, v) => `!${k}:${WildcardOperators.ENDS_WITH}${v}`,
   },
+  {
+    phrase: 'does not match regex',
+    esq: (k, v) => `!${k}://${unquoteRegexPattern(v)}//`,
+  },
+  {phrase: 'matches regex', esq: (k, v) => `${k}://${unquoteRegexPattern(v)}//`},
   {phrase: 'contains', esq: (k, v) => `${k}:${WildcardOperators.CONTAINS}${v}`},
   {phrase: 'starts with', esq: (k, v) => `${k}:${WildcardOperators.STARTS_WITH}${v}`},
   {phrase: 'ends with', esq: (k, v) => `${k}:${WildcardOperators.ENDS_WITH}${v}`},
@@ -649,4 +700,17 @@ export function generateQueryTokensString(
   }
 
   return parts.length > 0 ? parts.join(', ') : 'No query parameters set';
+}
+
+/**
+ * Stringify a query result for feedback tags, filtering out falsey values
+ * except for keys that are meaningful when empty.
+ */
+export function stringifyQueryForFeedback(query: QueryTokensProps): string {
+  const filtered = Object.fromEntries(
+    Object.entries(query).filter(
+      ([key, value]) => ['visualizations', 'query'].includes(key) || Boolean(value)
+    )
+  );
+  return JSON.stringify(filtered);
 }

@@ -1,11 +1,6 @@
 import styled from '@emotion/styled';
 
-/**
- * A button with all default browser styling removed.
- * Use when wrapping a Container or other visual primitive that
- * provides its own appearance but needs click/keyboard semantics.
- */
-export const ScmCardButton = styled('button')`
+const CardButton = styled('button')`
   appearance: none;
   background: transparent;
   border: none;
@@ -13,7 +8,43 @@ export const ScmCardButton = styled('button')`
   text-align: left;
   cursor: pointer;
 
-  &:disabled {
+  &[aria-disabled='true'] {
     cursor: not-allowed;
   }
 `;
+
+interface ScmCardButtonProps extends Omit<
+  React.ComponentProps<typeof CardButton>,
+  'disabled'
+> {
+  /**
+   * Rendered as aria-disabled rather than disabled, so the card stays
+   * focusable and a tooltip that says why it is disabled opens on focus.
+   */
+  disabled?: boolean;
+}
+
+/**
+ * A button with all default browser styling removed.
+ * Use when wrapping a Container or other visual primitive that
+ * provides its own appearance but needs click/keyboard semantics.
+ *
+ * Defaults to `type="button"` so a card inside a form (see
+ * ScmCreateProject) neither submits it on click nor becomes the form's
+ * default button for Enter in a text field.
+ */
+export function ScmCardButton({
+  type = 'button',
+  disabled,
+  onClick,
+  ...props
+}: ScmCardButtonProps) {
+  return (
+    <CardButton
+      type={type}
+      aria-disabled={disabled || undefined}
+      onClick={disabled ? undefined : onClick}
+      {...props}
+    />
+  );
+}

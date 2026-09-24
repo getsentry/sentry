@@ -29,6 +29,8 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"
     name = "GitHub"
     repo_provider = IntegrationProviderSlug.GITHUB.value
 
+    can_transfer_repositories = True
+
     def _validate_repo(self, client: Any, installation: IntegrationInstallation, repo: str) -> Any:
         try:
             repo_data = client.get_repo(repo)

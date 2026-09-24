@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {AuthenticatorIconCarousel} from 'sentry/components/webAuthn/authenticatorIconCarousel';
 import {handleSign} from 'sentry/components/webAuthn/handlers';
 import {t} from 'sentry/locale';
 import {
@@ -12,10 +13,9 @@ import {
   useSecondFactorChallenge,
 } from 'sentry/views/authV2/authLogin/hooks/useSecondFactorAuth';
 
-import {AuthenticatorIconCarousel} from './authenticatorIconCarousel';
-
 interface WebAuthn2FAMethodProps {
   isActive: boolean;
+  isAuthenticating: boolean;
   isProcessing: boolean;
   onRetrySubmission: () => void;
   onSubmit: (response: WebAuthnResponse) => void;
@@ -26,6 +26,7 @@ type WebAuthnError = 'unsupported' | 'failed';
 
 export function WebAuthn2FAMethod({
   isActive,
+  isAuthenticating,
   isProcessing,
   onRetrySubmission,
   onSubmit,
@@ -43,6 +44,7 @@ export function WebAuthn2FAMethod({
       return;
     }
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setHasActivated(true);
     activate('u2f');
   }, [activate, hasActivated, isActive]);
@@ -63,6 +65,7 @@ export function WebAuthn2FAMethod({
       return;
     }
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setError(null);
 
     if (!window.PublicKeyCredential) {
@@ -102,6 +105,7 @@ export function WebAuthn2FAMethod({
     return () => {
       cancelled = true;
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [attempt, challenge.result, isActive]);
 
   const errorMessage = challenge.errorMessage
@@ -162,7 +166,7 @@ export function WebAuthn2FAMethod({
     <Stack gap="lg" align="center">
       <AuthenticatorIconCarousel isActive={isActive} />
       <Text as="p" align="center">
-        {isProcessing
+        {isAuthenticating
           ? t('Authorizing...')
           : t('Waiting for passkey, biometric, or hardware key')}
       </Text>

@@ -3,6 +3,10 @@ from collections.abc import Callable, Generator
 from types import FrameType
 from unittest import mock
 
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.wait import WebDriverWait
+
 from fixtures.page_objects.organization_integration_settings import (
     OrganizationSentryAppDetailViewPage,
 )
@@ -50,7 +54,12 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
         detail_view_page = OrganizationSentryAppDetailViewPage(browser=self.browser)
         detail_view_page.click_install_button()
 
-        self.browser.wait_until('[data-test-id="toast-success"]')
+        WebDriverWait(self.browser.driver, 10).until(
+            expected_conditions.text_to_be_present_in_element(
+                (By.CSS_SELECTOR, '[role="status"]'),
+                f"{self.sentry_app.slug} successfully installed.",
+            )
+        )
         assert SentryAppInstallation.objects.filter(
             organization_id=self.organization.id, sentry_app=self.sentry_app
         )
@@ -68,7 +77,12 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
         detail_view_page = OrganizationSentryAppDetailViewPage(browser=self.browser)
 
         detail_view_page.uninstall()
-        self.browser.wait_until('[data-test-id="toast-success"]')
+        WebDriverWait(self.browser.driver, 10).until(
+            expected_conditions.text_to_be_present_in_element(
+                (By.CSS_SELECTOR, '[role="status"]'),
+                f"{self.sentry_app.slug.capitalize()} successfully queued for deletion.",
+            )
+        )
 
         with self.tasks():
             run_scheduled_deletions_control()

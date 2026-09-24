@@ -6,6 +6,12 @@ default_manager = RoleManager(
     settings.SENTRY_ROLES, settings.SENTRY_TEAM_ROLES, settings.SENTRY_DEFAULT_ROLE
 )
 
+# Used in place of default_manager's organization role scopes when the
+# `organizations:granular-permission-scopes` flag is enabled.
+granular_manager = RoleManager(
+    settings.SENTRY_GRANULAR_ROLES, settings.SENTRY_TEAM_ROLES, settings.SENTRY_DEFAULT_ROLE
+)
+
 organization_roles = default_manager.organization_roles
 team_roles = default_manager.team_roles
 get_minimum_team_role = default_manager.get_minimum_team_role

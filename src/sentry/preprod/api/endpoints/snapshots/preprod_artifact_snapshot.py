@@ -34,7 +34,6 @@ from sentry.issues.action_log import resolve_action_source
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.analytics import (
     PreprodArtifactApiDeleteEvent,
     PreprodArtifactApiGetSnapshotDetailsEvent,
@@ -79,6 +78,7 @@ from sentry.preprod.snapshots.precompute import (
     load_precomputed_head_images,
     refresh_manifest_expiration,
 )
+from sentry.preprod.snapshots.storage import get_snapshot_storage
 from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.preprod.snapshots.utils import (
     find_base_snapshot_artifact,
@@ -101,14 +101,14 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
         "images": {
             "type": "object",
             "additionalProperties": True,
-            "maxProperties": 50000,
+            "maxProperties": 100000,
         },
         "diff_threshold": {"type": "number", "minimum": 0.0, "exclusiveMaximum": 1.0},
         "selective": {"type": "boolean"},
         "all_image_file_names": {
             "type": "array",
             "items": {"type": "string"},
-            "maxItems": 50000,
+            "maxItems": 100000,
         },
         **VCS_SCHEMA_PROPERTIES,
     },
@@ -120,7 +120,7 @@ SNAPSHOT_POST_REQUEST_ERROR_MESSAGES: dict[str, str] = {
     "app_id": "The app_id field is required and must be a string with maximum length of 255 characters.",
     "images": "The images field is required and must be an object mapping image names to image metadata.",
     "selective": "The selective field must be a boolean.",
-    "all_image_file_names": "The all_image_file_names field must be an array of strings with at most 50000 entries.",
+    "all_image_file_names": "The all_image_file_names field must be an array of strings with at most 100000 entries.",
     **VCS_ERROR_MESSAGES,
 }
 
@@ -355,7 +355,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             return Response({"detail": "Snapshot metrics not found"}, status=404)
 
         extras = snapshot_metrics.extras or {}
-        session = get_session(UsecaseId.PREPROD, artifact.project)
+        session = get_snapshot_storage(artifact.project)
 
         image_list: list[SnapshotImageResponseDict]
         precomputed = load_precomputed_head_images(session, extras.get("head_images_key"))
@@ -370,7 +370,11 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             try:
                 get_response = session.get(manifest_key)
                 if get_response is None:
-                    raise FileNotFoundError("Manifest does not exist in objectstore")
+                    logger.info(
+                        "preprod.snapshot.manifest_missing",
+                        extra={"preprod_artifact_id": artifact.id, "manifest_key": manifest_key},
+                    )
+                    return Response({"detail": "Snapshot manifest not found"}, status=404)
                 with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
                     raw_manifest = get_response.payload.read()
                 with start_span(
@@ -844,7 +848,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
-            session = get_session(UsecaseId.PREPROD, project)
+            session = get_snapshot_storage(project)
             manifest_bytes = manifest.json(exclude_none=True).encode()
             manifest_size_bytes = len(manifest_bytes)
             session.put(manifest_bytes, key=manifest_key)

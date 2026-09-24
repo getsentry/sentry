@@ -45,7 +45,18 @@ function renderHovercardBody() {
   );
 }
 
-export function renderPerformanceHovercard() {
+function PerformanceUnitDecoration() {
+  return (
+    <PerformanceUnits>
+      <PerformanceTag>
+        <IconLightning size="sm" />
+        {t('Sentry Performance')}
+      </PerformanceTag>
+    </PerformanceUnits>
+  );
+}
+
+export function PerformanceHovercard() {
   return (
     <StyledHovercard
       position="top"
@@ -68,15 +79,6 @@ export function VolumeSliders({
   currentSliderValues: Partial<Record<DataCategory, number>>;
   onReservedChange: (value: number, category: DataCategory) => void;
 }) {
-  const renderPerformanceUnitDecoration = () => (
-    <PerformanceUnits>
-      <PerformanceTag>
-        <IconLightning size="sm" />
-        {t('Sentry Performance')}
-      </PerformanceTag>
-    </PerformanceUnits>
-  );
-
   return (
     <SlidersContainer>
       {activePlan.categories
@@ -136,7 +138,7 @@ export function VolumeSliders({
             <DataVolumeItem key={category} data-test-id={`${category}-volume-item`}>
               <CategoryContainer>
                 <Stack>
-                  {showPerformanceUnits && renderPerformanceUnitDecoration()}
+                  {showPerformanceUnits && <PerformanceUnitDecoration />}
                   <Title htmlFor={sliderId}>
                     <div>{getPlanCategoryName({plan: activePlan, category})}</div>
                   </Title>

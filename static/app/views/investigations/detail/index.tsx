@@ -4,27 +4,26 @@ import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Badge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Tag} from '@sentry/scraps/badge';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Heading, Text} from '@sentry/scraps/text';
-import {TextArea} from '@sentry/scraps/textarea';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DateTime} from 'sentry/components/dateTime';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconSeer, IconStack} from 'sentry/icons';
+import {IconStack} from 'sentry/icons';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -33,26 +32,39 @@ import {useParams} from 'sentry/utils/useParams';
 import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
+  investigationOrchestrationQueryOptions,
   investigationTitleGenerationQueryOptions,
-  useAddInvestigationBlockMutation,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
   useRenameInvestigationMutation,
 } from 'sentry/views/investigations/api';
 import {
   InvestigationCell,
+  isBlockWorking,
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
+import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
+import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
+import {
+  InvestigationHypotheses,
+  shouldPollInvestigationRun,
+} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
-import type {
-  InvestigationBlockKind,
-  InvestigationDetail,
-} from 'sentry/views/investigations/types';
+import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
+import type {InvestigationDetail} from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
+
+const STATUS_TAG_VARIANT = {
+  running: 'info',
+  awaitingInput: 'warning',
+  failed: 'danger',
+  complete: 'success',
+  cancelled: 'muted',
+} as const;
 
 function FeatureDisabledPage() {
   return (
@@ -92,7 +104,14 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
     ...detailOptions,
     refetchInterval: query => {
       const data = query.state.data?.json;
-      return shouldPollInvestigationBlocks(data?.blocks ?? []) ||
+      // A live agentic run keeps this polling too: the notebook fills in as the
+      // agent writes blocks, and `orchestration` is what gates the hypothesis
+      // row, so a stale copy would leave the row hidden or showing a run that
+      // has since finished.
+      const orchestrationActive =
+        data?.orchestration && shouldPollInvestigationRun(data.orchestration.status);
+      return orchestrationActive ||
+        shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
         : false;
@@ -141,6 +160,14 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+  const {data: orchestration} = useQuery({
+    ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
+    enabled: Boolean(investigation.orchestration),
+  });
+  const runStatus =
+    investigation.orchestration && orchestration
+      ? getSeerStatusBlock(orchestration)
+      : null;
 
   useEffect(() => {
     const status = titleGenerationQuery.data?.status;
@@ -214,12 +241,6 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     },
     onError: () => addErrorMessage(t('Unable to delete investigation.')),
   });
-  const addBlockMutation = useAddInvestigationBlockMutation(
-    organization.slug,
-    investigation.id,
-    {onError: () => addErrorMessage(t('Unable to add cell.'))}
-  );
-
   function handleTitleChange(nextTitle: string) {
     setDraftTitle(nextTitle);
     updateInvestigationCache(
@@ -265,24 +286,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const summaryBlock = investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
   const visibleSummaryBlock =
-    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock, blocks)
+    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock)
       ? summaryBlock
       : undefined;
   const visibleNotebookCells = notebookCells.filter(block =>
-    shouldDisplayInvestigationBlock(block, blocks)
+    shouldDisplayInvestigationBlock(block)
   );
-
-  async function handleAddBlock({
-    kind,
-    prompt,
-    title,
-  }: {
-    kind: InvestigationBlockKind;
-    prompt: string;
-    title: string;
-  }) {
-    await addBlockMutation.mutateAsync({investigation, kind, prompt, title});
-  }
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -347,16 +356,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             />
           </HeaderBreadcrumbs>
         </Layout.Title>
-        <InvestigationHeader as="header" width="100%" padding="xl">
-          <Grid
-            columns="minmax(0, 1fr) auto"
-            align="start"
-            gap="lg"
-            width="100%"
-            maxWidth="885px"
-            margin="0 auto"
-          >
-            <Stack gap="xs" minWidth={0}>
+        <Container as="header" width="100%" padding="xl">
+          <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
+            <Grid
+              columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
+              align="center"
+              gap="md"
+            >
               <NotebookTitleInput
                 aria-label={t('Investigation title')}
                 value={displayedTitle}
@@ -365,17 +371,27 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 maxLength={200}
                 aria-busy={renameMutation.isPending}
               />
+              {runStatus ? (
+                <Flex align="center" gap="md" wrap="nowrap">
+                  <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
+                    {runStatus.statusLabel}
+                  </Tag>
+                  {orchestration ? (
+                    <InvestigationRunTimer orchestration={orchestration} />
+                  ) : null}
+                </Flex>
+              ) : null}
+            </Grid>
+            <Flex align="center" justify="between" gap="md" wrap="wrap">
               <Flex align="center" gap="sm" wrap="wrap">
                 <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
                 <MetaDivider />
-                <Text variant="muted">{t('%s blocks', investigation.blockCount)}</Text>
-                <MetaDivider />
                 <Text variant="muted">
-                  {t('Last update: %s', formatNotebookDate(investigation.dateUpdated))}
+                  {tct('Last update: [date]', {
+                    date: <DateTime date={investigation.dateUpdated} year />,
+                  })}
                 </Text>
               </Flex>
-            </Stack>
-            <Flex align="center" gap="sm">
               <FeedbackButton
                 feedbackOptions={{
                   formTitle: t('Give feedback on this investigation'),
@@ -393,22 +409,33 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               >
                 {t('Give feedback')}
               </FeedbackButton>
-              <Badge variant={getStatusVariant(investigation.status)}>
-                {formatStatus(investigation.status)}
-              </Badge>
-              <IconSeer size="sm" />
             </Flex>
-          </Grid>
-        </InvestigationHeader>
-        <Layout.Body>
+          </Stack>
+        </Container>
+        <Layout.Body padding={{'screen:sm': '0 lg lg', 'screen:md': '0 xl lg'}}>
           <Layout.Main width="full">
-            <InvestigationCanvas>
+            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto">
+              {/*
+               * Only an agentic investigation has hypotheses, and `orchestration`
+               * being present is the only thing that says one is: it is null for
+               * manual and template investigations, whose orchestration endpoint
+               * 404s.
+               */}
+              {investigation.orchestration ? (
+                <Stack width="100%" minWidth={0} paddingBottom="xl">
+                  <InvestigationHypotheses
+                    investigationId={investigation.id}
+                    phase={investigation.orchestration.phase}
+                  />
+                </Stack>
+              ) : null}
+
               <NotebookSummaryCard
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
               />
 
-              <Stack width="min(100%, 884px)" margin="0 auto">
+              <Stack width="100%" minWidth={0}>
                 {visibleSummaryBlock ? (
                   <InvestigationCell
                     block={visibleSummaryBlock}
@@ -426,15 +453,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                       investigation={investigation}
                     />
                   ))}
+                  {isAwaitingReportCell(investigation) ? (
+                    <InvestigationCellPlaceholder />
+                  ) : null}
                 </Stack>
-                {investigation.status === 'active' ? (
-                  <AddCellComposer
-                    isAdding={addBlockMutation.isPending}
-                    onAdd={handleAddBlock}
-                  />
-                ) : null}
               </Stack>
-            </InvestigationCanvas>
+              <Container height="160px" flexShrink={0} aria-hidden />
+            </Stack>
           </Layout.Main>
         </Layout.Body>
       </Stack>
@@ -442,96 +467,18 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
 }
 
-function AddCellComposer({
-  isAdding,
-  onAdd,
-}: {
-  isAdding: boolean;
-  onAdd: (cell: {
-    kind: InvestigationBlockKind;
-    prompt: string;
-    title: string;
-  }) => Promise<void>;
-}) {
-  const [kind, setKind] = useState<InvestigationBlockKind | null>(null);
-  const [title, setTitle] = useState('');
-  const [prompt, setPrompt] = useState('');
-
-  function reset() {
-    setKind(null);
-    setTitle('');
-    setPrompt('');
+// Seer reaches the reporting phase once it is done with the hypotheses, but the
+// report arrives as cells on a later poll. Until then the notebook stands in a
+// placeholder cell, unless a cell is already running — that one shows its own.
+function isAwaitingReportCell(investigation: InvestigationDetail) {
+  const {orchestration} = investigation;
+  if (orchestration?.status !== 'processing' || orchestration.phase !== 'reporting') {
+    return false;
   }
-
-  async function handleAdd() {
-    if (!kind || !prompt.trim()) {
-      return;
-    }
-    try {
-      await onAdd({kind, title: title.trim(), prompt: prompt.trim()});
-      reset();
-    } catch {
-      // The mutation owns user-facing error handling and leaves the draft intact.
-    }
-  }
-
-  if (!kind) {
-    return (
-      <AddCellActions align="center" justify="center" gap="sm">
-        <Button size="sm" icon={<IconAdd />} onClick={() => setKind('text')}>
-          {t('Add text cell (debug only)')}
-        </Button>
-        <Button size="sm" icon={<IconAdd />} onClick={() => setKind('query')}>
-          {t('Add query cell (debug only)')}
-        </Button>
-      </AddCellActions>
-    );
-  }
-
-  return (
-    <CellComposer>
-      <Stack gap="md">
-        <Heading as="h2" size="md">
-          {kind === 'text'
-            ? t('Add text cell (debug only)')
-            : t('Add query cell (debug only)')}
-        </Heading>
-        <Input
-          aria-label={t('Cell title')}
-          placeholder={t('Title (optional)')}
-          value={title}
-          onChange={event => setTitle(event.target.value)}
-        />
-        <TextArea
-          aria-label={t('Cell instructions')}
-          autosize
-          autoFocus
-          rows={3}
-          placeholder={
-            kind === 'text'
-              ? t('Describe the text to generate')
-              : t('Describe the query to run')
-          }
-          value={prompt}
-          onChange={event => setPrompt(event.target.value)}
-        />
-        <Flex align="center" justify="end" gap="sm">
-          <Button size="sm" onClick={reset} disabled={isAdding}>
-            {t('Cancel')}
-          </Button>
-          <Button
-            size="sm"
-            variant="primary"
-            busy={isAdding}
-            disabled={!prompt.trim()}
-            onClick={() => void handleAdd()}
-          >
-            {t('Add cell')}
-          </Button>
-        </Flex>
-      </Stack>
-    </CellComposer>
-  );
+  // Only a cell Seer is working on rules this out, because that cell is already
+  // showing a placeholder of its own. A cell that finished, failed or was
+  // cancelled is done, and more are still coming.
+  return !(investigation.blocks ?? []).some(isBlockWorking);
 }
 
 function isTitleGenerationActive(status: string | null | undefined) {
@@ -554,49 +501,9 @@ function formatSourceType(sourceType: string) {
   return sourceType.replaceAll('_', ' ');
 }
 
-function formatStatus(status: string) {
-  if (status === 'active') {
-    return t('Active');
-  }
-  return status.replaceAll('_', ' ').replace(/^./, character => character.toUpperCase());
-}
-
-function formatNotebookDate(date: string) {
-  return new Date(date).toISOString().slice(0, 10).replaceAll('-', '.');
-}
-
-function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
-  if (status === 'completed' || status === 'active') {
-    return 'success';
-  }
-  if (status === 'pending') {
-    return 'warning';
-  }
-  return 'muted';
-}
-
-const InvestigationCanvas = styled(Stack)`
-  width: min(100%, calc(884px + ${p => p.theme.space['2xl']}));
-  margin: 0 auto;
-`;
-
-const InvestigationHeader = styled(Container)`
-  position: relative;
-
-  &::after {
-    /* The specified divider is intentionally as subtle as the secondary surface. */
-    content: '';
-    position: absolute;
-    inset: auto 0 0;
-    height: 1px;
-    background: ${p => p.theme.tokens.background.secondary};
-  }
-`;
-
 const NotebookSummaryCard = styled(InvestigationSummaryCard)`
   width: 100%;
   margin-bottom: ${p => p.theme.space.xl};
-  padding-inline: ${p => p.theme.space.xl};
 `;
 
 const HeaderBreadcrumbs = styled(Flex)`
@@ -635,6 +542,8 @@ const HeaderInvestigationTitle = styled('span')`
 
 const NotebookTitleInput = styled(Input)`
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   height: auto;
   margin: 0;
   padding: 0;
@@ -657,19 +566,6 @@ const NotebookTitleInput = styled(Input)`
 const MetaDivider = styled('span')`
   height: 16px;
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const AddCellActions = styled(Flex)`
-  padding: ${p => p.theme.space.xl} 0;
-`;
-
-const CellComposer = styled('section')`
-  width: min(100%, 862px);
-  margin: ${p => p.theme.space.lg} auto 0;
-  padding: ${p => p.theme.space.xl};
-  background: ${p => p.theme.tokens.background.secondary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
 `;
 
 export default function InvestigationDetailView() {

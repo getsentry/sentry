@@ -91,7 +91,10 @@ describe('AddBillingInformation', () => {
     expect(await screen.findByText('Edit billing information')).toBeInTheDocument();
     expect(await screen.findByText('Business address')).toBeInTheDocument();
     expect(screen.getByText('Payment method')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Confirm'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(
       screen.queryByRole('button', {name: 'Edit business address'})
     ).not.toBeInTheDocument();
@@ -113,7 +116,10 @@ describe('AddBillingInformation', () => {
     );
 
     expect(await screen.findByText('Add billing information')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled(); // cannot checkout without billing info
+    expect(screen.getByRole('button', {name: 'Confirm'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    ); // cannot checkout without billing info
     expect(await screen.findByTestId('credit-card-panel')).toBeInTheDocument();
     expect(screen.getByTestId('billing-details-panel')).toBeInTheDocument();
     const inCardPanel = within(screen.getByTestId('credit-card-panel'));

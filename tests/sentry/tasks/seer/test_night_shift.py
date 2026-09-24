@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
+import pytest
 from django.conf import settings
 from taskbroker_client.scheduler.config import crontab
 
@@ -14,14 +15,13 @@ from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
-from sentry.seer.models.night_shift import (
-    SeerNightShiftRun,
-    SeerNightShiftRunErrorType,
-    SeerNightShiftRunResult,
-    SeerNightShiftRunShard,
-)
+from sentry.seer.models.night_shift import SeerNightShiftRunErrorType, SeerNightShiftRunResult
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
-from sentry.seer.models.workflow import SeerWorkflowStrategy
+from sentry.seer.models.workflow import (
+    SeerWorkflowRun,
+    SeerWorkflowRunExecution,
+    SeerWorkflowStrategy,
+)
 from sentry.tasks.seer.night_shift.cron import (
     _complete_run,
     _current_schedule_id,
@@ -46,6 +46,8 @@ from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.cursors import Cursor
@@ -69,6 +71,14 @@ def _dispatched_feature_body(organization):
 class NightShiftFixtures(Fixtures):
     """Shared night-shift test setup. Mixed into the test cases below so the
     project-eligibility and event-seeding logic lives in one place."""
+
+    @pytest.fixture(autouse=True)
+    def enable_night_shift(self):
+        with (
+            override_options({"seer.night_shift.enable": True}),
+            with_feature("organizations:seer-night-shift"),
+        ):
+            yield
 
     def _make_eligible(
         self, project, *, stopping_point=AutofixStoppingPoint.OPEN_PR.value, **tweak_overrides
@@ -109,7 +119,8 @@ class TestBuildRunOptions(TestCase):
 
         assert resolved["source"] == "cron"
         assert resolved["max_candidates"] == 8
-        assert resolved["intelligence_level"] == "high"
+        assert resolved["intelligence_level"] == "medium"
+        assert resolved["reasoning_effort"] == "medium"
 
     def test_org_overrides_apply_over_defaults(self) -> None:
         with self.options(
@@ -122,7 +133,8 @@ class TestBuildRunOptions(TestCase):
 
         assert resolved["max_candidates"] == 15
         # Unset org fields fall through to the global default.
-        assert resolved["intelligence_level"] == "high"
+        assert resolved["intelligence_level"] == "medium"
+        assert resolved["reasoning_effort"] == "medium"
 
     def test_project_tweaks_override_org_overrides(self) -> None:
         project = self.create_project(organization=self.organization)
@@ -583,6 +595,24 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
     reset_snuba_data = False
 
+    def test_skips_org_run_when_globally_disabled(self) -> None:
+        org = self.create_organization()
+
+        with self.options({"seer.night_shift.enable": False}):
+            run_id = run_night_shift_for_org(org.id)
+
+        assert run_id is None
+        assert not SeerWorkflowRun.objects.filter(organization=org).exists()
+
+    def test_skips_org_run_when_feature_disabled(self) -> None:
+        org = self.create_organization()
+
+        with self.feature({"organizations:seer-night-shift": False}):
+            run_id = run_night_shift_for_org(org.id)
+
+        assert run_id is None
+        assert not SeerWorkflowRun.objects.filter(organization=org).exists()
+
     def test_nonexistent_org(self) -> None:
         with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
             run_night_shift_for_org(999999999)
@@ -596,8 +626,28 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
             second_run_id = run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
 
         assert first_run_id == second_run_id
-        assert SeerNightShiftRun.objects.filter(organization=org).count() == 1
+        assert SeerWorkflowRun.objects.filter(organization=org).count() == 1
         assert mock_execute.call_count == 2
+
+    def test_completed_schedule_id_returns_same_run_without_quota(self) -> None:
+        org = self.create_organization()
+        schedule_id = "2024-07-22T22:00"
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                side_effect=[True, False],
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute,
+        ):
+            first_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+            assert first_run_id is not None
+            _complete_run(SeerWorkflowRun.objects.get(id=first_run_id))
+            second_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+
+        assert second_run_id == first_run_id
+        assert SeerWorkflowRun.objects.filter(organization=org).count() == 1
+        mock_execute.assert_called_once()
 
     def test_completed_run_ignores_stale_extras_update(self) -> None:
         org = self.create_organization()
@@ -606,7 +656,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
             run_id = run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
 
         assert run_id is not None
-        run = SeerNightShiftRun.objects.get(id=run_id)
+        run = SeerWorkflowRun.objects.get(id=run_id)
         _record_run_error(run, SeerNightShiftRunErrorType.UNKNOWN, "transient failure")
         _complete_run(run)
         _update_run_extras(run, {"num_candidates": 1})
@@ -623,7 +673,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
             run_id = run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
 
         assert run_id is not None
-        run = SeerNightShiftRun.objects.get(id=run_id)
+        run = SeerWorkflowRun.objects.get(id=run_id)
         _update_run_extras(run, {"num_candidates": 1})
 
         assert run.extras["num_candidates"] == 1
@@ -635,7 +685,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
             run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
             run_night_shift_for_org(org.id, schedule_id="2024-07-23T10:00")
 
-        assert SeerNightShiftRun.objects.filter(organization=org).count() == 2
+        assert SeerWorkflowRun.objects.filter(organization=org).count() == 2
 
     def test_null_schedule_id_preserves_manual_semantics(self) -> None:
         org = self.create_organization()
@@ -645,8 +695,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
             run_night_shift_for_org(org.id)
 
         assert (
-            SeerNightShiftRun.objects.filter(organization=org, schedule_id__isnull=True).count()
-            == 2
+            SeerWorkflowRun.objects.filter(organization=org, schedule_id__isnull=True).count() == 2
         )
 
     def test_no_eligible_projects(self) -> None:
@@ -660,7 +709,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
             info_events = [call.args[0] for call in mock_logger.info.call_args_list]
             assert "night_shift.no_eligible_projects" in info_events
 
-        run = SeerNightShiftRun.objects.get(organization=org)
+        run = SeerWorkflowRun.objects.get(organization=org)
         assert run.extras.get("error_message") is None
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
@@ -675,14 +724,14 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         ):
             run_night_shift_for_org(org.id, schedule_id=schedule_id)
 
-        run = SeerNightShiftRun.objects.get(organization=org)
+        run = SeerWorkflowRun.objects.get(organization=org)
         assert run.extras["error_message"] == "Failed to get eligible projects"
         assert run.extras["error_type"] == SeerNightShiftRunErrorType.ELIGIBLE_PROJECTS_FAILED.value
         assert run.date_completed is None
 
         run_night_shift_for_org(org.id, schedule_id=schedule_id)
 
-        resumed_run = SeerNightShiftRun.objects.get(id=run.id)
+        resumed_run = SeerWorkflowRun.objects.get(id=run.id)
         assert resumed_run.date_completed is not None
         assert resumed_run.extras.get("error_message") is None
         assert not SeerNightShiftRunResult.objects.filter(run=resumed_run).exists()
@@ -724,7 +773,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
             run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
 
         assert run_id is None
-        assert not SeerNightShiftRun.objects.filter(organization=org).exists()
+        assert not SeerWorkflowRun.objects.filter(organization=org).exists()
         mock_execution.assert_not_called()
 
         with (
@@ -737,7 +786,29 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
             run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
 
         assert run_id is not None
-        assert SeerNightShiftRun.objects.filter(id=run_id, organization=org).exists()
+        assert SeerWorkflowRun.objects.filter(id=run_id, organization=org).exists()
+
+    def test_no_seer_quota_does_not_resume_incomplete_run_without_executions(self) -> None:
+        org = self.create_organization()
+        schedule_id = "2024-07-22T22:00"
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                side_effect=[True, False],
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execution,
+        ):
+            first_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+            second_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+
+        assert first_run_id is not None
+        assert second_run_id is None
+        run = SeerWorkflowRun.objects.get(id=first_run_id)
+        assert run.date_completed is None
+        assert not run.executions.exists()
+        assert SeerWorkflowRun.objects.filter(organization=org).count() == 1
+        mock_execution.assert_called_once()
 
     def test_free_cohort_skips_quota_check(self) -> None:
         org = self.create_organization()
@@ -866,8 +937,8 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         ):
             run_night_shift_for_org(org.id)
 
-        run = SeerNightShiftRun.objects.get(organization=org)
-        shards = list(SeerNightShiftRunShard.objects.filter(run=run).order_by("id"))
+        run = SeerWorkflowRun.objects.get(organization=org)
+        shards = list(SeerWorkflowRunExecution.objects.filter(run=run).order_by("id"))
         # 4 candidates @ size 2 -> two even shards, fixability order preserved.
         assert [self._shard_group_ids(s) for s in shards] == [
             [groups[0].id, groups[1].id],
@@ -891,8 +962,8 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         ):
             run_night_shift_for_org(org.id)
 
-        run = SeerNightShiftRun.objects.get(organization=org)
-        shards = list(SeerNightShiftRunShard.objects.filter(run=run))
+        run = SeerWorkflowRun.objects.get(organization=org)
+        shards = list(SeerWorkflowRunExecution.objects.filter(run=run))
         assert len(shards) == 1
         assert self._shard_group_ids(shards[0]) == [g.id for g in groups]
 
@@ -913,8 +984,8 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         ):
             run_night_shift_for_org(org.id)
 
-        run = SeerNightShiftRun.objects.get(organization=org)
-        shards = list(SeerNightShiftRunShard.objects.filter(run=run))
+        run = SeerWorkflowRun.objects.get(organization=org)
+        shards = list(SeerWorkflowRunExecution.objects.filter(run=run))
         assert len(shards) == 3
 
     def test_dispatches_candidates_to_seer_feature(self) -> None:
@@ -935,8 +1006,8 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         # Autofix is fired by Seer's pushed-back verdicts, not in-process.
         mock_autofix.assert_not_called()
 
-        run = SeerNightShiftRun.objects.get(organization=org)
-        shard = run.shards.get()
+        run = SeerWorkflowRun.objects.get(organization=org)
+        shard = run.executions.get()
 
         seer_run, body = _dispatched_feature_body(org)
         assert seer_run.id == shard.seer_run_id
@@ -1044,8 +1115,8 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         ):
             run_night_shift_for_org(org.id)
 
-        run = SeerNightShiftRun.objects.get(organization=org)
-        shard = run.shards.get()
+        run = SeerWorkflowRun.objects.get(organization=org)
+        shard = run.executions.get()
         candidate_group_ids = self._shard_group_ids(shard)
 
         # max_candidates=1 would only leave room for one of noisy's higher-scored
@@ -1072,9 +1143,9 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         ):
             run_night_shift_for_org(org.id)
 
-        run = SeerNightShiftRun.objects.get(organization=org)
+        run = SeerWorkflowRun.objects.get(organization=org)
         # 3 candidates, shard size 2 -> 2 shards (2 + 1).
-        shards = list(SeerNightShiftRunShard.objects.filter(run=run).order_by("id"))
+        shards = list(SeerWorkflowRunExecution.objects.filter(run=run).order_by("id"))
         assert len(shards) == 2
         assert SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 2
         assert set(
@@ -1134,18 +1205,18 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         ):
             run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
 
-            run = SeerNightShiftRun.objects.get(organization=org)
+            run = SeerWorkflowRun.objects.get(organization=org)
             assert run.date_completed is None
-            assert run.shards.filter(seer_run__isnull=True).count() == 1
+            assert run.executions.filter(seer_run__isnull=True).count() == 1
             assert (
                 SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 1
             )
 
             run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
-            resumed_run = SeerNightShiftRun.objects.get(id=run.id)
+            resumed_run = SeerWorkflowRun.objects.get(id=run.id)
             assert resumed_run.date_completed is not None
             assert resumed_run.extras.get("error_message") is None
-            assert resumed_run.shards.filter(seer_run__isnull=True).count() == 0
+            assert resumed_run.executions.filter(seer_run__isnull=True).count() == 0
             assert (
                 SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 2
             )
@@ -1163,8 +1234,8 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 
         run_night_shift_for_org(org.id)
 
-        run = SeerNightShiftRun.objects.get(organization=org)
-        assert not run.shards.exists()
+        run = SeerWorkflowRun.objects.get(organization=org)
+        assert not run.executions.exists()
         # No SeerRun for the org -> no outbox either (created in one transaction).
         assert not SeerRun.objects.filter(organization=org).exists()
 
@@ -1179,8 +1250,8 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
             run_night_shift_for_org(org.id)
 
-        run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.shards.filter(seer_run__isnull=True).count() == 1
+        run = SeerWorkflowRun.objects.get(organization=org)
+        assert run.executions.filter(seer_run__isnull=True).count() == 1
         assert run.date_completed is None
         assert run.extras["error_message"] == "Organization does not have Seer access"
         assert run.extras["error_type"] == SeerNightShiftRunErrorType.NO_SEER_ACCESS.value
@@ -1209,8 +1280,8 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         ):
             run_night_shift_for_org(org.id)
 
-        run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.shards.filter(seer_run__isnull=True).count() == 1
+        run = SeerWorkflowRun.objects.get(organization=org)
+        assert run.executions.filter(seer_run__isnull=True).count() == 1
         assert run.date_completed is None
         assert run.extras["error_message"] == "Failed to dispatch 1 of 1 triage shards"
         assert run.extras["error_type"] == SeerNightShiftRunErrorType.SHARD_DISPATCH_FAILED.value
@@ -1278,7 +1349,7 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
         # Sync invocation passes run_id as the positional arg, options + project_ids as kwargs.
         run_id = mock_execute.call_args.args[0]
         assert result == run_id
-        run = SeerNightShiftRun.objects.get(id=run_id)
+        run = SeerWorkflowRun.objects.get(id=run_id)
         assert run.organization_id == org.id
         assert run.workflow_config is not None
         assert run.workflow_config.strategy == SeerWorkflowStrategy.AGENTIC_TRIAGE
@@ -1287,11 +1358,31 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
             "source": "manual",
             "max_candidates": 3,
             "dry_run": True,
-            "intelligence_level": "high",
-            "reasoning_effort": "high",
+            "intelligence_level": "medium",
+            "reasoning_effort": "medium",
             "extra_triage_instructions": "",
         }
         assert kwargs["project_ids"] == [project.id]
+
+    def test_enqueues_execution_when_requested(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute:
+            run_id = run_night_shift_for_org(
+                org.id,
+                options={"source": "manual"},
+                project_ids=[project.id],
+                execute_in_task=True,
+            )
+
+        assert run_id is not None
+        run = SeerWorkflowRun.objects.get(id=run_id)
+        mock_execute.assert_not_called()
+        mock_execute.apply_async.assert_called_once_with(
+            args=[run_id],
+            kwargs={"options": run.extras["options"], "project_ids": [project.id]},
+        )
 
     def test_no_seer_quota_records_failed_run(self) -> None:
         org = self.create_organization()
@@ -1309,7 +1400,7 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
             )
 
         assert run_id is not None
-        run = SeerNightShiftRun.objects.get(id=run_id)
+        run = SeerWorkflowRun.objects.get(id=run_id)
         assert run.extras["error_message"] == "No Seer quota available"
         assert run.extras["error_type"] == SeerNightShiftRunErrorType.NO_QUOTA.value
         mock_execute.assert_not_called()
@@ -1324,14 +1415,14 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
             project_ids=[project.id],
         )
 
-        run = SeerNightShiftRun.objects.get(organization=org)
+        run = SeerWorkflowRun.objects.get(organization=org)
         assert run.extras == {
             "options": {
                 "source": "manual",
                 "max_candidates": 5,
                 "dry_run": True,
-                "intelligence_level": "high",
-                "reasoning_effort": "high",
+                "intelligence_level": "medium",
+                "reasoning_effort": "medium",
                 "extra_triage_instructions": "",
             },
             "target_project_ids": [project.id],
@@ -1349,7 +1440,7 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
             triggering_user_id=4242,
         )
 
-        run = SeerNightShiftRun.objects.get(organization=org)
+        run = SeerWorkflowRun.objects.get(organization=org)
         assert run.extras["triggering_user_id"] == 4242
 
     def test_manual_runs_even_when_project_tweak_is_disabled(self) -> None:

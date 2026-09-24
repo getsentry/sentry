@@ -7,6 +7,7 @@ import {Container} from '@sentry/scraps/layout';
 
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import type {ChartXRangeSelectionProps} from 'sentry/components/charts/useChartXRangeSelection';
+import type {DroppedData} from 'sentry/components/droppedData/utils';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
@@ -17,6 +18,7 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -26,6 +28,7 @@ interface ChartVisualizationProps {
   chartInfo: ChartInfo;
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
+  droppedData?: DroppedData;
 }
 
 export function useChartVisualizationPlottables(chartInfo: ChartInfo) {
@@ -63,12 +66,14 @@ export function ChartVisualization({
   chartXRangeSelection,
   chartInfo,
   chartRef,
+  droppedData,
 }: ChartVisualizationProps) {
   const plottables = useChartVisualizationPlottables(chartInfo);
   const previousPlottables = usePrevious(
     plottables,
     chartInfo.timeseriesResult.isPending
   );
+  const renderTooltipSeriesDetails = useIncompleteBucketTooltipDetails(chartInfo);
 
   const isLoading = chartInfo.timeseriesResult.isPending;
   const activePlottables = isLoading ? previousPlottables : plottables;
@@ -110,6 +115,8 @@ export function ChartVisualization({
         ref={chartRef}
         plottables={activePlottables}
         chartXRangeSelection={chartXRangeSelection}
+        droppedData={droppedData}
+        renderTooltipSeriesDetails={renderTooltipSeriesDetails}
       />
     </StyledTransparentLoadingMask>
   );

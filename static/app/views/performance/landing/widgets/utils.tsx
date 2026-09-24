@@ -35,21 +35,15 @@ function setWidgetStorageObject(localObject: Record<string, string>) {
 
 const mepQueryParamBase: Record<string, string> = {};
 
-export function getMEPQueryParams(
-  mepContext: MetricsEnhancedSettingContext,
-  forceAuto?: boolean
-) {
+export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
   let queryParams: Record<string, string> = {};
   const base = mepQueryParamBase;
-  if (mepContext.shouldQueryProvideMEPAutoParams || forceAuto) {
+  if (mepContext.shouldQueryProvideMEPAutoParams) {
     queryParams = {
       ...queryParams,
       ...base,
       dataset: 'metricsEnhanced',
     };
-    if (forceAuto) {
-      return queryParams;
-    }
   }
   if (mepContext.shouldQueryProvideMEPTransactionParams) {
     queryParams = {...queryParams, ...base, dataset: 'discover'};
@@ -98,12 +92,8 @@ export const getChartSetting = (
   index: number,
   height: number,
   performanceType: ProjectPerformanceType,
-  defaultType: PerformanceWidgetSetting,
-  forceDefaultChartSetting?: boolean // Used for testing.
+  defaultType: PerformanceWidgetSetting
 ): PerformanceWidgetSetting => {
-  if (forceDefaultChartSetting) {
-    return defaultType;
-  }
   const key = getContainerKey(index, performanceType, height);
   const localObject = getWidgetStorageObject();
   const value = localObject?.[key];

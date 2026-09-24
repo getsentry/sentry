@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
+from sentry import features
+from sentry.integrations.github.client import GitHubBaseClient
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.repository import Repository
-from sentry.preprod.integration_utils import get_commit_context_client
+from sentry.preprod.integration_utils import get_commit_context_client, get_github_client
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import (
@@ -18,6 +19,7 @@ from sentry.preprod.snapshots.utils import (
     evaluate_snapshot_changes_by_artifact_id,
 )
 from sentry.preprod.vcs.pr_comments.snapshot_templates import (
+    format_approved_without_base_snapshot_pr_comment,
     format_missing_base_snapshot_pr_comment,
     format_snapshot_pr_comment,
     format_solo_snapshot_pr_comment,
@@ -28,13 +30,15 @@ from sentry.preprod.vcs.pr_comments.tasks import (
     resolve_pr_comment_context,
     save_pr_comment_result,
 )
+from sentry.preprod.vcs.repo_utils import resolve_base_repo_url
 from sentry.preprod.vcs.status_checks.snapshots.config import (
     get_snapshot_approval_policy,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_snapshots_tasks
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +47,9 @@ POST_ON_ADDED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_added"
 POST_ON_REMOVED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_removed"
 POST_ON_CHANGED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_changed"
 POST_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_renamed"
+
+
+type _ProviderHeadStatus = Literal["matched", "mismatched", "unavailable"]
 
 
 def get_snapshot_pr_comment_reporting_criteria(project: Project) -> SnapshotChangeCriteria:
@@ -54,9 +61,68 @@ def get_snapshot_pr_comment_reporting_criteria(project: Project) -> SnapshotChan
     )
 
 
+def _record_provider_head_check(status: _ProviderHeadStatus) -> None:
+    metrics.incr(
+        "preprod.snapshot_pr_comments.provider_head_check",
+        sample_rate=1.0,
+        tags={"result": status},
+    )
+
+
+def _check_provider_pr_head(
+    *,
+    client: GitHubBaseClient,
+    repo_name: str,
+    pr_number: int,
+    commit_comparison_id: int,
+    comparison_head_sha: str,
+    artifact_id: int | None,
+    organization_id: int,
+) -> _ProviderHeadStatus:
+    log_extra = {
+        "commit_comparison_id": commit_comparison_id,
+        "organization_id": organization_id,
+        "preprod_artifact_id": artifact_id,
+        "repo_name": repo_name,
+        "pr_number": pr_number,
+        "comparison_head_sha": comparison_head_sha,
+    }
+
+    try:
+        pull_request = client.get_pull_request(repo_name, str(pr_number))
+    except Exception as e:
+        _record_provider_head_check("unavailable")
+        logger.exception(
+            "preprod.snapshot_pr_comments.post.provider_head_check_failed",
+            extra={**log_extra, "error_type": type(e).__name__},
+        )
+        return "unavailable"
+
+    provider_head = pull_request.get("head") if isinstance(pull_request, dict) else None
+    provider_head_sha = provider_head.get("sha") if isinstance(provider_head, dict) else None
+    if not isinstance(provider_head_sha, str) or not provider_head_sha:
+        _record_provider_head_check("unavailable")
+        logger.warning(
+            "preprod.snapshot_pr_comments.post.provider_head_check_invalid_response",
+            extra=log_extra,
+        )
+        return "unavailable"
+
+    if provider_head_sha != comparison_head_sha:
+        _record_provider_head_check("mismatched")
+        logger.info(
+            "preprod.snapshot_pr_comments.post.provider_head_mismatch",
+            extra={**log_extra, "provider_head_sha": provider_head_sha},
+        )
+        return "mismatched"
+
+    _record_provider_head_check("matched")
+    return "matched"
+
+
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_pr_comment",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
@@ -129,13 +195,24 @@ def create_preprod_snapshot_pr_comment_task(
         for approval in approval_qs:
             approvals_by_artifact_id[approval.preprod_artifact_id] = approval
 
-        base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(all_artifacts)
+        base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(
+            all_artifacts, require_snapshot_metrics=True
+        )
 
-        is_solo = not base_artifact_map
+        has_base_artifacts = bool(base_artifact_map)
+
+        # If the base arrives before this delayed check runs, comparison processing
+        # will update the PR comment. Avoid overwriting it from this stale timeout.
+        if is_timeout_check and has_base_artifacts:
+            logger.info(
+                "preprod.snapshot_pr_comments.create.skipped_timeout_base_resolved",
+                extra={"preprod_artifact_id": artifact.id},
+            )
+            return
 
         cc_id = cc.id
 
-        if is_solo:
+        if not has_base_artifacts:
             app_ids = {a.app_id for a in all_artifacts if a.app_id}
             has_previous_snapshots = (
                 PreprodSnapshotMetrics.objects.filter(
@@ -153,24 +230,25 @@ def create_preprod_snapshot_pr_comment_task(
                 comment_body = format_solo_snapshot_pr_comment(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
+            elif all(a.id in approvals_by_artifact_id for a in all_artifacts):
+                comment_body = format_approved_without_base_snapshot_pr_comment(
+                    all_artifacts,
+                    snapshot_metrics_map,
+                    project=artifact.project,
+                    base_sha=commit_comparison.base_sha,
+                    base_repo_url=resolve_base_repo_url(commit_comparison, organization.id),
+                )
             elif not is_timeout_check:
                 comment_body = format_waiting_for_base_snapshot_pr_comment(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
             else:
-                assert commit_comparison.base_sha is not None
-                base_repo_name = commit_comparison.base_repo_name or head_repo_name
-                base_repository = Repository.objects.filter(
-                    organization_id=organization.id,
-                    name=base_repo_name,
-                    provider=f"integrations:{provider}",
-                ).first()
                 comment_body = format_missing_base_snapshot_pr_comment(
                     all_artifacts,
                     snapshot_metrics_map,
                     project=artifact.project,
                     base_sha=commit_comparison.base_sha,
-                    base_repo_url=base_repository.url if base_repository else None,
+                    base_repo_url=resolve_base_repo_url(commit_comparison, organization.id),
                 )
         else:
             reporting_criteria = get_snapshot_pr_comment_reporting_criteria(artifact.project)
@@ -233,7 +311,7 @@ def create_preprod_snapshot_pr_comment_task(
 
 @instrumented_task(
     name="sentry.preprod.tasks.post_snapshot_pr_comment",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=4, on=(ApiError, ConnectionError, TimeoutError)),
@@ -258,7 +336,7 @@ def post_snapshot_pr_comment_task(
         )
         return
 
-    client = get_commit_context_client(organization, repo_name, provider)
+    client = get_github_client(organization, repo_name, provider)
     if not client:
         logger.info(
             "preprod.snapshot_pr_comments.post.no_client",
@@ -271,14 +349,39 @@ def post_snapshot_pr_comment_task(
     db_alias = router.db_for_write(CommitComparison)
 
     try:
+        if features.has("organizations:preprod-snapshot-pr-comment-head-check", organization):
+            comparison_head_sha = (
+                CommitComparison.objects.filter(
+                    id=commit_comparison_id,
+                    organization_id=organization.id,
+                    head_repo_name=repo_name,
+                    pr_number=pr_number,
+                )
+                .values_list("head_sha", flat=True)
+                .first()
+            )
+            if comparison_head_sha is None:
+                raise CommitComparison.DoesNotExist
+            provider_head_status = _check_provider_pr_head(
+                client=client,
+                repo_name=repo_name,
+                pr_number=pr_number,
+                commit_comparison_id=commit_comparison_id,
+                comparison_head_sha=comparison_head_sha,
+                artifact_id=artifact_id,
+                organization_id=organization.id,
+            )
+            if provider_head_status == "mismatched":
+                return
+
         # The comment_id is re-derived under the lock instead of trusting the
         # value passed from the create task: when several artifacts on a commit
         # post at once, each create task reads no existing comment, so the
         # first post here would otherwise create a duplicate comment instead of
-        # updating the shared one. The GitHub call is held inside the lock (as
+        # updating the shared one. The comment write is held inside the lock (as
         # in create_preprod_pr_comment_task) so concurrent posters serialize on
-        # the decision; lock hold is bounded by the client timeout, which
-        # matches this task's processing deadline.
+        # the decision; lock hold is bounded by the client timeout, which matches
+        # this task's processing deadline.
         with transaction.atomic(db_alias):
             cc, comment_id = lock_pr_comparisons_for_update(
                 organization_id=organization.id,
@@ -332,9 +435,14 @@ def post_snapshot_pr_comment_task(
                     },
                 )
     except CommitComparison.DoesNotExist:
-        logger.info(
-            "preprod.snapshot_pr_comments.post.cc_deleted",
-            extra={"commit_comparison_id": commit_comparison_id},
+        logger.warning(
+            "preprod.snapshot_pr_comments.post.cc_unavailable",
+            extra={
+                "commit_comparison_id": commit_comparison_id,
+                "organization_id": organization_id,
+                "repo_name": repo_name,
+                "pr_number": pr_number,
+            },
         )
         return
 

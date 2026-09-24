@@ -327,12 +327,12 @@ class IntegrationService(RpcService):
     ) -> RpcIntegration | None:
         """Re-read what a GitHub App installation grants, from any silo.
 
-        Mints a fresh installation token, because that response is the only
-        place GitHub reports permissions, and returns the integration with the
-        new ``metadata["permissions"]`` and ``metadata["last_refresh_at"]``.
+        Reads ``GET /app/installations/{id}`` with the app's JWT, without minting
+        or rotating the installation token, and returns the integration with
+        the new ``metadata["permissions"]`` and ``metadata["last_refresh_at"]``.
 
         Org-scoped like ``refresh_github_access_token``: the caller has to name
-        an organization the install is actually linked to. The mint itself is
+        an organization the install is actually linked to. The read itself is
         authed with the app's own JWT and would work without one, but reaching
         an installation through an integration id alone is not a door we want
         open.

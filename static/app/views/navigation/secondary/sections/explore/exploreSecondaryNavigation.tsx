@@ -10,6 +10,8 @@ import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settin
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
+  getSavedQueryDatasetLabel,
+  isExploreSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
@@ -44,7 +46,7 @@ function ExploreSecondaryNavigationImpl() {
     navItems.push({label: 'Logs', to: `${baseUrl}/logs/`});
   }
   if (organization.features.includes('tracemetrics-enabled')) {
-    navItems.push({label: 'Metrics', badge: 'new', to: `${baseUrl}/metrics/`});
+    navItems.push({label: 'Metrics', to: `${baseUrl}/metrics/`});
   }
   if (organization.features.includes('explore-errors')) {
     navItems.push({label: 'Errors', badge: 'alpha', to: `${baseUrl}/errors-v2/`});
@@ -88,7 +90,10 @@ function ExploreSecondaryNavigationImpl() {
     starredQueries: (starredQueries ?? []).map(query => ({
       id: query.id,
       name: query.name,
-      dataset: query.dataset,
+      dataset: isExploreSavedQuery(query)
+        ? getSavedQueryDatasetLabel(query.dataset)
+        : 'Errors',
+      queryType: query.queryType,
     })),
   });
 
@@ -125,7 +130,6 @@ function ExploreSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/metrics/`}
                   analyticsItemName="explore_metrics"
-                  trailingItems={<FeatureBadge type="new" />}
                 >
                   {t('Metrics')}
                 </SecondaryNavigation.Link>

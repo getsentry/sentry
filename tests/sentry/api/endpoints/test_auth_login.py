@@ -13,10 +13,149 @@ from sentry.auth.authenticators.sms import SmsInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.useremail import UserEmail
 from sentry.utils.auth import SsoSession
+
+
+@control_silo_test
+class AuthDemoLoginEndpointTest(APITestCase):
+    endpoint = "sentry-api-0-auth-demo-login"
+    method = "post"
+
+    def test_requires_csrf_token(self) -> None:
+        self.client = APIClient(enforce_csrf_checks=True)
+
+        with override_options({"demo-mode.enabled": True}):
+            response = self.get_response("demo")
+
+        assert response.status_code == 403
+
+    def test_login_validates_destination(self) -> None:
+        with override_options({"demo-mode.enabled": True}):
+            self.get_error_response("demo", nextUri=[], status_code=400)
+
+        assert "_auth_user_id" not in self.client.session
+
+    def test_disabled_demo_mode_precedes_validation(self) -> None:
+        with override_options({"demo-mode.enabled": False}):
+            self.get_error_response("demo", nextUri=[], status_code=404)
+
+        assert "_auth_user_id" not in self.client.session
+
+    def test_login_requires_existing_organization(self) -> None:
+        with override_options({"demo-mode.enabled": True}):
+            self.get_error_response("does-not-exist", status_code=404)
+
+        assert "_auth_user_id" not in self.client.session
+
+    def test_login_demo_user(self) -> None:
+        demo_user = self.create_user()
+        demo_organization = self.create_organization(owner=demo_user, slug="demo")
+
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [demo_organization.id],
+            }
+        ):
+            response = self.get_success_response(demo_organization.slug)
+
+        assert response.data["nextUri"] == (f"/organizations/{demo_organization.slug}/issues/")
+        assert response.data["user"]["id"] == str(demo_user.id)
+        assert self.client.session["_auth_user_id"] == str(demo_user.id)
+        assert self.client.session["activeorg"] == demo_organization.slug
+
+    def test_login_requires_mfa(self) -> None:
+        demo_user = self.create_user()
+        demo_organization = self.create_organization(owner=demo_user, slug="demo")
+        TotpInterface().enroll(demo_user)
+
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [demo_organization.id],
+            }
+        ):
+            response = self.get_success_response(
+                demo_organization.slug,
+                nextUri="/settings/account/",
+                status_code=202,
+            )
+
+        assert response.data == {"mfaRequired": True, "mfaMethods": [{"id": "totp"}]}
+        assert "_auth_user_id" not in self.client.session
+        assert self.client.session["_pending_2fa"][0] == demo_user.id
+        assert self.client.session["_next"] == "/settings/account/"
+
+    def test_login_requires_demo_mode(self) -> None:
+        demo_user = self.create_user()
+        demo_organization = self.create_organization(owner=demo_user, slug="demo")
+
+        with override_options(
+            {
+                "demo-mode.enabled": False,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [demo_organization.id],
+            }
+        ):
+            self.get_error_response(demo_organization.slug, status_code=404)
+
+        assert "_auth_user_id" not in self.client.session
+
+    def test_login_uses_requested_destination(self) -> None:
+        demo_user = self.create_user()
+        demo_organization = self.create_organization(owner=demo_user, slug="demo")
+
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [demo_organization.id],
+            }
+        ):
+            response = self.get_success_response(
+                demo_organization.slug, nextUri="/settings/account/"
+            )
+
+        assert response.data["nextUri"] == "/settings/account/"
+
+    def test_login_rejects_external_destination(self) -> None:
+        demo_user = self.create_user()
+        demo_organization = self.create_organization(owner=demo_user, slug="demo")
+
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [demo_organization.id],
+            }
+        ):
+            response = self.get_success_response(
+                demo_organization.slug, nextUri="https://example.com/"
+            )
+
+        assert response.data["nextUri"] == (f"/organizations/{demo_organization.slug}/issues/")
+
+    def test_login_requires_demo_organization(self) -> None:
+        demo_user = self.create_user()
+        demo_organization = self.create_organization(owner=demo_user, slug="demo")
+        other_organization = self.create_organization(slug="other")
+
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [demo_organization.id],
+            }
+        ):
+            self.get_error_response(other_organization.slug, status_code=404)
+
+        assert "_auth_user_id" not in self.client.session
 
 
 @control_silo_test
@@ -27,6 +166,30 @@ class AuthLoginEndpointTest(APITestCase):
     def setUp(self) -> None:
         # Requests to set the test cookie
         self.client.get(reverse("sentry-api-0-auth-config"))
+
+    def test_requires_csrf_token(self) -> None:
+        self.client = APIClient(enforce_csrf_checks=True)
+        self.client.get(reverse("sentry-api-0-auth-config"))
+
+        response = self.get_response(username=self.user.username, password="admin")
+
+        assert response.status_code == 403
+        assert "_auth_user_id" not in self.client.session
+
+    def test_accepts_valid_csrf_token(self) -> None:
+        self.client = APIClient(enforce_csrf_checks=True)
+        self.client.get(reverse("sentry-api-0-auth-config"))
+        csrf_token = "a" * 32
+        self.client.cookies[settings.CSRF_COOKIE_NAME] = csrf_token
+
+        response = self.get_response(
+            username=self.user.username,
+            password="admin",
+            extra_headers={"HTTP_X_CSRFTOKEN": csrf_token},
+        )
+
+        assert response.status_code == 200
+        assert self.client.session["_auth_user_id"] == str(self.user.id)
 
     def test_login_invalid_password(self) -> None:
         response = self.get_error_response(
@@ -186,6 +349,20 @@ class AuthLoginEndpointTest(APITestCase):
         assert self.client.session["_auth_user_id"] == str(self.user.id)
         assert "_pending_2fa" not in self.client.session
 
+    def test_complete_mfa_login_requires_csrf_token(self) -> None:
+        TotpInterface().enroll(self.user)
+        self.get_response(username=self.user.username, password="admin")
+        pending_client = self.client
+        self.client = APIClient(enforce_csrf_checks=True)
+        self.client.cookies.update(pending_client.cookies)
+
+        response = self.client.post(
+            reverse("sentry-api-0-auth-2fa"),
+            data={"method": "totp", "otp": "123456"},
+        )
+
+        assert response.status_code == 403
+
     def test_complete_mfa_login_requires_pending_login(self) -> None:
         response = self.client.post(
             reverse("sentry-api-0-auth-2fa"),
@@ -317,6 +494,16 @@ class AuthLoginEndpointTest(APITestCase):
             "challenge": {"webAuthnAuthenticationData": "Y2hhbGxlbmdl"},
         }
         activate.assert_called_once()
+
+    def test_activate_challenge_requires_csrf_token(self) -> None:
+        self.client = APIClient(enforce_csrf_checks=True)
+
+        response = self.client.post(
+            reverse("sentry-api-0-auth-2fa-challenge"),
+            data={"method": "totp"},
+        )
+
+        assert response.status_code == 403
 
     @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
@@ -540,6 +727,21 @@ class AuthRecoveryEndpointTest(APITestCase):
             reverse("sentry-api-0-auth-recovery-confirm"),
             data={"userId": self.user.id, "token": token, "password": password},
         )
+
+    def test_request_recovery_requires_csrf_token(self) -> None:
+        client = APIClient(enforce_csrf_checks=True)
+
+        response = self.request_recovery(client=client)
+
+        assert response.status_code == 403
+        assert not LostPasswordHash.objects.exists()
+
+    def test_confirm_recovery_requires_csrf_token(self) -> None:
+        client = APIClient(enforce_csrf_checks=True)
+
+        response = self.confirm_recovery("recovery-token", client=client)
+
+        assert response.status_code == 403
 
     @patch("sentry.users.models.lostpasswordhash.LostPasswordHash.send_recover_password_email")
     def test_request_recovery(self, send_recovery_email: MagicMock) -> None:
