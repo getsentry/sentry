@@ -3,6 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
@@ -2331,3 +2333,68 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_filter = Release.get_unused_filter(self.cutoff_date)
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
+
+
+# The write paths themselves are under test here, so rows are built directly rather
+# than through fixtures.
+class ReleaseShadowIdTest(TestCase):
+    def setUp(self) -> None:
+        self.org = self.create_organization()
+        self.project = self.create_project(organization=self.org)
+
+    def assert_new_id_mirrors_id(self, release: Release) -> None:
+        release.refresh_from_db()
+        assert release.new_id == release.id
+
+    def test_single_row_writes_populate_new_id(self) -> None:
+        created = Release.objects.create(organization=self.org, version="created")
+        self.assert_new_id_mirrors_id(created)
+
+        saved = Release(organization=self.org, version="saved")
+        saved.save()
+        self.assert_new_id_mirrors_id(saved)
+
+        fetched = Release.get_or_create(project=self.project, version="fetched")
+        self.assert_new_id_mirrors_id(fetched)
+
+    # The version exists in the org but not on this project, so the create hits the
+    # unique constraint and falls back to fetching the existing row.
+    def test_get_or_create_conflict_leaves_no_null_new_id(self) -> None:
+        other_project = self.create_project(organization=self.org)
+        existing = self.create_release(project=other_project, version="1.0")
+
+        release = Release.get_or_create(project=self.project, version="1.0")
+
+        assert release.id == existing.id
+        assert not Release.objects.filter(organization=self.org, new_id__isnull=True).exists()
+
+    def test_bulk_create_populates_new_id(self) -> None:
+        releases = Release.objects.bulk_create(
+            [Release(organization=self.org, version=f"bulk-{i}") for i in range(3)]
+        )
+
+        for release in releases:
+            self.assert_new_id_mirrors_id(release)
+
+    # `objects.create()` already forces the insert; a bare `save()` is what would probe.
+    def test_bare_save_issues_no_update(self) -> None:
+        release = Release(organization=self.org, version="1.0")
+        using = router.db_for_write(Release)
+
+        with CaptureQueriesContext(connections[using]) as queries:
+            release.save()
+
+        updates = [
+            query["sql"]
+            for query in queries.captured_queries
+            if query["sql"].lstrip().upper().startswith('UPDATE "SENTRY_RELEASE"')
+        ]
+        assert updates == []
+
+    # The id is claimed before `pre_save` fires, so the semver hook must not read a set
+    # id as an existing row.
+    def test_create_still_parses_semver_columns(self) -> None:
+        release = Release.objects.create(organization=self.org, version="pkg@1.2.3")
+
+        release.refresh_from_db()
+        assert (release.package, release.major, release.minor, release.patch) == ("pkg", 1, 2, 3)
