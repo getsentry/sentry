@@ -93,6 +93,7 @@ def strict_trim(
     value: Any,
     max_bytes: int = settings.SENTRY_MAX_VARIABLE_SIZE,
     max_recursion_depth: int = 6,
+    treat_as_dict_entries: bool = False,
 ) -> Any:
     """
     Recursively trim a value so that the end result, once JSONified and ASCII-encoded, is at or
@@ -115,6 +116,21 @@ def strict_trim(
     ellipsis, the result is the empty string, and is therefore subject to the omission described
     above.
 
+    Finally, setting `treat_as_dict_entries` to True marks the given value as a flattened dict - a
+    sequence of key-value pairs - rather than a list of unrelated elements. Each pair is then
+    trimmed the way a dictionary entry would be, which prevents the two ways a naively trimmed pair
+    can misrepresent the original data:
+        original value:                            [["dog", "maisey"], ["cat", "piper"]]
+        naively trimmed, no room for the value:    [["dog", "maisey"], ["cat"]]
+        naively trimmed, no room for the key:      [["dog", "maisey"], ["c..."]]
+        final value, trimmed as dict entries:      [["dog", "maisey"]]
+    In other words, a pair's key is never truncated, and unless there's room for that whole key
+    alongside at least one character of its value, the pair is left out entirely.
+
+    This applies only to the pairs themselves - values nested inside of them are trimmed normally -
+    and only at the top level of the given value, rather than to any pair-shaped list found at any
+    depth. Entries which aren't a list or tuple of exactly two elements are skipped.
+
     Compared to `trim`, this implementation is stricter in three ways:
         - it includes key size when trimming dictionaries, which the original does not,
         - it never exceeds the given limit, whereas the original keeps the first item to push it
@@ -127,6 +143,7 @@ def strict_trim(
         incoming_budget=max_bytes,
         max_recursion_depth=max_recursion_depth,
         current_depth=0,
+        treat_as_dict_entries=treat_as_dict_entries,
     )
     return trimmed
 
@@ -143,9 +160,13 @@ def _strict_trim_inner(
     incoming_budget: int,
     max_recursion_depth: int,
     current_depth: int,
+    treat_as_dict_entries: bool = False,
 ) -> tuple[Any, int]:
     current_budget = incoming_budget
 
+    # Note that `treat_as_dict_entries` is deliberately not included here, because it describes the
+    # full value passed to `strict_trim`, not the values nested inside of it, so shouldn't be passed
+    # down recursively
     options = {
         "max_recursion_depth": max_recursion_depth,
         "current_depth": current_depth + 1,
