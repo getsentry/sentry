@@ -1,7 +1,9 @@
-import {Fragment, memo, useContext, useMemo} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
+
+import type {SelectValue} from '@sentry/scraps/select';
 
 import type {Client} from 'sentry/api';
 import {AreaChart} from 'sentry/components/charts/areaChart';
@@ -25,8 +27,9 @@ import {
   TOP_N,
 } from 'sentry/utils/discover/types';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
+import {withApi} from 'sentry/utils/withApi';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {ChartFooter} from 'sentry/views/discover/results/chartFooter';
 
@@ -40,16 +43,29 @@ type ResultsChartProps = {
   customMeasurements?: CustomMeasurementCollection | undefined;
 };
 
-const ResultsChart = memo(
-  function ResultsChart({
-    api,
-    eventView,
-    location,
-    organization,
-    confirmedQuery,
-    yAxisValue,
-    customMeasurements,
-  }: ResultsChartProps) {
+class ResultsChart extends Component<ResultsChartProps> {
+  shouldComponentUpdate(nextProps: ResultsChartProps) {
+    const {eventView, ...restProps} = this.props;
+    const {eventView: nextEventView, ...restNextProps} = nextProps;
+
+    if (!eventView.isEqualTo(nextEventView)) {
+      return true;
+    }
+
+    return !isEqual(restProps, restNextProps);
+  }
+
+  render() {
+    const {
+      api,
+      eventView,
+      location,
+      organization,
+      confirmedQuery,
+      yAxisValue,
+      customMeasurements,
+    } = this.props;
+
     const globalSelection = eventView.getPageFilters();
     const start = globalSelection.datetime.start
       ? getUtcToLocalDateObject(globalSelection.datetime.start)
@@ -139,18 +155,11 @@ const ResultsChart = memo(
         })}
       </Fragment>
     );
-  },
-  function areEqual(prev: ResultsChartProps, next: ResultsChartProps) {
-    const {eventView, ...restPrev} = prev;
-    const {eventView: nextEventView, ...restNext} = next;
-    if (!eventView.isEqualTo(nextEventView)) {
-      return false;
-    }
-    return isEqual(restPrev, restNext);
   }
-);
+}
 
 type ContainerProps = {
+  api: Client;
   confirmedQuery: boolean;
   eventView: EventView;
   location: Location;
@@ -165,23 +174,54 @@ type ContainerProps = {
   yAxis: string[];
 };
 
-export const ResultsChartContainer = memo(
-  function ResultsChartContainer({
-    eventView,
-    location,
-    total,
-    onAxisChange,
-    onDisplayChange,
-    onIntervalChange,
-    onTopEventsChange,
-    organization,
-    confirmedQuery,
-    yAxis,
-  }: ContainerProps) {
-    const api = useApi();
-    const {customMeasurements} = useContext(CustomMeasurementsContext);
+type ContainerState = {
+  yAxisOptions: Array<SelectValue<string>>;
+};
 
-    const yAxisOptions = useMemo(() => eventView.getYAxisOptions(), [eventView]);
+class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
+  state: ContainerState = {
+    yAxisOptions: this.props.eventView.getYAxisOptions(),
+  };
+
+  UNSAFE_componentWillReceiveProps(nextProps: any) {
+    const yAxisOptions = this.props.eventView.getYAxisOptions();
+    const nextYAxisOptions = nextProps.eventView.getYAxisOptions();
+
+    if (!valueIsEqual(yAxisOptions, nextYAxisOptions, true)) {
+      this.setState({yAxisOptions: nextYAxisOptions});
+    }
+  }
+
+  shouldComponentUpdate(nextProps: ContainerProps) {
+    const {eventView, ...restProps} = this.props;
+    const {eventView: nextEventView, ...restNextProps} = nextProps;
+
+    if (
+      !eventView.isEqualTo(nextEventView) ||
+      this.props.confirmedQuery !== nextProps.confirmedQuery
+    ) {
+      return true;
+    }
+
+    return !isEqual(restProps, restNextProps);
+  }
+
+  render() {
+    const {
+      api,
+      eventView,
+      location,
+      total,
+      onAxisChange,
+      onDisplayChange,
+      onIntervalChange,
+      onTopEventsChange,
+      organization,
+      confirmedQuery,
+      yAxis,
+    } = this.props;
+
+    const {yAxisOptions} = this.state;
 
     const hasQueryFeature = organization.features.includes('discover-query');
     const displayOptions = eventView
@@ -218,15 +258,19 @@ export const ResultsChartContainer = memo(
     return (
       <StyledPanel>
         {(yAxis.length > 0 && (
-          <ResultsChart
-            api={api}
-            eventView={eventView}
-            location={location}
-            organization={organization}
-            confirmedQuery={confirmedQuery}
-            yAxisValue={yAxis}
-            customMeasurements={customMeasurements}
-          />
+          <CustomMeasurementsContext.Consumer>
+            {contextValue => (
+              <ResultsChart
+                api={api}
+                eventView={eventView}
+                location={location}
+                organization={organization}
+                confirmedQuery={confirmedQuery}
+                yAxisValue={yAxis}
+                customMeasurements={contextValue?.customMeasurements}
+              />
+            )}
+          </CustomMeasurementsContext.Consumer>
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter
           total={total}
@@ -243,19 +287,10 @@ export const ResultsChartContainer = memo(
         />
       </StyledPanel>
     );
-  },
-  function areContainerEqual(prev: ContainerProps, next: ContainerProps) {
-    const {eventView, ...restPrev} = prev;
-    const {eventView: nextEventView, ...restNext} = next;
-    if (
-      !eventView.isEqualTo(nextEventView) ||
-      prev.confirmedQuery !== next.confirmedQuery
-    ) {
-      return false;
-    }
-    return isEqual(restPrev, restNext);
   }
-);
+}
+
+export default withApi(ResultsChartContainer);
 
 const StyledPanel = styled(Panel)`
   @container (min-width: ${p => p.theme.container['4xl']}) {
